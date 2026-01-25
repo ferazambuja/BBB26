@@ -1,0 +1,740 @@
+---
+title: "BBB 26 — Histórico de Paredões"
+subtitle: "Resultado, votação da casa, análise de coerência e reações de cada eliminação"
+author: "Dashboard Automatizado"
+date: today
+lang: pt-BR
+format:
+  html:
+    code-fold: true
+    code-summary: "Ver código"
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+
+import json
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from pathlib import Path
+from collections import defaultdict, Counter
+from datetime import datetime
+from IPython.display import display, HTML
+
+# Diretórios
+DATA_DIR = Path("data/snapshots")
+
+# Categorias de reações
+REACTION_EMOJI = {
+    'Coração': '❤️', 'Planta': '🌱', 'Mala': '💼', 'Biscoito': '🍪',
+    'Cobra': '🐍', 'Alvo': '🎯', 'Vômito': '🤮', 'Mentiroso': '🤥',
+    'Coração partido': '💔'
+}
+
+SENTIMENT_WEIGHTS = {
+    'Coração': 1.0,
+    'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
+    'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0,
+    'Coração partido': -0.5  # Mild negative (disappointment, not hostility)
+}
+
+POSITIVE = {'Coração'}
+MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}  # 💔 = disappointment, not hostility
+STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso'}
+
+# Cores dos grupos
+GROUP_COLORS = {
+    'Camarote': '#E6194B',
+    'Veterano': '#3CB44B',
+    'Pipoca': '#4363D8',
+}
+
+MEMBER_OF = {}
+
+# ══════════════════════════════════════════════════════════════
+# Plotly Dark Theme Configuration (matches Bootswatch darkly)
+# ══════════════════════════════════════════════════════════════
+PLOT_BG = '#303030'
+PAPER_BG = '#303030'
+GRID_COLOR = '#444444'
+TEXT_COLOR = '#fff'
+
+import plotly.io as pio
+
+pio.templates['bbb_dark'] = go.layout.Template(
+    layout=go.Layout(
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
+        title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
+        margin=dict(l=70, r=30, t=70, b=60),
+        xaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR),
+        yaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR),
+        legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='rgba(0,0,0,0)'),
+        colorway=['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
+    )
+)
+pio.templates.default = 'bbb_dark'
+```
+
+```{python}
+#| label: load-data
+#| include: false
+
+def load_snapshot(filepath):
+    """Carrega um snapshot JSON (formato novo ou antigo)."""
+    with open(filepath, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "participants" in data:
+        return data["participants"], data.get("_metadata")
+    return data, None
+
+def get_all_snapshots():
+    """Retorna lista de (filepath, date_str) ordenada cronologicamente."""
+    if not DATA_DIR.exists():
+        return []
+    snapshots = sorted(DATA_DIR.glob("*.json"))
+    result = []
+    for fp in snapshots:
+        parts = fp.stem.split("_")
+        date_str = parts[0]
+        result.append((fp, date_str))
+    return result
+
+def build_reaction_matrix(participants):
+    """Constrói dicionário {(giver_name, receiver_name): reaction_label}."""
+    matrix = {}
+    for receiver in participants:
+        rname = receiver['name']
+        for rxn in receiver.get('characteristics', {}).get('receivedReactions', []):
+            label = rxn.get('label', '')
+            for giver in rxn.get('participants', []):
+                gname = giver['name']
+                matrix[(gname, rname)] = label
+    return matrix
+
+def calc_sentiment(participant):
+    """Calcula o score de sentimento recebido por um participante."""
+    total = 0
+    for rxn in participant.get('characteristics', {}).get('receivedReactions', []):
+        weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
+        total += weight * rxn.get('amount', 0)
+    return total
+
+def get_snapshot_for_date(target_date, snapshots_list, matrices_list):
+    """Retorna (snapshot, matrix, index) do snapshot mais próximo antes/em target_date."""
+    closest_idx = 0
+    for i, snap in enumerate(snapshots_list):
+        if snap['date'] <= target_date:
+            closest_idx = i
+    return snapshots_list[closest_idx], matrices_list[closest_idx], closest_idx
+
+# Carregar todos os snapshots
+all_snapshot_files = get_all_snapshots()
+snapshots = []
+for fp, date_str in all_snapshot_files:
+    participants, metadata = load_snapshot(fp)
+    snapshots.append({
+        'filepath': fp,
+        'date': date_str,
+        'timestamp': fp.stem,
+        'participants': participants,
+        'metadata': metadata
+    })
+
+# Construir matrizes de reação para todos os snapshots
+all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+# Preencher MEMBER_OF e AVATARS
+AVATARS = {}  # name -> avatar URL
+for snap in snapshots:
+    for p in snap['participants']:
+        name = p['name']
+        if name not in MEMBER_OF:
+            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
+        if name not in AVATARS and p.get('avatar'):
+            AVATARS[name] = p['avatar']
+
+# Enriquecer cada snapshot com label legível
+for snap in snapshots:
+    meta = snap.get('metadata') or {}
+    is_synthetic = meta.get('synthetic', False)
+    label = snap['date']
+    if is_synthetic:
+        label += ' (sintético)'
+    snap['label'] = label
+    snap['synthetic'] = is_synthetic
+```
+
+```{python}
+#| label: paredao-data
+#| include: false
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  DADOS MANUAIS — Copiados de index.qmd                       ║
+# ║  Fonte: GShow / transmissão ao vivo                          ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+# STATUS DO PAREDÃO:
+#   'finalizado' — Resultado conhecido (exibe no arquivo)
+#   'em_andamento' — Votação popular em curso (NÃO exibe no arquivo)
+
+paredoes = [
+    {
+        'numero': 1,
+        'status': 'finalizado',
+        'data': '2026-01-20',
+        'titulo': '1º Paredão — 20 de Janeiro de 2026',
+        'formacao': (
+            "Marcelo atendeu o Big Fone e indicou Aline Campos, "
+            "que contra-atacou Ana Paula Renault. O Líder Alberto Cowboy indicou Milena "
+            "(sem direito a Bate e Volta). Paulo Augusto, mais votado pela casa (11 votos), "
+            "escapou na Prova Bate e Volta (jogo de memória)."
+        ),
+        'lider': 'Alberto Cowboy',
+        'indicado_lider': 'Milena',
+        'imunizado': {'por': 'Jonas Sulzbach', 'quem': 'Sarah Andrade'},
+        'participantes': [
+            {'nome': 'Aline Campos',      'voto_unico': 60.42, 'voto_torcida': 64.50, 'voto_total': 61.64, 'resultado': 'ELIMINADA', 'grupo': 'Camarote'},
+            {'nome': 'Milena',             'voto_unico': 33.02, 'voto_torcida': 31.27, 'voto_total': 32.50, 'resultado': 'Salva',     'grupo': 'Pipoca'},
+            {'nome': 'Ana Paula Renault',  'voto_unico':  6.56, 'voto_torcida':  4.23, 'voto_total':  5.86, 'resultado': 'Salva',     'grupo': 'Veterano'},
+        ],
+        'votos_casa': {
+            'Solange Couto': 'Paulo Augusto', 'Ana Paula Renault': 'Paulo Augusto',
+            'Breno': 'Paulo Augusto', 'Aline Campos': 'Paulo Augusto',
+            'Jonas Sulzbach': 'Paulo Augusto', 'Maxiane': 'Paulo Augusto',
+            'Marcelo': 'Paulo Augusto', 'Sarah Andrade': 'Paulo Augusto',
+            'Samira': 'Paulo Augusto', 'Milena': 'Paulo Augusto',
+            'Gabriela': 'Paulo Augusto',
+            'Brigido': 'Sol Vega', 'Edilson': 'Sol Vega',
+            'Juliano Floss': 'Sol Vega', 'Paulo Augusto': 'Sol Vega',
+            'Babu Santana': 'Sol Vega',
+            'Jordana': 'Edilson',
+            'Marciele': 'Juliano Floss', 'Sol Vega': 'Juliano Floss',
+            'Matheus': 'Maxiane',
+            'Leandro': 'Jonas Sulzbach',
+            'Chaiany': 'Brigido',
+        },
+        'fontes': [
+            'https://portalaltadefinicao.com/bbb-26-voto-unico-e-voto-de-torcida-definem-eliminacao-de-aline-campos',
+            'https://exame.com/pop/bbb-26-veja-quem-votou-em-quem-no-1o-paredao/',
+            'https://www.itatiaia.com.br/entretenimento/bbb/bbb-26-novo-sistema-de-votacao-nao-interferiu-na-eliminacao-de-aline',
+        ],
+    },
+    # Adicionar novos paredões aqui seguindo o mesmo formato.
+
+    {
+        'numero': 2,
+        'status': 'em_andamento',           # Formação parcial — aguardando mais indicados
+        'data': '2026-01-27',               # Terça-feira (data prevista da eliminação)
+        'titulo': '2º Paredão — EM FORMAÇÃO',
+        'total_esperado': 3,                # Quantos indicados esperamos
+        'formacao': (
+            "Dinâmica das Caixas-Surpresa: Cowboy e Brígido, em consenso, "
+            "indicaram Leandro ao Paredão. Não haverá Bate e Volta neste paredão."
+        ),
+        'lider': None,
+        'indicado_lider': None,
+        'participantes': [
+            {'nome': 'Leandro', 'grupo': 'Pipoca', 'como': 'Caixas-Surpresa'},
+        ],
+    },
+]
+```
+
+## Resumo das Eliminações
+
+```{python}
+#| label: paredao-summary
+#| output: asis
+
+paredoes_finalizados = [p for p in paredoes if p.get('status') == 'finalizado']
+
+if len(paredoes_finalizados) >= 1:
+    hist_rows = []
+    for p in paredoes_finalizados:
+        eliminado = next((x for x in p['participantes'] if x['resultado'] == 'ELIMINADA'), None)
+        salvos = [x for x in p['participantes'] if x['resultado'] != 'ELIMINADA']
+
+        row = {
+            'Nº': f"{p['numero']}º",
+            'Data': p['data'],
+            'Eliminado(a)': eliminado['nome'] if eliminado else '—',
+            'Grupo': eliminado['grupo'] if eliminado else '—',
+            'Voto Único': f"{eliminado['voto_unico']:.1f}%" if eliminado and eliminado.get('voto_unico') else '—',
+            'Voto Torcida': f"{eliminado['voto_torcida']:.1f}%" if eliminado and eliminado.get('voto_torcida') else '—',
+            'Média Final': f"{eliminado['voto_total']:.1f}%" if eliminado else '—',
+            'Salvos': ', '.join(s['nome'] for s in salvos),
+            'Líder': p.get('lider', '—'),
+        }
+        hist_rows.append(row)
+
+    df_hist = pd.DataFrame(hist_rows)
+    print(df_hist.to_markdown(index=False))
+```
+
+---
+
+Abaixo você encontra a análise completa de cada Paredão: resultado da votação, formação, votação da casa, comparação com reações do queridômetro e análise de coerência.
+
+```{python}
+#| label: paredao-content
+#| output: asis
+
+# Generate all the charts and analysis for each FINALIZED paredão
+# (paredões em andamento não são exibidos no arquivo - ainda não há resultado)
+paredoes_finalizados = [p for p in paredoes if p.get('status') == 'finalizado']
+for i, paredao in enumerate(paredoes_finalizados):
+    par_num = paredao['numero']
+    par_date = paredao['data']
+
+    # Get snapshot for this paredão
+    snap_p, matrix_p, idx_p = get_snapshot_for_date(par_date, snapshots, all_matrices)
+    snap_participants = snap_p['participants']
+
+    # ══════════════════════════════════════════════════════════════
+    # HEADER WITH RESULT
+    # ══════════════════════════════════════════════════════════════
+
+    eliminado = next((x for x in paredao['participantes'] if x['resultado'] == 'ELIMINADA'), None)
+    salvos = [x for x in paredao['participantes'] if x['resultado'] != 'ELIMINADA']
+
+    print(f"\n# {paredao['titulo']}\n")
+
+    # ── Visual: Cards com fotos e resultado ──
+    print('<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; margin: 1.5rem 0 2rem 0;">')
+    for part in paredao['participantes']:
+        nome = part['nome']
+        grupo = part.get('grupo', MEMBER_OF.get(nome, '?'))
+        resultado = part.get('resultado', '')
+        voto_total = part.get('voto_total', 0)
+        avatar_url = AVATARS.get(nome, '')
+        cor_grupo = GROUP_COLORS.get(grupo, '#666')
+
+        # Card styling based on result
+        if resultado == 'ELIMINADA':
+            border_color = '#E6194B'
+            badge_bg = '#E6194B'
+            badge_text = 'ELIMINADO(A)'
+            img_filter = 'grayscale(100%)'  # B&W for eliminated
+        else:
+            border_color = '#3CB44B'
+            badge_bg = '#3CB44B'
+            badge_text = 'SALVO(A)'
+            img_filter = 'none'
+
+        print(f'<div style="background: linear-gradient(145deg, #3a3a3a, #2a2a2a); border-radius: 16px; padding: 1.5rem; text-align: center; width: 160px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid {border_color};">')
+        if avatar_url:
+            print(f'<img src="{avatar_url}" alt="{nome}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid {border_color}; margin-bottom: 0.75rem; filter: {img_filter};">')
+        print(f'<h4 style="margin: 0 0 0.25rem 0; color: #fff; font-size: 1em;">{nome}</h4>')
+        print(f'<span style="display: block; color: {cor_grupo}; font-size: 0.8em; margin-bottom: 0.5rem;">{grupo}</span>')
+        print(f'<span style="display: inline-block; padding: 0.25rem 0.6rem; background: {badge_bg}; color: #fff; border-radius: 10px; font-size: 0.75em; font-weight: bold;">{badge_text}</span>')
+        print(f'<div style="color: #fff; font-size: 1.3em; font-weight: bold; margin-top: 0.5rem;">{voto_total:.1f}%</div>')
+        print('</div>')
+    print('</div>')
+
+    print(f"**Coleta usada:** {snap_p['label']} ({snap_p['timestamp']})\n")
+
+    # ══════════════════════════════════════════════════════════════
+    # 1. GRÁFICO DE RESULTADO
+    # ══════════════════════════════════════════════════════════════
+
+    df_p = pd.DataFrame(paredao['participantes'])
+    has_breakdown = 'voto_unico' in df_p.columns and df_p['voto_unico'].notna().all()
+
+    fig = go.Figure()
+
+    if has_breakdown:
+        fig.add_trace(go.Bar(
+            x=df_p['nome'], y=df_p['voto_unico'],
+            text=[f"{v:.1f}%" for v in df_p['voto_unico']],
+            textposition='outside', name='Voto Único (70%)',
+            marker_color='#1976D2',
+        ))
+        fig.add_trace(go.Bar(
+            x=df_p['nome'], y=df_p['voto_torcida'],
+            text=[f"{v:.1f}%" for v in df_p['voto_torcida']],
+            textposition='outside', name='Voto Torcida (30%)',
+            marker_color='#FF9800',
+        ))
+
+    colors_total = ['#E6194B' if r == 'ELIMINADA' else '#3CB44B' for r in df_p['resultado']]
+    fig.add_trace(go.Bar(
+        x=df_p['nome'], y=df_p['voto_total'],
+        text=[f"{v:.1f}%" for v in df_p['voto_total']],
+        textposition='outside', name='Média Final',
+        marker_color=colors_total,
+    ))
+
+    fig.update_layout(
+        title=dict(text=f"Resultado: {paredao['titulo']}", y=0.95, x=0.5, xanchor='center'),
+        xaxis_title="", yaxis_title="Votos (%)",
+        yaxis_range=[0, max(df_p['voto_total'].max(), df_p.get('voto_torcida', pd.Series([0])).max()) * 1.25],
+        barmode='group',
+                height=500,
+        margin=dict(t=100),
+        legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='center', x=0.5),
+    )
+    fig.show()
+
+    # ══════════════════════════════════════════════════════════════
+    # 2. FORMAÇÃO E IMUNIZAÇÃO
+    # ══════════════════════════════════════════════════════════════
+
+    print(f"## Como foi formado\n")
+    print(f"{paredao['formacao']}\n")
+
+    if paredao.get('imunizado'):
+        im = paredao['imunizado']
+        print(f"**Imunização:** {im['por']} imunizou {im['quem']}\n")
+
+    # ══════════════════════════════════════════════════════════════
+    # 3. VOTAÇÃO DA CASA
+    # ══════════════════════════════════════════════════════════════
+
+    if paredao.get('votos_casa'):
+        votos = paredao['votos_casa']
+        contagem = Counter(votos.values())
+        ranking = contagem.most_common()
+
+        print(f"## Votação da Casa\n")
+        print(f"**Mais votado:** {ranking[0][0]} ({ranking[0][1]} votos)\n")
+
+        for alvo, n in ranking:
+            votantes = sorted([v for v, a in votos.items() if a == alvo])
+            print(f"- **{alvo}** ({n}): {', '.join(votantes)}")
+        print("")
+
+    # ══════════════════════════════════════════════════════════════
+    # 4. VOTO DA CASA VS REAÇÕES
+    # ══════════════════════════════════════════════════════════════
+
+    if paredao.get('votos_casa'):
+        print(f"## Voto da Casa vs Queridômetro\n")
+        print("Comparação entre o voto no confessionário e a reação pública.\n")
+
+        votos = paredao['votos_casa']
+        match_rows = []
+
+        for votante, alvo in sorted(votos.items()):
+            reacao_ao_alvo = matrix_p.get((votante, alvo), '')
+            emoji_alvo = REACTION_EMOJI.get(reacao_ao_alvo, '?')
+            coerente = '—'
+            if reacao_ao_alvo in POSITIVE:
+                coerente = '❤️→👎 Incoerente'
+            elif reacao_ao_alvo in MILD_NEGATIVE:
+                coerente = '✅ Leve'
+            elif reacao_ao_alvo in STRONG_NEGATIVE:
+                coerente = '✅ Forte'
+
+            match_rows.append({
+                'Votante': votante,
+                'Votou em': alvo,
+                'Reação': emoji_alvo,
+                'Coerência': coerente,
+            })
+
+        df_match = pd.DataFrame(match_rows)
+        n_incoerente = sum(1 for r in match_rows if 'Incoerente' in r['Coerência'])
+        n_coerente = sum(1 for r in match_rows if r['Coerência'].startswith('✅'))
+        total = len(match_rows)
+
+        print(f"**Resultado:** {n_coerente}/{total} votos coerentes, "
+              f"{n_incoerente}/{total} incoerentes (deu ❤️ mas votou contra).\n")
+        print(df_match.to_markdown(index=False))
+        print("")
+
+    # ══════════════════════════════════════════════════════════════
+    # 5. REAÇÕES PREVEEM VOTOS?
+    # ══════════════════════════════════════════════════════════════
+
+    if paredao.get('votos_casa'):
+        print(f"## Reações Preveem Votos?\n")
+
+        votos = paredao['votos_casa']
+        vote_counts = Counter(votos.values())
+
+        sent_by_name = {}
+        neg_count_by_name = {}
+        for p in snap_participants:
+            if p.get('characteristics', {}).get('eliminated'):
+                continue
+            name = p['name']
+            sent_by_name[name] = calc_sentiment(p)
+            neg_count_by_name[name] = sum(
+                r['amount'] for r in p.get('characteristics', {}).get('receivedReactions', [])
+                if r['label'] != 'Coração'
+            )
+
+        # Scatter: negatividade recebida vs votos recebidos
+        scatter_data = []
+        for name in set(list(vote_counts.keys()) + list(neg_count_by_name.keys())):
+            if name in neg_count_by_name:
+                scatter_data.append({
+                    'nome': name,
+                    'neg_recebidas': neg_count_by_name.get(name, 0),
+                    'votos_recebidos': vote_counts.get(name, 0),
+                    'grupo': MEMBER_OF.get(name, '?'),
+                })
+
+        df_scatter = pd.DataFrame(scatter_data)
+
+        if len(df_scatter) > 2:
+            corr_val = df_scatter['neg_recebidas'].corr(df_scatter['votos_recebidos'])
+
+            fig = px.scatter(
+                df_scatter, x='neg_recebidas', y='votos_recebidos',
+                text='nome', color='grupo', color_discrete_map=GROUP_COLORS,
+                title=f"Reações Negativas vs Votos na Casa (r = {corr_val:.2f})",
+                labels={'neg_recebidas': 'Reações negativas recebidas', 'votos_recebidos': 'Votos recebidos'}
+            )
+            fig.update_traces(textposition='top center', textfont_size=9, marker_size=12)
+            fig.update_layout(height=450)
+
+            if df_scatter['neg_recebidas'].std() > 0:
+                z = np.polyfit(df_scatter['neg_recebidas'], df_scatter['votos_recebidos'], 1)
+                x_line = np.linspace(df_scatter['neg_recebidas'].min(), df_scatter['neg_recebidas'].max(), 50)
+                fig.add_trace(go.Scatter(x=x_line, y=np.polyval(z, x_line), mode='lines',
+                                         line=dict(dash='dash', color='gray'), name='Tendência'))
+            fig.show()
+
+            if abs(corr_val) < 0.3:
+                print(f"\n> **Correlação fraca (r = {corr_val:.2f}):** As reações do queridômetro "
+                      "**não preveem** quem será votado. Votos são estratégicos.\n")
+            elif corr_val > 0.3:
+                print(f"\n> **Correlação moderada (r = {corr_val:.2f}):** Quem recebe mais "
+                      "reações negativas tende a receber mais votos.\n")
+
+    # ══════════════════════════════════════════════════════════════
+    # 6. VOTARAM NO QUE MAIS DETESTAM?
+    # ══════════════════════════════════════════════════════════════
+
+    if paredao.get('votos_casa'):
+        print(f"## Votaram no participante que mais detestam?\n")
+
+        votos = paredao['votos_casa']
+        voted_worst = 0
+        voter_analysis = []
+
+        for votante, alvo in votos.items():
+            worst_target = None
+            worst_score = float('inf')
+            for other_name in neg_count_by_name:
+                if other_name == votante:
+                    continue
+                rxn = matrix_p.get((votante, other_name), '')
+                weight = SENTIMENT_WEIGHTS.get(rxn, 0)
+                if weight < worst_score:
+                    worst_score = weight
+                    worst_target = other_name
+
+            match = alvo == worst_target
+            if match:
+                voted_worst += 1
+            rxn_to_target = matrix_p.get((votante, alvo), '')
+            emoji_to_target = REACTION_EMOJI.get(rxn_to_target, '?')
+            voter_analysis.append({
+                'votante': votante, 'alvo': alvo, 'emoji': emoji_to_target,
+                'pior_avaliado': worst_target, 'votou_no_pior': match
+            })
+
+        pct_worst = voted_worst / len(votos) * 100
+        print(f"Apenas **{voted_worst}/{len(votos)} ({pct_worst:.0f}%)** votaram na pessoa que "
+              f"avaliaram mais negativamente. Os votos são **estratégicos**.\n")
+
+        # Pie chart de coerência
+        coerencia_data = []
+        for va in voter_analysis:
+            rxn = matrix_p.get((va['votante'], va['alvo']), '')
+            if rxn in POSITIVE:
+                tipo = 'Deu ❤️ mas votou contra'
+            elif rxn in MILD_NEGATIVE:
+                tipo = 'Coerente (negativa leve)'
+            elif rxn in STRONG_NEGATIVE:
+                tipo = 'Coerente (negativa forte)'
+            else:
+                tipo = 'Sem reação'
+            coerencia_data.append({'Tipo': tipo})
+
+        df_coer = pd.DataFrame(coerencia_data)
+        tipo_colors = {
+            'Deu ❤️ mas votou contra': '#E6194B',
+            'Coerente (negativa leve)': '#FF9800',
+            'Coerente (negativa forte)': '#3CB44B',
+            'Sem reação': '#999'
+        }
+        tipo_counts = df_coer['Tipo'].value_counts()
+
+        fig = go.Figure(go.Pie(
+            labels=tipo_counts.index.tolist(),
+            values=tipo_counts.values.tolist(),
+            marker_colors=[tipo_colors.get(t, '#999') for t in tipo_counts.index],
+            textinfo='label+percent+value',
+            hole=0.4,
+        ))
+        fig.update_layout(
+            title=f"Coerência: Reação vs Voto — {par_num}º Paredão",
+                        height=400,
+            annotations=[dict(text=f"{len(votos)}<br>votos", x=0.5, y=0.5, font_size=16, showarrow=False)]
+        )
+        fig.show()
+
+    # ══════════════════════════════════════════════════════════════
+    # 7. O CASO DO MAIS VOTADO
+    # ══════════════════════════════════════════════════════════════
+
+    if paredao.get('votos_casa'):
+        votos = paredao['votos_casa']
+        vote_counts = Counter(votos.values())
+        mais_votado = vote_counts.most_common(1)[0]
+        mv_name, mv_votes = mais_votado
+        mv_sentiment = sent_by_name.get(mv_name, 0)
+        mv_neg = neg_count_by_name.get(mv_name, 0)
+
+        votantes_dele = [v for v, a in votos.items() if a == mv_name]
+        hearts_from_voters = sum(1 for v in votantes_dele if matrix_p.get((v, mv_name), '') in POSITIVE)
+
+        print(f"## O caso {mv_name}\n")
+        print(f"**{mv_name}** foi o mais votado pela casa com **{mv_votes} votos**.\n")
+        print(f"- Sentimento recebido: **{mv_sentiment:+.1f}** (reações negativas: {mv_neg})")
+        print(f"- Dos {mv_votes} que votaram nele, **{hearts_from_voters}** tinham lhe dado ❤️ publicamente")
+
+        if hearts_from_voters > mv_votes / 2:
+            print(f"- **{hearts_from_voters}/{mv_votes} = {hearts_from_voters/mv_votes*100:.0f}%** dos votos "
+                  "foram \"duas caras\" — afeto público, voto privado contra")
+        print("")
+
+    # ══════════════════════════════════════════════════════════════
+    # 8. INDICAÇÃO DO LÍDER
+    # ══════════════════════════════════════════════════════════════
+
+    if paredao.get('lider') and paredao.get('indicado_lider'):
+        lider = paredao['lider']
+        indicado = paredao['indicado_lider']
+        rxn_lider = matrix_p.get((lider, indicado), '')
+        emoji_lider = REACTION_EMOJI.get(rxn_lider, '?')
+        weight_lider = SENTIMENT_WEIGHTS.get(rxn_lider, 0)
+
+        worst_for_leader = None
+        worst_w = float('inf')
+        for other in neg_count_by_name:
+            if other == lider:
+                continue
+            w = SENTIMENT_WEIGHTS.get(matrix_p.get((lider, other), ''), 0)
+            if w < worst_w:
+                worst_w = w
+                worst_for_leader = other
+
+        print(f"## Indicação do Líder\n")
+        print(f"**{lider}** (Líder) indicou **{indicado}** ao paredão.\n")
+        print(f"- Reação do líder ao indicado: {emoji_lider} ({rxn_lider}, peso {weight_lider:+.1f})")
+
+        if worst_for_leader == indicado:
+            print(f"- **Coerente:** {indicado} era quem {lider} avaliou mais negativamente")
+        else:
+            emoji_worst = REACTION_EMOJI.get(matrix_p.get((lider, worst_for_leader), ''), '?')
+            print(f"- Pior avaliado por {lider}: {worst_for_leader} ({emoji_worst})")
+            if weight_lider < 0:
+                print(f"- Parcialmente coerente: deu reação negativa, mas não era o pior")
+            else:
+                print(f"- **Incoerente:** deu {emoji_lider} ao indicado — decisão estratégica")
+        print("")
+
+    # ══════════════════════════════════════════════════════════════
+    # 9. RANKING DE SENTIMENTO NO DIA DO PAREDÃO
+    # ══════════════════════════════════════════════════════════════
+
+    print(f"## Ranking de Sentimento — {snap_p['label']}\n")
+
+    sentiment_data = []
+    for p in snap_participants:
+        if p.get('characteristics', {}).get('eliminated'):
+            continue
+        name = p['name']
+        score = calc_sentiment(p)
+        hearts = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
+                     if r['label'] == 'Coração')
+        neg = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
+                  if r['label'] != 'Coração')
+        member_of = p.get('characteristics', {}).get('memberOf', '?')
+        sentiment_data.append({
+            'name': name, 'score': score, 'hearts': hearts,
+            'negative': neg, 'memberOf': member_of
+        })
+
+    df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
+
+    color_map = {name: GROUP_COLORS.get(m, '#999')
+                 for name, m in zip(df_sent['name'], df_sent['memberOf'])}
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=df_sent['name'],
+        x=df_sent['score'],
+        orientation='h',
+        marker_color=[color_map[n] for n in df_sent['name']],
+        text=[f"{s:+.1f}" for s in df_sent['score']],
+        textposition='outside',
+        hovertemplate='%{y}: %{x:+.1f}<br>❤️: %{customdata[0]} | Neg: %{customdata[1]}<extra></extra>',
+        customdata=list(zip(df_sent['hearts'], df_sent['negative'])),
+    ))
+
+    fig.update_layout(
+        title=f"Ranking de Sentimento — {par_num}º Paredão",
+        xaxis_title="Score de Sentimento",
+        yaxis_title="",
+                height=max(500, len(df_sent) * 28),
+        margin=dict(l=150),
+        shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
+                     line=dict(color='red', dash='dash', width=1))]
+    )
+
+    for group, color in GROUP_COLORS.items():
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None], mode='markers',
+            marker=dict(size=10, color=color),
+            name=group, showlegend=True
+        ))
+
+    fig.show()
+
+    # ══════════════════════════════════════════════════════════════
+    # 10. REAÇÕES RECEBIDAS (TABELA)
+    # ══════════════════════════════════════════════════════════════
+
+    print(f"\n## Reações Recebidas — {par_num}º Paredão\n")
+
+    summary_rows = []
+    emoji_cols = ['❤️', '🌱', '💼', '🍪', '🐍', '🎯', '🤮', '🤥', '💔']
+
+    for p in sorted(snap_participants, key=lambda x: calc_sentiment(x), reverse=True):
+        if p.get('characteristics', {}).get('eliminated'):
+            continue
+        name = p['name']
+        rxn_counts = {}
+        for rxn in p.get('characteristics', {}).get('receivedReactions', []):
+            emoji = REACTION_EMOJI.get(rxn['label'], rxn['label'])
+            rxn_counts[emoji] = rxn['amount']
+        score = calc_sentiment(p)
+
+        row = {'Participante': name}
+        for e in emoji_cols:
+            row[e] = rxn_counts.get(e, 0)
+        row['Score'] = f"{score:+.1f}"
+        summary_rows.append(row)
+
+    df_summary = pd.DataFrame(summary_rows)
+    print(df_summary.to_markdown(index=False))
+
+    print("\n---\n")
+```
+
+<div class="alert alert-info" role="alert">
+<strong>Voltar:</strong> <a href="index.html">Painel Principal</a>
+</div>

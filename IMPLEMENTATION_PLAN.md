@@ -32,6 +32,15 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-24 | Discovered critical data model: reactions are NOT permanent — reassigned daily | ✅ Done |
 | 2026-01-24 | Updated CLAUDE.md, CHANGELOG.md, IMPLEMENTATION_PLAN.md with corrected data model | ✅ Done |
 | 2026-01-24 | Committed full reorganization: 124 files (116 deletions + 18 new), commit `28ef943` | ✅ Done |
+| 2026-01-25 | Created `arquivo.qmd` — comprehensive paredão archive with per-paredão analysis | ✅ Done |
+| 2026-01-25 | Added "O Que Mudou Hoje?" section — day-over-day change visualizations (diverging bar, heatmap, Sankey, volatility) | ✅ Done |
+| 2026-01-25 | Added "Clusters de Afinidade" — hierarchical clustering based on mutual sentiment | ✅ Done |
+| 2026-01-25 | Added affinity heatmap reordered by cluster with boundary lines | ✅ Done |
+| 2026-01-25 | Verified Jan 13 snapshot matches GShow queridômetro article | ✅ Done |
+| 2026-01-25 | Switched to dark theme (`darkly`) with custom `bbb_dark` Plotly template | ✅ Done |
+| 2026-01-25 | Added data type tags to all sections (📸 daily, 📅 day-to-day, 📈 accumulated) | ✅ Done |
+| 2026-01-25 | Removed TOC sidebar, enabled full-width page layout | ✅ Done |
+| 2026-01-25 | Removed duplicate vote-reaction analysis (kept in arquivo.qmd) | ✅ Done |
 | 2026-01-24 | Created `_quarto.yml` — renders BBB.ipynb only, cosmo theme, code-fold | ✅ Done |
 | 2026-01-24 | Created `requirements.txt` (7 packages + jupyter/nbformat/nbclient) | ✅ Done |
 | 2026-01-24 | Tested `quarto render` — `_site/BBB.html` (291KB) + 4 figures generated | ✅ Done |
@@ -45,9 +54,65 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-24 | Added `tabulate` to `requirements.txt` | ✅ Done |
 | 2026-01-24 | Tested `quarto render` — all 19 cells pass, 454KB HTML output | ✅ Done |
 | 2026-01-24 | Moved `BBB.ipynb` to `_legacy/` | ✅ Done |
-| | Create GitHub Actions workflow | ⏳ Pending |
+| 2026-01-25 | Added participant avatars to paredão cards (with B&W filter for eliminated) | ✅ Done |
+| 2026-01-25 | Added avatars to individual profiles section | ✅ Done |
+| 2026-01-25 | Implemented paredão status system (`em_andamento` / `finalizado`) | ✅ Done |
+| 2026-01-25 | Renamed `arquivo.qmd` → `paredoes.qmd` ("Histórico de Paredões") | ✅ Done |
+| 2026-01-25 | Added link box to paredões page from main dashboard | ✅ Done |
+| 2026-01-25 | Moved historical summary table to paredoes.qmd | ✅ Done |
+| 2026-01-25 | Fixed user-facing language (removed developer jargon, "reações públicas" → "queridômetro") | ✅ Done |
+| 2026-01-25 | Created GitHub Actions workflow with 4x daily cron (multi-capture strategy) | ✅ Done |
+| 2026-01-25 | Enhanced fetch_data.py with change type detection (reactions/balance/roles) | ✅ Done |
 | | Enable GitHub Pages | ⏳ Pending |
-| | Add manual game data: voto único/torcida, indicações do líder, votos da casa | ⏳ Planned |
+
+## Weekly Paredão Update Workflow
+
+### Sunday Night (~22h45 BRT) — Paredão Formation
+
+1. **Watch the formation live** — Paredão typically starts around 22h45 BRT on Sundays
+2. **Fetch fresh API data** after the formation:
+   ```bash
+   python scripts/fetch_data.py
+   ```
+3. **Check who has the Paredão role**:
+   ```bash
+   python3 -c "
+   import json
+   with open('data/latest.json') as f:
+       data = json.load(f)
+   participants = data['participants'] if 'participants' in data else data
+   for p in participants:
+       roles = p.get('characteristics', {}).get('roles', [])
+       role_labels = [r.get('label') if isinstance(r, dict) else r for r in roles]
+       if 'Paredão' in role_labels:
+           print(f\"{p['name']} ({p['characteristics'].get('memberOf', '?')})\")
+   "
+   ```
+4. **Create `em_andamento` entry** in both `index.qmd` and `paredoes.qmd` with:
+   - Formation story
+   - House votes (who voted for whom)
+   - Leader nomination
+   - Bate e Volta results (if applicable)
+
+### Monday-Tuesday — Update as Needed
+
+- Add any missing details as they become available from news sources
+- Verify participant names match API exactly
+
+### Tuesday Night (~23h BRT) — Result
+
+1. **Watch the elimination live**
+2. **Update both files** to change `status: 'finalizado'` and add:
+   - Vote percentages (Voto Único, Voto Torcida, Média Final)
+   - Result (ELIMINADO/SALVO for each participant)
+3. **Fetch fresh API data** to capture the post-elimination state:
+   ```bash
+   python scripts/fetch_data.py
+   ```
+4. **Render and commit**:
+   ```bash
+   quarto render && git add -A && git commit -m "Nº Paredão: [nome] eliminado(a)"
+   ```
 
 ### Git Status
 
@@ -538,34 +603,192 @@ Handled automatically by `scripts/fetch_data.py` — it compares the MD5 hash of
 - [x] **1.5f. Update `_quarto.yml`** — renders `index.qmd`, title in pt-BR
 - [x] **1.5g. Move `BBB.ipynb` to `_legacy/`**
 - [x] **1.5h. Test `quarto render`** — all 19 cells executed, 454KB HTML output
-- [ ] **1.5i. Commit the new document**
+- [x] **1.5i. Commit the new document** — commit `b98a3e3`
 
-#### Phase 1.6: Manual Game Data (Future) ⏳ PLANNED
+#### Phase 1.6: Manual Game Data ✅ COMPLETE
 
 Some game data is **not available from the API** and must be added manually after each event.
 The `index.qmd` includes a structured `paredoes` list that supports easy manual updates.
 
 **Currently tracked (manual):**
-- Paredão results: vote percentages (total), formation story, eliminated participant
+- Paredão results: vote percentages (total + voto único/torcida breakdown), formation story, eliminated participant
+- Leader nominations and immunity details
+- House votes (who voted for whom)
 
-**Planned additions:**
-- [ ] **1.6a. Voto Único vs Voto da Torcida breakdown** — add `voto_unico_pct` and `voto_torcida_pct` fields to each paredão entry (70% + 30% weight system)
-- [ ] **1.6b. Indicações do Líder** — track who the leader nominated each week and compare with reaction data (did the leader nominate someone they gave negative reactions to?)
-- [ ] **1.6c. Votação da casa** — who voted for whom in each paredão, cross-referenced with the reaction cross-table (do house votes align with negative reactions?)
-- [ ] **1.6d. Create `data/manual/` directory** — JSON files for manually-curated game events:
-  - `paredoes.json` — all paredão results + vote breakdowns
-  - `indicacoes.json` — leader nominations per week
-  - `votos_casa.json` — house votes per paredão
-- [ ] **1.6e. Comparative visualizations** — overlay house votes on the reaction network graph, highlight mismatches between public reactions and private votes
+**Completed:**
+- [x] **1.6a. Voto Único vs Voto da Torcida breakdown** — `voto_unico` and `voto_torcida` fields in each paredão entry (70% + 30% weight system), with grouped bar chart
+- [x] **1.6b. Indicações do Líder** — tracked in `lider`, `indicado_lider` fields; analyzed in vote-reaction-analysis (coerência com reações)
+- [x] **1.6c. Votação da casa** — `votos_casa` dict in each paredão entry; cross-referenced with reaction cross-table (coerência analysis, scatter plots, pie charts)
+- [x] **1.6e. Comparative visualizations** — vote vs reaction coherence analysis, scatter plot (neg received vs votes), pie chart of coherence types
 
-#### Phase 2: GitHub Actions
-- [ ] **2.1. Create `.github/workflows/daily-update.yml`** (4x daily cron)
+**Deferred:**
+- [ ] **1.6d. Create `data/manual/` directory** — currently all manual data lives in `index.qmd`; JSON extraction deferred until paredão count justifies it
 
-#### Phase 3: GitHub Pages
-- [ ] **3.1. Push to GitHub**
-- [ ] **3.2. Enable GitHub Pages in repo settings**
-- [ ] **3.3. Manually trigger workflow to test**
-- [ ] **3.4. Verify site is live at `<username>.github.io/BBB26`**
+#### Phase 1.7: Paredão Archive Page ✅ COMPLETE
+
+Created `arquivo.qmd` — a separate page for comprehensive paredão analysis.
+
+**What was done:**
+- [x] **1.7a. Created `arquivo.qmd`** — separate page with per-paredão sections
+- [x] **1.7b. Per-paredão analysis includes**: result chart, formation details, house votes table, vote vs reaction coherence (scatter + pie), "O caso [mais votado]", leader nomination analysis, sentiment ranking, reactions received table
+- [x] **1.7c. Updated `_quarto.yml`** — two-page website with navbar (Painel + Arquivo)
+- [x] **1.7d. Moved paredão archive from index.qmd to arquivo.qmd**
+
+#### Phase 1.8: Day-Over-Day Changes Section ✅ COMPLETE
+
+Added "O Que Mudou Hoje?" section with multiple visualizations:
+
+- [x] **1.8a. Diverging bar chart** — winners and losers (who gained/lost most sentiment)
+- [x] **1.8b. Difference heatmap** — cells showing which specific reactions changed
+- [x] **1.8c. Volatility chart** — stacked bar showing who changed opinions most (positive/negative/lateral)
+- [x] **1.8d. Sankey diagram** — flow of reaction changes (from → to)
+- [x] **1.8e. Dramatic changes list** — narrative highlights of biggest changes
+
+#### Phase 1.9: Cluster Analysis ✅ COMPLETE
+
+Added affinity clustering and related visualizations:
+
+- [x] **1.9a. Hierarchical clustering** — groups participants by mutual sentiment using Ward's method
+- [x] **1.9b. Cluster summary** — shows members per cluster, group composition, inter-cluster dynamics
+- [x] **1.9c. Affinity heatmap** — reordered by cluster with white boundary lines
+- [x] **1.9d. Polarizing participants** — who gives/receives most negativity, most mutual enemies
+
+#### Phase 1.10: Theme and Layout ✅ COMPLETE
+
+Improved visual design:
+
+- [x] **1.10a. Dark theme** — switched to Bootswatch `darkly` theme
+- [x] **1.10b. Custom Plotly template** — `bbb_dark` template with matching colors (#303030 background)
+- [x] **1.10c. Removed TOC sidebar** — `toc: false` in `_quarto.yml`
+- [x] **1.10d. Full-width layout** — `page-layout: full` for wider content
+- [x] **1.10e. Fixed legend overlaps** — adjusted margins and legend positions
+- [x] **1.10f. Data type tags** — added 📸 (daily), 📅 (day-to-day), 📈 (accumulated) tags to all sections
+
+#### Phase 1.11: Code Cleanup ✅ COMPLETE
+
+- [x] **1.11a. Removed duplicate sections** — vote-reaction analysis now only in arquivo.qmd
+- [x] **1.11b. Fixed label inconsistencies** — changed `/snap` to `/dia` in charts
+- [x] **1.11c. Verified Jan 13 data** — matches GShow queridômetro article (51 negative + 369 hearts)
+
+#### Phase 1.12: Hostility Analysis ✅ COMPLETE
+
+Added comprehensive hostility tracking:
+- [x] **1.12a. One-sided hostility** — A gives negative to B, B gives ❤️ to A ("blind spots")
+- [x] **1.12b. Two-sided hostility** — Both A and B give negative to each other ("declared enemies")
+- [x] **1.12c. Hostilidades do Dia section** — Daily snapshot analysis
+- [x] **1.12d. Hostilidades Persistentes section** — Accumulated over time
+- [x] **1.12e. Mudanças em Hostilidades** — Day-over-day hostility changes in "O Que Mudou Hoje?"
+- [x] **1.12f. Insights do Jogo section** — Key findings connecting hostility to voting patterns
+- [x] **1.12g. Updated CLAUDE.md** — Documented hostility analysis concepts
+
+#### Phase 1.13: Flexible Paredão System ✅ COMPLETE
+
+Improved paredão display to handle partial data:
+- [x] **1.13a. `total_esperado` field** — Shows placeholder cards for missing nominees
+- [x] **1.13b. `como` field** — Describes how each participant was nominated
+- [x] **1.13c. Conditional section display** — Hide "Reações Preveem Votos?" until votos_casa available
+- [x] **1.13d. Added 2º Paredão** — Leandro via Caixas-Surpresa dynamic (partial formation)
+
+---
+
+### Phase 2: Dashboard Reorganization ⏳ PENDING
+
+> **Detailed plan**: See `REORGANIZATION_PLAN.md` for complete section audit and implementation details.
+
+The dashboard has grown to 25+ sections and needs reorganization into focused pages.
+
+#### Phase 2.0: Planning ✅ COMPLETE
+- [x] **2.0a. Created REORGANIZATION_PLAN.md** — Complete section audit with 23 sections mapped
+- [x] **2.0b. 5-page architecture** — Painel, O Que Mudou, Trajetória, Paredão, Arquivo
+- [x] **2.0c. Improvements list** — 20+ improvements to existing sections
+- [x] **2.0d. New ideas list** — 15+ new section ideas across all pages
+
+#### Phase 2.1: Create Page Skeletons ✅ COMPLETE
+- [x] **2.1.1. Create `mudancas.qmd`** — Copy setup cells, add header
+- [x] **2.1.2. Create `trajetoria.qmd`** — Copy setup cells, add header
+- [x] **2.1.3. Create `paredao.qmd`** — Copy setup cells, add header
+- [x] **2.1.4. Update `_quarto.yml`** — Add 5 pages to navbar + render list
+
+#### Phase 2.2: Move Sections (O Que Mudou) ✅ COMPLETE
+- [x] **2.2.1. O Que Mudou Hoje?** — All subsections (winners/losers, heatmap, Sankey, volatility, dramatics, hostility changes)
+- [x] **2.2.2. Mudanças Entre Dias** — Reaction changes over time
+- [x] **2.2.3. Vira-Casacas** — Who changes opinions most
+
+#### Phase 2.3: Move Sections (Trajetória) ✅ COMPLETE
+- [x] **2.3.1. Cronologia do Jogo** — Entry/exit timeline (kept in index for overview)
+- [x] **2.3.2. Evolução do Sentimento** — Line chart over time
+- [x] **2.3.3. Alianças Mais Consistentes** — Accumulated mutual hearts
+- [x] **2.3.4. Rivalidades Mais Persistentes** — Accumulated mutual negativity
+- [x] **2.3.5. Hostilidades Persistentes** — One/two-sided over time
+- [x] **2.3.6. Clusters de Afinidade** — Hierarchical clustering
+- [x] **2.3.7. Evolução do Saldo** — Balance timeline
+- [x] **2.3.8. Saldo vs Sentimento** — Scatter with correlation
+- [x] **2.3.9. Favoritismo Intragrupo** — Vip vs Xepa analysis
+
+#### Phase 2.4: Move Sections (Paredão) ✅ COMPLETE
+- [x] **2.4.1. Resultado do Paredão** — Current paredão display (moved to paredao.qmd)
+- [x] **2.4.2. Reações Preveem Votos?** — Vote vs reactions analysis (moved to paredao.qmd)
+- [x] **2.4.3. Voto da Casa vs Queridômetro** — Coherence table (moved to paredao.qmd)
+- [x] **2.4.4. Manual paredões data** — Now lives in paredao.qmd
+
+#### Phase 2.5: Clean Up Painel ✅ COMPLETE
+- [x] **2.5.1. Remove moved sections** — index.qmd reduced from 1485 to 889 lines
+- [x] **2.5.2. Add paredão callout** — Callout linking to paredao.qmd
+- [x] **2.5.3. Add navigation callouts** — Links to other pages via callouts
+- [ ] **2.5.4. Add "Destaques do Dia"** — Auto-generated daily highlights (deferred)
+
+#### Phase 2.6: Polish and Test ✅ COMPLETE
+- [x] **2.6.1. Add page headers** — Each page has description
+- [x] **2.6.2. Add cross-links** — Navigation callouts on each page
+- [x] **2.6.3. Test all pages** — All 5 pages render without errors
+- [x] **2.6.4. Update CLAUDE.md** — Document new architecture
+
+#### Phase 2.7: Enhancements (Future)
+- [ ] **2.7.1. Date picker** — Compare any two dates in queridômetro
+- [ ] **2.7.2. Paredão predictions** — Based on hostility analysis
+- [ ] **2.7.3. Participant focus mode** — Individual trajectory view
+- [ ] **2.7.4. Compare paredões** — Side-by-side in arquivo
+- [ ] **2.7.5. Mobile improvements** — Responsive design
+
+---
+
+### Phase 3: GitHub Actions ✅ COMPLETE
+- [x] **3.1. Create `.github/workflows/daily-update.yml`** — 4x daily cron with multi-capture strategy
+- [x] **3.2. Enhanced `fetch_data.py`** — Detects change types (reactions, balance, roles, elimination)
+
+### Phase 4: GitHub Pages ⏳ READY TO DEPLOY
+
+**When ready to publish, follow these steps:**
+
+1. **Push to GitHub**
+   ```bash
+   git add -A
+   git commit -m "feat: add GitHub Actions workflow for automated daily updates"
+   git push origin main
+   ```
+
+2. **Enable GitHub Pages**
+   - Go to repository **Settings** → **Pages**
+   - Under "Build and deployment", set **Source**: `GitHub Actions`
+   - (Do NOT select "Deploy from a branch" — use Actions)
+
+3. **Trigger first deployment**
+   - Go to **Actions** tab in GitHub
+   - Select "BBB26 Daily Update" workflow
+   - Click **Run workflow** → **Run workflow**
+   - Wait for it to complete (~2-3 minutes)
+
+4. **Verify site is live**
+   - URL will be: `https://<username>.github.io/BBB26/`
+   - Check all 5 pages render correctly
+   - Verify data is current
+
+**Checklist:**
+- [ ] **4.1. Push code to GitHub**
+- [ ] **4.2. Enable GitHub Pages with "GitHub Actions" source**
+- [ ] **4.3. Manually trigger workflow to test**
+- [ ] **4.4. Verify site is live at `<username>.github.io/BBB26`**
+- [ ] **4.5. Verify automated runs work (check next scheduled run)**
 
 ---
 
@@ -609,13 +832,49 @@ Add Slack/Discord notification on failure:
 
 ## Timeline
 
-1. ~~**Data Audit** (Phase 0)~~: ✅ COMPLETE — 13 canonical snapshots established
-2. ~~**Git Cleanup** (Phase 0.5)~~: ✅ COMPLETE — commit `28ef943`
-3. ~~**Local Setup** (Phase 1)~~: ✅ COMPLETE — `_quarto.yml`, `requirements.txt`, tested rendering
-4. **Create `index.qmd`** (Phase 1.5): ⏳ NEXT — fresh Quarto doc in pt-BR, reconsidered visualizations
-5. **Workflow Creation** (Phase 2): Set up GitHub Actions (4x daily cron)
-6. **Pages Setup** (Phase 3): Enable GitHub Pages, test deployment
-7. **Go Live**: Enable scheduled runs
+### Completed Phases ✅
+
+| # | Phase | Description | Status |
+|---|-------|-------------|--------|
+| 0 | Data Audit | 13 canonical snapshots established | ✅ Done |
+| 0.5 | Git Cleanup | Commit `28ef943` | ✅ Done |
+| 1 | Local Setup | `_quarto.yml`, `requirements.txt` | ✅ Done |
+| 1.5 | Create `index.qmd` | Fresh Quarto doc, 17 sections | ✅ Done |
+| 1.6 | Manual Game Data | Paredão results, house votes | ✅ Done |
+| 1.7 | Paredão Archive | `paredoes.qmd` with per-paredão analysis | ✅ Done |
+| 1.8 | Day-Over-Day Changes | Diverging bar, heatmap, Sankey, volatility | ✅ Done |
+| 1.9 | Cluster Analysis | Hierarchical clustering, affinity heatmap | ✅ Done |
+| 1.10 | Theme & Layout | Darkly theme, full-width, custom Plotly | ✅ Done |
+| 1.11 | Code Cleanup | Removed duplicates, verified data | ✅ Done |
+| 1.12 | Hostility Analysis | One/two-sided, blind spots, insights | ✅ Done |
+| 1.13 | Flexible Paredão | Partial formation, `como` field, 2º Paredão | ✅ Done |
+| 2.0 | Reorganization Plan | REORGANIZATION_PLAN.md with section audit | ✅ Done |
+
+### Upcoming Phases ⏳
+
+| # | Phase | Description | Priority |
+|---|-------|-------------|----------|
+| 2.1-2.6 | Dashboard Reorganization | Split into 5 focused pages | High |
+| 2.7 | Enhancements | Date picker, predictions, focus mode | Medium |
+| 3 | GitHub Actions | 4x daily cron workflow | High |
+| 4 | GitHub Pages | Deploy to `username.github.io/BBB26` | High |
+
+### Current Section Count
+
+| Page | Sections | Charts |
+|------|----------|--------|
+| index.qmd (current) | 23 | ~20 |
+| paredoes.qmd | 1 + N×8 | ~5×N |
+
+### After Reorganization (Target)
+
+| Page | File | Sections | Est. Charts |
+|------|------|----------|-------------|
+| Painel | `index.qmd` | 9 | 5-6 |
+| O Que Mudou | `mudancas.qmd` | 11 | 6-8 |
+| Trajetória | `trajetoria.qmd` | 12 | 8-10 |
+| Paredão | `paredao.qmd` | 8 | 4-5 |
+| Arquivo | `paredoes.qmd` | existing | 5×N |
 
 ---
 

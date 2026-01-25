@@ -1,0 +1,996 @@
+---
+title: "BBB 26 — O Que Mudou"
+subtitle: "Acompanhe as mudanças diárias nas reações entre os participantes"
+author: "Dashboard Automatizado"
+date: today
+lang: pt-BR
+format:
+  html:
+    code-fold: true
+    code-summary: "Ver código"
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+
+import json
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from pathlib import Path
+from collections import defaultdict, Counter
+from datetime import datetime
+
+# Configurações visuais
+plt.rcParams['figure.figsize'] = (14, 8)
+plt.rcParams['font.size'] = 11
+sns.set_theme(style="whitegrid", palette="husl")
+
+# Diretórios
+DATA_DIR = Path("data/snapshots")
+LATEST_FILE = Path("data/latest.json")
+
+# Categorias de reações
+REACTION_EMOJI = {
+    'Coração': '❤️', 'Planta': '🌱', 'Mala': '💼', 'Biscoito': '🍪',
+    'Cobra': '🐍', 'Alvo': '🎯', 'Vômito': '🤮', 'Mentiroso': '🤥',
+    'Coração partido': '💔'
+}
+
+REACTION_SLUG_TO_LABEL = {
+    'coracao': 'Coração', 'planta': 'Planta', 'mala': 'Mala', 'biscoito': 'Biscoito',
+    'cobra': 'Cobra', 'alvo': 'Alvo', 'vomito': 'Vômito', 'mentiroso': 'Mentiroso',
+    'coracao-partido': 'Coração partido'
+}
+
+SENTIMENT_WEIGHTS = {
+    'Coração': 1.0,
+    'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
+    'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0,
+    'Coração partido': -0.5  # Mild negative (disappointment, not hostility)
+}
+
+POSITIVE = {'Coração'}
+MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}  # 💔 = disappointment, not hostility
+STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso'}
+
+# Cores dos grupos
+GROUP_COLORS = {
+    'Camarote': '#E6194B',
+    'Veterano': '#3CB44B',
+    'Pipoca': '#4363D8',
+}
+
+MEMBER_OF = {}  # preenchido ao carregar dados
+
+# ══════════════════════════════════════════════════════════════
+# Plotly Dark Theme Configuration (matches Bootswatch darkly)
+# ══════════════════════════════════════════════════════════════
+PLOT_BG = '#303030'  # Darkly body background
+PAPER_BG = '#303030'
+GRID_COLOR = '#444444'
+TEXT_COLOR = '#fff'
+
+# Standard layout applied to ALL plots
+import plotly.io as pio
+
+pio.templates['bbb_dark'] = go.layout.Template(
+    layout=go.Layout(
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
+        title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
+        margin=dict(l=70, r=30, t=70, b=60),
+        xaxis=dict(
+            gridcolor=GRID_COLOR,
+            linecolor=GRID_COLOR,
+            zerolinecolor=GRID_COLOR,
+            title=dict(standoff=15),
+        ),
+        yaxis=dict(
+            gridcolor=GRID_COLOR,
+            linecolor=GRID_COLOR,
+            zerolinecolor=GRID_COLOR,
+            title=dict(standoff=15),
+        ),
+        legend=dict(
+            bgcolor='rgba(0,0,0,0)',
+            bordercolor='rgba(0,0,0,0)',
+        ),
+        colorway=['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
+    )
+)
+pio.templates.default = 'bbb_dark'
+```
+
+```{python}
+#| label: load-data
+
+def load_snapshot(filepath):
+    """Carrega um snapshot JSON (formato novo ou antigo)."""
+    with open(filepath, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "participants" in data:
+        return data["participants"], data.get("_metadata")
+    return data, None
+
+def get_all_snapshots():
+    """Retorna lista de (filepath, date_str) ordenada cronologicamente."""
+    if not DATA_DIR.exists():
+        return []
+    snapshots = sorted(DATA_DIR.glob("*.json"))
+    result = []
+    for fp in snapshots:
+        parts = fp.stem.split("_")
+        date_str = parts[0]
+        result.append((fp, date_str))
+    return result
+
+def parse_roles(roles_data):
+    """Extrai nomes de roles (pode ser lista de strings ou lista de dicts)."""
+    if not roles_data:
+        return []
+    result = []
+    for r in roles_data:
+        if isinstance(r, str):
+            result.append(r)
+        elif isinstance(r, dict):
+            result.append(r.get('label', str(r)))
+    return result
+
+def build_reaction_matrix(participants):
+    """Constrói dicionário {(giver_name, receiver_name): reaction_label}."""
+    matrix = {}
+    for receiver in participants:
+        rname = receiver['name']
+        for rxn in receiver.get('characteristics', {}).get('receivedReactions', []):
+            label = rxn.get('label', '')
+            for giver in rxn.get('participants', []):
+                gname = giver['name']
+                matrix[(gname, rname)] = label
+    return matrix
+
+def calc_sentiment(participant):
+    """Calcula o score de sentimento recebido por um participante."""
+    total = 0
+    for rxn in participant.get('characteristics', {}).get('receivedReactions', []):
+        weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
+        total += weight * rxn.get('amount', 0)
+    return total
+
+# Carregar todos os snapshots
+all_snapshot_files = get_all_snapshots()
+snapshots = []
+for fp, date_str in all_snapshot_files:
+    participants, metadata = load_snapshot(fp)
+    snapshots.append({
+        'filepath': fp,
+        'date': date_str,
+        'timestamp': fp.stem,
+        'participants': participants,
+        'metadata': metadata
+    })
+
+# Construir matrizes de reação para todos os snapshots
+all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+# Preencher MEMBER_OF e AVATARS
+AVATARS = {}  # name -> avatar URL
+for snap in snapshots:
+    for p in snap['participants']:
+        name = p['name']
+        if name not in MEMBER_OF:
+            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
+        if name not in AVATARS and p.get('avatar'):
+            AVATARS[name] = p['avatar']
+
+# Enriquecer cada snapshot com label legível e flag de sintético
+for snap in snapshots:
+    meta = snap.get('metadata') or {}
+    is_synthetic = meta.get('synthetic', False)
+    label = snap['date']
+    if is_synthetic:
+        label += ' (sintético)'
+    snap['label'] = label
+    snap['synthetic'] = is_synthetic
+
+# Detectar participantes que entraram após o primeiro snapshot
+first_snap_names = set(p['name'] for p in snapshots[0]['participants'])
+late_entrants = {}
+_seen_names = set(first_snap_names)
+for snap in snapshots[1:]:
+    current_names = set(p['name'] for p in snap['participants'])
+    new_names = current_names - _seen_names
+    for name in new_names:
+        if name not in late_entrants:
+            late_entrants[name] = snap['date']
+    _seen_names |= current_names
+
+if late_entrants:
+    _by_date = {}
+    for n, d in late_entrants.items():
+        _by_date.setdefault(d, []).append(n)
+    _parts = []
+    for d, names in sorted(_by_date.items()):
+        names_str = ', '.join(sorted(names))
+        _parts.append(f"{names_str} (entraram em {d})")
+    _late_str = '; '.join(_parts)
+    late_caption = (
+        f"⚠️ Participantes que entraram após o início do confinamento ({_late_str}) "
+        f"têm menos dias de dados comparados aos demais participantes."
+    )
+else:
+    late_caption = ""
+
+n_snapshots = len(snapshots)
+latest = snapshots[-1]
+latest_matrix = all_matrices[-1]
+
+# Uma coleta por dia (última do dia) — usada para análises de reações
+_by_date = {}
+for i, snap in enumerate(snapshots):
+    _by_date[snap['date']] = i  # last one wins (sorted chronologically)
+_daily_indices = sorted(_by_date.values())
+daily_snapshots = [snapshots[i] for i in _daily_indices]
+daily_matrices = [all_matrices[i] for i in _daily_indices]
+n_daily = len(daily_snapshots)
+```
+
+# O Que Mudou Hoje? {#mudancas-hoje}
+
+Esta página mostra as **mudanças nas reações** entre os participantes do Big Brother Brasil 26. Enquanto o [Painel](index.html) mostra o estado atual, aqui você encontra a **dinâmica** — quem ganhou corações, quem perdeu, quem mudou de opinião.
+
+```{python}
+#| label: date-info
+#| output: asis
+
+if n_daily >= 2:
+    today = daily_snapshots[-1]
+    yesterday = daily_snapshots[-2]
+    print(f"""
+<div class="alert alert-info">
+📅 Comparando: <strong>{yesterday['label']}</strong> → <strong>{today['label']}</strong>
+</div>
+""")
+else:
+    print("""
+<div class="alert alert-warning">
+⚠️ Dados insuficientes para comparação. É necessário pelo menos 2 dias de dados.
+</div>
+""")
+```
+
+```{python}
+#| label: daily-changes-detail
+#| output: asis
+
+if n_daily >= 2:
+    prev_snap = daily_snapshots[-2]
+    curr_snap = daily_snapshots[-1]
+    prev_matrix = daily_matrices[-2]
+    curr_matrix = daily_matrices[-1]
+
+    prev_date = prev_snap['date']
+    curr_date = curr_snap['date']
+
+    # Find common participants
+    prev_names = set(p['name'] for p in prev_snap['participants']
+                     if not p.get('characteristics', {}).get('eliminated'))
+    curr_names = set(p['name'] for p in curr_snap['participants']
+                     if not p.get('characteristics', {}).get('eliminated'))
+    common_names = prev_names & curr_names
+
+    # Collect all changes
+    changes_list = []
+    for giver in sorted(common_names):
+        for receiver in sorted(common_names):
+            if giver == receiver:
+                continue
+            prev_rxn = prev_matrix.get((giver, receiver), '')
+            curr_rxn = curr_matrix.get((giver, receiver), '')
+            if prev_rxn != curr_rxn:
+                prev_emoji = REACTION_EMOJI.get(prev_rxn, '?')
+                curr_emoji = REACTION_EMOJI.get(curr_rxn, '?')
+                prev_weight = SENTIMENT_WEIGHTS.get(prev_rxn, 0)
+                curr_weight = SENTIMENT_WEIGHTS.get(curr_rxn, 0)
+                delta = curr_weight - prev_weight
+
+                if delta > 0:
+                    change_type = 'Melhora'
+                    change_color = '#1a9850'
+                elif delta < 0:
+                    change_type = 'Piora'
+                    change_color = '#d73027'
+                else:
+                    change_type = 'Lateral'
+                    change_color = '#888'
+
+                changes_list.append({
+                    'Emissor': giver,
+                    'Receptor': receiver,
+                    'Antes': prev_emoji,
+                    'Depois': curr_emoji,
+                    'prev_rxn': prev_rxn,
+                    'curr_rxn': curr_rxn,
+                    'Tipo': change_type,
+                    'Delta': delta,
+                    'Color': change_color,
+                    'emissor_grupo': MEMBER_OF.get(giver, '?'),
+                    'receptor_grupo': MEMBER_OF.get(receiver, '?'),
+                })
+
+    if changes_list:
+        # Summary stats
+        n_changes = len(changes_list)
+        n_melhora = sum(1 for c in changes_list if c['Tipo'] == 'Melhora')
+        n_piora = sum(1 for c in changes_list if c['Tipo'] == 'Piora')
+        n_lateral = sum(1 for c in changes_list if c['Tipo'] == 'Lateral')
+        total_possible = len(common_names) * (len(common_names) - 1)
+        pct_changed = n_changes / total_possible * 100
+
+        # Who benefited most / suffered most (as receivers)
+        receiver_delta = defaultdict(float)
+        for c in changes_list:
+            receiver_delta[c['Receptor']] += c['Delta']
+
+        # Who changed opinions most (as givers)
+        giver_changes = Counter(c['Emissor'] for c in changes_list)
+        giver_volatility = giver_changes.most_common()
+
+        benefited = [(k, v) for k, v in receiver_delta.items() if v > 0]
+        suffered = [(k, v) for k, v in receiver_delta.items() if v < 0]
+        benefited.sort(key=lambda x: -x[1])
+        suffered.sort(key=lambda x: x[1])
+
+        print(f"## Resumo: {prev_date} → {curr_date}\n")
+        print(f"**{n_changes} mudanças** ({pct_changed:.0f}% das relações): "
+              f"🟢 {n_melhora} melhorias | 🔴 {n_piora} pioras | ⚪ {n_lateral} laterais\n")
+
+else:
+    print("*Dados insuficientes — são necessárias pelo menos 2 coletas diárias.*")
+    changes_list = []
+```
+
+## Quem Ganhou e Quem Perdeu
+
+```{python}
+#| label: winners-losers-chart
+#| output: asis
+
+if n_daily >= 2 and changes_list:
+    # Diverging bar chart: receivers sorted by net delta
+    receiver_data = []
+    for name in common_names:
+        delta = receiver_delta.get(name, 0)
+        if delta != 0:
+            receiver_data.append({
+                'name': name,
+                'delta': delta,
+                'group': MEMBER_OF.get(name, '?'),
+                'color': '#1a9850' if delta > 0 else '#d73027'
+            })
+
+    receiver_data.sort(key=lambda x: x['delta'])
+
+    if receiver_data:
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in receiver_data],
+            x=[d['delta'] for d in receiver_data],
+            orientation='h',
+            marker_color=[d['color'] for d in receiver_data],
+            text=[f"{d['delta']:+.1f}" for d in receiver_data],
+            textposition='outside',
+            hovertemplate='%{y}: %{x:+.1f} pontos<extra></extra>',
+        ))
+
+        # Add vertical line at 0
+        fig.add_vline(x=0, line_width=2, line_color='white')
+
+        fig.update_layout(
+            title=f"Impacto Líquido: Quem Ganhou/Perdeu Pontos de Sentimento",
+            xaxis_title="Δ Sentimento (soma das mudanças recebidas)",
+            yaxis_title="",
+            height=max(400, len(receiver_data) * 28),
+            margin=dict(l=150),
+            showlegend=False,
+        )
+
+        fig.show()
+
+        # Text summary
+        if benefited:
+            top_ben = benefited[:3]
+            print(f"**Ganhadores do dia:** {', '.join(f'{n} (+{v:.1f})' for n, v in top_ben)}")
+        if suffered:
+            top_suf = suffered[:3]
+            print(f"\n**Perdedores do dia:** {', '.join(f'{n} ({v:.1f})' for n, v in top_suf)}")
+```
+
+## Mapa de Diferenças
+
+Heatmap mostrando apenas as células que mudaram. Verde = melhora na relação, vermelho = piora.
+
+```{python}
+#| label: difference-heatmap
+
+if n_daily >= 2 and changes_list:
+    # Build difference matrix
+    active_names_sorted = sorted(common_names)
+    n_participants = len(active_names_sorted)
+    name_to_idx = {n: i for i, n in enumerate(active_names_sorted)}
+
+    diff_matrix = np.full((n_participants, n_participants), np.nan)
+    text_matrix = [['—' for _ in range(n_participants)] for _ in range(n_participants)]
+
+    for c in changes_list:
+        i = name_to_idx[c['Emissor']]
+        j = name_to_idx[c['Receptor']]
+        diff_matrix[i, j] = c['Delta']
+        text_matrix[i][j] = f"{c['Antes']}→{c['Depois']}"
+
+    short_names = [n.split()[0] if len(n) > 10 else n for n in active_names_sorted]
+
+    fig = go.Figure(data=go.Heatmap(
+        z=diff_matrix,
+        x=short_names,
+        y=short_names,
+        colorscale=[
+            [0, '#d73027'],      # -2: strong negative change
+            [0.25, '#fc8d59'],   # -1
+            [0.5, '#ffffbf'],    # 0 (won't show, but for scale)
+            [0.75, '#91cf60'],   # +1
+            [1.0, '#1a9850'],    # +2: strong positive change
+        ],
+        zmin=-2, zmax=2,
+        text=text_matrix,
+        texttemplate='%{text}',
+        textfont=dict(size=14),
+        hovertemplate='%{y} → %{x}<br>Δ: %{z:+.1f}<br>%{text}<extra></extra>',
+        colorbar=dict(
+            title="Δ Sentimento",
+            tickvals=[-2, -1, 0, 1, 2],
+            ticktext=['-2 (❤️→💔)', '-1', '0', '+1', '+2 (💔→❤️)']
+        ),
+        showscale=True,
+    ))
+
+    # Add star markers for dramatic changes (|Δ| >= 1.5)
+    dramatic_annotations = []
+    for c in changes_list:
+        if abs(c['Delta']) >= 1.5:
+            i = name_to_idx[c['Emissor']]
+            j = name_to_idx[c['Receptor']]
+            dramatic_annotations.append(dict(
+                x=j, y=i,
+                text='⭐',
+                showarrow=False,
+                font=dict(size=8),
+                xanchor='right',
+                yanchor='top',
+                xshift=12,
+                yshift=12
+            ))
+
+    fig.update_layout(
+        title=f"Mapa de Mudanças: {prev_date} → {curr_date}<br><sup>⭐ = mudança dramática (|Δ| ≥ 1.5)</sup>",
+        xaxis_title="Receptor ←",
+        yaxis_title="Emissor →",
+        height=850,
+        xaxis=dict(tickangle=45, side='bottom'),
+        yaxis=dict(autorange='reversed'),
+        annotations=dramatic_annotations
+    )
+
+    fig.show()
+```
+
+## Quem Mais Mudou de Opinião?
+
+Participantes que mais alteraram suas reações (volatilidade).
+
+```{python}
+#| label: volatility-chart
+#| output: asis
+
+if n_daily >= 2 and changes_list:
+    # Bar chart: who changed the most opinions (as giver)
+    giver_data = []
+    for name, count in giver_volatility:
+        # Count how many were improvements vs deteriorations given
+        given_melhora = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Melhora')
+        given_piora = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Piora')
+        given_lateral = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Lateral')
+        giver_data.append({
+            'name': name,
+            'total': count,
+            'melhora': given_melhora,
+            'piora': given_piora,
+            'lateral': given_lateral,
+            'group': MEMBER_OF.get(name, '?')
+        })
+
+    giver_data.sort(key=lambda x: x['total'], reverse=True)
+
+    if giver_data:
+        fig = go.Figure()
+
+        # Stacked bar: green (gave more hearts), red (gave more negativity), gray (lateral)
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in giver_data],
+            x=[d['melhora'] for d in giver_data],
+            name='Melhorou opinião',
+            orientation='h',
+            marker_color='#1a9850',
+            hovertemplate='%{y}: %{x} melhoras<extra></extra>',
+        ))
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in giver_data],
+            x=[d['piora'] for d in giver_data],
+            name='Piorou opinião',
+            orientation='h',
+            marker_color='#d73027',
+            hovertemplate='%{y}: %{x} pioras<extra></extra>',
+        ))
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in giver_data],
+            x=[d['lateral'] for d in giver_data],
+            name='Mudança lateral',
+            orientation='h',
+            marker_color='#888',
+            hovertemplate='%{y}: %{x} laterais<extra></extra>',
+        ))
+
+        fig.update_layout(
+            title=dict(text="Volatilidade: Quem Mais Mudou de Opinião?", y=0.98, x=0.5, xanchor='center'),
+            xaxis_title="Número de opiniões alteradas",
+            yaxis_title="",
+            barmode='stack',
+            height=max(500, len(giver_data) * 28),
+            margin=dict(l=150, t=100),
+            legend=dict(orientation='h', yanchor='top', y=1.12, xanchor='center', x=0.5),
+        )
+
+        fig.show()
+
+        # Highlight the most volatile
+        top_volatile = giver_data[:3]
+        volatile_str = ', '.join(f"{d['name']} ({d['total']} mudanças)" for d in top_volatile)
+        print(f"**Mais voláteis:** {volatile_str}")
+```
+
+## Fluxo de Reações (Sankey)
+
+Visualização do fluxo de mudanças: de qual reação para qual reação as pessoas mudaram.
+
+```{python}
+#| label: sankey-reactions
+#| output: asis
+
+if n_daily >= 2 and changes_list:
+    # Count transitions between reaction types
+    transition_counts = Counter()
+    for c in changes_list:
+        transition_counts[(c['prev_rxn'], c['curr_rxn'])] += 1
+
+    # Build Sankey diagram
+    all_reactions = ['Coração', 'Planta', 'Mala', 'Biscoito', 'Cobra', 'Alvo', 'Vômito', 'Mentiroso', 'Coração partido']
+    reaction_colors = {
+        'Coração': '#1a9850',
+        'Planta': '#91cf60', 'Mala': '#d9ef8b', 'Biscoito': '#fee08b',
+        'Cobra': '#fc8d59', 'Alvo': '#f46d43', 'Vômito': '#d73027',
+        'Mentiroso': '#a50026', 'Coração partido': '#67001f'
+    }
+
+    # Nodes: "Before" reactions on left, "After" reactions on right
+    # We'll use indices: 0-8 for "before", 9-17 for "after"
+    before_labels = [f"{REACTION_EMOJI.get(r, r)} antes" for r in all_reactions]
+    after_labels = [f"{REACTION_EMOJI.get(r, r)} depois" for r in all_reactions]
+    node_labels = before_labels + after_labels
+    node_colors = [reaction_colors.get(r, '#999') for r in all_reactions] * 2
+
+    # Links
+    sources = []
+    targets = []
+    values = []
+    link_colors = []
+
+    for (from_rxn, to_rxn), count in transition_counts.items():
+        if from_rxn in all_reactions and to_rxn in all_reactions:
+            from_idx = all_reactions.index(from_rxn)
+            to_idx = all_reactions.index(to_rxn) + len(all_reactions)
+            sources.append(from_idx)
+            targets.append(to_idx)
+            values.append(count)
+            # Color by whether it's improvement or deterioration
+            from_weight = SENTIMENT_WEIGHTS.get(from_rxn, 0)
+            to_weight = SENTIMENT_WEIGHTS.get(to_rxn, 0)
+            if to_weight > from_weight:
+                link_colors.append('rgba(26, 152, 80, 0.5)')  # green
+            elif to_weight < from_weight:
+                link_colors.append('rgba(215, 48, 39, 0.5)')  # red
+            else:
+                link_colors.append('rgba(136, 136, 136, 0.5)')  # gray
+
+    if values:
+        fig = go.Figure(data=[go.Sankey(
+            node=dict(
+                pad=15,
+                thickness=20,
+                line=dict(color='black', width=0.5),
+                label=node_labels,
+                color=node_colors,
+            ),
+            link=dict(
+                source=sources,
+                target=targets,
+                value=values,
+                color=link_colors,
+            )
+        )])
+
+        fig.update_layout(
+            title=f"Fluxo de Reações: {prev_date} → {curr_date}",
+            font_size=10,
+            height=500,
+        )
+
+        fig.show()
+
+        # Summary of flows
+        hearts_lost = sum(v for (f, t), v in transition_counts.items() if f == 'Coração' and t != 'Coração')
+        hearts_gained = sum(v for (f, t), v in transition_counts.items() if f != 'Coração' and t == 'Coração')
+        print(f"**Corações perdidos:** {hearts_lost} | **Corações ganhos:** {hearts_gained}")
+```
+
+## Quem Está no Centro do Drama?
+
+Participantes envolvidos nas maiores mudanças de sentimento (|Δ| ≥ 1.5: de ❤️ para negativo forte ou vice-versa).
+
+```{python}
+#| label: dramatic-changes
+#| fig-cap: "Mudanças dramáticas: quem deu e quem recebeu as maiores viradas de opinião"
+
+if n_daily >= 2 and changes_list:
+    # Filter for dramatic changes (|delta| >= 1.5)
+    dramatic = [c for c in changes_list if abs(c['Delta']) >= 1.5]
+
+    if dramatic:
+        # Count involvement per person (as giver and receiver)
+        drama_given = Counter()  # who changed their opinion dramatically
+        drama_received = Counter()  # whose perception changed dramatically
+        drama_details_given = {}  # store details for hover
+        drama_details_received = {}
+
+        for c in dramatic:
+            giver = c['Emissor']
+            receiver = c['Receptor']
+            drama_given[giver] += 1
+            drama_received[receiver] += 1
+
+            # Store details
+            detail = f"{c['Antes']}→{c['Depois']} (Δ{c['Delta']:+.1f})"
+            if giver not in drama_details_given:
+                drama_details_given[giver] = []
+            drama_details_given[giver].append(f"→{receiver}: {detail}")
+
+            if receiver not in drama_details_received:
+                drama_details_received[receiver] = []
+            drama_details_received[receiver].append(f"←{giver}: {detail}")
+
+        # Get all participants involved
+        all_dramatic_people = set(drama_given.keys()) | set(drama_received.keys())
+
+        if all_dramatic_people:
+            # Create a scatter/bubble chart showing given vs received
+            drama_data = []
+            for name in all_dramatic_people:
+                given = drama_given.get(name, 0)
+                received = drama_received.get(name, 0)
+                hover_lines = []
+                if name in drama_details_given:
+                    hover_lines.append("Mudou opinião sobre:")
+                    hover_lines.extend(drama_details_given[name][:5])
+                if name in drama_details_received:
+                    if hover_lines:
+                        hover_lines.append("")
+                    hover_lines.append("Opinião mudada por:")
+                    hover_lines.extend(drama_details_received[name][:5])
+                drama_data.append({
+                    'name': name,
+                    'given': given,
+                    'received': received,
+                    'total': given + received,
+                    'group': MEMBER_OF.get(name, '?'),
+                    'hover': '<br>'.join(hover_lines)
+                })
+
+            df_drama = pd.DataFrame(drama_data)
+
+            fig = go.Figure()
+
+            for group, color in GROUP_COLORS.items():
+                mask = df_drama['group'] == group
+                if mask.any():
+                    fig.add_trace(go.Scatter(
+                        x=df_drama[mask]['given'],
+                        y=df_drama[mask]['received'],
+                        mode='markers+text',
+                        marker=dict(
+                            size=df_drama[mask]['total'] * 12 + 20,
+                            color=color,
+                            opacity=0.7,
+                            line=dict(width=2, color='white')
+                        ),
+                        text=df_drama[mask]['name'].apply(lambda x: x.split()[0]),
+                        textposition='middle center',
+                        textfont=dict(size=10, color='white'),
+                        name=group,
+                        customdata=df_drama[mask]['hover'],
+                        hovertemplate='<b>%{text}</b><br>Deu: %{x} | Recebeu: %{y}<br><br>%{customdata}<extra></extra>'
+                    ))
+
+            fig.update_layout(
+                title=f"Centro do Drama: {prev_date} → {curr_date}",
+                xaxis_title="Mudanças dramáticas DADAS (mudou opinião)",
+                yaxis_title="Mudanças dramáticas RECEBIDAS (opinião mudou)",
+                height=550,
+                showlegend=True,
+                legend=dict(orientation='h', y=-0.15)
+            )
+
+            # Add quadrant annotations
+            max_val = max(df_drama['given'].max(), df_drama['received'].max(), 1)
+            fig.add_annotation(x=max_val*0.8, y=0.2, text="Volátil<br>(muda muito)", showarrow=False, font=dict(size=10, color='gray'))
+            fig.add_annotation(x=0.2, y=max_val*0.8, text="Alvo<br>(opinião muda)", showarrow=False, font=dict(size=10, color='gray'))
+
+            fig.show()
+    else:
+        dramatic = []  # For the summary below
+else:
+    dramatic = []
+```
+
+```{python}
+#| output: asis
+#| echo: false
+
+if n_daily >= 2 and changes_list:
+    dramatic = [c for c in changes_list if abs(c['Delta']) >= 1.5]
+    if dramatic:
+        n_falls = sum(1 for c in dramatic if c['Delta'] < 0)
+        n_rises = sum(1 for c in dramatic if c['Delta'] > 0)
+        print(f"""
+<div style="background: #2a2a2a; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+<strong>Total de mudanças dramáticas:</strong> {len(dramatic)}<br>
+• Quedas (❤️→negativo forte): {n_falls}<br>
+• Subidas (negativo forte→❤️): {n_rises}
+</div>
+""")
+    else:
+        print("*Nenhuma mudança dramática (|Δ| ≥ 1.5) detectada hoje.*")
+else:
+    print("*Dados insuficientes para análise.*")
+```
+
+## Evolução das Hostilidades
+
+Visualização das mudanças em relacionamentos hostis: novas inimizades, reconciliações e pontos cegos.
+
+```{python}
+#| label: hostility-changes
+
+if n_daily >= 2:
+    # Build hostility sets for yesterday and today
+    def get_hostility_pairs(matrix, active_names):
+        """Returns (one_sided, two_sided) sets."""
+        one_sided = set()  # (hostile_person, friendly_person)
+        two_sided = set()  # frozenset({a, b})
+
+        for (a, b), rxn_a_to_b in matrix.items():
+            if a not in active_names or b not in active_names:
+                continue
+
+            rxn_b_to_a = matrix.get((b, a), '')
+            a_dislikes_b = rxn_a_to_b not in POSITIVE and rxn_a_to_b != ''
+            b_dislikes_a = rxn_b_to_a not in POSITIVE and rxn_b_to_a != ''
+            b_likes_a = rxn_b_to_a in POSITIVE
+
+            if a_dislikes_b and b_dislikes_a:
+                two_sided.add(frozenset([a, b]))
+            elif a_dislikes_b and b_likes_a:
+                one_sided.add((a, b))
+
+        return one_sided, two_sided
+
+    prev_one, prev_two = get_hostility_pairs(prev_matrix, prev_names)
+    curr_one, curr_two = get_hostility_pairs(curr_matrix, curr_names)
+
+    # Changes in two-sided hostility
+    new_two = curr_two - prev_two
+    resolved_two = prev_two - curr_two
+
+    # Changes in one-sided hostility
+    new_one = curr_one - prev_one
+    resolved_one = prev_one - curr_one
+
+    has_changes = new_two or resolved_two or new_one or resolved_one
+
+    if has_changes:
+        # Create a summary bar chart of hostility changes
+        categories = []
+        values = []
+        colors = []
+        hover_texts = []
+
+        if new_two:
+            categories.append('🔥 Novas<br>Mútuas')
+            values.append(len(new_two))
+            colors.append('#d73027')
+            details = [f"{sorted(p)[0]} ↔ {sorted(p)[1]}" for p in new_two]
+            hover_texts.append('<br>'.join(details))
+
+        if resolved_two:
+            categories.append('✅ Resolvidas<br>Mútuas')
+            values.append(len(resolved_two))
+            colors.append('#1a9850')
+            details = [f"{sorted(p)[0]} ↔ {sorted(p)[1]}" for p in resolved_two]
+            hover_texts.append('<br>'.join(details))
+
+        if new_one:
+            categories.append('😠 Novas<br>Unilaterais')
+            values.append(len(new_one))
+            colors.append('#fc8d59')
+            details = [f"{h} → {f}" for h, f in sorted(new_one)]
+            hover_texts.append('<br>'.join(details[:10]))
+
+        if resolved_one:
+            categories.append('💚 Resolvidas<br>Unilaterais')
+            values.append(len(resolved_one))
+            colors.append('#91cf60')
+            details = [f"{h} → {f}" for h, f in sorted(resolved_one)]
+            hover_texts.append('<br>'.join(details[:10]))
+
+        fig = go.Figure(data=[
+            go.Bar(
+                x=categories,
+                y=values,
+                marker_color=colors,
+                text=values,
+                textposition='outside',
+                customdata=hover_texts,
+                hovertemplate='<b>%{x}</b><br>Quantidade: %{y}<br><br>%{customdata}<extra></extra>'
+            )
+        ])
+
+        fig.update_layout(
+            title=f"Mudanças em Hostilidades: {prev_date} → {curr_date}",
+            yaxis_title="Quantidade",
+            height=400,
+            showlegend=False
+        )
+
+        fig.show()
+
+        # Store data for the next cell
+        hostility_data = {
+            'new_two': new_two,
+            'resolved_two': resolved_two,
+            'new_one': new_one,
+            'resolved_one': resolved_one,
+            'has_changes': True
+        }
+    else:
+        hostility_data = {'has_changes': False}
+else:
+    hostility_data = {'has_changes': False}
+```
+
+```{python}
+#| label: hostility-details
+#| output: asis
+#| echo: false
+
+if n_daily >= 2:
+    # Rebuild hostility data for this cell
+    def get_hostility_pairs_v2(matrix, active_names):
+        one_sided = set()
+        two_sided = set()
+        for (a, b), rxn_a_to_b in matrix.items():
+            if a not in active_names or b not in active_names:
+                continue
+            rxn_b_to_a = matrix.get((b, a), '')
+            a_dislikes_b = rxn_a_to_b not in POSITIVE and rxn_a_to_b != ''
+            b_dislikes_a = rxn_b_to_a not in POSITIVE and rxn_b_to_a != ''
+            b_likes_a = rxn_b_to_a in POSITIVE
+            if a_dislikes_b and b_dislikes_a:
+                two_sided.add(frozenset([a, b]))
+            elif a_dislikes_b and b_likes_a:
+                one_sided.add((a, b))
+        return one_sided, two_sided
+
+    prev_one, prev_two = get_hostility_pairs_v2(prev_matrix, prev_names)
+    curr_one, curr_two = get_hostility_pairs_v2(curr_matrix, curr_names)
+
+    new_two = curr_two - prev_two
+    resolved_two = prev_two - curr_two
+    new_one = curr_one - prev_one
+    resolved_one = prev_one - curr_one
+
+    has_changes = new_two or resolved_two or new_one or resolved_one
+
+    if has_changes:
+        print("::: {.callout-note collapse='true'}")
+        print("## 📋 Detalhes das Mudanças em Hostilidades\n")
+
+        if new_two:
+            print("### 🔥 Novas Hostilidades Mútuas\n")
+            print("Pares que passaram a se odiar mutuamente:\n")
+            for pair in sorted(new_two, key=lambda x: tuple(sorted(x))):
+                a, b = sorted(pair)
+                rxn_ab = curr_matrix.get((a, b), '')
+                rxn_ba = curr_matrix.get((b, a), '')
+                emoji_ab = REACTION_EMOJI.get(rxn_ab, '?')
+                emoji_ba = REACTION_EMOJI.get(rxn_ba, '?')
+                print(f"- **{a}** {emoji_ab}↔{emoji_ba} **{b}**")
+            print()
+
+        if resolved_two:
+            print("### ✅ Hostilidades Mútuas Resolvidas\n")
+            for pair in sorted(resolved_two, key=lambda x: tuple(sorted(x))):
+                a, b = sorted(pair)
+                print(f"- {a} ↔ {b}")
+            print()
+
+        if new_one:
+            print("### 😠 Novas Hostilidades Unilaterais (Pontos Cegos)\n")
+            print("A passou a dar negativa para B, mas B ainda dá ❤️ para A:\n")
+            for hostile, friendly in sorted(new_one):
+                rxn = curr_matrix.get((hostile, friendly), '')
+                emoji = REACTION_EMOJI.get(rxn, '?')
+                print(f"- **{hostile}** {emoji}→ {friendly} (que dá ❤️)")
+            print()
+
+        if resolved_one:
+            print("### 💚 Hostilidades Unilaterais Resolvidas\n")
+            for hostile, friendly in sorted(resolved_one):
+                print(f"- {hostile} ↔ {friendly}")
+            print()
+
+        print(":::")
+
+        # Net change summary
+        net_mutual = len(new_two) - len(resolved_two)
+        net_one = len(new_one) - len(resolved_one)
+        print(f"""
+<div style="background: #2a2a2a; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+<strong>Saldo do dia:</strong> Hostilidades mútuas <span style="color: {'#dc3545' if net_mutual > 0 else '#28a745' if net_mutual < 0 else '#888'};">{net_mutual:+d}</span> | Unilaterais <span style="color: {'#dc3545' if net_one > 0 else '#28a745' if net_one < 0 else '#888'};">{net_one:+d}</span>
+</div>
+""")
+    else:
+        print("*Nenhuma mudança em hostilidades hoje — relacionamentos estáveis.*")
+else:
+    print("*Dados insuficientes para análise.*")
+```
+
+---
+
+<div class="alert alert-secondary mt-5">
+<h5>📍 Navegação</h5>
+<p class="mb-0">
+<a href="index.html"><strong>📊 Painel</strong></a> — Estado atual das reações |
+<a href="trajetoria.html"><strong>📈 Trajetória</strong></a> — Evolução ao longo da temporada |
+<a href="paredao.html"><strong>🗳️ Paredão</strong></a> — Paredão atual |
+<a href="paredoes.html"><strong>📚 Arquivo</strong></a> — Histórico de paredões
+</p>
+</div>

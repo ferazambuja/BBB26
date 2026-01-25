@@ -1,0 +1,97 @@
+name: BBB26 Daily Update
+
+# Capture timing strategy (all times UTC, BRT = UTC-3):
+#
+# | UTC  | BRT   | Purpose |
+# |------|-------|---------|
+# | 09:00| 06:00 | Pre-Raio-X baseline (yesterday's reactions still active) |
+# | 15:00| 12:00 | Post-Raio-X — captures TODAY's reactions (primary capture) |
+# | 21:00| 18:00 | Evening — catches afternoon balance/role changes |
+# | 03:00| 00:00 | Night — catches post-episode changes (Sun Líder/Anjo, Tue elimination) |
+#
+# Key events by day:
+# - Daily: Raio-X ~10h-12h BRT (reactions update)
+# - Sunday: Líder ceremony, Anjo ceremony, Paredão formation ~22h-23h BRT
+# - Tuesday: Elimination ~23h BRT
+# - Any day: Balance changes (purchases, rewards, punishments)
+#
+# The fetch script saves ONLY if data actually changed (hash comparison).
+# Multiple snapshots per day are fine — they track different game states.
+# For reaction analysis, the dashboard uses the LAST snapshot of each day.
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 06:00 BRT - Pre-Raio-X
+    - cron: '0 15 * * *'  # 12:00 BRT - Post-Raio-X (primary)
+    - cron: '0 21 * * *'  # 18:00 BRT - Evening
+    - cron: '0 3 * * *'   # 00:00 BRT - Night (post-episode)
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  update-and-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git operations
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch latest data
+        id: fetch
+        run: |
+          python scripts/fetch_data.py
+          # Check if any new files were created
+          if git status --porcelain | grep -q "data/"; then
+            echo "data_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "data_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Render Quarto site
+        run: quarto render
+
+      - name: Commit data changes
+        if: steps.fetch.outputs.data_changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          git diff --staged --quiet || git commit -m "data: snapshot $(date -u +%Y-%m-%d_%H-%M) UTC"
+          git push
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

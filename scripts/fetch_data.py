@@ -8,6 +8,18 @@ Key behaviors:
 - Only creates new file if data actually changed
 - Uses content hash to detect changes
 - Records capture timestamp in filename
+- Detects what type of change occurred (reactions, balance, roles)
+
+Data Update Patterns (BRT = UTC-3):
+- Reactions (Queridômetro): Update daily ~10h-12h during Raio-X, stable rest of day
+- Balance: Can change any time (purchases, rewards, punishments)
+- Roles: Change during/after episodes (Líder, Anjo, Monstro, Paredão)
+
+Recommended capture times:
+- 09:00 UTC (06:00 BRT) - Pre-Raio-X check
+- 15:00 UTC (12:00 BRT) - Post-Raio-X, captures today's reactions
+- 21:00 UTC (18:00 BRT) - Evening, catches afternoon changes
+- 03:00 UTC (00:00 BRT) - Night, catches post-episode changes (Sun/Tue)
 """
 
 import requests
@@ -26,6 +38,59 @@ def get_data_hash(data):
     # Sort keys for consistent hashing
     normalized = json.dumps(data, sort_keys=True, ensure_ascii=False)
     return hashlib.md5(normalized.encode()).hexdigest()
+
+
+def get_reactions_hash(participants):
+    """Hash only the reaction data (ignores balance, roles)."""
+    reactions_data = []
+    for p in sorted(participants, key=lambda x: x['name']):
+        rxns = p.get('characteristics', {}).get('receivedReactions', [])
+        p_rxns = []
+        for rxn in rxns:
+            givers = sorted([g['name'] for g in rxn.get('participants', [])])
+            p_rxns.append((rxn.get('label'), givers))
+        reactions_data.append((p['name'], sorted(p_rxns)))
+    return hashlib.md5(json.dumps(reactions_data).encode()).hexdigest()
+
+
+def get_roles_hash(participants):
+    """Hash only the roles data."""
+    roles_data = []
+    for p in sorted(participants, key=lambda x: x['name']):
+        roles = p.get('characteristics', {}).get('roles', [])
+        role_labels = sorted([r.get('label', '') if isinstance(r, dict) else str(r) for r in roles])
+        roles_data.append((p['name'], role_labels))
+    return hashlib.md5(json.dumps(roles_data).encode()).hexdigest()
+
+
+def detect_change_type(old_participants, new_participants):
+    """Detect what type of change occurred between snapshots."""
+    changes = []
+
+    # Check participant count
+    if len(old_participants) != len(new_participants):
+        if len(new_participants) > len(old_participants):
+            changes.append("new_entrants")
+        else:
+            changes.append("elimination")
+
+    # Check reactions
+    old_rxn_hash = get_reactions_hash(old_participants)
+    new_rxn_hash = get_reactions_hash(new_participants)
+    if old_rxn_hash != new_rxn_hash:
+        changes.append("reactions")
+
+    # Check roles
+    old_roles_hash = get_roles_hash(old_participants)
+    new_roles_hash = get_roles_hash(new_participants)
+    if old_roles_hash != new_roles_hash:
+        changes.append("roles")
+
+    # Check balance (if reactions and roles are same but data changed, it's balance)
+    if not changes:
+        changes.append("balance")
+
+    return changes
 
 
 def get_latest_snapshot():
@@ -70,9 +135,13 @@ def fetch_and_save():
             print(f"Latest snapshot: {latest_file}")
             return str(latest_file), False
         else:
-            print(f"Data changed! Old hash: {latest_hash[:8]}..., New hash: {new_hash[:8]}...")
+            # Detect what changed
+            change_types = detect_change_type(latest_data, new_data)
+            print(f"Data changed! Types: {', '.join(change_types)}")
+            print(f"  Old hash: {latest_hash[:8]}..., New hash: {new_hash[:8]}...")
     else:
         print("No previous snapshots found - this will be the first one")
+        change_types = ["initial"]
 
     # Save new snapshot with timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -85,7 +154,10 @@ def fetch_and_save():
             "api_url": API_URL,
             "data_hash": new_hash,
             "participant_count": len(new_data),
-            "total_reactions": total_reactions
+            "total_reactions": total_reactions,
+            "change_types": change_types if latest_data else ["initial"],
+            "reactions_hash": get_reactions_hash(new_data),
+            "roles_hash": get_roles_hash(new_data),
         },
         "participants": new_data
     }

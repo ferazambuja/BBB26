@@ -1,0 +1,104 @@
+/* Plotly Fullscreen Modal Styles */
+
+/* Modal overlay */
+.plotly-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.plotly-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Modal content container */
+.plotly-modal-content {
+    width: 95vw;
+    height: 90vh;
+    background: #303030;
+    border-radius: 8px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+    position: relative;
+    padding: 10px;
+}
+
+/* Close button */
+.plotly-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.plotly-modal-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Fullscreen button styling - appears on chart hover */
+.plotly-fullscreen-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(48, 48, 48, 0.85);
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.plotly-fullscreen-btn:hover {
+    background: rgba(60, 60, 60, 0.95);
+}
+
+/* Show button on container hover */
+.js-plotly-plot:hover .plotly-fullscreen-btn,
+.plotly-graph-div:hover .plotly-fullscreen-btn {
+    opacity: 1;
+}
+
+/* Chart container in modal */
+.plotly-modal-chart {
+    width: 100%;
+    height: 100%;
+}
+
+/* Keyboard hint */
+.plotly-modal-hint {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+}

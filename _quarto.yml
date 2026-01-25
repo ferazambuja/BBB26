@@ -3,18 +3,38 @@ project:
   output-dir: _site
   render:
     - index.qmd
+    - mudancas.qmd
+    - trajetoria.qmd
+    - paredao.qmd
+    - paredoes.qmd
 
 website:
   title: "BBB 26 — Painel de Reações"
   navbar:
     left:
       - href: index.qmd
-        text: Painel
+        text: "📊 Painel"
+      - href: mudancas.qmd
+        text: "📅 O Que Mudou"
+      - href: trajetoria.qmd
+        text: "📈 Trajetória"
+      - href: paredao.qmd
+        text: "🗳️ Paredão"
+      - href: paredoes.qmd
+        text: "📚 Arquivo"
 
 format:
   html:
-    theme: cosmo
-    toc: true
+    theme: darkly
+    toc: false
+    page-layout: full
     code-fold: true
     code-tools: true
     lang: pt-BR
+    css:
+      - assets/plotly-fullscreen.css
+      - assets/toc-offcanvas.css
+    include-after-body:
+      - text: |
+          <script src="assets/plotly-fullscreen.js"></script>
+          <script src="assets/toc-offcanvas.js"></script>
