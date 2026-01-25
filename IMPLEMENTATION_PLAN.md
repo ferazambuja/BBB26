@@ -31,11 +31,10 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-24 | Confirmed: Jan 18 data was never captured, unrecoverable from any source | ✅ Done |
 | 2026-01-24 | Discovered critical data model: reactions are NOT permanent — reassigned daily | ✅ Done |
 | 2026-01-24 | Updated CLAUDE.md, CHANGELOG.md, IMPLEMENTATION_PLAN.md with corrected data model | ✅ Done |
-| | **Commit all reorganization changes** (116 deletions + 18 new files) | ⏳ Pending |
-| | Create `_quarto.yml` | ⏳ Pending |
-| | Create `requirements.txt` | ⏳ Pending |
-| | Create/update `index.qmd` or adapt notebook | ⏳ Pending |
-| | Test Quarto locally | ⏳ Pending |
+| 2026-01-24 | Committed full reorganization: 124 files (116 deletions + 18 new), commit `28ef943` | ✅ Done |
+| 2026-01-24 | Created `_quarto.yml` — renders BBB.ipynb only, cosmo theme, code-fold | ✅ Done |
+| 2026-01-24 | Created `requirements.txt` (7 packages + jupyter/nbformat/nbclient) | ✅ Done |
+| 2026-01-24 | Tested `quarto render` — `_site/BBB.html` (291KB) + 4 figures generated | ✅ Done |
 | | Create GitHub Actions workflow | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
 
@@ -554,19 +553,19 @@ Handled automatically by `scripts/fetch_data.py` — it compares the MD5 hash of
 - [x] **0.6. Create `data/CHANGELOG.md`** — full data timeline, key findings, audit results
 - [x] **0.7. Discover and document corrected data model** — reactions are reassigned daily, not cumulative
 
-#### Phase 0.5: Git Cleanup ⏳ PENDING
-- [ ] **0.5a. Commit the full reorganization** — 116 git deletions + 18 new files + 2 modified files
-- [ ] **0.5b. Verify clean `git status`** after commit
+#### Phase 0.5: Git Cleanup ✅ COMPLETE
+- [x] **0.5a. Commit the full reorganization** — 124 files changed, commit `28ef943`
+- [x] **0.5b. Verify clean `git status`** ✅ (no uncommitted changes)
 
-#### Phase 1: Local Quarto Setup
+#### Phase 1: Local Quarto Setup ✅ COMPLETE
 - [x] **1.1. Install Quarto locally** ✅ (v1.8.27 via Homebrew)
 - [x] **1.2. Create `data/snapshots/` directory structure** ✅
 - [x] **1.3. Create `scripts/fetch_data.py`** ✅ (hash comparison, metadata wrapper, latest.json update)
-- [ ] **1.4. Create `_quarto.yml` configuration**
-- [ ] **1.5. Create `requirements.txt`**
-- [ ] **1.6. Update notebook or create `index.qmd`**
-- [ ] **1.7. Test `quarto render` locally**
-- [ ] **1.8. Test `quarto preview` locally**
+- [x] **1.4. Create `_quarto.yml` configuration** ✅ — renders only `BBB.ipynb`, cosmo theme, code-fold
+- [x] **1.5. Create `requirements.txt`** ✅ — requests, pandas, numpy, matplotlib, seaborn, plotly, networkx, jupyter, nbformat, nbclient
+- [x] **1.6. Render notebook directly** ✅ — Quarto renders `.ipynb` natively, no `.qmd` conversion needed
+- [x] **1.7. Test `quarto render` locally** ✅ — `_site/BBB.html` (291KB) + 4 figures generated
+- [x] **1.8. Verify site in browser** ✅ — `index.html` auto-redirects to `BBB.html`
 
 #### Phase 2: GitHub Actions
 - [ ] **2.1. Create `.github/workflows/daily-update.yml`** (4x daily cron)

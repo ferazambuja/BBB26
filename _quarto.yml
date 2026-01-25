@@ -1,0 +1,19 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - BBB.ipynb
+
+website:
+  title: "BBB26 — Reaction Dashboard"
+  navbar:
+    left:
+      - href: BBB.ipynb
+        text: Dashboard
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: true
+    code-tools: true
