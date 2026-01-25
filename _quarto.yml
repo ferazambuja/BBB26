@@ -2,14 +2,14 @@ project:
   type: website
   output-dir: _site
   render:
-    - BBB.ipynb
+    - index.qmd
 
 website:
-  title: "BBB26 — Reaction Dashboard"
+  title: "BBB 26 — Painel de Reações"
   navbar:
     left:
-      - href: BBB.ipynb
-        text: Dashboard
+      - href: index.qmd
+        text: Painel
 
 format:
   html:
@@ -17,3 +17,4 @@ format:
     toc: true
     code-fold: true
     code-tools: true
+    lang: pt-BR

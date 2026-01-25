@@ -1,0 +1,1243 @@
+---
+title: "BBB 26 — Painel de Reações"
+subtitle: "Análise das reações entre os participantes do Big Brother Brasil 2026"
+author: "Dashboard Automatizado"
+date: today
+lang: pt-BR
+format:
+  html:
+    code-fold: true
+    code-summary: "Ver código"
+    toc: true
+    toc-depth: 3
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+
+import json
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from pathlib import Path
+from collections import defaultdict, Counter
+from datetime import datetime
+
+# Configurações visuais
+plt.rcParams['figure.figsize'] = (14, 8)
+plt.rcParams['font.size'] = 11
+sns.set_theme(style="whitegrid", palette="husl")
+
+# Diretórios
+DATA_DIR = Path("data/snapshots")
+LATEST_FILE = Path("data/latest.json")
+
+# Categorias de reações
+REACTION_EMOJI = {
+    'Coração': '❤️', 'Planta': '🌱', 'Mala': '💼', 'Biscoito': '🍪',
+    'Cobra': '🐍', 'Alvo': '🎯', 'Vômito': '🤮', 'Mentiroso': '🤥',
+    'Coração partido': '💔'
+}
+
+REACTION_SLUG_TO_LABEL = {
+    'coracao': 'Coração', 'planta': 'Planta', 'mala': 'Mala', 'biscoito': 'Biscoito',
+    'cobra': 'Cobra', 'alvo': 'Alvo', 'vomito': 'Vômito', 'mentiroso': 'Mentiroso',
+    'coracao-partido': 'Coração partido'
+}
+
+SENTIMENT_WEIGHTS = {
+    'Coração': 1.0,
+    'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
+    'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0, 'Coração partido': -1.0
+}
+
+POSITIVE = {'Coração'}
+MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito'}
+STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso', 'Coração partido'}
+
+# Cores dos grupos
+GROUP_COLORS = {
+    'Camarote': '#E6194B',
+    'Veterano': '#3CB44B',
+    'Pipoca': '#4363D8',
+}
+
+MEMBER_OF = {}  # preenchido ao carregar dados
+```
+
+```{python}
+#| label: load-data
+
+def load_snapshot(filepath):
+    """Carrega um snapshot JSON (formato novo ou antigo)."""
+    with open(filepath, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "participants" in data:
+        return data["participants"], data.get("_metadata")
+    return data, None
+
+def get_all_snapshots():
+    """Retorna lista de (filepath, date_str) ordenada cronologicamente."""
+    if not DATA_DIR.exists():
+        return []
+    snapshots = sorted(DATA_DIR.glob("*.json"))
+    result = []
+    for fp in snapshots:
+        parts = fp.stem.split("_")
+        date_str = parts[0]
+        result.append((fp, date_str))
+    return result
+
+def parse_roles(roles_data):
+    """Extrai nomes de roles (pode ser lista de strings ou lista de dicts)."""
+    if not roles_data:
+        return []
+    result = []
+    for r in roles_data:
+        if isinstance(r, str):
+            result.append(r)
+        elif isinstance(r, dict):
+            result.append(r.get('label', str(r)))
+    return result
+
+def build_reaction_matrix(participants):
+    """Constrói dicionário {(giver_name, receiver_name): reaction_label}."""
+    matrix = {}
+    for receiver in participants:
+        rname = receiver['name']
+        for rxn in receiver.get('characteristics', {}).get('receivedReactions', []):
+            label = rxn.get('label', '')
+            for giver in rxn.get('participants', []):
+                gname = giver['name']
+                matrix[(gname, rname)] = label
+    return matrix
+
+def calc_sentiment(participant):
+    """Calcula o score de sentimento recebido por um participante."""
+    total = 0
+    for rxn in participant.get('characteristics', {}).get('receivedReactions', []):
+        weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
+        total += weight * rxn.get('amount', 0)
+    return total
+
+# Carregar todos os snapshots
+all_snapshot_files = get_all_snapshots()
+snapshots = []
+for fp, date_str in all_snapshot_files:
+    participants, metadata = load_snapshot(fp)
+    snapshots.append({
+        'filepath': fp,
+        'date': date_str,
+        'timestamp': fp.stem,
+        'participants': participants,
+        'metadata': metadata
+    })
+
+# Construir matrizes de reação para todos os snapshots
+all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+# Preencher MEMBER_OF
+for snap in snapshots:
+    for p in snap['participants']:
+        name = p['name']
+        if name not in MEMBER_OF:
+            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
+
+n_snapshots = len(snapshots)
+latest = snapshots[-1]
+latest_matrix = all_matrices[-1]
+```
+
+# Visão Geral {#visao-geral}
+
+O **Big Brother Brasil 26** estreou em 12 de janeiro de 2026 com um formato inédito: três grupos — **Camarote** (famosos), **Veteranos** (ex-BBBs) e **Pipoca** (anônimos escolhidos pelo público via Casas de Vidro nas 5 regiões do Brasil). Os participantes dão reações uns aos outros diariamente, e essas reações **mudam todos os dias** — não são cumulativas.
+
+```{python}
+#| label: overview-stats
+
+active = [p for p in latest['participants'] if not p.get('characteristics', {}).get('eliminated')]
+n_active = len(active)
+
+# Contar por grupo
+groups = Counter(p.get('characteristics', {}).get('memberOf', '?') for p in active)
+
+# Todas as reações do último snapshot
+total_reactions = sum(
+    rxn.get('amount', 0)
+    for p in active
+    for rxn in p.get('characteristics', {}).get('receivedReactions', [])
+)
+
+print(f"📊 **{n_snapshots} snapshots** analisados (13 a 24 de janeiro de 2026)")
+print(f"👥 **{n_active} participantes ativos** — ", end="")
+print(" | ".join(f"{g}: {c}" for g, c in sorted(groups.items())))
+print(f"💬 **{total_reactions} reações** registradas no último snapshot")
+print(f"📅 Último dado: **{latest['date']}**")
+```
+
+## Cronologia do Jogo
+
+```{python}
+#| label: timeline-events
+
+events_data = []
+all_names_seen = set()
+
+for i, snap in enumerate(snapshots):
+    current_names = set(p['name'] for p in snap['participants'])
+    active_names = set(p['name'] for p in snap['participants']
+                       if not p.get('characteristics', {}).get('eliminated'))
+
+    if i > 0:
+        prev_names = set(p['name'] for p in snapshots[i-1]['participants'])
+        appeared = current_names - prev_names
+        disappeared = prev_names - current_names
+
+        if appeared:
+            events_data.append({
+                'Data': snap['date'],
+                'Evento': f"✅ Entraram: {', '.join(sorted(appeared))}",
+                'Participantes': len(active_names)
+            })
+        if disappeared:
+            for name in disappeared:
+                events_data.append({
+                    'Data': snap['date'],
+                    'Evento': f"❌ Saiu: {name}",
+                    'Participantes': len(active_names)
+                })
+
+    # Detectar roles especiais
+    for p in snap['participants']:
+        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+        for role in roles:
+            if role in ('Líder', 'Paredão') and i > 0:
+                prev_snap_p = {pp['name']: pp for pp in snapshots[i-1]['participants']}
+                if p['name'] in prev_snap_p:
+                    prev_roles = parse_roles(prev_snap_p[p['name']].get('characteristics', {}).get('roles', []))
+                    if role not in prev_roles:
+                        events_data.append({
+                            'Data': snap['date'],
+                            'Evento': f"🏆 {p['name']} → {role}",
+                            'Participantes': len(active_names)
+                        })
+
+    all_names_seen |= current_names
+
+if events_data:
+    df_events = pd.DataFrame(events_data).drop_duplicates()
+    # Mostrar apenas eventos importantes (entradas/saídas/roles)
+    key_events = df_events[df_events['Evento'].str.contains('Entraram|Saiu|Líder')]
+    if not key_events.empty:
+        display(key_events.style.hide(axis='index'))
+```
+
+## Resultado do Paredão
+
+::: {.callout-warning}
+**Dados manuais:** Os resultados do Paredão não vêm da API de reações — são coletados manualmente de fontes públicas (GShow, transmissão ao vivo). Para manter o painel atualizado, edite a seção `paredao_data` no código abaixo a cada eliminação.
+:::
+
+```{python}
+#| label: paredao-results
+#| output: asis
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  DADOS MANUAIS — Atualizar a cada novo Paredão             ║
+# ║  Fonte: GShow / transmissão ao vivo                        ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+paredoes = [
+    {
+        'numero': 1,
+        'data': '2026-01-20',
+        'titulo': '1º Paredão — 20 de Janeiro de 2026',
+        'formacao': (
+            "Marcelo atendeu o Big Fone e indicou Aline Campos, "
+            "que contra-atacou Ana Paula Renault. O Líder Alberto Cowboy indicou Milena. "
+            "Paulo Augusto, mais votado pela casa, escapou na Prova Bate e Volta."
+        ),
+        'participantes': [
+            {'nome': 'Aline Campos', 'voto_total': 61.64, 'resultado': 'ELIMINADA', 'grupo': 'Camarote'},
+            {'nome': 'Milena', 'voto_total': 32.50, 'resultado': 'Salva', 'grupo': 'Pipoca'},
+            {'nome': 'Ana Paula Renault', 'voto_total': 5.86, 'resultado': 'Salva', 'grupo': 'Veterano'},
+        ],
+        # TODO: Preencher quando disponível
+        # 'voto_unico_pct': {'Aline Campos': ..., 'Milena': ..., 'Ana Paula Renault': ...},
+        # 'voto_torcida_pct': {'Aline Campos': ..., 'Milena': ..., 'Ana Paula Renault': ...},
+    },
+    # Adicionar novos paredões aqui:
+    # {
+    #     'numero': 2,
+    #     'data': '2026-01-27',
+    #     'titulo': '2º Paredão — 27 de Janeiro de 2026',
+    #     'formacao': '...',
+    #     'participantes': [...],
+    # },
+]
+
+for paredao in paredoes:
+    df_p = pd.DataFrame(paredao['participantes'])
+
+    colors = ['#E6194B' if r == 'ELIMINADA' else '#3CB44B' for r in df_p['resultado']]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=df_p['nome'],
+        y=df_p['voto_total'],
+        text=[f"{v:.1f}%" for v in df_p['voto_total']],
+        textposition='outside',
+        marker_color=colors,
+        hovertemplate='%{x}: %{y:.1f}%<extra></extra>',
+        name='Total'
+    ))
+
+    fig.update_layout(
+        title=paredao['titulo'],
+        xaxis_title="",
+        yaxis_title="Votos (%)",
+        yaxis_range=[0, max(df_p['voto_total']) * 1.2],
+        template="plotly_white",
+        height=400,
+        annotations=[
+            dict(
+                text="🔴 = Eliminada | 🟢 = Salva",
+                xref="paper", yref="paper",
+                x=1, y=1.08, showarrow=False,
+                font=dict(size=12)
+            )
+        ]
+    )
+
+    fig.show()
+
+    # Mostrar formação
+    print(f"\n**Como foi formado:** {paredao['formacao']}")
+```
+
+# Ranking de Sentimento {#ranking}
+
+Cada participante recebe reações dos demais. O **score de sentimento** pondera: ❤️ = +1, reações leves (🌱💼🍪) = -0.5, reações fortes (🐍🎯🤮🤥💔) = -1.
+
+```{python}
+#| label: sentiment-ranking
+
+# Calcular sentimento do último snapshot
+sentiment_data = []
+for p in latest['participants']:
+    if p.get('characteristics', {}).get('eliminated'):
+        continue
+    name = p['name']
+    score = calc_sentiment(p)
+    hearts = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
+                 if r['label'] == 'Coração')
+    neg = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
+              if r['label'] != 'Coração')
+    member_of = p.get('characteristics', {}).get('memberOf', '?')
+    sentiment_data.append({
+        'name': name, 'score': score, 'hearts': hearts,
+        'negative': neg, 'memberOf': member_of
+    })
+
+df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
+
+# Plotar com Plotly
+color_map = {name: GROUP_COLORS.get(m, '#999')
+             for name, m in zip(df_sent['name'], df_sent['memberOf'])}
+
+fig = go.Figure()
+
+fig.add_trace(go.Bar(
+    y=df_sent['name'],
+    x=df_sent['score'],
+    orientation='h',
+    marker_color=[color_map[n] for n in df_sent['name']],
+    text=[f"{s:+.1f}" for s in df_sent['score']],
+    textposition='outside',
+    hovertemplate='%{y}: %{x:+.1f}<br>❤️: %{customdata[0]} | Neg: %{customdata[1]}<extra></extra>',
+    customdata=list(zip(df_sent['hearts'], df_sent['negative']))
+))
+
+fig.update_layout(
+    title=f"Ranking de Sentimento — {latest['date']}",
+    xaxis_title="Score de Sentimento",
+    yaxis_title="",
+    template="plotly_white",
+    height=max(500, len(df_sent) * 28),
+    margin=dict(l=150),
+    shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
+                 line=dict(color='red', dash='dash', width=1))]
+)
+
+# Legenda de cores
+for group, color in GROUP_COLORS.items():
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None], mode='markers',
+        marker=dict(size=10, color=color),
+        name=group, showlegend=True
+    ))
+
+fig.show()
+```
+
+# Evolução do Sentimento {#evolucao}
+
+Como o sentimento de cada participante mudou ao longo do tempo.
+
+```{python}
+#| label: sentiment-timeline
+
+# Calcular sentimento para cada participante em cada snapshot
+timeline_data = []
+for i, snap in enumerate(snapshots):
+    for p in snap['participants']:
+        if p.get('characteristics', {}).get('eliminated'):
+            continue
+        name = p['name']
+        score = calc_sentiment(p)
+        timeline_data.append({
+            'Data': pd.to_datetime(snap['date']),
+            'Participante': name,
+            'Sentimento': score,
+            'Grupo': p.get('characteristics', {}).get('memberOf', '?')
+        })
+
+df_timeline = pd.DataFrame(timeline_data)
+
+if not df_timeline.empty:
+    # Paleta com cores distintas para cada participante
+    all_participants = sorted(df_timeline['Participante'].unique())
+    palette = (
+        px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+        px.colors.qualitative.Set2 + px.colors.qualitative.Bold
+    )
+    participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
+
+    # Top 3 e bottom 3 pelo último score — visíveis por padrão
+    latest_scores = df_timeline.groupby('Participante')['Sentimento'].last()
+    top3 = set(latest_scores.nlargest(3).index)
+    bottom3 = set(latest_scores.nsmallest(3).index)
+    highlight = top3 | bottom3
+
+    fig = go.Figure()
+
+    for name in all_participants:
+        df_p = df_timeline[df_timeline['Participante'] == name].sort_values('Data')
+        is_hl = name in highlight
+
+        fig.add_trace(go.Scatter(
+            x=df_p['Data'], y=df_p['Sentimento'],
+            mode='lines+markers',
+            name=name,
+            line=dict(width=3 if is_hl else 1.5, color=participant_colors[name]),
+            marker=dict(size=6 if is_hl else 4),
+            hovertemplate=f'{name}: ' + '%{y:+.1f}<extra></extra>',
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    fig.update_layout(
+        title="Evolução do Sentimento ao Longo do Tempo",
+        xaxis_title="Data",
+        yaxis_title="Score de Sentimento",
+        template="plotly_white",
+        height=600,
+        hovermode='x unified',
+        legend=dict(font=dict(size=10), itemsizing='constant'),
+        shapes=[dict(type='line', x0=df_timeline['Data'].min(), x1=df_timeline['Data'].max(),
+                     y0=0, y1=0, line=dict(color='red', dash='dash', width=1))]
+    )
+
+    fig.show()
+```
+
+# Tabela Cruzada de Reações {#crosstable}
+
+Quem deu qual reação para quem. Cada célula mostra a reação que a **linha** (emissor) deu para a **coluna** (receptor).
+
+```{python}
+#| label: cross-table
+
+# Construir cross-table do último snapshot
+active_names = sorted([p['name'] for p in latest['participants']
+                        if not p.get('characteristics', {}).get('eliminated')])
+
+# Criar DataFrame com emojis
+cross_data = []
+for giver in active_names:
+    row = {'Emissor': giver}
+    for receiver in active_names:
+        if giver == receiver:
+            row[receiver] = '—'
+        else:
+            rxn = latest_matrix.get((giver, receiver), '')
+            row[receiver] = REACTION_EMOJI.get(rxn, '?')
+    cross_data.append(row)
+
+df_cross = pd.DataFrame(cross_data).set_index('Emissor')
+
+# Versão com heatmap numérico para Plotly
+heat_data = np.zeros((len(active_names), len(active_names)))
+rxn_labels = []
+for i, giver in enumerate(active_names):
+    row_labels = []
+    for j, receiver in enumerate(active_names):
+        if giver == receiver:
+            heat_data[i, j] = np.nan
+            row_labels.append('—')
+        else:
+            rxn = latest_matrix.get((giver, receiver), '')
+            weight = SENTIMENT_WEIGHTS.get(rxn, 0)
+            heat_data[i, j] = weight
+            emoji = REACTION_EMOJI.get(rxn, '?')
+            row_labels.append(emoji)
+    rxn_labels.append(row_labels)
+
+# Usar nomes curtos
+short_names = [n.split()[0] if len(n) > 12 else n for n in active_names]
+
+fig = go.Figure(data=go.Heatmap(
+    z=heat_data,
+    x=short_names,
+    y=short_names,
+    colorscale=[
+        [0, '#d73027'],     # -1.0 (forte negativo)
+        [0.25, '#fc8d59'],  # -0.5 (leve negativo)
+        [0.5, '#ffffbf'],   #  0.0 (neutro)
+        [1.0, '#1a9850'],   # +1.0 (positivo)
+    ],
+    zmin=-1, zmax=1,
+    text=[[rxn_labels[i][j] for j in range(len(active_names))] for i in range(len(active_names))],
+    texttemplate='%{text}',
+    textfont=dict(size=9),
+    hovertemplate='%{y} → %{x}: %{text}<extra></extra>',
+    colorbar=dict(title="Sentimento", tickvals=[-1, -0.5, 0, 1],
+                  ticktext=['Forte Neg', 'Leve Neg', 'Neutro', 'Positivo'])
+))
+
+fig.update_layout(
+    title=f"Mapa de Reações — {latest['date']}",
+    xaxis_title="Receptor ←",
+    yaxis_title="Emissor →",
+    height=700,
+    width=900,
+    template="plotly_white",
+    xaxis=dict(tickangle=45, side='bottom'),
+    yaxis=dict(autorange='reversed')
+)
+
+fig.show()
+```
+
+```{python}
+#| label: cross-table-summary
+#| output: asis
+
+# Resumo: total de cada reação por participante
+print("\n### Reações Recebidas por Participante\n")
+
+summary_rows = []
+for p in sorted(latest['participants'], key=lambda x: calc_sentiment(x), reverse=True):
+    if p.get('characteristics', {}).get('eliminated'):
+        continue
+    name = p['name']
+    rxn_counts = {}
+    for rxn in p.get('characteristics', {}).get('receivedReactions', []):
+        emoji = REACTION_EMOJI.get(rxn['label'], rxn['label'])
+        rxn_counts[emoji] = rxn['amount']
+    score = calc_sentiment(p)
+    summary_rows.append({
+        'Participante': name,
+        '❤️': rxn_counts.get('❤️', 0),
+        '🌱': rxn_counts.get('🌱', 0),
+        '💼': rxn_counts.get('💼', 0),
+        '🍪': rxn_counts.get('🍪', 0),
+        '🐍': rxn_counts.get('🐍', 0),
+        '🎯': rxn_counts.get('🎯', 0),
+        '🤮': rxn_counts.get('🤮', 0),
+        '🤥': rxn_counts.get('🤥', 0),
+        '💔': rxn_counts.get('💔', 0),
+        'Score': f"{score:+.1f}"
+    })
+
+df_summary = pd.DataFrame(summary_rows)
+print(df_summary.to_markdown(index=False))
+```
+
+# Alianças e Rivalidades {#aliancas}
+
+## Alianças Mais Consistentes
+
+Pares que trocaram ❤️ mútuo na maior quantidade de snapshots.
+
+```{python}
+#| label: alliances
+
+# Calcular alianças mútuas ao longo do tempo
+mutual_heart_history = defaultdict(int)
+mutual_neg_history = defaultdict(int)
+total_coexist = defaultdict(int)
+
+for idx, matrix in enumerate(all_matrices):
+    snap = snapshots[idx]
+    active_set = set(p['name'] for p in snap['participants']
+                     if not p.get('characteristics', {}).get('eliminated'))
+
+    checked_heart = set()
+    checked_neg = set()
+
+    for (giver, receiver), label in matrix.items():
+        if giver not in active_set or receiver not in active_set:
+            continue
+        pair = tuple(sorted([giver, receiver]))
+        total_coexist[pair] += 1  # conta dobrada mas consistente
+
+        if pair not in checked_heart and label == 'Coração':
+            reverse = matrix.get((receiver, giver))
+            if reverse == 'Coração':
+                mutual_heart_history[pair] += 1
+                checked_heart.add(pair)
+
+        if pair not in checked_neg and label not in POSITIVE:
+            reverse = matrix.get((receiver, giver))
+            if reverse is not None and reverse not in POSITIVE:
+                mutual_neg_history[pair] += 1
+                checked_neg.add(pair)
+
+# Top alianças
+top_alliances = sorted(mutual_heart_history.items(), key=lambda x: -x[1])[:15]
+
+alliance_data = []
+for (a, b), count in top_alliances:
+    alliance_data.append({
+        'Par': f"{a} ↔ {b}",
+        'Snapshots com ❤️ mútuo': count,
+        'Total de snapshots': n_snapshots,
+        'Consistência': f"{count/n_snapshots*100:.0f}%"
+    })
+
+df_alliances = pd.DataFrame(alliance_data)
+
+fig = go.Figure(go.Bar(
+    x=[a['Snapshots com ❤️ mútuo'] for a in alliance_data],
+    y=[a['Par'] for a in alliance_data],
+    orientation='h',
+    marker_color='#1a9850',
+    text=[a['Consistência'] for a in alliance_data],
+    textposition='outside',
+    hovertemplate='%{y}: ❤️ mútuo em %{x}/' + str(n_snapshots) + ' snapshots<extra></extra>'
+))
+
+fig.update_layout(
+    title="Top 15 Alianças Mais Consistentes (❤️ Mútuo)",
+    xaxis_title=f"Snapshots com ❤️ mútuo (de {n_snapshots})",
+    yaxis_title="",
+    template="plotly_white",
+    height=500,
+    margin=dict(l=250),
+    xaxis_range=[0, n_snapshots + 1]
+)
+
+fig.show()
+```
+
+## Rivalidades Mais Persistentes
+
+Pares que trocaram reações negativas mútuas na maior quantidade de snapshots.
+
+```{python}
+#| label: rivalries
+
+top_rivalries = sorted(mutual_neg_history.items(), key=lambda x: -x[1])[:15]
+
+rivalry_data = []
+for (a, b), count in top_rivalries:
+    rivalry_data.append({
+        'Par': f"{a} vs {b}",
+        'Snapshots com rivalidade': count,
+        'Total': n_snapshots,
+        'Persistência': f"{count/n_snapshots*100:.0f}%"
+    })
+
+if rivalry_data:
+    fig = go.Figure(go.Bar(
+        x=[r['Snapshots com rivalidade'] for r in rivalry_data],
+        y=[r['Par'] for r in rivalry_data],
+        orientation='h',
+        marker_color='#d73027',
+        text=[r['Persistência'] for r in rivalry_data],
+        textposition='outside',
+        hovertemplate='%{y}: rivalidade em %{x}/' + str(n_snapshots) + ' snapshots<extra></extra>'
+    ))
+
+    fig.update_layout(
+        title="Top 15 Rivalidades Mais Persistentes (Negativa Mútua)",
+        xaxis_title=f"Snapshots com rivalidade (de {n_snapshots})",
+        yaxis_title="",
+        template="plotly_white",
+        height=500,
+        margin=dict(l=300),
+        xaxis_range=[0, n_snapshots + 1]
+    )
+
+    fig.show()
+```
+
+## Grafo de Relações
+
+Rede mostrando alianças (❤️ mútuo = verde) e rivalidades (negativa mútua = vermelho) no último snapshot.
+
+```{python}
+#| label: network-graph
+
+import networkx as nx
+
+G = nx.Graph()
+
+active_names_net = [p['name'] for p in latest['participants']
+                     if not p.get('characteristics', {}).get('eliminated')]
+
+for name in active_names_net:
+    member_of = MEMBER_OF.get(name, '?')
+    G.add_node(name, group=member_of)
+
+# Adicionar arestas de aliança e rivalidade
+checked = set()
+for (giver, receiver), label in latest_matrix.items():
+    pair = tuple(sorted([giver, receiver]))
+    if pair in checked:
+        continue
+    checked.add(pair)
+
+    reverse = latest_matrix.get((receiver, giver))
+    if label == 'Coração' and reverse == 'Coração':
+        G.add_edge(giver, receiver, weight=1, color='green', relation='alliance')
+    elif label not in POSITIVE and reverse is not None and reverse not in POSITIVE:
+        G.add_edge(giver, receiver, weight=1, color='red', relation='rivalry')
+
+pos = nx.spring_layout(G, k=2.5, iterations=80, seed=42)
+
+# Separar arestas por tipo
+edge_traces = []
+for edge_type, color, dash in [('alliance', '#2ca02c', 'solid'), ('rivalry', '#d62728', 'dash')]:
+    edge_x, edge_y = [], []
+    for u, v, data in G.edges(data=True):
+        if data.get('relation') != edge_type:
+            continue
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_traces.append(go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1.5, color=color, dash=dash),
+        hoverinfo='none',
+        mode='lines',
+        name='Aliança (❤️ mútuo)' if edge_type == 'alliance' else 'Rivalidade (neg. mútua)',
+        showlegend=True
+    ))
+
+# Nós
+node_x = [pos[n][0] for n in G.nodes()]
+node_y = [pos[n][1] for n in G.nodes()]
+node_colors = [GROUP_COLORS.get(G.nodes[n].get('group', '?'), '#999') for n in G.nodes()]
+node_text = list(G.nodes())
+
+# Score de sentimento para tamanho
+sent_scores = {}
+for p in latest['participants']:
+    if not p.get('characteristics', {}).get('eliminated'):
+        sent_scores[p['name']] = calc_sentiment(p)
+
+node_sizes = [max(10, min(35, 15 + sent_scores.get(n, 0))) for n in G.nodes()]
+
+node_trace = go.Scatter(
+    x=node_x, y=node_y,
+    mode='markers+text',
+    text=[n.split()[0] for n in node_text],
+    textposition='top center',
+    textfont=dict(size=9),
+    marker=dict(size=node_sizes, color=node_colors, line=dict(width=1, color='white')),
+    hovertemplate='%{hovertext}<extra></extra>',
+    hovertext=[f"{n}<br>Grupo: {G.nodes[n].get('group','?')}<br>Sentimento: {sent_scores.get(n,0):+.1f}" for n in G.nodes()],
+    showlegend=False
+)
+
+fig = go.Figure(data=edge_traces + [node_trace])
+
+fig.update_layout(
+    title=f"Grafo de Relações — {latest['date']}",
+    template="plotly_white",
+    height=650,
+    showlegend=True,
+    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    annotations=[
+        dict(text="Tamanho do nó = sentimento | Cor = grupo (🔴 Camarote, 🟢 Veterano, 🔵 Pipoca)",
+             xref="paper", yref="paper", x=0.5, y=-0.05, showarrow=False, font=dict(size=11))
+    ]
+)
+
+fig.show()
+```
+
+# Dinâmica das Reações {#dinamica}
+
+## Mudanças Entre Snapshots
+
+Quantas reações mudaram entre cada par de snapshots consecutivos.
+
+```{python}
+#| label: reaction-changes
+
+change_counts = []
+for i in range(1, len(snapshots)):
+    prev_m = all_matrices[i-1]
+    curr_m = all_matrices[i]
+
+    common_pairs = set(prev_m.keys()) & set(curr_m.keys())
+    changes = sum(1 for pair in common_pairs if prev_m[pair] != curr_m[pair])
+    pos_to_neg = sum(1 for pair in common_pairs
+                     if prev_m[pair] in POSITIVE and curr_m[pair] not in POSITIVE)
+    neg_to_pos = sum(1 for pair in common_pairs
+                     if prev_m[pair] not in POSITIVE and curr_m[pair] in POSITIVE)
+
+    change_counts.append({
+        'Transição': f"{snapshots[i-1]['date']} → {snapshots[i]['date']}",
+        'Data': pd.to_datetime(snapshots[i]['date']),
+        'Total': changes,
+        '❤️→Neg': pos_to_neg,
+        'Neg→❤️': neg_to_pos
+    })
+
+df_changes = pd.DataFrame(change_counts)
+
+if not df_changes.empty:
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=df_changes['Transição'], y=df_changes['❤️→Neg'],
+        name='❤️ → Negativa', marker_color='#d73027'
+    ))
+    fig.add_trace(go.Bar(
+        x=df_changes['Transição'], y=df_changes['Neg→❤️'],
+        name='Negativa → ❤️', marker_color='#1a9850'
+    ))
+
+    fig.update_layout(
+        title="Mudanças de Reação Entre Snapshots",
+        xaxis_title="", yaxis_title="Quantidade de mudanças",
+        barmode='group',
+        template="plotly_white",
+        height=400,
+        xaxis=dict(tickangle=45)
+    )
+
+    fig.show()
+```
+
+## Quem Muda Mais de Opinião? ("Vira-Casacas")
+
+Participantes que mais mudaram suas reações ao longo do tempo.
+
+```{python}
+#| label: flip-floppers
+
+giver_change_count = Counter()
+for i in range(1, len(snapshots)):
+    prev_m = all_matrices[i-1]
+    curr_m = all_matrices[i]
+    common_pairs = set(prev_m.keys()) & set(curr_m.keys())
+    for pair in common_pairs:
+        if prev_m[pair] != curr_m[pair]:
+            giver_change_count[pair[0]] += 1
+
+# Normalizar pelo número de transições em que estiveram ativos
+giver_transitions = Counter()
+for i in range(1, len(snapshots)):
+    prev_active = set(p['name'] for p in snapshots[i-1]['participants']
+                      if not p.get('characteristics', {}).get('eliminated'))
+    curr_active = set(p['name'] for p in snapshots[i]['participants']
+                      if not p.get('characteristics', {}).get('eliminated'))
+    for name in prev_active & curr_active:
+        giver_transitions[name] += 1
+
+flipflop_data = []
+for name, changes in giver_change_count.most_common():
+    trans = giver_transitions.get(name, 1)
+    if trans >= 3:  # mínimo de 3 transições
+        flipflop_data.append({
+            'Participante': name,
+            'Mudanças': changes,
+            'Transições': trans,
+            'Taxa': round(changes / trans, 1)
+        })
+
+df_flip = pd.DataFrame(flipflop_data).sort_values('Mudanças', ascending=True)
+
+if not df_flip.empty:
+    fig = go.Figure(go.Bar(
+        y=df_flip['Participante'],
+        x=df_flip['Mudanças'],
+        orientation='h',
+        marker_color=[GROUP_COLORS.get(MEMBER_OF.get(n, '?'), '#999')
+                      for n in df_flip['Participante']],
+        text=[f"{m} ({t:.1f}/snap)" for m, t in zip(df_flip['Mudanças'], df_flip['Taxa'])],
+        textposition='outside',
+        hovertemplate='%{y}: %{x} mudanças totais<extra></extra>'
+    ))
+
+    fig.update_layout(
+        title="Vira-Casacas: Quem Muda Mais de Opinião?",
+        xaxis_title="Total de mudanças de reação",
+        yaxis_title="",
+        template="plotly_white",
+        height=max(400, len(df_flip) * 25),
+        margin=dict(l=150)
+    )
+
+    fig.show()
+```
+
+# Saldo e Economia {#saldo}
+
+## Evolução do Saldo
+
+O saldo (Estalecas) de cada participante ao longo do tempo.
+
+```{python}
+#| label: balance-timeline
+
+balance_data = []
+for i, snap in enumerate(snapshots):
+    for p in snap['participants']:
+        if p.get('characteristics', {}).get('eliminated'):
+            continue
+        balance_data.append({
+            'Data': pd.to_datetime(snap['date']),
+            'Participante': p['name'],
+            'Saldo': p.get('characteristics', {}).get('balance', 0),
+            'Grupo': p.get('characteristics', {}).get('memberOf', '?')
+        })
+
+df_balance = pd.DataFrame(balance_data)
+
+if not df_balance.empty:
+    # Paleta com cores distintas para cada participante
+    all_bal_participants = sorted(df_balance['Participante'].unique())
+    palette_bal = (
+        px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+        px.colors.qualitative.Set2 + px.colors.qualitative.Bold
+    )
+    bal_colors = {name: palette_bal[i % len(palette_bal)] for i, name in enumerate(all_bal_participants)}
+
+    # Top 3 e bottom 3 pelo último saldo — visíveis por padrão
+    latest_bal = df_balance.groupby('Participante')['Saldo'].last()
+    top3_bal = set(latest_bal.nlargest(3).index)
+    bottom3_bal = set(latest_bal.nsmallest(3).index)
+    highlight_bal = top3_bal | bottom3_bal
+
+    fig = go.Figure()
+
+    for name in all_bal_participants:
+        df_p = df_balance[df_balance['Participante'] == name].sort_values('Data')
+        is_hl = name in highlight_bal
+
+        fig.add_trace(go.Scatter(
+            x=df_p['Data'], y=df_p['Saldo'],
+            mode='lines+markers',
+            name=name,
+            line=dict(width=3 if is_hl else 1.5, color=bal_colors[name]),
+            marker=dict(size=6 if is_hl else 4),
+            hovertemplate=f'{name}: ' + '%{y:,} Estalecas<extra></extra>',
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    fig.update_layout(
+        title="Evolução do Saldo (Estalecas)",
+        xaxis_title="Data",
+        yaxis_title="Saldo (Estalecas)",
+        template="plotly_white",
+        height=600,
+        hovermode='x unified',
+        legend=dict(font=dict(size=10), itemsizing='constant'),
+    )
+
+    fig.show()
+```
+
+## Saldo vs Sentimento
+
+Existe correlação entre ter mais Estalecas e ser bem-visto pelos colegas?
+
+```{python}
+#| label: balance-vs-sentiment
+
+bal_sent_data = []
+for p in latest['participants']:
+    if p.get('characteristics', {}).get('eliminated'):
+        continue
+    bal_sent_data.append({
+        'Participante': p['name'],
+        'Saldo': p.get('characteristics', {}).get('balance', 0),
+        'Sentimento': calc_sentiment(p),
+        'Grupo': p.get('characteristics', {}).get('memberOf', '?')
+    })
+
+df_bs = pd.DataFrame(bal_sent_data)
+
+if len(df_bs) > 2:
+    corr = df_bs['Saldo'].corr(df_bs['Sentimento'])
+
+    fig = px.scatter(
+        df_bs, x='Saldo', y='Sentimento',
+        text='Participante',
+        color='Grupo',
+        color_discrete_map=GROUP_COLORS,
+        title=f"Saldo vs Sentimento (correlação: r = {corr:.2f})",
+        labels={'Saldo': 'Saldo (Estalecas)', 'Sentimento': 'Score de Sentimento'}
+    )
+
+    fig.update_traces(textposition='top center', textfont_size=9, marker_size=12)
+    fig.update_layout(template="plotly_white", height=500)
+
+    # Linha de tendência
+    z = np.polyfit(df_bs['Saldo'], df_bs['Sentimento'], 1)
+    x_line = np.linspace(df_bs['Saldo'].min(), df_bs['Saldo'].max(), 100)
+    y_line = np.polyval(z, x_line)
+    fig.add_trace(go.Scatter(x=x_line, y=y_line, mode='lines',
+                             line=dict(dash='dash', color='gray'),
+                             name='Tendência', showlegend=True))
+
+    fig.show()
+```
+
+# Dinâmica Vip vs Xepa {#grupos}
+
+## Favoritismo Intragrupo
+
+Os membros do mesmo grupo (Vip/Xepa) favorecem uns aos outros com mais ❤️?
+
+```{python}
+#| label: group-favoritism
+
+fav_data = []
+for i, snap in enumerate(snapshots):
+    matrix = all_matrices[i]
+    name_to_group = {}
+    for p in snap['participants']:
+        if not p.get('characteristics', {}).get('eliminated'):
+            name_to_group[p['name']] = p.get('characteristics', {}).get('group', '?')
+
+    unique_groups = set(name_to_group.values())
+    if len(unique_groups) <= 1:
+        continue
+
+    in_hearts, in_total = 0, 0
+    out_hearts, out_total = 0, 0
+
+    for (giver, receiver), label in matrix.items():
+        if giver not in name_to_group or receiver not in name_to_group:
+            continue
+        same = name_to_group[giver] == name_to_group[receiver]
+        is_heart = label == 'Coração'
+        if same:
+            in_total += 1
+            if is_heart: in_hearts += 1
+        else:
+            out_total += 1
+            if is_heart: out_hearts += 1
+
+    in_pct = (in_hearts / in_total * 100) if in_total > 0 else 0
+    out_pct = (out_hearts / out_total * 100) if out_total > 0 else 0
+
+    fav_data.append({
+        'Data': pd.to_datetime(snap['date']),
+        'Intragrupo (%)': round(in_pct, 1),
+        'Intergrupo (%)': round(out_pct, 1),
+        'Viés': round(in_pct - out_pct, 1)
+    })
+
+df_fav = pd.DataFrame(fav_data)
+
+if not df_fav.empty:
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df_fav['Data'], y=df_fav['Intragrupo (%)'],
+        mode='lines+markers', name='Mesmo grupo',
+        line=dict(color='#2196F3', width=2)
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_fav['Data'], y=df_fav['Intergrupo (%)'],
+        mode='lines+markers', name='Grupo diferente',
+        line=dict(color='#FF9800', width=2)
+    ))
+
+    fig.update_layout(
+        title="Favoritismo: ❤️ Dentro do Grupo vs Entre Grupos",
+        xaxis_title="Data",
+        yaxis_title="% de reações que são ❤️",
+        template="plotly_white",
+        height=400,
+        yaxis_range=[50, 100]
+    )
+
+    fig.show()
+
+    avg_bias = df_fav['Viés'].mean()
+    if avg_bias > 2:
+        print(f"📊 Viés médio: **{avg_bias:+.1f} pontos percentuais** a favor do próprio grupo.")
+    elif avg_bias < -2:
+        print(f"📊 Viés médio: **{avg_bias:+.1f} pp** — surpreendentemente, há *mais* ❤️ para o grupo oposto!")
+    else:
+        print(f"📊 Viés médio: **{avg_bias:+.1f} pp** — praticamente nenhum favoritismo de grupo.")
+```
+
+# Quem Dá Mais Negatividade? {#emissores}
+
+Ranking de quem distribui mais reações negativas.
+
+```{python}
+#| label: negative-givers
+
+giver_data = []
+for name in active_names:
+    pos_given = 0
+    neg_given = 0
+    for receiver in active_names:
+        if name == receiver:
+            continue
+        rxn = latest_matrix.get((name, receiver), '')
+        if rxn in POSITIVE:
+            pos_given += 1
+        elif rxn:
+            neg_given += 1
+
+    total = pos_given + neg_given
+    neg_pct = (neg_given / total * 100) if total > 0 else 0
+
+    giver_data.append({
+        'Participante': name,
+        '❤️ dados': pos_given,
+        'Negativos dados': neg_given,
+        '% Negativo': round(neg_pct, 1),
+        'Grupo': MEMBER_OF.get(name, '?')
+    })
+
+df_givers = pd.DataFrame(giver_data).sort_values('% Negativo', ascending=True)
+
+fig = go.Figure()
+
+fig.add_trace(go.Bar(
+    y=df_givers['Participante'],
+    x=df_givers['❤️ dados'],
+    name='❤️ dados',
+    orientation='h',
+    marker_color='#1a9850'
+))
+
+fig.add_trace(go.Bar(
+    y=df_givers['Participante'],
+    x=df_givers['Negativos dados'],
+    name='Negativos dados',
+    orientation='h',
+    marker_color='#d73027'
+))
+
+fig.update_layout(
+    title="Perfil de Emissão: Quem Dá Mais ❤️ vs Negatividade?",
+    xaxis_title="Quantidade de reações dadas",
+    yaxis_title="",
+    barmode='stack',
+    template="plotly_white",
+    height=max(500, len(df_givers) * 25),
+    margin=dict(l=150)
+)
+
+fig.show()
+```
+
+# Perfis Individuais {#perfis}
+
+Detalhamento de cada participante ativo.
+
+```{python}
+#| label: individual-profiles
+#| output: asis
+
+# Ordenar por sentimento
+sorted_active = sorted(
+    [p for p in latest['participants'] if not p.get('characteristics', {}).get('eliminated')],
+    key=lambda x: calc_sentiment(x),
+    reverse=True
+)
+
+for p in sorted_active:
+    name = p['name']
+    member_of = p.get('characteristics', {}).get('memberOf', '?')
+    group = p.get('characteristics', {}).get('group', '?')
+    balance = p.get('characteristics', {}).get('balance', 0)
+    roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+    score = calc_sentiment(p)
+
+    # Reações recebidas
+    rxn_summary = []
+    for rxn in p.get('characteristics', {}).get('receivedReactions', []):
+        emoji = REACTION_EMOJI.get(rxn['label'], rxn['label'])
+        rxn_summary.append(f"{emoji}×{rxn['amount']}")
+
+    # Reações que este participante deu
+    given = {}
+    for other_name in active_names:
+        if other_name == name:
+            continue
+        rxn = latest_matrix.get((name, other_name), '')
+        if rxn:
+            emoji = REACTION_EMOJI.get(rxn, rxn)
+            given[emoji] = given.get(emoji, 0) + 1
+
+    given_summary = " | ".join(f"{e}×{c}" for e, c in sorted(given.items(), key=lambda x: -x[1]))
+
+    # Alianças (❤️ mútuo)
+    allies = []
+    enemies = []
+    for other_name in active_names:
+        if other_name == name:
+            continue
+        my_rxn = latest_matrix.get((name, other_name), '')
+        their_rxn = latest_matrix.get((other_name, name), '')
+        if my_rxn == 'Coração' and their_rxn == 'Coração':
+            allies.append(other_name)
+        elif my_rxn not in POSITIVE and their_rxn not in POSITIVE and my_rxn and their_rxn:
+            enemies.append(other_name)
+
+    print(f"\n### {name}")
+    print(f"**{member_of}** | {group} | Saldo: {balance:,} | Sentimento: **{score:+.1f}**")
+    if roles:
+        print(f" | Papéis: {', '.join(roles)}")
+    print(f"\n- **Recebeu**: {' | '.join(rxn_summary)}")
+    print(f"- **Deu**: {given_summary}")
+    if allies:
+        print(f"- **Aliados** (❤️ mútuo): {', '.join(sorted(allies))}")
+    if enemies:
+        print(f"- **Rivais** (neg. mútua): {', '.join(sorted(enemies))}")
+    print("")
+```
+
+---
+
+::: {.callout-tip}
+## Sobre este painel
+Este painel é atualizado automaticamente com dados da API GloboPlay. As reações **mudam diariamente** — cada snapshot captura o estado completo do jogo naquele momento. Dados coletados desde 13 de janeiro de 2026.
+:::

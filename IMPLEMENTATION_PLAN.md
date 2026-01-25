@@ -35,20 +35,26 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-24 | Created `_quarto.yml` — renders BBB.ipynb only, cosmo theme, code-fold | ✅ Done |
 | 2026-01-24 | Created `requirements.txt` (7 packages + jupyter/nbformat/nbclient) | ✅ Done |
 | 2026-01-24 | Tested `quarto render` — `_site/BBB.html` (291KB) + 4 figures generated | ✅ Done |
+| 2026-01-24 | Fixed timeline x-axis ordering bug (string dates → pd.to_datetime) | ✅ Done |
+| 2026-01-24 | Updated notebook data loading to use `data/snapshots/` instead of root-level files | ✅ Done |
+| 2026-01-24 | Cleared stale cached outputs from `.ipynb` | ✅ Done |
+| 2026-01-24 | **Decision**: Abandon `.ipynb` editing — create fresh `index.qmd` from scratch | ✅ Decided |
+| 2026-01-24 | Deep analysis of all 13 snapshots (8 sections, 2500 lines) + web research | ✅ Done |
+| 2026-01-24 | Created `index.qmd` — 17-section Quarto dashboard in pt-BR | ✅ Done |
+| 2026-01-24 | Updated `_quarto.yml` to render `index.qmd` | ✅ Done |
+| 2026-01-24 | Added `tabulate` to `requirements.txt` | ✅ Done |
+| 2026-01-24 | Tested `quarto render` — all 19 cells pass, 454KB HTML output | ✅ Done |
+| 2026-01-24 | Moved `BBB.ipynb` to `_legacy/` | ✅ Done |
 | | Create GitHub Actions workflow | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
+| | Add manual game data: voto único/torcida, indicações do líder, votos da casa | ⏳ Planned |
 
-### Git Status (Uncommitted)
+### Git Status
 
-The repository reorganization is complete on disk but **not yet committed**. Current git state:
-
-| Change Type | Count | Description |
-|-------------|-------|-------------|
-| Deleted (from git tracking) | 116 | Old root-level JSONs, CSVs, PNGs, `backup/`, `archive_duplicates/`, `BBB_old.ipynb`, `organize_and_backup.py` — all moved to `_legacy/` (gitignored) |
-| Modified | 2 | `CLAUDE.md`, `IMPLEMENTATION_PLAN.md` |
-| New (untracked) | 18 | `.gitignore`, `data/` (CHANGELOG.md, latest.json, 13 snapshots), `scripts/` (fetch_data.py, audit_snapshots.py) |
-
-**Note**: The 116 "deleted" files are safe — they all exist physically in `_legacy/` which is gitignored. The deletions just remove them from git tracking.
+Reorganization committed as `28ef943`. Pending uncommitted work:
+- Modified `BBB.ipynb` (data loading rewrite, timeline fix, cleared outputs)
+- Modified `_quarto.yml`, `IMPLEMENTATION_PLAN.md`
+- Will be superseded by `index.qmd` rewrite (see Phase 1.5 below)
 
 ### Current Repository Structure
 
@@ -57,7 +63,7 @@ BBB26/
 ├── .git/
 ├── .gitignore              ✅ NEW (ignores _legacy/, *.png, *.csv, etc.)
 ├── .vscode/
-├── BBB.ipynb               (original notebook — tracked, unmodified)
+├── BBB.ipynb               (original notebook — kept for reference, replaced by index.qmd)
 ├── CLAUDE.md               ✅ NEW (project guidance for Claude Code)
 ├── IMPLEMENTATION_PLAN.md  ✅ MODIFIED (this file)
 ├── data/                   ✅ NEW
@@ -215,8 +221,8 @@ BBB26/
 │
 ├── data/
 │   ├── snapshots/                 # Canonical JSON snapshots (13 files, growing)
-│   │   ├── 2026-01-13_17-18-02.json   # Full timestamp format
-│   │   ├── ...                        # (one per unique data state)
+│   │   ├── 2026-01-13_17-18-02.json
+│   │   ├── ...
 │   │   └── 2026-01-24_18-46-05.json
 │   ├── latest.json                # Copy of most recent snapshot
 │   └── CHANGELOG.md               # Data timeline + audit findings
@@ -225,16 +231,17 @@ BBB26/
 │   ├── fetch_data.py              # Fetch API, save if hash changed
 │   └── audit_snapshots.py         # Deduplication audit tool
 │
-├── _quarto.yml                    # Quarto configuration (Phase 1)
-├── index.qmd                      # Main dashboard (Phase 1)
+├── _quarto.yml                    # Quarto configuration
+├── index.qmd                      # Main dashboard (pt-BR) ← NEW
 │
-├── BBB.ipynb                      # Original notebook (kept for development)
 ├── CLAUDE.md                      # Project guidance
-├── requirements.txt               # Python dependencies (Phase 1)
+├── requirements.txt               # Python dependencies
 ├── IMPLEMENTATION_PLAN.md         # This file
 ├── .gitignore                     # Ignores _legacy/, *.png, *.csv, etc.
 │
-└── _legacy/                       # (gitignored) Backup of all old files
+└── _legacy/                       # (gitignored)
+    ├── BBB.ipynb                  # Original notebook (moved here after index.qmd is done)
+    └── ...                        # Old assets
 ```
 
 ---
@@ -315,80 +322,27 @@ format:
     code-tools: true
 ```
 
-### 1.3 Convert Notebook to Quarto Document
+### 1.3 Create `index.qmd` (Phase 1.5 — Fresh Start)
 
-Option A: Use notebook directly (Quarto can render `.ipynb`):
-```yaml
-# In _quarto.yml, just reference the notebook
-website:
-  navbar:
-    left:
-      - href: BBB.ipynb
-        text: Dashboard
-```
+**Decision**: Instead of editing `BBB.ipynb` (fragile JSON manipulation, stale cached outputs), create a brand new `index.qmd` Quarto document from scratch.
 
-Option B: Convert to `.qmd` for more control:
-```bash
-quarto convert BBB.ipynb --output index.qmd
-```
+**Key changes from the notebook**:
+- **Language**: All text, titles, labels, legends in **pt-BR**
+- **Data loading**: Use `data/snapshots/` with `load_snapshot()` (handles both formats)
+- **Visualizations**: Fully reconsidered — analyze all 13 snapshots first, then decide what plots tell the best story
+- **Format**: Native `.qmd` (plain text, clean git diffs, easy to edit)
+
+The old `BBB.ipynb` will be moved to `_legacy/` after `index.qmd` is complete.
 
 ### 1.4 Data Fetching Script ✅ DONE
 
-See `scripts/fetch_data.py` — already created and tested. Key features:
-- Only saves when data hash changes (no duplicates)
-- Wraps data in `{ "_metadata": {...}, "participants": [...] }`
-- Updates `data/latest.json` on each new save
-- Handles both old format (raw array) and new format (with metadata)
+See `scripts/fetch_data.py` — already created and tested.
 
-### 1.5 Update Notebook to Read from `data/` Directory
-
-When adapting `BBB.ipynb` (or creating `index.qmd`), the data loading functions need to handle both old format (raw array) and new format (with `_metadata`):
-
-```python
-from pathlib import Path
-
-DATA_DIR = Path("data/snapshots")
-LATEST_FILE = Path("data/latest.json")
-
-def load_snapshot(filepath):
-    """Load a snapshot file, handling both old and new formats."""
-    with open(filepath) as f:
-        data = json.load(f)
-    if isinstance(data, dict) and "participants" in data:
-        return data["participants"], data.get("_metadata")
-    return data, None  # Old format: raw array
-
-def load_latest_data():
-    """Load most recent snapshot."""
-    if LATEST_FILE.exists():
-        return load_snapshot(LATEST_FILE)
-    snapshots = sorted(DATA_DIR.glob("*.json"))
-    if snapshots:
-        return load_snapshot(snapshots[-1])
-    return None, None
-
-def load_all_snapshots():
-    """Load all historical snapshots for timeline analysis."""
-    snapshots = []
-    for filepath in sorted(DATA_DIR.glob("*.json")):
-        participants, metadata = load_snapshot(filepath)
-        snapshots.append({
-            "file": filepath.name,
-            "timestamp": filepath.stem,  # YYYY-MM-DD_HH-MM-SS
-            "participants": participants,
-            "metadata": metadata
-        })
-    return snapshots
-```
-
-### 1.6 Test Locally
+### 1.5 Test Locally
 
 ```bash
-# Render the site locally
-quarto preview
-
-# Or render once
-quarto render
+quarto render    # Build site
+quarto preview   # Live preview with hot reload
 ```
 
 ---
@@ -561,11 +515,48 @@ Handled automatically by `scripts/fetch_data.py` — it compares the MD5 hash of
 - [x] **1.1. Install Quarto locally** ✅ (v1.8.27 via Homebrew)
 - [x] **1.2. Create `data/snapshots/` directory structure** ✅
 - [x] **1.3. Create `scripts/fetch_data.py`** ✅ (hash comparison, metadata wrapper, latest.json update)
-- [x] **1.4. Create `_quarto.yml` configuration** ✅ — renders only `BBB.ipynb`, cosmo theme, code-fold
-- [x] **1.5. Create `requirements.txt`** ✅ — requests, pandas, numpy, matplotlib, seaborn, plotly, networkx, jupyter, nbformat, nbclient
-- [x] **1.6. Render notebook directly** ✅ — Quarto renders `.ipynb` natively, no `.qmd` conversion needed
-- [x] **1.7. Test `quarto render` locally** ✅ — `_site/BBB.html` (291KB) + 4 figures generated
-- [x] **1.8. Verify site in browser** ✅ — `index.html` auto-redirects to `BBB.html`
+- [x] **1.4. Create `_quarto.yml` configuration** ✅ — cosmo theme, code-fold
+- [x] **1.5. Create `requirements.txt`** ✅
+- [x] **1.6. Test `quarto render` with BBB.ipynb** ✅ — worked but editing `.ipynb` is fragile
+- [x] **1.7. Fixed timeline x-axis ordering bug** ✅ — string dates → pd.to_datetime
+- [x] **1.8. Updated notebook data loading for `data/snapshots/`** ✅ — but too many issues editing `.ipynb`
+
+#### Phase 1.5: Create `index.qmd` from Scratch ✅ COMPLETE
+> **Why**: Editing `.ipynb` programmatically is fragile (JSON cell manipulation, stale cached outputs,
+> no clean diffing in git). A `.qmd` file is plain text, easy to edit, and Quarto-native.
+
+- [x] **1.5a. Analyze all 13 snapshots** — deep 8-section analysis + web research for vote tallies
+- [x] **1.5b. Create `index.qmd`** — brand new Quarto document in **pt-BR** with 17 sections
+- [x] **1.5c. Implement data loading** — `load_snapshot()`, `get_all_snapshots()` from `data/snapshots/`
+- [x] **1.5d. Reconsider all visualizations** — 17 visualization sections using Plotly + NetworkX:
+  - Overview stats, timeline, paredão results, sentiment ranking, sentiment evolution
+  - Cross-table heatmap, reaction summary, alliances, rivalries, network graph
+  - Reaction dynamics, flip-floppers, balance timeline, balance vs sentiment scatter
+  - Group favoritism, negative givers profile, individual participant profiles
+  - All labels, titles, legends in pt-BR
+- [x] **1.5e. Implement analysis** — sentiment scores, alliances/rivalries, vira-casacas, group favoritism
+- [x] **1.5f. Update `_quarto.yml`** — renders `index.qmd`, title in pt-BR
+- [x] **1.5g. Move `BBB.ipynb` to `_legacy/`**
+- [x] **1.5h. Test `quarto render`** — all 19 cells executed, 454KB HTML output
+- [ ] **1.5i. Commit the new document**
+
+#### Phase 1.6: Manual Game Data (Future) ⏳ PLANNED
+
+Some game data is **not available from the API** and must be added manually after each event.
+The `index.qmd` includes a structured `paredoes` list that supports easy manual updates.
+
+**Currently tracked (manual):**
+- Paredão results: vote percentages (total), formation story, eliminated participant
+
+**Planned additions:**
+- [ ] **1.6a. Voto Único vs Voto da Torcida breakdown** — add `voto_unico_pct` and `voto_torcida_pct` fields to each paredão entry (70% + 30% weight system)
+- [ ] **1.6b. Indicações do Líder** — track who the leader nominated each week and compare with reaction data (did the leader nominate someone they gave negative reactions to?)
+- [ ] **1.6c. Votação da casa** — who voted for whom in each paredão, cross-referenced with the reaction cross-table (do house votes align with negative reactions?)
+- [ ] **1.6d. Create `data/manual/` directory** — JSON files for manually-curated game events:
+  - `paredoes.json` — all paredão results + vote breakdowns
+  - `indicacoes.json` — leader nominations per week
+  - `votos_casa.json` — house votes per paredão
+- [ ] **1.6e. Comparative visualizations** — overlay house votes on the reaction network graph, highlight mismatches between public reactions and private votes
 
 #### Phase 2: GitHub Actions
 - [ ] **2.1. Create `.github/workflows/daily-update.yml`** (4x daily cron)
@@ -619,11 +610,12 @@ Add Slack/Discord notification on failure:
 ## Timeline
 
 1. ~~**Data Audit** (Phase 0)~~: ✅ COMPLETE — 13 canonical snapshots established
-2. **Git Cleanup** (Phase 0.5): Commit the reorganization (116 deletions + 18 new files)
-3. **Local Setup** (Phase 1): Create `_quarto.yml`, `requirements.txt`, test rendering
-4. **Workflow Creation** (Phase 2): Set up GitHub Actions (4x daily cron)
-5. **Pages Setup** (Phase 3): Enable GitHub Pages, test deployment
-6. **Go Live**: Enable scheduled runs
+2. ~~**Git Cleanup** (Phase 0.5)~~: ✅ COMPLETE — commit `28ef943`
+3. ~~**Local Setup** (Phase 1)~~: ✅ COMPLETE — `_quarto.yml`, `requirements.txt`, tested rendering
+4. **Create `index.qmd`** (Phase 1.5): ⏳ NEXT — fresh Quarto doc in pt-BR, reconsidered visualizations
+5. **Workflow Creation** (Phase 2): Set up GitHub Actions (4x daily cron)
+6. **Pages Setup** (Phase 3): Enable GitHub Pages, test deployment
+7. **Go Live**: Enable scheduled runs
 
 ---
 
