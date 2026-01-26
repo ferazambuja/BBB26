@@ -653,74 +653,6 @@ if rivalry_data:
     fig.show()
 ```
 
-## Dinâmica
-
-### Dinâmica das Reações {#dinamica}
-
-Como as reações evoluem ao longo do tempo.
-
-#### Quem Muda Mais de Opinião? ("Vira-Casacas")
-
-Participantes que mais mudaram suas reações ao longo do tempo.
-
-```{python}
-#| label: flip-floppers
-
-giver_change_count = Counter()
-for i in range(1, len(daily_snapshots)):
-    prev_m = daily_matrices[i-1]
-    curr_m = daily_matrices[i]
-    common_pairs = set(prev_m.keys()) & set(curr_m.keys())
-    for pair in common_pairs:
-        if prev_m[pair] != curr_m[pair]:
-            giver_change_count[pair[0]] += 1
-
-# Normalizar pelo número de transições diárias em que estiveram ativos
-giver_transitions = Counter()
-for i in range(1, len(daily_snapshots)):
-    prev_active = set(p['name'] for p in daily_snapshots[i-1]['participants']
-                      if not p.get('characteristics', {}).get('eliminated'))
-    curr_active = set(p['name'] for p in daily_snapshots[i]['participants']
-                      if not p.get('characteristics', {}).get('eliminated'))
-    for name in prev_active & curr_active:
-        giver_transitions[name] += 1
-
-flipflop_data = []
-for name, changes in giver_change_count.most_common():
-    trans = giver_transitions.get(name, 1)
-    if trans >= 3:  # mínimo de 3 transições
-        flipflop_data.append({
-            'Participante': name,
-            'Mudanças': changes,
-            'Transições': trans,
-            'Taxa': round(changes / trans, 1)
-        })
-
-df_flip = pd.DataFrame(flipflop_data).sort_values('Mudanças', ascending=True)
-
-if not df_flip.empty:
-    fig = go.Figure(go.Bar(
-        y=df_flip['Participante'],
-        x=df_flip['Mudanças'],
-        orientation='h',
-        marker_color=[GROUP_COLORS.get(MEMBER_OF.get(n, '?'), '#999')
-                      for n in df_flip['Participante']],
-        text=[f"{m} ({t:.1f}/dia)" for m, t in zip(df_flip['Mudanças'], df_flip['Taxa'])],
-        textposition='outside',
-        hovertemplate='%{y}: %{x} mudanças totais<extra></extra>'
-    ))
-
-    fig.update_layout(
-        title="Vira-Casacas: Quem Muda Mais de Opinião?",
-        xaxis_title="Total de mudanças de reação",
-        yaxis_title="",
-        height=max(400, len(df_flip) * 25),
-        margin=dict(l=150)
-    )
-
-    fig.show()
-```
-
 ### Dinâmica Vip vs Xepa {#grupos}
 
 Os membros do mesmo grupo (Vip/Xepa) favorecem uns aos outros com mais ❤️?
@@ -799,6 +731,74 @@ if not df_fav.empty:
         print(f"Viés médio: **{avg_bias:+.1f} pp** — surpreendentemente, há *mais* corações para o grupo oposto!")
     else:
         print(f"Viés médio: **{avg_bias:+.1f} pp** — praticamente nenhum favoritismo de grupo.")
+```
+
+## 📈 Tendências
+
+### O Que Está Mudando? {#tendencias}
+
+Quem muda de opinião? Quais relacionamentos estão se transformando?
+
+#### Quem Muda Mais de Opinião? ("Vira-Casacas")
+
+Participantes que mais mudaram suas reações ao longo do tempo.
+
+```{python}
+#| label: flip-floppers
+
+giver_change_count = Counter()
+for i in range(1, len(daily_snapshots)):
+    prev_m = daily_matrices[i-1]
+    curr_m = daily_matrices[i]
+    common_pairs = set(prev_m.keys()) & set(curr_m.keys())
+    for pair in common_pairs:
+        if prev_m[pair] != curr_m[pair]:
+            giver_change_count[pair[0]] += 1
+
+# Normalizar pelo número de transições diárias em que estiveram ativos
+giver_transitions = Counter()
+for i in range(1, len(daily_snapshots)):
+    prev_active = set(p['name'] for p in daily_snapshots[i-1]['participants']
+                      if not p.get('characteristics', {}).get('eliminated'))
+    curr_active = set(p['name'] for p in daily_snapshots[i]['participants']
+                      if not p.get('characteristics', {}).get('eliminated'))
+    for name in prev_active & curr_active:
+        giver_transitions[name] += 1
+
+flipflop_data = []
+for name, changes in giver_change_count.most_common():
+    trans = giver_transitions.get(name, 1)
+    if trans >= 3:  # mínimo de 3 transições
+        flipflop_data.append({
+            'Participante': name,
+            'Mudanças': changes,
+            'Transições': trans,
+            'Taxa': round(changes / trans, 1)
+        })
+
+df_flip = pd.DataFrame(flipflop_data).sort_values('Mudanças', ascending=True)
+
+if not df_flip.empty:
+    fig = go.Figure(go.Bar(
+        y=df_flip['Participante'],
+        x=df_flip['Mudanças'],
+        orientation='h',
+        marker_color=[GROUP_COLORS.get(MEMBER_OF.get(n, '?'), '#999')
+                      for n in df_flip['Participante']],
+        text=[f"{m} ({t:.1f}/dia)" for m, t in zip(df_flip['Mudanças'], df_flip['Taxa'])],
+        textposition='outside',
+        hovertemplate='%{y}: %{x} mudanças totais<extra></extra>'
+    ))
+
+    fig.update_layout(
+        title="Vira-Casacas: Quem Muda Mais de Opinião?",
+        xaxis_title="Total de mudanças de reação",
+        yaxis_title="",
+        height=max(400, len(df_flip) * 25),
+        margin=dict(l=150)
+    )
+
+    fig.show()
 ```
 
 ## Histórico
