@@ -2073,6 +2073,105 @@ fig = make_negative_givers_chart(latest['participants'], latest_matrix)
 fig.show()
 ```
 
+### Destaques {#destaques-conflitos}
+
+```{python}
+#| label: destaques-conflitos
+#| output: asis
+
+if len(daily_snapshots) >= 2:
+    # Get current hostility data
+    _active = set(p['name'] for p in latest['participants']
+                  if not p.get('characteristics', {}).get('eliminated'))
+
+    _two_sided = []
+    _one_sided = []
+    _blind_spots = []  # (victim, attacker) - victim gives ❤️ to attacker who hates them
+    checked = set()
+
+    for (a, b), rxn_a_to_b in latest_matrix.items():
+        if a not in _active or b not in _active:
+            continue
+
+        rxn_b_to_a = latest_matrix.get((b, a), '')
+        a_dislikes = rxn_a_to_b not in POSITIVE and rxn_a_to_b != ''
+        b_dislikes = rxn_b_to_a not in POSITIVE and rxn_b_to_a != ''
+        b_likes = rxn_b_to_a in POSITIVE
+
+        pair = frozenset([a, b])
+        if a_dislikes and b_dislikes and pair not in checked:
+            _two_sided.append((a, b))
+            checked.add(pair)
+        elif a_dislikes and b_likes:
+            _one_sided.append((a, b, rxn_a_to_b))
+            _blind_spots.append((b, a))  # b is the victim (gives ❤️, receives hate)
+
+    # Count blind spots per victim
+    _victim_count = Counter(v for v, _ in _blind_spots)
+    most_blind = _victim_count.most_common(1)[0] if _victim_count else None
+
+    # Get historical persistence for rivalries
+    _rivalry_days = defaultdict(int)
+    for idx, matrix in enumerate(daily_matrices):
+        snap = daily_snapshots[idx]
+        active_set = set(p['name'] for p in snap['participants']
+                         if not p.get('characteristics', {}).get('eliminated'))
+        checked_hist = set()
+
+        for (a, b), rxn in matrix.items():
+            if a not in active_set or b not in active_set:
+                continue
+            rxn_rev = matrix.get((b, a), '')
+            a_neg = rxn not in POSITIVE and rxn != ''
+            b_neg = rxn_rev not in POSITIVE and rxn_rev != ''
+
+            pair = frozenset([a, b])
+            if a_neg and b_neg and pair not in checked_hist:
+                _rivalry_days[pair] += 1
+                checked_hist.add(pair)
+
+    longest_rivalry = max(_rivalry_days.items(), key=lambda x: x[1]) if _rivalry_days else None
+
+    # Build narrative
+    sections = []
+
+    # Critical blind spot story
+    if most_blind and most_blind[1] >= 2:
+        victim = most_blind[0]
+        count = most_blind[1]
+        grupo = MEMBER_OF.get(victim, '?')
+        # Find who attacks them
+        attackers = [a for v, a in _blind_spots if v == victim]
+        attacker_list = ', '.join(attackers[:3])
+        sections.append(f"**⚠️ Maior Ponto Cego:** **{victim}** ({grupo}) dá ❤️ para **{count} pessoas** que o(a) detestam "
+                       f"({attacker_list}). Em uma votação, pode receber votos surpresa de quem considera aliado.")
+
+    # Longest rivalry
+    if longest_rivalry:
+        a, b = sorted(longest_rivalry[0])
+        days = longest_rivalry[1]
+        pct = days / n_daily * 100
+        if pct >= 80:
+            sections.append(f"**🔥 Rivalidade Estrutural:** **{a}** vs **{b}** se detestam há **{days} dias** ({pct:.0f}% do jogo). "
+                           f"Este conflito parece ser central na dinâmica da casa.")
+        elif pct >= 50:
+            sections.append(f"**⚔️ Rivalidade Persistente:** **{a}** vs **{b}** mantêm hostilidade mútua há **{days} dias**. "
+                           f"Uma tensão que pode explodir em votação.")
+
+    # Voting prediction insight
+    if _one_sided and len(_one_sided) >= 3:
+        n_blind = len(_one_sided)
+        sections.append(f"**🗳️ Previsão:** Com **{n_blind} pontos cegos** ativos, há risco de votos surpresa. "
+                       f"Participantes que confiam em quem os detesta são os mais vulneráveis.")
+
+    if sections:
+        print("::: {.callout-tip title=\"Destaques\" appearance=\"simple\"}")
+        print("<br>".join(sections))
+        print(":::")
+else:
+    print("")
+```
+
 :::
 
 ---
