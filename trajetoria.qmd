@@ -610,6 +610,84 @@ else:
 
 ## ❤️ Aliados
 
+```{python}
+#| label: fatos-rapidos-aliados
+#| output: asis
+
+# Compute alliance stats from daily_matrices
+if len(daily_snapshots) >= 2:
+    # Count mutual hearts per pair across all days
+    _mutual_heart_days = defaultdict(int)
+    _participant_allies = defaultdict(set)  # name -> set of allies
+
+    for idx, matrix in enumerate(daily_matrices):
+        snap = daily_snapshots[idx]
+        active_set = set(p['name'] for p in snap['participants']
+                         if not p.get('characteristics', {}).get('eliminated'))
+        checked = set()
+
+        for (giver, receiver), label in matrix.items():
+            if giver not in active_set or receiver not in active_set:
+                continue
+            pair = tuple(sorted([giver, receiver]))
+            if pair in checked:
+                continue
+
+            if label == 'Coração':
+                reverse = matrix.get((receiver, giver))
+                if reverse == 'Coração':
+                    _mutual_heart_days[pair] += 1
+                    checked.add(pair)
+
+    # Stable alliances (>70% of days)
+    threshold = n_daily * 0.7
+    stable_alliances = [(pair, days) for pair, days in _mutual_heart_days.items() if days >= threshold]
+    n_stable = len(stable_alliances)
+
+    # Build alliance network for most connected
+    for pair, days in _mutual_heart_days.items():
+        if days >= threshold:
+            a, b = pair
+            _participant_allies[a].add(b)
+            _participant_allies[b].add(a)
+
+    # Most connected (most stable alliances)
+    most_connected = None
+    max_allies = 0
+    for name, allies in _participant_allies.items():
+        if len(allies) > max_allies:
+            max_allies = len(allies)
+            most_connected = name
+
+    # Isolated participants (no stable alliances)
+    active_latest = set(p['name'] for p in daily_snapshots[-1]['participants']
+                        if not p.get('characteristics', {}).get('eliminated'))
+    isolated = [name for name in active_latest if name not in _participant_allies or len(_participant_allies[name]) == 0]
+    n_isolated = len(isolated)
+
+    # Build callout
+    facts = [f"**{n_stable}** alianças estáveis (❤️ mútuo em >70% dos dias)"]
+
+    if most_connected and max_allies > 0:
+        facts.append(f"• Mais conectado: **{most_connected}** ({max_allies} aliados)")
+
+    if n_isolated > 0:
+        isolated_names = ', '.join(sorted(isolated)[:3])
+        if n_isolated > 3:
+            isolated_names += f" e +{n_isolated-3}"
+        facts.append(f"• Sem alianças estáveis: **{isolated_names}**")
+
+    print(f"""
+::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
+{facts[0]}
+
+{chr(10).join(facts[1:])}
+:::
+""")
+else:
+    print("")
+```
+
 ### Alianças {#aliancas}
 
 Quem são os aliados? Análise das relações positivas mais duradouras da temporada.
