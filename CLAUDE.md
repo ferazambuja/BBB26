@@ -243,8 +243,7 @@ data/derived/daily_metrics.json
 - `impacto` refere-se ao efeito **para quem recebeu** (`positivo` ou `negativo`).
 - `origem`: `manual` (quando registrado no JSON) ou `api` (quando derivado automaticamente).
 - Tipos já usados: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`.
-- **Auto‑detectados da API (trajetoria.qmd)**: Líder e Anjo são derivados das mudanças de papéis nos snapshots diários e **não são salvos** em `manual_events.json`. Esses eventos entram no painel apenas no momento do render e **não ficam disponíveis para outras páginas**.
-- Se precisar persistir/compartilhar ou adicionar fontes, registre manualmente em `data/manual_events.json` (ou criar um arquivo dedicado para eventos auto‑detectados).
+- **Auto‑detectados da API (scripts/build_derived_data.py)**: Líder/Anjo/Monstro/Imune são derivados das mudanças de papéis nos snapshots diários e salvos em `data/derived/auto_events.json` com `origem: "api"`.
   - Observação: a detecção usa **1 snapshot por dia** (último do dia). Mudanças intra‑dia podem não aparecer.
 
 **Power events — awareness & visibility (para UI / risco)**:
@@ -255,12 +254,12 @@ data/derived/daily_metrics.json
   - `visibility`: `public` (sabido na casa) ou `secret` (só revelado depois).
   - `awareness`: `known`/`unknown` (se o alvo sabe quem causou).
 
-**Votos da casa (secretos)**:
+**Votos da casa (público após formação)**:
 - Estão em `data/paredoes.json` → `votos_casa` e **só são públicos após a formação**.
-- Para UI: marcar como **“voto secreto (para participantes)”** e **não usar** como “sinal percebido” antes da revelação.
+- Para UI: mostrar como **“votos recebidos”** (sem indicar segredo); não usar como “sinal percebido” antes da revelação.
 - Se houver dinâmica tipo **dedo‑duro**, registrar em `manual_events.weekly_events`:
   - `dedo_duro`: `{ "votante": "...", "alvo": "...", "detalhe": "...", "date": "YYYY-MM-DD" }`
-  - Esses votos passam a ser **públicos** e podem entrar em análises de percepção.
+  - Esses votos passam a ser **públicos na casa**: marcar com 👁️ e permitir uso em análises de percepção.
 
 **Perfis Individuais — uso recomendado (UI)**:
 - Mostrar **Poderes recebidos** em duas linhas:
@@ -269,7 +268,9 @@ data/derived/daily_metrics.json
 - Para eventos **auto‑infligidos**, usar badge `auto` (ex.: ↺) e reduzir peso no “risco social”.
 - Mostrar **Votos da casa recebidos** como linha separada:
   - Avatares pequenos de quem votou + contagem `2x` se voto duplo.
-  - Label “voto secreto (para participantes)” para deixar claro que não é percepção imediata.
+  - Se houve **dedo‑duro**, adicionar 👁️ no chip para indicar “voto revelado”.
+- **Cores dos chips** (poderes e votos): seguir as categorias de relação do perfil
+  (Aliados=verde, Inimigos Declarados=vermelho, Falsos Amigos=amarelo, Inimigos Não Declarados=roxo).
 
 **Risco (sugestão de cálculo)**:
 - Separar em **Risco social (percebido)** vs **Risco externo (real)**.

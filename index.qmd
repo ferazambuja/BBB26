@@ -1474,7 +1474,7 @@ O badge avalia o risco de receber **votos inesperados** — de pessoas que o par
 
 **Novos sinais de jogo (dinâmicas públicas):**
 - **Poderes recebidos** (benefícios e prejuízos) mostram acontecimentos **públicos** na casa que podem mudar alianças.
-- **Votos da casa recebidos** aparecem como **“voto secreto (para participantes)”** — só são conhecidos do **público** após a formação.
+- **Votos da casa recebidos** mostram o que o **público** viu na formação; quando há **dedo-duro**, o voto aparece marcado.
 - O painel agora separa **Risco social** (percepção) e **Risco externo** (votos/eventos negativos).
 - **Risco externo é experimental** e será recalibrado semanalmente após indicações/contragolpes/votações.
 
@@ -1509,15 +1509,18 @@ source_icons = {
     'dinâmica da casa': '🎬',
 }
 
-def render_actor_avatars(actors, border_color="#666"):
+def render_actor_avatars(actors, border_color="#666", color_lookup=None):
     if not actors:
         return ''
     parts = []
     for a in actors:
+        color = border_color
+        if color_lookup and a in color_lookup:
+            color = color_lookup[a]
         if a in AVATARS and AVATARS[a]:
             parts.append(
-                f'<img src="{AVATARS[a]}" style="width: 26px; height: 26px; border-radius: 50%; '
-                f'border: 2px solid {border_color}; object-fit: cover; margin-right: -4px;">'
+                f'<img src="{AVATARS[a]}" style="width: 30px; height: 30px; border-radius: 50%; '
+                f'border: 2px solid {color}; object-fit: cover; margin-right: -4px;">'
             )
         else:
             icon = None
@@ -1585,7 +1588,7 @@ for wev in manual_events.get('weekly_events', []) if manual_events else []:
             if voter and target:
                 revealed_votes[target].add(voter)
 
-def make_event_chips(events, border_color):
+def make_event_chips(events, border_color, color_lookup=None):
     if not events:
         return "<span style='color:#777;'>—</span>"
     grouped = defaultdict(lambda: {'count': 0, 'actors': []})
@@ -1602,13 +1605,16 @@ def make_event_chips(events, border_color):
         label = POWER_EVENT_LABELS.get(etype, etype)
         count = meta['count']
         count_prefix = f"{count}x " if count > 1 else ""
-        actor_html = render_actor_avatars(actors, border_color)
+        chip_colors = {color_lookup.get(a) for a in actors} if color_lookup else set()
+        chip_colors.discard(None)
+        chip_border = chip_colors.pop() if len(chip_colors) == 1 else border_color
+        actor_html = render_actor_avatars(actors, chip_border, color_lookup=color_lookup)
         actor_label = " + ".join(actors) if actors else ""
         title = f"{label} — {actor_label}" if actor_label else label
         actor_text = f"<span style='color:#aaa; margin-left:0.25rem;'>{actor_label}</span>" if actor_label else ""
         chips.append(
             f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-            f"border:1px solid {border_color}; color:#ddd; border-radius:999px; padding:0.25rem 0.55rem; "
+            f"border:1px solid {chip_border}; color:#ddd; border-radius:999px; padding:0.25rem 0.55rem; "
             f"font-size:0.78rem; margin:0.15rem;' title='{title}'>"
             f"{count_prefix}{emoji} {label} {actor_html}{actor_text}</span>"
         )
@@ -1704,10 +1710,26 @@ for p in sorted_active:
     pos_events_hist = [ev for ev in target_events_all if ev.get('impacto') == 'positivo']
     neg_events_hist = [ev for ev in target_events_all if ev.get('impacto') == 'negativo']
 
-    pos_html = make_event_chips(pos_events, "#28a745")
-    neg_html = make_event_chips(neg_events, "#dc3545")
-    pos_hist_html = make_event_chips(pos_events_hist, "#2ecc71")
-    neg_hist_html = make_event_chips(neg_events_hist, "#e74c3c")
+    ally_names = set(allies)
+    enemy_names = {n for n, *_ in enemies}
+    false_friend_names = {n for n, *_ in false_friends}
+    blind_names = {n for n, *_ in blind_targets}
+
+    relation_colors = {}
+    relation_colors.update({n: "#28a745" for n in ally_names})
+    relation_colors.update({n: "#dc3545" for n in enemy_names})
+    relation_colors.update({n: "#ffc107" for n in false_friend_names})
+    relation_colors.update({n: "#6f42c1" for n in blind_names})
+
+    pos_html = make_event_chips(pos_events, "#28a745", relation_colors)
+    neg_html = make_event_chips(neg_events, "#dc3545", relation_colors)
+    pos_hist_html = make_event_chips(pos_events_hist, "#2ecc71", relation_colors) if pos_events_hist else ""
+    neg_hist_html = make_event_chips(neg_events_hist, "#e74c3c", relation_colors) if neg_events_hist else ""
+    hist_html = ""
+    if pos_events_hist:
+        hist_html += f"<span style='color:#28a745;'>{pos_hist_html}</span>"
+    if neg_events_hist:
+        hist_html += f"<span style='color:#dc3545; margin-left:0.35rem;'>{neg_hist_html}</span>"
 
     vote_map = votes_received_by_week.get(current_week, {}).get(name, {})
     if vote_map:
@@ -1715,18 +1737,20 @@ for p in sorted_active:
         for voter, count in sorted(vote_map.items(), key=lambda x: (-x[1], x[0])):
             count_prefix = f"{count}x " if count > 1 else ""
             is_revealed = voter in revealed_votes.get(name, set())
-            border = "#f1c40f" if is_revealed else "#6c757d"
+            border = relation_colors.get(voter, "#666")
+            reveal_glow = "box-shadow: 0 0 0 2px #17a2b8 inset;" if is_revealed else ""
             badge = " 👁️" if is_revealed else ""
-            avatar_html = render_actor_avatars([voter], border)
+            avatar_html = render_actor_avatars([voter], border, color_lookup=relation_colors)
+            title = f"Voto revelado de {voter}" if is_revealed else f"Voto de {voter}"
             vote_chips.append(
                 f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
                 f"border:1px solid {border}; color:#ddd; border-radius:999px; padding:0.2rem 0.45rem; "
-                f"font-size:0.75rem; margin:0.15rem;'>"
+                f"font-size:0.75rem; margin:0.15rem; {reveal_glow}' title='{title}'>"
                 f"{count_prefix}{avatar_html}{voter}{badge}</span>"
             )
         votes_html = ' '.join(vote_chips)
     else:
-        votes_html = "<span style='color:#777;'>—</span>"
+        votes_html = ""
 
     def is_self_inflicted(ev):
         actors = normalize_actors(ev)
@@ -1830,13 +1854,13 @@ for p in sorted_active:
 <div style="padding: 0.8rem 1rem; border-bottom: 1px solid #444; background: #2f2f2f;">
 <div style="font-weight: bold; color: #fff; margin-bottom: 0.5rem;">⚡ Dinâmicas do Jogo</div>
 <div style="display: grid; grid-template-columns: 1fr; gap: 0.4rem; font-size: 0.9em;">
-  <div><strong style="color: #28a745;">+ Benefícios (semana):</strong> {pos_html}</div>
-  <div><strong style="color: #dc3545;">− Prejuízos (semana):</strong> {neg_html}</div>
-  <div><strong style="color: #6c757d;">🗳️ Votos recebidos</strong> <span style="color:#888;">(secreto para participantes)</span>: {votes_html}</div>
-  <div><strong style="color: #999;">Histórico da temporada:</strong> <span style="color:#28a745;">{pos_hist_html}</span> <span style="color:#dc3545;">{neg_hist_html}</span></div>
+  {f"<div><strong style='color: #28a745;'>+ Benefícios (semana):</strong> {pos_html}</div>" if pos_events else ""}
+  {f"<div><strong style='color: #dc3545;'>− Prejuízos (semana):</strong> {neg_html}</div>" if neg_events else ""}
+  {f"<div><strong style='color: #ffc107;'>🗳️ Votos recebidos:</strong> {votes_html}</div>" if vote_map else ""}
+  {f"<div><strong style='color: #999;'>Histórico da temporada:</strong> {hist_html}</div>" if (pos_events_hist or neg_events_hist) else ""}
 </div>
 </div>
-''' if (pos_events_hist or neg_events_hist or vote_map) else ''}
+''' if (pos_events_hist or neg_events_hist or pos_events or neg_events or vote_map) else ''}
 
 <!-- Strategic Map -->
 <div style="padding: 1rem;">
