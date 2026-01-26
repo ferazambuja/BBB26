@@ -400,7 +400,7 @@ if len(daily_snapshots) >= 2:
         names = ', '.join(sorted(new_in_top5))
         detail_facts.append(f"• Novos no Top 5: **{names}**")
 
-    details_str = chr(10).join(detail_facts) if detail_facts else ""
+    details_str = "<br>".join(detail_facts) if detail_facts else ""
 
     print(f"""
 ::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
@@ -681,7 +681,7 @@ if len(daily_snapshots) >= 2:
 ::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
 {facts[0]}
 
-{chr(10).join(facts[1:])}
+{"<br>".join(facts[1:])}
 :::
 """)
 else:
@@ -976,7 +976,7 @@ if len(daily_snapshots) >= 2:
 ::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
 {' | '.join(facts)}
 
-{chr(10).join(detail_facts)}
+{"<br>".join(detail_facts)}
 :::
 """)
 else:
@@ -1343,7 +1343,7 @@ if len(daily_snapshots) >= 1:
 ::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
 {' | '.join(facts)}
 
-{chr(10).join(detail_facts)}
+{"<br>".join(detail_facts)}
 :::
 """)
 else:
