@@ -1,6 +1,6 @@
 # Dashboard Reorganization Plan
 
-> **Status**: ✅ Complete
+> **Status**: ⏳ Phase 3 In Progress (Trajetória Storytelling)
 > **Parent document**: See `IMPLEMENTATION_PLAN.md` for overall project status
 >
 > **Final Summary (2026-01-26)**:
@@ -17,12 +17,532 @@
 > - ✅ Accessibility toggle (colorblind mode) added
 > - ✅ Bump chart added to trajetoria.qmd
 >
-> **Deferred to Future (nice-to-have)**:
-> - Date picker for queridômetro comparison
-> - Compare paredões feature
-> - Participant focus mode
-> - Arcos Narrativos (storylines)
-> - Accuracy tracking (did predictions match results?)
+> **Deferred Features (to re-evaluate)**:
+> See "Deferred Features for Re-Evaluation" section below for detailed analysis
+>
+> **Next: Trajetória Storytelling Reorganization** (see below)
+
+---
+
+## Trajetória Deep Review & Reorganization Plan
+
+> **Status**: ⏳ In Progress — Deep Review Phase
+> **Goal**: Transform trajetoria.qmd from a disorganized collection of plots into a coherent storytelling experience
+> **Last Updated**: 2026-01-26 (comprehensive review)
+> **Approach**: Question-driven storytelling (like paredao.qmd), not chart galleries
+
+### Quick Summary
+
+**Current state**: 5 tabs, 21+ sections, scattered content, no narrative
+
+**New structure**: 4 tabs, ~12 sections, question-driven
+
+| New Tab | Question | Star Content |
+|---------|----------|--------------|
+| 📊 Quem Lidera? | Who's winning the sentiment game? | Bump Chart |
+| ❤️ Aliados | Who are the allies? | Consistent Alliances |
+| ⚔️ Conflitos | Where are the rivalries? | Persistent Hostilities + Blind Spots |
+| 📈 Tendências | What's changing? | Vira-Casacas with stories |
+
+**Key changes**:
+- ✅ "Fatos Rápidos" intros for quick scanning
+- ✅ "Destaques" sections with curated insights
+- ✅ Clusters moved to separate experimental page (clusters.qmd)
+- ✅ Saldo/Balance moved to Cartola page
+- ✅ Redundant sections removed
+- ✅ Hostility analysis consolidated
+
+---
+
+### What paredao.qmd Does Right (Storytelling Model)
+
+The paredão page works because it:
+1. **Answers a clear question**: "What's happening in this paredão?"
+2. **Quick summary first**: "Leitura Rápida" table with key metrics before diving deep
+3. **Destaques section**: Highlights most interesting data points
+4. **Relationship context**: Shows *history* of relationships, not just current state
+5. **Narrative text**: Explains *why* things matter, not just what they are
+6. **Visual hierarchy**: Cards for participants, then tables, then charts
+7. **Human connection**: Avatars, names, specific stories
+
+### Problem with trajetoria.qmd
+
+The current page has 5 tabs with 21+ sections, but:
+- **No clear questions answered** — it's a chart gallery, not a story
+- **Content is scattered** — hostilities appear in 3 different places
+- **"Análise do Dia" is a catch-all** with 10+ unrelated sections
+- **No intro summaries** — just dives into charts without context
+- **Redundant content** — same data presented multiple ways
+- **No narrative** — doesn't tell viewers what to *do* with the information
+- **Clusters are experimental** — buried at the end, algorithm needs work
+
+---
+
+### Section-by-Section Critical Review
+
+Rating scale: ⭐⭐⭐ Essential | ⭐⭐ Useful | ⭐ Low value | ❌ Remove/merge
+
+#### Tab 1: Evolução
+
+| Section | Rating | Storytelling Value | Issues | Recommendation |
+|---------|--------|-------------------|--------|----------------|
+| **Bump Chart (Ranking)** | ⭐⭐⭐ | High — shows who's winning/losing over time | Good as-is | KEEP — anchor of "Quem Lidera?" story |
+| **Linhas (Score)** | ⭐⭐ | Medium — detailed but cluttered with 22 lines | Hard to read with many participants | KEEP but add focus mode (select participant) |
+
+**Tab verdict**: Good content, needs intro summary ("Jonas lidera há X dias...")
+
+#### Tab 2: Alianças
+
+| Section | Rating | Storytelling Value | Issues | Recommendation |
+|---------|--------|-------------------|--------|----------------|
+| **Alianças Mais Consistentes** | ⭐⭐⭐ | High — reveals stable friendships | Just a bar chart, no context | ENHANCE — add "Why this matters" + key pair stories |
+| **Rivalidades Mais Persistentes** | ⭐⭐ | Medium | Duplicates "Hostilidades Persistentes" in Histórico tab | MERGE with Histórico version, move to Conflitos tab |
+
+**Tab verdict**: "Alianças" should be ONLY about positive relationships, not rivalries
+
+#### Tab 3: Dinâmica
+
+| Section | Rating | Storytelling Value | Issues | Recommendation |
+|---------|--------|-------------------|--------|----------------|
+| **Mudanças Entre Dias** | ⭐ | Low — hard to interpret bar chart | Not actionable, confusing x-axis | REMOVE — mudancas.qmd covers this better |
+| **Vira-Casacas** | ⭐⭐ | Medium — interesting concept | Just a count, no story about *who* changed *what* | ENHANCE or MERGE — needs specific examples |
+| **Vip vs Xepa** | ⭐ | Low — niche analysis | May not interest casual viewers | MOVE to separate "Deep Dives" page or REMOVE |
+
+**Tab verdict**: Weak tab, most content duplicated elsewhere or low value
+
+#### Tab 4: Histórico
+
+| Section | Rating | Storytelling Value | Issues | Recommendation |
+|---------|--------|-------------------|--------|----------------|
+| **Rivalidades Mais Longas (2-sided)** | ⭐⭐⭐ | High — central conflicts | Duplicates Alianças tab rivalries | KEEP as primary, remove duplicate |
+| **Hostilidades Unilaterais** | ⭐⭐⭐ | High — reveals blind spots | Good, but needs more context | ENHANCE — connect to voting predictions |
+| **Saldo e Economia** | ⭐ | Low — not connected to game dynamics | Balance changes don't predict anything | MOVE to Cartola page or REMOVE |
+
+**Tab verdict**: Hostilities are gold, Saldo is filler
+
+#### Tab 5: Análise do Dia (CATCH-ALL)
+
+| Section | Rating | Storytelling Value | Issues | Recommendation |
+|---------|--------|-------------------|--------|----------------|
+| **Grafo de Relações** | ⭐⭐ | Medium — pretty but hard to read | Too dense, no clear insight | ENHANCE or MOVE to separate viz page |
+| **Hostilidades do Dia** | ⭐⭐⭐ | High — directly relevant to voting | 5 subsections is too many | CONSOLIDATE into 2-3 focused sections |
+| ├── Quem Ataca Quem Lhe Dá ❤️ | ⭐⭐⭐ | High — "traitors" | Keep | |
+| ├── Quem Dá ❤️ a Inimigos | ⭐⭐⭐ | High — "blind spots" | Keep | |
+| ├── Quem Tem Mais Inimigos | ⭐⭐ | Medium | Merge with polarizing | |
+| ├── Listas de Hostilidades | ⭐ | Low — raw data dump | REMOVE — move to appendix | |
+| └── Insights do Jogo | ⭐⭐⭐ | High — summary | PROMOTE to section intro | |
+| **Clusters de Afinidade** | ⭐ | Low currently — experimental | Hardcoded k=4, generic names | MOVE to separate experimental page |
+| **Saldo vs Sentimento** | ⭐ | Low — weak correlation | Not interesting insight | REMOVE or move to Cartola |
+| **Quem Dá Mais Negatividade** | ⭐⭐ | Medium | Could merge with hostility analysis | MERGE with "Atacantes" section |
+
+**Tab verdict**: Has the best content but worst organization. Needs complete restructure.
+
+---
+
+### Content Classification
+
+**Essential (must keep and enhance):**
+- Bump Chart / Sentiment Lines — trajectory visualization
+- Alianças Consistentes — reveals stable relationships
+- Hostilidades Persistentes (2-sided + 1-sided) — power dynamics
+- Pontos Cegos / Vulnerabilidades — voting predictions
+- Insights do Jogo — strategic summary
+
+**Useful (keep but may reorganize):**
+- Vira-Casacas — needs better storytelling
+- Grafo de Relações — needs simplification
+- Quem Dá Mais Negatividade — merge with hostility
+
+**Low value (remove or move):**
+- Mudanças Entre Dias — duplicated in mudancas.qmd
+- Vip vs Xepa — niche, consider removing
+- Saldo e Economia — move to Cartola
+- Saldo vs Sentimento — weak insight, remove
+- Listas de Hostilidades — raw data, move to appendix
+
+**Experimental (move to separate page):**
+- Clusters de Afinidade — needs algorithm work, own page
+
+### Current Structure (Verified 2026-01-26)
+
+```
+📊 Visão Geral (outside tabs)
+├── Stats overview (participants, snapshots, date range)
+└── Late entrants note
+
+📅 Cronologia do Jogo (outside tabs)
+└── Timeline of entries/exits
+
+::: {.panel-tabset}
+
+## Evolução
+├── Late entrants caption
+├── Sentiment timeline prep (hidden)
+└── ::: {.panel-tabset}
+    ├── #### Bump Chart (Ranking) — position over time
+    └── #### Linhas (Score) — sentiment lines with paredão dates
+
+## Alianças
+├── ### Alianças e Rivalidades {#aliancas}
+│   ├── #### Alianças Mais Consistentes — mutual hearts over time
+│   └── #### Rivalidades Mais Persistentes — mutual negativity
+
+## Dinâmica
+├── ### Dinâmica das Reações {#dinamica}
+│   ├── #### Mudanças Entre Dias — reaction changes
+│   └── #### Quem Muda Mais de Opinião? ("Vira-Casacas")
+└── ### Dinâmica Vip vs Xepa {#grupos}
+    └── In-group vs out-group favoritism analysis
+
+## Histórico
+├── ### Hostilidades Persistentes {#hostilidades}
+│   ├── #### Rivalidades Mais Longas — two-sided, duration tracked
+│   └── #### Hostilidades Unilaterais Mais Longas — one-sided
+└── ### Saldo e Economia {#saldo}
+    └── Balance timeline over all snapshots
+
+## Análise do Dia (CATCH-ALL — 10+ sections)
+├── ### Grafo de Relações {#grafo} — network visualization
+├── ### Hostilidades do Dia {#hostilidades-dia}
+│   ├── #### Quem Mais Ataca Quem Lhe Dá Coração
+│   ├── #### Quem Mais Dá Coração a Inimigos
+│   ├── #### Quem Tem Mais Inimigos Declarados
+│   ├── #### Listas de Hostilidades
+│   └── #### Insights do Jogo (vulnerabilities, polarizing)
+├── ### Clusters de Afinidade {#clusters}
+│   ├── Grupos Identificados (4 clusters)
+│   ├── Dinâmica Entre Clusters
+│   ├── Participantes Mais Polarizadores
+│   └── Cluster heatmap (reordered matrix)
+├── #### Saldo vs Sentimento — scatter correlation
+└── ### Quem Dá Mais Negatividade? {#emissores}
+
+:::
+```
+
+**Issues identified:**
+1. "Análise do Dia" has 10+ sections — too dense, no clear narrative
+2. "Alianças" tab has rivalries (should be in Conflitos)
+3. Clusters are buried at the end but could anchor an "Alianças" narrative
+4. "Histórico" mixes hostilities and economics
+5. No intro summaries to help viewers scan quickly
+
+---
+
+### Cluster Calculation Review
+
+The current cluster implementation uses **hierarchical clustering** with Ward's method. Here's how it works:
+
+#### Algorithm
+
+```python
+# 1. Build sentiment matrix from latest snapshot
+#    - Each cell [i,j] = sentiment weight of reaction i→j
+#    - Weights: Coração = +1, mild_negative = -0.5, strong_negative = -1
+
+# 2. Create mutual sentiment matrix
+mutual_mat = (sent_mat + sent_mat.T) / 2
+#    - Averages A→B and B→A to get symmetric relationship strength
+#    - Range: -1 (mutual hostility) to +1 (mutual love)
+
+# 3. Convert to distance matrix
+dist_mat = 2 - mutual_mat
+#    - Higher sentiment = lower distance (closer in cluster space)
+#    - Range: 1 (best friends) to 3 (bitter enemies)
+
+# 4. Hierarchical clustering with Ward's method
+Z = linkage(condensed, method='ward')
+clusters = fcluster(Z, 4, criterion='maxclust')
+#    - Ward minimizes within-cluster variance
+#    - Fixed at 4 clusters (arbitrary choice)
+```
+
+#### Current Output
+
+| Section | What it shows |
+|---------|---------------|
+| **Grupos Identificados** | 4 clusters with member lists and group composition |
+| **Dinâmica Entre Clusters** | Inter-cluster average sentiment (tensions vs affinities) |
+| **Participantes Mais Polarizadores** | Most negativity given/received, most mutual enemies |
+| **Cluster Heatmap** | Reordered heatmap showing cluster boundaries |
+
+#### Evaluation Questions
+
+| Question | Current State | Possible Improvement |
+|----------|---------------|----------------------|
+| Why 4 clusters? | Hardcoded | Use silhouette score to find optimal k |
+| Cluster labels? | Generic "Grupo A/B/C/D" | Auto-name by dominant trait (e.g., "Veteranos Unidos") |
+| Stability? | Single snapshot only | Track cluster membership over time |
+| Vote alignment? | Not considered | Add voting pattern correlation |
+| Group bias? | Shows composition | Quantify how much Pipoca/Camarote/Veterano split |
+
+#### Alternative Approaches to Consider
+
+1. **Vote-based clustering**: Group by who they vote for (as more paredões happen)
+2. **Combined clustering**: Weight both reactions AND votes
+3. **Temporal clustering**: Track how clusters form/dissolve over time
+4. **Dynamic k**: Let algorithm choose optimal cluster count per day
+
+#### Decision Needed
+
+- [ ] Keep current implementation (simple, works)
+- [ ] Improve with silhouette-based k selection
+- [ ] Add vote-based clustering as separate view
+- [ ] Track cluster evolution over time
+- [ ] Remove clusters entirely (low value?)
+
+---
+
+### Proposed Structure (After) — Question-Driven Storytelling
+
+Each tab answers **one clear question** with:
+1. **Fatos Rápidos** intro (like paredao.qmd) — 3-5 key metrics
+2. **Main visualization** — the star of the tab
+3. **Destaques** — most interesting findings with context
+4. **Supporting details** — for those who want more
+
+```
+📊 Quem Lidera? (Ranking)
+├── Fatos Rápidos: "Jonas lidera há 5 dias. Brigido caiu 7 posições. 3 novos no Top 5."
+├── Bump Chart (posições ao longo do tempo) ⭐ STAR
+├── Destaques: Maior subida, maior queda, mais estável
+└── Linhas de Sentimento (scores detalhados, com selector de participante)
+
+❤️ Quem São os Aliados? (Alianças)
+├── Fatos Rápidos: "15 alianças estáveis. 3 participantes isolados. Veteranos: mais coesos."
+├── Alianças Mais Consistentes (laços mais fortes) ⭐ STAR
+├── Destaques: Aliança mais longa, grupo mais unido, quem está sozinho
+├── Grafo de Relações (simplificado: só alianças, não hostilidades)
+└── Dinâmica de Grupo (Vip vs Xepa favoritism — OPTIONAL, collapsed)
+
+⚔️ Onde Estão os Conflitos? (Conflitos)
+├── Fatos Rápidos: "12 rivalidades mútuas. 26 hostilidades unilaterais. 5 pontos cegos críticos."
+├── Inimigos Declarados (rivalidades mútuas persistentes) ⭐ STAR
+├── Pontos Cegos (quem dá ❤️ a quem os detesta) — VOTING RELEVANCE
+├── Destaques: Rivalidade mais longa, maior ponto cego, mais polarizante
+├── Atacantes e Vítimas (consolidado: quem ataca amigos + quem ama inimigos)
+└── Perfil de Emissão (quem dá mais negatividade)
+
+📈 O Que Está Mudando? (Tendências)
+├── Fatos Rápidos: "95 reações mudaram ontem. Volatilidade: alta. Direção: polarização crescendo."
+├── Vira-Casacas (quem muda de opinião — with specific stories) ⭐ STAR
+├── Destaques: Maior virada, relacionamento que inverteu, quem ficou estável
+└── Cronologia do Jogo (timeline de eventos — currently in "Visão Geral")
+```
+
+**What got removed/moved:**
+- ❌ Mudanças Entre Dias → mudancas.qmd (duplicate)
+- ❌ Saldo e Economia → cartola.qmd (not game-relevant)
+- ❌ Saldo vs Sentimento → removed (weak insight)
+- ❌ Listas de Hostilidades → removed (raw data dump)
+- ❌ Clusters de Afinidade → **NEW clusters.qmd experimental page**
+
+**Key changes:**
+1. **4 tabs instead of 5** — each with clear purpose
+2. **"Fatos Rápidos" intros** — quick scan for casual viewers
+3. **"Destaques" sections** — curated insights, not just charts
+4. **Consolidated hostility analysis** — no more 5 subsections
+5. **Grafo simplified** — show alliances only, not the whole mess
+6. **Vira-Casacas enhanced** — with specific relationship stories
+
+---
+
+### New Page: clusters.qmd (Experimental Lab)
+
+**Purpose**: Dedicated experimental page for clustering and grouping analysis
+
+**Why separate page:**
+- Algorithm is hardcoded (k=4) and needs experimentation
+- Results are interesting but not actionable yet
+- Keeping it separate allows iteration without affecting main pages
+- Can add new clustering approaches without clutter
+
+**Content:**
+```
+🧪 Laboratório de Clusters (Experimental)
+
+├── Fatos Rápidos: "4 clusters identificados. Maior: 8 membros (Veteranos+Pipoca). Tensão máxima: Cluster 1 vs 3."
+
+├── Clustering por Sentimento (current implementation)
+│   ├── Dendrograma interativo
+│   ├── Grupos identificados (with better naming)
+│   └── Heatmap reordenado por cluster
+
+├── Dinâmica Entre Clusters
+│   ├── Tensões (which clusters don't like each other)
+│   └── Afinidades (which clusters are friendly)
+
+├── Alternativas (future)
+│   ├── Vote-based clustering (after more paredões)
+│   ├── Temporal clustering (how clusters evolve)
+│   └── Optimal k selection (silhouette score)
+
+└── Participantes Polarizadores
+    ├── Most negativity given
+    ├── Most negativity received
+    └── Most mutual enemies
+```
+
+**Algorithm improvements to implement:**
+- [ ] Dynamic k using silhouette score
+- [ ] Auto-name clusters by dominant trait (e.g., "Núcleo Veterano", "Grupo Pipoca Isolado")
+- [ ] Track cluster membership over time
+- [ ] Add vote-based clustering when we have 3+ paredões
+
+---
+
+### Section Mapping (Old → New)
+
+| Old Location | Section | New Location | Action |
+|--------------|---------|--------------|--------|
+| Evolução | Bump Chart | 📊 Quem Lidera? | KEEP — star of tab |
+| Evolução | Linhas | 📊 Quem Lidera? | KEEP — add participant selector |
+| Alianças | Alianças Mais Consistentes | ❤️ Aliados | KEEP — star of tab |
+| Alianças | Rivalidades Mais Persistentes | ⚔️ Conflitos | MOVE — merge with Histórico version |
+| Dinâmica | Mudanças Entre Dias | ❌ | REMOVE — mudancas.qmd covers this |
+| Dinâmica | Vira-Casacas | 📈 Tendências | ENHANCE — add specific stories |
+| Dinâmica | Vip vs Xepa | ❤️ Aliados (collapsed) | OPTIONAL — keep but collapsible |
+| Histórico | Hostilidades Persistentes (2-sided) | ⚔️ Conflitos | KEEP — star of tab |
+| Histórico | Hostilidades Persistentes (1-sided) | ⚔️ Conflitos | KEEP — "Pontos Cegos" |
+| Histórico | Saldo e Economia | cartola.qmd | MOVE — not game-relevant here |
+| Análise do Dia | Grafo de Relações | ❤️ Aliados | SIMPLIFY — alliances only |
+| Análise do Dia | Hostilidades do Dia | ⚔️ Conflitos | CONSOLIDATE — 5 sections → 2 |
+| Análise do Dia | Clusters de Afinidade | 🧪 clusters.qmd | MOVE — experimental page |
+| Análise do Dia | Saldo vs Sentimento | ❌ | REMOVE — weak insight |
+| Análise do Dia | Quem Dá Mais Negatividade | ⚔️ Conflitos | MERGE with hostility analysis |
+| Visão Geral | Cronologia do Jogo | 📈 Tendências | MOVE — fits "what's changing" |
+
+### New Intro Sections: "Fatos Rápidos"
+
+Each tab starts with a **dynamic "Fatos Rápidos"** section (computed from data, not hardcoded):
+
+| Tab | Fatos Rápidos (auto-computed) |
+|-----|-------------------------------|
+| 📊 Quem Lidera? | `f"**{leader}** lidera há **{days_leading}** dias. **{biggest_drop}** caiu **{positions}** posições esta semana. **{n_new_top5}** novatos no Top 5."` |
+| ❤️ Aliados | `f"**{n_stable_alliances}** alianças estáveis (>70% dos dias). **{n_isolated}** participantes sem alianças consistentes. **{most_connected}** é o mais conectado."` |
+| ⚔️ Conflitos | `f"**{n_mutual}** rivalidades mútuas. **{n_one_sided}** pontos cegos. Conflito mais longo: **{longest_rivalry}** ({days} dias)."` |
+| 📈 Tendências | `f"**{n_changes}** reações mudaram ontem. Volatilidade: **{volatility_level}**. Maior virada: **{biggest_flip}** ({from_rxn}→{to_rxn})."` |
+
+**Implementation**: Each intro is a Python code block that computes metrics from data.
+
+### Implementation Phases
+
+#### Phase 1: Structure Reorganization
+
+| Step | Task | Files |
+|------|------|-------|
+| 1.1 | Create 4-tab structure | trajetoria.qmd |
+| 1.2 | Move sections to correct tabs | trajetoria.qmd |
+| 1.3 | Remove/consolidate redundant sections | trajetoria.qmd |
+| 1.4 | Create clusters.qmd skeleton | clusters.qmd (new) |
+| 1.5 | Move cluster code to new page | trajetoria.qmd → clusters.qmd |
+| 1.6 | Move Saldo sections to cartola.qmd | trajetoria.qmd → cartola.qmd |
+| 1.7 | Update _quarto.yml navbar | _quarto.yml |
+
+#### Phase 2: Add "Fatos Rápidos" Intros
+
+| Step | Task | Tab |
+|------|------|-----|
+| 2.1 | Compute leader stats dynamically | 📊 Quem Lidera? |
+| 2.2 | Compute alliance stats dynamically | ❤️ Aliados |
+| 2.3 | Compute conflict stats dynamically | ⚔️ Conflitos |
+| 2.4 | Compute volatility stats dynamically | 📈 Tendências |
+
+#### Phase 3: Add "Destaques" Sections
+
+| Step | Task | Tab |
+|------|------|-----|
+| 3.1 | Highlight biggest mover, most stable | 📊 Quem Lidera? |
+| 3.2 | Highlight longest alliance, most isolated | ❤️ Aliados |
+| 3.3 | Highlight critical blind spots for voting | ⚔️ Conflitos |
+| 3.4 | Highlight dramatic relationship changes | 📈 Tendências |
+
+#### Phase 3.5: Fix Data Freshness Issues (CRITICAL) ✅ COMPLETE
+
+> **Purpose**: Ensure paredão analysis uses correct snapshot (paredão-date, not latest)
+> **Priority**: HIGH — affects data integrity
+> **Completed**: 2026-01-26
+
+**Problem identified**: Some sections in `paredao.qmd` used `latest['participants']` instead of paredão-date snapshot.
+
+| Step | Task | Status | Notes |
+|------|------|--------|-------|
+| 3.5.1 | **Fix Leitura Rápida** | ✅ | Now uses `snap_for_analysis` conditionally based on status |
+| 3.5.2 | **Audit all `latest` uses** | ✅ | Only 1 occurrence needed fixing (line 706→729) |
+| 3.5.3 | **Add data source indicator** | ✅ | Shows "📅 Dados de [date] (dia do paredão)" for finalizado |
+| 3.5.4 | **Verify paredoes.qmd** | ✅ | Already uses `get_snapshot_for_date()` correctly |
+
+**Changes made to paredao.qmd**:
+- Added `snap_for_analysis` variable that uses paredão-date snapshot when `is_finalizado`
+- Added `analysis_date_label` to show data source to users
+- Renamed variables: `sent_hoje` → `sent_paredao`, `neg_hoje` → `neg_paredao`
+- Updated column names: "Sentimento hoje" → "Sentimento", "Rank hoje" → "Rank"
+
+**Rule documented in CLAUDE.md**:
+- `status == 'em_andamento'`: OK to use `latest` for status display
+- `status == 'finalizado'`: ALL analysis MUST use paredão-date snapshot
+
+#### Phase 4: Deep Data Analysis & Module Improvement
+
+> **Purpose**: After reorganization, analyze the data more deeply to improve visualizations and insights
+
+| Step | Task | Description |
+|------|------|-------------|
+| 4.1 | **Improve Bump Chart** | Add participant highlight on hover, smooth animation |
+| 4.2 | **Simplify Grafo** | Show only alliances (hearts), remove hostility edges |
+| 4.3 | **Enhance Vira-Casacas** | Add specific stories: "X went from ❤️ to 🐍 for Y on [date]" |
+| 4.4 | **Voting Connection** | Connect hostility analysis to actual paredão votes |
+| 4.5 | **Cluster Algorithm** | Implement silhouette-based k selection |
+| 4.6 | **Cluster Naming** | Auto-name clusters by composition |
+| 4.7 | **Temporal Tracking** | Track cluster membership evolution |
+| 4.8 | **Vote-based Clustering** | Add when we have 3+ paredões |
+
+#### Phase 5: Deferred Features Reconsideration
+
+| Feature | Priority | When to Implement | Notes |
+|---------|----------|-------------------|-------|
+| **Participant Focus Mode** | HIGH | After Phase 3 | Click name → see full journey |
+| **Accuracy Tracking** | HIGH | After 3rd paredão | Did predictions match results? |
+| **Date Picker** | MEDIUM | If users request | Compare any two dates |
+| **Arcos Narrativos** | MEDIUM | Mid-season | Auto-detect storylines |
+
+---
+
+### Benefits of New Structure
+
+| Benefit | Before | After |
+|---------|--------|-------|
+| **Clear narrative** | Chart gallery | Question-driven storytelling |
+| **Tab purpose** | Random collections | Each answers one question |
+| **Hostility analysis** | Scattered in 3 tabs | Consolidated in ⚔️ Conflitos |
+| **Quick scanning** | No summaries | "Fatos Rápidos" intros |
+| **Experimental work** | Mixed with main content | Separate clusters.qmd |
+| **Cognitive load** | 5 tabs, 21+ sections | 4 tabs, ~12 focused sections |
+| **Voting relevance** | Unclear connection | "Pontos Cegos" directly connects |
+
+### New Site Structure (7 Pages)
+
+```yaml
+website:
+  navbar:
+    left:
+      - href: index.qmd
+        text: "📊 Painel"
+      - href: mudancas.qmd
+        text: "📅 O Que Mudou"
+      - href: trajetoria.qmd
+        text: "📈 Trajetória"
+      - href: paredao.qmd
+        text: "🗳️ Paredão"
+      - href: paredoes.qmd
+        text: "📚 Arquivo"
+      - href: cartola.qmd
+        text: "🎩 Cartola"
+      - href: clusters.qmd
+        text: "🧪 Lab"  # Or hide from main nav, link from trajetória
+```
+
+**Option**: Keep clusters.qmd as a "hidden" page (not in navbar) and link to it from trajetória's Alianças tab with "🧪 Ver análise experimental de clusters".
 
 ## Current State
 
@@ -499,11 +1019,74 @@ Future enhancement: As more paredões occur, voting patterns become a strong sig
 
 ---
 
+## Deferred Features for Re-Evaluation
+
+> **Purpose**: Track features that were deferred but may be worth implementing as the season progresses.
+> **Last reviewed**: 2026-01-26
+
+### High Priority (Consider implementing soon)
+
+| Feature | Description | Value | Effort | When to implement |
+|---------|-------------|-------|--------|-------------------|
+| **Participant Focus Mode** | Click participant → see their full journey (sentiment, votes, relationships) | High — answers "tell me about X" | Medium | After trajetória reorg |
+| **Accuracy Tracking** | Did reaction-based predictions match paredão results? | High — validates methodology | Low | After 3+ paredões |
+| **Date Picker** | Compare any two dates (not just yesterday/today) | Medium — power user feature | Medium | When users request it |
+
+### Medium Priority (Nice to have)
+
+| Feature | Description | Value | Effort | When to implement |
+|---------|-------------|-------|--------|-------------------|
+| **Compare Paredões** | Side-by-side comparison of two paredões | Medium — pattern analysis | Medium | After 5+ paredões |
+| **Arcos Narrativos** | Auto-detect storylines (redemption, downfall, rivalry) | Medium — engagement | High | Mid-season |
+| **Semana a Semana** | Accordion with weekly highlights | Medium — navigation | Low | After week 4 |
+| **Mudança Acumulada** | Total sentiment change from day 1 to today | Medium — trajectory | Low | Any time |
+
+### Low Priority (Future consideration)
+
+| Feature | Description | Value | Effort | When to implement |
+|---------|-------------|-------|--------|-------------------|
+| **Reaction Flow Animation** | Animated Sankey over multiple days | Low — novelty | High | Never? |
+| **Correlation Dashboard** | Balance vs sentiment vs group vs votes | Low — niche | Medium | If requested |
+| **Histórico Similar** | "In past BBBs with similar sentiment, X went home" | Low — no historical data | Very High | Never (no data) |
+
+### Cluster Improvements (Separate track)
+
+| Improvement | Current State | Proposed | Decision |
+|-------------|---------------|----------|----------|
+| **Dynamic k** | Fixed 4 clusters | Use silhouette score | [ ] Yes [ ] No |
+| **Vote-based clustering** | Not implemented | Cluster by voting patterns | [ ] After 3+ paredões |
+| **Temporal tracking** | Single snapshot | Track cluster evolution | [ ] Yes [ ] No |
+| **Auto-naming** | "Grupo A/B/C/D" | Name by dominant trait | [ ] Yes [ ] No |
+
+### Features Explicitly NOT Doing
+
+| Feature | Reason |
+|---------|--------|
+| **Votação Live** | Out of scope — requires external data source |
+| **Mobile App** | Out of scope — web-only project |
+| **Push Notifications** | Out of scope — static site |
+| **User Accounts** | Out of scope — no backend |
+
+---
+
 ## Decision Needed
 
-Before implementing, please confirm:
-1. Does this 5-page structure make sense?
-2. Are the section assignments correct?
-3. Any sections to add/remove?
-4. Which improvements are highest priority?
-5. Implementation priority?
+Before implementing Trajetória reorganization, please confirm:
+
+### Structure Questions
+1. Does the 4-tab structure (Ranking → Alianças → Conflitos → Tendências) make sense?
+2. Should "Visão Geral" and "Cronologia" stay outside tabs or be integrated?
+3. Are the section mappings (old → new) correct?
+
+### Cluster Questions
+4. Keep clusters with current algorithm?
+5. Move clusters to be the anchor of "Alianças" tab?
+6. Add silhouette-based k selection?
+
+### Deferred Feature Questions
+7. Which deferred features should we prioritize after this reorg?
+8. Is "Participant Focus Mode" worth the effort now?
+
+### Implementation Questions
+9. Implement in one big change or incremental commits?
+10. Test with `quarto preview` or full render each step?

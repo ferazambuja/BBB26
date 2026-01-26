@@ -328,6 +328,81 @@ Each section is tagged with its data source:
 - 📸 **Dado do dia** — uses only the most recent snapshot
 - 📅 **Comparação dia-a-dia** — compares the two most recent daily snapshots
 - 📈 **Dado acumulado** — uses all historical snapshots
+- 🗳️ **Paredão-anchored** — uses snapshot from paredão date (not latest)
+
+## Critical: Data Freshness and Paredão Archival
+
+### Principle: Live Pages vs Archived Analysis
+
+| Page Type | Data Source | Why |
+|-----------|-------------|-----|
+| **Live pages** (Painel, Mudanças, Trajetória) | `latest` / `snapshots[-1]` | Show current game state |
+| **Paredão em andamento** | `latest` for status, paredão-date for analysis | Current status matters, but analysis should use vote-day data |
+| **Paredão finalizado** | Paredão-date snapshot ONLY | Historical archive must be frozen |
+| **Arquivo de Paredões** | Each paredão's date snapshot | Each analysis is a time capsule |
+
+### Why This Matters
+
+When analyzing "did reactions predict votes?", we MUST use data from **before/during** voting, NOT after:
+- Votes happen Tuesday night
+- Reactions can change Wednesday morning
+- Using Wednesday's data to analyze Tuesday's votes is **invalid**
+
+### Implementation Requirements
+
+**For `paredao.qmd` (current paredão):**
+```python
+# When status == 'em_andamento': OK to use latest for status display
+# When status == 'finalizado': ALL analysis must use paredão-date snapshot
+
+if ultimo.get('status') == 'finalizado':
+    # Use paredão-date snapshot for ALL sections
+    snap, matrix, idx = get_snapshot_for_date(paredao_date)
+else:
+    # em_andamento: can use latest for current status
+    # but analysis sections should still use paredão-date when available
+```
+
+**For `paredoes.qmd` (archive):**
+```python
+# ALWAYS use paredão-date snapshot - this is historical analysis
+snap_p, matrix_p, idx_p = get_snapshot_for_date(par_date, snapshots, all_matrices)
+```
+
+### Sections That Must Use Paredão-Date Data
+
+When `status == 'finalizado'`:
+
+| Section | Current | Should Be |
+|---------|---------|-----------|
+| Leitura Rápida dos Indicados | `latest['participants']` ❌ | `snap_paredao['participants']` ✅ |
+| Vote Analysis | `closest_idx` ✅ | Correct |
+| Relationship History | Stops at `paredao_date` ✅ | Correct |
+
+### Archival Process
+
+When a paredão is finalized:
+1. Ensure we have a snapshot from the paredão date (or day before)
+2. Update `data/paredoes.json` with results
+3. All analysis in both `paredao.qmd` and `paredoes.qmd` will use frozen data
+4. Future renders will show the same analysis (historical consistency)
+
+### Common Mistake to Avoid
+
+❌ **Wrong**: Using `latest` or `snapshots[-1]` in paredão analysis
+```python
+# BAD - this changes every time we get new data
+for p in latest['participants']:
+    sent_hoje[name] = calc_sentiment(p)
+```
+
+✅ **Correct**: Using paredão-date snapshot
+```python
+# GOOD - this is frozen at vote time
+snap_p, matrix_p, _ = get_snapshot_for_date(paredao_date)
+for p in snap_p['participants']:
+    sent_paredao[name] = calc_sentiment(p)
+```
 
 ### index.qmd (📊 Painel)
 

@@ -457,6 +457,19 @@ for i, paredao in enumerate(paredoes_finalizados):
     if paredao.get('votos_casa'):
         print(f"## Reações Preveem Votos?\n")
 
+        print("""**Como ler este gráfico:**
+
+Cada ponto é um participante. No eixo horizontal: quantas reações negativas (🐍🎯🤮🤥💔🌱💼🍪)
+essa pessoa **recebeu** dos colegas no queridômetro. No eixo vertical: quantos **votos**
+essa pessoa recebeu na votação da casa.
+
+A **correlação (r)** mede se existe relação entre ser odiado e ser votado:
+- **r = 1**: perfeita relação (todos votam em quem odeiam)
+- **r = 0**: nenhuma relação (votos são estratégicos)
+- **r negativo**: relação inversa (protegem quem odeiam)
+
+""")
+
         votos = paredao['votos_casa']
         vote_counts = Counter(votos.values())
 
@@ -488,14 +501,23 @@ for i, paredao in enumerate(paredoes_finalizados):
         if len(df_scatter) > 2:
             corr_val = df_scatter['neg_recebidas'].corr(df_scatter['votos_recebidos'])
 
+            print("""<p style="font-size: 1.05rem; line-height: 1.6;">
+<strong>O que este gráfico mostra?</strong> Cada ponto representa um participante.
+A posição horizontal mostra quantas reações negativas essa pessoa <strong>recebeu</strong>.
+A posição vertical mostra quantos <strong>votos</strong> recebeu na votação da casa.
+Se os participantes votassem de acordo com o que registraram no queridômetro, veríamos uma diagonal:
+quanto mais negatividade recebida, mais votos recebidos.
+</p>
+""")
+
             fig = px.scatter(
                 df_scatter, x='neg_recebidas', y='votos_recebidos',
                 text='nome', color='grupo', color_discrete_map=GROUP_COLORS,
                 title=f"Reações Negativas vs Votos na Casa (r = {corr_val:.2f})",
                 labels={'neg_recebidas': 'Reações negativas recebidas', 'votos_recebidos': 'Votos recebidos'}
             )
-            fig.update_traces(textposition='top center', textfont_size=9, marker_size=12)
-            fig.update_layout(height=450)
+            fig.update_traces(textposition='top center', textfont_size=10, marker_size=14)
+            fig.update_layout(height=450, font=dict(size=13))
 
             if df_scatter['neg_recebidas'].std() > 0:
                 z = np.polyfit(df_scatter['neg_recebidas'], df_scatter['votos_recebidos'], 1)
@@ -504,12 +526,108 @@ for i, paredao in enumerate(paredoes_finalizados):
                                          line=dict(dash='dash', color='gray'), name='Tendência'))
             fig.show()
 
+            # Build list of people who couldn't receive house votes
+            # (In the flattened paredão structure: lider, anjo, imunizado are at top level)
+            nao_votaveis = set()
+
+            # Líder can't be voted
+            if paredao.get('lider'):
+                nao_votaveis.add(paredao['lider'])
+
+            # Imunizado can't be voted
+            if paredao.get('imunizado') and isinstance(paredao['imunizado'], dict):
+                nao_votaveis.add(paredao['imunizado'].get('quem', ''))
+
+            # Anjo autoimune can't be voted
+            if paredao.get('anjo_autoimune') and paredao.get('anjo'):
+                nao_votaveis.add(paredao['anjo'])
+
+            # People already indicated to paredão can't receive house votes
+            for p in paredao.get('participantes', []):
+                if p.get('como') and p['como'] != 'Casa':
+                    nao_votaveis.add(p['nome'])
+
+            # Find examples
+            df_sorted = df_scatter.sort_values('neg_recebidas', ascending=False)
+            most_hated = df_sorted.iloc[0] if len(df_sorted) > 0 else None
+            most_voted_name = vote_counts.most_common(1)[0][0] if vote_counts else None
+
+            # Filter out people who couldn't be voted
+            df_votaveis = df_scatter[~df_scatter['nome'].isin(nao_votaveis)]
+
+            # High negativity, low votes (only among voteable people)
+            high_neg_low_votes = df_votaveis[(df_votaveis['neg_recebidas'] > df_votaveis['neg_recebidas'].median()) &
+                                              (df_votaveis['votos_recebidos'] <= 1)]
+
+            # Low negativity, high votes
+            low_neg_high_votes = df_votaveis[(df_votaveis['neg_recebidas'] <= df_votaveis['neg_recebidas'].median()) &
+                                              (df_votaveis['votos_recebidos'] >= 3)]
+
+            print("\n### Interpretação\n")
+
             if abs(corr_val) < 0.3:
-                print(f"\n> **Correlação fraca (r = {corr_val:.2f}):** As reações do queridômetro "
-                      "**não preveem** quem será votado. Votos são estratégicos.\n")
-            elif corr_val > 0.3:
-                print(f"\n> **Correlação moderada (r = {corr_val:.2f}):** Quem recebe mais "
-                      "reações negativas tende a receber mais votos.\n")
+                print(f'<p style="font-size: 1.05rem;"><strong>Correlação fraca (r = {corr_val:.2f})</strong> — Votos <strong>não seguem</strong> o queridômetro.</p>')
+                print('<p style="font-size: 1.05rem;">Os participantes votaram de forma <strong>estratégica</strong>, não de acordo com suas reações. '
+                      'Ser odiado no queridômetro não significou ser votado. '
+                      'Alianças, acordos e estratégia de jogo pesaram mais que as reações registradas.</p>\n')
+            elif corr_val > 0.5:
+                print(f'<p style="font-size: 1.05rem;"><strong>Correlação forte (r = {corr_val:.2f})</strong> — Votos <strong>seguem</strong> o queridômetro.</p>')
+                print('<p style="font-size: 1.05rem;">Os participantes votaram de acordo com o que registraram no queridômetro. '
+                      'As relações pessoais dominaram a votação.</p>\n')
+            else:
+                print(f'<p style="font-size: 1.05rem;"><strong>Correlação moderada (r = {corr_val:.2f})</strong> — Mistura de queridômetro e estratégia.</p>')
+                print('<p style="font-size: 1.05rem;">Houve alguma relação entre ser odiado e ser votado, mas não foi determinante. '
+                      'Alguns votos seguiram as reações, outros seguiram estratégia.</p>\n')
+
+            # Poupados Suspeitos table
+            poupados = high_neg_low_votes.sort_values('neg_recebidas', ascending=False).head(5)
+            if len(poupados) > 0:
+                print("\n### 🛡️ Poupados Suspeitos\n")
+                print('<p style="font-size: 1.05rem;">Participantes com muitas reações negativas mas poucos votos — podem ter sido protegidos estrategicamente.</p>\n')
+                print('<table style="font-size: 1.05rem; width: 100%;">')
+                print('<thead><tr><th>Participante</th><th style="text-align:center;">Negativas</th><th style="text-align:center;">Votos</th></tr></thead>')
+                print('<tbody>')
+                for _, row in poupados.iterrows():
+                    print(f'<tr><td><strong>{row["nome"]}</strong></td>'
+                          f'<td style="text-align:center;">{int(row["neg_recebidas"])}</td>'
+                          f'<td style="text-align:center;">{int(row["votos_recebidos"])}</td></tr>')
+                print('</tbody></table>\n')
+
+            # Alvos Surpreendentes table
+            alvos = low_neg_high_votes.sort_values('votos_recebidos', ascending=False).head(5)
+            if len(alvos) > 0:
+                print("\n### ⚠️ Alvos Surpreendentes\n")
+                print('<p style="font-size: 1.05rem;">Participantes com poucas reações negativas mas muitos votos — foram votados por estratégia, não por antipatia.</p>\n')
+                print('<table style="font-size: 1.05rem; width: 100%;">')
+                print('<thead><tr><th>Participante</th><th style="text-align:center;">Negativas</th><th style="text-align:center;">Votos</th></tr></thead>')
+                print('<tbody>')
+                for _, row in alvos.iterrows():
+                    print(f'<tr><td><strong>{row["nome"]}</strong></td>'
+                          f'<td style="text-align:center;">{int(row["neg_recebidas"])}</td>'
+                          f'<td style="text-align:center;">{int(row["votos_recebidos"])}</td></tr>')
+                print('</tbody></table>\n')
+
+            print("### Exemplos deste paredão\n")
+
+            # Example that aligns
+            if most_hated is not None and most_voted_name:
+                most_voted_data = df_scatter[df_scatter['nome'] == most_voted_name].iloc[0] if most_voted_name in df_scatter['nome'].values else None
+                if most_hated['nome'] == most_voted_name:
+                    print(f'<p style="font-size: 1.05rem;">✅ <strong>Alinhado:</strong> <strong>{most_hated["nome"]}</strong> foi quem recebeu mais reações negativas '
+                          f'({int(most_hated["neg_recebidas"])}) e também mais votos '
+                          f'({int(most_hated["votos_recebidos"])}). Os votos seguiram o queridômetro.</p>\n')
+                elif most_voted_data is not None:
+                    print(f'<p style="font-size: 1.05rem;">⚠️ <strong>Desalinhado:</strong> O mais votado foi <strong>{most_voted_name}</strong> '
+                          f'({int(most_voted_data["votos_recebidos"])} votos, {int(most_voted_data["neg_recebidas"])} negativas), '
+                          f'mas quem recebeu mais negatividade era <strong>{most_hated["nome"]}</strong> '
+                          f'({int(most_hated["neg_recebidas"])} negativas, {int(most_hated["votos_recebidos"])} votos).</p>\n')
+
+            # Show who couldn't be voted (for context)
+            if nao_votaveis:
+                nao_votaveis_list = [n for n in nao_votaveis if n]
+                if nao_votaveis_list:
+                    nao_votaveis_str = ", ".join([f'<strong>{n}</strong>' for n in nao_votaveis_list])
+                    print(f'<p style="font-size: 0.95rem; color: #888;"><em>Nota: {nao_votaveis_str} não podia(m) receber votos neste paredão (líder, imunizado ou anjo autoimune).</em></p>\n')
 
     # ══════════════════════════════════════════════════════════════
     # 6. VOTARAM NO QUE MAIS DETESTAM?

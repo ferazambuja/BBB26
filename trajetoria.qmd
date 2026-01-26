@@ -485,17 +485,44 @@ if not df_timeline.empty:
         ))
 
     # Zero line
-    paredao_shapes = [dict(type='line', x0=df_timeline['Data'].min(), x1=df_timeline['Data'].max(),
-                           y0=0, y1=0, line=dict(color='red', dash='dash', width=1))]
+    fig.add_shape(type='line', x0=df_timeline['Data'].min(), x1=df_timeline['Data'].max(),
+                  y0=0, y1=0, line=dict(color='red', dash='dash', width=1))
+
+    # Paredão date lines (load from paredoes.json)
+    paredoes_file = Path("data/paredoes.json")
+    if paredoes_file.exists():
+        with open(paredoes_file, encoding="utf-8") as f:
+            paredoes_data = json.load(f)
+        for p in paredoes_data.get('paredoes', []):
+            paredao_date = pd.to_datetime(p['data'])
+            y_range = [df_timeline['Sentimento'].min() - 2, df_timeline['Sentimento'].max() + 2]
+            fig.add_shape(
+                type='line', x0=paredao_date, x1=paredao_date,
+                y0=y_range[0], y1=y_range[1],
+                line=dict(color='#FF6B6B', dash='dot', width=2),
+            )
+            # Add annotation
+            fig.add_annotation(
+                x=paredao_date, y=y_range[1],
+                text=f"🗳️ {p['numero']}º Paredão",
+                showarrow=False,
+                font=dict(size=11, color='#FF6B6B'),
+                yshift=10,
+            )
+
+    # Calculate height to match ranking chart (same formula)
+    n_active = len([p for p in daily_snapshots[-1]['participants']
+                    if not p.get('characteristics', {}).get('eliminated')])
+    chart_height = max(500, n_active * 32)
 
     fig.update_layout(
         title="Evolução do Sentimento ao Longo do Tempo",
         xaxis_title="Data",
         yaxis_title="Score de Sentimento",
-        height=600,
+        height=chart_height,
         hovermode='x unified',
-        legend=dict(font=dict(size=10), itemsizing='constant'),
-        shapes=paredao_shapes,
+        legend=dict(font=dict(size=11), itemsizing='constant'),
+        margin=dict(r=180),  # More room for legend
     )
 
     fig.show()

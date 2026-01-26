@@ -1,6 +1,113 @@
-/* Accessibility Color Palette Toggle
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TYPOGRAPHY - Increased font sizes for readability
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Base body text */
+body {
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+/* Headings - scaled up proportionally */
+h1, .h1 {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+}
+
+h2, .h2 {
+  font-size: 1.8rem;
+  margin-top: 2rem;
+  margin-bottom: 0.8rem;
+}
+
+h3, .h3 {
+  font-size: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.6rem;
+}
+
+h4, .h4 {
+  font-size: 1.25rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+h5, .h5 {
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+h6, .h6 {
+  font-size: 1.05rem;
+  margin-top: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+/* Paragraphs */
+p {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+/* Lists */
+ul, ol {
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+/* Tables */
+table {
+  font-size: 1.05rem;
+}
+
+th, td {
+  padding: 0.6rem 0.8rem;
+}
+
+/* Callouts */
+.callout {
+  font-size: 1.05rem;
+}
+
+.callout-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Code blocks */
+pre, code {
+  font-size: 0.95rem;
+}
+
+/* Value boxes */
+.valuebox .value {
+  font-size: 2rem;
+}
+
+.valuebox .title {
+  font-size: 1rem;
+}
+
+/* Navigation */
+.navbar-brand {
+  font-size: 1.2rem;
+}
+
+.nav-link {
+  font-size: 1.05rem;
+}
+
+/* Footer */
+.page-footer {
+  font-size: 0.95rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Accessibility Color Palette Toggle
  * Provides a colorblind-friendly mode using blue-orange instead of red-green
- */
+ * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Toggle button styling */
 .a11y-toggle {
