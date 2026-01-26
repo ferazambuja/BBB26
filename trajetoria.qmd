@@ -659,58 +659,6 @@ if rivalry_data:
 
 Como as reações evoluem ao longo do tempo.
 
-#### Mudanças Entre Dias
-
-Quantas reações mudaram entre cada par de dias consecutivos.
-
-```{python}
-#| label: reaction-changes
-
-change_counts = []
-for i in range(1, len(daily_snapshots)):
-    prev_m = daily_matrices[i-1]
-    curr_m = daily_matrices[i]
-
-    common_pairs = set(prev_m.keys()) & set(curr_m.keys())
-    changes = sum(1 for pair in common_pairs if prev_m[pair] != curr_m[pair])
-    pos_to_neg = sum(1 for pair in common_pairs
-                     if prev_m[pair] in POSITIVE and curr_m[pair] not in POSITIVE)
-    neg_to_pos = sum(1 for pair in common_pairs
-                     if prev_m[pair] not in POSITIVE and curr_m[pair] in POSITIVE)
-
-    change_counts.append({
-        'Transição': f"{daily_snapshots[i-1]['date']} → {daily_snapshots[i]['date']}",
-        'Data': pd.to_datetime(daily_snapshots[i]['date']),
-        'Total': changes,
-        '❤️→Neg': pos_to_neg,
-        'Neg→❤️': neg_to_pos
-    })
-
-df_changes = pd.DataFrame(change_counts)
-
-if not df_changes.empty:
-    fig = go.Figure()
-
-    fig.add_trace(go.Bar(
-        x=df_changes['Transição'], y=df_changes['❤️→Neg'],
-        name='❤️ → Negativa', marker_color='#d73027'
-    ))
-    fig.add_trace(go.Bar(
-        x=df_changes['Transição'], y=df_changes['Neg→❤️'],
-        name='Negativa → ❤️', marker_color='#1a9850'
-    ))
-
-    fig.update_layout(
-        title="Mudanças de Reação Entre Dias",
-        xaxis_title="", yaxis_title="Quantidade de mudanças",
-        barmode='group',
-        height=400,
-        xaxis=dict(tickangle=45)
-    )
-
-    fig.show()
-```
-
 #### Quem Muda Mais de Opinião? ("Vira-Casacas")
 
 Participantes que mais mudaram suas reações ao longo do tempo.
@@ -1375,40 +1323,6 @@ else:
     print("*Nenhuma hostilidade mútua detectada.*")
 ```
 
-#### Listas de Hostilidades
-
-```{python}
-#| label: hostility-lists-today
-#| output: asis
-
-print("### Hostilidades Mútuas (Hoje)\n")
-print("Todos os pares onde ambos se detestam:\n")
-
-if hostility['two_sided']:
-    for a, b, rxn_ab, rxn_ba in sorted(hostility['two_sided'], key=lambda x: (x[0], x[1])):
-        emoji_ab = REACTION_EMOJI.get(rxn_ab, '?')
-        emoji_ba = REACTION_EMOJI.get(rxn_ba, '?')
-        print(f"- {a} {emoji_ab}↔{emoji_ba} {b}")
-else:
-    print("*Nenhuma.*")
-
-print("\n### Hostilidades Unilaterais (Hoje)\n")
-print("A dá reação negativa para B, mas B dá ❤️ para A:\n")
-
-if hostility['one_sided']:
-    # Group by hostile person
-    by_hostile = defaultdict(list)
-    for hostile, friendly, rxn in hostility['one_sided']:
-        by_hostile[hostile].append((friendly, rxn))
-
-    for hostile in sorted(by_hostile.keys()):
-        targets = by_hostile[hostile]
-        emoji_list = ', '.join(f"{REACTION_EMOJI.get(rxn, '?')}{friendly}" for friendly, rxn in sorted(targets))
-        print(f"- **{hostile}** ataca: {emoji_list}")
-else:
-    print("*Nenhuma.*")
-```
-
 #### Insights do Jogo
 
 ```{python}
@@ -1619,54 +1533,6 @@ fig.update_layout(
 )
 
 fig.show()
-```
-
-#### Saldo vs Sentimento
-
-<p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
-
-Existe correlação entre ter mais Estalecas e ser bem-visto pelos colegas?
-
-```{python}
-#| label: balance-vs-sentiment
-
-bal_sent_data = []
-for p in latest['participants']:
-    if p.get('characteristics', {}).get('eliminated'):
-        continue
-    bal_sent_data.append({
-        'Participante': p['name'],
-        'Saldo': p.get('characteristics', {}).get('balance', 0),
-        'Sentimento': calc_sentiment(p),
-        'Grupo': p.get('characteristics', {}).get('memberOf', '?')
-    })
-
-df_bs = pd.DataFrame(bal_sent_data)
-
-if len(df_bs) > 2:
-    corr = df_bs['Saldo'].corr(df_bs['Sentimento'])
-
-    fig = px.scatter(
-        df_bs, x='Saldo', y='Sentimento',
-        text='Participante',
-        color='Grupo',
-        color_discrete_map=GROUP_COLORS,
-        title=f"Saldo vs Sentimento (correlação: r = {corr:.2f})",
-        labels={'Saldo': 'Saldo (Estalecas)', 'Sentimento': 'Score de Sentimento'}
-    )
-
-    fig.update_traces(textposition='top center', textfont_size=9, marker_size=12)
-    fig.update_layout(height=500)
-
-    # Linha de tendência
-    z = np.polyfit(df_bs['Saldo'], df_bs['Sentimento'], 1)
-    x_line = np.linspace(df_bs['Saldo'].min(), df_bs['Saldo'].max(), 100)
-    y_line = np.polyval(z, x_line)
-    fig.add_trace(go.Scatter(x=x_line, y=y_line, mode='lines',
-                             line=dict(dash='dash', color='gray'),
-                             name='Tendência', showlegend=True))
-
-    fig.show()
 ```
 
 ### Quem Dá Mais Negatividade? {#emissores}
