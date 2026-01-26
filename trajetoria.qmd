@@ -1,13 +1,10 @@
 ---
 title: "BBB 26 — Trajetória"
 subtitle: "Evolução do jogo ao longo da temporada: alianças, rivalidades e tendências"
-author: "Dashboard Automatizado"
-date: today
 lang: pt-BR
 format:
   html:
-    code-fold: true
-    code-summary: "Ver código"
+    code-tools: false
 execute:
   echo: false
   warning: false
@@ -277,9 +274,72 @@ print(
 )
 ```
 
-# Evolução do Sentimento {#evolucao}
+# Cronologia do Jogo {#cronologia}
 
-Como o sentimento de cada participante mudou ao longo do tempo. Top 3 e bottom 3 participantes são destacados por padrão; clique na legenda para mostrar/esconder outros.
+Linha do tempo dos principais eventos da temporada: entradas, saídas e mudanças de roles.
+
+```{python}
+#| label: timeline-events
+
+events_data = []
+all_names_seen = set()
+
+for i, snap in enumerate(snapshots):
+    current_names = set(p['name'] for p in snap['participants'])
+    active_names = set(p['name'] for p in snap['participants']
+                       if not p.get('characteristics', {}).get('eliminated'))
+
+    if i > 0:
+        prev_names = set(p['name'] for p in snapshots[i-1]['participants'])
+        appeared = current_names - prev_names
+        disappeared = prev_names - current_names
+
+        if appeared:
+            events_data.append({
+                'Data': snap['date'],
+                'Evento': f"✅ Entraram: {', '.join(sorted(appeared))}",
+                'Participantes': len(active_names)
+            })
+        if disappeared:
+            for name in disappeared:
+                events_data.append({
+                    'Data': snap['date'],
+                    'Evento': f"❌ Saiu: {name}",
+                    'Participantes': len(active_names)
+                })
+
+    # Detectar roles especiais
+    for p in snap['participants']:
+        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+        for role in roles:
+            if role in ('Líder', 'Paredão') and i > 0:
+                prev_snap_p = {pp['name']: pp for pp in snapshots[i-1]['participants']}
+                if p['name'] in prev_snap_p:
+                    prev_roles = parse_roles(prev_snap_p[p['name']].get('characteristics', {}).get('roles', []))
+                    if role not in prev_roles:
+                        events_data.append({
+                            'Data': snap['date'],
+                            'Evento': f"🏆 {p['name']} → {role}",
+                            'Participantes': len(active_names)
+                        })
+
+    all_names_seen |= current_names
+
+if events_data:
+    df_events = pd.DataFrame(events_data).drop_duplicates()
+    # Mostrar apenas eventos importantes (entradas/saídas/roles)
+    key_events = df_events[df_events['Evento'].str.contains('Entraram|Saiu|Líder')]
+    if not key_events.empty:
+        display(key_events.style.hide(axis='index'))
+```
+
+::: {.panel-tabset}
+
+## Evolução
+
+### Evolução do Sentimento {#evolucao}
+
+Como o sentimento de cada participante mudou ao longo do tempo.
 
 ```{python}
 #| label: late-entrants-caption
@@ -298,7 +358,8 @@ if late_entrants:
 ```
 
 ```{python}
-#| label: sentiment-timeline
+#| label: sentiment-timeline-prep
+#| include: false
 
 # Calcular sentimento para cada participante em cada dia (1 por dia)
 timeline_data = []
@@ -317,21 +378,96 @@ for i, snap in enumerate(daily_snapshots):
 
 df_timeline = pd.DataFrame(timeline_data)
 
+# Pre-calculate ranking per day for bump chart
 if not df_timeline.empty:
-    # Paleta com cores distintas para cada participante
-    all_participants = sorted(df_timeline['Participante'].unique())
-    palette = (
-        px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
-        px.colors.qualitative.Set2 + px.colors.qualitative.Bold
-    )
-    participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
+    df_timeline['Rank'] = df_timeline.groupby('Data')['Sentimento'].rank(ascending=False, method='min').astype(int)
 
-    # Top 3 e bottom 3 pelo último score — visíveis por padrão
+# Build participant colors once
+all_participants = sorted(df_timeline['Participante'].unique()) if not df_timeline.empty else []
+palette = (
+    px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+    px.colors.qualitative.Set2 + px.colors.qualitative.Bold
+)
+participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
+
+# Highlight top 3 and bottom 3 by latest score
+if not df_timeline.empty:
     latest_scores = df_timeline.groupby('Participante')['Sentimento'].last()
     top3 = set(latest_scores.nlargest(3).index)
     bottom3 = set(latest_scores.nsmallest(3).index)
     highlight = top3 | bottom3
+else:
+    highlight = set()
+```
 
+::: {.panel-tabset}
+
+#### Bump Chart (Ranking)
+
+O **bump chart** mostra a **posição** de cada participante no ranking de sentimento. Mais fácil de acompanhar movimentações do que o gráfico de linhas.
+
+```{python}
+#| label: bump-chart
+
+if not df_timeline.empty:
+    fig = go.Figure()
+
+    # Sort participants by their final rank for consistent legend order
+    final_ranks = df_timeline[df_timeline['Data'] == df_timeline['Data'].max()].set_index('Participante')['Rank']
+    sorted_participants = final_ranks.sort_values().index.tolist()
+
+    for name in sorted_participants:
+        df_p = df_timeline[df_timeline['Participante'] == name].sort_values('Data')
+        is_hl = name in highlight
+        grupo = MEMBER_OF.get(name, '?')
+        grupo_color = GROUP_COLORS.get(grupo, '#666')
+
+        # Latest rank and score for hover
+        latest_rank = int(df_p['Rank'].iloc[-1])
+        latest_score = df_p['Sentimento'].iloc[-1]
+
+        fig.add_trace(go.Scatter(
+            x=df_p['Data'], y=df_p['Rank'],
+            mode='lines+markers',
+            name=f"{name} ({latest_rank}º)",
+            line=dict(width=3 if is_hl else 1.5, color=grupo_color),
+            marker=dict(size=8 if is_hl else 5, color=grupo_color),
+            hovertemplate=f'{name}<br>Posição: %{{y}}º<br>Score: %{{customdata:+.1f}}<extra></extra>',
+            customdata=df_p['Sentimento'],
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    n_participants = len(sorted_participants)
+
+    fig.update_layout(
+        title="Evolução do Ranking de Sentimento (Bump Chart)",
+        xaxis_title="Data",
+        yaxis_title="Posição no Ranking",
+        yaxis=dict(
+            autorange='reversed',  # 1st place at top
+            tickmode='linear',
+            tick0=1,
+            dtick=1 if n_participants <= 15 else 2,
+            range=[n_participants + 0.5, 0.5]
+        ),
+        height=max(500, n_participants * 25),
+        hovermode='x unified',
+        legend=dict(font=dict(size=10), itemsizing='constant'),
+    )
+
+    fig.show()
+else:
+    print("*Dados insuficientes para gerar o bump chart.*")
+```
+
+#### Linhas (Score)
+
+Gráfico de linhas mostrando o **score absoluto** de sentimento. Top 3 e bottom 3 são destacados por padrão.
+
+```{python}
+#| label: sentiment-timeline-lines
+
+if not df_timeline.empty:
     fig = go.Figure()
 
     for name in all_participants:
@@ -363,13 +499,19 @@ if not df_timeline.empty:
     )
 
     fig.show()
+else:
+    print("*Dados insuficientes para gerar o gráfico de evolução.*")
 ```
 
-# Alianças e Rivalidades {#aliancas}
+:::
+
+## Alianças
+
+### Alianças e Rivalidades {#aliancas}
 
 Análise das relações mais duradouras da temporada.
 
-## Alianças Mais Consistentes
+#### Alianças Mais Consistentes
 
 Pares que trocaram ❤️ mútuo na maior quantidade de dias.
 
@@ -443,7 +585,7 @@ fig.update_layout(
 fig.show()
 ```
 
-## Rivalidades Mais Persistentes
+#### Rivalidades Mais Persistentes
 
 Pares que trocaram reações negativas mútuas na maior quantidade de dias.
 
@@ -484,11 +626,13 @@ if rivalry_data:
     fig.show()
 ```
 
-# Dinâmica das Reações {#dinamica}
+## Dinâmica
+
+### Dinâmica das Reações {#dinamica}
 
 Como as reações evoluem ao longo do tempo.
 
-## Mudanças Entre Dias
+#### Mudanças Entre Dias
 
 Quantas reações mudaram entre cada par de dias consecutivos.
 
@@ -540,7 +684,7 @@ if not df_changes.empty:
     fig.show()
 ```
 
-## Quem Muda Mais de Opinião? ("Vira-Casacas")
+#### Quem Muda Mais de Opinião? ("Vira-Casacas")
 
 Participantes que mais mudaram suas reações ao longo do tempo.
 
@@ -602,7 +746,7 @@ if not df_flip.empty:
     fig.show()
 ```
 
-# Dinâmica Vip vs Xepa {#grupos}
+### Dinâmica Vip vs Xepa {#grupos}
 
 Os membros do mesmo grupo (Vip/Xepa) favorecem uns aos outros com mais ❤️?
 
@@ -682,11 +826,13 @@ if not df_fav.empty:
         print(f"Viés médio: **{avg_bias:+.1f} pp** — praticamente nenhum favoritismo de grupo.")
 ```
 
-# Hostilidades Persistentes {#hostilidades}
+## Histórico
+
+### Hostilidades Persistentes {#hostilidades}
 
 As hostilidades mais duradouras da temporada — quem se detesta há mais tempo e quem mantém mágoa unilateral.
 
-## Rivalidades Mais Longas
+#### Rivalidades Mais Longas
 
 Pares que se detestam mutuamente há mais tempo.
 
@@ -767,7 +913,7 @@ else:
     print("*Nenhuma rivalidade persistente.*")
 ```
 
-## Hostilidades Unilaterais Mais Longas
+#### Hostilidades Unilaterais Mais Longas
 
 Quem mais tempo detesta alguém que lhe dá ❤️.
 
@@ -819,7 +965,7 @@ else:
     print("*Nenhuma hostilidade unilateral persistente.*")
 ```
 
-# Saldo e Economia {#saldo}
+### Saldo e Economia {#saldo}
 
 O saldo (Estalecas) de cada participante ao longo do tempo.
 
@@ -891,7 +1037,9 @@ if not df_balance.empty:
     fig.show()
 ```
 
-# Grafo de Relações {#grafo}
+## Análise do Dia
+
+### Grafo de Relações {#grafo}
 
 <p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
 
@@ -991,7 +1139,7 @@ fig.update_layout(
 fig.show()
 ```
 
-# Hostilidades do Dia {#hostilidades-dia}
+### Hostilidades do Dia {#hostilidades-dia}
 
 <p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
 
@@ -1065,7 +1213,7 @@ summary_lines = [
 print("\n".join(summary_lines))
 ```
 
-## Quem Mais Ataca Quem Lhe Dá Coração
+#### Quem Mais Ataca Quem Lhe Dá Coração
 
 ```{python}
 #| label: hostility-daily-attackers
@@ -1105,7 +1253,7 @@ else:
     print("*Nenhuma hostilidade unilateral detectada.*")
 ```
 
-## Quem Mais Dá Coração a Inimigos
+#### Quem Mais Dá Coração a Inimigos
 
 ```{python}
 #| label: hostility-victims-today
@@ -1160,7 +1308,7 @@ else:
     print("*Nenhum participante com pontos cegos detectado.*")
 ```
 
-## Quem Tem Mais Inimigos Declarados
+#### Quem Tem Mais Inimigos Declarados
 
 ```{python}
 #| label: hostility-mutual-enemies-today
@@ -1200,7 +1348,7 @@ else:
     print("*Nenhuma hostilidade mútua detectada.*")
 ```
 
-## Listas de Hostilidades
+#### Listas de Hostilidades
 
 ```{python}
 #| label: hostility-lists-today
@@ -1234,7 +1382,7 @@ else:
     print("*Nenhuma.*")
 ```
 
-## Insights do Jogo
+#### Insights do Jogo
 
 ```{python}
 #| label: hostility-insights-today
@@ -1275,7 +1423,7 @@ print("""
 """)
 ```
 
-# Clusters de Afinidade {#clusters}
+### Clusters de Afinidade {#clusters}
 
 <p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
 
@@ -1446,7 +1594,7 @@ fig.update_layout(
 fig.show()
 ```
 
-## Saldo vs Sentimento
+#### Saldo vs Sentimento
 
 <p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
 
@@ -1494,7 +1642,7 @@ if len(df_bs) > 2:
     fig.show()
 ```
 
-# Quem Dá Mais Negatividade? {#emissores}
+### Quem Dá Mais Negatividade? {#emissores}
 
 <p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
 
@@ -1568,6 +1716,8 @@ def make_negative_givers_chart(participants, matrix, title_suffix=""):
 fig = make_negative_givers_chart(latest['participants'], latest_matrix)
 fig.show()
 ```
+
+:::
 
 ---
 

@@ -69,6 +69,45 @@ jobs:
             echo "data_changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Compute daily metrics
+        run: python scripts/compute_metrics.py
+
+      - name: Validate JSON snapshots
+        run: |
+          python -c "
+          import json
+          import glob
+          import sys
+
+          errors = []
+          for f in glob.glob('data/snapshots/*.json'):
+              try:
+                  with open(f) as fp:
+                      data = json.load(fp)
+                  # Basic structure validation
+                  if 'participants' in data:
+                      participants = data['participants']
+                  else:
+                      participants = data
+                  if not isinstance(participants, list):
+                      errors.append(f'{f}: participants is not a list')
+                  elif len(participants) == 0:
+                      errors.append(f'{f}: empty participants list')
+              except json.JSONDecodeError as e:
+                  errors.append(f'{f}: invalid JSON - {e}')
+              except Exception as e:
+                  errors.append(f'{f}: error - {e}')
+
+          if errors:
+              print('Validation errors:')
+              for e in errors:
+                  print(f'  - {e}')
+              sys.exit(1)
+          else:
+              n_files = len(glob.glob('data/snapshots/*.json'))
+              print(f'All {n_files} snapshots valid')
+          "
+
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 

@@ -1,0 +1,146 @@
+{
+  "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
+  "_last_updated": "2026-01-25",
+
+  "paredoes": [
+    {
+      "numero": 1,
+      "status": "finalizado",
+      "data": "2026-01-21",
+      "titulo": "1º Paredão — 21 de Janeiro de 2026",
+      "semana": 1,
+
+      "formacao": {
+        "resumo": "Marcelo atendeu o Big Fone e indicou Aline Campos, que contra-atacou Ana Paula Renault. O Líder Alberto Cowboy indicou Milena (sem direito a Bate e Volta). Paulo Augusto, mais votado pela casa (11 votos), escapou na Prova Bate e Volta (jogo de memória).",
+        "lider": "Alberto Cowboy",
+        "indicado_lider": "Milena",
+        "motivo_lider": "Indicou Milena sem explicação estratégica clara",
+        "anjo": "Jonas Sulzbach",
+        "imunizado": {"por": "Jonas Sulzbach", "quem": "Sarah Andrade"},
+        "big_fone": {"atendeu": "Marcelo", "indicou": "Aline Campos"},
+        "contragolpe": {"de": "Aline Campos", "para": "Ana Paula Renault"},
+        "bate_volta": {
+          "participantes": ["Paulo Augusto", "Aline Campos", "Ana Paula Renault"],
+          "vencedor": "Paulo Augusto",
+          "prova": "Jogo de memória"
+        }
+      },
+
+      "indicados_finais": [
+        {"nome": "Aline Campos", "grupo": "Camarote", "como": "Big Fone (Marcelo)"},
+        {"nome": "Milena", "grupo": "Pipoca", "como": "Líder"},
+        {"nome": "Ana Paula Renault", "grupo": "Veterano", "como": "Contragolpe (Aline)"}
+      ],
+
+      "resultado": {
+        "eliminado": "Aline Campos",
+        "votos": {
+          "Aline Campos": {"voto_unico": 60.42, "voto_torcida": 64.50, "voto_total": 61.64},
+          "Milena": {"voto_unico": 33.02, "voto_torcida": 31.27, "voto_total": 32.50},
+          "Ana Paula Renault": {"voto_unico": 6.56, "voto_torcida": 4.23, "voto_total": 5.86}
+        }
+      },
+
+      "votos_casa": {
+        "Solange Couto": "Paulo Augusto",
+        "Ana Paula Renault": "Paulo Augusto",
+        "Breno": "Paulo Augusto",
+        "Aline Campos": "Paulo Augusto",
+        "Jonas Sulzbach": "Paulo Augusto",
+        "Maxiane": "Paulo Augusto",
+        "Marcelo": "Paulo Augusto",
+        "Sarah Andrade": "Paulo Augusto",
+        "Samira": "Paulo Augusto",
+        "Milena": "Paulo Augusto",
+        "Gabriela": "Paulo Augusto",
+        "Brigido": "Sol Vega",
+        "Edilson": "Sol Vega",
+        "Juliano Floss": "Sol Vega",
+        "Paulo Augusto": "Sol Vega",
+        "Babu Santana": "Sol Vega",
+        "Jordana": "Edilson",
+        "Marciele": "Juliano Floss",
+        "Sol Vega": "Juliano Floss",
+        "Matheus": "Maxiane",
+        "Leandro": "Jonas Sulzbach",
+        "Chaiany": "Brigido"
+      },
+
+      "impedidos_votar": [],
+      "votos_anulados": [],
+
+      "fontes": [
+        "https://portalaltadefinicao.com/bbb-26-voto-unico-e-voto-de-torcida-definem-eliminacao-de-aline-campos",
+        "https://exame.com/pop/bbb-26-veja-quem-votou-em-quem-no-1o-paredao/",
+        "https://www.itatiaia.com.br/entretenimento/bbb/bbb-26-novo-sistema-de-votacao-nao-interferiu-na-eliminacao-de-aline"
+      ]
+    },
+
+    {
+      "numero": 2,
+      "status": "em_andamento",
+      "data": "2026-01-27",
+      "titulo": "2º Paredão — 27 de Janeiro de 2026",
+      "semana": 2,
+
+      "formacao": {
+        "resumo": "Dinâmica das Caixas-Surpresa (sexta): Alberto Cowboy e Brígido, em consenso, indicaram Leandro ao Paredão. Jonas perdeu o direito de votar após abrir uma das caixas. Sarah ganhou o poder de anular um voto (escolheu Ana Paula). Ana Paula teria direito a dois votos, mas foi anulada por Sarah. Não haverá Bate e Volta neste paredão.",
+        "lider": "Babu Santana",
+        "indicado_lider": "Matheus",
+        "motivo_lider": "Babu acreditava que Matheus seria o mais votado pela casa e preferiu indicá-lo para observar o comportamento dos participantes.",
+        "anjo": "Jonas Sulzbach",
+        "anjo_autoimune": true,
+        "imunizado": null,
+        "dinamica": {
+          "nome": "Caixas-Surpresa",
+          "indicaram": ["Alberto Cowboy", "Brigido"],
+          "indicado": "Leandro",
+          "efeitos": {
+            "Jonas Sulzbach": "Perdeu direito de votar",
+            "Sarah Andrade": "Ganhou poder de anular 1 voto",
+            "Ana Paula Renault": "Teria 2 votos, anulada por Sarah"
+          }
+        },
+        "bate_volta": null
+      },
+
+      "indicados_finais": [
+        {"nome": "Leandro", "grupo": "Pipoca", "como": "Caixas-Surpresa"},
+        {"nome": "Matheus", "grupo": "Pipoca", "como": "Líder"},
+        {"nome": "Brigido", "grupo": "Pipoca", "como": "Casa (6 votos)"}
+      ],
+
+      "resultado": null,
+
+      "votos_casa": {
+        "Leandro": "Brigido",
+        "Juliano Floss": "Brigido",
+        "Chaiany": "Brigido",
+        "Breno": "Brigido",
+        "Marcelo": "Brigido",
+        "Milena": "Brigido",
+        "Alberto Cowboy": "Chaiany",
+        "Brigido": "Chaiany",
+        "Sol Vega": "Chaiany",
+        "Sarah Andrade": "Chaiany",
+        "Samira": "Gabriela",
+        "Maxiane": "Gabriela",
+        "Marciele": "Gabriela",
+        "Jordana": "Sol Vega",
+        "Paulo Augusto": "Sol Vega",
+        "Edilson": "Sol Vega",
+        "Matheus": "Ana Paula Renault",
+        "Gabriela": "Juliano Floss",
+        "Solange Couto": "Milena"
+      },
+
+      "impedidos_votar": ["Jonas Sulzbach"],
+      "votos_anulados": ["Ana Paula Renault"],
+
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml",
+        "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/veja-como-foi-a-formacao-do-segundo-paredao-do-bbb-26-1.3736727"
+      ]
+    }
+  ]
+}

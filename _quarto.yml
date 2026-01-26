@@ -7,6 +7,7 @@ project:
     - trajetoria.qmd
     - paredao.qmd
     - paredoes.qmd
+    - cartola.qmd
 
 website:
   title: "BBB 26 — Painel de Reações"
@@ -20,8 +21,14 @@ website:
         text: "📈 Trajetória"
       - href: paredao.qmd
         text: "🗳️ Paredão"
+      - href: cartola.qmd
+        text: "🏆 Cartola"
       - href: paredoes.qmd
         text: "📚 Arquivo"
+  page-footer:
+    center: |
+      Dados: [GloboPlay API](https://www.globoplay.com.br/)
+    background: dark
 
 format:
   html:

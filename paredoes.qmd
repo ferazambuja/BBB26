@@ -1,13 +1,10 @@
 ---
 title: "BBB 26 — Histórico de Paredões"
 subtitle: "Resultado, votação da casa, análise de coerência e reações de cada eliminação"
-author: "Dashboard Automatizado"
-date: today
 lang: pt-BR
 format:
   html:
-    code-fold: true
-    code-summary: "Ver código"
+    code-tools: false
 execute:
   echo: false
   warning: false
@@ -177,75 +174,69 @@ for snap in snapshots:
 #| include: false
 
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  DADOS MANUAIS — Copiados de index.qmd                       ║
-# ║  Fonte: GShow / transmissão ao vivo                          ║
+# ║  CARREGAR DADOS DE PAREDÃO DO JSON                          ║
+# ║  Fonte: data/paredoes.json (atualizado manualmente)         ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-# STATUS DO PAREDÃO:
-#   'finalizado' — Resultado conhecido (exibe no arquivo)
-#   'em_andamento' — Votação popular em curso (NÃO exibe no arquivo)
+PAREDOES_FILE = Path("data/paredoes.json")
 
-paredoes = [
-    {
-        'numero': 1,
-        'status': 'finalizado',
-        'data': '2026-01-20',
-        'titulo': '1º Paredão — 20 de Janeiro de 2026',
-        'formacao': (
-            "Marcelo atendeu o Big Fone e indicou Aline Campos, "
-            "que contra-atacou Ana Paula Renault. O Líder Alberto Cowboy indicou Milena "
-            "(sem direito a Bate e Volta). Paulo Augusto, mais votado pela casa (11 votos), "
-            "escapou na Prova Bate e Volta (jogo de memória)."
-        ),
-        'lider': 'Alberto Cowboy',
-        'indicado_lider': 'Milena',
-        'imunizado': {'por': 'Jonas Sulzbach', 'quem': 'Sarah Andrade'},
-        'participantes': [
-            {'nome': 'Aline Campos',      'voto_unico': 60.42, 'voto_torcida': 64.50, 'voto_total': 61.64, 'resultado': 'ELIMINADA', 'grupo': 'Camarote'},
-            {'nome': 'Milena',             'voto_unico': 33.02, 'voto_torcida': 31.27, 'voto_total': 32.50, 'resultado': 'Salva',     'grupo': 'Pipoca'},
-            {'nome': 'Ana Paula Renault',  'voto_unico':  6.56, 'voto_torcida':  4.23, 'voto_total':  5.86, 'resultado': 'Salva',     'grupo': 'Veterano'},
-        ],
-        'votos_casa': {
-            'Solange Couto': 'Paulo Augusto', 'Ana Paula Renault': 'Paulo Augusto',
-            'Breno': 'Paulo Augusto', 'Aline Campos': 'Paulo Augusto',
-            'Jonas Sulzbach': 'Paulo Augusto', 'Maxiane': 'Paulo Augusto',
-            'Marcelo': 'Paulo Augusto', 'Sarah Andrade': 'Paulo Augusto',
-            'Samira': 'Paulo Augusto', 'Milena': 'Paulo Augusto',
-            'Gabriela': 'Paulo Augusto',
-            'Brigido': 'Sol Vega', 'Edilson': 'Sol Vega',
-            'Juliano Floss': 'Sol Vega', 'Paulo Augusto': 'Sol Vega',
-            'Babu Santana': 'Sol Vega',
-            'Jordana': 'Edilson',
-            'Marciele': 'Juliano Floss', 'Sol Vega': 'Juliano Floss',
-            'Matheus': 'Maxiane',
-            'Leandro': 'Jonas Sulzbach',
-            'Chaiany': 'Brigido',
-        },
-        'fontes': [
-            'https://portalaltadefinicao.com/bbb-26-voto-unico-e-voto-de-torcida-definem-eliminacao-de-aline-campos',
-            'https://exame.com/pop/bbb-26-veja-quem-votou-em-quem-no-1o-paredao/',
-            'https://www.itatiaia.com.br/entretenimento/bbb/bbb-26-novo-sistema-de-votacao-nao-interferiu-na-eliminacao-de-aline',
-        ],
-    },
-    # Adicionar novos paredões aqui seguindo o mesmo formato.
+def load_paredoes():
+    """Carrega dados de paredão do arquivo JSON."""
+    if not PAREDOES_FILE.exists():
+        return []
+    with open(PAREDOES_FILE, encoding="utf-8") as f:
+        data = json.load(f)
 
-    {
-        'numero': 2,
-        'status': 'em_andamento',           # Formação parcial — aguardando mais indicados
-        'data': '2026-01-27',               # Terça-feira (data prevista da eliminação)
-        'titulo': '2º Paredão — EM FORMAÇÃO',
-        'total_esperado': 3,                # Quantos indicados esperamos
-        'formacao': (
-            "Dinâmica das Caixas-Surpresa: Cowboy e Brígido, em consenso, "
-            "indicaram Leandro ao Paredão. Não haverá Bate e Volta neste paredão."
-        ),
-        'lider': None,
-        'indicado_lider': None,
-        'participantes': [
-            {'nome': 'Leandro', 'grupo': 'Pipoca', 'como': 'Caixas-Surpresa'},
-        ],
-    },
-]
+    # Convert JSON structure to the format expected by the dashboard
+    paredoes = []
+    for p in data.get('paredoes', []):
+        entry = {
+            'numero': p['numero'],
+            'status': p['status'],
+            'data': p['data'],
+            'titulo': p['titulo'],
+            'lider': p.get('formacao', {}).get('lider'),
+            'indicado_lider': p.get('formacao', {}).get('indicado_lider'),
+            'motivo_lider': p.get('formacao', {}).get('motivo_lider'),
+            'formacao': p.get('formacao', {}).get('resumo', ''),
+            'votos_casa': p.get('votos_casa', {}),
+            'fontes': p.get('fontes', []),
+        }
+
+        # Handle imunizado
+        im = p.get('formacao', {}).get('imunizado')
+        if im:
+            entry['imunizado'] = im
+
+        # Handle participantes based on status
+        if p['status'] == 'finalizado' and p.get('resultado'):
+            entry['participantes'] = []
+            for ind in p.get('indicados_finais', []):
+                part = {
+                    'nome': ind['nome'],
+                    'grupo': ind.get('grupo', MEMBER_OF.get(ind['nome'], '?')),
+                    'como': ind.get('como', ''),
+                }
+                # Add vote data if available
+                votos = p['resultado'].get('votos', {}).get(ind['nome'], {})
+                if votos:
+                    part['voto_unico'] = votos.get('voto_unico', 0)
+                    part['voto_torcida'] = votos.get('voto_torcida', 0)
+                    part['voto_total'] = votos.get('voto_total', 0)
+                    part['resultado'] = 'ELIMINADA' if ind['nome'] == p['resultado'].get('eliminado') else 'Salva'
+                entry['participantes'].append(part)
+        else:
+            entry['participantes'] = [
+                {'nome': ind['nome'], 'grupo': ind.get('grupo', '?'), 'como': ind.get('como', '')}
+                for ind in p.get('indicados_finais', [])
+            ]
+            entry['total_esperado'] = 3
+
+        paredoes.append(entry)
+
+    return paredoes
+
+paredoes = load_paredoes()
 ```
 
 ## Resumo das Eliminações
@@ -282,6 +273,15 @@ if len(paredoes_finalizados) >= 1:
 ---
 
 Abaixo você encontra a análise completa de cada Paredão: resultado da votação, formação, votação da casa, comparação com reações do queridômetro e análise de coerência.
+
+```{python}
+#| label: data-freshness
+#| output: asis
+
+n_snapshots = len(snapshots)
+latest = snapshots[-1]
+print(f'<p class="text-muted small">📅 Dados disponíveis: <strong>{snapshots[0]["label"]}</strong> → <strong>{latest["label"]}</strong> ({n_snapshots} coletas)</p>')
+```
 
 ```{python}
 #| label: paredao-content
@@ -570,18 +570,32 @@ for i, paredao in enumerate(paredoes_finalizados):
             'Sem reação': '#999'
         }
         tipo_counts = df_coer['Tipo'].value_counts()
+        total_votes = len(votos)
 
-        fig = go.Figure(go.Pie(
-            labels=tipo_counts.index.tolist(),
-            values=tipo_counts.values.tolist(),
-            marker_colors=[tipo_colors.get(t, '#999') for t in tipo_counts.index],
-            textinfo='label+percent+value',
-            hole=0.4,
-        ))
+        # Horizontal bar chart instead of pie
+        fig = go.Figure()
+
+        for tipo in tipo_counts.index:
+            count = tipo_counts[tipo]
+            pct = count / total_votes * 100
+            fig.add_trace(go.Bar(
+                y=[tipo],
+                x=[count],
+                orientation='h',
+                marker_color=tipo_colors.get(tipo, '#999'),
+                text=f"{count} ({pct:.0f}%)",
+                textposition='auto',
+                hovertemplate=f'{tipo}: {count} votantes ({pct:.0f}%)<extra></extra>',
+                showlegend=False
+            ))
+
         fig.update_layout(
-            title=f"Coerência: Reação vs Voto — {par_num}º Paredão",
-                        height=400,
-            annotations=[dict(text=f"{len(votos)}<br>votos", x=0.5, y=0.5, font_size=16, showarrow=False)]
+            title=f"Coerência: Reação vs Voto — {par_num}º Paredão<br><sup>Total: {total_votes} votos</sup>",
+            height=250,
+            xaxis_title="Número de votantes",
+            yaxis_title="",
+            margin=dict(l=200),
+            barmode='stack'
         )
         fig.show()
 

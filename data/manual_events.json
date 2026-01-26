@@ -1,0 +1,83 @@
+{
+  "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
+  "_last_updated": "2026-01-25",
+  "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
+
+  "participants": {
+    "Henri Castelli": {
+      "status": "desistente",
+      "exit_date": "2026-01-15",
+      "exit_reason": "Desistiu por motivos pessoais",
+      "fontes": []
+    },
+    "Pedro": {
+      "status": "desistente",
+      "exit_date": "2026-01-19",
+      "exit_reason": "Desistiu",
+      "fontes": []
+    },
+    "Aline Campos": {
+      "status": "eliminada",
+      "exit_date": "2026-01-21",
+      "paredao_numero": 1,
+      "fontes": []
+    }
+  },
+
+  "weekly_events": [
+    {
+      "week": 1,
+      "start_date": "2026-01-13",
+      "end_date": "2026-01-19",
+      "big_fone": {
+        "atendeu": "Marcelo",
+        "date": "2026-01-17",
+        "consequencia": "Indicou Milena ao paredão"
+      },
+      "quarto_secreto": null,
+      "notes": "Primeira semana. Henri desistiu dia 15.",
+      "fontes": []
+    },
+    {
+      "week": 2,
+      "start_date": "2026-01-20",
+      "end_date": "2026-01-26",
+      "big_fone": null,
+      "quarto_secreto": null,
+      "caixas_surpresa": {
+        "date": "2026-01-24",
+        "resultado": "Leandro indicado ao paredão. Jonas perdeu direito de votar. Sarah ganhou poder de anular voto. Ana Paula ganharia 2 votos mas foi anulada por Sarah."
+      },
+      "anjo_escolha": "Jonas (Anjo pela 2ª vez) escolheu vídeo da família ao invés de imunizar alguém",
+      "notes": "Pedro desistiu dia 19. Aline eliminada dia 21 (1º paredão). 2º paredão formado dia 25: Leandro (caixas), Matheus (líder), Brigido (casa com 6 votos). Sem Bate e Volta.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml"
+      ]
+    }
+  ],
+
+  "special_events": [
+    {
+      "date": "2026-01-18",
+      "type": "entrada_novos",
+      "participants": ["Chaiany", "Gabriela", "Leandro", "Matheus"],
+      "description": "Entrada dos novos participantes (Pipoca)",
+      "fontes": []
+    },
+    {
+      "date": "2026-01-24",
+      "type": "dinamica",
+      "name": "Caixas-Surpresa",
+      "resultado": "Alberto Cowboy e Brigido indicaram Leandro ao paredão (em consenso)",
+      "participants_affected": ["Leandro"],
+      "efeitos_extras": {
+        "Jonas Sulzbach": "Perdeu direito de votar",
+        "Sarah Andrade": "Ganhou poder de anular 1 voto (anulou Ana Paula)",
+        "Ana Paula Renault": "Ganharia 2 votos, mas foi anulada por Sarah"
+      },
+      "fontes": [
+        "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/veja-como-foi-a-formacao-do-segundo-paredao-do-bbb-26-1.3736727"
+      ]
+    }
+  ]
+}

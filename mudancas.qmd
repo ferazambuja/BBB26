@@ -1,13 +1,10 @@
 ---
 title: "BBB 26 — O Que Mudou"
 subtitle: "Acompanhe as mudanças diárias nas reações entre os participantes"
-author: "Dashboard Automatizado"
-date: today
 lang: pt-BR
 format:
   html:
-    code-fold: true
-    code-summary: "Ver código"
+    code-tools: false
 execute:
   echo: false
   warning: false
@@ -166,6 +163,112 @@ def calc_sentiment(participant):
         weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
         total += weight * rxn.get('amount', 0)
     return total
+
+
+def make_difference_table_html(changes_list, common_names, prev_date, curr_date):
+    """Retorna HTML string com tabela de diferenças (sticky header/column)."""
+    if not changes_list:
+        return "<p>Nenhuma mudança detectada.</p>"
+
+    active_names_sorted = sorted(common_names)
+    short_names = [n.split()[0] if len(n) > 10 else n for n in active_names_sorted]
+    name_to_idx = {n: i for i, n in enumerate(active_names_sorted)}
+
+    # Build change lookup
+    change_lookup = {}
+    for c in changes_list:
+        key = (c['Emissor'], c['Receptor'])
+        change_lookup[key] = c
+
+    # Color based on delta
+    def get_cell_style(delta):
+        if delta >= 1.5:
+            return "background: #1a9850; color: #fff;"  # Strong improvement
+        elif delta >= 0.5:
+            return "background: #91cf60; color: #000;"  # Mild improvement
+        elif delta <= -1.5:
+            return "background: #d73027; color: #fff;"  # Strong deterioration
+        elif delta <= -0.5:
+            return "background: #fc8d59; color: #000;"  # Mild deterioration
+        return "background: #ffffbf; color: #000;"  # Lateral
+
+    html = []
+    html.append(f'''
+<div style="overflow-x: auto; max-width: 100%;">
+<p class="text-muted small">Mudanças: {prev_date} → {curr_date} | ⭐ = mudança dramática</p>
+<style>
+.diff-table {{
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8rem;
+    width: max-content;
+}}
+.diff-table th, .diff-table td {{
+    padding: 3px 5px;
+    text-align: center;
+    border: 1px solid #555;
+    min-width: 40px;
+    white-space: nowrap;
+}}
+.diff-table thead th {{
+    position: sticky;
+    top: 0;
+    background: #222;
+    z-index: 2;
+    font-weight: bold;
+    font-size: 0.75rem;
+}}
+.diff-table tbody th {{
+    position: sticky;
+    left: 0;
+    background: #222;
+    z-index: 1;
+    font-weight: bold;
+    text-align: right;
+    font-size: 0.75rem;
+}}
+.diff-table thead th:first-child {{
+    z-index: 3;
+    left: 0;
+}}
+.diff-table td {{ font-size: 0.9rem; }}
+.diff-table td:hover {{ outline: 2px solid #fff; }}
+</style>
+<table class="diff-table">
+<thead>
+<tr>
+<th style="background: #222;">↓ / →</th>
+''')
+
+    # Header row
+    for short in short_names:
+        html.append(f'<th>{short}</th>')
+    html.append('</tr></thead><tbody>')
+
+    # Data rows
+    for i, giver in enumerate(active_names_sorted):
+        html.append(f'<tr><th>{short_names[i]}</th>')
+        for j, receiver in enumerate(active_names_sorted):
+            if giver == receiver:
+                html.append('<td style="background: #333; color: #555;">—</td>')
+            else:
+                key = (giver, receiver)
+                if key in change_lookup:
+                    c = change_lookup[key]
+                    delta = c['Delta']
+                    antes = c['Antes']
+                    depois = c['Depois']
+                    style = get_cell_style(delta)
+                    star = "⭐" if abs(delta) >= 1.5 else ""
+                    tooltip = f"{giver} → {receiver}: {antes}→{depois} (Δ{delta:+.1f})"
+                    html.append(f'<td style="{style}" title="{tooltip}">{antes}→{depois}{star}</td>')
+                else:
+                    html.append('<td style="background: #2a2a2a; color: #555;">·</td>')
+        html.append('</tr>')
+
+    html.append('</tbody></table></div>')
+    return '\n'.join(html)
+
 
 # Carregar todos os snapshots
 all_snapshot_files = get_all_snapshots()
@@ -419,80 +522,17 @@ if n_daily >= 2 and changes_list:
 
 ## Mapa de Diferenças
 
-Heatmap mostrando apenas as células que mudaram. Verde = melhora na relação, vermelho = piora.
+Tabela mostrando apenas as células que mudaram. Verde = melhora na relação, vermelho = piora. Células com `·` não mudaram.
 
 ```{python}
 #| label: difference-heatmap
+#| output: asis
 
 if n_daily >= 2 and changes_list:
-    # Build difference matrix
-    active_names_sorted = sorted(common_names)
-    n_participants = len(active_names_sorted)
-    name_to_idx = {n: i for i, n in enumerate(active_names_sorted)}
-
-    diff_matrix = np.full((n_participants, n_participants), np.nan)
-    text_matrix = [['—' for _ in range(n_participants)] for _ in range(n_participants)]
-
-    for c in changes_list:
-        i = name_to_idx[c['Emissor']]
-        j = name_to_idx[c['Receptor']]
-        diff_matrix[i, j] = c['Delta']
-        text_matrix[i][j] = f"{c['Antes']}→{c['Depois']}"
-
-    short_names = [n.split()[0] if len(n) > 10 else n for n in active_names_sorted]
-
-    fig = go.Figure(data=go.Heatmap(
-        z=diff_matrix,
-        x=short_names,
-        y=short_names,
-        colorscale=[
-            [0, '#d73027'],      # -2: strong negative change
-            [0.25, '#fc8d59'],   # -1
-            [0.5, '#ffffbf'],    # 0 (won't show, but for scale)
-            [0.75, '#91cf60'],   # +1
-            [1.0, '#1a9850'],    # +2: strong positive change
-        ],
-        zmin=-2, zmax=2,
-        text=text_matrix,
-        texttemplate='%{text}',
-        textfont=dict(size=14),
-        hovertemplate='%{y} → %{x}<br>Δ: %{z:+.1f}<br>%{text}<extra></extra>',
-        colorbar=dict(
-            title="Δ Sentimento",
-            tickvals=[-2, -1, 0, 1, 2],
-            ticktext=['-2 (❤️→💔)', '-1', '0', '+1', '+2 (💔→❤️)']
-        ),
-        showscale=True,
-    ))
-
-    # Add star markers for dramatic changes (|Δ| >= 1.5)
-    dramatic_annotations = []
-    for c in changes_list:
-        if abs(c['Delta']) >= 1.5:
-            i = name_to_idx[c['Emissor']]
-            j = name_to_idx[c['Receptor']]
-            dramatic_annotations.append(dict(
-                x=j, y=i,
-                text='⭐',
-                showarrow=False,
-                font=dict(size=8),
-                xanchor='right',
-                yanchor='top',
-                xshift=12,
-                yshift=12
-            ))
-
-    fig.update_layout(
-        title=f"Mapa de Mudanças: {prev_date} → {curr_date}<br><sup>⭐ = mudança dramática (|Δ| ≥ 1.5)</sup>",
-        xaxis_title="Receptor ←",
-        yaxis_title="Emissor →",
-        height=850,
-        xaxis=dict(tickangle=45, side='bottom'),
-        yaxis=dict(autorange='reversed'),
-        annotations=dramatic_annotations
-    )
-
-    fig.show()
+    # HTML table with sticky header/column (mobile-friendly)
+    print(make_difference_table_html(changes_list, common_names, prev_date, curr_date))
+else:
+    print("<p class='text-muted'>Dados insuficientes para comparação.</p>")
 ```
 
 ## Quem Mais Mudou de Opinião?

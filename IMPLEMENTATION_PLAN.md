@@ -63,6 +63,9 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-25 | Fixed user-facing language (removed developer jargon, "reações públicas" → "queridômetro") | ✅ Done |
 | 2026-01-25 | Created GitHub Actions workflow with 4x daily cron (multi-capture strategy) | ✅ Done |
 | 2026-01-25 | Enhanced fetch_data.py with change type detection (reactions/balance/roles) | ✅ Done |
+| 2026-01-25 | Created `data/manual_events.json` for tracking non-API game events | ✅ Done |
+| 2026-01-25 | Added `fontes` arrays to manual_events.json for source URL tracking | ✅ Done |
+| | Fill manual_events.json with past events + source URLs | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
 
 ## Weekly Paredão Update Workflow
@@ -689,13 +692,43 @@ Improved paredão display to handle partial data:
 - [x] **1.13c. Conditional section display** — Hide "Reações Preveem Votos?" until votos_casa available
 - [x] **1.13d. Added 2º Paredão** — Leandro via Caixas-Surpresa dynamic (partial formation)
 
+#### Phase 1.14: Manual Events Tracking ⏳ IN PROGRESS
+
+Created `data/manual_events.json` to track game events not available from the API.
+
+**Structure created:**
+- [x] **1.14a. Created `data/manual_events.json`** — JSON structure for manual events
+- [x] **1.14b. `participants` section** — Tracks desistentes/eliminados with exit_date, reason, cartola_penalty
+- [x] **1.14c. `weekly_events` section** — Tracks weekly roles: líder, anjo, monstro, imunizado, big_fone, vip_members
+- [x] **1.14d. `special_events` section** — Tracks entrada_novos, dinâmicas, and other special events
+- [x] **1.14e. `cartola_points_log` section** — Tracks Cartola BBB fantasy points per participant/week
+- [x] **1.14f. `fontes` arrays** — Each entry can include source URLs for verification
+
+**Data to fill in:**
+- [ ] **1.14g. Week 1 sources** — Add GShow/news URLs for líder (Alberto Cowboy), big_fone, vip_members
+- [ ] **1.14h. Week 2 sources** — Add GShow/news URLs for líder (Babu Santana), anjo, monstro, caixas_surpresa
+- [ ] **1.14i. Desistentes sources** — Add GShow/news URLs for Henri (Jan 15) and Pedro (Jan 19) exits
+- [ ] **1.14j. Entrada novos sources** — Add GShow/news URL for Jan 18 new entrants
+- [ ] **1.14k. 1º Paredão sources** — Add GShow/news URL for Aline Campos elimination
+- [ ] **1.14l. Cartola point calculation** — Calculate and add points for all participants through Week 2
+- [ ] **1.14m. Update CLAUDE.md** — Document how to find sources and maintain manual_events.json
+
+**How to find sources:**
+Search patterns for GShow articles:
+- Líder: `"BBB 26 líder semana [N]" site:gshow.globo.com`
+- Anjo: `"BBB 26 anjo semana" site:gshow.globo.com`
+- Big Fone: `"BBB 26 big fone" site:gshow.globo.com`
+- Desistentes: `"BBB 26 [nome] desistiu" site:gshow.globo.com`
+- Paredão results: `"BBB 26 [Nº] paredão eliminado" site:gshow.globo.com`
+- New entrants: `"BBB 26 novos participantes pipoca camarote" site:gshow.globo.com`
+
 ---
 
-### Phase 2: Dashboard Reorganization ⏳ PENDING
+### Phase 2: Dashboard Reorganization ✅ COMPLETE
 
 > **Detailed plan**: See `REORGANIZATION_PLAN.md` for complete section audit and implementation details.
 
-The dashboard has grown to 25+ sections and needs reorganization into focused pages.
+The dashboard was reorganized from 25+ sections into a 5-page architecture.
 
 #### Phase 2.0: Planning ✅ COMPLETE
 - [x] **2.0a. Created REORGANIZATION_PLAN.md** — Complete section audit with 23 sections mapped
@@ -849,14 +882,14 @@ Add Slack/Discord notification on failure:
 | 1.12 | Hostility Analysis | One/two-sided, blind spots, insights | ✅ Done |
 | 1.13 | Flexible Paredão | Partial formation, `como` field, 2º Paredão | ✅ Done |
 | 2.0 | Reorganization Plan | REORGANIZATION_PLAN.md with section audit | ✅ Done |
+| 2.1-2.6 | Dashboard Reorganization | 5-page architecture (Painel, O Que Mudou, Trajetória, Paredão, Arquivo) | ✅ Done |
+| 3 | GitHub Actions | 4x daily cron workflow with change detection | ✅ Done |
 
 ### Upcoming Phases ⏳
 
 | # | Phase | Description | Priority |
 |---|-------|-------------|----------|
-| 2.1-2.6 | Dashboard Reorganization | Split into 5 focused pages | High |
 | 2.7 | Enhancements | Date picker, predictions, focus mode | Medium |
-| 3 | GitHub Actions | 4x daily cron workflow | High |
 | 4 | GitHub Pages | Deploy to `username.github.io/BBB26` | High |
 
 ### Current Section Count

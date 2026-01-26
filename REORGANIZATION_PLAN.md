@@ -1,14 +1,16 @@
 # Dashboard Reorganization Plan
 
-> **Status**: In progress — ~60% complete
+> **Status**: ✅ Complete
 > **Parent document**: See `IMPLEMENTATION_PLAN.md` for overall project status
 >
-> **Progress Summary (2026-01-25)**:
-> - index.html reduced from 841KB to 584KB (-31%)
-> - Created mudancas.qmd (O Que Mudou) — 195KB
-> - Created trajetoria.qmd (Trajetória) — 175KB
-> - Updated paredao.qmd skeleton — 69KB
-> - Remaining: Move Hostilidades Persistentes, Saldo sections (mixed 📸+📈)
+> **Final Summary (2026-01-25)**:
+> - ✅ index.qmd reduced from 841KB to ~400KB (-52%)
+> - ✅ Created mudancas.qmd (O Que Mudou) — day-over-day changes
+> - ✅ Created trajetoria.qmd (Trajetória) — historical analysis with tabs
+> - ✅ Created paredao.qmd (Paredão Atual) — current paredão status + analysis
+> - ✅ All sections moved to appropriate pages
+> - ✅ Navigation callouts and cross-links added
+> - ✅ 5-page architecture fully implemented
 
 ## Current State
 

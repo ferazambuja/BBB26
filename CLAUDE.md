@@ -71,11 +71,71 @@ This means **every snapshot is a unique complete game state** and must be kept.
 ### Data Files
 - `data/snapshots/YYYY-MM-DD_HH-MM-SS.json` — Full API snapshots (~200-270KB each)
 - `data/latest.json` — Copy of most recent snapshot
+- `data/paredoes.json` — **Paredão data** (formation, house votes, results) — loaded by `paredao.qmd` and `paredoes.qmd`
+- `data/manual_events.json` — **Manual game events** not in the API (Big Fone, exits, special events)
 - `data/CHANGELOG.md` — Documents data timeline and findings
 - New format wraps data: `{ "_metadata": {...}, "participants": [...] }`
 - Old format is just the raw array: `[...]`
 - `scripts/fetch_data.py` handles both formats and saves only when data hash changes
 - **Synthetic snapshots** have `_metadata.synthetic = true` (see below)
+
+### Manual Events Data (`data/manual_events.json`)
+
+Events **not available from the API** are tracked manually in this JSON file.
+
+**Auto-detected from API** (do NOT add manually):
+- Líder, Anjo, Monstro, Imune — detected via `characteristics.roles`
+- VIP membership — detected via `characteristics.group`
+- Paredão — detected via `characteristics.roles`
+
+The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing consecutive snapshots.
+
+**Structure** (manual-only data):
+- `participants` — Exit status for people who left (desistente, eliminada, desclassificado)
+- `weekly_events` — Per-week: Big Fone, Quarto Secreto, notes
+- `special_events` — Dinâmicas, new entrants, one-off events
+
+**When to update**:
+- After each elimination or desistência (update `participants`)
+- After Big Fone (who answered, consequence)
+- After special events (dinâmicas like Caixas-Surpresa)
+
+**Cartola BBB Points**:
+| Event | Points |
+|-------|--------|
+| Líder | +80 |
+| Anjo | +45 |
+| Quarto Secreto | +40 |
+| Imunizado / Big Fone | +30 |
+| Salvo do paredão | +25 |
+| Não eliminado no paredão | +20 |
+| Não emparedado | +10 |
+| VIP / Não recebeu votos | +5 |
+| Monstro retirado do VIP | -5 |
+| Monstro | -10 |
+| Emparedado | -15 |
+| Eliminado | -20 |
+| Desclassificado | -25 |
+| Desistente | -30 |
+
+**Adding source URLs (`fontes`):**
+
+Each entry in `manual_events.json` has a `fontes` array for GShow/news article URLs that confirm the event.
+
+**How to find sources** (search Google in Portuguese):
+| Event Type | Search Pattern |
+|------------|----------------|
+| Líder | `"BBB 26 líder semana [N]" site:gshow.globo.com` |
+| Anjo | `"BBB 26 anjo semana" site:gshow.globo.com` |
+| Monstro | `"BBB 26 monstro castigo" site:gshow.globo.com` |
+| Big Fone | `"BBB 26 big fone" site:gshow.globo.com` |
+| Desistência | `"BBB 26 [nome] desistiu" site:gshow.globo.com` |
+| Eliminação | `"BBB 26 [Nº] paredão eliminado" site:gshow.globo.com` |
+| New entrants | `"BBB 26 novos participantes" site:gshow.globo.com` |
+| Caixas/Dinâmicas | `"BBB 26 caixas surpresa" site:gshow.globo.com` |
+| VIP members | `"BBB 26 VIP semana" site:gshow.globo.com` |
+
+**Best sources**: GShow (official), UOL, Terra, Exame, NSC Total, Rádio Itatiaia
 
 ### Reaction Categories
 ```python
@@ -88,19 +148,41 @@ Sentiment weights: positive = +1, mild_negative = -0.5, strong_negative = -1
 
 **Note**: 💔 Coração partido (broken heart) is classified as **mild negative** because it represents disappointment rather than hostility. It's commonly used for participants who were once close but drifted apart.
 
+### Important: Queridômetro is SECRET
+
+**Participants do NOT see each other's reactions.** The queridômetro is only visible to:
+- The TV audience (shown daily during the program)
+- Participants after they leave the house
+
+This means:
+- A participant giving ❤️ to someone does NOT mean they "declared" friendship
+- A participant giving 🐍 does NOT mean they "declared" hostility
+- All reactions are **private opinions** visible only to viewers
+- Participants can only guess each other's feelings based on behavior, not the queridômetro
+
+**Language to AVOID** in the dashboard:
+- ❌ "traíram a amizade declarada" (betrayed declared friendship)
+- ❌ "inimigos declarados" (declared enemies)
+- ❌ "demonstravam afeto público" (showed public affection)
+
+**Correct language:**
+- ✅ "davam ❤️" (gave heart) — factual, no assumption of knowledge
+- ✅ "contradição entre reação e voto" (contradiction between reaction and vote)
+- ✅ "hostilidade mútua" (mutual hostility) — both dislike each other, but secretly
+
 ### Hostility Analysis
 
 The dashboard tracks two types of hostility patterns that are strategically important:
 
 **Two-sided (mutual) hostility**: Both A and B give each other negative reactions.
-- These are **declared enemies** — both know where they stand
-- Votes between them are predictable
-- Example: Ana Paula Renault ↔ Brigido (longest rivalry in BBB26)
+- Both secretly dislike each other (but may not know it's mutual)
+- Votes between them are **consistent** with their private feelings
+- Example: Ana Paula Renault ↔ Brigido (longest mutual hostility in BBB26)
 
 **One-sided (unilateral) hostility**: A gives B a negative reaction, but B gives A a ❤️.
-- Creates **blind spots** — B thinks they're safe with A, but A may vote against B
-- The "friendly" person can be surprised in voting
-- Example: In 1º Paredão, Paulo Augusto was voted out by 11 people, 6 of whom had given him ❤️
+- Creates **blind spots** — B likes A, but A secretly dislikes B
+- B may be surprised when A votes against them
+- Example: In 1º Paredão, Paulo Augusto received votes from 6 people who gave him ❤️
 
 **Vulnerability ratio**: `(hearts given to enemies) / (attacks on friends + 1)`
 - High ratio = participant has major blind spots
@@ -207,6 +289,8 @@ BBB26/
 ├── data/
 │   ├── snapshots/           # Canonical JSON snapshots (one per unique data state)
 │   ├── latest.json          # Most recent snapshot
+│   ├── paredoes.json        # Paredão data (formation, house votes, results)
+│   ├── manual_events.json   # Manual game events (Big Fone, exits, special events)
 │   └── CHANGELOG.md         # Data timeline documentation
 ├── scripts/
 │   ├── fetch_data.py        # Fetch API, save if changed (hash comparison)
@@ -358,10 +442,10 @@ for p in participants:
 
 **Step 2: Create partial entry (if new paredão)**
 
-Add a new entry with only the known nominees:
+Add a new entry to `data/paredoes.json`:
 
 ```
-"Add new paredão (partial formation) to index.qmd:
+"Add new paredão (partial formation) to data/paredoes.json:
 
 NÚMERO: [N]
 DATA PREVISTA: [next Tuesday, YYYY-MM-DD]
@@ -398,10 +482,10 @@ for p in participants:
 
 **Step 3: Update or create `em_andamento` entry**
 
-If partial entry exists, update it. Otherwise create new:
+If partial entry exists, update it in `data/paredoes.json`. Otherwise create new:
 
 ```
-"Update/add paredão (em andamento) to index.qmd:
+"Update/add paredão (em andamento) to data/paredoes.json:
 
 FORMAÇÃO:
 - Líder da semana: [name]
@@ -424,7 +508,7 @@ After the elimination is announced on TV:
 **Step 1: Update status to `finalizado` and add results**
 
 ```
-"Update paredão Nº to finalizado in index.qmd:
+"Update paredão Nº to finalizado in data/paredoes.json:
 
 RESULTADO: [who was eliminated] with [X]% of the vote
 PERCENTAGENS:
@@ -446,9 +530,9 @@ Search for these terms (in Portuguese) right after the elimination episode:
 | Leader nomination reason | `BBB 26 líder indicou paredão` | GShow, NSC Total |
 | Formation details | `BBB 26 como foi formado paredão` | GShow |
 
-### Data Structure in index.qmd
+### Data Structure in data/paredoes.json
 
-Each paredão is a dict in the `paredoes` list:
+Each paredão is an object in the `paredoes` array. The JSON file has this structure:
 
 ```python
 {
@@ -536,20 +620,51 @@ This means you can add partial data as it becomes available, and the UI will ada
 
 ### Critical: Name Matching Between Manual Data and API
 
-The `votos_casa` dict uses participant names as keys. These **MUST match exactly** with the names in the API snapshots. The API sometimes uses shortened names.
+The `votos_casa` dict and all manual data use participant names as keys. These **MUST match exactly** with the names in the API snapshots.
 
-**Known mismatches (already fixed):**
-- API uses `"Edilson"`, NOT `"Edilson Capetinha"`
+**Official API Names (as of Jan 2026):**
 
-**Before adding a new paredão**, always verify voter/target names against the snapshot:
+| API Name | Group | Notes |
+|----------|-------|-------|
+| `Alberto Cowboy` | Veterano | Full name used |
+| `Ana Paula Renault` | Veterano | Full name used |
+| `Babu Santana` | Veterano | Full name used |
+| `Breno` | Pipoca | First name only |
+| `Brigido` | Pipoca | First name only (not "Brígido") |
+| `Chaiany` | Pipoca | First name only (entered Jan 18) |
+| `Edilson` | Camarote | **NOT** "Edilson Capetinha" |
+| `Gabriela` | Pipoca | First name only (entered Jan 18) |
+| `Jonas Sulzbach` | Veterano | Full name used |
+| `Jordana` | Pipoca | First name only |
+| `Juliano Floss` | Camarote | Full name used |
+| `Leandro` | Pipoca | First name only (entered Jan 18) |
+| `Marcelo` | Pipoca | First name only |
+| `Marciele` | Pipoca | First name only |
+| `Matheus` | Pipoca | First name only (entered Jan 18) |
+| `Maxiane` | Pipoca | First name only |
+| `Milena` | Pipoca | First name only |
+| `Paulo Augusto` | Pipoca | Full name used |
+| `Samira` | Pipoca | First name only |
+| `Sarah Andrade` | Veterano | Full name used |
+| `Sol Vega` | Veterano | Full name used |
+| `Solange Couto` | Camarote | Full name used |
+
+**Eliminated/Exited (no longer in API):**
+- `Aline Campos` — Eliminada (1º Paredão, Jan 21)
+- `Henri Castelli` — Desistente (Jan 15)
+- `Pedro` — Desistente (Jan 19)
+
+**Before adding manual data**, always verify names against the snapshot:
 ```python
 # Quick check: print all names from the latest snapshot
+python3 -c "
 import json
 with open('data/latest.json') as f:
     data = json.load(f)
 participants = data['participants'] if 'participants' in data else data
 for p in participants:
     print(p['name'])
+"
 ```
 
 ### Snapshot Timing for Paredão Archive

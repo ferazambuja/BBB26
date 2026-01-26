@@ -1,0 +1,1043 @@
+---
+title: "BBB 26 — Cartola"
+subtitle: "Sistema de pontuação Cartola BBB"
+lang: pt-BR
+format:
+  html:
+    code-tools: false
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+
+import json
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.io as pio
+from pathlib import Path
+from collections import defaultdict
+from glob import glob
+from datetime import datetime
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Shared configuration (matching index.qmd visual language)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Plotly Dark Theme (same as index.qmd)
+PAPER_BG = 'rgba(34, 34, 34, 1)'
+PLOT_BG = 'rgba(34, 34, 34, 1)'
+GRID_COLOR = 'rgba(68, 68, 68, 0.6)'
+TEXT_COLOR = '#fff'
+
+pio.templates['bbb_dark'] = go.layout.Template(
+    layout=go.Layout(
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
+        title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
+        xaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
+                   tickfont=dict(size=11)),
+        yaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
+                   tickfont=dict(size=11)),
+        margin=dict(l=60, r=30, t=60, b=50),
+        hoverlabel=dict(
+            bgcolor='rgba(40,40,40,0.95)',
+            font_size=12,
+            font_color='#fff',
+            bordercolor='rgba(0,0,0,0)',
+        ),
+        legend=dict(
+            bgcolor='rgba(40,40,40,0.8)',
+            bordercolor='rgba(0,0,0,0)',
+        ),
+        colorway=['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
+    )
+)
+pio.templates.default = 'bbb_dark'
+
+# Cores dos grupos (same as index.qmd)
+GROUP_COLORS = {
+    'Camarote': '#E6194B',
+    'Veterano': '#3CB44B',
+    'Pipoca': '#4363D8',
+}
+
+# Cartola BBB Points System
+CARTOLA_POINTS = {
+    'lider': 80,
+    'anjo': 45,
+    'quarto_secreto': 40,
+    'imunizado': 30,
+    'atendeu_big_fone': 30,
+    'salvo_paredao': 25,
+    'nao_eliminado_paredao': 20,
+    'nao_emparedado': 10,
+    'vip': 5,
+    'nao_recebeu_votos': 5,
+    'monstro_retirado_vip': -5,
+    'monstro': -10,
+    'emparedado': -15,
+    'eliminado': -20,
+    'desclassificado': -25,
+    'desistente': -30,
+}
+
+POINTS_LABELS = {
+    'lider': 'Líder',
+    'anjo': 'Anjo',
+    'quarto_secreto': 'Quarto Secreto',
+    'imunizado': 'Imunizado',
+    'atendeu_big_fone': 'Big Fone',
+    'salvo_paredao': 'Salvo do Paredão',
+    'nao_eliminado_paredao': 'Sobreviveu ao Paredão',
+    'nao_emparedado': 'Não Emparedado',
+    'vip': 'VIP',
+    'nao_recebeu_votos': 'Sem Votos da Casa',
+    'monstro_retirado_vip': 'Monstro (saiu do VIP)',
+    'monstro': 'Monstro',
+    'emparedado': 'Emparedado',
+    'eliminado': 'Eliminado',
+    'desclassificado': 'Desclassificado',
+    'desistente': 'Desistente',
+}
+
+POINTS_EMOJI = {
+    'lider': '👑',
+    'anjo': '😇',
+    'quarto_secreto': '🚪',
+    'imunizado': '🛡️',
+    'atendeu_big_fone': '📞',
+    'salvo_paredao': '🎉',
+    'nao_eliminado_paredao': '✅',
+    'nao_emparedado': '🙏',
+    'vip': '⭐',
+    'nao_recebeu_votos': '🕊️',
+    'monstro_retirado_vip': '👹',
+    'monstro': '👹',
+    'emparedado': '🗳️',
+    'eliminado': '❌',
+    'desclassificado': '🚫',
+    'desistente': '🏳️',
+}
+
+def parse_roles(roles_list):
+    """Extract role labels from API format."""
+    labels = []
+    for r in roles_list:
+        if isinstance(r, dict):
+            labels.append(r.get('label', ''))
+        else:
+            labels.append(str(r))
+    return [l for l in labels if l]
+```
+
+```{python}
+#| label: load-data
+#| include: false
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Load all snapshots and build participant info
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Load manual events
+manual_events_path = Path('data/manual_events.json')
+if manual_events_path.exists():
+    with open(manual_events_path) as f:
+        manual_events = json.load(f)
+else:
+    manual_events = {'participants': {}, 'weekly_events': [], 'special_events': [], 'cartola_points_log': []}
+
+# Load all snapshots
+snapshot_files = sorted(glob('data/snapshots/*.json'))
+snapshots = []
+for sf in snapshot_files:
+    with open(sf) as f:
+        snap_data = json.load(f)
+    # Handle both old format (list) and new format (dict with 'participants' key)
+    if isinstance(snap_data, list):
+        participants = snap_data
+        metadata = {}
+    else:
+        participants = snap_data.get('participants', [])
+        metadata = snap_data.get('_metadata', {})
+
+    # Extract date from filename
+    fname = Path(sf).stem  # e.g., "2026-01-25_12-00-00"
+    date_str = fname.split('_')[0]  # "2026-01-25"
+
+    snapshots.append({
+        'file': sf,
+        'date': date_str,
+        'participants': participants,
+        'metadata': metadata
+    })
+
+# Get one snapshot per day (last of each day)
+daily_snapshots = {}
+for snap in snapshots:
+    daily_snapshots[snap['date']] = snap
+daily_snapshots = [daily_snapshots[d] for d in sorted(daily_snapshots.keys())]
+
+# Build participant info from all snapshots
+PARTICIPANT_INFO = {}
+AVATARS = {}
+
+for snap in snapshots:
+    for p in snap['participants']:
+        name = p['name']
+        avatar = p.get('avatar', '')  # Avatar is directly on the participant object
+        if name not in PARTICIPANT_INFO:
+            PARTICIPANT_INFO[name] = {
+                'grupo': p.get('characteristics', {}).get('memberOf', 'Pipoca'),
+                'avatar': avatar,
+                'active': True  # Will be updated below
+            }
+        # Update avatar if missing
+        if avatar and (name not in AVATARS or not AVATARS[name]):
+            AVATARS[name] = avatar
+            PARTICIPANT_INFO[name]['avatar'] = avatar
+
+# Mark exited participants as inactive
+for name, info in manual_events.get('participants', {}).items():
+    if name in PARTICIPANT_INFO:
+        PARTICIPANT_INFO[name]['active'] = False
+    else:
+        PARTICIPANT_INFO[name] = {
+            'grupo': 'Pipoca',  # Default
+            'avatar': AVATARS.get(name, ''),
+            'active': False
+        }
+
+# Check current participants from latest snapshot
+latest_names = set()
+if daily_snapshots:
+    for p in daily_snapshots[-1]['participants']:
+        latest_names.add(p['name'])
+        PARTICIPANT_INFO[p['name']]['active'] = True
+```
+
+```{python}
+#| label: calculate-points
+#| include: false
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTO-DETECT POINTS FROM API SNAPSHOTS
+# Detects role transitions and VIP membership automatically.
+# Only manual_events.json is used for: Big Fone, exits, special events.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def get_week_number(date_str):
+    """Calculate week number from date string."""
+    date = datetime.strptime(date_str, '%Y-%m-%d')
+    start = datetime(2026, 1, 13)  # BBB26 start date
+    delta = (date - start).days
+    return max(1, (delta // 7) + 1)
+
+# Points storage
+calculated_points = defaultdict(lambda: defaultdict(list))  # {participant: {week: [(event, points, date)]}}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. AUTO-DETECT ROLES FROM API SNAPSHOTS
+# Track role transitions: when a role appears on someone NEW, that's an assignment
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Track who held each role previously
+previous_holders = {
+    'Líder': None,
+    'Anjo': None,
+    'Monstro': set(),
+    'Imune': set(),
+    'Paredão': set(),
+}
+
+# Track VIP membership per week (to award once per week)
+vip_awarded = defaultdict(set)  # {week: {names already awarded}}
+
+# Track role assignments to avoid duplicates
+role_awarded = defaultdict(lambda: defaultdict(set))  # {role: {week: {names}}}
+
+for snap in daily_snapshots:
+    date = snap['date']
+    week = get_week_number(date)
+
+    # Current state from this snapshot
+    current_holders = {
+        'Líder': None,
+        'Anjo': None,
+        'Monstro': set(),
+        'Imune': set(),
+        'Paredão': set(),
+    }
+    current_vip = set()
+
+    for p in snap['participants']:
+        name = p['name']
+        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+        group = p.get('characteristics', {}).get('group', '')
+
+        # Track current holders
+        for role in roles:
+            if role == 'Líder':
+                current_holders['Líder'] = name
+            elif role == 'Anjo':
+                current_holders['Anjo'] = name
+            elif role == 'Monstro':
+                current_holders['Monstro'].add(name)
+            elif role == 'Imune':
+                current_holders['Imune'].add(name)
+            elif role == 'Paredão':
+                current_holders['Paredão'].add(name)
+
+        # Track VIP
+        if group == 'Vip':
+            current_vip.add(name)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Detect NEW role assignments (role changed hands)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # Líder: single holder, detect change
+    if current_holders['Líder'] and current_holders['Líder'] != previous_holders['Líder']:
+        name = current_holders['Líder']
+        if week not in role_awarded['Líder'] or name not in role_awarded['Líder'][week]:
+            calculated_points[name][week].append(('lider', CARTOLA_POINTS['lider'], date))
+            role_awarded['Líder'][week].add(name)
+
+    # Anjo: single holder, detect change
+    if current_holders['Anjo'] and current_holders['Anjo'] != previous_holders['Anjo']:
+        name = current_holders['Anjo']
+        if week not in role_awarded['Anjo'] or name not in role_awarded['Anjo'][week]:
+            calculated_points[name][week].append(('anjo', CARTOLA_POINTS['anjo'], date))
+            role_awarded['Anjo'][week].add(name)
+
+    # Monstro: can be multiple, detect NEW entries
+    new_monstros = current_holders['Monstro'] - previous_holders['Monstro']
+    for name in new_monstros:
+        if name not in role_awarded['Monstro'][week]:
+            calculated_points[name][week].append(('monstro', CARTOLA_POINTS['monstro'], date))
+            role_awarded['Monstro'][week].add(name)
+
+    # Imune: can be multiple, detect NEW entries
+    new_imunes = current_holders['Imune'] - previous_holders['Imune']
+    for name in new_imunes:
+        if name not in role_awarded['Imune'][week]:
+            calculated_points[name][week].append(('imunizado', CARTOLA_POINTS['imunizado'], date))
+            role_awarded['Imune'][week].add(name)
+
+    # Paredão: can be multiple, detect NEW entries
+    new_paredao = current_holders['Paredão'] - previous_holders['Paredão']
+    for name in new_paredao:
+        if name not in role_awarded['Paredão'][week]:
+            calculated_points[name][week].append(('emparedado', CARTOLA_POINTS['emparedado'], date))
+            role_awarded['Paredão'][week].add(name)
+
+    # VIP: award once per week per person
+    for name in current_vip:
+        if name not in vip_awarded[week]:
+            calculated_points[name][week].append(('vip', CARTOLA_POINTS['vip'], date))
+            vip_awarded[week].add(name)
+
+    # Update previous holders for next iteration
+    previous_holders['Líder'] = current_holders['Líder']
+    previous_holders['Anjo'] = current_holders['Anjo']
+    previous_holders['Monstro'] = current_holders['Monstro'].copy()
+    previous_holders['Imune'] = current_holders['Imune'].copy()
+    previous_holders['Paredão'] = current_holders['Paredão'].copy()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. MANUAL EVENTS (things NOT in API)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Big Fone (API doesn't track who answered)
+for week_event in manual_events.get('weekly_events', []):
+    week = week_event.get('week', 1)
+    start_date = week_event.get('start_date', '')
+
+    big_fone = week_event.get('big_fone')
+    if big_fone and big_fone.get('atendeu'):
+        bf_date = big_fone.get('date', start_date)
+        name = big_fone['atendeu']
+        # Check if not already added
+        week_events = calculated_points[name].get(week, [])
+        if not any(e[0] == 'atendeu_big_fone' for e in week_events):
+            calculated_points[name][week].append(('atendeu_big_fone', CARTOLA_POINTS['atendeu_big_fone'], bf_date))
+
+# Participant exits (desistentes, eliminados)
+for name, info in manual_events.get('participants', {}).items():
+    status = info.get('status')
+    exit_date = info.get('exit_date', '')
+    week = get_week_number(exit_date) if exit_date else 1
+
+    if status == 'desistente':
+        calculated_points[name][week].append(('desistente', CARTOLA_POINTS['desistente'], exit_date))
+    elif status in ('eliminada', 'eliminado'):
+        calculated_points[name][week].append(('eliminado', CARTOLA_POINTS['eliminado'], exit_date))
+    elif status == 'desclassificado':
+        calculated_points[name][week].append(('desclassificado', CARTOLA_POINTS['desclassificado'], exit_date))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. CURRENT STATE (for display)
+# ─────────────────────────────────────────────────────────────────────────────
+current_paredao = set()
+current_lider = None
+current_anjo = None
+current_monstro = set()
+
+if daily_snapshots:
+    latest = daily_snapshots[-1]
+    for p in latest['participants']:
+        name = p['name']
+        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+        if 'Paredão' in roles:
+            current_paredao.add(name)
+        if 'Líder' in roles:
+            current_lider = name
+        if 'Anjo' in roles:
+            current_anjo = name
+        if 'Monstro' in roles:
+            current_monstro.add(name)
+
+# For stats display
+seen_roles = {}
+for name, weeks in calculated_points.items():
+    for week, events in weeks.items():
+        for event, pts, _ in events:
+            if event == 'lider':
+                seen_roles[(name, 'Líder')] = True
+            elif event == 'anjo':
+                seen_roles[(name, 'Anjo')] = True
+            elif event == 'monstro':
+                seen_roles[(name, 'Monstro')] = True
+```
+
+```{python}
+#| label: merge-points
+#| include: false
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MERGE CALCULATED POINTS WITH CARTOLA_POINTS_LOG OVERRIDES
+# The cartola_points_log can have custom point values that override defaults
+# ══════════════════════════════════════════════════════════════════════════════
+
+all_points = defaultdict(lambda: defaultdict(list))
+all_events_flat = defaultdict(list)
+
+# Start with calculated points
+for participant, weeks in calculated_points.items():
+    for week, events in weeks.items():
+        all_points[participant][week] = list(events)
+        for evt, pts, date in events:
+            all_events_flat[participant].append({
+                'week': week,
+                'event': evt,
+                'points': pts,
+                'date': date
+            })
+
+# Add any extra events from cartola_points_log that weren't captured
+# (e.g., special events with custom point values)
+for entry in manual_events.get('cartola_points_log', []):
+    participant = entry['participant']
+    week = entry['week']
+    for evt in entry.get('events', []):
+        event_type = evt['event']
+        points = evt['points']
+        # Check if this event is already recorded
+        existing = all_points[participant].get(week, [])
+        already_has = any(e[0] == event_type for e in existing)
+        # Only add if not already present (avoid duplicates)
+        if not already_has and event_type not in ['lider', 'anjo', 'monstro', 'emparedado', 'imunizado', 'vip', 'desistente', 'eliminado', 'desclassificado', 'atendeu_big_fone']:
+            all_points[participant][week].append((event_type, points, None))
+            all_events_flat[participant].append({
+                'week': week,
+                'event': event_type,
+                'points': points,
+                'date': None
+            })
+
+# Calculate totals
+totals = {}
+for participant in all_points:
+    total = 0
+    for week_events in all_points[participant].values():
+        total += sum(pts for _, pts, _ in week_events)
+    totals[participant] = total
+
+# Build leaderboard
+leaderboard = []
+for name, total in totals.items():
+    info = PARTICIPANT_INFO.get(name, {'grupo': 'Pipoca', 'avatar': '', 'active': False})
+    leaderboard.append({
+        'name': name,
+        'total': total,
+        'grupo': info.get('grupo', 'Pipoca'),
+        'avatar': AVATARS.get(name, ''),
+        'active': info.get('active', False),
+        'events': all_events_flat.get(name, [])
+    })
+
+# Add participants with 0 points
+for name, info in PARTICIPANT_INFO.items():
+    if name not in totals:
+        leaderboard.append({
+            'name': name,
+            'total': 0,
+            'grupo': info.get('grupo', 'Pipoca'),
+            'avatar': AVATARS.get(name, ''),
+            'active': info.get('active', True),
+            'events': []
+        })
+
+# Sort by total descending
+leaderboard = sorted(leaderboard, key=lambda x: (-x['total'], x['name']))
+
+# Stats
+n_weeks = max([get_week_number(s['date']) for s in daily_snapshots], default=1) if daily_snapshots else 1
+n_with_points = len([p for p in leaderboard if p['total'] != 0])
+n_active = len([p for p in leaderboard if p['active']])
+total_positive = sum(p['total'] for p in leaderboard if p['total'] > 0)
+total_negative = sum(p['total'] for p in leaderboard if p['total'] < 0)
+leader = leaderboard[0] if leaderboard else None
+
+# Weekly breakdown for tabs
+weekly_data = manual_events.get('weekly_events', [])
+```
+
+```{python}
+#| label: destaques
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DESTAQUES - Key highlights at the top (matching index.qmd style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+highlights = []
+
+if leader and leader['total'] != 0:
+    grupo = leader['grupo']
+    grupo_color = GROUP_COLORS.get(grupo, '#666')
+    highlights.append(f"🏆 **{leader['name']}** ({grupo}) lidera com **{leader['total']:+d}** pontos")
+
+# Current roles from latest snapshot
+if daily_snapshots:
+    latest = daily_snapshots[-1]
+    current_roles = {'Líder': [], 'Anjo': [], 'Monstro': [], 'Paredão': []}
+    for p in latest['participants']:
+        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+        for role in roles:
+            if role in current_roles:
+                current_roles[role].append(p['name'])
+
+    if current_roles['Líder']:
+        highlights.append(f"👑 Líder atual: **{', '.join(current_roles['Líder'])}** (+80 pts)")
+    if current_roles['Anjo']:
+        highlights.append(f"😇 Anjo: **{', '.join(current_roles['Anjo'])}** (+45 pts)")
+    if current_roles['Monstro']:
+        highlights.append(f"👹 Monstro: **{', '.join(current_roles['Monstro'])}** (-10 pts)")
+    if current_roles['Paredão']:
+        highlights.append(f"🗳️ No Paredão: **{', '.join(current_roles['Paredão'])}** (-15 pts)")
+
+# Worst score
+bottom = [p for p in leaderboard if p['total'] < 0]
+if bottom:
+    worst = min(bottom, key=lambda x: x['total'])
+    status = manual_events.get('participants', {}).get(worst['name'], {}).get('status', '')
+    status_text = f" ({status})" if status else ""
+    highlights.append(f"📉 Pior pontuação: **{worst['name']}** ({worst['total']:+d}){status_text}")
+
+if highlights:
+    print(f'''
+::: {{.callout-tip title="Destaques Cartola — Semana {n_weeks}" appearance="simple"}}
+''')
+    for h in highlights:
+        print(f"- {h}")
+    print(":::\n")
+```
+
+```{python}
+#| label: kpi-boxes
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# KPI Value Boxes (matching index.qmd style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Count events from API
+n_lideres = len([k for k in seen_roles if k[1] == 'Líder'])
+n_anjos = len([k for k in seen_roles if k[1] == 'Anjo'])
+n_monstros = len([k for k in seen_roles if k[1] == 'Monstro'])
+
+print(f'''
+<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
+
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">Sem {n_weeks}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📅 Semana Atual</div>
+</div>
+
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f1c40f 0%, #d4ac0d 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_lideres}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">👑 Líderes</div>
+</div>
+
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_anjos}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">😇 Anjos</div>
+</div>
+
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{total_positive:+d}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📈 Pts Positivos</div>
+</div>
+
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{total_negative:+d}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📉 Pts Negativos</div>
+</div>
+
+</div>
+
+<p class="text-muted small" style="margin-top: 0.3rem;">Pontos calculados automaticamente da API (Líder, Anjo, Monstro, Paredão, VIP) + eventos manuais.</p>
+''')
+```
+
+# Ranking Cartola {#ranking}
+
+Pontuação acumulada de todos os participantes. Cores indicam o grupo: <span style="color: #4363D8;">●</span> Pipoca, <span style="color: #3CB44B;">●</span> Veterano, <span style="color: #E6194B;">●</span> Camarote.
+
+```{python}
+#| label: leaderboard-cards
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Leaderboard with participant cards (matching Perfis Individuais style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Show all participants with points + top 5 with 0
+with_points = [p for p in leaderboard if p['total'] != 0]
+zero_points = [p for p in leaderboard if p['total'] == 0 and p['active']][:5]
+display_list = with_points + zero_points
+
+if display_list:
+    print('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; margin: 1.5rem 0;">')
+
+    for i, p in enumerate(display_list):
+        rank = i + 1 if p['total'] != 0 else '—'
+        grupo_color = GROUP_COLORS.get(p['grupo'], '#666')
+        avatar_url = p['avatar'] or ''
+        status_badge = ''
+
+        # Determine card border color based on ranking/status
+        if not p['active']:
+            border_color = '#6c757d'  # Gray for exited
+            status_text = manual_events.get('participants', {}).get(p['name'], {}).get('status', 'saiu')
+            status_badge = f'<span style="background: #6c757d; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; margin-left: 0.5rem;">{status_text}</span>'
+        elif rank == 1:
+            border_color = '#f1c40f'  # Gold for 1st
+        elif isinstance(rank, int) and rank <= 3:
+            border_color = '#27ae60'  # Green for top 3
+        elif p['total'] < 0:
+            border_color = '#e74c3c'  # Red for negative
+        elif p['total'] > 0:
+            border_color = '#3498db'  # Blue for positive
+        else:
+            border_color = '#444'  # Dark for zero
+
+        # Format events for this participant (grouped by type)
+        events_html = ''
+        if p['events']:
+            event_counts = defaultdict(int)
+            for evt in p['events']:
+                event_counts[evt['event']] += evt['points']
+
+            event_tags = []
+            for evt_type, total_pts in sorted(event_counts.items(), key=lambda x: -abs(x[1])):
+                emoji = POINTS_EMOJI.get(evt_type, '•')
+                label = POINTS_LABELS.get(evt_type, evt_type)
+                pts_color = '#27ae60' if total_pts > 0 else '#e74c3c'
+                event_tags.append(f'<span style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin: 0.15rem; display: inline-block;">{emoji} {label} <span style="color: {pts_color}; font-weight: bold;">{total_pts:+d}</span></span>')
+            events_html = f'<div style="margin-top: 0.5rem; line-height: 1.8;">{"".join(event_tags)}</div>'
+
+        # Points display
+        pts_color = '#27ae60' if p['total'] > 0 else ('#e74c3c' if p['total'] < 0 else '#888')
+        rank_display = f"{rank}º" if isinstance(rank, int) else rank
+
+        print(f'''
+<div style="background: #2a2a2a; border-radius: 12px; border-left: 5px solid {border_color}; padding: 1rem; display: flex; gap: 1rem; align-items: flex-start;">
+<div style="flex-shrink: 0; position: relative;">
+''')
+        if avatar_url:
+            print(f'<img src="{avatar_url}" alt="{p["name"]}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {grupo_color}; object-fit: cover;">')
+        else:
+            print(f'<div style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {grupo_color}; background: #444; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #888;">?</div>')
+
+        # Rank badge
+        if isinstance(rank, int) and rank <= 3:
+            rank_emoji = '🥇' if rank == 1 else ('🥈' if rank == 2 else '🥉')
+            print(f'<div style="position: absolute; bottom: -5px; right: -5px; font-size: 1.2rem;">{rank_emoji}</div>')
+
+        print(f'''
+</div>
+<div style="flex: 1; min-width: 0;">
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;">
+<div>
+<span style="font-weight: bold; color: #fff; font-size: 1.1rem;">{rank_display} {p['name']}</span>
+<span style="background: {grupo_color}; color: {'#000' if grupo_color == '#FFD700' else '#fff'}; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">{p['grupo']}</span>
+{status_badge}
+</div>
+<div style="font-size: 1.5rem; font-weight: bold; color: {pts_color};">{p['total']:+d}</div>
+</div>
+{events_html}
+</div>
+</div>
+''')
+
+    print('</div>')
+else:
+    print('<p class="text-muted">Nenhum participante encontrado.</p>')
+```
+
+```{python}
+#| label: leaderboard-chart
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Horizontal bar chart (matching index.qmd ranking style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+with_points = [p for p in leaderboard if p['total'] != 0]
+
+if with_points:
+    # Sort for chart (ascending so highest is at top)
+    chart_data = sorted(with_points, key=lambda x: x['total'])
+
+    fig = go.Figure(go.Bar(
+        y=[f"{p['name']} {'(saiu)' if not p['active'] else ''}" for p in chart_data],
+        x=[p['total'] for p in chart_data],
+        orientation='h',
+        marker_color=[GROUP_COLORS.get(p['grupo'], '#666') for p in chart_data],
+        text=[f"{p['total']:+d}" for p in chart_data],
+        textposition='outside',
+        hovertemplate='%{y}: %{x:+d} pontos<extra></extra>',
+    ))
+
+    fig.update_layout(
+        title="Ranking Cartola BBB",
+        xaxis_title="Pontos",
+        yaxis_title="",
+        height=max(400, len(chart_data) * 40),
+        xaxis=dict(zeroline=True, zerolinecolor='rgba(255,255,255,0.3)', zerolinewidth=2),
+    )
+
+    fig.show()
+```
+
+# Semanas {#semanas}
+
+Detalhamento semanal: papéis e pontuações detectados da API.
+
+```{python}
+#| label: weekly-tabs
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Weekly breakdown in tabset (matching trajetoria.qmd style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+if n_weeks > 0:
+    print('::: {.panel-tabset}\n')
+
+    for week in range(1, n_weeks + 1):
+        # Get manual week info if available (for Big Fone, notes, etc.)
+        week_info = next((w for w in weekly_data if w.get('week') == week), None)
+
+        print(f'## Semana {week}\n')
+
+        # Extract roles from auto-detected points (all_points)
+        week_roles = {'Líder': set(), 'Anjo': set(), 'Monstro': set(), 'Imune': set()}
+        for participant, weeks_data in all_points.items():
+            if week in weeks_data:
+                for event, pts, date in weeks_data[week]:
+                    if event == 'lider':
+                        week_roles['Líder'].add(participant)
+                    elif event == 'anjo':
+                        week_roles['Anjo'].add(participant)
+                    elif event == 'monstro':
+                        week_roles['Monstro'].add(participant)
+                    elif event == 'imunizado':
+                        week_roles['Imune'].add(participant)
+
+        # Role cards
+        lider = ', '.join(sorted(week_roles['Líder'])) or '—'
+        anjo = ', '.join(sorted(week_roles['Anjo'])) or '—'
+        monstro = ', '.join(sorted(week_roles['Monstro'])) or '—'
+        imune = ', '.join(sorted(week_roles['Imune'])) or '—'
+
+        lider_avatar = AVATARS.get(list(week_roles['Líder'])[0], '') if week_roles['Líder'] else ''
+        anjo_avatar = AVATARS.get(list(week_roles['Anjo'])[0], '') if week_roles['Anjo'] else ''
+        imune_avatar = AVATARS.get(list(week_roles['Imune'])[0], '') if week_roles['Imune'] else ''
+
+        print(f'''
+<div style="display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0;">
+
+<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #f1c40f; padding: 1rem; display: flex; align-items: center; gap: 0.8rem;">
+''')
+        if lider_avatar and lider != '—':
+            print(f'<img src="{lider_avatar}" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #f1c40f; object-fit: cover;">')
+        print(f'''
+<div>
+<div style="color: #f1c40f; font-size: 0.75rem; text-transform: uppercase;">👑 Líder</div>
+<div style="font-weight: bold; color: #fff; font-size: 1.1rem;">{lider}</div>
+<div style="color: #27ae60; font-size: 0.85rem; font-weight: bold;">+80 pts</div>
+</div>
+</div>
+
+<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #3498db; padding: 1rem; display: flex; align-items: center; gap: 0.8rem;">
+''')
+        if anjo_avatar and anjo != '—':
+            print(f'<img src="{anjo_avatar}" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #3498db; object-fit: cover;">')
+        print(f'''
+<div>
+<div style="color: #3498db; font-size: 0.75rem; text-transform: uppercase;">😇 Anjo</div>
+<div style="font-weight: bold; color: #fff; font-size: 1.1rem;">{anjo}</div>
+<div style="color: #27ae60; font-size: 0.85rem; font-weight: bold;">+45 pts</div>
+</div>
+</div>
+
+<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #9b59b6; padding: 1rem; display: flex; align-items: center; gap: 0.8rem;">
+''')
+        if imune_avatar and imune != '—':
+            print(f'<img src="{imune_avatar}" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #9b59b6; object-fit: cover;">')
+        print(f'''
+<div>
+<div style="color: #9b59b6; font-size: 0.75rem; text-transform: uppercase;">🛡️ Imune</div>
+<div style="font-weight: bold; color: #fff; font-size: 1.1rem;">{imune}</div>
+<div style="color: #27ae60; font-size: 0.85rem; font-weight: bold;">+30 pts</div>
+</div>
+</div>
+
+<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #e74c3c; padding: 1rem;">
+<div style="color: #e74c3c; font-size: 0.75rem; text-transform: uppercase;">👹 Monstro</div>
+<div style="font-weight: bold; color: #fff; font-size: 1.1rem;">{monstro}</div>
+<div style="color: #e74c3c; font-size: 0.85rem; font-weight: bold;">-10 pts</div>
+</div>
+
+</div>
+''')
+
+        # Special events from manual data
+        if week_info:
+            special_events = []
+            if week_info.get('big_fone'):
+                bf = week_info['big_fone']
+                special_events.append(f"📞 **Big Fone**: {bf.get('atendeu', '?')} atendeu — {bf.get('consequencia', '')}")
+            if week_info.get('caixas_surpresa'):
+                cs = week_info['caixas_surpresa']
+                special_events.append(f"🎁 **Caixas-Surpresa**: {cs.get('resultado', '')}")
+            if week_info.get('notes'):
+                special_events.append(f"📝 {week_info['notes']}")
+
+            if special_events:
+                print('\n**Eventos especiais:**\n')
+                for se in special_events:
+                    print(f"- {se}")
+                print()
+
+        # All points this week (from API + manual)
+        week_points = []
+        for participant in all_points:
+            if week in all_points[participant]:
+                events = all_points[participant][week]
+                total = sum(pts for _, pts, _ in events)
+                info = PARTICIPANT_INFO.get(participant, {'grupo': 'Pipoca'})
+                week_points.append({
+                    'name': participant,
+                    'total': total,
+                    'events': events,
+                    'grupo': info.get('grupo', 'Pipoca'),
+                    'avatar': AVATARS.get(participant, '')
+                })
+
+        week_points = sorted(week_points, key=lambda x: -x['total'])
+
+        if week_points:
+            print('\n**Pontuações da semana:**\n')
+            print('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem; margin: 1rem 0;">')
+
+            for wp in week_points:
+                grupo_color = GROUP_COLORS.get(wp['grupo'], '#666')
+                pts_color = '#27ae60' if wp['total'] > 0 else '#e74c3c'
+                avatar = wp['avatar']
+
+                events_str = ' '.join([f"{POINTS_EMOJI.get(e, '•')}" for e, _, _ in wp['events']])
+
+                print(f'''
+<div style="background: #2a2a2a; border-radius: 8px; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem; border-left: 3px solid {grupo_color};">
+''')
+                if avatar:
+                    print(f'<img src="{avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid {grupo_color}; object-fit: cover;">')
+                print(f'''
+<div style="flex: 1;">
+<div style="font-weight: bold; color: #fff;">{wp['name']}</div>
+<div style="font-size: 0.8rem; color: #888;">{events_str}</div>
+</div>
+<div style="font-size: 1.3rem; font-weight: bold; color: {pts_color};">{wp['total']:+d}</div>
+</div>
+''')
+
+            print('</div>')
+        else:
+            print('\n*Nenhum ponto registrado nesta semana.*\n')
+
+        print()
+
+    print(':::')  # Close tabset
+else:
+    print('*Nenhuma semana registrada ainda.*\n')
+```
+
+# Evolução {#evolucao}
+
+Pontuação acumulada ao longo das semanas.
+
+```{python}
+#| label: evolution-chart
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Evolution chart (matching trajetoria.qmd style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+if n_weeks > 0 and all_points:
+    # Build cumulative data per week
+    cumulative_data = []
+    running_totals = defaultdict(int)
+
+    for week in range(1, n_weeks + 1):
+        for participant in all_points:
+            if week in all_points[participant]:
+                week_pts = sum(pts for _, pts, _ in all_points[participant][week])
+                running_totals[participant] += week_pts
+
+            # Add data point if participant has any cumulative points
+            if running_totals[participant] != 0:
+                info = PARTICIPANT_INFO.get(participant, {'grupo': 'Pipoca'})
+                cumulative_data.append({
+                    'Semana': week,
+                    'Participante': participant,
+                    'Pontos': running_totals[participant],
+                    'Grupo': info.get('grupo', 'Pipoca'),
+                })
+
+    if cumulative_data:
+        df = pd.DataFrame(cumulative_data)
+
+        fig = go.Figure()
+
+        # Sort by final score for legend order
+        final_scores = {p: running_totals[p] for p in running_totals if running_totals[p] != 0}
+        sorted_participants = sorted(final_scores.keys(), key=lambda x: -final_scores[x])
+
+        for name in sorted_participants:
+            df_p = df[df['Participante'] == name].sort_values('Semana')
+            if df_p.empty:
+                continue
+
+            grupo = PARTICIPANT_INFO.get(name, {}).get('grupo', 'Pipoca')
+            color = GROUP_COLORS.get(grupo, '#666')
+            final_pts = running_totals[name]
+
+            fig.add_trace(go.Scatter(
+                x=df_p['Semana'],
+                y=df_p['Pontos'],
+                mode='lines+markers',
+                name=f"{name} ({final_pts:+d})",
+                line=dict(color=color, width=2),
+                marker=dict(size=10, color=color),
+                hovertemplate=f'{name}<br>Semana %{{x}}: %{{y:+d}} pts<extra></extra>',
+            ))
+
+        fig.update_layout(
+            title="Evolução da Pontuação Cartola",
+            xaxis_title="Semana",
+            yaxis_title="Pontos Acumulados",
+            xaxis=dict(tickmode='linear', tick0=1, dtick=1),
+            yaxis=dict(zeroline=True, zerolinecolor='rgba(255,255,255,0.3)', zerolinewidth=1),
+            height=500,
+            hovermode='x unified',
+            legend=dict(font=dict(size=10)),
+        )
+
+        fig.show()
+else:
+    print("*Dados insuficientes para gerar o gráfico de evolução.*")
+```
+
+# Sistema de Pontos {#pontos}
+
+<div style="background: #2a2a2a; border-radius: 12px; padding: 1.2rem; margin: 1rem 0; border-left: 4px solid #17a2b8;">
+
+**Como funciona o Cartola BBB**
+
+O Cartola BBB é um sistema de fantasy onde cada evento do jogo pontua. Os pontos são **calculados automaticamente** da API para eventos detectáveis (Líder, Anjo, Monstro, Paredão, VIP) e complementados com eventos manuais (Big Fone, saídas).
+
+</div>
+
+```{python}
+#| label: points-reference
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Points reference table (matching dashboard style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+print('''
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+
+<div style="background: linear-gradient(180deg, rgba(39, 174, 96, 0.15) 0%, rgba(39, 174, 96, 0.05) 100%); border: 1px solid rgba(39, 174, 96, 0.3); border-radius: 12px; padding: 1.2rem;">
+<h4 style="color: #27ae60; margin-top: 0; border-bottom: 1px solid rgba(39, 174, 96, 0.3); padding-bottom: 0.5rem;">📈 Eventos Positivos</h4>
+<table style="width: 100%; font-size: 0.9rem;">
+''')
+
+for event, points in CARTOLA_POINTS.items():
+    if points > 0:
+        emoji = POINTS_EMOJI.get(event, '•')
+        label = POINTS_LABELS.get(event, event)
+        # Mark auto-detected events
+        auto = ' <span style="color: #888; font-size: 0.7rem;">(API)</span>' if event in ['lider', 'anjo', 'imunizado', 'vip'] else ''
+        print(f'<tr><td style="color: #ccc; padding: 0.3rem 0;">{emoji} {label}{auto}</td><td style="color: #27ae60; text-align: right; font-weight: bold; padding: 0.3rem 0;">+{points}</td></tr>')
+
+print('''
+</table>
+</div>
+
+<div style="background: linear-gradient(180deg, rgba(231, 76, 60, 0.15) 0%, rgba(231, 76, 60, 0.05) 100%); border: 1px solid rgba(231, 76, 60, 0.3); border-radius: 12px; padding: 1.2rem;">
+<h4 style="color: #e74c3c; margin-top: 0; border-bottom: 1px solid rgba(231, 76, 60, 0.3); padding-bottom: 0.5rem;">📉 Eventos Negativos</h4>
+<table style="width: 100%; font-size: 0.9rem;">
+''')
+
+for event, points in CARTOLA_POINTS.items():
+    if points < 0:
+        emoji = POINTS_EMOJI.get(event, '•')
+        label = POINTS_LABELS.get(event, event)
+        # Mark auto-detected events
+        auto = ' <span style="color: #888; font-size: 0.7rem;">(API)</span>' if event in ['monstro', 'emparedado'] else ''
+        print(f'<tr><td style="color: #ccc; padding: 0.3rem 0;">{emoji} {label}{auto}</td><td style="color: #e74c3c; text-align: right; font-weight: bold; padding: 0.3rem 0;">{points}</td></tr>')
+
+print('''
+</table>
+</div>
+
+</div>
+''')
+
+print('<p class="text-muted small">Eventos marcados com <span style="color: #888;">(API)</span> são detectados automaticamente dos snapshots diários.</p>')
+```
+
+::: {.callout-note title="Fontes de Dados"}
+- **Automático (API)**: Líder, Anjo, Monstro, Paredão, Imune, VIP — detectados dos snapshots diários
+- **Manual**: Big Fone, Quarto Secreto, saídas (desistência/eliminação) — registrados em `data/manual_events.json`
+:::
