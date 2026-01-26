@@ -1364,176 +1364,20 @@ print("""
 """)
 ```
 
-### Clusters de Afinidade {#clusters}
+::: {.callout-tip}
+## Análise de Clusters
 
-<p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
+A análise de clusters (agrupamento por afinidade) foi movida para uma [página experimental dedicada](clusters.html).
 
-Agrupamento hierárquico baseado em sentimento mútuo. Participantes no mesmo cluster tendem a se dar bem entre si.
+**O que você encontra lá:**
 
-```{python}
-#| label: affinity-clusters
-#| output: asis
+- Avaliação automática do número ideal de clusters (silhouette score)
+- Grupos identificados e sua composição
+- Dinâmica entre clusters (tensões e afinidades)
+- Mapa de afinidade (heatmap ordenado por cluster)
 
-from scipy.cluster.hierarchy import linkage, fcluster
-from scipy.spatial.distance import squareform
-
-# Build sentiment matrix for current snapshot
-active_cluster = sorted([p['name'] for p in latest['participants']
-                         if not p.get('characteristics', {}).get('eliminated')])
-n_clust = len(active_cluster)
-name_to_idx_clust = {name: i for i, name in enumerate(active_cluster)}
-
-sent_mat = np.zeros((n_clust, n_clust))
-for (giver, receiver), rxn in latest_matrix.items():
-    if giver in name_to_idx_clust and receiver in name_to_idx_clust:
-        i, j = name_to_idx_clust[giver], name_to_idx_clust[receiver]
-        sent_mat[i, j] = SENTIMENT_WEIGHTS.get(rxn, 0)
-
-# Mutual sentiment matrix
-mutual_mat = (sent_mat + sent_mat.T) / 2
-
-# Distance matrix (higher sentiment = lower distance)
-dist_mat = 2 - mutual_mat
-np.fill_diagonal(dist_mat, 0)
-
-# Hierarchical clustering
-condensed = squareform(dist_mat)
-Z = linkage(condensed, method='ward')
-clusters = fcluster(Z, 4, criterion='maxclust')
-
-# Build cluster data
-cluster_data = defaultdict(list)
-for name, cluster in zip(active_cluster, clusters):
-    group = MEMBER_OF.get(name, '?')
-    cluster_data[cluster].append((name, group))
-
-# Calculate inter-cluster sentiment
-cluster_indices = defaultdict(list)
-for i, (name, cluster) in enumerate(zip(active_cluster, clusters)):
-    cluster_indices[cluster].append(i)
-
-inter_cluster_sent = {}
-for c1 in sorted(cluster_data.keys()):
-    for c2 in sorted(cluster_data.keys()):
-        if c1 >= c2:
-            continue
-        sentiments = []
-        for i in cluster_indices[c1]:
-            for j in cluster_indices[c2]:
-                sentiments.append(mutual_mat[i, j])
-        inter_cluster_sent[(c1, c2)] = np.mean(sentiments) if sentiments else 0
-
-# Display clusters
-print("### Grupos Identificados\n")
-
-cluster_names = {
-    1: "Grupo A", 2: "Grupo B", 3: "Grupo C", 4: "Grupo D"
-}
-
-for c in sorted(cluster_data.keys()):
-    members = cluster_data[c]
-    group_counts = Counter(g for _, g in members)
-    composition = ", ".join(f"{count} {g}" for g, count in sorted(group_counts.items(), key=lambda x: -x[1]))
-
-    member_list = ", ".join(f"**{name}**" for name, _ in members)
-    print(f"**Cluster {c}** ({len(members)} membros — {composition}):\n")
-    print(f"{member_list}\n")
-
-# Show inter-cluster dynamics
-print("\n### Dinâmica Entre Clusters\n")
-
-rivalry_pairs = [(pair, sent) for pair, sent in inter_cluster_sent.items() if sent < -0.1]
-alliance_pairs = [(pair, sent) for pair, sent in inter_cluster_sent.items() if sent > 0.3]
-
-if rivalry_pairs:
-    print("**Tensões:**\n")
-    for (c1, c2), sent in sorted(rivalry_pairs, key=lambda x: x[1]):
-        print(f"- Cluster {c1} vs Cluster {c2}: sentimento médio {sent:+.2f} ⚔️")
-    print("")
-
-if alliance_pairs:
-    print("**Afinidades:**\n")
-    for (c1, c2), sent in sorted(alliance_pairs, key=lambda x: -x[1]):
-        print(f"- Cluster {c1} + Cluster {c2}: sentimento médio {sent:+.2f} ❤️")
-    print("")
-
-# Show most polarizing
-print("\n### Participantes Mais Polarizadores\n")
-
-# Most negativity given
-neg_given = [(active_cluster[i], (sent_mat[i, :] < 0).sum()) for i in range(n_clust)]
-top_givers = sorted(neg_given, key=lambda x: -x[1])[:3]
-
-# Most negativity received
-neg_received = [(active_cluster[i], (sent_mat[:, i] < 0).sum()) for i in range(n_clust)]
-top_targets = sorted(neg_received, key=lambda x: -x[1])[:3]
-
-# Most mutual enemies
-enemy_counts = [(active_cluster[i], (mutual_mat[i, :] < 0).sum()) for i in range(n_clust)]
-top_enemies = sorted(enemy_counts, key=lambda x: -x[1])[:3]
-
-print(f"**Mais negatividade dada:** {', '.join(f'{name} ({count})' for name, count in top_givers)}\n")
-print(f"**Mais negatividade recebida:** {', '.join(f'{name} ({count})' for name, count in top_targets)}\n")
-print(f"**Mais rivalidades mútuas:** {', '.join(f'{name} ({count})' for name, count in top_enemies)}\n")
-```
-
-```{python}
-#| label: cluster-heatmap
-
-# Create a reordered heatmap by cluster
-cluster_order = []
-for c in sorted(cluster_data.keys()):
-    cluster_order.extend([name for name, _ in cluster_data[c]])
-
-# Reorder matrix
-ordered_indices = [name_to_idx_clust[name] for name in cluster_order]
-reordered_mat = mutual_mat[np.ix_(ordered_indices, ordered_indices)]
-
-# Create annotations showing cluster boundaries
-shapes = []
-cumsum = 0
-cluster_sizes = [len(cluster_data[c]) for c in sorted(cluster_data.keys())]
-for size in cluster_sizes[:-1]:
-    cumsum += size
-    # Horizontal line
-    shapes.append(dict(type='line', x0=-0.5, x1=n_clust-0.5, y0=cumsum-0.5, y1=cumsum-0.5,
-                       line=dict(color='white', width=2)))
-    # Vertical line
-    shapes.append(dict(type='line', x0=cumsum-0.5, x1=cumsum-0.5, y0=-0.5, y1=n_clust-0.5,
-                       line=dict(color='white', width=2)))
-
-# Short names for display
-short_names_clust = [name.split()[0] if len(name.split()[0]) <= 10 else name.split()[0][:8] + '.'
-                     for name in cluster_order]
-
-fig = go.Figure(go.Heatmap(
-    z=reordered_mat,
-    x=short_names_clust,
-    y=short_names_clust,
-    colorscale=[
-        [0, '#d62728'],      # -1: strong negative (red)
-        [0.25, '#ff7f0e'],   # -0.5: mild negative (orange)
-        [0.5, '#7f7f7f'],    # 0: neutral (gray)
-        [0.75, '#98df8a'],   # 0.5: mild positive (light green)
-        [1, '#2ca02c']       # 1: strong positive (green)
-    ],
-    zmin=-1, zmax=1,
-    text=[[f"{reordered_mat[i,j]:+.1f}" for j in range(n_clust)] for i in range(n_clust)],
-    hovertemplate='%{y} → %{x}<br>Sentimento mútuo: %{z:+.2f}<extra></extra>',
-    colorbar=dict(title="Sentimento", tickvals=[-1, -0.5, 0, 0.5, 1],
-                  ticktext=['Rivalidade', 'Tensão', 'Neutro', 'Simpatia', 'Aliança'])
-))
-
-fig.update_layout(
-    title="Mapa de Afinidade (ordenado por cluster)",
-    height=750,
-    xaxis=dict(tickangle=45, side='bottom'),
-    yaxis=dict(autorange='reversed'),
-    shapes=shapes,
-)
-
-fig.show()
-```
+[🧪 Ver análise de clusters →](clusters.html)
+:::
 
 ### Quem Dá Mais Negatividade? {#emissores}
 

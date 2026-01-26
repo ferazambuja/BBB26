@@ -1,0 +1,410 @@
+---
+title: "BBB 26 — Clusters de Afinidade"
+subtitle: "Laboratório experimental: análise de agrupamentos e padrões de relacionamento"
+lang: pt-BR
+format:
+  html:
+    code-tools: false
+execute:
+  echo: false
+  warning: false
+---
+
+::: {.callout-warning}
+## Página Experimental
+
+Esta página contém análises experimentais de clustering. Os algoritmos e visualizações estão em desenvolvimento e podem mudar.
+:::
+
+```{python}
+#| label: setup
+#| include: false
+
+import json
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from pathlib import Path
+from collections import defaultdict, Counter
+from datetime import datetime
+
+# Clustering imports
+from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
+from scipy.spatial.distance import squareform
+
+# Configurações visuais
+plt.rcParams['figure.figsize'] = (14, 8)
+plt.rcParams['font.size'] = 11
+sns.set_theme(style="whitegrid", palette="husl")
+
+# Diretórios
+DATA_DIR = Path("data/snapshots")
+LATEST_FILE = Path("data/latest.json")
+
+# Categorias de reações
+REACTION_EMOJI = {
+    'Coração': '❤️', 'Planta': '🌱', 'Mala': '💼', 'Biscoito': '🍪',
+    'Cobra': '🐍', 'Alvo': '🎯', 'Vômito': '🤮', 'Mentiroso': '🤥',
+    'Coração partido': '💔'
+}
+
+SENTIMENT_WEIGHTS = {
+    'Coração': 1.0,
+    'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
+    'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0,
+    'Coração partido': -0.5
+}
+
+POSITIVE = {'Coração'}
+MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}
+STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso'}
+
+# Cores dos grupos
+GROUP_COLORS = {
+    'Camarote': '#E6194B',
+    'Veterano': '#3CB44B',
+    'Pipoca': '#4363D8',
+}
+
+MEMBER_OF = {}
+
+# Plotly Dark Theme Configuration
+PLOT_BG = '#303030'
+PAPER_BG = '#303030'
+GRID_COLOR = '#444444'
+TEXT_COLOR = '#fff'
+
+import plotly.io as pio
+
+pio.templates['bbb_dark'] = go.layout.Template(
+    layout=go.Layout(
+        paper_bgcolor=PAPER_BG,
+        plot_bgcolor=PLOT_BG,
+        font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
+        title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
+        margin=dict(l=70, r=30, t=70, b=60),
+        xaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR),
+        yaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR),
+        legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='rgba(0,0,0,0)'),
+        colorway=['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
+    )
+)
+pio.templates.default = 'bbb_dark'
+```
+
+```{python}
+#| label: load-data
+
+def load_snapshot(filepath):
+    with open(filepath, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "participants" in data:
+        return data["participants"], data.get("_metadata")
+    return data, None
+
+def get_all_snapshots():
+    if not DATA_DIR.exists():
+        return []
+    snapshots = sorted(DATA_DIR.glob("*.json"))
+    result = []
+    for fp in snapshots:
+        parts = fp.stem.split("_")
+        date_str = parts[0]
+        result.append((fp, date_str))
+    return result
+
+def build_reaction_matrix(participants):
+    matrix = {}
+    for receiver in participants:
+        rname = receiver['name']
+        for rxn in receiver.get('characteristics', {}).get('receivedReactions', []):
+            label = rxn.get('label', '')
+            for giver in rxn.get('participants', []):
+                gname = giver['name']
+                matrix[(gname, rname)] = label
+    return matrix
+
+# Carregar todos os snapshots
+all_snapshot_files = get_all_snapshots()
+snapshots = []
+for fp, date_str in all_snapshot_files:
+    participants, metadata = load_snapshot(fp)
+    snapshots.append({
+        'filepath': fp,
+        'date': date_str,
+        'timestamp': fp.stem,
+        'participants': participants,
+        'metadata': metadata
+    })
+
+all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+for snap in snapshots:
+    for p in snap['participants']:
+        name = p['name']
+        if name not in MEMBER_OF:
+            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
+
+latest = snapshots[-1]
+latest_matrix = all_matrices[-1]
+```
+
+# Clustering por Sentimento Mútuo
+
+Agrupamento hierárquico baseado em sentimento mútuo entre participantes. Participantes no mesmo cluster tendem a se dar bem entre si.
+
+```{python}
+#| label: build-matrices
+#| include: false
+
+# Build sentiment matrix for current snapshot
+active_cluster = sorted([p['name'] for p in latest['participants']
+                         if not p.get('characteristics', {}).get('eliminated')])
+n_clust = len(active_cluster)
+name_to_idx_clust = {name: i for i, name in enumerate(active_cluster)}
+
+sent_mat = np.zeros((n_clust, n_clust))
+for (giver, receiver), rxn in latest_matrix.items():
+    if giver in name_to_idx_clust and receiver in name_to_idx_clust:
+        i, j = name_to_idx_clust[giver], name_to_idx_clust[receiver]
+        sent_mat[i, j] = SENTIMENT_WEIGHTS.get(rxn, 0)
+
+# Mutual sentiment matrix
+mutual_mat = (sent_mat + sent_mat.T) / 2
+
+# Distance matrix (higher sentiment = lower distance)
+dist_mat = 2 - mutual_mat
+np.fill_diagonal(dist_mat, 0)
+
+# Hierarchical clustering
+condensed = squareform(dist_mat)
+Z = linkage(condensed, method='ward')
+```
+
+## Avaliação de k (Silhouette Score)
+
+O silhouette score mede quão bem cada participante se encaixa no seu cluster. Valores mais altos indicam clusters mais bem definidos.
+
+```{python}
+#| label: silhouette-evaluation
+
+from sklearn.metrics import silhouette_score
+
+k_range = range(2, min(8, n_clust))
+scores = []
+
+for k in k_range:
+    cluster_labels = fcluster(Z, k, criterion='maxclust')
+    if len(set(cluster_labels)) > 1:  # Need at least 2 clusters
+        score = silhouette_score(dist_mat, cluster_labels, metric='precomputed')
+        scores.append({'k': k, 'score': score})
+
+df_scores = pd.DataFrame(scores)
+optimal_k = df_scores.loc[df_scores['score'].idxmax(), 'k'] if not df_scores.empty else 4
+
+# Bar chart of scores
+fig = go.Figure(go.Bar(
+    x=df_scores['k'],
+    y=df_scores['score'],
+    marker_color=['#00bc8c' if k == optimal_k else '#3498db' for k in df_scores['k']],
+    text=[f"{s:.3f}" for s in df_scores['score']],
+    textposition='outside'
+))
+
+fig.update_layout(
+    title=f"Silhouette Score por Número de Clusters (Ótimo: k={int(optimal_k)})",
+    xaxis_title="Número de Clusters (k)",
+    yaxis_title="Silhouette Score",
+    height=400,
+    xaxis=dict(tickmode='linear', dtick=1)
+)
+
+fig.show()
+```
+
+```{python}
+#| label: optimal-info
+#| output: asis
+
+print(f"""
+<div class="alert alert-info">
+<strong>Resultado:</strong> O algoritmo sugere <strong>k={int(optimal_k)}</strong> clusters como a melhor divisão
+(silhouette score: {df_scores[df_scores['k']==optimal_k]['score'].values[0]:.3f}).
+</div>
+""")
+```
+
+## Grupos Identificados
+
+```{python}
+#| label: cluster-groups
+#| output: asis
+
+# Use optimal k
+clusters = fcluster(Z, int(optimal_k), criterion='maxclust')
+
+# Build cluster data
+cluster_data = defaultdict(list)
+for name, cluster in zip(active_cluster, clusters):
+    group = MEMBER_OF.get(name, '?')
+    cluster_data[cluster].append((name, group))
+
+# Calculate inter-cluster sentiment
+cluster_indices = defaultdict(list)
+for i, (name, cluster) in enumerate(zip(active_cluster, clusters)):
+    cluster_indices[cluster].append(i)
+
+inter_cluster_sent = {}
+for c1 in sorted(cluster_data.keys()):
+    for c2 in sorted(cluster_data.keys()):
+        if c1 >= c2:
+            continue
+        sentiments = []
+        for i in cluster_indices[c1]:
+            for j in cluster_indices[c2]:
+                sentiments.append(mutual_mat[i, j])
+        inter_cluster_sent[(c1, c2)] = np.mean(sentiments) if sentiments else 0
+
+# Display clusters
+for c in sorted(cluster_data.keys()):
+    members = cluster_data[c]
+    group_counts = Counter(g for _, g in members)
+    composition = ", ".join(f"{count} {g}" for g, count in sorted(group_counts.items(), key=lambda x: -x[1]))
+
+    member_list = ", ".join(f"**{name}**" for name, _ in members)
+    print(f"### Cluster {c} ({len(members)} membros)\n")
+    print(f"**Composição:** {composition}\n")
+    print(f"**Membros:** {member_list}\n")
+```
+
+## Dinâmica Entre Clusters
+
+```{python}
+#| label: inter-cluster
+#| output: asis
+
+rivalry_pairs = [(pair, sent) for pair, sent in inter_cluster_sent.items() if sent < -0.1]
+alliance_pairs = [(pair, sent) for pair, sent in inter_cluster_sent.items() if sent > 0.3]
+
+if rivalry_pairs:
+    print("### Tensões\n")
+    for (c1, c2), sent in sorted(rivalry_pairs, key=lambda x: x[1]):
+        print(f"- Cluster {c1} vs Cluster {c2}: sentimento médio {sent:+.2f} ⚔️")
+    print("")
+
+if alliance_pairs:
+    print("### Afinidades\n")
+    for (c1, c2), sent in sorted(alliance_pairs, key=lambda x: -x[1]):
+        print(f"- Cluster {c1} + Cluster {c2}: sentimento médio {sent:+.2f} ❤️")
+    print("")
+
+if not rivalry_pairs and not alliance_pairs:
+    print("*Clusters relativamente independentes — sem tensões ou afinidades fortes.*")
+```
+
+## Mapa de Afinidade (Heatmap por Cluster)
+
+```{python}
+#| label: cluster-heatmap
+
+# Create a reordered heatmap by cluster
+cluster_order = []
+for c in sorted(cluster_data.keys()):
+    cluster_order.extend([name for name, _ in cluster_data[c]])
+
+# Reorder matrix
+ordered_indices = [name_to_idx_clust[name] for name in cluster_order]
+reordered_mat = mutual_mat[np.ix_(ordered_indices, ordered_indices)]
+
+# Create annotations showing cluster boundaries
+shapes = []
+cumsum = 0
+cluster_sizes = [len(cluster_data[c]) for c in sorted(cluster_data.keys())]
+for size in cluster_sizes[:-1]:
+    cumsum += size
+    shapes.append(dict(type='line', x0=-0.5, x1=n_clust-0.5, y0=cumsum-0.5, y1=cumsum-0.5,
+                       line=dict(color='white', width=2)))
+    shapes.append(dict(type='line', x0=cumsum-0.5, x1=cumsum-0.5, y0=-0.5, y1=n_clust-0.5,
+                       line=dict(color='white', width=2)))
+
+# Short names for display
+short_names_clust = [name.split()[0] if len(name.split()[0]) <= 10 else name.split()[0][:8] + '.'
+                     for name in cluster_order]
+
+fig = go.Figure(go.Heatmap(
+    z=reordered_mat,
+    x=short_names_clust,
+    y=short_names_clust,
+    colorscale=[
+        [0, '#d62728'],
+        [0.25, '#ff7f0e'],
+        [0.5, '#7f7f7f'],
+        [0.75, '#98df8a'],
+        [1, '#2ca02c']
+    ],
+    zmin=-1, zmax=1,
+    hovertemplate='%{y} → %{x}<br>Sentimento mútuo: %{z:+.2f}<extra></extra>',
+    colorbar=dict(title="Sentimento", tickvals=[-1, -0.5, 0, 0.5, 1],
+                  ticktext=['Rivalidade', 'Tensão', 'Neutro', 'Simpatia', 'Aliança'])
+))
+
+fig.update_layout(
+    title="Mapa de Afinidade (ordenado por cluster)",
+    height=750,
+    xaxis=dict(tickangle=45, side='bottom'),
+    yaxis=dict(autorange='reversed'),
+    shapes=shapes,
+)
+
+fig.show()
+```
+
+## Participantes Mais Polarizadores
+
+```{python}
+#| label: polarizing
+#| output: asis
+
+# Most negativity given
+neg_given = [(active_cluster[i], (sent_mat[i, :] < 0).sum()) for i in range(n_clust)]
+top_givers = sorted(neg_given, key=lambda x: -x[1])[:3]
+
+# Most negativity received
+neg_received = [(active_cluster[i], (sent_mat[:, i] < 0).sum()) for i in range(n_clust)]
+top_targets = sorted(neg_received, key=lambda x: -x[1])[:3]
+
+# Most mutual enemies
+enemy_counts = [(active_cluster[i], (mutual_mat[i, :] < 0).sum()) for i in range(n_clust)]
+top_enemies = sorted(enemy_counts, key=lambda x: -x[1])[:3]
+
+print(f"**Mais negatividade dada:** {', '.join(f'{name} ({count})' for name, count in top_givers)}\n")
+print(f"**Mais negatividade recebida:** {', '.join(f'{name} ({count})' for name, count in top_targets)}\n")
+print(f"**Mais rivalidades mútuas:** {', '.join(f'{name} ({count})' for name, count in top_enemies)}\n")
+```
+
+---
+
+# Melhorias Futuras
+
+Esta página é experimental. Melhorias planejadas:
+
+- [ ] **Auto-naming de clusters** — Nomear clusters por característica dominante (ex: "Núcleo Veterano")
+- [ ] **Temporal tracking** — Acompanhar como clusters mudam ao longo do tempo
+- [ ] **Vote-based clustering** — Agrupar por padrões de votação (após 3+ paredões)
+- [ ] **Dendrograma interativo** — Visualização da árvore hierárquica
+
+---
+
+<div class="alert alert-secondary">
+<strong>Navegação</strong>
+<ul class="mb-0">
+  <li><a href="index.html">📊 Painel</a> — Estado atual das reações</li>
+  <li><a href="trajetoria.html">📈 Trajetória</a> — Evolução ao longo do tempo</li>
+  <li><a href="paredao.html">🗳️ Paredão</a> — Paredão atual</li>
+</ul>
+</div>
