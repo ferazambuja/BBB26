@@ -277,30 +277,32 @@ Basic setup only:
 
 **Phase 1: ✅ Complete**
 
-### 🟡 Phase 2: Important (Partially Complete)
+### 🟡 Phase 2: Important — ✅ COMPLETE
 
 | Task | Effort | Impact | Status |
 |------|--------|--------|--------|
 | Pre-render date comparisons (tabsets) | 2h | High | ✅ Done (trajetoria tabs) |
 | Mobile heatmap (Top 10 only) | 1h | Medium | ✅ Done (text tables) |
-| Pre-compute daily_metrics.json | 2h | High | ⏳ Pending |
-| Add CI validation for snapshots | 30m | Medium | ⏳ Pending |
+| Pre-compute daily_metrics.json | 2h | High | ✅ Done (scripts/compute_metrics.py) |
+| Add CI validation for snapshots | 30m | Medium | ✅ Done (in daily-update.yml) |
 | Add "last updated" timestamp | 15m | Low | ✅ Done |
-| Replace pie charts with bars | 30m | Low | ⏳ Pending |
+| Replace pie charts with bars | 30m | Low | ✅ Done (paredoes.qmd) |
 
-**Phase 2: ~65% Complete**
+**Phase 2: ✅ Complete**
 
-### 🟢 Phase 3: Nice to Have
+### 🟢 Phase 3: Nice to Have — ✅ COMPLETE
 
-| Task | Effort | Impact |
-|------|--------|--------|
-| Cartola BBB page (MVP) | 3h | Medium |
-| JS group filters (Pipoca/Camarote) | 2h | Medium |
-| Bump chart for evolution | 2h | Low |
-| Accessibility fixes (colorblind) | 2h | Medium |
-| Watchlist de Risco section | 1h | Medium |
+| Task | Effort | Impact | Status |
+|------|--------|--------|--------|
+| Cartola BBB page (MVP) | 3h | Medium | ✅ Done (cartola.qmd) |
+| Avatars in tables | 2h | Medium | ✅ Done (paredao.qmd) |
+| Larger fonts for readability | 1h | Medium | ✅ Done (paredao.qmd) |
+| Bump chart for evolution | 2h | Low | ✅ Done (trajetoria.qmd:405) |
+| Watchlist de Risco section | 1h | Medium | ✅ Done (index.qmd:1080) |
+| Accessibility toggle (colorblind) | 2h | Medium | ✅ Done |
+| JS group filters (Pipoca/Camarote) | 2h | Low | ❌ Deferred |
 
-**Total Phase 3: ~10 hours**
+**Phase 3: ✅ Complete**
 
 ### ❌ Don't Do
 
@@ -316,7 +318,7 @@ Basic setup only:
 
 ## Consensus Summary
 
-**15 items all reviewers agreed on:**
+**15 items all reviewers agreed on — ALL COMPLETE:**
 
 1. ✅ Add "Destaques do Dia" to landing page
 2. ✅ Add Paredão status card above the fold
@@ -328,10 +330,10 @@ Basic setup only:
 8. ✅ Use pre-render + tabsets for date comparison
 9. ✅ GitHub Pages + Actions is sufficient — workflow created
 10. ✅ Keep JSON-per-snapshot storage
-11. ⏳ Pre-compute metrics for faster renders
+11. ✅ Pre-compute metrics for faster renders — `daily_metrics.json` + CI script
 12. ✅ 22×22 heatmap needs mobile alternative — changed to text tables
-13. ⏳ Replace pie charts
-14. ⏳ Add basic testing (JSON validation, smoke test)
+13. ✅ Replace pie charts — horizontal bars in paredoes.qmd
+14. ✅ Add basic testing (JSON validation, smoke test) — in CI workflow
 15. ✅ The data model is the dashboard's biggest strength
 
 ---
@@ -362,4 +364,33 @@ docs/reviews/
 
 ---
 
+## Additional Improvements (Post-Review)
+
+Improvements made after the initial review consolidation:
+
+| Date | Improvement | Files |
+|------|-------------|-------|
+| 2026-01-26 | Added participant avatars to all tables | paredao.qmd |
+| 2026-01-26 | Increased font sizes (1.05rem) for readability | paredao.qmd |
+| 2026-01-26 | Fixed queridômetro language (it's SECRET from participants) | paredao.qmd, CLAUDE.md |
+| 2026-01-26 | Converted markdown tables to HTML for avatar support | paredao.qmd |
+| 2026-01-26 | Added participant name reference table | CLAUDE.md |
+| 2026-01-26 | Removed speculative reasoning from leader analysis | paredao.qmd |
+| 2026-01-26 | Added accessibility toggle (colorblind-friendly mode) | assets/accessibility.css, .js, _quarto.yml |
+
+---
+
+## Remaining Work
+
+**None.** All planned improvements are complete.
+
+| Deferred | Reason |
+|----------|--------|
+| JS group filters (Pipoca/Camarote) | Low value — users can visually scan by group color |
+
+All critical, important, and nice-to-have items are complete.
+
+---
+
 *Generated from 14 AI reviews on 2026-01-25*
+*Last updated: 2026-01-26*

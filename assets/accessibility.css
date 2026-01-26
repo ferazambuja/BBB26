@@ -1,0 +1,131 @@
+/* Accessibility Color Palette Toggle
+ * Provides a colorblind-friendly mode using blue-orange instead of red-green
+ */
+
+/* Toggle button styling */
+.a11y-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  background: rgba(40, 40, 40, 0.95);
+  border: 2px solid #555;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.a11y-toggle:hover {
+  background: rgba(60, 60, 60, 0.95);
+  transform: scale(1.1);
+}
+
+.a11y-toggle[aria-pressed="true"] {
+  border-color: #1976D2;
+  background: rgba(25, 118, 210, 0.2);
+}
+
+.a11y-toggle .icon-normal { display: inline; }
+.a11y-toggle .icon-active { display: none; }
+.a11y-toggle[aria-pressed="true"] .icon-normal { display: none; }
+.a11y-toggle[aria-pressed="true"] .icon-active { display: inline; }
+
+/* Tooltip */
+.a11y-toggle::after {
+  content: 'Modo daltnico';
+  position: absolute;
+  right: 60px;
+  background: rgba(40, 40, 40, 0.95);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.a11y-toggle:hover::after {
+  opacity: 1;
+}
+
+/* Colorblind-friendly mode - CSS filter approach for Plotly SVGs */
+body.colorblind-mode .js-plotly-plot .plotly .trace.scatter .points path[style*="rgb(230, 25, 75)"],
+body.colorblind-mode .js-plotly-plot .plotly .trace.bar path[style*="rgb(230, 25, 75)"],
+body.colorblind-mode [style*="background: #E6194B"],
+body.colorblind-mode [style*="background:#E6194B"],
+body.colorblind-mode [style*="border-color: #E6194B"],
+body.colorblind-mode [style*="border: 3px solid #E6194B"] {
+  filter: hue-rotate(200deg) saturate(1.2);
+}
+
+/* Direct color overrides for inline styles */
+body.colorblind-mode [style*="color:#E6194B"],
+body.colorblind-mode [style*="color: #E6194B"] {
+  color: #E65100 !important; /* Orange instead of red */
+}
+
+body.colorblind-mode [style*="color:#4CAF50"],
+body.colorblind-mode [style*="color: #4CAF50"],
+body.colorblind-mode [style*="color:#3CB44B"],
+body.colorblind-mode [style*="color: #3CB44B"] {
+  color: #1976D2 !important; /* Blue instead of green */
+}
+
+/* Table cell backgrounds */
+body.colorblind-mode td[style*="background:#E6194B"],
+body.colorblind-mode td[style*="background: #E6194B"],
+body.colorblind-mode span[style*="background:#E6194B"],
+body.colorblind-mode span[style*="background: #E6194B"] {
+  background: #E65100 !important;
+}
+
+body.colorblind-mode td[style*="background:#3CB44B"],
+body.colorblind-mode td[style*="background: #3CB44B"],
+body.colorblind-mode span[style*="background:#3CB44B"],
+body.colorblind-mode span[style*="background: #3CB44B"] {
+  background: #1976D2 !important;
+}
+
+/* Badge overrides */
+body.colorblind-mode .badge-danger,
+body.colorblind-mode [style*="background: #E6194B"] {
+  background-color: #E65100 !important;
+}
+
+body.colorblind-mode .badge-success,
+body.colorblind-mode [style*="background: #3CB44B"] {
+  background-color: #1976D2 !important;
+}
+
+/* Heatmap-style color shifts */
+body.colorblind-mode [style*="rgba(230, 25, 75"],
+body.colorblind-mode [style*="rgba(60, 180, 75"] {
+  filter: hue-rotate(200deg);
+}
+
+/* Indicator for active mode */
+body.colorblind-mode .a11y-indicator {
+  display: block;
+}
+
+.a11y-indicator {
+  display: none;
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  background: rgba(25, 118, 210, 0.9);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  z-index: 9998;
+}

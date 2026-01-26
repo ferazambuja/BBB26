@@ -535,15 +535,15 @@ if ultimo:
             print(f"\n### 🗳️ Votação da Casa\n")
             print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
 
-            print('<table class="table table-striped table-sm" style="max-width: 800px;">')
-            print('<thead><tr><th>Alvo</th><th>Votos</th><th>Principais votantes</th></tr></thead>')
+            print('<table class="table table-striped" style="max-width: 800px; font-size: 1.05rem;">')
+            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Principais votantes</th></tr></thead>')
             print('<tbody>')
             for alvo, n in ranking:
                 votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, 24) for v in votantes[:6]])
+                votantes_html = ' '.join([avatar_img(v, 28) for v in votantes[:6]])
                 if len(votantes) > 6:
-                    votantes_html += f' <span style="color:#888;">+{len(votantes) - 6}</span>'
-                print(f'<tr><td>{avatar_html(alvo, 28)}</td><td style="text-align:center; font-weight:bold;">{n}</td><td>{votantes_html}</td></tr>')
+                    votantes_html += f' <span style="color:#888; font-size:0.9em;">+{len(votantes) - 6}</span>'
+                print(f'<tr><td>{avatar_html(alvo, 32)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
             print('</tbody></table>\n')
         elif n_indicados >= esperado_indicados:
             print(f"\n### 🗳️ Votação da Casa\n")
@@ -674,15 +674,15 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             print(f"\n### 🗳️ Votação da Casa\n")
             print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
 
-            print('<table class="table table-striped table-sm" style="max-width: 800px;">')
-            print('<thead><tr><th>Alvo</th><th>Votos</th><th>Principais votantes</th></tr></thead>')
+            print('<table class="table table-striped" style="max-width: 800px; font-size: 1.05rem;">')
+            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Principais votantes</th></tr></thead>')
             print('<tbody>')
             for alvo, n in ranking:
                 votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, 24) for v in votantes[:6]])
+                votantes_html = ' '.join([avatar_img(v, 28) for v in votantes[:6]])
                 if len(votantes) > 6:
-                    votantes_html += f' <span style="color:#888;">+{len(votantes) - 6}</span>'
-                print(f'<tr><td>{avatar_html(alvo, 28)}</td><td style="text-align:center; font-weight:bold;">{n}</td><td>{votantes_html}</td></tr>')
+                    votantes_html += f' <span style="color:#888; font-size:0.9em;">+{len(votantes) - 6}</span>'
+                print(f'<tr><td>{avatar_html(alvo, 32)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
             print('</tbody></table>\n')
 
 ```
@@ -791,12 +791,12 @@ if ultimo and ultimo.get('participantes'):
     print("Como os emparedados estão no **queridômetro de hoje** e no **histórico recente**.\n")
 
     # HTML table with avatars
-    print('<table class="table table-striped table-hover" style="max-width: 100%;">')
+    print('<table class="table table-striped table-hover" style="max-width: 100%; font-size: 1.05rem;">')
     print('<thead><tr>')
-    print('<th>Indicado</th><th>Grupo</th><th style="text-align:center;">Sentimento hoje</th>')
+    print('<th>Indicado</th><th>Grupo</th><th style="text-align:center;">Sentimento</th>')
     print('<th style="text-align:center;">Rank</th><th style="text-align:center;">Δ 3 dias</th>')
     print('<th style="text-align:center;">Top 5</th><th style="text-align:center;">Bottom 5</th>')
-    print('<th style="text-align:center;">Dias negativos</th>')
+    print('<th style="text-align:center;">Dias neg.</th>')
     print('</tr></thead><tbody>')
     for row in table_rows:
         nome = row['Indicado']
@@ -808,11 +808,11 @@ if ultimo and ultimo.get('participantes'):
         delta = row['Δ 3 dias']
         delta_color = '#4CAF50' if '▲' in delta or '+' in delta else ('#E6194B' if '▼' in delta else '#888')
         print(f'<tr>')
-        print(f'<td>{avatar_html(nome, 28)}</td>')
+        print(f'<td>{avatar_html(nome, 32)}</td>')
         print(f'<td><span style="color:{grupo_color}; font-weight:500;">{grupo}</span></td>')
-        print(f'<td style="text-align:center; color:{sent_color}; font-weight:bold;">{sent}</td>')
+        print(f'<td style="text-align:center; color:{sent_color}; font-weight:bold; font-size:1.1em;">{sent}</td>')
         print(f'<td style="text-align:center;">{row["Rank hoje"]}</td>')
-        print(f'<td style="text-align:center; color:{delta_color};">{delta}</td>')
+        print(f'<td style="text-align:center; color:{delta_color}; font-weight:500;">{delta}</td>')
         print(f'<td style="text-align:center;">{row["Dias no Top 5"]}</td>')
         print(f'<td style="text-align:center;">{row["Dias no Bottom 5"]}</td>')
         print(f'<td style="text-align:center;">{row["Dias negativos"]}</td>')
@@ -830,19 +830,19 @@ if ultimo and ultimo.get('participantes'):
         deltas = {k: v for k, v in deltas.items() if v is not None}
 
         print("\n### 📊 Destaques\n")
-        print('<table class="table table-sm" style="max-width: 700px;">')
+        print('<table class="table" style="max-width: 750px; font-size: 1.05rem;">')
         print('<thead><tr><th>Métrica</th><th>Participante</th><th style="text-align:center;">Valor</th></tr></thead>')
         print('<tbody>')
-        print(f'<tr><td>🔴 <strong>Mais rejeitado hoje</strong></td><td>{avatar_html(worst_today["Indicado"], 24)}</td><td style="text-align:center;">{worst_today["Sentimento hoje"]} sentimento</td></tr>')
-        print(f'<tr><td>👎 <strong>Mais negativas recebidas</strong></td><td>{avatar_html(most_neg["Indicado"], 24)}</td><td style="text-align:center;">{neg_hoje.get(most_neg["Indicado"], 0)} reações</td></tr>')
+        print(f'<tr><td>🔴 <strong>Mais rejeitado hoje</strong></td><td>{avatar_html(worst_today["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{worst_today["Sentimento hoje"]} sentimento</td></tr>')
+        print(f'<tr><td>👎 <strong>Mais negativas recebidas</strong></td><td>{avatar_html(most_neg["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{neg_hoje.get(most_neg["Indicado"], 0)} reações</td></tr>')
         if deltas:
             biggest_drop = min(deltas.items(), key=lambda x: x[1])
             biggest_rise = max(deltas.items(), key=lambda x: x[1])
-            print(f'<tr><td>📉 <strong>Maior queda (3 dias)</strong></td><td>{avatar_html(biggest_drop[0], 24)}</td><td style="text-align:center;">{biggest_drop[1]:+.1f}</td></tr>')
-            print(f'<tr><td>📈 <strong>Maior recuperação (3 dias)</strong></td><td>{avatar_html(biggest_rise[0], 24)}</td><td style="text-align:center;">{biggest_rise[1]:+.1f}</td></tr>')
-        print(f'<tr><td>⬇️ <strong>Mais dias no Bottom 5</strong></td><td>{avatar_html(most_bottom["Indicado"], 24)}</td><td style="text-align:center;">{most_bottom["Dias no Bottom 5"]} dias</td></tr>')
+            print(f'<tr><td>📉 <strong>Maior queda (3 dias)</strong></td><td>{avatar_html(biggest_drop[0], 28)}</td><td style="text-align:center; font-weight:bold; color:#E6194B;">{biggest_drop[1]:+.1f}</td></tr>')
+            print(f'<tr><td>📈 <strong>Maior recuperação (3 dias)</strong></td><td>{avatar_html(biggest_rise[0], 28)}</td><td style="text-align:center; font-weight:bold; color:#4CAF50;">{biggest_rise[1]:+.1f}</td></tr>')
+        print(f'<tr><td>⬇️ <strong>Mais dias no Bottom 5</strong></td><td>{avatar_html(most_bottom["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{most_bottom["Dias no Bottom 5"]} dias</td></tr>')
         if most_top['Dias no Top 5'] > 0:
-            print(f'<tr><td>⬆️ <strong>Mais dias no Top 5</strong></td><td>{avatar_html(most_top["Indicado"], 24)}</td><td style="text-align:center;">{most_top["Dias no Top 5"]} dias</td></tr>')
+            print(f'<tr><td>⬆️ <strong>Mais dias no Top 5</strong></td><td>{avatar_html(most_top["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{most_top["Dias no Top 5"]} dias</td></tr>')
         print('</tbody></table>')
 ```
 
@@ -1250,12 +1250,12 @@ if tem_votos and all_matrices:
             art = "a" if gen == 'f' else "o"
             print(f"**Principal alvo:** {top_target} ({top_count} voto[s]) — {art} mais {traido}\n")
 
-        print('<table class="table table-sm table-striped">')
-        print('<thead><tr><th>Votante</th><th>Alvo</th><th>O votante dava</th><th>O alvo retribuía?</th></tr></thead>')
+        print('<table class="table table-striped" style="font-size: 1.05rem;">')
+        print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">O votante dava</th><th>O alvo retribuía?</th></tr></thead>')
         print('<tbody>')
         for b in betrayals:
             reciproca = f"Sim, {b['emoji_recebido']}" if b['tipo'] == 'aliados_mutuos' else "Não"
-            print(f'<tr><td>{avatar_html(b["votante"], 28)}</td><td>{avatar_html(b["alvo"], 28)}</td><td>{b["emoji_dado"]}</td><td>{reciproca}</td></tr>')
+            print(f'<tr><td>{avatar_html(b["votante"], 32)}</td><td>{avatar_html(b["alvo"], 32)}</td><td style="text-align:center; font-size:1.2em;">{b["emoji_dado"]}</td><td>{reciproca}</td></tr>')
         print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -1274,11 +1274,11 @@ if tem_votos and all_matrices:
             amigas_os = "amigas" if gen_v == 'f' else "amigos"
             print(f"**Maior risco:** {top_victim} — {top_count} pessoas que {ele_ela} achava {amigas_os} votaram contra\n")
 
-        print('<table class="table table-sm table-striped">')
-        print('<thead><tr><th>Vítima</th><th>Votante</th><th>A vítima dava</th><th>O votante dava</th></tr></thead>')
+        print('<table class="table table-striped" style="font-size: 1.05rem;">')
+        print('<thead><tr><th>Vítima</th><th>Votante</th><th style="text-align:center;">A vítima dava</th><th style="text-align:center;">O votante dava</th></tr></thead>')
         print('<tbody>')
         for bs in blind_spots:
-            print(f'<tr><td>{avatar_html(bs["alvo"], 28)}</td><td>{avatar_html(bs["votante"], 28)}</td><td>{bs["emoji_recebido"]} (confiava)</td><td>{bs["emoji_dado"]} (hostil)</td></tr>')
+            print(f'<tr><td>{avatar_html(bs["alvo"], 32)}</td><td>{avatar_html(bs["votante"], 32)}</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_recebido"]} (confiava)</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_dado"]} (hostil)</td></tr>')
         print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -1302,22 +1302,22 @@ if tem_votos and all_matrices:
         if recem_inimigos:
             print("#### 🚨 Mudança de Última Hora\n")
             print(f"**{len(recem_inimigos)} voto(s)** de quem mudou de opinião nos últimos 2 dias — timing suspeito!\n")
-            print('<table class="table table-sm table-striped">')
+            print('<table class="table table-striped" style="font-size: 1.05rem;">')
             print('<thead><tr><th>Votante</th><th>Alvo</th><th>Situação</th></tr></thead>')
             print('<tbody>')
             for v in recem_inimigos:
-                print(f'<tr><td>{avatar_html(v["votante"], 28)}</td><td>{avatar_html(v["alvo"], 28)}</td><td><small>{v["hist_narrative"]}</small></td></tr>')
+                print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td>{v["hist_narrative"]}</td></tr>')
             print('</tbody></table>\n')
 
         # Ex-friends who became enemies
         if ex_amigos:
             print("#### 💔 Ex-Amigos\n")
             print(f"**{len(ex_amigos)} voto(s)** de quem já deu ❤️ no passado mas depois se afastou:\n")
-            print('<table class="table table-sm table-striped">')
+            print('<table class="table table-striped" style="font-size: 1.05rem;">')
             print('<thead><tr><th>Votante</th><th>Alvo</th><th>Situação</th></tr></thead>')
             print('<tbody>')
             for v in ex_amigos:
-                print(f'<tr><td>{avatar_html(v["votante"], 28)}</td><td>{avatar_html(v["alvo"], 28)}</td><td><small>{v["hist_narrative"]}</small></td></tr>')
+                print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td>{v["hist_narrative"]}</td></tr>')
             print('</tbody></table>\n')
 
         # Voted against consistent friends (big betrayal)
@@ -1325,11 +1325,11 @@ if tem_votos and all_matrices:
         if always_friends_voted:
             print("#### 🗡️ Traição de Amizade de Longa Data\n")
             print(f"**{len(always_friends_voted)} voto(s)** contra quem sempre recebeu ❤️ — traição grave:\n")
-            print('<table class="table table-sm table-striped">')
-            print('<thead><tr><th>Votante</th><th>Alvo</th><th>Dias de amizade</th></tr></thead>')
+            print('<table class="table table-striped" style="font-size: 1.05rem;">')
+            print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">Dias de amizade</th></tr></thead>')
             print('<tbody>')
             for v in always_friends_voted:
-                print(f'<tr><td>{avatar_html(v["votante"], 28)}</td><td>{avatar_html(v["alvo"], 28)}</td><td>{v["days_as_friends"]} dias de ❤️</td></tr>')
+                print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_friends"]} dias de ❤️</td></tr>')
             print('</tbody></table>\n')
 
         # Long-time enemies (expected votes)
@@ -1338,11 +1338,11 @@ if tem_votos and all_matrices:
             if long_enemies:
                 print("#### ⚔️ Inimigos de Longa Data\n")
                 print(f"**{len(long_enemies)} voto(s)** de rivalidades que já duram ≥5 dias — votos esperados:\n")
-                print('<table class="table table-sm table-striped">')
-                print('<thead><tr><th>Votante</th><th>Alvo</th><th>Tempo de rivalidade</th></tr></thead>')
+                print('<table class="table table-striped" style="font-size: 1.05rem;">')
+                print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">Tempo de rivalidade</th></tr></thead>')
                 print('<tbody>')
                 for v in long_enemies[:8]:
-                    print(f'<tr><td>{avatar_html(v["votante"], 28)}</td><td>{avatar_html(v["alvo"], 28)}</td><td>{v["days_as_enemies"]} dias</td></tr>')
+                    print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_enemies"]} dias</td></tr>')
                 print('</tbody></table>\n')
 
         # Summary statistics
@@ -1427,11 +1427,11 @@ if tem_votos and all_matrices:
         emoji_lider = REACTION_EMOJI.get(rxn_lider, '?')
         emoji_indicado = REACTION_EMOJI.get(rxn_indicado, '?')
 
-        print('<table class="table table-sm">')
-        print('<thead><tr><th>De</th><th>Para</th><th>Reação</th></tr></thead>')
+        print('<table class="table" style="max-width: 500px; font-size: 1.05rem;">')
+        print('<thead><tr><th>De</th><th>Para</th><th style="text-align:center;">Reação</th></tr></thead>')
         print('<tbody>')
-        print(f'<tr><td>{avatar_html(lider, 28)}</td><td>{avatar_html(indicado, 28)}</td><td>{emoji_lider}</td></tr>')
-        print(f'<tr><td>{avatar_html(indicado, 28)}</td><td>{avatar_html(lider, 28)}</td><td>{emoji_indicado}</td></tr>')
+        print(f'<tr><td>{avatar_html(lider, 32)}</td><td>{avatar_html(indicado, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_lider}</td></tr>')
+        print(f'<tr><td>{avatar_html(indicado, 32)}</td><td>{avatar_html(lider, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_indicado}</td></tr>')
         print('</tbody></table>\n')
 
         if rel_type == 'aliados_mutuos':
@@ -1507,23 +1507,21 @@ if tem_votos and all_matrices:
             if n_daily >= 2 and hist_indicado['pattern'] != 'sem_dados':
                 hist_worst = analyze_relationship_history(lider, worst_for_leader, daily_matrices, daily_snapshots, paredao_date)
 
-                print('<table class="table table-sm">')
-                print(f'<thead><tr><th>Comparação</th><th>{avatar_html(indicado, 24)}</th><th>{avatar_html(worst_for_leader, 24)}</th></tr></thead>')
+                print('<table class="table" style="max-width: 600px; font-size: 1.05rem;">')
+                print(f'<thead><tr><th>Comparação</th><th style="text-align:center;">{avatar_html(indicado, 28)}</th><th style="text-align:center;">{avatar_html(worst_for_leader, 28)}</th></tr></thead>')
                 print('<tbody>')
-                print(f'<tr><td>Reação do líder</td><td>{emoji_lider}</td><td>{emoji_worst}</td></tr>')
-                print(f'<tr><td>Reação de volta</td><td>{emoji_indicado}</td><td>{emoji_worst_back}</td></tr>')
-                print(f'<tr><td>Dias de ❤️</td><td>{hist_indicado["days_as_friends"]}</td><td>{hist_worst["days_as_friends"]}</td></tr>')
-                print(f'<tr><td>Dias de hostilidade</td><td>{hist_indicado["days_as_enemies"]}</td><td>{hist_worst["days_as_enemies"]}</td></tr>')
+                print(f'<tr><td>Reação do líder</td><td style="text-align:center; font-size:1.2em;">{emoji_lider}</td><td style="text-align:center; font-size:1.2em;">{emoji_worst}</td></tr>')
+                print(f'<tr><td>Reação de volta</td><td style="text-align:center; font-size:1.2em;">{emoji_indicado}</td><td style="text-align:center; font-size:1.2em;">{emoji_worst_back}</td></tr>')
+                print(f'<tr><td>Dias de ❤️</td><td style="text-align:center; font-weight:bold;">{hist_indicado["days_as_friends"]}</td><td style="text-align:center; font-weight:bold;">{hist_worst["days_as_friends"]}</td></tr>')
+                print(f'<tr><td>Dias de hostilidade</td><td style="text-align:center; font-weight:bold;">{hist_indicado["days_as_enemies"]}</td><td style="text-align:center; font-weight:bold;">{hist_worst["days_as_enemies"]}</td></tr>')
                 print('</tbody></table>\n')
 
                 # Strategic interpretation
                 if hist_worst['days_as_enemies'] > hist_indicado['days_as_enemies']:
                     print(f"> 🧠 **Escolha estratégica.** {worst_for_leader} é inimigo há mais tempo ({hist_worst['days_as_enemies']} dias), "
-                          f"mas {lider} escolheu {indicado}. Possíveis razões: evitar votos da torcida de {worst_for_leader}, "
-                          f"ou calcular que {indicado} seria mais votado pela casa.\n")
+                          f"mas {lider} escolheu {indicado}.\n")
                 elif hist_indicado['pattern'] == 'recem_inimigos':
-                    print(f"> ⚡ **Timing suspeito.** {lider} mudou de opinião sobre {indicado} recentemente. "
-                          f"Pode ter sido uma estratégia de última hora.\n")
+                    print(f"> ⚡ **Timing suspeito.** {lider} mudou de opinião sobre {indicado} recentemente.\n")
 
     # ══════════════════════════════════════════════════════════════════════════
     # TABELA COMPLETA DE VOTOS
@@ -1543,20 +1541,20 @@ if tem_votos and all_matrices:
     }
 
     # HTML table with avatars
-    print('<table class="table table-sm table-striped">')
+    print('<table class="table table-striped" style="font-size: 1.05rem;">')
     print('<thead><tr>')
-    print('<th>Votante</th><th>Votou em</th><th>Deu</th><th>Recebeu</th><th>Tipo</th><th>Histórico</th>')
+    print('<th>Votante</th><th>Votou em</th><th style="text-align:center;">Deu</th><th style="text-align:center;">Recebeu</th><th>Tipo</th><th>Histórico</th>')
     print('</tr></thead>')
     print('<tbody>')
     for v in vote_analysis:
         hist = f"{pattern_emoji.get(v['hist_pattern'], '?')} {v['days_as_friends']}d❤️"
         print(f'<tr>')
-        print(f'<td>{avatar_html(v["votante"], 28)}</td>')
-        print(f'<td>{avatar_html(v["alvo"], 28)}</td>')
-        print(f'<td>{v["emoji_dado"]}</td>')
-        print(f'<td>{v["emoji_recebido"]}</td>')
-        print(f'<td><small>{v["label"]}</small></td>')
-        print(f'<td><small>{hist}</small></td>')
+        print(f'<td>{avatar_html(v["votante"], 32)}</td>')
+        print(f'<td>{avatar_html(v["alvo"], 32)}</td>')
+        print(f'<td style="text-align:center; font-size:1.2em;">{v["emoji_dado"]}</td>')
+        print(f'<td style="text-align:center; font-size:1.2em;">{v["emoji_recebido"]}</td>')
+        print(f'<td>{v["label"]}</td>')
+        print(f'<td>{hist}</td>')
         print(f'</tr>')
     print('</tbody></table>')
 

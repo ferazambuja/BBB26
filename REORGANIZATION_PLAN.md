@@ -3,7 +3,7 @@
 > **Status**: ✅ Complete
 > **Parent document**: See `IMPLEMENTATION_PLAN.md` for overall project status
 >
-> **Final Summary (2026-01-25)**:
+> **Final Summary (2026-01-26)**:
 > - ✅ index.qmd reduced from 841KB to ~400KB (-52%)
 > - ✅ Created mudancas.qmd (O Que Mudou) — day-over-day changes
 > - ✅ Created trajetoria.qmd (Trajetória) — historical analysis with tabs
@@ -11,6 +11,18 @@
 > - ✅ All sections moved to appropriate pages
 > - ✅ Navigation callouts and cross-links added
 > - ✅ 5-page architecture fully implemented
+> - ✅ Cartola BBB page added (cartola.qmd)
+> - ✅ Destaques do Dia, KPI boxes, Watchlist de Risco added
+> - ✅ Avatars added to paredao.qmd tables
+> - ✅ Accessibility toggle (colorblind mode) added
+> - ✅ Bump chart added to trajetoria.qmd
+>
+> **Deferred to Future (nice-to-have)**:
+> - Date picker for queridômetro comparison
+> - Compare paredões feature
+> - Participant focus mode
+> - Arcos Narrativos (storylines)
+> - Accuracy tracking (did predictions match results?)
 
 ## Current State
 
@@ -341,47 +353,50 @@ Each page should have:
 
 ### For Painel
 
-| New Section | Description | Priority |
-|-------------|-------------|----------|
-| **Alert Box** | If paredão em andamento, show prominent link | High |
-| **Destaques do Dia** | 3-5 auto-generated insights (biggest gainer, biggest loser, new hostility) | High |
-| **Quick Stats Cards** | Card layout: total hearts, total negative, balance sum | Medium |
-| **Navigation Footer** | Cards linking to other pages with preview | Medium |
+| New Section | Description | Priority | Status |
+|-------------|-------------|----------|--------|
+| **Alert Box** | If paredão em andamento, show prominent link | High | ✅ Done |
+| **Destaques do Dia** | 3-5 auto-generated insights (biggest gainer, biggest loser, new hostility) | High | ✅ Done |
+| **Quick Stats Cards** | Card layout: total hearts, total negative, balance sum | Medium | ✅ Done (KPIs) |
+| **Navigation Footer** | Cards linking to other pages with preview | Medium | ✅ Done |
+| **Watchlist de Risco** | Participants at risk of surprise votes | High | ✅ Done |
 
 ### For O Que Mudou
 
-| New Section | Description | Priority |
-|-------------|-------------|----------|
-| **Date Comparison Tool** | Dropdown to select any two dates, not just today/yesterday | High |
-| **Maiores Mudanças da Semana** | Summary of top 5 changes across the week | Medium |
-| **Mudança Acumulada** | Total change from day 1 to today per participant | Medium |
-| **Reaction Flow Animation** | Animated Sankey over multiple days | Low |
+| New Section | Description | Priority | Status |
+|-------------|-------------|----------|--------|
+| **Date Comparison Tool** | Dropdown to select any two dates, not just today/yesterday | High | ❌ Deferred |
+| **Maiores Mudanças da Semana** | Summary of top 5 changes across the week | Medium | ⚠️ Partial (daily) |
+| **Mudança Acumulada** | Total change from day 1 to today per participant | Medium | ❌ Deferred |
+| **Reaction Flow Animation** | Animated Sankey over multiple days | Low | ❌ Deferred |
 
 ### For Trajetória
 
-| New Section | Description | Priority |
-|-------------|-------------|----------|
-| **Arcos Narrativos** | Manual/auto storylines (e.g., "A redemption arc of X") | Medium |
-| **Participant Focus Mode** | Click participant to see their full journey | High |
-| **Semana a Semana** | Accordion with weekly highlights | Medium |
-| **Correlation Dashboard** | Balance vs sentiment vs group vs votes | Low |
+| New Section | Description | Priority | Status |
+|-------------|-------------|----------|--------|
+| **Bump Chart** | Rank evolution visualization | Medium | ✅ Done |
+| **Arcos Narrativos** | Manual/auto storylines (e.g., "A redemption arc of X") | Medium | ❌ Deferred |
+| **Participant Focus Mode** | Click participant to see their full journey | High | ❌ Deferred |
+| **Semana a Semana** | Accordion with weekly highlights | Medium | ❌ Deferred |
+| **Correlation Dashboard** | Balance vs sentiment vs group vs votes | Low | ❌ Deferred |
 
 ### For Paredão
 
-| New Section | Description | Priority |
-|-------------|-------------|----------|
-| **Quem Está em Risco?** | Sentiment ranking of current nominees | High |
-| **Previsão Baseada em Hostilidades** | Who would be voted out based on current data | High |
-| **Histórico Similar** | "In past paredões with similar sentiment, X went home" | Medium |
-| **Votação Live** | If BBB shows live %, embed or link | Low |
+| New Section | Description | Priority | Status |
+|-------------|-------------|----------|--------|
+| **Quem Está em Risco?** | Sentiment ranking of current nominees | High | ✅ Done (Leitura Rápida) |
+| **Previsão Baseada em Hostilidades** | Who would be voted out based on current data | High | ✅ Done (vote analysis) |
+| **Avatars in Tables** | Participant photos in all analysis tables | Medium | ✅ Done |
+| **Histórico Similar** | "In past paredões with similar sentiment, X went home" | Medium | ❌ Deferred |
+| **Votação Live** | If BBB shows live %, embed or link | Low | ❌ Out of scope |
 
 ### For Arquivo
 
-| New Section | Description | Priority |
-|-------------|-------------|----------|
-| **Compare Paredões** | Side-by-side comparison of any two paredões | Medium |
-| **Accuracy Tracking** | Did our reaction-based predictions match reality? | High |
-| **Patterns** | Common patterns (e.g., "most voted always had low sentiment") | Medium |
+| New Section | Description | Priority | Status |
+|-------------|-------------|----------|--------|
+| **Compare Paredões** | Side-by-side comparison of any two paredões | Medium | ❌ Deferred |
+| **Accuracy Tracking** | Did our reaction-based predictions match reality? | High | ❌ Deferred |
+| **Patterns** | Common patterns (e.g., "most voted always had low sentiment") | Medium | ❌ Deferred |
 
 ---
 
@@ -460,15 +475,15 @@ Future enhancement: As more paredões occur, voting patterns become a strong sig
 | 2.6.3 | Test all pages render without errors |
 | 2.6.4 | Update CLAUDE.md with new architecture |
 
-### Phase 2.7: Enhancements (Future)
+### Phase 2.7: Enhancements
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| 2.7.1 | High | Date picker for queridômetro |
-| 2.7.2 | High | Paredão predictions based on hostility |
-| 2.7.3 | Medium | Participant focus mode in trajetória |
-| 2.7.4 | Medium | Compare paredões feature |
-| 2.7.5 | Low | Mobile-responsive improvements |
+| Task | Priority | Description | Status |
+|------|----------|-------------|--------|
+| 2.7.1 | High | Date picker for queridômetro | ❌ Deferred |
+| 2.7.2 | High | Paredão predictions based on hostility | ✅ Done (Watchlist de Risco) |
+| 2.7.3 | Medium | Participant focus mode in trajetória | ❌ Deferred |
+| 2.7.4 | Medium | Compare paredões feature | ❌ Deferred |
+| 2.7.5 | Low | Mobile-responsive improvements | ✅ Done (text tables) |
 
 ---
 
