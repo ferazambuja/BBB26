@@ -974,6 +974,104 @@ if not df_fav.empty:
         print(f"Viés médio: **{avg_bias:+.1f} pp** — praticamente nenhum favoritismo de grupo.")
 ```
 
+### Destaques {#destaques-aliados}
+
+```{python}
+#| label: destaques-aliados
+#| output: asis
+
+if len(daily_snapshots) >= 3:
+    # Compute alliance stats (similar to Fatos Rápidos but with more detail)
+    _alliance_days = defaultdict(int)
+    _ally_network = defaultdict(set)
+
+    for idx, matrix in enumerate(daily_matrices):
+        snap = daily_snapshots[idx]
+        active_set = set(p['name'] for p in snap['participants']
+                         if not p.get('characteristics', {}).get('eliminated'))
+        checked = set()
+
+        for (giver, receiver), label in matrix.items():
+            if giver not in active_set or receiver not in active_set:
+                continue
+            pair = tuple(sorted([giver, receiver]))
+            if pair in checked:
+                continue
+
+            if label == 'Coração':
+                reverse = matrix.get((receiver, giver))
+                if reverse == 'Coração':
+                    _alliance_days[pair] += 1
+                    checked.add(pair)
+
+    # Build network of stable alliances (>50% of days)
+    threshold = n_daily * 0.5
+    for pair, days in _alliance_days.items():
+        if days >= threshold:
+            a, b = pair
+            _ally_network[a].add(b)
+            _ally_network[b].add(a)
+
+    # Strongest alliance
+    strongest = max(_alliance_days.items(), key=lambda x: x[1]) if _alliance_days else None
+
+    # Most connected
+    most_connected = max(_ally_network.items(), key=lambda x: len(x[1])) if _ally_network else None
+
+    # Isolated participants
+    active_latest = set(p['name'] for p in daily_snapshots[-1]['participants']
+                        if not p.get('characteristics', {}).get('eliminated'))
+    isolated = [name for name in active_latest if name not in _ally_network or len(_ally_network[name]) == 0]
+
+    # Build narrative
+    sections = []
+
+    # Strongest alliance story
+    if strongest:
+        a, b = sorted(strongest[0])
+        days = strongest[1]
+        pct = days / n_daily * 100
+        grupo_a = MEMBER_OF.get(a, '?')
+        grupo_b = MEMBER_OF.get(b, '?')
+        same_group = grupo_a == grupo_b
+
+        if same_group:
+            sections.append(f"**❤️ Aliança Mais Forte:** **{a}** e **{b}** (ambos {grupo_a}) trocaram corações mútuos em "
+                           f"**{days} de {n_daily} dias** ({pct:.0f}%). Uma aliança sólida dentro do mesmo grupo.")
+        else:
+            sections.append(f"**❤️ Aliança Mais Forte:** **{a}** ({grupo_a}) e **{b}** ({grupo_b}) mantêm corações mútuos há "
+                           f"**{days} dias** ({pct:.0f}%). Uma ponte entre grupos que pode ser estratégica.")
+
+    # Most connected story
+    if most_connected and len(most_connected[1]) >= 3:
+        name, allies = most_connected
+        grupo = MEMBER_OF.get(name, '?')
+        ally_list = ', '.join(sorted(list(allies)[:4]))
+        if len(allies) > 4:
+            ally_list += f" e +{len(allies)-4}"
+        sections.append(f"**🌟 Mais Conectado:** **{name}** ({grupo}) tem **{len(allies)} aliados estáveis**: {ally_list}. "
+                       f"Uma posição social forte que pode proteger em votações.")
+
+    # Isolated story
+    if isolated:
+        isolated_info = []
+        for name in sorted(isolated)[:3]:
+            grupo = MEMBER_OF.get(name, '?')
+            isolated_info.append(f"{name} ({grupo})")
+        isolated_str = ', '.join(isolated_info)
+        if len(isolated) > 3:
+            isolated_str += f" e +{len(isolated)-3}"
+        sections.append(f"**⚠️ Sem Aliados Estáveis:** {isolated_str}. "
+                       f"Participantes isolados são mais vulneráveis em paredões — sem aliados para defendê-los na votação.")
+
+    if sections:
+        print("::: {.callout-tip title=\"Destaques\" appearance=\"simple\"}")
+        print("<br>".join(sections))
+        print(":::")
+else:
+    print("")
+```
+
 ## 📈 Tendências
 
 ```{python}
