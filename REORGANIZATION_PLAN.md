@@ -26,7 +26,7 @@
 
 ## Trajetória Deep Review & Reorganization Plan
 
-> **Status**: ⏳ In Progress — Deep Review Phase
+> **Status**: ✅ Phase 2 Complete (Fatos Rápidos added to all tabs)
 > **Goal**: Transform trajetoria.qmd from a disorganized collection of plots into a coherent storytelling experience
 > **Last Updated**: 2026-01-26 (comprehensive review)
 > **Approach**: Question-driven storytelling (like paredao.qmd), not chart galleries
@@ -446,14 +446,20 @@ Each tab starts with a **dynamic "Fatos Rápidos"** section (computed from data,
 
 **Note**: Kept 5 tabs instead of 4 due to content dependencies (shared computation between Alianças/Rivalidades). Consolidating further requires refactoring. Marked for future work.
 
-#### Phase 2: Add "Fatos Rápidos" Intros
+#### Phase 2: Add "Fatos Rápidos" Intros ✅ COMPLETE (2026-01-26)
 
-| Step | Task | Tab |
-|------|------|-----|
-| 2.1 | Compute leader stats dynamically | 📊 Quem Lidera? |
-| 2.2 | Compute alliance stats dynamically | ❤️ Aliados |
-| 2.3 | Compute conflict stats dynamically | ⚔️ Conflitos |
-| 2.4 | Compute volatility stats dynamically | 📈 Tendências |
+| Step | Task | Tab | Status |
+|------|------|-----|--------|
+| 2.1 | Compute leader stats dynamically | 📊 Quem Lidera? | ✅ |
+| 2.2 | Compute alliance stats dynamically | ❤️ Aliados | ✅ |
+| 2.3 | Compute conflict stats dynamically | ⚔️ Conflitos | ✅ |
+| 2.4 | Compute volatility stats dynamically | 📈 Tendências | ✅ |
+
+**What each Fatos Rápidos shows:**
+- **Quem Lidera?**: Current leader + score, days leading, biggest rise/drop, new top 5 entrants
+- **Aliados**: Stable alliances count, most connected person, isolated participants
+- **Tendências**: Changes yesterday, volatility level, biggest flip, most unstable person
+- **Conflitos**: Mutual rivalries, one-sided hostilities, longest rivalry, most polarizing
 
 #### Phase 3: Add "Destaques" Sections
 
@@ -1110,11 +1116,12 @@ Future enhancement: As more paredões occur, voting patterns become a strong sig
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| **Phase 1-2** | 5-page architecture | ✅ Complete |
-| **Phase 3** | Trajetória 4-tab restructure | 🔜 Next |
+| **Phase 1** | Trajetória 5-tab restructure | ✅ Complete (2026-01-26) |
+| **Phase 2** | Fatos Rápidos intros | ✅ Complete (2026-01-26) |
+| **Phase 3** | Destaques sections | 🔜 Next |
 | **Phase 3.5** | Data freshness fixes | ✅ Complete |
-| **Phase 4** | Fatos Rápidos + Destaques | 🔜 After Phase 3 |
-| **Phase 5** | clusters.qmd creation | 🔜 After Phase 3 |
+| **Phase 4** | Deep data analysis | 🔜 Future |
+| **Phase 5** | clusters.qmd creation | ✅ Complete (2026-01-26) |
 | **Phase 6** | Cluster algorithm improvements | 🔜 Future |
 | **Phase 7** | Deferred features review | 🔜 Future |
 
