@@ -1516,8 +1516,8 @@ def render_actor_avatars(actors, border_color="#666"):
     for a in actors:
         if a in AVATARS and AVATARS[a]:
             parts.append(
-                f'<img src="{AVATARS[a]}" style="width: 22px; height: 22px; border-radius: 50%; '
-                f'border: 2px solid {border_color}; object-fit: cover; margin-right: -6px;">'
+                f'<img src="{AVATARS[a]}" style="width: 26px; height: 26px; border-radius: 50%; '
+                f'border: 2px solid {border_color}; object-fit: cover; margin-right: -4px;">'
             )
         else:
             icon = None
@@ -1585,7 +1585,7 @@ for wev in manual_events.get('weekly_events', []) if manual_events else []:
             if voter and target:
                 revealed_votes[target].add(voter)
 
-def make_event_chips(events, border_color, positive=True):
+def make_event_chips(events, border_color):
     if not events:
         return "<span style='color:#777;'>—</span>"
     grouped = defaultdict(lambda: {'count': 0, 'actors': []})
@@ -1603,11 +1603,14 @@ def make_event_chips(events, border_color, positive=True):
         count = meta['count']
         count_prefix = f"{count}x " if count > 1 else ""
         actor_html = render_actor_avatars(actors, border_color)
+        actor_label = " + ".join(actors) if actors else ""
+        title = f"{label} — {actor_label}" if actor_label else label
+        actor_text = f"<span style='color:#aaa; margin-left:0.25rem;'>{actor_label}</span>" if actor_label else ""
         chips.append(
             f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-            f"border:1px solid {border_color}; color:#ddd; border-radius:999px; padding:0.2rem 0.45rem; "
-            f"font-size:0.75rem; margin:0.15rem;'>"
-            f"{count_prefix}{emoji} {label} {actor_html}</span>"
+            f"border:1px solid {border_color}; color:#ddd; border-radius:999px; padding:0.25rem 0.55rem; "
+            f"font-size:0.78rem; margin:0.15rem;' title='{title}'>"
+            f"{count_prefix}{emoji} {label} {actor_html}{actor_text}</span>"
         )
     return ' '.join(chips)
 
@@ -1694,12 +1697,17 @@ for p in sorted_active:
         risk_color = "#28a745"
 
     # Power events (received)
-    target_events = [ev for ev in power_events if ev.get('target') == name and ev.get('week') == current_week]
-    pos_events = [ev for ev in target_events if ev.get('impacto') == 'positivo']
-    neg_events = [ev for ev in target_events if ev.get('impacto') == 'negativo']
+    target_events_all = [ev for ev in power_events if ev.get('target') == name]
+    target_events_week = [ev for ev in target_events_all if ev.get('week') == current_week]
+    pos_events = [ev for ev in target_events_week if ev.get('impacto') == 'positivo']
+    neg_events = [ev for ev in target_events_week if ev.get('impacto') == 'negativo']
+    pos_events_hist = [ev for ev in target_events_all if ev.get('impacto') == 'positivo']
+    neg_events_hist = [ev for ev in target_events_all if ev.get('impacto') == 'negativo']
 
-    pos_html = make_event_chips(pos_events, "#28a745", positive=True)
-    neg_html = make_event_chips(neg_events, "#dc3545", positive=False)
+    pos_html = make_event_chips(pos_events, "#28a745")
+    neg_html = make_event_chips(neg_events, "#dc3545")
+    pos_hist_html = make_event_chips(pos_events_hist, "#2ecc71")
+    neg_hist_html = make_event_chips(neg_events_hist, "#e74c3c")
 
     vote_map = votes_received_by_week.get(current_week, {}).get(name, {})
     if vote_map:
@@ -1738,15 +1746,18 @@ for p in sorted_active:
     if 'Paredão' in roles:
         external_score += 2
 
+    def event_weight(ev):
+        ev_week = ev.get('week') or current_week
+        diff = max(0, current_week - ev_week)
+        return 1 / (1 + diff)
+
+    animosity_events = [ev for ev in power_events if ev.get('impacto') == 'negativo' and name in normalize_actors(ev)]
     animosity_score = (
         0.25 * sum(1 for rxn in p.get('characteristics', {}).get('receivedReactions', [])
                    if rxn.get('label') not in POSITIVE) +
         0.5 * sum(1 for other_name in active_names
                   if latest_matrix.get((name, other_name), '') and latest_matrix.get((name, other_name), '') not in POSITIVE) +
-        1.5 * sum(1 for ev in power_events if ev.get('impacto') == 'negativo'
-                  and name in normalize_actors(ev) and ev.get('week') == current_week) +
-        0.75 * sum(1 for ev in power_events if ev.get('type') == 'indicacao'
-                  and name in normalize_actors(ev) and ev.get('week') == current_week)
+        1.5 * sum(event_weight(ev) for ev in animosity_events)
     )
 
     if animosity_score >= 6:
@@ -1819,12 +1830,13 @@ for p in sorted_active:
 <div style="padding: 0.8rem 1rem; border-bottom: 1px solid #444; background: #2f2f2f;">
 <div style="font-weight: bold; color: #fff; margin-bottom: 0.5rem;">⚡ Dinâmicas do Jogo</div>
 <div style="display: grid; grid-template-columns: 1fr; gap: 0.4rem; font-size: 0.9em;">
-  <div><strong style="color: #28a745;">+ Benefícios:</strong> {pos_html}</div>
-  <div><strong style="color: #dc3545;">− Prejuízos:</strong> {neg_html}</div>
+  <div><strong style="color: #28a745;">+ Benefícios (semana):</strong> {pos_html}</div>
+  <div><strong style="color: #dc3545;">− Prejuízos (semana):</strong> {neg_html}</div>
   <div><strong style="color: #6c757d;">🗳️ Votos recebidos</strong> <span style="color:#888;">(secreto para participantes)</span>: {votes_html}</div>
+  <div><strong style="color: #999;">Histórico da temporada:</strong> <span style="color:#28a745;">{pos_hist_html}</span> <span style="color:#dc3545;">{neg_hist_html}</span></div>
 </div>
 </div>
-''' if (pos_events or neg_events or vote_map) else ''}
+''' if (pos_events_hist or neg_events_hist or vote_map) else ''}
 
 <!-- Strategic Map -->
 <div style="padding: 1rem;">

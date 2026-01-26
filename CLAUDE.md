@@ -282,6 +282,7 @@ data/derived/daily_metrics.json
   - `+2` se está no Paredão.
 - **Animosidade index** é **experimental** e deve ser **recalibrado semanalmente** após indicações/contragolpes/votações.
   - Registre ajustes no `IMPLEMENTATION_PLAN.md` para manter histórico e evitar esquecimento.
+ - **Animosidade usa histórico com decaimento**: eventos negativos antigos continuam afetando a percepção, mas com peso menor (ex.: `peso = 1/(1 + semanas_passadas)`).
 
 ### Proposed consolidation (not implemented yet)
 **Goal**: reduce fragmentation and make derived data reusable across pages.
