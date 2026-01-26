@@ -94,11 +94,19 @@ The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing cons
 - `participants` — Exit status for people who left (desistente, eliminada, desclassificado)
 - `weekly_events` — Per-week: Big Fone, Quarto Secreto, notes
 - `special_events` — Dinâmicas, new entrants, one-off events
+- `power_events` — **Powers and consequences** (immunity, contragolpe, voto duplo, veto, perdeu voto)
+- `cartola_points_log` — **Manual point overrides** for events not inferable from API
+
+**API vs manual**:
+- API snapshots **auto-detect** roles (Líder/Anjo/Monstro/Imune/VIP/Paredão).
+- Manual events fill **what the API does not expose** (Big Fone, contragolpe, veto, voto duplo, etc.).
 
 **When to update**:
 - After each elimination or desistência (update `participants`)
 - After Big Fone (who answered, consequence)
 - After special events (dinâmicas like Caixas-Surpresa)
+- After any **power effect** (veto, voto duplo, perdeu voto, contragolpe, imunidade)
+- After each paredão result to log **salvos/sobreviventes** and any point events not detectable via API (see below)
 
 **Cartola BBB Points**:
 | Event | Points |
@@ -117,6 +125,40 @@ The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing cons
 | Eliminado | -20 |
 | Desclassificado | -25 |
 | Desistente | -30 |
+
+**Cartola BBB — regras oficiais (GShow)**:
+- **Fonte oficial**: https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/o-que-e-cartola-bbb-entenda-como-funciona-a-novidade-do-reality.ghtml
+- **Líder (+80)**: maior pontuação; **não acumula com outros itens**.
+- **Anjo (+45)**: quando **autoimune**, **acumula com Imunizado**.
+- **Quarto Secreto (+40)**.
+- **Imunizado por dinâmica (+30)**: não acumula com **Não emparedado**, **Não recebeu votos** e **Salvo do paredão**.
+- **Atendeu Big Fone (+30)**: acumula com efeitos do Big Fone (pode somar **Imunizado +30** ou **Emparedado -15**).
+- **Salvo do paredão (+25)**: quando emparedado é salvo por dinâmica (ex.: Bate-Volta/Big Fone). **Não recebe “Não emparedado”**, mas acumula com **Emparedado**. Se foi emparedado com janela fechada e salvo com janela aberta, vale apenas **Emparedado**.
+- **Não eliminado no paredão (+20)**: indicado que permanece após votação.
+- **Não emparedado (+10)**: disponível para votação e não foi ao paredão; **não vale para imunizados (Líder/Anjo) nem salvos**.
+- **VIP (+5)**: não acumula com Líder.
+- **Não recebeu votos da casa (+5)**: disponíveis para votação **sem votos**; não vale para Líder e imunizados.
+- **Palpites (+5)**: pontos extras por acerto de palpites (não modelado no dashboard).
+- **Janela de escalação**: quando aberta, **dinâmicas não pontuam** (não modelamos janela; calculamos pelos eventos reais).
+- **Nota do dashboard**: calculamos **pontuação por participante**, sem times/palpites individuais.
+
+**Cartola manual events (use `cartola_points_log`)**:
+- Events **not inferable from API snapshots** should be logged here with points and date.
+- Examples: `salvo_paredao`, `nao_eliminado_paredao`, `nao_emparedado`, `monstro_retirado_vip`.
+- Structure: one entry per participant/week with `events: [{event, points, date, fonte?}]`.
+- Always include matching `fontes` in `manual_events.json` for the underlying real-world event.
+
+**Cartola auto-derived points (from `data/paredoes.json`)**:
+- `salvo_paredao` — **Venceu o Bate e Volta** (escapou do paredão). Não acumula com `nao_emparedado`.
+- `nao_eliminado_paredao` — Indicados finais que **permaneceram** após o resultado.
+- `nao_emparedado` — Participantes **ativos** na semana **fora da lista final** do paredão.
+
+**Power events (`power_events`)**:
+- Use this list to track **who got a power** and **who was affected**.
+- Fields: `date`, `week`, `type`, `actor`, `target`, `source`, `detail`, `impacto`, `origem`, `fontes`.
+- `impacto` refere-se ao efeito **para quem recebeu** (`positivo` ou `negativo`).
+- `origem`: `manual` ou `api` (quando/Se for possível inferir automaticamente).
+- Types used so far: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`.
 
 **Adding source URLs (`fontes`):**
 

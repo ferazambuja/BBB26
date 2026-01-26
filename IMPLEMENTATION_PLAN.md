@@ -705,13 +705,17 @@ Created `data/manual_events.json` to track game events not available from the AP
 - [x] **1.14f. `fontes` arrays** — Each entry can include source URLs for verification
 
 **Data to fill in:**
-- [ ] **1.14g. Week 1 sources** — Add GShow/news URLs for líder (Alberto Cowboy), big_fone, vip_members
-- [ ] **1.14h. Week 2 sources** — Add GShow/news URLs for líder (Babu Santana), anjo, monstro, caixas_surpresa
-- [ ] **1.14i. Desistentes sources** — Add GShow/news URLs for Henri (Jan 15) and Pedro (Jan 19) exits
-- [ ] **1.14j. Entrada novos sources** — Add GShow/news URL for Jan 18 new entrants
-- [ ] **1.14k. 1º Paredão sources** — Add GShow/news URL for Aline Campos elimination
+- [x] **1.14g. Week 1 sources** — Add GShow/news URLs for líder (Alberto Cowboy), big_fone, vip_members
+- [x] **1.14h. Week 2 sources** — Add GShow/news URLs for líder (Babu Santana), anjo, monstro, caixas_surpresa
+- [x] **1.14i. Desistentes sources** — Add GShow/news URLs for Henri (Jan 15) and Pedro (Jan 19) exits
+- [x] **1.14j. Entrada novos sources** — Add GShow/news URL for Jan 18 new entrants
+- [x] **1.14k. 1º Paredão sources** — Add GShow/news URL for Aline Campos elimination
 - [ ] **1.14l. Cartola point calculation** — Calculate and add points for all participants through Week 2
-- [ ] **1.14m. Update CLAUDE.md** — Document how to find sources and maintain manual_events.json
+- [x] **1.14m. Update CLAUDE.md** — Document how to find sources and maintain manual_events.json
+- [x] **1.14n. Cartola manual points log** — Populate `cartola_points_log` with events not inferable via API (salvo/nao_eliminado/nao_emparedado/monstro_retirado_vip)
+- [ ] **1.14o. Manual events audit** — Confirm every `manual_events.json` entry has `fontes` and aligns with cartola.qmd usage
+- [x] **1.14p. Cartola auto points** — Auto-calculate `salvo_paredao`, `nao_eliminado_paredao`, `nao_emparedado` from `data/paredoes.json`
+- [x] **1.14q. Power events log** — Add `power_events` to manual_events.json for vote powers, immunities, contragolpes
 
 **How to find sources:**
 Search patterns for GShow articles:

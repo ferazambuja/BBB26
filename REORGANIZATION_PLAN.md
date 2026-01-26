@@ -15,7 +15,7 @@
 > - ✅ Destaques do Dia, KPI boxes, Watchlist de Risco added
 > - ✅ Avatars added to paredao.qmd tables
 > - ✅ Accessibility toggle (colorblind mode) added
-> - ✅ Bump chart added to trajetoria.qmd
+> - ✅ Bump chart added to trajetoria.qmd (individual colors per participant)
 >
 > **Deferred Features (to re-evaluate)**:
 > See "Deferred Features for Re-Evaluation" section below for detailed analysis
@@ -505,16 +505,17 @@ Each tab starts with a **dynamic "Fatos Rápidos"** section (computed from data,
 
 > **Purpose**: After reorganization, analyze the data more deeply to improve visualizations and insights
 
-| Step | Task | Description |
-|------|------|-------------|
-| 4.1 | **Improve Bump Chart** | Add participant highlight on hover, smooth animation |
-| 4.2 | **Simplify Grafo** | Show only alliances (hearts), remove hostility edges |
-| 4.3 | **Enhance Vira-Casacas** | Add specific stories: "X went from ❤️ to 🐍 for Y on [date]" |
-| 4.4 | **Voting Connection** | Connect hostility analysis to actual paredão votes |
-| 4.5 | **Cluster Algorithm** | Implement silhouette-based k selection |
-| 4.6 | **Cluster Naming** | Auto-name clusters by composition |
-| 4.7 | **Temporal Tracking** | Track cluster membership evolution |
-| 4.8 | **Vote-based Clustering** | Add when we have 3+ paredões |
+| Step | Task | Description | Status |
+|------|------|-------------|--------|
+| 4.1 | **Improve Bump Chart** | Individual colors per participant (not group colors) | ✅ Done |
+| 4.1a | (Deferred) Bump Chart Avatars | Avatar images blocked by CORS on external URLs | ⏸️ Deferred |
+| 4.2 | **Simplify Grafo** | Show only alliances (hearts), remove hostility edges | |
+| 4.3 | **Enhance Vira-Casacas** | Add specific stories: "X went from ❤️ to 🐍 for Y on [date]" | |
+| 4.4 | **Voting Connection** | Connect hostility analysis to actual paredão votes | |
+| 4.5 | **Cluster Algorithm** | Implement silhouette-based k selection | ✅ In clusters.qmd |
+| 4.6 | **Cluster Naming** | Auto-name clusters by composition | |
+| 4.7 | **Temporal Tracking** | Track cluster membership evolution | |
+| 4.8 | **Vote-based Clustering** | Add when we have 3+ paredões | |
 
 #### Phase 5: Deferred Features Reconsideration
 
@@ -1126,7 +1127,7 @@ Future enhancement: As more paredões occur, voting patterns become a strong sig
 | **Phase 2** | Fatos Rápidos intros | ✅ Complete (2026-01-26) |
 | **Phase 3** | Destaques sections | ✅ Complete (2026-01-26) |
 | **Phase 3.5** | Data freshness fixes | ✅ Complete |
-| **Phase 4** | Deep data analysis | 🔜 Next |
+| **Phase 4** | Deep data analysis | 🔄 In Progress (4.1 done) |
 | **Phase 5** | clusters.qmd creation | ✅ Complete (2026-01-26) |
 | **Phase 6** | Cluster algorithm improvements | 🔜 Future |
 | **Phase 7** | Deferred features review | 🔜 Future |

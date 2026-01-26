@@ -376,28 +376,56 @@ else:
         'negativo': 'Prejuízo'
     }).fillna('Neutro')
 
-    fig = px.scatter(
-        df_power,
-        x='Data',
-        y='target',
-        color='Impacto',
-        symbol='Tipo',
-        color_discrete_map={'Benefício': '#2ecc71', 'Prejuízo': '#e74c3c', 'Neutro': '#95a5a6'},
-        hover_data={
-            'actor': True,
-            'source': True,
-            'detail': True,
-            'date': False,
-        },
-        labels={'target': 'Quem recebeu', 'actor': 'Quem deu', 'source': 'Origem', 'detail': 'Detalhe'},
-        title='Poderes e Consequências ao longo do tempo'
-    )
-    fig.update_layout(height=420, xaxis_title='', yaxis_title='')
-    fig.show()
+    df_show = df_power.sort_values('Data')[['date', 'Tipo', 'actor', 'target', 'detail', 'impacto']]
 
-    df_show = df_power.sort_values('Data')[['date', 'Tipo', 'actor', 'target', 'detail']]
-    df_show.columns = ['Data', 'Tipo', 'Quem deu', 'Quem recebeu', 'Consequência']
-    print(df_show.to_markdown(index=False))
+    print('<div style="overflow-x:auto; margin: 0.5rem 0 1rem 0;">')
+    print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
+    print('<thead><tr style="text-align: left; border-bottom: 1px solid #444;">'
+          '<th style="padding: 0.5rem;">Data</th>'
+          '<th style="padding: 0.5rem;">Tipo</th>'
+          '<th style="padding: 0.5rem;">Quem deu</th>'
+          '<th style="padding: 0.5rem;">Quem recebeu</th>'
+          '<th style="padding: 0.5rem;">Consequência</th>'
+          '<th style="padding: 0.5rem;">Impacto</th>'
+          '</tr></thead><tbody>')
+
+    for _, row in df_show.iterrows():
+        impacto = row.get('impacto', 'neutro')
+        if impacto == 'positivo':
+            border = '#2ecc71'
+            bg = 'rgba(46, 204, 113, 0.12)'
+            label = 'Benefício'
+        elif impacto == 'negativo':
+            border = '#e74c3c'
+            bg = 'rgba(231, 76, 60, 0.12)'
+            label = 'Prejuízo'
+        else:
+            border = '#95a5a6'
+            bg = 'rgba(149, 165, 166, 0.08)'
+            label = 'Neutro'
+
+        avatar = AVATARS.get(row['target'], '')
+        avatar_html = (
+            f'<img src="{avatar}" style="width: 28px; height: 28px; border-radius: 50%; '
+            f'border: 2px solid {border}; object-fit: cover; margin-right: 0.4rem;">'
+            if avatar else ''
+        )
+        target_html = f'<div style="display: flex; align-items: center;">{avatar_html}{row["target"]}</div>'
+        impact_badge = (
+            f'<span style="display:inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; '
+            f'background: {bg}; color: {border}; border: 1px solid {border}; font-size: 0.75rem;">{label}</span>'
+        )
+
+        print(f'<tr style="border-left: 4px solid {border}; background: {bg};">'
+              f'<td style="padding: 0.45rem 0.5rem;">{row["date"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{row["Tipo"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{row["actor"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{target_html}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{row["detail"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{impact_badge}</td>'
+              f'</tr>')
+
+    print('</tbody></table></div>')
 ```
 
 ## 📊 Impacto por Participante
@@ -453,8 +481,8 @@ else:
     top_pos = impact['positivo'].idxmax() if len(impact) else None
     top_neg = impact['negativo'].idxmax() if len(impact) else None
     if top_pos and top_neg:
-        print(f"**Mais beneficiado:** {top_pos} (+{int(impact.loc[top_pos, 'positivo'])})")
-        print(f"**Mais prejudicado:** {top_neg} (-{int(impact.loc[top_neg, 'negativo'])})")
+        print(f"**Mais beneficiado:** {top_pos} (+{int(impact.loc[top_pos, 'positivo'])})<br>"
+              f"**Mais prejudicado:** {top_neg} (-{int(impact.loc[top_neg, 'negativo'])})")
 ```
 
 ::::
@@ -618,64 +646,26 @@ if not df_timeline.empty:
     final_ranks = df_timeline[df_timeline['Data'] == df_timeline['Data'].max()].set_index('Participante')['Rank']
     sorted_participants = final_ranks.sort_values().index.tolist()
 
-    # Collect endpoint data for avatars
-    avatar_positions = []
-    latest_date = df_timeline['Data'].max()
-
     for name in sorted_participants:
         df_p = df_timeline[df_timeline['Participante'] == name].sort_values('Data')
         is_hl = name in highlight
-        grupo = MEMBER_OF.get(name, '?')
-        grupo_color = GROUP_COLORS.get(grupo, '#666')
+        p_color = participant_colors.get(name, '#666')
 
         # Latest rank and score for hover
         latest_rank = int(df_p['Rank'].iloc[-1])
-        latest_score = df_p['Sentimento'].iloc[-1]
 
         fig.add_trace(go.Scatter(
             x=df_p['Data'], y=df_p['Rank'],
             mode='lines+markers',
             name=f"{name} ({latest_rank}º)",
-            line=dict(width=3 if is_hl else 1.5, color=grupo_color),
-            marker=dict(size=8 if is_hl else 5, color=grupo_color),
+            line=dict(width=3 if is_hl else 1.5, color=p_color),
+            marker=dict(size=8 if is_hl else 5, color=p_color),
             hovertemplate=f'{name}<br>Posição: %{{y}}º<br>Score: %{{customdata:+.1f}}<extra></extra>',
             customdata=df_p['Sentimento'],
             visible=True if is_hl else 'legendonly',
         ))
 
-        # Store position for avatar
-        if name in AVATARS:
-            avatar_positions.append({
-                'name': name,
-                'x': latest_date,
-                'y': latest_rank,
-                'url': AVATARS[name]
-            })
-
     n_participants = len(sorted_participants)
-
-    # Add avatars at endpoints
-    # For datetime x-axis, sizex is in milliseconds
-    date_range_days = (df_timeline['Data'].max() - df_timeline['Data'].min()).days
-    one_day_ms = 24 * 60 * 60 * 1000
-    avatar_size_x = one_day_ms * max(1, date_range_days * 0.06)  # ~6% of x range in ms
-    avatar_size_y = 0.8  # ~0.8 rank positions
-
-    for av in avatar_positions:
-        fig.add_layout_image(
-            dict(
-                source=av['url'],
-                xref="x",
-                yref="y",
-                x=av['x'] + pd.Timedelta(days=0.3),  # Slight offset to the right
-                y=av['y'],
-                sizex=avatar_size_x,
-                sizey=avatar_size_y,
-                xanchor="left",
-                yanchor="middle",
-                layer="above"
-            )
-        )
 
     fig.update_layout(
         title="Evolução do Ranking de Sentimento (Bump Chart)",
@@ -691,11 +681,6 @@ if not df_timeline.empty:
         height=max(500, n_participants * 25),
         hovermode='x unified',
         legend=dict(font=dict(size=10), itemsizing='constant'),
-        # Extend x-axis to make room for avatars
-        xaxis=dict(
-            range=[df_timeline['Data'].min() - pd.Timedelta(days=0.5),
-                   df_timeline['Data'].max() + pd.Timedelta(days=date_range_days * 0.15)]
-        ),
     )
 
     fig.show()

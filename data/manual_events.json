@@ -1,29 +1,33 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-01-25",
+  "_last_updated": "2026-01-26",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
-
   "participants": {
     "Henri Castelli": {
       "status": "desistente",
       "exit_date": "2026-01-15",
-      "exit_reason": "Desistiu por motivos pessoais",
-      "fontes": []
+      "exit_reason": "Saiu por orientação médica",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/henri-castelli-nao-vai-continuar-no-bbb-26-por-orientacao-medica.ghtml"
+      ]
     },
     "Pedro": {
       "status": "desistente",
       "exit_date": "2026-01-19",
       "exit_reason": "Desistiu",
-      "fontes": []
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-tadeu-schmidt-anuncia-a-desistencia-de-pedro.ghtml"
+      ]
     },
     "Aline Campos": {
       "status": "eliminada",
       "exit_date": "2026-01-21",
       "paredao_numero": 1,
-      "fontes": []
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/aline-campos-e-a-primeira-eliminada-do-bbb-26.ghtml"
+      ]
     }
   },
-
   "weekly_events": [
     {
       "week": 1,
@@ -31,12 +35,18 @@
       "end_date": "2026-01-19",
       "big_fone": {
         "atendeu": "Marcelo",
-        "date": "2026-01-17",
-        "consequencia": "Indicou Milena ao paredão"
+        "date": "2026-01-15",
+        "consequencia": "Indicou Aline ao paredão e ficou imune"
       },
       "quarto_secreto": null,
-      "notes": "Primeira semana. Henri desistiu dia 15.",
-      "fontes": []
+      "notes": "Primeira semana. Henri saiu por orientação médica dia 15.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-esta-imune-e-indica-aline-campos-ao-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-primeiro-paredao-do-bbb-26-aline-campos-ana-paula-renault-e-milena-formam-a-berlinda.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-1o-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-a-1a-disputa.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-jonas-sulzbach-vence-a-primeira-prova.ghtml"
+      ]
     },
     {
       "week": 2,
@@ -46,38 +56,197 @@
       "quarto_secreto": null,
       "caixas_surpresa": {
         "date": "2026-01-24",
-        "resultado": "Leandro indicado ao paredão. Jonas perdeu direito de votar. Sarah ganhou poder de anular voto. Ana Paula ganharia 2 votos mas foi anulada por Sarah."
+        "resultado": "Leandro indicado ao paredão. Jonas perdeu direito de votar. Sarah vetou o voto de Ana Paula. Ana Paula tinha voto duplo, mas foi vetada."
       },
       "anjo_escolha": "Jonas (Anjo pela 2ª vez) escolheu vídeo da família ao invés de imunizar alguém",
       "notes": "Pedro desistiu dia 19. Aline eliminada dia 21 (1º paredão). 2º paredão formado dia 25: Leandro (caixas), Matheus (líder), Brigido (casa com 6 votos). Sem Bate e Volta.",
       "fontes": [
-        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/tadeu-schmidt-explica-dinamica-inedita-das-caixas-surpresa-entenda.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/veterano-babu-santana-e-lider-pela-primeira-vez-no-bbb-26-quantas-provas-ele-ja-disputou.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-jonas-sulzbach-vence-segunda-prova.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-do-bbb-26-jonas-sulzbach-perde-o-direito-ao-voto-no-proximo-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-do-bbb-26-sarah-andrade-ganha-poder-do-veto-no-proximo-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixa-surpresa-do-bbb-26-ana-paula-renault-tera-direito-ao-voto-que-vale-por-dois-no-proximo-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-no-bbb-26-alberto-cowboy-e-brigido-indicam-leandro-ao-paredao.ghtml"
       ]
     }
   ],
-
   "special_events": [
     {
       "date": "2026-01-18",
       "type": "entrada_novos",
-      "participants": ["Chaiany", "Gabriela", "Leandro", "Matheus"],
-      "description": "Entrada dos novos participantes (Pipoca)",
-      "fontes": []
+      "participants": [
+        "Chaiany",
+        "Gabriela",
+        "Leandro",
+        "Matheus"
+      ],
+      "description": "Entrada dos novos participantes (Quarto Branco)",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/quarto-branco/noticia/quarto-branco-chaiany-gabriela-leandro-e-matheus-resistem-ate-o-fim-e-sao-os-novos-participantes-do-bbb-26.ghtml"
+      ]
     },
     {
       "date": "2026-01-24",
       "type": "dinamica",
       "name": "Caixas-Surpresa",
-      "resultado": "Alberto Cowboy e Brigido indicaram Leandro ao paredão (em consenso)",
-      "participants_affected": ["Leandro"],
+      "resultado": "Babu escolheu Alberto Cowboy e Brigido para decidir; indicaram Leandro ao paredão",
+      "participants_affected": [
+        "Leandro"
+      ],
       "efeitos_extras": {
         "Jonas Sulzbach": "Perdeu direito de votar",
-        "Sarah Andrade": "Ganhou poder de anular 1 voto (anulou Ana Paula)",
-        "Ana Paula Renault": "Ganharia 2 votos, mas foi anulada por Sarah"
+        "Sarah Andrade": "Ganhou poder de vetar 1 voto (vetou Ana Paula)",
+        "Ana Paula Renault": "Tinha direito a 2 votos, mas foi vetada"
       },
       "fontes": [
-        "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/veja-como-foi-a-formacao-do-segundo-paredao-do-bbb-26-1.3736727"
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-no-bbb-26-alberto-cowboy-e-brigido-indicam-leandro-ao-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml"
       ]
     }
-  ]
+  ],
+  "power_events": [
+    {
+      "date": "2026-01-15",
+      "week": 1,
+      "type": "contragolpe",
+      "actor": "Aline Campos",
+      "target": "Ana Paula Renault",
+      "source": "Contragolpe",
+      "detail": "Aline puxou Ana Paula ao paredão",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-primeiro-paredao-do-bbb-26-aline-campos-ana-paula-renault-e-milena-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-15",
+      "week": 1,
+      "type": "imunidade",
+      "actor": "Big Fone",
+      "target": "Marcelo",
+      "source": "Big Fone",
+      "detail": "Imune por atender o Big Fone",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-esta-imune-e-indica-aline-campos-ao-paredao.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-15",
+      "week": 1,
+      "type": "indicacao",
+      "actor": "Marcelo",
+      "target": "Aline Campos",
+      "source": "Big Fone",
+      "detail": "Indicação direta ao paredão",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-esta-imune-e-indica-aline-campos-ao-paredao.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-18",
+      "week": 1,
+      "type": "imunidade",
+      "actor": "Jonas Sulzbach",
+      "target": "Sarah Andrade",
+      "source": "Anjo",
+      "detail": "Anjo imuniza",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-primeiro-paredao-do-bbb-26-aline-campos-ana-paula-renault-e-milena-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-18",
+      "week": 1,
+      "type": "indicacao",
+      "actor": "Alberto Cowboy",
+      "target": "Milena",
+      "source": "Líder",
+      "detail": "Indicação do líder ao paredão",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-primeiro-paredao-do-bbb-26-aline-campos-ana-paula-renault-e-milena-formam-a-berlinda.ghtml"
+      ]
+    },
+    {
+      "date": "2026-01-24",
+      "week": 2,
+      "type": "indicacao",
+      "actor": "Alberto Cowboy",
+      "target": "Leandro",
+      "source": "Caixas-Surpresa",
+      "detail": "Indicação via dinâmica das caixas",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-no-bbb-26-alberto-cowboy-e-brigido-indicam-leandro-ao-paredao.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-24",
+      "week": 2,
+      "type": "perdeu_voto",
+      "actor": "Jonas Sulzbach",
+      "target": "Jonas Sulzbach",
+      "source": "Caixas-Surpresa",
+      "detail": "Perdeu direito de votar",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-do-bbb-26-jonas-sulzbach-perde-o-direito-ao-voto-no-proximo-paredao.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-24",
+      "week": 2,
+      "type": "voto_anulado",
+      "actor": "Sarah Andrade",
+      "target": "Ana Paula Renault",
+      "source": "Caixas-Surpresa",
+      "detail": "Poder do veto anulou o voto de Ana Paula",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-do-bbb-26-sarah-andrade-ganha-poder-do-veto-no-proximo-paredao.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-24",
+      "week": 2,
+      "type": "voto_duplo",
+      "actor": "Ana Paula Renault",
+      "target": "Ana Paula Renault",
+      "source": "Caixas-Surpresa",
+      "detail": "Tinha direito a voto duplo (vetado posteriormente)",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixa-surpresa-do-bbb-26-ana-paula-renault-tera-direito-ao-voto-que-vale-por-dois-no-proximo-paredao.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-01-25",
+      "week": 2,
+      "type": "indicacao",
+      "actor": "Babu Santana",
+      "target": "Matheus",
+      "source": "Líder",
+      "detail": "Indicação do líder",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    }
+  ],
+  "cartola_points_log": []
 }
