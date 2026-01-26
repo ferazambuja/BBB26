@@ -608,6 +608,93 @@ else:
 
 :::
 
+### Destaques {#destaques-lideranca}
+
+```{python}
+#| label: destaques-lideranca
+#| output: asis
+
+if len(daily_snapshots) >= 3:
+    # Reuse ranking computation from Fatos Rápidos
+    def _get_ranking(snap):
+        scores = []
+        for p in snap['participants']:
+            if p.get('characteristics', {}).get('eliminated'):
+                continue
+            scores.append((p['name'], calc_sentiment(p)))
+        return sorted(scores, key=lambda x: -x[1])
+
+    first_ranking = _get_ranking(daily_snapshots[0])
+    latest_ranking = _get_ranking(daily_snapshots[-1])
+
+    first_rank_dict = {name: i+1 for i, (name, _) in enumerate(first_ranking)}
+    latest_rank_dict = {name: i+1 for i, (name, _) in enumerate(latest_ranking)}
+
+    # Most stable (smallest absolute position change)
+    position_changes = []
+    for name, rank in latest_rank_dict.items():
+        if name in first_rank_dict:
+            change = abs(first_rank_dict[name] - rank)
+            position_changes.append((name, change, rank, first_rank_dict[name]))
+
+    most_stable = min(position_changes, key=lambda x: (x[1], x[2])) if position_changes else None
+
+    # Biggest rise and fall
+    rises = [(name, first_rank_dict[name] - rank, rank) for name, rank in latest_rank_dict.items()
+             if name in first_rank_dict and first_rank_dict[name] - rank > 0]
+    falls = [(name, first_rank_dict[name] - rank, rank) for name, rank in latest_rank_dict.items()
+             if name in first_rank_dict and first_rank_dict[name] - rank < 0]
+
+    biggest_rise = max(rises, key=lambda x: x[1]) if rises else None
+    biggest_fall = min(falls, key=lambda x: x[1]) if falls else None
+
+    # Current leader stats
+    current_leader = latest_ranking[0][0]
+    leader_score = latest_ranking[0][1]
+    leader_first_rank = first_rank_dict.get(current_leader, "?")
+
+    # Build narrative
+    sections = []
+
+    # Leader story
+    if leader_first_rank != 1 and leader_first_rank != "?":
+        sections.append(f"**🏆 {current_leader}** subiu da **{leader_first_rank}ª posição** para o topo do ranking. "
+                       f"Com **{leader_score:+.1f}** pontos de sentimento, consolidou-se como o participante mais querido.")
+    else:
+        sections.append(f"**🏆 {current_leader}** lidera com **{leader_score:+.1f}** pontos de sentimento.")
+
+    # Rise story
+    if biggest_rise and biggest_rise[1] >= 3:
+        name, change, current_rank = biggest_rise
+        grupo = MEMBER_OF.get(name, '?')
+        sections.append(f"**📈 Maior Ascensão:** **{name}** ({grupo}) subiu **{change} posições** e agora está em {current_rank}º lugar. "
+                       f"Uma trajetória de recuperação que vale acompanhar.")
+
+    # Fall story
+    if biggest_fall and biggest_fall[1] <= -3:
+        name, change, current_rank = biggest_fall
+        grupo = MEMBER_OF.get(name, '?')
+        sections.append(f"**📉 Maior Queda:** **{name}** ({grupo}) caiu **{abs(change)} posições** para o {current_rank}º lugar. "
+                       f"Pode estar em risco se houver paredão.")
+
+    # Stability story
+    if most_stable and most_stable[1] <= 2:
+        name, change, rank, first_rank = most_stable
+        grupo = MEMBER_OF.get(name, '?')
+        if change == 0:
+            sections.append(f"**⚓ Mais Estável:** **{name}** ({grupo}) manteve a mesma posição ({rank}º) desde o início. "
+                           f"Consistência pode indicar uma base sólida de apoio.")
+        else:
+            sections.append(f"**⚓ Mais Estável:** **{name}** ({grupo}) variou apenas {change} posição (de {first_rank}º para {rank}º).")
+
+    if sections:
+        print("::: {.callout-tip title=\"Destaques\" appearance=\"simple\"}")
+        print("<br>".join(sections))
+        print(":::")
+else:
+    print("")
+```
+
 ## ❤️ Aliados
 
 ```{python}
