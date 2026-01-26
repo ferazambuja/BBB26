@@ -1262,6 +1262,94 @@ if not df_balance.empty:
 
 ## ⚔️ Conflitos
 
+```{python}
+#| label: fatos-rapidos-conflitos
+#| output: asis
+
+# Compute conflict stats from latest snapshot and history
+if len(daily_snapshots) >= 1:
+    # Current hostilities from latest snapshot
+    latest_active = set(p['name'] for p in latest['participants']
+                        if not p.get('characteristics', {}).get('eliminated'))
+
+    two_sided_today = []
+    one_sided_today = []
+    checked = set()
+
+    for (a, b), rxn_a_to_b in latest_matrix.items():
+        if a not in latest_active or b not in latest_active:
+            continue
+        pair = frozenset([a, b])
+        if pair in checked:
+            continue
+
+        rxn_b_to_a = latest_matrix.get((b, a), '')
+        a_dislikes_b = rxn_a_to_b not in POSITIVE and rxn_a_to_b != ''
+        b_dislikes_a = rxn_b_to_a not in POSITIVE and rxn_b_to_a != ''
+        b_likes_a = rxn_b_to_a in POSITIVE
+
+        if a_dislikes_b and b_dislikes_a:
+            two_sided_today.append((a, b))
+            checked.add(pair)
+        elif a_dislikes_b and b_likes_a:
+            one_sided_today.append((a, b))
+
+    n_mutual = len(two_sided_today)
+    n_one_sided = len(one_sided_today)
+
+    # Longest rivalry from historical data (persistent_two_sided computed earlier? No, need to compute)
+    _persistent_two_sided = defaultdict(int)
+    for idx, matrix in enumerate(daily_matrices):
+        snap = daily_snapshots[idx]
+        active_set = set(p['name'] for p in snap['participants']
+                         if not p.get('characteristics', {}).get('eliminated'))
+        checked_hist = set()
+
+        for (a, b), rxn_a_to_b in matrix.items():
+            if a not in active_set or b not in active_set:
+                continue
+            rxn_b_to_a = matrix.get((b, a), '')
+            a_dislikes = rxn_a_to_b not in POSITIVE and rxn_a_to_b != ''
+            b_dislikes = rxn_b_to_a not in POSITIVE and rxn_b_to_a != ''
+
+            pair = frozenset([a, b])
+            if a_dislikes and b_dislikes and pair not in checked_hist:
+                _persistent_two_sided[pair] += 1
+                checked_hist.add(pair)
+
+    longest_rivalry = max(_persistent_two_sided.items(), key=lambda x: x[1]) if _persistent_two_sided else None
+
+    # Most polarizing (most mutual enemies today)
+    enemy_count = Counter()
+    for a, b in two_sided_today:
+        enemy_count[a] += 1
+        enemy_count[b] += 1
+    most_polarizing = enemy_count.most_common(1)[0] if enemy_count else None
+
+    # Build callout
+    facts = [
+        f"**{n_mutual}** rivalidades mútuas",
+        f"**{n_one_sided}** pontos cegos (hostilidade unilateral)"
+    ]
+
+    detail_facts = []
+    if longest_rivalry:
+        pair_names = sorted(longest_rivalry[0])
+        detail_facts.append(f"• Rivalidade mais longa: **{pair_names[0]} vs {pair_names[1]}** ({longest_rivalry[1]} dias)")
+    if most_polarizing:
+        detail_facts.append(f"• Mais polarizante: **{most_polarizing[0]}** ({most_polarizing[1]} inimigos mútuos)")
+
+    print(f"""
+::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
+{' | '.join(facts)}
+
+{chr(10).join(detail_facts)}
+:::
+""")
+else:
+    print("")
+```
+
 ### Grafo de Relações {#grafo}
 
 <p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
