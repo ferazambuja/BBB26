@@ -1,6 +1,6 @@
 # Dashboard Reorganization Plan
 
-> **Status**: ⏳ Phase 3 In Progress (Trajetória Storytelling)
+> **Status**: ✅ Phase 3 Complete (Trajetória Restructure) | Phase 5 Complete (clusters.qmd)
 > **Parent document**: See `IMPLEMENTATION_PLAN.md` for overall project status
 >
 > **Final Summary (2026-01-26)**:
@@ -328,11 +328,16 @@ Each tab answers **one clear question** with:
 ├── Vira-Casacas (quem muda de opinião — with specific stories) ⭐ STAR
 ├── Destaques: Maior virada, relacionamento que inverteu, quem ficou estável
 └── Cronologia do Jogo (timeline de eventos — currently in "Visão Geral")
+
+───────────────────────────────────────────────────────────────────
+📊 Saldo e Economia (STANDALONE — outside tabs, at the bottom)
+├── Evolução do Saldo (balance timeline)
+└── Note: Odd section, kept for completeness but not part of main narrative
 ```
 
 **What got removed/moved:**
 - ❌ Mudanças Entre Dias → mudancas.qmd (duplicate)
-- ❌ Saldo e Economia → cartola.qmd (not game-relevant)
+- 📊 Saldo e Economia → **stays in trajetória** (standalone section, odd one out)
 - ❌ Saldo vs Sentimento → removed (weak insight)
 - ❌ Listas de Hostilidades → removed (raw data dump)
 - ❌ Clusters de Afinidade → **NEW clusters.qmd experimental page**
@@ -404,7 +409,7 @@ Each tab answers **one clear question** with:
 | Dinâmica | Vip vs Xepa | ❤️ Aliados (collapsed) | OPTIONAL — keep but collapsible |
 | Histórico | Hostilidades Persistentes (2-sided) | ⚔️ Conflitos | KEEP — star of tab |
 | Histórico | Hostilidades Persistentes (1-sided) | ⚔️ Conflitos | KEEP — "Pontos Cegos" |
-| Histórico | Saldo e Economia | cartola.qmd | MOVE — not game-relevant here |
+| Histórico | Saldo e Economia | 📊 Standalone section | KEEP — odd one, stays in trajetória as its own section |
 | Análise do Dia | Grafo de Relações | ❤️ Aliados | SIMPLIFY — alliances only |
 | Análise do Dia | Hostilidades do Dia | ⚔️ Conflitos | CONSOLIDATE — 5 sections → 2 |
 | Análise do Dia | Clusters de Afinidade | 🧪 clusters.qmd | MOVE — experimental page |
@@ -427,17 +432,19 @@ Each tab starts with a **dynamic "Fatos Rápidos"** section (computed from data,
 
 ### Implementation Phases
 
-#### Phase 1: Structure Reorganization
+#### Phase 1: Structure Reorganization ✅ COMPLETE (2026-01-26)
 
-| Step | Task | Files |
-|------|------|-------|
-| 1.1 | Create 4-tab structure | trajetoria.qmd |
-| 1.2 | Move sections to correct tabs | trajetoria.qmd |
-| 1.3 | Remove/consolidate redundant sections | trajetoria.qmd |
-| 1.4 | Create clusters.qmd skeleton | clusters.qmd (new) |
-| 1.5 | Move cluster code to new page | trajetoria.qmd → clusters.qmd |
-| 1.6 | Move Saldo sections to cartola.qmd | trajetoria.qmd → cartola.qmd |
-| 1.7 | Update _quarto.yml navbar | _quarto.yml |
+| Step | Task | Status | Notes |
+|------|------|--------|-------|
+| 1.1 | Rename tabs | ✅ | 📊 Quem Lidera?, ❤️ Aliados, 📈 Tendências, 📜 Histórico, ⚔️ Conflitos |
+| 1.2 | Move sections to correct tabs | ✅ | Vip vs Xepa → Aliados |
+| 1.3 | Remove redundant sections | ✅ | Mudanças Entre Dias, Saldo vs Sentimento, Listas de Hostilidades |
+| 1.4 | Create clusters.qmd | ✅ | With silhouette k evaluation |
+| 1.5 | Move cluster code | ✅ | Added callout link in trajetória |
+| 1.6 | Keep Saldo in place | ✅ | Stays in Histórico tab |
+| 1.7 | Update _quarto.yml | ✅ | Added clusters.qmd to render list |
+
+**Note**: Kept 5 tabs instead of 4 due to content dependencies (shared computation between Alianças/Rivalidades). Consolidating further requires refactoring. Marked for future work.
 
 #### Phase 2: Add "Fatos Rápidos" Intros
 
@@ -1069,24 +1076,144 @@ Future enhancement: As more paredões occur, voting patterns become a strong sig
 
 ---
 
-## Decision Needed
+## Decisions Made (2026-01-26)
 
-Before implementing Trajetória reorganization, please confirm:
+### Structure Decisions
+| # | Question | Decision | Notes |
+|---|----------|----------|-------|
+| 1 | 4-tab structure? | ✅ Yes for now | **Review later** after implementation |
+| 2 | Visão Geral/Cronologia outside tabs? | ✅ Yes | Stay at top, always visible |
+| 3 | Section mappings correct? | ✅ Approved | Will reconsider when making things more interesting |
 
-### Structure Questions
-1. Does the 4-tab structure (Ranking → Alianças → Conflitos → Tendências) make sense?
-2. Should "Visão Geral" and "Cronologia" stay outside tabs or be integrated?
-3. Are the section mappings (old → new) correct?
+### Cluster Decisions
+| # | Question | Decision | Notes |
+|---|----------|----------|-------|
+| 4 | Keep current algorithm? | ✅ Yes for now | Add improvements to Phase 6 |
+| 5 | Move to separate page? | ✅ Yes | Create clusters.qmd experimental page |
+| 6 | Add silhouette k selection? | ✅ Create for evaluation | Implement in clusters.qmd, evaluate results |
 
-### Cluster Questions
-4. Keep clusters with current algorithm?
-5. Move clusters to be the anchor of "Alianças" tab?
-6. Add silhouette-based k selection?
+### Feature Decisions
+| # | Question | Decision | Notes |
+|---|----------|----------|-------|
+| 7 | Deferred features? | Create Phase 7 | Don't lose track of them |
+| 8 | Participant Focus Mode? | Add to Phase 7 | Future feature, not now |
 
-### Deferred Feature Questions
-7. Which deferred features should we prioritize after this reorg?
-8. Is "Participant Focus Mode" worth the effort now?
+### Implementation Decisions
+| # | Question | Decision | Notes |
+|---|----------|----------|-------|
+| 9 | Big change or increments? | **Small increments** | Commit constantly |
+| 10 | Preview or full render? | **Full render** | Verify each step works |
 
-### Implementation Questions
-9. Implement in one big change or incremental commits?
-10. Test with `quarto preview` or full render each step?
+---
+
+## Updated Phase Structure
+
+| Phase | Focus | Status |
+|-------|-------|--------|
+| **Phase 1-2** | 5-page architecture | ✅ Complete |
+| **Phase 3** | Trajetória 4-tab restructure | 🔜 Next |
+| **Phase 3.5** | Data freshness fixes | ✅ Complete |
+| **Phase 4** | Fatos Rápidos + Destaques | 🔜 After Phase 3 |
+| **Phase 5** | clusters.qmd creation | 🔜 After Phase 3 |
+| **Phase 6** | Cluster algorithm improvements | 🔜 Future |
+| **Phase 7** | Deferred features review | 🔜 Future |
+
+---
+
+## Phase 5: Create clusters.qmd (NEW)
+
+> **Purpose**: Move cluster analysis to dedicated experimental page
+> **Priority**: Part of trajetória reorganization
+
+### Tasks
+
+| Step | Task | Description |
+|------|------|-------------|
+| 5.1 | Create clusters.qmd skeleton | Setup cells, page header |
+| 5.2 | Move cluster code from trajetoria.qmd | Cut/paste existing implementation |
+| 5.3 | Add silhouette k evaluation | Show scores for k=2,3,4,5,6 |
+| 5.4 | Add dendrogram visualization | Interactive cluster tree |
+| 5.5 | Update _quarto.yml | Add to navbar (or hide, link from trajetória) |
+| 5.6 | Add "🧪 Lab" link in trajetória | Cross-reference to experimental page |
+
+### Silhouette K Selection (to implement)
+
+```python
+from sklearn.metrics import silhouette_score
+import plotly.graph_objects as go
+
+# Test different k values
+k_range = range(2, 7)
+scores = []
+
+for k in k_range:
+    clusters = fcluster(Z, k, criterion='maxclust')
+    score = silhouette_score(condensed, clusters, metric='precomputed')
+    scores.append({'k': k, 'score': score})
+
+# Find optimal k
+optimal_k = max(scores, key=lambda x: x['score'])['k']
+
+# Visualization: bar chart of silhouette scores per k
+fig = go.Figure(go.Bar(x=[s['k'] for s in scores], y=[s['score'] for s in scores]))
+fig.update_layout(title=f'Silhouette Score por Número de Clusters (Ótimo: k={optimal_k})')
+```
+
+**Output**: Shows which k value produces the best-defined clusters.
+
+---
+
+## Phase 6: Cluster Algorithm Improvements (NEW)
+
+> **Purpose**: Enhance clustering after initial implementation works
+> **Priority**: Future (after clusters.qmd is stable)
+
+| Step | Task | Description |
+|------|------|-------------|
+| 6.1 | Dynamic k selection | Use silhouette score to auto-select k |
+| 6.2 | Auto-naming clusters | Name by dominant trait (e.g., "Núcleo Veterano") |
+| 6.3 | Temporal tracking | Track cluster membership evolution over snapshots |
+| 6.4 | Vote-based clustering | Add when we have 3+ paredões |
+| 6.5 | Combined clustering | Weight both reactions AND votes |
+
+---
+
+## Phase 7: Deferred Features Review (NEW)
+
+> **Purpose**: Systematic review of deferred features — don't lose track
+> **Priority**: After trajetória reorg is stable
+
+### High Priority Features
+
+| Feature | Description | When to implement |
+|---------|-------------|-------------------|
+| **Participant Focus Mode** | Click name → full journey (sentiment, votes, relationships) | After Phase 4 |
+| **Accuracy Tracking** | Did predictions match paredão results? | After 3+ paredões |
+| **Date Picker** | Compare any two dates | When users request |
+
+### Medium Priority Features
+
+| Feature | Description | When to implement |
+|---------|-------------|-------------------|
+| **Compare Paredões** | Side-by-side comparison | After 5+ paredões |
+| **Arcos Narrativos** | Auto-detect storylines | Mid-season |
+| **Semana a Semana** | Weekly highlights accordion | After week 4 |
+
+### Review Criteria
+
+When reviewing deferred features, evaluate:
+1. **User value**: How much does this help viewers?
+2. **Data availability**: Do we have enough data?
+3. **Implementation effort**: Hours to implement?
+4. **Maintenance cost**: Will it break with new data?
+
+---
+
+## Post-Implementation Review Items
+
+Items to review after Phase 3-4 are complete:
+
+- [ ] Is the 4-tab structure intuitive? (Decision #1)
+- [ ] Are the section mappings working? (Decision #3)
+- [ ] Does silhouette k selection improve clusters? (Decision #6)
+- [ ] Which deferred features should we prioritize? (Phase 7)
