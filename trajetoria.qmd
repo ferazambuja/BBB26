@@ -889,6 +889,100 @@ if not df_fav.empty:
 
 ## 📈 Tendências
 
+```{python}
+#| label: fatos-rapidos-tendencias
+#| output: asis
+
+# Compute volatility stats from daily_matrices
+if len(daily_snapshots) >= 2:
+    # Changes yesterday (last two daily snapshots)
+    prev_m = daily_matrices[-2]
+    curr_m = daily_matrices[-1]
+    common_pairs = set(prev_m.keys()) & set(curr_m.keys())
+
+    changes_yesterday = []
+    for pair in common_pairs:
+        if prev_m[pair] != curr_m[pair]:
+            giver, receiver = pair
+            from_rxn = prev_m[pair]
+            to_rxn = curr_m[pair]
+            changes_yesterday.append((giver, receiver, from_rxn, to_rxn))
+
+    n_changes = len(changes_yesterday)
+
+    # Most dramatic change (from positive to strong negative or vice versa)
+    dramatic_changes = []
+    for giver, receiver, from_rxn, to_rxn in changes_yesterday:
+        # Score: positive to strong negative = 2, positive to mild = 1, etc.
+        from_positive = from_rxn in POSITIVE
+        to_positive = to_rxn in POSITIVE
+        from_strong_neg = from_rxn in STRONG_NEGATIVE
+        to_strong_neg = to_rxn in STRONG_NEGATIVE
+
+        drama_score = 0
+        if from_positive and to_strong_neg:
+            drama_score = 2  # ❤️ → 🐍/🤮/etc
+        elif from_strong_neg and to_positive:
+            drama_score = 2  # 🐍 → ❤️
+        elif from_positive and not to_positive:
+            drama_score = 1  # ❤️ → mild negative
+        elif not from_positive and to_positive:
+            drama_score = 1  # negative → ❤️
+
+        if drama_score > 0:
+            emoji_from = REACTION_EMOJI.get(from_rxn, from_rxn)
+            emoji_to = REACTION_EMOJI.get(to_rxn, to_rxn)
+            dramatic_changes.append((giver, receiver, emoji_from, emoji_to, drama_score))
+
+    biggest_flip = max(dramatic_changes, key=lambda x: x[4]) if dramatic_changes else None
+
+    # Volatility level based on percentage of reactions that changed
+    total_reactions = len(common_pairs)
+    if total_reactions > 0:
+        change_pct = n_changes / total_reactions * 100
+        if change_pct > 15:
+            volatility_level = "alta"
+        elif change_pct > 5:
+            volatility_level = "média"
+        else:
+            volatility_level = "baixa"
+    else:
+        volatility_level = "?"
+        change_pct = 0
+
+    # Top vira-casaca (most total changes across all days)
+    total_changes_per_giver = Counter()
+    for i in range(1, len(daily_snapshots)):
+        pm = daily_matrices[i-1]
+        cm = daily_matrices[i]
+        cp = set(pm.keys()) & set(cm.keys())
+        for p in cp:
+            if pm[p] != cm[p]:
+                total_changes_per_giver[p[0]] += 1
+
+    top_viracasaca = total_changes_per_giver.most_common(1)[0] if total_changes_per_giver else None
+
+    # Build callout
+    facts = [f"**{n_changes}** reações mudaram ontem ({change_pct:.0f}% do total)"]
+    facts.append(f"Volatilidade: **{volatility_level}**")
+
+    detail_facts = []
+    if biggest_flip:
+        detail_facts.append(f"• Maior virada: **{biggest_flip[0]}** → {biggest_flip[1]} ({biggest_flip[2]} → {biggest_flip[3]})")
+    if top_viracasaca:
+        detail_facts.append(f"• Mais instável: **{top_viracasaca[0]}** ({top_viracasaca[1]} mudanças totais)")
+
+    print(f"""
+::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
+{' | '.join(facts)}
+
+{chr(10).join(detail_facts)}
+:::
+""")
+else:
+    print("")
+```
+
 ### O Que Está Mudando? {#tendencias}
 
 Quem muda de opinião? Quais relacionamentos estão se transformando?
