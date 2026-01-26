@@ -26,7 +26,7 @@
 
 ## Trajetória Deep Review & Reorganization Plan
 
-> **Status**: ✅ Phase 2 Complete (Fatos Rápidos added to all tabs)
+> **Status**: ✅ Phase 3 Complete (Fatos Rápidos + Destaques added to all tabs)
 > **Goal**: Transform trajetoria.qmd from a disorganized collection of plots into a coherent storytelling experience
 > **Last Updated**: 2026-01-26 (comprehensive review)
 > **Approach**: Question-driven storytelling (like paredao.qmd), not chart galleries
@@ -461,14 +461,20 @@ Each tab starts with a **dynamic "Fatos Rápidos"** section (computed from data,
 - **Tendências**: Changes yesterday, volatility level, biggest flip, most unstable person
 - **Conflitos**: Mutual rivalries, one-sided hostilities, longest rivalry, most polarizing
 
-#### Phase 3: Add "Destaques" Sections
+#### Phase 3: Add "Destaques" Sections ✅ COMPLETE (2026-01-26)
 
-| Step | Task | Tab |
-|------|------|-----|
-| 3.1 | Highlight biggest mover, most stable | 📊 Quem Lidera? |
-| 3.2 | Highlight longest alliance, most isolated | ❤️ Aliados |
-| 3.3 | Highlight critical blind spots for voting | ⚔️ Conflitos |
-| 3.4 | Highlight dramatic relationship changes | 📈 Tendências |
+| Step | Task | Tab | Status |
+|------|------|-----|--------|
+| 3.1 | Highlight biggest mover, most stable | 📊 Quem Lidera? | ✅ |
+| 3.2 | Highlight longest alliance, most isolated | ❤️ Aliados | ✅ |
+| 3.3 | Highlight critical blind spots for voting | ⚔️ Conflitos | ✅ |
+| 3.4 | Highlight dramatic relationship changes | 📈 Tendências | ✅ |
+
+**What each Destaques section provides:**
+- **Quem Lidera?**: Leader story, biggest rise/fall with context, stability analysis
+- **Aliados**: Strongest alliance (cross-group analysis), most connected, isolated warnings
+- **Tendências**: Vira-casaca story, dramatic flip narrative, volatility trend
+- **Conflitos**: Critical blind spots for voting, structural rivalries, prediction insights
 
 #### Phase 3.5: Fix Data Freshness Issues (CRITICAL) ✅ COMPLETE
 
@@ -1118,9 +1124,9 @@ Future enhancement: As more paredões occur, voting patterns become a strong sig
 |-------|-------|--------|
 | **Phase 1** | Trajetória 5-tab restructure | ✅ Complete (2026-01-26) |
 | **Phase 2** | Fatos Rápidos intros | ✅ Complete (2026-01-26) |
-| **Phase 3** | Destaques sections | 🔜 Next |
+| **Phase 3** | Destaques sections | ✅ Complete (2026-01-26) |
 | **Phase 3.5** | Data freshness fixes | ✅ Complete |
-| **Phase 4** | Deep data analysis | 🔜 Future |
+| **Phase 4** | Deep data analysis | 🔜 Next |
 | **Phase 5** | clusters.qmd creation | ✅ Complete (2026-01-26) |
 | **Phase 6** | Cluster algorithm improvements | 🔜 Future |
 | **Phase 7** | Deferred features review | 🔜 Future |
