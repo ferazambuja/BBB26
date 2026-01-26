@@ -21,6 +21,9 @@ BBB26 is a data analysis project that tracks **participant reaction data** from 
 # Fetch new data (saves only if data changed)
 python scripts/fetch_data.py
 
+# Build derived data files (auto events, roles, participant index)
+python scripts/build_derived_data.py
+
 # Audit all snapshots (find duplicates, unique states)
 python scripts/audit_snapshots.py
 
@@ -73,11 +76,35 @@ This means **every snapshot is a unique complete game state** and must be kept.
 - `data/latest.json` — Copy of most recent snapshot
 - `data/paredoes.json` — **Paredão data** (formation, house votes, results) — loaded by `paredao.qmd` and `paredoes.qmd`
 - `data/manual_events.json` — **Manual game events** not in the API (Big Fone, exits, special events)
+- `data/derived/` — **Derived data** built from snapshots + manual events (auto events, roles per day, participants index, daily metrics)
 - `data/CHANGELOG.md` — Documents data timeline and findings
+- `scripts/data_utils.py` — Shared loaders/parsers used by QMD pages (load snapshots, parse roles, build reaction matrix)
 - New format wraps data: `{ "_metadata": {...}, "participants": [...] }`
 - Old format is just the raw array: `[...]`
 - `scripts/fetch_data.py` handles both formats and saves only when data hash changes
 - **Synthetic snapshots** have `_metadata.synthetic = true` (see below)
+
+**Eliminação no API**:
+- O API **não** fornece percentuais de voto do público.
+- Participantes eliminados **desaparecem** da lista de `participants` após a eliminação (não há flag confiável de eliminado nos snapshots atuais).
+- Por isso, percentuais e resultados precisam ser **registrados manualmente** em `data/paredoes.json`.
+
+### Current Data Flow (what is auto vs manual)
+**Auto (from API snapshots):**
+- Snapshots (`data/snapshots/*.json`) + `data/latest.json` are produced by `scripts/fetch_data.py`.
+- `data/derived/roles_daily.json` stores **roles/VIP per day** (built from snapshots).
+- `data/derived/auto_events.json` stores **auto power events** (Líder/Anjo/Monstro/Imune) derived from role changes.
+- `data/derived/daily_metrics.json` stores **per-day sentiment totals** and reaction counts (used for faster timelines).
+  - Uses the standard sentiment weights (Coração +1, Planta/Mala/Biscoito/💔 -0.5, Cobra/Alvo/Vômito/Mentiroso -1).
+- Exit detection is inferred by **absence** across consecutive snapshots (used to set `active` in `participants_index.json`).
+
+**Manual (human-maintained):**
+- `data/paredoes.json` — formation + results + **percentuais** (not in API).
+- `data/manual_events.json` — Big Fone, contragolpe, voto duplo, veto, perdeu voto, saídas, etc.
+
+**Important fragmentation (current state):**
+- `cartola.qmd` computes roles and weekly points **inside the page** (not persisted).
+- Multiple pages duplicate snapshot-loading and role-parsing logic.
 
 ### Manual Events Data (`data/manual_events.json`)
 
@@ -97,6 +124,19 @@ The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing cons
 - `power_events` — **Powers and consequences** (immunity, contragolpe, voto duplo, veto, perdeu voto)
 - `cartola_points_log` — **Manual point overrides** for events not inferable from API
 
+**Manual categories + AI fill rules**:
+- `participants`: use for **desistência / eliminação / desclassificação**.
+  - Fields: `status`, `date`, `fonte`.
+  - Name must match snapshots **exactly**.
+- `weekly_events`: week‑scoped dynamics (Big Fone, Quarto Secreto, caixas, notes).
+  - Always include `week` (int) and `date` (`YYYY-MM-DD`).
+- `special_events`: one‑off events not tied to a specific week.
+- `power_events`: only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, veto, perdeu voto).
+  - Fields: `date`, `week`, `type`, `actor`, `target`, `detail`, `impacto`, `origem`, `fontes`.
+  - `impacto` is **for the target** (positivo/negativo).
+  - If `actor` is not a person, use standardized labels: `Big Fone`, `Prova do Líder`, `Prova do Anjo`, `Caixas-Surpresa`.
+- `cartola_points_log`: only events **not inferable** from snapshots or paredões (salvo, não eliminado, etc.).
+
 **API vs manual**:
 - API snapshots **auto-detect** roles (Líder/Anjo/Monstro/Imune/VIP/Paredão).
 - Manual events fill **what the API does not expose** (Big Fone, contragolpe, veto, voto duplo, etc.).
@@ -107,6 +147,43 @@ The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing cons
 - After special events (dinâmicas like Caixas-Surpresa)
 - After any **power effect** (veto, voto duplo, perdeu voto, contragolpe, imunidade)
 - After each paredão result to log **salvos/sobreviventes** and any point events not detectable via API (see below)
+- Depois de qualquer edição manual, rode `python scripts/build_derived_data.py` para atualizar `data/derived/`.
+
+### Porting logic to `daily_metrics.json` (how to move work out of QMDs)
+Use `data/derived/daily_metrics.json` whenever a chart only needs **per‑day aggregates** (no per‑giver/per‑receiver matrix).
+
+**Good candidates**:
+- Sentiment timelines (already ported in `index.qmd` and `trajetoria.qmd`)
+- Daily totals by participant (total_reactions)
+- Per‑day top 3/bottom 3 sentiment (read `sentiment` map)
+- Daily participant counts
+
+**Not good candidates (need full matrices)**:
+- Cross tables (giver→receiver reactions)
+- Mutual hostility/reciprocity analysis
+- Sankey of daily reaction shifts
+
+**How to add new fields**:
+1. Update `scripts/build_derived_data.py` → `build_daily_metrics()` to compute the metric per snapshot day.
+2. Add the new field to each `daily` entry (e.g., `"reaction_counts": {name: {...}}`).
+3. Rebuild: `python scripts/build_derived_data.py`.
+4. In the QMD, load `daily_metrics.json` and **fallback to snapshots** if the field is missing.
+
+**Schema (current)**:
+```
+data/derived/daily_metrics.json
+{
+  "_metadata": {...},
+  "daily": [
+    {
+      "date": "YYYY-MM-DD",
+      "participant_count": 22,
+      "total_reactions": 462,
+      "sentiment": { "Nome": 12.5, ... }
+    }
+  ]
+}
+```
 
 **Cartola BBB Points**:
 | Event | Points |
@@ -154,11 +231,25 @@ The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing cons
 - `nao_emparedado` — Participantes **ativos** na semana **fora da lista final** do paredão.
 
 **Power events (`power_events`)**:
-- Use this list to track **who got a power** and **who was affected**.
-- Fields: `date`, `week`, `type`, `actor`, `target`, `source`, `detail`, `impacto`, `origem`, `fontes`.
+- Armazenados em `data/manual_events.json` (lista manual).
+- Campos: `date`, `week`, `type`, `actor`, `target`, `source`, `detail`, `impacto`, `origem`, `fontes`.
 - `impacto` refere-se ao efeito **para quem recebeu** (`positivo` ou `negativo`).
-- `origem`: `manual` ou `api` (quando/Se for possível inferir automaticamente).
-- Types used so far: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`.
+- `origem`: `manual` (quando registrado no JSON) ou `api` (quando derivado automaticamente).
+- Tipos já usados: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`.
+- **Auto‑detectados da API (trajetoria.qmd)**: Líder e Anjo são derivados das mudanças de papéis nos snapshots diários e **não são salvos** em `manual_events.json`. Esses eventos entram no painel apenas no momento do render e **não ficam disponíveis para outras páginas**.
+- Se precisar persistir/compartilhar ou adicionar fontes, registre manualmente em `data/manual_events.json` (ou criar um arquivo dedicado para eventos auto‑detectados).
+  - Observação: a detecção usa **1 snapshot por dia** (último do dia). Mudanças intra‑dia podem não aparecer.
+
+### Proposed consolidation (not implemented yet)
+**Goal**: reduce fragmentation and make derived data reusable across pages.
+**Implemented (2026-01-26)**:
+- `data/derived/participants_index.json` — canonical list (name, grupo, avatar, first/last seen, active, status).
+- `data/derived/roles_daily.json` — roles + VIP per day (one snapshot/day).
+- `data/derived/auto_events.json` — role-change events (Líder/Anjo/Monstro/Imune) with `origem: api`.
+- `data/derived/daily_metrics.json` — per-day sentiment + total reactions.
+- `data/derived/validation.json` — warnings for manual data mismatches.
+- `scripts/build_derived_data.py` builds all derived files.
+- `scripts/fetch_data.py` calls derived builder by default.
 
 **Adding source URLs (`fontes`):**
 

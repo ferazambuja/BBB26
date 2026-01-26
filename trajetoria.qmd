@@ -27,6 +27,10 @@ from pathlib import Path
 from collections import defaultdict, Counter
 from datetime import datetime
 
+import sys
+sys.path.append(str(Path("scripts").resolve()))
+from data_utils import load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix
+
 # Configurações visuais
 plt.rcParams['figure.figsize'] = (14, 8)
 plt.rcParams['font.size'] = 11
@@ -111,50 +115,6 @@ pio.templates.default = 'bbb_dark'
 
 ```{python}
 #| label: load-data
-
-def load_snapshot(filepath):
-    """Carrega um snapshot JSON (formato novo ou antigo)."""
-    with open(filepath, encoding="utf-8") as f:
-        data = json.load(f)
-    if isinstance(data, dict) and "participants" in data:
-        return data["participants"], data.get("_metadata")
-    return data, None
-
-def get_all_snapshots():
-    """Retorna lista de (filepath, date_str) ordenada cronologicamente."""
-    if not DATA_DIR.exists():
-        return []
-    snapshots = sorted(DATA_DIR.glob("*.json"))
-    result = []
-    for fp in snapshots:
-        parts = fp.stem.split("_")
-        date_str = parts[0]
-        result.append((fp, date_str))
-    return result
-
-def parse_roles(roles_data):
-    """Extrai nomes de roles (pode ser lista de strings ou lista de dicts)."""
-    if not roles_data:
-        return []
-    result = []
-    for r in roles_data:
-        if isinstance(r, str):
-            result.append(r)
-        elif isinstance(r, dict):
-            result.append(r.get('label', str(r)))
-    return result
-
-def build_reaction_matrix(participants):
-    """Constrói dicionário {(giver_name, receiver_name): reaction_label}."""
-    matrix = {}
-    for receiver in participants:
-        rname = receiver['name']
-        for rxn in receiver.get('characteristics', {}).get('receivedReactions', []):
-            label = rxn.get('label', '')
-            for giver in rxn.get('participants', []):
-                gname = giver['name']
-                matrix[(gname, rname)] = label
-    return matrix
 
 def calc_sentiment(participant):
     """Calcula o score de sentimento recebido por um participante."""
@@ -245,6 +205,15 @@ daily_snapshots = [snapshots[i] for i in _daily_indices]
 daily_matrices = [all_matrices[i] for i in _daily_indices]
 n_daily = len(daily_snapshots)
 
+# Derived daily metrics (optional)
+daily_metrics = {}
+daily_metrics_map = {}
+DAILY_METRICS_FILE = Path("data/derived/daily_metrics.json")
+if DAILY_METRICS_FILE.exists():
+    with open(DAILY_METRICS_FILE, encoding="utf-8") as f:
+        daily_metrics = json.load(f)
+    daily_metrics_map = {d.get('date'): d for d in daily_metrics.get('daily', [])}
+
 # Manual events (powers & consequences)
 MANUAL_EVENTS_FILE = Path("data/manual_events.json")
 if MANUAL_EVENTS_FILE.exists():
@@ -252,7 +221,86 @@ if MANUAL_EVENTS_FILE.exists():
         manual_events = json.load(f)
 else:
     manual_events = {"power_events": []}
-power_events = manual_events.get("power_events", [])
+power_events_manual = manual_events.get("power_events", [])
+
+# Auto power events from API (Líder / Anjo / Monstro / Imune) — prefer derived file
+power_events_auto = []
+AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
+if AUTO_EVENTS_FILE.exists():
+    with open(AUTO_EVENTS_FILE, encoding="utf-8") as f:
+        auto_payload = json.load(f)
+    power_events_auto = auto_payload.get("events", [])
+else:
+    prev_lider = None
+    prev_anjo = None
+    prev_monstro = set()
+    prev_imune = set()
+    for snap in daily_snapshots:
+        date = snap["date"]
+        current_lider = None
+        current_anjo = None
+        current_monstro = set()
+        current_imune = set()
+        for p in snap["participants"]:
+            name = p.get("name", "").strip()
+            roles = parse_roles(p.get("characteristics", {}).get("roles", []))
+            if "Líder" in roles:
+                current_lider = name
+            if "Anjo" in roles:
+                current_anjo = name
+            if "Monstro" in roles:
+                current_monstro.add(name)
+            if "Imune" in roles:
+                current_imune.add(name)
+
+        if current_lider and current_lider != prev_lider:
+            power_events_auto.append({
+                "date": date,
+                "type": "lider",
+                "actor": "Prova do Líder",
+                "target": current_lider,
+                "detail": "Ganhou a liderança",
+                "impacto": "positivo",
+                "origem": "api",
+            })
+            prev_lider = current_lider
+        if current_anjo and current_anjo != prev_anjo:
+            power_events_auto.append({
+                "date": date,
+                "type": "anjo",
+                "actor": "Prova do Anjo",
+                "target": current_anjo,
+                "detail": "Ganhou o anjo",
+                "impacto": "positivo",
+                "origem": "api",
+            })
+            prev_anjo = current_anjo
+
+        for name in sorted(current_monstro - prev_monstro):
+            power_events_auto.append({
+                "date": date,
+                "type": "monstro",
+                "actor": "Castigo do Monstro",
+                "target": name,
+                "detail": "Recebeu o monstro",
+                "impacto": "negativo",
+                "origem": "api",
+            })
+        prev_monstro = current_monstro
+
+        for name in sorted(current_imune - prev_imune):
+            power_events_auto.append({
+                "date": date,
+                "type": "imunidade",
+                "actor": "Dinâmica da casa",
+                "target": name,
+                "detail": "Recebeu imunidade",
+                "impacto": "positivo",
+                "origem": "api",
+            })
+        prev_imune = current_imune
+
+power_events = power_events_manual + power_events_auto
 ```
 
 # Visão Geral {#visao-geral}
@@ -345,7 +393,7 @@ if events_data:
 # Poderes & Consequências {#poderes}
 
 Eventos de **dinâmicas da casa** que concedem poderes ou impõem consequências.  
-Esses registros são **manuais** (via `power_events`) e servem para enriquecer a análise do jogo — **não têm relação com Cartola**.
+Esses registros vêm de **dois lugares**: `power_events` manuais e eventos **auto‑detectados da API** (Líder/Anjo). **Não têm relação com Cartola**.
 
 ::: {.panel-tabset}
 
@@ -362,6 +410,9 @@ else:
     df_power['Data'] = pd.to_datetime(df_power['date'])
 
     tipo_labels = {
+        'lider': 'Líder',
+        'anjo': 'Anjo',
+        'monstro': 'Monstro',
         'imunidade': 'Imunidade',
         'indicacao': 'Indicação',
         'contragolpe': 'Contragolpe',
@@ -389,6 +440,26 @@ else:
           '<th style="padding: 0.5rem;">Impacto</th>'
           '</tr></thead><tbody>')
 
+    def render_person_cell(name, border):
+        label = name or '—'
+        if label in AVATARS and AVATARS[label]:
+            avatar = AVATARS[label]
+            avatar_html = (
+                f'<img src="{avatar}" style="width: 28px; height: 28px; border-radius: 50%; '
+                f'border: 2px solid {border}; object-fit: cover; margin-right: 0.4rem;">'
+            )
+            return f'<div style="display: flex; align-items: center;">{avatar_html}{label}</div>'
+
+        icon_map = {
+            'big fone': '📞',
+            'caixas-surpresa': '🎁',
+            'prova do líder': '👑',
+            'prova do anjo': '😇',
+        }
+        lower = label.lower()
+        icon = next((icon_map[k] for k in icon_map if k in lower), '🎬')
+        return f'<div style="display: flex; align-items: center; gap: 0.4rem;"><span>{icon}</span>{label}</div>'
+
     for _, row in df_show.iterrows():
         impacto = row.get('impacto', 'neutro')
         if impacto == 'positivo':
@@ -404,13 +475,8 @@ else:
             bg = 'rgba(149, 165, 166, 0.08)'
             label = 'Neutro'
 
-        avatar = AVATARS.get(row['target'], '')
-        avatar_html = (
-            f'<img src="{avatar}" style="width: 28px; height: 28px; border-radius: 50%; '
-            f'border: 2px solid {border}; object-fit: cover; margin-right: 0.4rem;">'
-            if avatar else ''
-        )
-        target_html = f'<div style="display: flex; align-items: center;">{avatar_html}{row["target"]}</div>'
+        actor_html = render_person_cell(row["actor"], border)
+        target_html = render_person_cell(row["target"], border)
         impact_badge = (
             f'<span style="display:inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; '
             f'background: {bg}; color: {border}; border: 1px solid {border}; font-size: 0.75rem;">{label}</span>'
@@ -419,7 +485,7 @@ else:
         print(f'<tr style="border-left: 4px solid {border}; background: {bg};">'
               f'<td style="padding: 0.45rem 0.5rem;">{row["date"]}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{row["Tipo"]}</td>'
-              f'<td style="padding: 0.45rem 0.5rem;">{row["actor"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{actor_html}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{target_html}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{row["detail"]}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{impact_badge}</td>'
@@ -593,18 +659,29 @@ if late_entrants:
 
 # Calcular sentimento para cada participante em cada dia (1 por dia)
 timeline_data = []
-for i, snap in enumerate(daily_snapshots):
-    for p in snap['participants']:
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        score = calc_sentiment(p)
-        timeline_data.append({
-            'Data': pd.to_datetime(snap['date']),
-            'Participante': name,
-            'Sentimento': score,
-            'Grupo': p.get('characteristics', {}).get('memberOf', '?')
-        })
+if daily_metrics_map:
+    for date_str in sorted(daily_metrics_map.keys()):
+        entry = daily_metrics_map[date_str]
+        for name, score in entry.get('sentiment', {}).items():
+            timeline_data.append({
+                'Data': pd.to_datetime(date_str),
+                'Participante': name,
+                'Sentimento': score,
+                'Grupo': MEMBER_OF.get(name, '?')
+            })
+else:
+    for snap in daily_snapshots:
+        for p in snap['participants']:
+            if p.get('characteristics', {}).get('eliminated'):
+                continue
+            name = p['name']
+            score = calc_sentiment(p)
+            timeline_data.append({
+                'Data': pd.to_datetime(snap['date']),
+                'Participante': name,
+                'Sentimento': score,
+                'Grupo': p.get('characteristics', {}).get('memberOf', '?')
+            })
 
 df_timeline = pd.DataFrame(timeline_data)
 

@@ -22,6 +22,7 @@ Recommended capture times:
 - 03:00 UTC (00:00 BRT) - Night, catches post-episode changes (Sun/Tue)
 """
 
+import argparse
 import requests
 import json
 import hashlib
@@ -176,5 +177,17 @@ def fetch_and_save():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--skip-derived", action="store_true", help="Skip building derived data files")
+    args = parser.parse_args()
+
     path, changed = fetch_and_save()
+
+    if not args.skip_derived:
+        try:
+            from build_derived_data import build_derived_data
+            build_derived_data()
+        except Exception as e:
+            print(f"Warning: failed to build derived data: {e}")
+
     exit(0 if path else 1)

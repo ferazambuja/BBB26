@@ -27,6 +27,10 @@ from pathlib import Path
 from collections import defaultdict, Counter
 from datetime import datetime
 
+import sys
+sys.path.append(str(Path("scripts").resolve()))
+from data_utils import load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix
+
 # Configurações visuais
 plt.rcParams['figure.figsize'] = (14, 8)
 plt.rcParams['font.size'] = 11
@@ -111,50 +115,6 @@ pio.templates.default = 'bbb_dark'
 
 ```{python}
 #| label: load-data
-
-def load_snapshot(filepath):
-    """Carrega um snapshot JSON (formato novo ou antigo)."""
-    with open(filepath, encoding="utf-8") as f:
-        data = json.load(f)
-    if isinstance(data, dict) and "participants" in data:
-        return data["participants"], data.get("_metadata")
-    return data, None
-
-def get_all_snapshots():
-    """Retorna lista de (filepath, date_str) ordenada cronologicamente."""
-    if not DATA_DIR.exists():
-        return []
-    snapshots = sorted(DATA_DIR.glob("*.json"))
-    result = []
-    for fp in snapshots:
-        parts = fp.stem.split("_")
-        date_str = parts[0]
-        result.append((fp, date_str))
-    return result
-
-def parse_roles(roles_data):
-    """Extrai nomes de roles (pode ser lista de strings ou lista de dicts)."""
-    if not roles_data:
-        return []
-    result = []
-    for r in roles_data:
-        if isinstance(r, str):
-            result.append(r)
-        elif isinstance(r, dict):
-            result.append(r.get('label', str(r)))
-    return result
-
-def build_reaction_matrix(participants):
-    """Constrói dicionário {(giver_name, receiver_name): reaction_label}."""
-    matrix = {}
-    for receiver in participants:
-        rname = receiver['name']
-        for rxn in receiver.get('characteristics', {}).get('receivedReactions', []):
-            label = rxn.get('label', '')
-            for giver in rxn.get('participants', []):
-                gname = giver['name']
-                matrix[(gname, rname)] = label
-    return matrix
 
 def calc_sentiment(participant):
     """Calcula o score de sentimento recebido por um participante."""

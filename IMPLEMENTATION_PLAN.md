@@ -65,6 +65,10 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-25 | Enhanced fetch_data.py with change type detection (reactions/balance/roles) | ✅ Done |
 | 2026-01-25 | Created `data/manual_events.json` for tracking non-API game events | ✅ Done |
 | 2026-01-25 | Added `fontes` arrays to manual_events.json for source URL tracking | ✅ Done |
+| 2026-01-26 | Added derived data pipeline (`data/derived/` + `scripts/build_derived_data.py`) | ✅ Done |
+| 2026-01-26 | Linked fetch pipeline to rebuild derived data after snapshots | ✅ Done |
+| 2026-01-26 | Centralized snapshot loaders in `scripts/data_utils.py` and updated QMDs | ✅ Done |
+| 2026-01-26 | Added `daily_metrics.json` derived output for faster timelines | ✅ Done |
 | | Fill manual_events.json with past events + source URLs | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
 
@@ -137,6 +141,7 @@ BBB26/
 ├── data/                   ✅ NEW
 │   ├── CHANGELOG.md        ✅ NEW (data timeline, audit results, key findings)
 │   ├── latest.json         ✅ NEW (copy of most recent snapshot)
+│   ├── derived/            ✅ NEW (auto events, roles per day, participants index)
 │   └── snapshots/          ✅ NEW (13 canonical JSON files)
 │       ├── 2026-01-13_17-18-02.json  (21p, 420r — initial state)
 │       ├── 2026-01-14_15-44-42.json  (21p, 420r)
@@ -463,6 +468,7 @@ jobs:
       - name: Fetch latest data
         run: |
           python scripts/fetch_data.py
+          # fetch_data.py now rebuilds derived JSONs (data/derived/*) for faster renders
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
@@ -513,6 +519,11 @@ nbclient
 2. Source: **GitHub Actions** (recommended)
    - Or: Deploy from branch `gh-pages`
 3. The site will be available at: `https://<username>.github.io/BBB26/`
+
+### Derived data (static-friendly)
+- `data/derived/*` is generated **during the GitHub Actions run** (via `fetch_data.py` → `build_derived_data.py`).
+- These JSONs are used at **render time** to speed up pages (no client-side computation).
+- Ensure `data/derived/` remains **tracked in git** (not ignored).
 
 ### 3.2 Alternative: Branch-based Deployment
 

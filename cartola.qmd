@@ -67,6 +67,14 @@ GROUP_COLORS = {
     'Pipoca': '#4363D8',
 }
 
+def contrast_color(hex_color):
+    hex_color = hex_color.lstrip('#')
+    if len(hex_color) != 6:
+        return '#fff'
+    r, g, b = (int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return '#000' if luminance > 0.6 else '#fff'
+
 # Cartola BBB Points System
 CARTOLA_POINTS = {
     'lider': 80,
@@ -152,6 +160,13 @@ if manual_events_path.exists():
 else:
     manual_events = {'participants': {}, 'weekly_events': [], 'special_events': [], 'power_events': [], 'cartola_points_log': []}
 
+# Load derived participants index (if available)
+participants_index = []
+participants_index_path = Path('data/derived/participants_index.json')
+if participants_index_path.exists():
+    with open(participants_index_path) as f:
+        participants_index = json.load(f).get('participants', [])
+
 # Load paredões data (formation, resultados, bate-volta)
 paredoes_path = Path('data/paredoes.json')
 if paredoes_path.exists():
@@ -191,26 +206,40 @@ for snap in snapshots:
     daily_snapshots[snap['date']] = snap
 daily_snapshots = [daily_snapshots[d] for d in sorted(daily_snapshots.keys())]
 
-# Build participant info from all snapshots
+# Build participant info (prefer derived index if available)
 PARTICIPANT_INFO = {}
 AVATARS = {}
 
-for snap in snapshots:
-    for p in snap['participants']:
-        name = p['name'].strip()
-        avatar = p.get('avatar', '')  # Avatar is directly on the participant object
-        if name not in PARTICIPANT_INFO:
-            PARTICIPANT_INFO[name] = {
-                'grupo': p.get('characteristics', {}).get('memberOf', 'Pipoca'),
-                'avatar': avatar,
-                'active': True  # Will be updated below
-            }
-        # Update avatar if missing
-        if avatar and (name not in AVATARS or not AVATARS[name]):
+if participants_index:
+    for rec in participants_index:
+        name = rec.get('name', '').strip()
+        if not name:
+            continue
+        avatar = rec.get('avatar', '')
+        PARTICIPANT_INFO[name] = {
+            'grupo': rec.get('grupo', 'Pipoca'),
+            'avatar': avatar,
+            'active': rec.get('active', True)
+        }
+        if avatar:
             AVATARS[name] = avatar
-            PARTICIPANT_INFO[name]['avatar'] = avatar
+else:
+    for snap in snapshots:
+        for p in snap['participants']:
+            name = p['name'].strip()
+            avatar = p.get('avatar', '')  # Avatar is directly on the participant object
+            if name not in PARTICIPANT_INFO:
+                PARTICIPANT_INFO[name] = {
+                    'grupo': p.get('characteristics', {}).get('memberOf', 'Pipoca'),
+                    'avatar': avatar,
+                    'active': True  # Will be updated below
+                }
+            # Update avatar if missing
+            if avatar and (name not in AVATARS or not AVATARS[name]):
+                AVATARS[name] = avatar
+                PARTICIPANT_INFO[name]['avatar'] = avatar
 
-# Mark exited participants as inactive
+# Mark exited participants as inactive (manual override)
 for name, info in manual_events.get('participants', {}).items():
     name = name.strip()
     if name in PARTICIPANT_INFO:
@@ -222,13 +251,22 @@ for name, info in manual_events.get('participants', {}).items():
             'active': False
         }
 
-# Check current participants from latest snapshot
-latest_names = set()
-if daily_snapshots:
-    for p in daily_snapshots[-1]['participants']:
-        pname = p['name'].strip()
-        latest_names.add(pname)
-        PARTICIPANT_INFO[pname]['active'] = True
+# If derived index was not used, ensure active names are marked from latest snapshot
+if not participants_index:
+    latest_names = set()
+    if daily_snapshots:
+        for p in daily_snapshots[-1]['participants']:
+            pname = p['name'].strip()
+            latest_names.add(pname)
+            PARTICIPANT_INFO[pname]['active'] = True
+
+# Build participant colors once (prefer individual colors over group colors)
+all_participants = sorted(PARTICIPANT_INFO.keys())
+palette = (
+    px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+    px.colors.qualitative.Set2 + px.colors.qualitative.Bold
+)
+participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
 ```
 
 ```{python}
@@ -311,7 +349,7 @@ for snap in daily_snapshots:
     current_vip = set()
 
     for p in snap['participants']:
-        name = p['name']
+        name = p['name'].strip()
         roles = parse_roles(p.get('characteristics', {}).get('roles', []))
         group = p.get('characteristics', {}).get('group', '')
 
@@ -543,7 +581,7 @@ current_monstro = set()
 if daily_snapshots:
     latest = daily_snapshots[-1]
     for p in latest['participants']:
-        name = p['name']
+        name = p['name'].strip()
         roles = parse_roles(p.get('characteristics', {}).get('roles', []))
         if 'Paredão' in roles:
             current_paredao.add(name)
@@ -672,7 +710,6 @@ highlights = []
 
 if leader and leader['total'] != 0:
     grupo = leader['grupo']
-    grupo_color = GROUP_COLORS.get(grupo, '#666')
     highlights.append(f"🏆 **{leader['name']}** ({grupo}) lidera com **{leader['total']:+d}** pontos")
 
 # Current roles from latest snapshot
@@ -683,7 +720,7 @@ if daily_snapshots:
         roles = parse_roles(p.get('characteristics', {}).get('roles', []))
         for role in roles:
             if role in current_roles:
-                current_roles[role].append(p['name'])
+                current_roles[role].append(p['name'].strip())
 
     if current_roles['Líder']:
         highlights.append(f"👑 Líder atual: **{', '.join(current_roles['Líder'])}** (+80 pts)")
@@ -704,11 +741,13 @@ if bottom:
 
 if highlights:
     print(f'''
-::: {{.callout-tip title="Destaques Cartola — Semana {n_weeks}" appearance="simple"}}
+<div style="background: #2a2a2a; border-left: 4px solid #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
+<div style="font-weight: 700; margin-bottom: 0.5rem;">Destaques Cartola — Semana {n_weeks}</div>
+<ul style="margin: 0; padding-left: 1.2rem;">
 ''')
     for h in highlights:
-        print(f"- {h}")
-    print(":::\n")
+        print(f"<li>{h}</li>")
+    print("</ul></div>")
 ```
 
 ```{python}
@@ -760,7 +799,7 @@ print(f'''
 
 # Ranking Cartola {#ranking}
 
-Pontuação acumulada de todos os participantes. Cores indicam o grupo: <span style="color: #4363D8;">●</span> Pipoca, <span style="color: #3CB44B;">●</span> Veterano, <span style="color: #E6194B;">●</span> Camarote.
+Pontuação acumulada de todos os participantes. Cores representam cada participante.
 
 ```{python}
 #| label: leaderboard-cards
@@ -780,7 +819,8 @@ if display_list:
 
     for i, p in enumerate(display_list):
         rank = i + 1 if p['total'] != 0 else '—'
-        grupo_color = GROUP_COLORS.get(p['grupo'], '#666')
+        participant_color = participant_colors.get(p['name'], '#666')
+        badge_text_color = contrast_color(participant_color)
         avatar_url = p['avatar'] or ''
         status_badge = ''
 
@@ -831,9 +871,9 @@ if display_list:
 <div style="flex-shrink: 0; position: relative;">
 ''')
         if avatar_url:
-            print(f'<img src="{avatar_url}" alt="{p["name"]}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {grupo_color}; object-fit: cover;">')
+            print(f'<img src="{avatar_url}" alt="{p["name"]}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {participant_color}; object-fit: cover;">')
         else:
-            print(f'<div style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {grupo_color}; background: #444; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #888;">?</div>')
+            print(f'<div style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {participant_color}; background: #444; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #888;">?</div>')
 
         # Rank badge
         if isinstance(rank, int) and rank <= 3:
@@ -846,7 +886,7 @@ if display_list:
 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;">
 <div>
 <span style="font-weight: bold; color: #fff; font-size: 1.1rem;">{rank_display} {p['name']}</span>
-<span style="background: {grupo_color}; color: {'#000' if grupo_color == '#FFD700' else '#fff'}; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">{p['grupo']}</span>
+<span style="background: {participant_color}; color: {badge_text_color}; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">{p['grupo']}</span>
 {status_badge}
 </div>
 <div style="font-size: 1.5rem; font-weight: bold; color: {pts_color};">{p['total']:+d}</div>
@@ -861,38 +901,75 @@ else:
     print('<p class="text-muted">Nenhum participante encontrado.</p>')
 ```
 
+Pontuação acumulada ao longo das semanas.
+
 ```{python}
-#| label: leaderboard-chart
+#| label: evolution-chart
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Horizontal bar chart (matching index.qmd ranking style)
+# Evolution chart (matching trajetoria.qmd style)
 # ══════════════════════════════════════════════════════════════════════════════
 
-with_points = [p for p in leaderboard if p['total'] != 0]
+if n_weeks > 0 and all_points:
+    # Build cumulative data per week
+    cumulative_data = []
+    running_totals = defaultdict(int)
 
-if with_points:
-    # Sort for chart (ascending so highest is at top)
-    chart_data = sorted(with_points, key=lambda x: x['total'])
+    for week in range(1, n_weeks + 1):
+        for participant in all_points:
+            if week in all_points[participant]:
+                week_pts = sum(pts for _, pts, _ in all_points[participant][week])
+                running_totals[participant] += week_pts
 
-    fig = go.Figure(go.Bar(
-        y=[f"{p['name']} {'(saiu)' if not p['active'] else ''}" for p in chart_data],
-        x=[p['total'] for p in chart_data],
-        orientation='h',
-        marker_color=[GROUP_COLORS.get(p['grupo'], '#666') for p in chart_data],
-        text=[f"{p['total']:+d}" for p in chart_data],
-        textposition='outside',
-        hovertemplate='%{y}: %{x:+d} pontos<extra></extra>',
-    ))
+            # Add data point if participant has any cumulative points
+            if running_totals[participant] != 0:
+                cumulative_data.append({
+                    'Semana': week,
+                    'Participante': participant,
+                    'Pontos': running_totals[participant],
+                })
 
-    fig.update_layout(
-        title="Ranking Cartola BBB",
-        xaxis_title="Pontos",
-        yaxis_title="",
-        height=max(400, len(chart_data) * 40),
-        xaxis=dict(zeroline=True, zerolinecolor='rgba(255,255,255,0.3)', zerolinewidth=2),
-    )
+    if cumulative_data:
+        df = pd.DataFrame(cumulative_data)
 
-    fig.show()
+        fig = go.Figure()
+
+        # Sort by final score for legend order
+        final_scores = {p: running_totals[p] for p in running_totals if running_totals[p] != 0}
+        sorted_participants = sorted(final_scores.keys(), key=lambda x: -final_scores[x])
+
+        for name in sorted_participants:
+            df_p = df[df['Participante'] == name].sort_values('Semana')
+            if df_p.empty:
+                continue
+
+            color = participant_colors.get(name, '#666')
+            final_pts = running_totals[name]
+
+            fig.add_trace(go.Scatter(
+                x=df_p['Semana'],
+                y=df_p['Pontos'],
+                mode='lines+markers',
+                name=f"{name} ({final_pts:+d})",
+                line=dict(color=color, width=2),
+                marker=dict(size=10, color=color),
+                hovertemplate=f'{name}<br>Semana %{{x}}: %{{y:+d}} pts<extra></extra>',
+            ))
+
+        fig.update_layout(
+            title="Evolução da Pontuação Cartola",
+            xaxis_title="Semana",
+            yaxis_title="Pontos Acumulados",
+            xaxis=dict(tickmode='linear', tick0=1, dtick=1),
+            yaxis=dict(zeroline=True, zerolinecolor='rgba(255,255,255,0.3)', zerolinewidth=1),
+            height=500,
+            hovermode='x unified',
+            legend=dict(font=dict(size=10)),
+        )
+
+        fig.show()
+else:
+    print("*Dados insuficientes para gerar o gráfico de evolução.*")
 ```
 
 # Semanas {#semanas}
@@ -909,7 +986,6 @@ Detalhamento semanal: papéis e pontuações detectados da API.
 
 if n_weeks > 0:
     print('::: {.panel-tabset}\n')
-
     for week in range(1, n_weeks + 1):
         # Get manual week info if available (for Big Fone, notes, etc.)
         week_info = next((w for w in weekly_data if w.get('week') == week), None)
@@ -1036,17 +1112,17 @@ if n_weeks > 0:
             print('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem; margin: 1rem 0;">')
 
             for wp in week_points:
-                grupo_color = GROUP_COLORS.get(wp['grupo'], '#666')
+                participant_color = participant_colors.get(wp['name'], '#666')
                 pts_color = '#27ae60' if wp['total'] > 0 else '#e74c3c'
                 avatar = wp['avatar']
 
                 events_str = ' '.join([f"{POINTS_EMOJI.get(e, '•')}" for e, _, _ in wp['events']])
 
                 print(f'''
-<div style="background: #2a2a2a; border-radius: 8px; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem; border-left: 3px solid {grupo_color};">
+<div style="background: #2a2a2a; border-radius: 8px; padding: 0.8rem; display: flex; align-items: center; gap: 0.8rem; border-left: 3px solid {participant_color};">
 ''')
                 if avatar:
-                    print(f'<img src="{avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid {grupo_color}; object-fit: cover;">')
+                    print(f'<img src="{avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid {participant_color}; object-fit: cover;">')
                 print(f'''
 <div style="flex: 1;">
 <div style="font-weight: bold; color: #fff;">{wp['name']}</div>
@@ -1056,91 +1132,15 @@ if n_weeks > 0:
 </div>
 ''')
 
-            print('</div>')
+                print('</div>')
         else:
             print('\n*Nenhum ponto registrado nesta semana.*\n')
 
         print()
 
-    print(':::')  # Close tabset
+    print(':::')
 else:
     print('*Nenhuma semana registrada ainda.*\n')
-```
-
-# Evolução {#evolucao}
-
-Pontuação acumulada ao longo das semanas.
-
-```{python}
-#| label: evolution-chart
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Evolution chart (matching trajetoria.qmd style)
-# ══════════════════════════════════════════════════════════════════════════════
-
-if n_weeks > 0 and all_points:
-    # Build cumulative data per week
-    cumulative_data = []
-    running_totals = defaultdict(int)
-
-    for week in range(1, n_weeks + 1):
-        for participant in all_points:
-            if week in all_points[participant]:
-                week_pts = sum(pts for _, pts, _ in all_points[participant][week])
-                running_totals[participant] += week_pts
-
-            # Add data point if participant has any cumulative points
-            if running_totals[participant] != 0:
-                info = PARTICIPANT_INFO.get(participant, {'grupo': 'Pipoca'})
-                cumulative_data.append({
-                    'Semana': week,
-                    'Participante': participant,
-                    'Pontos': running_totals[participant],
-                    'Grupo': info.get('grupo', 'Pipoca'),
-                })
-
-    if cumulative_data:
-        df = pd.DataFrame(cumulative_data)
-
-        fig = go.Figure()
-
-        # Sort by final score for legend order
-        final_scores = {p: running_totals[p] for p in running_totals if running_totals[p] != 0}
-        sorted_participants = sorted(final_scores.keys(), key=lambda x: -final_scores[x])
-
-        for name in sorted_participants:
-            df_p = df[df['Participante'] == name].sort_values('Semana')
-            if df_p.empty:
-                continue
-
-            grupo = PARTICIPANT_INFO.get(name, {}).get('grupo', 'Pipoca')
-            color = GROUP_COLORS.get(grupo, '#666')
-            final_pts = running_totals[name]
-
-            fig.add_trace(go.Scatter(
-                x=df_p['Semana'],
-                y=df_p['Pontos'],
-                mode='lines+markers',
-                name=f"{name} ({final_pts:+d})",
-                line=dict(color=color, width=2),
-                marker=dict(size=10, color=color),
-                hovertemplate=f'{name}<br>Semana %{{x}}: %{{y:+d}} pts<extra></extra>',
-            ))
-
-        fig.update_layout(
-            title="Evolução da Pontuação Cartola",
-            xaxis_title="Semana",
-            yaxis_title="Pontos Acumulados",
-            xaxis=dict(tickmode='linear', tick0=1, dtick=1),
-            yaxis=dict(zeroline=True, zerolinecolor='rgba(255,255,255,0.3)', zerolinewidth=1),
-            height=500,
-            hovermode='x unified',
-            legend=dict(font=dict(size=10)),
-        )
-
-        fig.show()
-else:
-    print("*Dados insuficientes para gerar o gráfico de evolução.*")
 ```
 
 # Sistema de Pontos {#pontos}
