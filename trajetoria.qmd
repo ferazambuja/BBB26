@@ -337,6 +337,82 @@ if events_data:
 
 ## 📊 Quem Lidera?
 
+```{python}
+#| label: fatos-rapidos-lideranca
+#| output: asis
+
+# Compute leadership stats directly from daily_snapshots
+if len(daily_snapshots) >= 2:
+    # Helper: get sentiment ranking for a snapshot
+    def get_ranking(snap):
+        scores = []
+        for p in snap['participants']:
+            if p.get('characteristics', {}).get('eliminated'):
+                continue
+            scores.append((p['name'], calc_sentiment(p)))
+        return sorted(scores, key=lambda x: -x[1])
+
+    # Current leader (latest daily snapshot)
+    latest_ranking = get_ranking(daily_snapshots[-1])
+    current_leader = latest_ranking[0][0]
+    current_leader_score = latest_ranking[0][1]
+
+    # Days leading (consecutive days at #1, counting backwards)
+    days_leading = 0
+    for snap in reversed(daily_snapshots):
+        ranking = get_ranking(snap)
+        if ranking and ranking[0][0] == current_leader:
+            days_leading += 1
+        else:
+            break
+
+    # Biggest position change (first day vs last day)
+    first_ranking = get_ranking(daily_snapshots[0])
+    first_rank_dict = {name: i+1 for i, (name, _) in enumerate(first_ranking)}
+    latest_rank_dict = {name: i+1 for i, (name, _) in enumerate(latest_ranking)}
+
+    position_changes = []
+    for name, rank in latest_rank_dict.items():
+        if name in first_rank_dict:
+            change = first_rank_dict[name] - rank  # positive = improved
+            position_changes.append((name, change, rank))
+
+    biggest_rise = max(position_changes, key=lambda x: x[1]) if position_changes else None
+    biggest_drop = min(position_changes, key=lambda x: x[1]) if position_changes else None
+
+    # Top 5 newcomers (not in first snapshot's top 5)
+    first_top5 = set([name for name, _ in first_ranking[:5]]) if len(first_ranking) >= 5 else set()
+    current_top5 = set([name for name, _ in latest_ranking[:5]]) if len(latest_ranking) >= 5 else set()
+    new_in_top5 = current_top5 - first_top5
+
+    # Build the callout
+    facts = []
+    facts.append(f"**{current_leader}** lidera com **{current_leader_score:+.1f}** pontos")
+    if days_leading > 1:
+        facts.append(f"há **{days_leading} dias** consecutivos")
+
+    detail_facts = []
+    if biggest_rise and biggest_rise[1] > 2:
+        detail_facts.append(f"• Maior subida: **{biggest_rise[0]}** (+{biggest_rise[1]} posições)")
+    if biggest_drop and biggest_drop[1] < -2:
+        detail_facts.append(f"• Maior queda: **{biggest_drop[0]}** ({biggest_drop[1]} posições)")
+    if new_in_top5:
+        names = ', '.join(sorted(new_in_top5))
+        detail_facts.append(f"• Novos no Top 5: **{names}**")
+
+    details_str = chr(10).join(detail_facts) if detail_facts else ""
+
+    print(f"""
+::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
+{' '.join(facts[:2])}
+
+{details_str}
+:::
+""")
+else:
+    print("")  # Not enough data
+```
+
 ### Evolução do Sentimento {#evolucao}
 
 Como o sentimento de cada participante mudou ao longo do tempo.
