@@ -240,6 +240,13 @@ if DAILY_METRICS_FILE.exists():
         daily_metrics = json.load(f)
     daily_metrics_map = {d.get('date'): d for d in daily_metrics.get('daily', [])}
 
+# Week helper (BBB26 starts 2026-01-13)
+def get_week_number(date_str):
+    date = datetime.strptime(date_str, '%Y-%m-%d')
+    start = datetime(2026, 1, 13)
+    delta = (date - start).days
+    return max(1, (delta // 7) + 1)
+
 # Manual + derived events (for profiles)
 manual_events = {}
 MANUAL_EVENTS_FILE = Path("data/manual_events.json")
@@ -1467,7 +1474,7 @@ O badge avalia o risco de receber **votos inesperados** — de pessoas que o par
 
 **Novos sinais de jogo (dinâmicas públicas):**
 - **Poderes recebidos** (benefícios e prejuízos) mostram acontecimentos **públicos** na casa que podem mudar alianças.
-- **Votos da casa recebidos** aparecem como **“voto secreto (revelado)”** — só são conhecidos após a formação.
+- **Votos da casa recebidos** aparecem como **“voto secreto (para participantes)”** — só são conhecidos do **público** após a formação.
 - O painel agora separa **Risco social** (percepção) e **Risco externo** (votos/eventos negativos).
 - **Risco externo é experimental** e será recalibrado semanalmente após indicações/contragolpes/votações.
 
@@ -1484,6 +1491,7 @@ sorted_active = sorted(
 )
 
 power_events = manual_events.get('power_events', []) + auto_events.get('events', [])
+current_week = get_week_number(latest['date'])
 
 def normalize_actors(ev):
     actors = ev.get('actors')
@@ -1523,7 +1531,10 @@ def render_actor_avatars(actors, border_color="#666"):
 
 # Votes received (from paredoes.json), accounting for voto duplo/anulado
 votes_received = defaultdict(lambda: defaultdict(int))
+votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 votes_total = defaultdict(int)
+votes_cast = defaultdict(int)
+revealed_votes = defaultdict(set)
 
 for par in paredoes_data.get('paredoes', []) if paredoes_data else []:
     votos = par.get('votos_casa', {}) or {}
@@ -1555,7 +1566,24 @@ for par in paredoes_data.get('paredoes', []) if paredoes_data else []:
         if mult <= 0:
             continue
         votes_received[t][v] += mult
+        votes_received_by_week[week][t][v] += mult
         votes_total[t] += mult
+        votes_cast[v] += mult
+
+# Dedo-duro (revealed votes) from manual_events.weekly_events
+for wev in manual_events.get('weekly_events', []) if manual_events else []:
+    dd = wev.get('dedo_duro')
+    if isinstance(dd, dict):
+        voter = dd.get('votante')
+        target = dd.get('alvo')
+        if voter and target:
+            revealed_votes[target].add(voter)
+    elif isinstance(dd, list):
+        for item in dd:
+            voter = item.get('votante')
+            target = item.get('alvo')
+            if voter and target:
+                revealed_votes[target].add(voter)
 
 def make_event_chips(events, border_color, positive=True):
     if not events:
@@ -1666,24 +1694,27 @@ for p in sorted_active:
         risk_color = "#28a745"
 
     # Power events (received)
-    target_events = [ev for ev in power_events if ev.get('target') == name]
+    target_events = [ev for ev in power_events if ev.get('target') == name and ev.get('week') == current_week]
     pos_events = [ev for ev in target_events if ev.get('impacto') == 'positivo']
     neg_events = [ev for ev in target_events if ev.get('impacto') == 'negativo']
 
     pos_html = make_event_chips(pos_events, "#28a745", positive=True)
     neg_html = make_event_chips(neg_events, "#dc3545", positive=False)
 
-    vote_map = votes_received.get(name, {})
+    vote_map = votes_received_by_week.get(current_week, {}).get(name, {})
     if vote_map:
         vote_chips = []
         for voter, count in sorted(vote_map.items(), key=lambda x: (-x[1], x[0])):
             count_prefix = f"{count}x " if count > 1 else ""
-            avatar_html = render_actor_avatars([voter], "#6c757d")
+            is_revealed = voter in revealed_votes.get(name, set())
+            border = "#f1c40f" if is_revealed else "#6c757d"
+            badge = " 👁️" if is_revealed else ""
+            avatar_html = render_actor_avatars([voter], border)
             vote_chips.append(
                 f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-                f"border:1px solid #6c757d; color:#ddd; border-radius:999px; padding:0.2rem 0.45rem; "
+                f"border:1px solid {border}; color:#ddd; border-radius:999px; padding:0.2rem 0.45rem; "
                 f"font-size:0.75rem; margin:0.15rem;'>"
-                f"{count_prefix}{avatar_html}{voter}</span>"
+                f"{count_prefix}{avatar_html}{voter}{badge}</span>"
             )
         votes_html = ' '.join(vote_chips)
     else:
@@ -1694,11 +1725,42 @@ for p in sorted_active:
         return any(a == name for a in actors)
 
     neg_public = [ev for ev in neg_events if ev.get('visibility', 'public') != 'secret' and not is_self_inflicted(ev)]
+    neg_secret = [ev for ev in neg_events if ev.get('visibility', 'public') == 'secret']
+    neg_self = [ev for ev in neg_events if is_self_inflicted(ev)]
 
-    votes_count = votes_total.get(name, 0)
-    external_score = votes_count + (2 * len(neg_public))
+    votes_count = sum(vote_map.values()) if vote_map else 0
+    external_score = (
+        1.0 * votes_count +
+        1.5 * len(neg_public) +
+        0.75 * len(neg_secret) +
+        0.5 * len(neg_self)
+    )
     if 'Paredão' in roles:
         external_score += 2
+
+    animosity_score = (
+        0.25 * sum(1 for rxn in p.get('characteristics', {}).get('receivedReactions', [])
+                   if rxn.get('label') not in POSITIVE) +
+        0.5 * sum(1 for other_name in active_names
+                  if latest_matrix.get((name, other_name), '') and latest_matrix.get((name, other_name), '') not in POSITIVE) +
+        1.5 * sum(1 for ev in power_events if ev.get('impacto') == 'negativo'
+                  and name in normalize_actors(ev) and ev.get('week') == current_week) +
+        0.75 * sum(1 for ev in power_events if ev.get('type') == 'indicacao'
+                  and name in normalize_actors(ev) and ev.get('week') == current_week)
+    )
+
+    if animosity_score >= 6:
+        animosity_level = "🔴 ALTA"
+        animosity_color = "#dc3545"
+    elif animosity_score >= 3:
+        animosity_level = "🟠 MÉDIA"
+        animosity_color = "#fd7e14"
+    elif animosity_score >= 1:
+        animosity_level = "🟡 BAIXA"
+        animosity_color = "#ffc107"
+    else:
+        animosity_level = "🟢 MUITO BAIXA"
+        animosity_color = "#28a745"
 
     if external_score >= 6:
         external_level = "🔴 ALTO"
@@ -1736,6 +1798,7 @@ for p in sorted_active:
 <h3 style="margin: 0 0 0.3rem 0; color: #fff; font-size: 1.4em;">{name}
   <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {risk_color}; color: #fff; vertical-align: middle; font-weight: bold;">{risk_level}</span>
   <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {external_color}; color: #fff; vertical-align: middle; font-weight: bold;">Risco externo {external_level}</span>
+  <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {animosity_color}; color: #fff; vertical-align: middle; font-weight: bold;">Animosidade {animosity_level}</span>
 </h3>
 <div style="color: #aaa; font-size: 0.95em;">
 <strong style="color: {cor_grupo};">{member_of}</strong> | {group} | Saldo: {balance:,} | Sentimento: <strong style="color: {'#28a745' if score >= 0 else '#dc3545'};">{score:+.1f}</strong>{role_text}
@@ -1751,15 +1814,17 @@ for p in sorted_active:
 </div>
 </div>
 
+{f'''
 <!-- Game Dynamics -->
 <div style="padding: 0.8rem 1rem; border-bottom: 1px solid #444; background: #2f2f2f;">
 <div style="font-weight: bold; color: #fff; margin-bottom: 0.5rem;">⚡ Dinâmicas do Jogo</div>
 <div style="display: grid; grid-template-columns: 1fr; gap: 0.4rem; font-size: 0.9em;">
   <div><strong style="color: #28a745;">+ Benefícios:</strong> {pos_html}</div>
   <div><strong style="color: #dc3545;">− Prejuízos:</strong> {neg_html}</div>
-  <div><strong style="color: #6c757d;">🗳️ Votos recebidos</strong> <span style="color:#888;">(secreto revelado)</span>: {votes_html}</div>
+  <div><strong style="color: #6c757d;">🗳️ Votos recebidos</strong> <span style="color:#888;">(secreto para participantes)</span>: {votes_html}</div>
 </div>
 </div>
+''' if (pos_events or neg_events or vote_map) else ''}
 
 <!-- Strategic Map -->
 <div style="padding: 1rem;">

@@ -257,7 +257,10 @@ data/derived/daily_metrics.json
 
 **Votos da casa (secretos)**:
 - Estão em `data/paredoes.json` → `votos_casa` e **só são públicos após a formação**.
-- Para UI: marcar como **“voto secreto (revelado)”** e **não usar** como “sinal percebido” antes da revelação.
+- Para UI: marcar como **“voto secreto (para participantes)”** e **não usar** como “sinal percebido” antes da revelação.
+- Se houver dinâmica tipo **dedo‑duro**, registrar em `manual_events.weekly_events`:
+  - `dedo_duro`: `{ "votante": "...", "alvo": "...", "detalhe": "...", "date": "YYYY-MM-DD" }`
+  - Esses votos passam a ser **públicos** e podem entrar em análises de percepção.
 
 **Perfis Individuais — uso recomendado (UI)**:
 - Mostrar **Poderes recebidos** em duas linhas:
@@ -266,14 +269,19 @@ data/derived/daily_metrics.json
 - Para eventos **auto‑infligidos**, usar badge `auto` (ex.: ↺) e reduzir peso no “risco social”.
 - Mostrar **Votos da casa recebidos** como linha separada:
   - Avatares pequenos de quem votou + contagem `2x` se voto duplo.
-  - Label “voto secreto (revelado)” para deixar claro que não é percepção imediata.
+  - Label “voto secreto (para participantes)” para deixar claro que não é percepção imediata.
 
 **Risco (sugestão de cálculo)**:
 - Separar em **Risco social (percebido)** vs **Risco externo (real)**.
 - `Risco social`: peso maior para eventos **públicos** de prejuízo causados por outros + conflitos/reactions negativas.
-- `Risco externo`: inclui votos da casa, emparedado, eliminação e eventos negativos mesmo secretos.
- - **Animosidade index** é **experimental** e deve ser **recalibrado semanalmente** após indicações/contragolpes/votações.
-   - Registre ajustes no `IMPLEMENTATION_PLAN.md` para manter histórico e evitar esquecimento.
+- `Risco externo` (proposta atual):
+  - `1.0 × votos_recebidos` +
+  - `1.5 × prejuízos públicos` +
+  - `0.75 × prejuízos secretos` +
+  - `0.5 × auto‑infligidos` +
+  - `+2` se está no Paredão.
+- **Animosidade index** é **experimental** e deve ser **recalibrado semanalmente** após indicações/contragolpes/votações.
+  - Registre ajustes no `IMPLEMENTATION_PLAN.md` para manter histórico e evitar esquecimento.
 
 ### Proposed consolidation (not implemented yet)
 **Goal**: reduce fragmentation and make derived data reusable across pages.
