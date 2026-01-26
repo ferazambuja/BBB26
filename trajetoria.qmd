@@ -1234,6 +1234,104 @@ if not df_flip.empty:
     fig.show()
 ```
 
+### Destaques {#destaques-tendencias}
+
+```{python}
+#| label: destaques-tendencias
+#| output: asis
+
+if len(daily_snapshots) >= 3:
+    # Compute change stats
+    _changes_per_day = []
+    _dramatic_flips = []  # (giver, receiver, from, to, date)
+
+    for i in range(1, len(daily_snapshots)):
+        prev_m = daily_matrices[i-1]
+        curr_m = daily_matrices[i]
+        snap = daily_snapshots[i]
+        common = set(prev_m.keys()) & set(curr_m.keys())
+
+        day_changes = 0
+        for pair in common:
+            if prev_m[pair] != curr_m[pair]:
+                day_changes += 1
+                from_rxn = prev_m[pair]
+                to_rxn = curr_m[pair]
+                # Check if dramatic (positive ↔ strong negative)
+                from_pos = from_rxn in POSITIVE
+                to_pos = to_rxn in POSITIVE
+                from_strong = from_rxn in STRONG_NEGATIVE
+                to_strong = to_rxn in STRONG_NEGATIVE
+
+                if (from_pos and to_strong) or (from_strong and to_pos):
+                    giver, receiver = pair
+                    _dramatic_flips.append((giver, receiver, from_rxn, to_rxn, snap['date']))
+
+        _changes_per_day.append(day_changes)
+
+    # Most volatile day
+    if _changes_per_day:
+        max_changes = max(_changes_per_day)
+        max_day_idx = _changes_per_day.index(max_changes) + 1  # +1 because we start from index 1
+        most_volatile_date = daily_snapshots[max_day_idx]['date']
+
+    # Total vira-casacas
+    _giver_changes = Counter()
+    for i in range(1, len(daily_snapshots)):
+        prev_m = daily_matrices[i-1]
+        curr_m = daily_matrices[i]
+        common = set(prev_m.keys()) & set(curr_m.keys())
+        for pair in common:
+            if prev_m[pair] != curr_m[pair]:
+                _giver_changes[pair[0]] += 1
+
+    top_viracasaca = _giver_changes.most_common(1)[0] if _giver_changes else None
+    most_stable_giver = min(_giver_changes.items(), key=lambda x: x[1]) if _giver_changes else None
+
+    # Build narrative
+    sections = []
+
+    # Top vira-casaca story
+    if top_viracasaca:
+        name, changes = top_viracasaca
+        grupo = MEMBER_OF.get(name, '?')
+        avg_per_day = changes / (len(daily_snapshots) - 1)
+        sections.append(f"**🔄 Mais Instável:** **{name}** ({grupo}) mudou de opinião **{changes} vezes** "
+                       f"(média de {avg_per_day:.1f} mudanças/dia). Opiniões voláteis podem indicar indecisão ou estratégia.")
+
+    # Most dramatic flip
+    if _dramatic_flips:
+        # Most recent dramatic flip
+        latest_flip = _dramatic_flips[-1]
+        giver, receiver, from_rxn, to_rxn, date = latest_flip
+        from_emoji = REACTION_EMOJI.get(from_rxn, from_rxn)
+        to_emoji = REACTION_EMOJI.get(to_rxn, to_rxn)
+        if from_rxn in POSITIVE:
+            sections.append(f"**💔 Virada Dramática:** **{giver}** mudou de {from_emoji} para {to_emoji} com **{receiver}** "
+                           f"em {date}. Uma amizade que virou hostilidade.")
+        else:
+            sections.append(f"**💚 Reconciliação:** **{giver}** mudou de {from_emoji} para {to_emoji} com **{receiver}** "
+                           f"em {date}. Uma hostilidade que virou amizade.")
+
+    # Volatility trend
+    if len(_changes_per_day) >= 3:
+        recent_avg = sum(_changes_per_day[-3:]) / 3
+        earlier_avg = sum(_changes_per_day[:3]) / 3 if len(_changes_per_day) >= 6 else recent_avg
+        if recent_avg > earlier_avg * 1.5:
+            sections.append(f"**📈 Tendência:** O jogo está **mais volátil** recentemente. "
+                           f"Média de {recent_avg:.0f} mudanças/dia nos últimos 3 dias vs {earlier_avg:.0f} no início.")
+        elif recent_avg < earlier_avg * 0.7:
+            sections.append(f"**📉 Tendência:** O jogo está **mais estável** recentemente. "
+                           f"As opiniões parecem estar se consolidando.")
+
+    if sections:
+        print("::: {.callout-tip title=\"Destaques\" appearance=\"simple\"}")
+        print("<br>".join(sections))
+        print(":::")
+else:
+    print("")
+```
+
 ## 📜 Histórico
 
 ### Hostilidades Persistentes {#hostilidades}
