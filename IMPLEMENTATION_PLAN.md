@@ -69,6 +69,7 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-26 | Linked fetch pipeline to rebuild derived data after snapshots | ✅ Done |
 | 2026-01-26 | Centralized snapshot loaders in `scripts/data_utils.py` and updated QMDs | ✅ Done |
 | 2026-01-26 | Added `daily_metrics.json` derived output for faster timelines | ✅ Done |
+| | Calibrar semanalmente o índice de animosidade (power_events + votos + queridômetro) | ⏳ Ongoing |
 | | Fill manual_events.json with past events + source URLs | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
 

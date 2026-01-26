@@ -440,8 +440,24 @@ else:
           '<th style="padding: 0.5rem;">Impacto</th>'
           '</tr></thead><tbody>')
 
-    def render_person_cell(name, border):
-        label = name or '—'
+    def render_person_cell(value, border):
+        if isinstance(value, list):
+            items = [v for v in value if v]
+            if not items:
+                return '—'
+            avatar_htmls = []
+            for name in items:
+                if name in AVATARS and AVATARS[name]:
+                    avatar = AVATARS[name]
+                    avatar_htmls.append(
+                        f'<img src="{avatar}" style="width: 24px; height: 24px; border-radius: 50%; '
+                        f'border: 2px solid {border}; object-fit: cover; margin-right: -6px;">'
+                    )
+            names_html = ' + '.join(items)
+            stack = ''.join(avatar_htmls)
+            return f'<div style="display: flex; align-items: center; gap: 0.4rem;">{stack}<span>{names_html}</span></div>'
+
+        label = value or '—'
         if label in AVATARS and AVATARS[label]:
             avatar = AVATARS[label]
             avatar_html = (

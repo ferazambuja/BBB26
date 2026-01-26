@@ -133,6 +133,7 @@ The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing cons
 - `special_events`: one‑off events not tied to a specific week.
 - `power_events`: only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, veto, perdeu voto).
   - Fields: `date`, `week`, `type`, `actor`, `target`, `detail`, `impacto`, `origem`, `fontes`.
+  - Optional: `actors` (array) for **consensus** dynamics (ex.: duas pessoas indicam em consenso).
   - `impacto` is **for the target** (positivo/negativo).
   - If `actor` is not a person, use standardized labels: `Big Fone`, `Prova do Líder`, `Prova do Anjo`, `Caixas-Surpresa`.
 - `cartola_points_log`: only events **not inferable** from snapshots or paredões (salvo, não eliminado, etc.).
@@ -148,6 +149,12 @@ The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing cons
 - After any **power effect** (veto, voto duplo, perdeu voto, contragolpe, imunidade)
 - After each paredão result to log **salvos/sobreviventes** and any point events not detectable via API (see below)
 - Depois de qualquer edição manual, rode `python scripts/build_derived_data.py` para atualizar `data/derived/`.
+
+**Caixas‑Surpresa (referência para preencher `power_events`)**:
+- Caixa 1: poder de **vetar o voto** de alguém.
+- Caixa 2: **não vota** no próximo paredão.
+- Caixa 3: **voto com peso 2**.
+- Caixas 4 e 5: precisam **indicar alguém em consenso** (evento **público**); se não houver consenso, os dois vão ao paredão.
 
 ### Porting logic to `daily_metrics.json` (how to move work out of QMDs)
 Use `data/derived/daily_metrics.json` whenever a chart only needs **per‑day aggregates** (no per‑giver/per‑receiver matrix).
@@ -239,6 +246,34 @@ data/derived/daily_metrics.json
 - **Auto‑detectados da API (trajetoria.qmd)**: Líder e Anjo são derivados das mudanças de papéis nos snapshots diários e **não são salvos** em `manual_events.json`. Esses eventos entram no painel apenas no momento do render e **não ficam disponíveis para outras páginas**.
 - Se precisar persistir/compartilhar ou adicionar fontes, registre manualmente em `data/manual_events.json` (ou criar um arquivo dedicado para eventos auto‑detectados).
   - Observação: a detecção usa **1 snapshot por dia** (último do dia). Mudanças intra‑dia podem não aparecer.
+
+**Power events — awareness & visibility (para UI / risco)**:
+- `actor` e `target` devem sempre existir — o **alvo sabe quem causou** o evento quando a dinâmica é pública (Big Fone, Caixas‑Surpresa, Líder/Anjo).
+- Para eventos **auto‑infligidos** (`actor == target`), trate como **auto‑impacto** (ex.: “perdeu voto” ao abrir caixa).  
+- Para evitar ambiguidades, quando possível adicione campos opcionais:
+  - `self_inflicted`: `true|false` (se `actor == target`).
+  - `visibility`: `public` (sabido na casa) ou `secret` (só revelado depois).
+  - `awareness`: `known`/`unknown` (se o alvo sabe quem causou).
+
+**Votos da casa (secretos)**:
+- Estão em `data/paredoes.json` → `votos_casa` e **só são públicos após a formação**.
+- Para UI: marcar como **“voto secreto (revelado)”** e **não usar** como “sinal percebido” antes da revelação.
+
+**Perfis Individuais — uso recomendado (UI)**:
+- Mostrar **Poderes recebidos** em duas linhas:
+  - `+` (benefícios) e `−` (prejuízos), com chips compactos: ícone + mini‑avatar do **ator**.
+  - Quando houver repetição, mostrar `2x`/`3x`.
+- Para eventos **auto‑infligidos**, usar badge `auto` (ex.: ↺) e reduzir peso no “risco social”.
+- Mostrar **Votos da casa recebidos** como linha separada:
+  - Avatares pequenos de quem votou + contagem `2x` se voto duplo.
+  - Label “voto secreto (revelado)” para deixar claro que não é percepção imediata.
+
+**Risco (sugestão de cálculo)**:
+- Separar em **Risco social (percebido)** vs **Risco externo (real)**.
+- `Risco social`: peso maior para eventos **públicos** de prejuízo causados por outros + conflitos/reactions negativas.
+- `Risco externo`: inclui votos da casa, emparedado, eliminação e eventos negativos mesmo secretos.
+ - **Animosidade index** é **experimental** e deve ser **recalibrado semanalmente** após indicações/contragolpes/votações.
+   - Registre ajustes no `IMPLEMENTATION_PLAN.md` para manter histórico e evitar esquecimento.
 
 ### Proposed consolidation (not implemented yet)
 **Goal**: reduce fragmentation and make derived data reusable across pages.

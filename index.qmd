@@ -47,6 +47,30 @@ REACTION_EMOJI = {
     'Coração partido': '💔'
 }
 
+POWER_EVENT_EMOJI = {
+    'lider': '👑',
+    'anjo': '😇',
+    'monstro': '👹',
+    'imunidade': '🛡️',
+    'indicacao': '🎯',
+    'contragolpe': '🌀',
+    'voto_duplo': '🗳️',
+    'voto_anulado': '🚫',
+    'perdeu_voto': '⛔',
+}
+
+POWER_EVENT_LABELS = {
+    'lider': 'Líder',
+    'anjo': 'Anjo',
+    'monstro': 'Monstro',
+    'imunidade': 'Imunidade',
+    'indicacao': 'Indicação',
+    'contragolpe': 'Contragolpe',
+    'voto_duplo': 'Voto 2x',
+    'voto_anulado': 'Voto anulado',
+    'perdeu_voto': 'Perdeu voto',
+}
+
 REACTION_SLUG_TO_LABEL = {
     'coracao': 'Coração', 'planta': 'Planta', 'mala': 'Mala', 'biscoito': 'Biscoito',
     'cobra': 'Cobra', 'alvo': 'Alvo', 'vomito': 'Vômito', 'mentiroso': 'Mentiroso',
@@ -215,6 +239,25 @@ if DAILY_METRICS_FILE.exists():
     with open(DAILY_METRICS_FILE, encoding="utf-8") as f:
         daily_metrics = json.load(f)
     daily_metrics_map = {d.get('date'): d for d in daily_metrics.get('daily', [])}
+
+# Manual + derived events (for profiles)
+manual_events = {}
+MANUAL_EVENTS_FILE = Path("data/manual_events.json")
+if MANUAL_EVENTS_FILE.exists():
+    with open(MANUAL_EVENTS_FILE, encoding="utf-8") as f:
+        manual_events = json.load(f)
+
+auto_events = {}
+AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
+if AUTO_EVENTS_FILE.exists():
+    with open(AUTO_EVENTS_FILE, encoding="utf-8") as f:
+        auto_events = json.load(f)
+
+paredoes_data = {}
+PAREDOES_FILE = Path("data/paredoes.json")
+if PAREDOES_FILE.exists():
+    with open(PAREDOES_FILE, encoding="utf-8") as f:
+        paredoes_data = json.load(f)
 ```
 
 ```{python}
@@ -1422,6 +1465,12 @@ O badge avalia o risco de receber **votos inesperados** — de pessoas que o par
 - **⚠️ Falsos Amigos** — Você dá ❤️, mas eles dão negativa. **PERIGO:** podem votar contra você!
 - **🗡️ Inimigos Não Declarados** — Você dá negativa, eles dão ❤️. Eles não sabem que são seus alvos.
 
+**Novos sinais de jogo (dinâmicas públicas):**
+- **Poderes recebidos** (benefícios e prejuízos) mostram acontecimentos **públicos** na casa que podem mudar alianças.
+- **Votos da casa recebidos** aparecem como **“voto secreto (revelado)”** — só são conhecidos após a formação.
+- O painel agora separa **Risco social** (percepção) e **Risco externo** (votos/eventos negativos).
+- **Risco externo é experimental** e será recalibrado semanalmente após indicações/contragolpes/votações.
+
 </div>
 
 ```{python}
@@ -1433,6 +1482,106 @@ sorted_active = sorted(
     [p for p in latest['participants'] if not p.get('characteristics', {}).get('eliminated')],
     key=lambda x: x['name']
 )
+
+power_events = manual_events.get('power_events', []) + auto_events.get('events', [])
+
+def normalize_actors(ev):
+    actors = ev.get('actors')
+    if isinstance(actors, list) and actors:
+        return [a for a in actors if a]
+    actor = ev.get('actor')
+    return [actor] if actor else []
+
+source_icons = {
+    'big fone': '📞',
+    'caixas-surpresa': '🎁',
+    'prova do líder': '👑',
+    'prova do anjo': '😇',
+    'castigo do monstro': '👹',
+    'dinâmica da casa': '🎬',
+}
+
+def render_actor_avatars(actors, border_color="#666"):
+    if not actors:
+        return ''
+    parts = []
+    for a in actors:
+        if a in AVATARS and AVATARS[a]:
+            parts.append(
+                f'<img src="{AVATARS[a]}" style="width: 22px; height: 22px; border-radius: 50%; '
+                f'border: 2px solid {border_color}; object-fit: cover; margin-right: -6px;">'
+            )
+        else:
+            icon = None
+            lower = a.lower() if isinstance(a, str) else ''
+            for k, v in source_icons.items():
+                if k in lower:
+                    icon = v
+                    break
+            parts.append(f'<span style="font-size: 0.9rem;">{icon or "🎬"}</span>')
+    return ''.join(parts)
+
+# Votes received (from paredoes.json), accounting for voto duplo/anulado
+votes_received = defaultdict(lambda: defaultdict(int))
+votes_total = defaultdict(int)
+
+for par in paredoes_data.get('paredoes', []) if paredoes_data else []:
+    votos = par.get('votos_casa', {}) or {}
+    if not votos:
+        continue
+    week = par.get('semana')
+    multiplier = defaultdict(lambda: 1)
+
+    for voter in par.get('votos_anulados', []) or []:
+        multiplier[voter] = 0
+    for voter in par.get('impedidos_votar', []) or []:
+        multiplier[voter] = 0
+
+    for ev in power_events:
+        if week and ev.get('week') == week:
+            if ev.get('type') == 'voto_duplo':
+                for a in normalize_actors(ev):
+                    if a:
+                        multiplier[a] = 2
+            if ev.get('type') == 'voto_anulado':
+                target = ev.get('target')
+                if target:
+                    multiplier[target] = 0
+
+    for voter, target in votos.items():
+        v = voter.strip()
+        t = target.strip()
+        mult = multiplier.get(v, 1)
+        if mult <= 0:
+            continue
+        votes_received[t][v] += mult
+        votes_total[t] += mult
+
+def make_event_chips(events, border_color, positive=True):
+    if not events:
+        return "<span style='color:#777;'>—</span>"
+    grouped = defaultdict(lambda: {'count': 0, 'actors': []})
+    for ev in events:
+        etype = ev.get('type')
+        actors = normalize_actors(ev)
+        key = (etype, tuple(actors))
+        grouped[key]['count'] += 1
+        grouped[key]['actors'] = actors
+
+    chips = []
+    for (etype, actors), meta in grouped.items():
+        emoji = POWER_EVENT_EMOJI.get(etype, '•')
+        label = POWER_EVENT_LABELS.get(etype, etype)
+        count = meta['count']
+        count_prefix = f"{count}x " if count > 1 else ""
+        actor_html = render_actor_avatars(actors, border_color)
+        chips.append(
+            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
+            f"border:1px solid {border_color}; color:#ddd; border-radius:999px; padding:0.2rem 0.45rem; "
+            f"font-size:0.75rem; margin:0.15rem;'>"
+            f"{count_prefix}{emoji} {label} {actor_html}</span>"
+        )
+    return ' '.join(chips)
 
 for p in sorted_active:
     name = p['name']
@@ -1516,6 +1665,54 @@ for p in sorted_active:
         risk_level = "🟢 PROTEGIDO"
         risk_color = "#28a745"
 
+    # Power events (received)
+    target_events = [ev for ev in power_events if ev.get('target') == name]
+    pos_events = [ev for ev in target_events if ev.get('impacto') == 'positivo']
+    neg_events = [ev for ev in target_events if ev.get('impacto') == 'negativo']
+
+    pos_html = make_event_chips(pos_events, "#28a745", positive=True)
+    neg_html = make_event_chips(neg_events, "#dc3545", positive=False)
+
+    vote_map = votes_received.get(name, {})
+    if vote_map:
+        vote_chips = []
+        for voter, count in sorted(vote_map.items(), key=lambda x: (-x[1], x[0])):
+            count_prefix = f"{count}x " if count > 1 else ""
+            avatar_html = render_actor_avatars([voter], "#6c757d")
+            vote_chips.append(
+                f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
+                f"border:1px solid #6c757d; color:#ddd; border-radius:999px; padding:0.2rem 0.45rem; "
+                f"font-size:0.75rem; margin:0.15rem;'>"
+                f"{count_prefix}{avatar_html}{voter}</span>"
+            )
+        votes_html = ' '.join(vote_chips)
+    else:
+        votes_html = "<span style='color:#777;'>—</span>"
+
+    def is_self_inflicted(ev):
+        actors = normalize_actors(ev)
+        return any(a == name for a in actors)
+
+    neg_public = [ev for ev in neg_events if ev.get('visibility', 'public') != 'secret' and not is_self_inflicted(ev)]
+
+    votes_count = votes_total.get(name, 0)
+    external_score = votes_count + (2 * len(neg_public))
+    if 'Paredão' in roles:
+        external_score += 2
+
+    if external_score >= 6:
+        external_level = "🔴 ALTO"
+        external_color = "#dc3545"
+    elif external_score >= 3:
+        external_level = "🟠 MÉDIO"
+        external_color = "#fd7e14"
+    elif external_score >= 1:
+        external_level = "🟡 BAIXO"
+        external_color = "#ffc107"
+    else:
+        external_level = "🟢 MUITO BAIXO"
+        external_color = "#28a745"
+
     # Get avatar
     avatar_url = AVATARS.get(name, '')
     cor_grupo = GROUP_COLORS.get(member_of, '#666')
@@ -1536,7 +1733,10 @@ for p in sorted_active:
     role_text = f" | {', '.join(roles)}" if roles else ""
     print(f'''
 <div>
-<h3 style="margin: 0 0 0.3rem 0; color: #fff; font-size: 1.4em;">{name} <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {risk_color}; color: #fff; vertical-align: middle; font-weight: bold;">{risk_level}</span></h3>
+<h3 style="margin: 0 0 0.3rem 0; color: #fff; font-size: 1.4em;">{name}
+  <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {risk_color}; color: #fff; vertical-align: middle; font-weight: bold;">{risk_level}</span>
+  <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {external_color}; color: #fff; vertical-align: middle; font-weight: bold;">Risco externo {external_level}</span>
+</h3>
 <div style="color: #aaa; font-size: 0.95em;">
 <strong style="color: {cor_grupo};">{member_of}</strong> | {group} | Saldo: {balance:,} | Sentimento: <strong style="color: {'#28a745' if score >= 0 else '#dc3545'};">{score:+.1f}</strong>{role_text}
 </div>
@@ -1548,6 +1748,16 @@ for p in sorted_active:
 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem;">
 <div><strong style="color: #888;">Recebeu:</strong> {' '.join(rxn_summary)}</div>
 <div><strong style="color: #888;">Deu:</strong> {given_summary}</div>
+</div>
+</div>
+
+<!-- Game Dynamics -->
+<div style="padding: 0.8rem 1rem; border-bottom: 1px solid #444; background: #2f2f2f;">
+<div style="font-weight: bold; color: #fff; margin-bottom: 0.5rem;">⚡ Dinâmicas do Jogo</div>
+<div style="display: grid; grid-template-columns: 1fr; gap: 0.4rem; font-size: 0.9em;">
+  <div><strong style="color: #28a745;">+ Benefícios:</strong> {pos_html}</div>
+  <div><strong style="color: #dc3545;">− Prejuízos:</strong> {neg_html}</div>
+  <div><strong style="color: #6c757d;">🗳️ Votos recebidos</strong> <span style="color:#888;">(secreto revelado)</span>: {votes_html}</div>
 </div>
 </div>
 
