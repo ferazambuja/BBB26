@@ -799,6 +799,14 @@ The dashboard was reorganized from 25+ sections into a 5-page architecture.
 - [ ] **2.7.4. Compare paredões** — Side-by-side in arquivo
 - [ ] **2.7.5. Mobile improvements** — Responsive design
 
+#### Phase 2.8: Cross‑Reference Visuals (Proposed)
+- [ ] **2.8.1. Eventos → Mudanças de sentimento** — Overlay `power_events` on sentiment timeline
+- [ ] **2.8.2. Voto vs Queridômetro** — Contradições (❤️ vs voto) via `paredoes.json` + matrix
+- [ ] **2.8.3. Caminho do Paredão** — Formation flow (lider/anjo/indicacao/contragolpe/votos)
+- [ ] **2.8.4. Risco externo calibrado** — Compare weekly risk score vs votos recebidos
+- [ ] **2.8.5. Efeito do Monstro/Anjo** — Reaction shift day+1 for targets
+- [ ] **2.8.6. Coesão por grupo** — Group affinity/volatility over time
+
 ---
 
 ### Phase 3: GitHub Actions ✅ COMPLETE

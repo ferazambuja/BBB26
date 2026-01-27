@@ -152,7 +152,7 @@ def build_auto_events(daily_roles):
     role_meta = {
         "Líder": {"type": "lider", "actor": "Prova do Líder", "impacto": "positivo", "detail": "Ganhou a liderança"},
         "Anjo": {"type": "anjo", "actor": "Prova do Anjo", "impacto": "positivo", "detail": "Ganhou o anjo"},
-        "Monstro": {"type": "monstro", "actor": "Castigo do Monstro", "impacto": "negativo", "detail": "Recebeu o monstro"},
+        "Monstro": {"type": "monstro", "actor": "Anjo", "impacto": "negativo", "detail": "Recebeu o monstro (escolha do Anjo)"},
         "Imune": {"type": "imunidade", "actor": "Dinâmica da casa", "impacto": "positivo", "detail": "Recebeu imunidade"},
     }
 
@@ -160,6 +160,7 @@ def build_auto_events(daily_roles):
         date = entry["date"]
         week = get_week_number(date)
         roles = entry["roles"]
+        anjo_name = next(iter(roles.get("Anjo", [])), None)
 
         if prev is None:
             prev = roles
@@ -188,13 +189,17 @@ def build_auto_events(daily_roles):
             else:
                 new_names = sorted(current - previous)
                 for name in new_names:
+                    actor = meta["actor"]
+                    detail = meta["detail"]
+                    if role == "Monstro" and anjo_name:
+                        actor = anjo_name
                     events.append({
                         "date": date,
                         "week": week,
                         "type": meta["type"],
-                        "actor": meta["actor"],
+                        "actor": actor,
                         "target": name,
-                        "detail": meta["detail"],
+                        "detail": detail,
                         "impacto": meta["impacto"],
                         "origem": "api",
                         "source": "api_roles",

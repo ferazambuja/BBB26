@@ -15,6 +15,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BBB26 is a data analysis project that tracks **participant reaction data** from Big Brother Brasil 26 using the GloboPlay API. The main dashboard is `index.qmd` (Quarto), which loads all snapshots, processes reactions, and generates interactive Plotly visualizations.
 
+## Program Reference (non-analytical)
+
+General information about the TV show lives in a dedicated file:
+- `docs/PROGRAMA_BBB26.md` — rules, format, selection, dynamics (kept separate from analysis)
+
 ## Key Commands
 
 ```bash
@@ -105,6 +110,49 @@ This means **every snapshot is a unique complete game state** and must be kept.
 **Important fragmentation (current state):**
 - `cartola.qmd` computes roles and weekly points **inside the page** (not persisted).
 - Multiple pages duplicate snapshot-loading and role-parsing logic.
+
+### Data Sources Map (canonical)
+Use this as the **single reference** for what data exists and how it can be reused across pages.
+
+**Primary (raw)**
+- `data/snapshots/*.json` — Daily state of reactions + roles + groups (source of truth for queridômetro).
+- `data/latest.json` — Convenience pointer to most recent snapshot.
+
+**Manual (curated)**
+- `data/manual_events.json` — **Power events + weekly events** not in API (Big Fone, contragolpe, voto duplo/anulado, dedo‑duro, consensus decisions).
+- `data/paredoes.json` — **Paredão formation + votos da casa + resultado + % público** (percentuais are manual).
+
+**Derived (shared)**
+- `data/derived/roles_daily.json` — Roles + VIP per day (from snapshots).
+- `data/derived/auto_events.json` — Auto power events (Líder/Anjo/Monstro/Imune).
+- `data/derived/daily_metrics.json` — Sentiment + reaction totals per day (for fast timelines).
+- `data/derived/participants_index.json` — Canonical participant list (name, avatar, active, first/last seen).
+- `data/derived/validation.json` — Sanity checks for manual data.
+
+**Computed (page‑only, should be reusable)**
+- Reaction matrix, sentiment score, relationship categories (Aliados/Inimigos/etc.).
+
+### Cross‑Reference Opportunities (new/strong visuals)
+These are **safe cross‑page ideas** using only existing data:
+
+1. **Eventos → Mudanças de sentimento**  
+   Overlay `power_events` (manual + auto) on daily sentiment timeline to show pre/post shifts.
+2. **Voto vs Queridômetro (contradições)**  
+   Highlight cases where someone dá ❤️ but votou contra (from `paredoes.json` + reaction matrix).
+3. **Caminho do Paredão**  
+   Formation flow (Líder/Anjo/indicação/contragolpe/votos) with timestamps + outcomes.
+4. **Risco externo calibrado**  
+   Compare weekly risk score vs actual house votes received (from `paredoes.json`) to validate weights.
+5. **Efeito do Monstro/Anjo**  
+   Show how targets’ reactions change the day after the event (roles_daily + snapshots).
+6. **Mapa de votos revelados (dedo‑duro)**  
+   Surface only revealed votes as public signals in perfis (already supported).
+7. **Polarização vs Popularidade**  
+   Scatter: sentiment vs #inimigos declarados / falsos amigos (from matrix + per‑profile categories).
+8. **Coesão por grupo (Pipoca/Veterano/Camarote)**  
+   Group‑level affinity + volatility over time (from snapshots + group labels).
+
+**Rule of thumb:** no Cartola points outside `cartola.qmd`; they should never drive non‑Cartola insights.
 
 ### Manual Events Data (`data/manual_events.json`)
 
@@ -245,6 +293,7 @@ data/derived/daily_metrics.json
 - Tipos já usados: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`.
 - **Auto‑detectados da API (scripts/build_derived_data.py)**: Líder/Anjo/Monstro/Imune são derivados das mudanças de papéis nos snapshots diários e salvos em `data/derived/auto_events.json` com `origem: "api"`.
   - Observação: a detecção usa **1 snapshot por dia** (último do dia). Mudanças intra‑dia podem não aparecer.
+  - **Monstro**: o `actor` é o **Anjo da semana** (quando disponível), pois o Anjo escolhe quem recebe o Castigo do Monstro.
 
 **Power events — awareness & visibility (para UI / risco)**:
 - `actor` e `target` devem sempre existir — o **alvo sabe quem causou** o evento quando a dinâmica é pública (Big Fone, Caixas‑Surpresa, Líder/Anjo).
@@ -277,13 +326,31 @@ data/derived/daily_metrics.json
 - `Risco social`: peso maior para eventos **públicos** de prejuízo causados por outros + conflitos/reactions negativas.
 - `Risco externo` (proposta atual):
   - `1.0 × votos_recebidos` +
-  - `1.5 × prejuízos públicos` +
-  - `0.75 × prejuízos secretos` +
+  - `Σ pesos_prejuizos_publicos` +
+  - `0.5 × Σ pesos_prejuizos_secretos` +
   - `0.5 × auto‑infligidos` +
   - `+2` se está no Paredão.
 - **Animosidade index** é **experimental** e deve ser **recalibrado semanalmente** após indicações/contragolpes/votações.
   - Registre ajustes no `IMPLEMENTATION_PLAN.md` para manter histórico e evitar esquecimento.
  - **Animosidade usa histórico com decaimento**: eventos negativos antigos continuam afetando a percepção, mas com peso menor (ex.: `peso = 1/(1 + semanas_passadas)`).
+
+**Pesos por tipo de power_event (impacto negativo)**:
+- `indicacao`: **2.5**
+- `contragolpe`: **2.5**
+- `emparedado`: **2.0**
+- `veto_prova`: **1.5**
+- `monstro`: **1.2**
+- `perdeu_voto`: **1.0**
+- `voto_anulado`: **0.8**
+- `voto_duplo`: **0.6**
+- `exposto`: **0.5**
+
+**Pesos para Animosidade (autor do evento)**:
+- `indicacao`, `contragolpe`: **2.0**
+- `monstro`: **1.2**
+- `perdeu_voto`, `voto_anulado`: **0.8**
+- `voto_duplo`: **0.6**
+- `exposto`: **0.5**
 
 ### Proposed consolidation (not implemented yet)
 **Goal**: reduce fragmentation and make derived data reusable across pages.
