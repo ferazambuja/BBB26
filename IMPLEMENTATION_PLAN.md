@@ -69,6 +69,7 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-26 | Linked fetch pipeline to rebuild derived data after snapshots | ✅ Done |
 | 2026-01-26 | Centralized snapshot loaders in `scripts/data_utils.py` and updated QMDs | ✅ Done |
 | 2026-01-26 | Added `daily_metrics.json` derived output for faster timelines | ✅ Done |
+| 2026-01-28 | Added `index_data.json` derived output for `index.qmd` tables | ✅ Done |
 | | Calibrar semanalmente o índice de animosidade (power_events + votos + queridômetro) | ⏳ Ongoing |
 | | Fill manual_events.json with past events + source URLs | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
@@ -180,7 +181,7 @@ BBB26/
 ├── data/                   ✅ NEW
 │   ├── CHANGELOG.md        ✅ NEW (data timeline, audit results, key findings)
 │   ├── latest.json         ✅ NEW (copy of most recent snapshot)
-│   ├── derived/            ✅ NEW (auto events, roles per day, participants index)
+│   ├── derived/            ✅ NEW (auto events, roles per day, participants index, index_data)
 │   └── snapshots/          ✅ NEW (13 canonical JSON files)
 │       ├── 2026-01-13_17-18-02.json  (21p, 420r — initial state)
 │       ├── 2026-01-14_15-44-42.json  (21p, 420r)

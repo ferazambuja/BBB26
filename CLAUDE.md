@@ -26,7 +26,7 @@ General information about the TV show lives in a dedicated file:
 # Fetch new data (saves only if data changed)
 python scripts/fetch_data.py
 
-# Build derived data files (auto events, roles, participant index)
+# Build derived data files (auto events, roles, participant index, index_data)
 python scripts/build_derived_data.py
 
 # Update program guide weekly timeline
@@ -46,6 +46,7 @@ quarto preview
 
 - `scripts/fetch_data.py` — **daily** (or before key events); updates snapshots + derived data.
 - `scripts/build_derived_data.py` — **after any manual edits** in `data/manual_events.json` or `data/paredoes.json`.
+  - Também gera `data/derived/index_data.json` (tabelas leves para `index.qmd`).
 - `scripts/update_programa_doc.py` — **after weekly manual updates** (keeps `docs/PROGRAMA_BBB26.md` table in sync).
 - `scripts/compute_metrics.py` — **legacy CI step** (outputs `data/daily_metrics.json`).
 - `scripts/audit_snapshots.py` / `scripts/analyze_snapshots.py` / `scripts/compare_sameday.py` — **one‑off audits**.
@@ -97,7 +98,7 @@ This means **every snapshot is a unique complete game state** and must be kept.
 - `data/latest.json` — Copy of most recent snapshot
 - `data/paredoes.json` — **Paredão data** (formation, house votes, results) — loaded by `paredao.qmd` and `paredoes.qmd`
 - `data/manual_events.json` — **Manual game events** not in the API (Big Fone, exits, special events)
-- `data/derived/` — **Derived data** built from snapshots + manual events (auto events, roles per day, participants index, daily metrics)
+- `data/derived/` — **Derived data** built from snapshots + manual events (auto events, roles per day, participants index, daily metrics, index_data)
 - `data/CHANGELOG.md` — Documents data timeline and findings
 - `scripts/data_utils.py` — Shared loaders/parsers used by QMD pages (load snapshots, parse roles, build reaction matrix)
 - New format wraps data: `{ "_metadata": {...}, "participants": [...] }`
@@ -116,6 +117,7 @@ This means **every snapshot is a unique complete game state** and must be kept.
 - `data/derived/roles_daily.json` stores **roles/VIP per day** (built from snapshots).
 - `data/derived/auto_events.json` stores **auto power events** (Líder/Anjo/Monstro/Imune) derived from role changes.
 - `data/derived/daily_metrics.json` stores **per-day sentiment totals** and reaction counts (used for faster timelines).
+- `data/derived/index_data.json` stores **precomputed tables** for `index.qmd` (highlights, rankings, profiles, cross-table).
   - Uses the standard sentiment weights (Coração +1, Planta/Mala/Biscoito/💔 -0.5, Cobra/Alvo/Vômito/Mentiroso -1).
 - Exit detection is inferred by **absence** across consecutive snapshots (used to set `active` in `participants_index.json`).
 
@@ -148,6 +150,7 @@ Use this as the **single reference** for what data exists and how it can be reus
 - `data/derived/participants_index.json` — Canonical participant list (name, avatar, active, first/last seen).
 - `data/derived/validation.json` — Sanity checks for manual data.
 - `data/derived/sincerao_edges.json` — Sincerão aggregates + optional edges (derived from manual events).
+- `data/derived/index_data.json` — Index tables (highlights, watchlist, rankings, profiles).
 
 **Computed (page‑only, should be reusable)**
 - Reaction matrix, sentiment score, relationship categories (Aliados/Inimigos/etc.).
@@ -478,6 +481,13 @@ Higher = more aligned; lower = contradiction.
 - Se houver dinâmica tipo **dedo‑duro**, registrar em `manual_events.weekly_events`:
   - `dedo_duro`: `{ "votante": "...", "alvo": "...", "detalhe": "...", "date": "YYYY-MM-DD" }`
   - Esses votos passam a ser **públicos na casa**: marcar com 👁️ e permitir uso em análises de percepção.
+
+**Timing — quando algo é “atual” vs “histórico” (UI/risco)**:
+- **Papéis ativos (API)**: Líder/Anjo/Monstro/Imune/Paredão são **atuais enquanto o papel existir no último snapshot**. Quando o papel some (novo líder, monstro termina etc.), vira **histórico**.
+- **Paredão em andamento**: use `data/paredoes.json` (`status: em_andamento`) como **semana de referência** para votos e efeitos da formação. Só vira histórico quando `status: finalizado`.
+- **Eventos da formação** (indicação, contragolpe, voto duplo/anulado, perdeu voto, big fone, caixas): **atuais durante o paredão em andamento**; viram **histórico** após o resultado.
+- **Sincerão**: impactos são **da semana** (não carregam para a semana seguinte), mas permanecem no histórico para contexto e análises de longo prazo (com decaimento).
+- **Auto‑infligidos**: contam como risco **apenas na semana atual**, mas continuam registrados no histórico.
 
 **Perfis Individuais — uso recomendado (UI)**:
 - Mostrar **Poderes recebidos** em duas linhas:

@@ -400,6 +400,15 @@ def build_derived_data():
         "warnings": warnings,
     })
 
+    # Build index data (for index.qmd)
+    try:
+        from build_index_data import build_index_data
+        index_payload = build_index_data()
+        if index_payload:
+            write_json(DERIVED_DIR / "index_data.json", index_payload)
+    except Exception as e:
+        print(f"Index data build failed: {e}")
+
     print(f"Derived data written to {DERIVED_DIR}")
 
 

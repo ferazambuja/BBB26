@@ -42,14 +42,13 @@ SENTIMENT_WEIGHTS = {
     'Coração': 1.0,
     'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
     'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0,
-    'Coração partido': -0.5  # Mild negative (disappointment, not hostility)
+    'Coração partido': -0.5
 }
 
 POSITIVE = {'Coração'}
-MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}  # 💔 = disappointment, not hostility
+MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}
 STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso'}
 
-# Cores dos grupos
 GROUP_COLORS = {
     'Camarote': '#E6194B',
     'Veterano': '#3CB44B',
@@ -58,9 +57,6 @@ GROUP_COLORS = {
 
 MEMBER_OF = {}
 
-# ══════════════════════════════════════════════════════════════
-# Plotly Dark Theme Configuration (matches Bootswatch darkly)
-# ══════════════════════════════════════════════════════════════
 PLOT_BG = '#303030'
 PAPER_BG = '#303030'
 GRID_COLOR = '#444444'
@@ -89,7 +85,6 @@ pio.templates.default = 'bbb_dark'
 #| include: false
 
 def calc_sentiment(participant):
-    """Calcula o score de sentimento recebido por um participante."""
     total = 0
     for rxn in participant.get('characteristics', {}).get('receivedReactions', []):
         weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
@@ -97,14 +92,12 @@ def calc_sentiment(participant):
     return total
 
 def get_snapshot_for_date(target_date, snapshots_list, matrices_list):
-    """Retorna (snapshot, matrix, index) do snapshot mais próximo antes/em target_date."""
     closest_idx = 0
     for i, snap in enumerate(snapshots_list):
         if snap['date'] <= target_date:
             closest_idx = i
     return snapshots_list[closest_idx], matrices_list[closest_idx], closest_idx
 
-# Carregar todos os snapshots
 all_snapshot_files = get_all_snapshots()
 snapshots = []
 for fp, date_str in all_snapshot_files:
@@ -117,11 +110,9 @@ for fp, date_str in all_snapshot_files:
         'metadata': metadata
     })
 
-# Construir matrizes de reação para todos os snapshots
 all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
 
-# Preencher MEMBER_OF e AVATARS
-AVATARS = {}  # name -> avatar URL
+AVATARS = {}
 for snap in snapshots:
     for p in snap['participants']:
         name = p['name']
@@ -130,7 +121,6 @@ for snap in snapshots:
         if name not in AVATARS and p.get('avatar'):
             AVATARS[name] = p['avatar']
 
-# Enriquecer cada snapshot com label legível
 for snap in snapshots:
     meta = snap.get('metadata') or {}
     is_synthetic = meta.get('synthetic', False)
@@ -145,21 +135,14 @@ for snap in snapshots:
 #| label: paredao-data
 #| include: false
 
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  CARREGAR DADOS DE PAREDÃO DO JSON                          ║
-# ║  Fonte: data/paredoes.json (atualizado manualmente)         ║
-# ╚══════════════════════════════════════════════════════════════╝
-
 PAREDOES_FILE = Path("data/paredoes.json")
 
 def load_paredoes():
-    """Carrega dados de paredão do arquivo JSON."""
     if not PAREDOES_FILE.exists():
         return []
     with open(PAREDOES_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    # Convert JSON structure to the format expected by the dashboard
     paredoes = []
     for p in data.get('paredoes', []):
         entry = {
@@ -175,12 +158,10 @@ def load_paredoes():
             'fontes': p.get('fontes', []),
         }
 
-        # Handle imunizado
         im = p.get('formacao', {}).get('imunizado')
         if im:
             entry['imunizado'] = im
 
-        # Handle participantes based on status
         if p['status'] == 'finalizado' and p.get('resultado'):
             entry['participantes'] = []
             for ind in p.get('indicados_finais', []):
@@ -189,7 +170,6 @@ def load_paredoes():
                     'grupo': ind.get('grupo', MEMBER_OF.get(ind['nome'], '?')),
                     'como': ind.get('como', ''),
                 }
-                # Add vote data if available
                 votos = p['resultado'].get('votos', {}).get(ind['nome'], {})
                 if votos:
                     part['voto_unico'] = votos.get('voto_unico', 0)
@@ -209,6 +189,7 @@ def load_paredoes():
     return paredoes
 
 paredoes = load_paredoes()
+polls_data = load_votalhada_polls()
 ```
 
 ## Resumo das Eliminações
@@ -234,7 +215,6 @@ if len(paredoes_finalizados) >= 1:
             'Voto Torcida': f"{eliminado['voto_torcida']:.1f}%" if eliminado and eliminado.get('voto_torcida') else '—',
             'Média Final': f"{eliminado['voto_total']:.1f}%" if eliminado else '—',
             'Salvos': ', '.join(s['nome'] for s in salvos),
-            'Líder': p.get('lider', '—'),
         }
         hist_rows.append(row)
 
@@ -242,9 +222,176 @@ if len(paredoes_finalizados) >= 1:
     print(df_hist.to_markdown(index=False))
 ```
 
+## Precisão das Enquetes (Votalhada)
+
+```{python}
+#| label: poll-accuracy-summary
+#| output: asis
+
+all_polls = polls_data.get('paredoes', [])
+finalized_polls = [p for p in all_polls if p.get('resultado_real')]
+
+if len(finalized_polls) >= 1:
+    total_correct = sum(1 for p in finalized_polls if p['resultado_real'].get('predicao_correta'))
+    total_polls = len(finalized_polls)
+
+    # Collect data for analysis
+    poll_vs_votes = []  # For comparing poll vs each vote type
+    platform_errors = {'sites': [], 'youtube': [], 'twitter': [], 'instagram': []}
+
+    for poll in finalized_polls:
+        elim = poll['resultado_real'].get('eliminado')
+        poll_val = poll['consolidado'].get(elim, 0)
+        real_val = poll['resultado_real'].get(elim, 0)
+
+        # Get vote breakdown from paredoes data
+        par = next((p for p in paredoes_finalizados if p['numero'] == poll['numero']), None)
+        if par:
+            elim_data = next((x for x in par['participantes'] if x['nome'] == elim), None)
+            if elim_data and 'voto_total' in elim_data:
+                poll_vs_votes.append({
+                    'paredao': poll['numero'],
+                    'eliminado': elim,
+                    'enquete': poll_val,
+                    'voto_unico': elim_data['voto_unico'],
+                    'voto_torcida': elim_data['voto_torcida'],
+                    'voto_total': elim_data['voto_total'],
+                })
+
+        # Platform errors
+        for plat in platform_errors:
+            if plat in poll.get('plataformas', {}):
+                plat_val = poll['plataformas'][plat].get(elim, 0)
+                platform_errors[plat].append({
+                    'paredao': poll['numero'],
+                    'erro': abs(plat_val - real_val),
+                    'valor': plat_val,
+                    'real': real_val,
+                })
+
+    # Calculate averages
+    avg_errors = {
+        'enquete_vs_total': np.mean([abs(r['enquete'] - r['voto_total']) for r in poll_vs_votes]) if poll_vs_votes else 0,
+        'enquete_vs_unico': np.mean([abs(r['enquete'] - r['voto_unico']) for r in poll_vs_votes]) if poll_vs_votes else 0,
+        'enquete_vs_torcida': np.mean([abs(r['enquete'] - r['voto_torcida']) for r in poll_vs_votes]) if poll_vs_votes else 0,
+    }
+
+    # Find best vote type match
+    best_vote_type = min(avg_errors, key=avg_errors.get)
+    best_vote_label = {'enquete_vs_total': 'Média Final', 'enquete_vs_unico': 'Voto Único', 'enquete_vs_torcida': 'Voto Torcida'}
+
+    # Platform averages
+    platform_avg = {plat: np.mean([e['erro'] for e in errs]) for plat, errs in platform_errors.items() if errs}
+    best_platform = min(platform_avg, key=platform_avg.get) if platform_avg else None
+
+    platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
+
+    # Summary cards
+    print(f'<div style="background:rgba(155,89,182,0.1); border-radius:12px; padding:1.5rem; margin:1rem 0;">')
+    print(f'<h4 style="margin:0 0 1rem 0;">📊 Resumo da Precisão ({total_polls} paredões)</h4>')
+    print(f'<div style="display:flex; flex-wrap:wrap; gap:1.5rem;">')
+
+    pct = 100 * total_correct / total_polls
+    color = '#3CB44B' if pct >= 75 else '#f39c12' if pct >= 50 else '#E6194B'
+    print(f'<div style="min-width:120px;"><strong>Taxa de acerto</strong><br><span style="font-size:2em; color:{color}; font-weight:bold;">{total_correct}/{total_polls}</span><br><span style="color:#888;">({pct:.0f}%)</span></div>')
+
+    print(f'<div style="min-width:120px;"><strong>Erro médio</strong><br><span style="font-size:2em; color:#f39c12; font-weight:bold;">{avg_errors["enquete_vs_total"]:.1f}</span><br><span style="color:#888;">p.p. vs Média Final</span></div>')
+
+    print(f'<div style="min-width:150px;"><strong>Mais próximo de</strong><br><span style="font-size:1.3em; font-weight:bold;">{best_vote_label[best_vote_type]}</span><br><span style="color:#888;">erro: {avg_errors[best_vote_type]:.1f} p.p.</span></div>')
+
+    if best_platform:
+        print(f'<div style="min-width:150px;"><strong>Plataforma mais precisa</strong><br><span style="font-size:1.3em;">{platform_names.get(best_platform, best_platform)}</span><br><span style="color:#888;">erro: {platform_avg[best_platform]:.1f} p.p.</span></div>')
+
+    print(f'</div></div>\n')
+
+    # Detailed comparison table: Enquete vs Vote Types
+    print("\n### 📊 Enquetes vs Tipos de Voto\n")
+    print('<table class="table table-striped table-sm" style="max-width:900px;">')
+    print('<thead><tr><th>Paredão</th><th>Eliminado</th><th style="text-align:center;">Enquete</th>')
+    print('<th style="text-align:center;">Voto Único</th><th style="text-align:center;">Voto Torcida</th><th style="text-align:center;">Média Final</th>')
+    print('<th style="text-align:center;">Melhor Match</th></tr></thead>')
+    print('<tbody>')
+
+    for r in poll_vs_votes:
+        err_unico = abs(r['enquete'] - r['voto_unico'])
+        err_torcida = abs(r['enquete'] - r['voto_torcida'])
+        err_total = abs(r['enquete'] - r['voto_total'])
+
+        best = 'Único' if err_unico <= err_torcida and err_unico <= err_total else 'Torcida' if err_torcida <= err_total else 'Final'
+        best_err = min(err_unico, err_torcida, err_total)
+
+        print(f'<tr><td>{r["paredao"]}º</td><td>{r["eliminado"]}</td>')
+        print(f'<td style="text-align:center; font-weight:bold; color:#9b59b6;">{r["enquete"]:.1f}%</td>')
+
+        # Highlight cells based on error
+        for val, err in [(r['voto_unico'], err_unico), (r['voto_torcida'], err_torcida), (r['voto_total'], err_total)]:
+            cell_color = '#3CB44B' if err < 10 else '#f39c12' if err < 20 else '#E6194B'
+            print(f'<td style="text-align:center;">{val:.1f}% <span style="color:{cell_color}; font-size:0.8em;">({err:+.1f})</span></td>')
+
+        print(f'<td style="text-align:center; font-weight:bold;">🎯 {best}</td>')
+        print('</tr>')
+
+    print('</tbody></table>\n')
+
+    # Platform accuracy table
+    print("\n### 🏆 Precisão por Plataforma\n")
+    print('<table class="table table-striped table-sm" style="max-width:700px;">')
+    print('<thead><tr><th>Plataforma</th>')
+    for poll in finalized_polls:
+        print(f'<th style="text-align:center;">{poll["numero"]}º Par.</th>')
+    print('<th style="text-align:center; font-weight:bold;">Média</th><th style="text-align:center;">Rank</th></tr></thead>')
+    print('<tbody>')
+
+    platform_order = ['twitter', 'sites', 'instagram', 'youtube']
+    ranked_platforms = sorted(platform_avg.items(), key=lambda x: x[1])
+    rank_map = {plat: i+1 for i, (plat, _) in enumerate(ranked_platforms)}
+
+    for plat in platform_order:
+        if plat not in platform_avg:
+            continue
+        medal = '🥇' if rank_map[plat] == 1 else '🥈' if rank_map[plat] == 2 else '🥉' if rank_map[plat] == 3 else f'{rank_map[plat]}º'
+        row_style = 'background:rgba(60,180,75,0.15);' if rank_map[plat] == 1 else ''
+
+        print(f'<tr style="{row_style}"><td>{platform_names.get(plat, plat)}</td>')
+
+        for poll in finalized_polls:
+            err_data = next((e for e in platform_errors[plat] if e['paredao'] == poll['numero']), None)
+            if err_data:
+                err_color = '#3CB44B' if err_data['erro'] < 10 else '#f39c12' if err_data['erro'] < 20 else '#E6194B'
+                print(f'<td style="text-align:center;"><span style="color:{err_color};">{err_data["erro"]:.1f}</span></td>')
+            else:
+                print('<td style="text-align:center;">—</td>')
+
+        print(f'<td style="text-align:center; font-weight:bold;">{platform_avg[plat]:.1f}</td>')
+        print(f'<td style="text-align:center;">{medal}</td>')
+        print('</tr>')
+
+    # Add consolidado row
+    consolidado_errs = [abs(r['enquete'] - r['voto_total']) for r in poll_vs_votes]
+    print(f'<tr style="background:rgba(155,89,182,0.2);"><td><strong>📊 Consolidado</strong></td>')
+    for err in consolidado_errs:
+        err_color = '#3CB44B' if err < 10 else '#f39c12' if err < 20 else '#E6194B'
+        print(f'<td style="text-align:center;"><span style="color:{err_color};">{err:.1f}</span></td>')
+    avg_consol = np.mean(consolidado_errs)
+    print(f'<td style="text-align:center; font-weight:bold;">{avg_consol:.1f}</td>')
+    print('<td style="text-align:center;">—</td>')
+    print('</tr>')
+
+    print('</tbody></table>')
+    print('<p class="text-muted small">Erro = diferença em pontos percentuais entre previsão e resultado real (Média Final)</p>\n')
+
+    # Pattern observation
+    underest = np.mean([r['enquete'] - r['voto_total'] for r in poll_vs_votes])
+    pattern = "subestimam" if underest < 0 else "superestimam"
+    print(f'<div style="background:rgba(52,152,219,0.1); border-radius:8px; padding:1rem; margin:1rem 0;">')
+    print(f'<strong>📉 Padrão observado:</strong> As enquetes consistentemente <strong>{pattern}</strong> o eliminado em <strong>{abs(underest):.1f} p.p.</strong> em média.')
+    print(f'<br><span style="color:#888;">Isso ocorre porque enquetes online sobre-representam fãs engajados que votam estrategicamente.</span>')
+    print(f'</div>\n')
+```
+
 ---
 
-Abaixo você encontra a análise completa de cada Paredão: resultado da votação, formação, votação da casa, comparação com reações do queridômetro e análise de coerência.
+## Arquivo de Paredões
 
 ```{python}
 #| label: data-freshness
@@ -253,34 +400,53 @@ Abaixo você encontra a análise completa de cada Paredão: resultado da votaç�
 n_snapshots = len(snapshots)
 latest = snapshots[-1]
 print(f'<p class="text-muted small">📅 Dados disponíveis: <strong>{snapshots[0]["label"]}</strong> → <strong>{latest["label"]}</strong> ({n_snapshots} coletas)</p>')
+
+# Generate Bootstrap nav-tabs
+tabs_html = '<ul class="nav nav-tabs" id="paredaoTabs" role="tablist">'
+for i, paredao in enumerate(reversed(paredoes_finalizados)):
+    par_num = paredao['numero']
+    eliminado = next((x for x in paredao['participantes'] if x['resultado'] == 'ELIMINADA'), None)
+    elim_name = eliminado['nome'].split()[0] if eliminado else '?'
+    active = 'active' if i == 0 else ''
+    selected = 'true' if i == 0 else 'false'
+    tabs_html += f'''
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {active}" id="tab-{par_num}" data-bs-toggle="tab" data-bs-target="#paredao-{par_num}"
+                type="button" role="tab" aria-controls="paredao-{par_num}" aria-selected="{selected}">
+            {par_num}º Paredão ({elim_name})
+        </button>
+    </li>'''
+tabs_html += '</ul>'
+print(tabs_html)
 ```
 
 ```{python}
-#| label: paredao-content
+#| label: paredao-tabs-content
 #| output: asis
 
-# Generate all the charts and analysis for each FINALIZED paredão
-# (paredões em andamento não são exibidos no arquivo - ainda não há resultado)
-paredoes_finalizados = [p for p in paredoes if p.get('status') == 'finalizado']
-for i, paredao in enumerate(paredoes_finalizados):
+# Generate tab content for each finalized paredão
+print('<div class="tab-content" id="paredaoTabsContent">')
+
+for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent first
     par_num = paredao['numero']
     par_date = paredao['data']
 
-    # Get snapshot for this paredão
     snap_p, matrix_p, idx_p = get_snapshot_for_date(par_date, snapshots, all_matrices)
     snap_participants = snap_p['participants']
-
-    # ══════════════════════════════════════════════════════════════
-    # HEADER WITH RESULT
-    # ══════════════════════════════════════════════════════════════
 
     eliminado = next((x for x in paredao['participantes'] if x['resultado'] == 'ELIMINADA'), None)
     salvos = [x for x in paredao['participantes'] if x['resultado'] != 'ELIMINADA']
 
-    print(f"\n# {paredao['titulo']}\n")
+    # Tab pane wrapper
+    active = 'show active' if i == 0 else ''
+    print(f'<div class="tab-pane fade {active}" id="paredao-{par_num}" role="tabpanel" aria-labelledby="tab-{par_num}">')
+    print(f'<h3 style="margin-top:1.5rem;">{par_num}º Paredão — {paredao["data"]}</h3>')
 
-    # ── Visual: Cards com fotos e resultado ──
-    print('<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; margin: 1.5rem 0 2rem 0;">')
+    # ══════════════════════════════════════════════════════════════
+    # HEADER WITH RESULT CARDS
+    # ══════════════════════════════════════════════════════════════
+
+    print('<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin: 1rem 0 1.5rem 0;">')
     for part in paredao['participantes']:
         nome = part['nome']
         grupo = part.get('grupo', MEMBER_OF.get(nome, '?'))
@@ -289,32 +455,28 @@ for i, paredao in enumerate(paredoes_finalizados):
         avatar_url = AVATARS.get(nome, '')
         cor_grupo = GROUP_COLORS.get(grupo, '#666')
 
-        # Card styling based on result
         if resultado == 'ELIMINADA':
             border_color = '#E6194B'
             badge_bg = '#E6194B'
             badge_text = 'ELIMINADO(A)'
-            img_filter = 'grayscale(100%)'  # B&W for eliminated
+            img_filter = 'grayscale(100%)'
         else:
             border_color = '#3CB44B'
             badge_bg = '#3CB44B'
             badge_text = 'SALVO(A)'
             img_filter = 'none'
 
-        print(f'<div style="background: linear-gradient(145deg, #3a3a3a, #2a2a2a); border-radius: 16px; padding: 1.5rem; text-align: center; width: 160px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid {border_color};">')
+        print(f'<div style="background: linear-gradient(145deg, #3a3a3a, #2a2a2a); border-radius: 12px; padding: 1rem; text-align: center; width: 130px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 2px solid {border_color};">')
         if avatar_url:
-            print(f'<img src="{avatar_url}" alt="{nome}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid {border_color}; margin-bottom: 0.75rem; filter: {img_filter};">')
-        print(f'<h4 style="margin: 0 0 0.25rem 0; color: #fff; font-size: 1em;">{nome}</h4>')
-        print(f'<span style="display: block; color: {cor_grupo}; font-size: 0.8em; margin-bottom: 0.5rem;">{grupo}</span>')
-        print(f'<span style="display: inline-block; padding: 0.25rem 0.6rem; background: {badge_bg}; color: #fff; border-radius: 10px; font-size: 0.75em; font-weight: bold;">{badge_text}</span>')
-        print(f'<div style="color: #fff; font-size: 1.3em; font-weight: bold; margin-top: 0.5rem;">{voto_total:.1f}%</div>')
+            print(f'<img src="{avatar_url}" alt="{nome}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid {border_color}; margin-bottom: 0.5rem; filter: {img_filter};">')
+        print(f'<div style="color: #fff; font-size: 0.9em; font-weight:bold;">{nome.split()[0]}</div>')
+        print(f'<span style="display: inline-block; padding: 0.15rem 0.4rem; background: {badge_bg}; color: #fff; border-radius: 8px; font-size: 0.65em; margin: 0.3rem 0;">{badge_text}</span>')
+        print(f'<div style="color: #fff; font-size: 1.2em; font-weight: bold;">{voto_total:.1f}%</div>')
         print('</div>')
     print('</div>')
 
-    print(f"**Coleta usada:** {snap_p['label']} ({snap_p['timestamp']})\n")
-
     # ══════════════════════════════════════════════════════════════
-    # 1. GRÁFICO DE RESULTADO
+    # RESULT CHART
     # ══════════════════════════════════════════════════════════════
 
     df_p = pd.DataFrame(paredao['participantes'])
@@ -345,21 +507,20 @@ for i, paredao in enumerate(paredoes_finalizados):
     ))
 
     fig.update_layout(
-        title=dict(text=f"Resultado: {paredao['titulo']}", y=0.95, x=0.5, xanchor='center'),
+        title=dict(text=f"Resultado: {par_num}º Paredão", y=0.95, x=0.5, xanchor='center'),
         xaxis_title="", yaxis_title="Votos (%)",
         yaxis_range=[0, max(df_p['voto_total'].max(), df_p.get('voto_torcida', pd.Series([0])).max()) * 1.25],
         barmode='group',
-                height=500,
-        margin=dict(t=100),
-        legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='center', x=0.5),
+        height=400,
+        margin=dict(t=80),
+        legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
     )
     fig.show()
 
     # ══════════════════════════════════════════════════════════════
-    # 1b. ENQUETES VS RESULTADO (Votalhada)
+    # ENQUETES VS RESULTADO (compact)
     # ══════════════════════════════════════════════════════════════
 
-    polls_data = load_votalhada_polls()
     poll = get_poll_for_paredao(polls_data, par_num)
 
     if poll and poll.get('resultado_real'):
@@ -369,72 +530,29 @@ for i, paredao in enumerate(paredoes_finalizados):
         resultado = poll['resultado_real']
         accuracy = calculate_poll_accuracy(poll)
 
-        print("\n## Enquetes vs Resultado\n")
-        print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]}</p>\n')
+        print("\n### Enquetes vs Resultado\n")
 
-        # Status badge
         if accuracy and accuracy['predicao_correta']:
-            status_html = '<span style="background:#3CB44B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">✅ Previsão correta</span>'
+            status_html = '<span style="background:#3CB44B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px; font-size:0.85em;">✅ Previsão correta</span>'
         else:
-            status_html = '<span style="background:#E6194B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">❌ Previsão errada</span>'
+            status_html = '<span style="background:#E6194B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px; font-size:0.85em;">❌ Previsão errada</span>'
 
-        erro_medio = accuracy['erro_medio'] if accuracy else 0
-        print(f'<div style="text-align:center; margin-bottom:1.5rem;">')
-        print(f'{status_html}')
-        print(f'<span style="margin-left:1rem; color:#888;">Erro médio: <strong>{erro_medio:.1f}</strong> pontos percentuais</span>')
-        print(f'</div>\n')
-
-        # Grouped bar chart: Enquetes vs Resultado Real
-        fig_poll = go.Figure()
-
-        # Enquete bars
-        enquete_vals = [consolidado.get(n, 0) for n in participantes_poll]
-        fig_poll.add_trace(go.Bar(
-            x=participantes_poll, y=enquete_vals,
-            text=[f"{v:.1f}%" for v in enquete_vals],
-            textposition='outside', name='Enquete (Consolidado)',
-            marker_color='#9b59b6',
-            hovertemplate='%{x}: %{y:.1f}% (Enquete)<extra></extra>',
-        ))
-
-        # Resultado Real bars
-        resultado_vals = [resultado.get(n, 0) for n in participantes_poll]
-        colors_real = ['#E6194B' if n == resultado.get('eliminado') else '#3CB44B' for n in participantes_poll]
-        fig_poll.add_trace(go.Bar(
-            x=participantes_poll, y=resultado_vals,
-            text=[f"{v:.1f}%" for v in resultado_vals],
-            textposition='outside', name='Resultado Real',
-            marker_color=colors_real,
-            hovertemplate='%{x}: %{y:.1f}% (Real)<extra></extra>',
-        ))
-
-        fig_poll.update_layout(
-            title=dict(text='Enquetes Agregadas vs Resultado Real', y=0.95, x=0.5, xanchor='center'),
-            xaxis_title="", yaxis_title="Votos (%)",
-            yaxis_range=[0, max(max(enquete_vals), max(resultado_vals)) * 1.25],
-            barmode='group',
-            height=400,
-            margin=dict(t=80, b=60),
-            legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
-        )
-
-        fig_poll.show()
+        print(f'{status_html} <span style="color:#888; font-size:0.9em;">Erro médio: {accuracy["erro_medio"]:.1f} p.p.</span>\n')
 
         # Compact platform table
-        print("\n### Por Plataforma\n")
-        print('<table class="table table-striped table-sm" style="max-width: 100%; font-size: 0.9rem;">')
-        print('<thead><tr><th>Plataforma</th>')
+        print('<table class="table table-sm" style="max-width: 100%; font-size: 0.85rem;">')
+        print('<thead><tr><th>Fonte</th>')
         for nome in participantes_poll:
             print(f'<th style="text-align:center;">{nome.split()[0]}</th>')
         print('</tr></thead><tbody>')
 
         platform_order = ['sites', 'youtube', 'twitter', 'instagram']
-        platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
+        plat_names = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
 
         for plat in platform_order:
             if plat in plataformas:
                 pdata = plataformas[plat]
-                print(f'<tr><td>{platform_names.get(plat, plat)}</td>')
+                print(f'<tr><td>{plat_names.get(plat, plat)}</td>')
                 for nome in participantes_poll:
                     val = pdata.get(nome, 0)
                     is_max = val == max(pdata.get(n, 0) for n in participantes_poll)
@@ -442,29 +560,25 @@ for i, paredao in enumerate(paredoes_finalizados):
                     print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
                 print('</tr>')
 
-        # Consolidado row
         print(f'<tr style="background:rgba(155,89,182,0.2);"><td><strong>Consolidado</strong></td>')
         for nome in participantes_poll:
-            val = consolidado.get(nome, 0)
-            print(f'<td style="text-align:center; font-weight:bold;">{val:.1f}%</td>')
+            print(f'<td style="text-align:center; font-weight:bold;">{consolidado.get(nome, 0):.1f}%</td>')
         print('</tr>')
 
-        # Real result row
-        print(f'<tr style="background:rgba(52,152,219,0.2);"><td><strong>Resultado Real</strong></td>')
+        print(f'<tr style="background:rgba(52,152,219,0.2);"><td><strong>Resultado</strong></td>')
         for nome in participantes_poll:
             val = resultado.get(nome, 0)
             is_elim = nome == resultado.get('eliminado')
             style = 'font-weight:bold; color:#E6194B;' if is_elim else 'font-weight:bold; color:#3CB44B;'
             print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
         print('</tr>')
-
         print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════
-    # 2. FORMAÇÃO E IMUNIZAÇÃO
+    # FORMAÇÃO
     # ══════════════════════════════════════════════════════════════
 
-    print(f"## Como foi formado\n")
+    print(f"### Como foi formado\n")
     print(f"{paredao['formacao']}\n")
 
     if paredao.get('imunizado'):
@@ -472,7 +586,7 @@ for i, paredao in enumerate(paredoes_finalizados):
         print(f"**Imunização:** {im['por']} imunizou {im['quem']}\n")
 
     # ══════════════════════════════════════════════════════════════
-    # 3. VOTAÇÃO DA CASA
+    # VOTAÇÃO DA CASA
     # ══════════════════════════════════════════════════════════════
 
     if paredao.get('votos_casa'):
@@ -480,386 +594,38 @@ for i, paredao in enumerate(paredoes_finalizados):
         contagem = Counter(votos.values())
         ranking = contagem.most_common()
 
-        print(f"## Votação da Casa\n")
+        print(f"### Votação da Casa\n")
         print(f"**Mais votado:** {ranking[0][0]} ({ranking[0][1]} votos)\n")
 
-        for alvo, n in ranking:
+        for alvo, n in ranking[:5]:  # Top 5 only
             votantes = sorted([v for v, a in votos.items() if a == alvo])
-            print(f"- **{alvo}** ({n}): {', '.join(votantes)}")
+            print(f"- **{alvo}** ({n}): {', '.join(votantes[:4])}" + (f" +{len(votantes)-4}" if len(votantes) > 4 else ""))
         print("")
 
     # ══════════════════════════════════════════════════════════════
-    # 4. VOTO DA CASA VS REAÇÕES
+    # VOTO VS REAÇÃO (compact summary)
     # ══════════════════════════════════════════════════════════════
 
     if paredao.get('votos_casa'):
-        print(f"## Voto da Casa vs Queridômetro\n")
-        print("Comparação entre o voto no confessionário e a reação pública.\n")
-
         votos = paredao['votos_casa']
-        match_rows = []
-
-        for votante, alvo in sorted(votos.items()):
-            reacao_ao_alvo = matrix_p.get((votante, alvo), '')
-            emoji_alvo = REACTION_EMOJI.get(reacao_ao_alvo, '?')
-            coerente = '—'
-            if reacao_ao_alvo in POSITIVE:
-                coerente = '❤️→👎 Incoerente'
-            elif reacao_ao_alvo in MILD_NEGATIVE:
-                coerente = '✅ Leve'
-            elif reacao_ao_alvo in STRONG_NEGATIVE:
-                coerente = '✅ Forte'
-
-            match_rows.append({
-                'Votante': votante,
-                'Votou em': alvo,
-                'Reação': emoji_alvo,
-                'Coerência': coerente,
-            })
-
-        df_match = pd.DataFrame(match_rows)
-        n_incoerente = sum(1 for r in match_rows if 'Incoerente' in r['Coerência'])
-        n_coerente = sum(1 for r in match_rows if r['Coerência'].startswith('✅'))
-        total = len(match_rows)
-
-        print(f"**Resultado:** {n_coerente}/{total} votos coerentes, "
-              f"{n_incoerente}/{total} incoerentes (deu ❤️ mas votou contra).\n")
-        print(df_match.to_markdown(index=False))
-        print("")
-
-    # ══════════════════════════════════════════════════════════════
-    # 5. REAÇÕES PREVEEM VOTOS?
-    # ══════════════════════════════════════════════════════════════
-
-    if paredao.get('votos_casa'):
-        print(f"## Reações Preveem Votos?\n")
-
-        print("""**Como ler este gráfico:**
-
-Cada ponto é um participante. No eixo horizontal: quantas reações negativas (🐍🎯🤮🤥💔🌱💼🍪)
-essa pessoa **recebeu** dos colegas no queridômetro. No eixo vertical: quantos **votos**
-essa pessoa recebeu na votação da casa.
-
-A **correlação (r)** mede se existe relação entre ser odiado e ser votado:
-- **r = 1**: perfeita relação (todos votam em quem odeiam)
-- **r = 0**: nenhuma relação (votos são estratégicos)
-- **r negativo**: relação inversa (protegem quem odeiam)
-
-""")
-
-        votos = paredao['votos_casa']
-        vote_counts = Counter(votos.values())
-
-        sent_by_name = {}
-        neg_count_by_name = {}
-        for p in snap_participants:
-            if p.get('characteristics', {}).get('eliminated'):
-                continue
-            name = p['name']
-            sent_by_name[name] = calc_sentiment(p)
-            neg_count_by_name[name] = sum(
-                r['amount'] for r in p.get('characteristics', {}).get('receivedReactions', [])
-                if r['label'] != 'Coração'
-            )
-
-        # Scatter: negatividade recebida vs votos recebidos
-        scatter_data = []
-        for name in set(list(vote_counts.keys()) + list(neg_count_by_name.keys())):
-            if name in neg_count_by_name:
-                scatter_data.append({
-                    'nome': name,
-                    'neg_recebidas': neg_count_by_name.get(name, 0),
-                    'votos_recebidos': vote_counts.get(name, 0),
-                    'grupo': MEMBER_OF.get(name, '?'),
-                })
-
-        df_scatter = pd.DataFrame(scatter_data)
-
-        if len(df_scatter) > 2:
-            corr_val = df_scatter['neg_recebidas'].corr(df_scatter['votos_recebidos'])
-
-            print("""<p style="font-size: 1.05rem; line-height: 1.6;">
-<strong>O que este gráfico mostra?</strong> Cada ponto representa um participante.
-A posição horizontal mostra quantas reações negativas essa pessoa <strong>recebeu</strong>.
-A posição vertical mostra quantos <strong>votos</strong> recebeu na votação da casa.
-Se os participantes votassem de acordo com o que registraram no queridômetro, veríamos uma diagonal:
-quanto mais negatividade recebida, mais votos recebidos.
-</p>
-""")
-
-            fig = px.scatter(
-                df_scatter, x='neg_recebidas', y='votos_recebidos',
-                text='nome', color='grupo', color_discrete_map=GROUP_COLORS,
-                title=f"Reações Negativas vs Votos na Casa (r = {corr_val:.2f})",
-                labels={'neg_recebidas': 'Reações negativas recebidas', 'votos_recebidos': 'Votos recebidos'}
-            )
-            fig.update_traces(textposition='top center', textfont_size=10, marker_size=14)
-            fig.update_layout(height=450, font=dict(size=13))
-
-            if df_scatter['neg_recebidas'].std() > 0:
-                z = np.polyfit(df_scatter['neg_recebidas'], df_scatter['votos_recebidos'], 1)
-                x_line = np.linspace(df_scatter['neg_recebidas'].min(), df_scatter['neg_recebidas'].max(), 50)
-                fig.add_trace(go.Scatter(x=x_line, y=np.polyval(z, x_line), mode='lines',
-                                         line=dict(dash='dash', color='gray'), name='Tendência'))
-            fig.show()
-
-            # Build list of people who couldn't receive house votes
-            # (In the flattened paredão structure: lider, anjo, imunizado are at top level)
-            nao_votaveis = set()
-
-            # Líder can't be voted
-            if paredao.get('lider'):
-                nao_votaveis.add(paredao['lider'])
-
-            # Imunizado can't be voted
-            if paredao.get('imunizado') and isinstance(paredao['imunizado'], dict):
-                nao_votaveis.add(paredao['imunizado'].get('quem', ''))
-
-            # Anjo autoimune can't be voted
-            if paredao.get('anjo_autoimune') and paredao.get('anjo'):
-                nao_votaveis.add(paredao['anjo'])
-
-            # People already indicated to paredão can't receive house votes
-            for p in paredao.get('participantes', []):
-                if p.get('como') and p['como'] != 'Casa':
-                    nao_votaveis.add(p['nome'])
-
-            # Find examples
-            df_sorted = df_scatter.sort_values('neg_recebidas', ascending=False)
-            most_hated = df_sorted.iloc[0] if len(df_sorted) > 0 else None
-            most_voted_name = vote_counts.most_common(1)[0][0] if vote_counts else None
-
-            # Filter out people who couldn't be voted
-            df_votaveis = df_scatter[~df_scatter['nome'].isin(nao_votaveis)]
-
-            # High negativity, low votes (only among voteable people)
-            high_neg_low_votes = df_votaveis[(df_votaveis['neg_recebidas'] > df_votaveis['neg_recebidas'].median()) &
-                                              (df_votaveis['votos_recebidos'] <= 1)]
-
-            # Low negativity, high votes
-            low_neg_high_votes = df_votaveis[(df_votaveis['neg_recebidas'] <= df_votaveis['neg_recebidas'].median()) &
-                                              (df_votaveis['votos_recebidos'] >= 3)]
-
-            print("\n### Interpretação\n")
-
-            if abs(corr_val) < 0.3:
-                print(f'<p style="font-size: 1.05rem;"><strong>Correlação fraca (r = {corr_val:.2f})</strong> — Votos <strong>não seguem</strong> o queridômetro.</p>')
-                print('<p style="font-size: 1.05rem;">Os participantes votaram de forma <strong>estratégica</strong>, não de acordo com suas reações. '
-                      'Ser odiado no queridômetro não significou ser votado. '
-                      'Alianças, acordos e estratégia de jogo pesaram mais que as reações registradas.</p>\n')
-            elif corr_val > 0.5:
-                print(f'<p style="font-size: 1.05rem;"><strong>Correlação forte (r = {corr_val:.2f})</strong> — Votos <strong>seguem</strong> o queridômetro.</p>')
-                print('<p style="font-size: 1.05rem;">Os participantes votaram de acordo com o que registraram no queridômetro. '
-                      'As relações pessoais dominaram a votação.</p>\n')
-            else:
-                print(f'<p style="font-size: 1.05rem;"><strong>Correlação moderada (r = {corr_val:.2f})</strong> — Mistura de queridômetro e estratégia.</p>')
-                print('<p style="font-size: 1.05rem;">Houve alguma relação entre ser odiado e ser votado, mas não foi determinante. '
-                      'Alguns votos seguiram as reações, outros seguiram estratégia.</p>\n')
-
-            # Poupados Suspeitos table
-            poupados = high_neg_low_votes.sort_values('neg_recebidas', ascending=False).head(5)
-            if len(poupados) > 0:
-                print("\n### 🛡️ Poupados Suspeitos\n")
-                print('<p style="font-size: 1.05rem;">Participantes com muitas reações negativas mas poucos votos — podem ter sido protegidos estrategicamente.</p>\n')
-                print('<table style="font-size: 1.05rem; width: 100%;">')
-                print('<thead><tr><th>Participante</th><th style="text-align:center;">Negativas</th><th style="text-align:center;">Votos</th></tr></thead>')
-                print('<tbody>')
-                for _, row in poupados.iterrows():
-                    print(f'<tr><td><strong>{row["nome"]}</strong></td>'
-                          f'<td style="text-align:center;">{int(row["neg_recebidas"])}</td>'
-                          f'<td style="text-align:center;">{int(row["votos_recebidos"])}</td></tr>')
-                print('</tbody></table>\n')
-
-            # Alvos Surpreendentes table
-            alvos = low_neg_high_votes.sort_values('votos_recebidos', ascending=False).head(5)
-            if len(alvos) > 0:
-                print("\n### ⚠️ Alvos Surpreendentes\n")
-                print('<p style="font-size: 1.05rem;">Participantes com poucas reações negativas mas muitos votos — foram votados por estratégia, não por antipatia.</p>\n')
-                print('<table style="font-size: 1.05rem; width: 100%;">')
-                print('<thead><tr><th>Participante</th><th style="text-align:center;">Negativas</th><th style="text-align:center;">Votos</th></tr></thead>')
-                print('<tbody>')
-                for _, row in alvos.iterrows():
-                    print(f'<tr><td><strong>{row["nome"]}</strong></td>'
-                          f'<td style="text-align:center;">{int(row["neg_recebidas"])}</td>'
-                          f'<td style="text-align:center;">{int(row["votos_recebidos"])}</td></tr>')
-                print('</tbody></table>\n')
-
-            print("### Exemplos deste paredão\n")
-
-            # Example that aligns
-            if most_hated is not None and most_voted_name:
-                most_voted_data = df_scatter[df_scatter['nome'] == most_voted_name].iloc[0] if most_voted_name in df_scatter['nome'].values else None
-                if most_hated['nome'] == most_voted_name:
-                    print(f'<p style="font-size: 1.05rem;">✅ <strong>Alinhado:</strong> <strong>{most_hated["nome"]}</strong> foi quem recebeu mais reações negativas '
-                          f'({int(most_hated["neg_recebidas"])}) e também mais votos '
-                          f'({int(most_hated["votos_recebidos"])}). Os votos seguiram o queridômetro.</p>\n')
-                elif most_voted_data is not None:
-                    print(f'<p style="font-size: 1.05rem;">⚠️ <strong>Desalinhado:</strong> O mais votado foi <strong>{most_voted_name}</strong> '
-                          f'({int(most_voted_data["votos_recebidos"])} votos, {int(most_voted_data["neg_recebidas"])} negativas), '
-                          f'mas quem recebeu mais negatividade era <strong>{most_hated["nome"]}</strong> '
-                          f'({int(most_hated["neg_recebidas"])} negativas, {int(most_hated["votos_recebidos"])} votos).</p>\n')
-
-            # Show who couldn't be voted (for context)
-            if nao_votaveis:
-                nao_votaveis_list = [n for n in nao_votaveis if n]
-                if nao_votaveis_list:
-                    nao_votaveis_str = ", ".join([f'<strong>{n}</strong>' for n in nao_votaveis_list])
-                    print(f'<p style="font-size: 0.95rem; color: #888;"><em>Nota: {nao_votaveis_str} não podia(m) receber votos neste paredão (líder, imunizado ou anjo autoimune).</em></p>\n')
-
-    # ══════════════════════════════════════════════════════════════
-    # 6. VOTARAM NO QUE MAIS DETESTAM?
-    # ══════════════════════════════════════════════════════════════
-
-    if paredao.get('votos_casa'):
-        print(f"## Votaram no participante que mais detestam?\n")
-
-        votos = paredao['votos_casa']
-        voted_worst = 0
-        voter_analysis = []
+        n_incoerente = 0
+        n_coerente = 0
 
         for votante, alvo in votos.items():
-            worst_target = None
-            worst_score = float('inf')
-            for other_name in neg_count_by_name:
-                if other_name == votante:
-                    continue
-                rxn = matrix_p.get((votante, other_name), '')
-                weight = SENTIMENT_WEIGHTS.get(rxn, 0)
-                if weight < worst_score:
-                    worst_score = weight
-                    worst_target = other_name
+            reacao_ao_alvo = matrix_p.get((votante, alvo), '')
+            if reacao_ao_alvo in POSITIVE:
+                n_incoerente += 1
+            elif reacao_ao_alvo in MILD_NEGATIVE or reacao_ao_alvo in STRONG_NEGATIVE:
+                n_coerente += 1
 
-            match = alvo == worst_target
-            if match:
-                voted_worst += 1
-            rxn_to_target = matrix_p.get((votante, alvo), '')
-            emoji_to_target = REACTION_EMOJI.get(rxn_to_target, '?')
-            voter_analysis.append({
-                'votante': votante, 'alvo': alvo, 'emoji': emoji_to_target,
-                'pior_avaliado': worst_target, 'votou_no_pior': match
-            })
-
-        pct_worst = voted_worst / len(votos) * 100
-        print(f"Apenas **{voted_worst}/{len(votos)} ({pct_worst:.0f}%)** votaram na pessoa que "
-              f"avaliaram mais negativamente. Os votos são **estratégicos**.\n")
-
-        # Pie chart de coerência
-        coerencia_data = []
-        for va in voter_analysis:
-            rxn = matrix_p.get((va['votante'], va['alvo']), '')
-            if rxn in POSITIVE:
-                tipo = 'Deu ❤️ mas votou contra'
-            elif rxn in MILD_NEGATIVE:
-                tipo = 'Coerente (negativa leve)'
-            elif rxn in STRONG_NEGATIVE:
-                tipo = 'Coerente (negativa forte)'
-            else:
-                tipo = 'Sem reação'
-            coerencia_data.append({'Tipo': tipo})
-
-        df_coer = pd.DataFrame(coerencia_data)
-        tipo_colors = {
-            'Deu ❤️ mas votou contra': '#E6194B',
-            'Coerente (negativa leve)': '#FF9800',
-            'Coerente (negativa forte)': '#3CB44B',
-            'Sem reação': '#999'
-        }
-        tipo_counts = df_coer['Tipo'].value_counts()
-        total_votes = len(votos)
-
-        # Horizontal bar chart instead of pie
-        fig = go.Figure()
-
-        for tipo in tipo_counts.index:
-            count = tipo_counts[tipo]
-            pct = count / total_votes * 100
-            fig.add_trace(go.Bar(
-                y=[tipo],
-                x=[count],
-                orientation='h',
-                marker_color=tipo_colors.get(tipo, '#999'),
-                text=f"{count} ({pct:.0f}%)",
-                textposition='auto',
-                hovertemplate=f'{tipo}: {count} votantes ({pct:.0f}%)<extra></extra>',
-                showlegend=False
-            ))
-
-        fig.update_layout(
-            title=f"Coerência: Reação vs Voto — {par_num}º Paredão<br><sup>Total: {total_votes} votos</sup>",
-            height=250,
-            xaxis_title="Número de votantes",
-            yaxis_title="",
-            margin=dict(l=200),
-            barmode='stack'
-        )
-        fig.show()
+        total = len(votos)
+        print(f"### Coerência Voto vs Reação\n")
+        print(f"**{n_coerente}/{total}** votos coerentes (votou em quem deu reação negativa)")
+        print(f"<br>**{n_incoerente}/{total}** incoerentes (deu ❤️ mas votou contra)\n")
 
     # ══════════════════════════════════════════════════════════════
-    # 7. O CASO DO MAIS VOTADO
+    # RANKING DE SENTIMENTO (compact)
     # ══════════════════════════════════════════════════════════════
-
-    if paredao.get('votos_casa'):
-        votos = paredao['votos_casa']
-        vote_counts = Counter(votos.values())
-        mais_votado = vote_counts.most_common(1)[0]
-        mv_name, mv_votes = mais_votado
-        mv_sentiment = sent_by_name.get(mv_name, 0)
-        mv_neg = neg_count_by_name.get(mv_name, 0)
-
-        votantes_dele = [v for v, a in votos.items() if a == mv_name]
-        hearts_from_voters = sum(1 for v in votantes_dele if matrix_p.get((v, mv_name), '') in POSITIVE)
-
-        print(f"## O caso {mv_name}\n")
-        print(f"**{mv_name}** foi o mais votado pela casa com **{mv_votes} votos**.\n")
-        print(f"- Sentimento recebido: **{mv_sentiment:+.1f}** (reações negativas: {mv_neg})")
-        print(f"- Dos {mv_votes} que votaram nele, **{hearts_from_voters}** tinham lhe dado ❤️ publicamente")
-
-        if hearts_from_voters > mv_votes / 2:
-            print(f"- **{hearts_from_voters}/{mv_votes} = {hearts_from_voters/mv_votes*100:.0f}%** dos votos "
-                  "foram \"duas caras\" — afeto público, voto privado contra")
-        print("")
-
-    # ══════════════════════════════════════════════════════════════
-    # 8. INDICAÇÃO DO LÍDER
-    # ══════════════════════════════════════════════════════════════
-
-    if paredao.get('lider') and paredao.get('indicado_lider'):
-        lider = paredao['lider']
-        indicado = paredao['indicado_lider']
-        rxn_lider = matrix_p.get((lider, indicado), '')
-        emoji_lider = REACTION_EMOJI.get(rxn_lider, '?')
-        weight_lider = SENTIMENT_WEIGHTS.get(rxn_lider, 0)
-
-        worst_for_leader = None
-        worst_w = float('inf')
-        for other in neg_count_by_name:
-            if other == lider:
-                continue
-            w = SENTIMENT_WEIGHTS.get(matrix_p.get((lider, other), ''), 0)
-            if w < worst_w:
-                worst_w = w
-                worst_for_leader = other
-
-        print(f"## Indicação do Líder\n")
-        print(f"**{lider}** (Líder) indicou **{indicado}** ao paredão.\n")
-        print(f"- Reação do líder ao indicado: {emoji_lider} ({rxn_lider}, peso {weight_lider:+.1f})")
-
-        if worst_for_leader == indicado:
-            print(f"- **Coerente:** {indicado} era quem {lider} avaliou mais negativamente")
-        else:
-            emoji_worst = REACTION_EMOJI.get(matrix_p.get((lider, worst_for_leader), ''), '?')
-            print(f"- Pior avaliado por {lider}: {worst_for_leader} ({emoji_worst})")
-            if weight_lider < 0:
-                print(f"- Parcialmente coerente: deu reação negativa, mas não era o pior")
-            else:
-                print(f"- **Incoerente:** deu {emoji_lider} ao indicado — decisão estratégica")
-        print("")
-
-    # ══════════════════════════════════════════════════════════════
-    # 9. RANKING DE SENTIMENTO NO DIA DO PAREDÃO
-    # ══════════════════════════════════════════════════════════════
-
-    print(f"## Ranking de Sentimento — {snap_p['label']}\n")
 
     sentiment_data = []
     for p in snap_participants:
@@ -867,83 +633,41 @@ quanto mais negatividade recebida, mais votos recebidos.
             continue
         name = p['name']
         score = calc_sentiment(p)
-        hearts = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
-                     if r['label'] == 'Coração')
-        neg = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
-                  if r['label'] != 'Coração')
         member_of = p.get('characteristics', {}).get('memberOf', '?')
-        sentiment_data.append({
-            'name': name, 'score': score, 'hearts': hearts,
-            'negative': neg, 'memberOf': member_of
-        })
+        sentiment_data.append({'name': name, 'score': score, 'memberOf': member_of})
 
     df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
 
-    color_map = {name: GROUP_COLORS.get(m, '#999')
-                 for name, m in zip(df_sent['name'], df_sent['memberOf'])}
+    print(f"\n### Ranking de Sentimento ({snap_p['label']})\n")
 
     fig = go.Figure()
     fig.add_trace(go.Bar(
         y=df_sent['name'],
         x=df_sent['score'],
         orientation='h',
-        marker_color=[color_map[n] for n in df_sent['name']],
+        marker_color=[GROUP_COLORS.get(m, '#999') for m in df_sent['memberOf']],
         text=[f"{s:+.1f}" for s in df_sent['score']],
         textposition='outside',
-        hovertemplate='%{y}: %{x:+.1f}<br>❤️: %{customdata[0]} | Neg: %{customdata[1]}<extra></extra>',
-        customdata=list(zip(df_sent['hearts'], df_sent['negative'])),
     ))
 
     fig.update_layout(
-        title=f"Ranking de Sentimento — {par_num}º Paredão",
-        xaxis_title="Score de Sentimento",
+        xaxis_title="Score",
         yaxis_title="",
-                height=max(500, len(df_sent) * 28),
-        margin=dict(l=150),
+        height=max(400, len(df_sent) * 22),
+        margin=dict(l=120, t=30),
         shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
                      line=dict(color='red', dash='dash', width=1))]
     )
 
-    for group, color in GROUP_COLORS.items():
-        fig.add_trace(go.Scatter(
-            x=[None], y=[None], mode='markers',
-            marker=dict(size=10, color=color),
-            name=group, showlegend=True
-        ))
-
     fig.show()
 
-    # ══════════════════════════════════════════════════════════════
-    # 10. REAÇÕES RECEBIDAS (TABELA)
-    # ══════════════════════════════════════════════════════════════
+    # Close tab-pane div
+    print('</div>')  # Close tab-pane
 
-    print(f"\n## Reações Recebidas — {par_num}º Paredão\n")
-
-    summary_rows = []
-    emoji_cols = ['❤️', '🌱', '💼', '🍪', '🐍', '🎯', '🤮', '🤥', '💔']
-
-    for p in sorted(snap_participants, key=lambda x: calc_sentiment(x), reverse=True):
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        rxn_counts = {}
-        for rxn in p.get('characteristics', {}).get('receivedReactions', []):
-            emoji = REACTION_EMOJI.get(rxn['label'], rxn['label'])
-            rxn_counts[emoji] = rxn['amount']
-        score = calc_sentiment(p)
-
-        row = {'Participante': name}
-        for e in emoji_cols:
-            row[e] = rxn_counts.get(e, 0)
-        row['Score'] = f"{score:+.1f}"
-        summary_rows.append(row)
-
-    df_summary = pd.DataFrame(summary_rows)
-    print(df_summary.to_markdown(index=False))
-
-    print("\n---\n")
+# Close tab-content div
+print('</div>')  # Close tab-content
 ```
 
-<div class="alert alert-info" role="alert">
+<div class="alert alert-info" role="alert" style="margin-top:2rem;">
 <strong>Voltar:</strong> <a href="index.html">Painel Principal</a>
 </div>

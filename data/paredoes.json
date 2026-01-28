@@ -1,6 +1,6 @@
 {
   "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
-  "_last_updated": "2026-01-26",
+  "_last_updated": "2026-01-27",
 
   "paredoes": [
     {
@@ -81,7 +81,7 @@
 
     {
       "numero": 2,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-01-27",
       "titulo": "2º Paredão — 27 de Janeiro de 2026",
       "semana": 2,
@@ -113,7 +113,14 @@
         {"nome": "Brigido", "grupo": "Pipoca", "como": "Casa (6 votos)"}
       ],
 
-      "resultado": null,
+      "resultado": {
+        "eliminado": "Matheus",
+        "votos": {
+          "Matheus": {"voto_unico": 81.33, "voto_torcida": 75.16, "voto_total": 79.48},
+          "Leandro": {"voto_unico": 13.00, "voto_torcida": 21.51, "voto_total": 15.55},
+          "Brigido": {"voto_unico": 5.67, "voto_torcida": 3.33, "voto_total": 4.97}
+        }
+      },
 
       "votos_casa": {
         "Leandro": "Brigido",
@@ -142,7 +149,8 @@
 
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml",
-        "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/veja-como-foi-a-formacao-do-segundo-paredao-do-bbb-26-1.3736727"
+        "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/veja-como-foi-a-formacao-do-segundo-paredao-do-bbb-26-1.3736727",
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-matheus-e-o-segundo-eliminado-do-reality.ghtml"
       ]
     }
   ]

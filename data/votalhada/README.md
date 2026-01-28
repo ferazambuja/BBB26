@@ -106,14 +106,17 @@ The platform aggregates are what matter for prediction.
 data/votalhada/
 ├── polls.json              # All poll data
 ├── README.md               # This file
-├── 2026_01_20/            # 1º Paredão
-│   └── consolidados.png    # Key image (has everything)
-├── 2026_01_27/            # 2º Paredão
-│   └── consolidados.png
+├── 2026_01_20/            # 1º Paredão (timestamp filenames)
+│   └── 2026-01-20_*.png    # Original screenshots
+├── 2026_01_27/            # 2º Paredão (standardized naming)
+│   ├── consolidados.png    # Key image (preliminary)
+│   └── consolidados_final.png  # Final capture
 └── ...
 ```
 
-Optional: Keep platform-specific images (`sites.png`, `twitter.png`, etc.) for reference, but only `consolidados.png` is needed for data extraction.
+**Naming convention**: Starting with 2º Paredão, we use standardized names (`consolidados.png`, `sites.png`, etc.). Older entries may have timestamp-based names.
+
+Optional: Keep platform-specific images for reference, but only `consolidados.png` (or `_final.png`) is needed for data extraction.
 
 ## Name Matching
 

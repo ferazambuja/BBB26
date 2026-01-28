@@ -753,6 +753,125 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             print('</tr>')
             print('</tbody></table>\n')
 
+            # ── Análise de Precisão: Enquetes vs Tipos de Voto ──
+            # Get vote breakdown from paredoes.json for this paredão
+            paredao_votos = {}
+            for p in ultimo.get('participantes', []):
+                nome = p.get('nome')
+                if nome and 'voto_total' in p:
+                    paredao_votos[nome] = {
+                        'voto_unico': p.get('voto_unico', 0),
+                        'voto_torcida': p.get('voto_torcida', 0),
+                        'voto_total': p.get('voto_total', 0),
+                    }
+
+            if paredao_votos:
+                eliminado_nome = resultado.get('eliminado')
+
+                # Calculate errors for eliminated person against each vote type
+                poll_elim = consolidado.get(eliminado_nome, 0)
+                voto_unico_elim = paredao_votos.get(eliminado_nome, {}).get('voto_unico', 0)
+                voto_torcida_elim = paredao_votos.get(eliminado_nome, {}).get('voto_torcida', 0)
+                voto_total_elim = paredao_votos.get(eliminado_nome, {}).get('voto_total', 0)
+
+                erro_vs_unico = poll_elim - voto_unico_elim
+                erro_vs_torcida = poll_elim - voto_torcida_elim
+                erro_vs_total = poll_elim - voto_total_elim
+
+                print("\n### 🎯 Precisão das Enquetes\n")
+                print(f"**{eliminado_nome}** (eliminado): enquete previa **{poll_elim:.1f}%**, resultado real **{voto_total_elim:.1f}%**\n")
+
+                # Table: Poll vs Vote Types
+                print('<table class="table table-sm" style="max-width: 600px;">')
+                print('<thead><tr><th>Comparação</th><th style="text-align:center;">Enquete</th><th style="text-align:center;">Votação</th><th style="text-align:center;">Erro</th></tr></thead>')
+                print('<tbody>')
+
+                vote_types = [
+                    ('Voto Único (70%)', voto_unico_elim, erro_vs_unico),
+                    ('Voto Torcida (30%)', voto_torcida_elim, erro_vs_torcida),
+                    ('Média Final', voto_total_elim, erro_vs_total),
+                ]
+
+                # Find which vote type poll was closest to
+                closest_type = min(vote_types, key=lambda x: abs(x[2]))
+
+                for vtype, vval, verr in vote_types:
+                    is_closest = vtype == closest_type[0]
+                    row_style = 'background:rgba(60,180,75,0.2);' if is_closest else ''
+                    badge = ' 🎯' if is_closest else ''
+                    err_color = '#E6194B' if verr < -5 else '#3CB44B' if abs(verr) < 5 else '#f39c12'
+                    print(f'<tr style="{row_style}"><td>{vtype}{badge}</td>')
+                    print(f'<td style="text-align:center;">{poll_elim:.1f}%</td>')
+                    print(f'<td style="text-align:center;">{vval:.1f}%</td>')
+                    print(f'<td style="text-align:center; color:{err_color}; font-weight:bold;">{verr:+.1f} p.p.</td>')
+                    print('</tr>')
+
+                print('</tbody></table>\n')
+
+                # Platform accuracy for eliminated person
+                print("### 📱 Qual plataforma acertou mais?\n")
+                platform_errors = []
+                for plat in ['sites', 'youtube', 'twitter', 'instagram']:
+                    if plat in plataformas:
+                        plat_val = plataformas[plat].get(eliminado_nome, 0)
+                        plat_err = abs(plat_val - voto_total_elim)
+                        platform_errors.append((plat, plat_val, plat_err))
+
+                # Sort by error (ascending)
+                platform_errors.sort(key=lambda x: x[2])
+
+                platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
+
+                print(f'<p>Para <strong>{eliminado_nome}</strong> (resultado: {voto_total_elim:.1f}%):</p>')
+                print('<table class="table table-sm" style="max-width: 500px;">')
+                print('<thead><tr><th>#</th><th>Plataforma</th><th style="text-align:center;">Previsão</th><th style="text-align:center;">Erro</th></tr></thead>')
+                print('<tbody>')
+                for rank, (plat, pval, perr) in enumerate(platform_errors, 1):
+                    medal = '🥇' if rank == 1 else '🥈' if rank == 2 else '🥉' if rank == 3 else '4º'
+                    row_style = 'background:rgba(60,180,75,0.2);' if rank == 1 else ''
+                    print(f'<tr style="{row_style}"><td>{medal}</td><td>{platform_names.get(plat, plat)}</td>')
+                    print(f'<td style="text-align:center;">{pval:.1f}%</td>')
+                    print(f'<td style="text-align:center;">{perr:.1f} p.p.</td>')
+                    print('</tr>')
+                print('</tbody></table>\n')
+
+                # ── Historical comparison across all paredões ──
+                all_polls = polls_data.get('paredoes', [])
+                finalized_polls = [p for p in all_polls if p.get('resultado_real')]
+
+                if len(finalized_polls) >= 2:
+                    print("### 📊 Padrões Observados (todos os paredões)\n")
+
+                    total_correct = sum(1 for p in finalized_polls if p['resultado_real'].get('predicao_correta'))
+                    total_polls = len(finalized_polls)
+
+                    # Calculate average underestimation of eliminated person
+                    underest_sum = 0
+                    for p in finalized_polls:
+                        elim = p['resultado_real'].get('eliminado')
+                        poll_val = p['consolidado'].get(elim, 0)
+                        real_val = p['resultado_real'].get(elim, 0)
+                        underest_sum += (poll_val - real_val)
+                    avg_underest = underest_sum / total_polls
+
+                    # Find best platform across all paredões
+                    platform_total_err = {'sites': 0, 'youtube': 0, 'twitter': 0, 'instagram': 0}
+                    for p in finalized_polls:
+                        elim = p['resultado_real'].get('eliminado')
+                        real_val = p['resultado_real'].get(elim, 0)
+                        for plat in platform_total_err:
+                            if plat in p.get('plataformas', {}):
+                                plat_val = p['plataformas'][plat].get(elim, 0)
+                                platform_total_err[plat] += abs(plat_val - real_val)
+
+                    best_platform = min(platform_total_err, key=platform_total_err.get)
+
+                    print(f'<div style="background:rgba(52,152,219,0.1); border-radius:12px; padding:1rem; margin:1rem 0;">')
+                    print(f'<p style="margin:0;"><strong>✅ Taxa de acerto:</strong> {total_correct}/{total_polls} paredões ({100*total_correct/total_polls:.0f}%)</p>')
+                    print(f'<p style="margin:0.5rem 0 0 0;"><strong>📉 Padrão:</strong> Enquetes subestimam o eliminado em <strong>{abs(avg_underest):.1f} p.p.</strong> em média</p>')
+                    print(f'<p style="margin:0.5rem 0 0 0;"><strong>🏆 Plataforma mais precisa:</strong> {platform_names.get(best_platform, best_platform)} (erro médio: {platform_total_err[best_platform]/total_polls:.1f} p.p.)</p>')
+                    print(f'</div>\n')
+
         # Resumo da formação (finalizado)
         print("\n### 🧩 Resumo da Formação\n")
         if ultimo.get('formacao'):

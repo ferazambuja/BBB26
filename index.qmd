@@ -29,7 +29,6 @@ from datetime import datetime
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix
 
 # Configurações visuais
 plt.rcParams['figure.figsize'] = (14, 8)
@@ -37,8 +36,8 @@ plt.rcParams['font.size'] = 11
 sns.set_theme(style="whitegrid", palette="husl")
 
 # Diretórios
-DATA_DIR = Path("data/snapshots")
-LATEST_FILE = Path("data/latest.json")
+DERIVED_DIR = Path("data/derived")
+INDEX_DATA_FILE = DERIVED_DIR / "index_data.json"
 
 # Categorias de reações
 REACTION_EMOJI = {
@@ -140,188 +139,35 @@ pio.templates.default = 'bbb_dark'
 ```{python}
 #| label: load-data
 
-def calc_sentiment(participant):
-    """Calcula o score de sentimento recebido por um participante."""
-    total = 0
-    for rxn in participant.get('characteristics', {}).get('receivedReactions', []):
-        weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
-        total += weight * rxn.get('amount', 0)
-    return total
+index_data = {}
+if INDEX_DATA_FILE.exists():
+    with open(INDEX_DATA_FILE, encoding="utf-8") as f:
+        index_data = json.load(f)
 
-# Carregar todos os snapshots
-all_snapshot_files = get_all_snapshots()
-snapshots = []
-for fp, date_str in all_snapshot_files:
-    participants, metadata = load_snapshot(fp)
-    snapshots.append({
-        'filepath': fp,
-        'date': date_str,
-        'timestamp': fp.stem,
-        'participants': participants,
-        'metadata': metadata
-    })
+if not index_data:
+    raise RuntimeError("index_data.json não encontrado. Execute scripts/build_derived_data.py")
 
-# Construir matrizes de reação para todos os snapshots
-all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
-
-# Preencher MEMBER_OF e AVATARS
-AVATARS = {}  # name -> avatar URL
-for snap in snapshots:
-    for p in snap['participants']:
-        name = p['name']
-        if name not in MEMBER_OF:
-            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
-        if name not in AVATARS and p.get('avatar'):
-            AVATARS[name] = p['avatar']
-
-# Enriquecer cada snapshot com label legível e flag de sintético
-for snap in snapshots:
-    meta = snap.get('metadata') or {}
-    is_synthetic = meta.get('synthetic', False)
-    label = snap['date']
-    if is_synthetic:
-        label += ' (sintético)'
-    snap['label'] = label
-    snap['synthetic'] = is_synthetic
-
-# Detectar participantes que entraram após o primeiro snapshot
-first_snap_names = set(p['name'] for p in snapshots[0]['participants'])
-late_entrants = {}
-_seen_names = set(first_snap_names)
-for snap in snapshots[1:]:
-    current_names = set(p['name'] for p in snap['participants'])
-    new_names = current_names - _seen_names
-    for name in new_names:
-        if name not in late_entrants:
-            late_entrants[name] = snap['date']
-    _seen_names |= current_names
-
-if late_entrants:
-    # Group by entry date
-    _by_date = {}
-    for n, d in late_entrants.items():
-        _by_date.setdefault(d, []).append(n)
-
-    _parts = []
-    for d, names in sorted(_by_date.items()):
-        names_str = ', '.join(sorted(names))
-        _parts.append(f"{names_str} (entraram em {d})")
-    _late_str = '; '.join(_parts)
-
-    late_caption = (
-        f"⚠️ Participantes que entraram após o início do confinamento ({_late_str}) "
-        f"têm menos dias de dados comparados aos demais participantes que estavam presentes "
-        f"desde o início da temporada, e isso pode afetar comparações temporais."
-    )
-else:
-    late_caption = ""
-
-n_snapshots = len(snapshots)
-latest = snapshots[-1]
-latest_matrix = all_matrices[-1]
-
-# Uma coleta por dia (última do dia) — usada para análises de reações
-# Reações mudam 1x/dia (no Raio-X da manhã); coletas extras no mesmo dia
-# têm reações idênticas mas podem diferir em saldo/papéis.
-_by_date = {}
-for i, snap in enumerate(snapshots):
-    _by_date[snap['date']] = i  # last one wins (sorted chronologically)
-_daily_indices = sorted(_by_date.values())
-daily_snapshots = [snapshots[i] for i in _daily_indices]
-daily_matrices = [all_matrices[i] for i in _daily_indices]
-n_daily = len(daily_snapshots)
-
-# Derived daily metrics (optional)
-daily_metrics = {}
-daily_metrics_map = {}
-DAILY_METRICS_FILE = Path("data/derived/daily_metrics.json")
-if DAILY_METRICS_FILE.exists():
-    with open(DAILY_METRICS_FILE, encoding="utf-8") as f:
-        daily_metrics = json.load(f)
-    daily_metrics_map = {d.get('date'): d for d in daily_metrics.get('daily', [])}
-
-# Week helper (BBB26 starts 2026-01-13)
-def get_week_number(date_str):
-    date = datetime.strptime(date_str, '%Y-%m-%d')
-    start = datetime(2026, 1, 13)
-    delta = (date - start).days
-    return max(1, (delta // 7) + 1)
-
-# Manual + derived events (for profiles)
-manual_events = {}
-MANUAL_EVENTS_FILE = Path("data/manual_events.json")
-if MANUAL_EVENTS_FILE.exists():
-    with open(MANUAL_EVENTS_FILE, encoding="utf-8") as f:
-        manual_events = json.load(f)
-
-auto_events = {}
-AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
-if AUTO_EVENTS_FILE.exists():
-    with open(AUTO_EVENTS_FILE, encoding="utf-8") as f:
-        auto_events = json.load(f)
-
-sincerao_data = {}
-SINCERAO_FILE = Path("data/derived/sincerao_edges.json")
-if SINCERAO_FILE.exists():
-    with open(SINCERAO_FILE, encoding="utf-8") as f:
-        sincerao_data = json.load(f)
-
-paredoes_data = {}
-PAREDOES_FILE = Path("data/paredoes.json")
-if PAREDOES_FILE.exists():
-    with open(PAREDOES_FILE, encoding="utf-8") as f:
-        paredoes_data = json.load(f)
-
-def find_sincerao_reason(agg, name):
-    if not agg:
-        return []
-    reasons = agg.get("reasons", {})
-    return reasons.get(name, [])
+latest = index_data.get("latest", {})
+current_week = index_data.get("current_week")
+current_cycle_week = index_data.get("current_cycle_week")
+active_names = index_data.get("active_names", [])
+MEMBER_OF = index_data.get("member_of", {})
+AVATARS = index_data.get("avatars", {})
 ```
 
 ```{python}
 #| label: viz-functions
 #| include: false
 
-def get_snapshot_for_date(target_date, snapshots_list=None, matrices_list=None):
-    """Retorna (snapshot, matrix, index) do snapshot mais próximo antes/em target_date."""
-    snaps = snapshots_list or snapshots
-    mats = matrices_list or all_matrices
-    closest_idx = 0
-    for i, snap in enumerate(snaps):
-        if snap['date'] <= target_date:
-            closest_idx = i
-    return snaps[closest_idx], mats[closest_idx], closest_idx
+def make_sentiment_ranking(rows, title_suffix="", fixed_height=None):
+    """Retorna go.Figure com ranking horizontal de sentimento."""
+    if not rows:
+        return go.Figure()
 
-
-def make_sentiment_ranking(participants, matrix, title_suffix="", show_avatars=False, avatars_dict=None, fixed_height=None):
-    """Retorna go.Figure com ranking horizontal de sentimento.
-
-    Args:
-        fixed_height: If provided, uses this height instead of auto-calculating.
-                      Useful for consistent heights across tabsets.
-    """
-    sentiment_data = []
-    for p in participants:
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        score = calc_sentiment(p)
-        hearts = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
-                     if r['label'] == 'Coração')
-        neg = sum(r['amount'] for r in p['characteristics'].get('receivedReactions', [])
-                  if r['label'] != 'Coração')
-        member_of = p.get('characteristics', {}).get('memberOf', '?')
-        avatar = (avatars_dict or {}).get(name, '') if show_avatars else ''
-        sentiment_data.append({
-            'name': name, 'score': score, 'hearts': hearts,
-            'negative': neg, 'memberOf': member_of, 'avatar': avatar
-        })
-
-    df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
+    df_sent = pd.DataFrame(rows).sort_values('score', ascending=True)
 
     color_map = {name: GROUP_COLORS.get(m, '#999')
-                 for name, m in zip(df_sent['name'], df_sent['memberOf'])}
+                 for name, m in zip(df_sent['name'], df_sent['group'])}
 
     fig = go.Figure()
     fig.add_trace(go.Bar(
@@ -340,10 +186,7 @@ def make_sentiment_ranking(participants, matrix, title_suffix="", show_avatars=F
     if title_suffix:
         title += f" — {title_suffix}"
 
-    # Calculate left margin - need more space for avatars
-    left_margin = 180 if show_avatars else 150
-
-    # Use fixed height if provided, otherwise auto-calculate
+    left_margin = 150
     chart_height = fixed_height if fixed_height else max(500, len(df_sent) * 32)
 
     fig.update_layout(
@@ -355,27 +198,6 @@ def make_sentiment_ranking(participants, matrix, title_suffix="", show_avatars=F
         shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
                      line=dict(color='red', dash='dash', width=1))]
     )
-
-    # Add avatar images as layout images (positioned in paper coordinates)
-    if show_avatars and avatars_dict:
-        images = []
-        n_participants = len(df_sent)
-        for i, (_, row) in enumerate(df_sent.iterrows()):
-            avatar_url = row.get('avatar', '')
-            if avatar_url:
-                # Position each avatar to the left of the y-axis label
-                # y position: map bar index to paper coordinates
-                y_pos = i / (n_participants - 1) if n_participants > 1 else 0.5
-                images.append(dict(
-                    source=avatar_url,
-                    xref="paper", yref="paper",
-                    x=-0.01, y=y_pos,  # Just left of the chart
-                    sizex=0.04, sizey=0.04,  # Size relative to plot
-                    xanchor="right", yanchor="middle",
-                    layer="above"
-                ))
-        if images:
-            fig.update_layout(images=images)
 
     for group, color in GROUP_COLORS.items():
         fig.add_trace(go.Scatter(
@@ -445,11 +267,10 @@ def make_cross_table_heatmap(participants, matrix, title_suffix=""):
     return fig
 
 
-def make_cross_table_html(participants, matrix, title_suffix=""):
+def make_cross_table_html(cross_data, title_suffix=""):
     """Retorna HTML string com tabela cruzada de reações (sticky header/column)."""
-    active_names = sorted([p['name'] for p in participants
-                           if not p.get('characteristics', {}).get('eliminated')])
-
+    active_names = cross_data.get("names", [])
+    matrix = cross_data.get("matrix", [])
     short_names = [n.split()[0] if len(n) > 10 else n for n in active_names]
 
     # Color mapping based on sentiment
@@ -523,11 +344,11 @@ def make_cross_table_html(participants, matrix, title_suffix=""):
             if giver == receiver:
                 html.append('<td style="background: #333; color: #666;">—</td>')
             else:
-                rxn = matrix.get((giver, receiver), '')
+                rxn = matrix[i][j] if i < len(matrix) and j < len(matrix[i]) else ""
                 emoji = REACTION_EMOJI.get(rxn, '?') if rxn else '?'
                 style = get_cell_style(rxn)
                 tooltip = f"{giver} → {receiver}: {rxn or 'N/A'}"
-                html.append(f'<td style="{style}" title="{tooltip}">{emoji}</td>')
+                html.append(f'<td style=\"{style}\" title=\"{tooltip}\">{emoji}</td>')
         html.append('</tr>')
 
     html.append('</tbody></table></div>')
@@ -535,38 +356,12 @@ def make_cross_table_html(participants, matrix, title_suffix=""):
     return '\n'.join(html)
 
 
-def make_reaction_summary_html(participants, collapsed_rows=5):
+def make_reaction_summary_html(summary_data, collapsed_rows=5):
     """Retorna HTML com tabela de reações recebidas, colapsável com cores."""
-    summary_rows = []
-    for p in sorted(participants, key=lambda x: calc_sentiment(x), reverse=True):
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        rxn_counts = {}
-        for rxn in p.get('characteristics', {}).get('receivedReactions', []):
-            emoji = REACTION_EMOJI.get(rxn['label'], rxn['label'])
-            rxn_counts[emoji] = rxn['amount']
-        score = calc_sentiment(p)
-        summary_rows.append({
-            'name': name,
-            'hearts': rxn_counts.get('❤️', 0),
-            'planta': rxn_counts.get('🌱', 0),
-            'mala': rxn_counts.get('💼', 0),
-            'biscoito': rxn_counts.get('🍪', 0),
-            'cobra': rxn_counts.get('🐍', 0),
-            'alvo': rxn_counts.get('🎯', 0),
-            'vomito': rxn_counts.get('🤮', 0),
-            'mentiroso': rxn_counts.get('🤥', 0),
-            'coracao_partido': rxn_counts.get('💔', 0),
-            'score': score
-        })
-
+    summary_rows = summary_data.get("rows", [])
+    max_hearts = summary_data.get("max_hearts", 1) or 1
+    max_neg = summary_data.get("max_neg", 1) or 1
     n_total = len(summary_rows)
-    n_active = len([p for p in participants if not p.get('characteristics', {}).get('eliminated')])
-
-    # Calculate max values for color scaling
-    max_hearts = max((r['hearts'] for r in summary_rows), default=1)
-    max_neg = max((r['cobra'] + r['alvo'] + r['vomito'] + r['mentiroso'] for r in summary_rows), default=1)
 
     def heart_color(val):
         if val == 0: return "color: #666;"
@@ -757,116 +552,9 @@ def make_negative_givers_chart(participants, matrix, title_suffix=""):
 #| label: compute-highlights
 #| output: asis
 
-# ══════════════════════════════════════════════════════════════════════════════
-# DESTAQUES DO DIA - Auto-generated highlights answering "What changed today?"
-# ══════════════════════════════════════════════════════════════════════════════
+highlights = index_data.get("highlights", {}).get("items", [])
+date_display_pt = index_data.get("highlights", {}).get("date_display", "")
 
-from datetime import datetime
-
-highlights = []
-
-if len(daily_snapshots) >= 2:
-    today = daily_snapshots[-1]
-    yesterday = daily_snapshots[-2]
-    today_mat = daily_matrices[-1]
-    yesterday_mat = daily_matrices[-2]
-
-    # Get active participants for today
-    today_active = [p for p in today['participants']
-                    if not p.get('characteristics', {}).get('eliminated')]
-    today_names = set(p['name'] for p in today_active)
-
-    # 1. Top participant + check if leading for multiple days
-    sentiment_today = {p['name']: calc_sentiment(p) for p in today_active}
-    if sentiment_today:
-        leader_name = max(sentiment_today, key=sentiment_today.get)
-        leader_score = sentiment_today[leader_name]
-
-        # Count consecutive days leading
-        streak = 1
-        for i in range(len(daily_snapshots) - 2, -1, -1):
-            snap = daily_snapshots[i]
-            snap_active = [p for p in snap['participants']
-                           if not p.get('characteristics', {}).get('eliminated')]
-            if not snap_active:
-                break
-            snap_sent = {p['name']: calc_sentiment(p) for p in snap_active}
-            if snap_sent and max(snap_sent, key=snap_sent.get) == leader_name:
-                streak += 1
-            else:
-                break
-
-        streak_text = f" pelo {streak}º dia consecutivo" if streak > 1 else ""
-        highlights.append(f"🏆 **{leader_name}** lidera o [ranking](#ranking){streak_text} ({leader_score:+.1f})")
-
-    # 2. Total reactions changed
-    common_pairs = set(today_mat.keys()) & set(yesterday_mat.keys())
-    changes = [(pair, yesterday_mat[pair], today_mat[pair])
-               for pair in common_pairs if yesterday_mat[pair] != today_mat[pair]]
-    n_changes = len(changes)
-
-    if n_changes > 0:
-        total_possible = len(common_pairs)
-        pct_changed = n_changes / total_possible * 100 if total_possible > 0 else 0
-        highlights.append(f"📊 **{n_changes} reações** [mudaram](mudancas.html) ontem ({pct_changed:.0f}% do total)")
-
-    # 3. Biggest single change (prioritize dramatic shifts)
-    dramatic_changes = []
-    for pair, old_rxn, new_rxn in changes:
-        giver, receiver = pair
-        old_pos = old_rxn in POSITIVE
-        new_pos = new_rxn in POSITIVE
-        old_strong_neg = old_rxn in STRONG_NEGATIVE
-        new_strong_neg = new_rxn in STRONG_NEGATIVE
-
-        # Dramatic: heart to strong negative or vice versa
-        if old_pos and new_strong_neg:
-            emoji_new = REACTION_EMOJI.get(new_rxn, '?')
-            dramatic_changes.append((giver, receiver, '❤️', emoji_new, 'heart_to_snake'))
-        elif old_strong_neg and new_pos:
-            emoji_old = REACTION_EMOJI.get(old_rxn, '?')
-            dramatic_changes.append((giver, receiver, emoji_old, '❤️', 'snake_to_heart'))
-
-    if dramatic_changes:
-        giver, receiver, old_e, new_e, _ = dramatic_changes[0]
-        giver_short = giver.split()[0]
-        receiver_short = receiver.split()[0]
-        highlights.append(f"💥 [Maior mudança](mudancas.html): **{giver_short}** → **{receiver_short}** (de {old_e} para {new_e})")
-
-    # 4. New one-sided hostilities
-    new_hostilities = []
-    for pair, old_rxn, new_rxn in changes:
-        giver, receiver = pair
-        # Check if giver now dislikes receiver, but receiver likes giver
-        new_is_neg = new_rxn not in POSITIVE and new_rxn != ''
-        old_is_pos = old_rxn in POSITIVE
-        receiver_likes_giver = today_mat.get((receiver, giver), '') in POSITIVE
-
-        if old_is_pos and new_is_neg and receiver_likes_giver:
-            new_hostilities.append((giver, receiver, new_rxn))
-
-    if new_hostilities:
-        highlights.append(f"⚠️ **{len(new_hostilities)}** [nova(s) hostilidade(s)](trajetoria.html#hostilidades-dia) unilateral(is) surgiram")
-
-# 5. Paredão status (from latest snapshot)
-paredao_check = []
-for p in latest['participants']:
-    roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-    if 'Paredão' in roles:
-        paredao_check.append(p['name'])
-
-if paredao_check:
-    names_str = ", ".join(sorted(paredao_check))
-    highlights.append(f"🗳️ [**Paredão ativo**](paredao.html): {names_str}")
-
-# Format the date
-try:
-    date_obj = datetime.strptime(latest['date'], '%Y-%m-%d')
-    date_display_pt = date_obj.strftime('%d de %B').replace('January', 'Janeiro').replace('February', 'Fevereiro').replace('March', 'Março').replace('April', 'Abril').replace('May', 'Maio').replace('June', 'Junho').replace('July', 'Julho').replace('August', 'Agosto').replace('September', 'Setembro').replace('October', 'Outubro').replace('November', 'Novembro').replace('December', 'Dezembro')
-except:
-    date_display_pt = latest['date']
-
-# Output the highlights callout
 if highlights:
     print(f'''
 ::: {{.callout-tip title="Destaques do Dia ({date_display_pt})" appearance="simple"}}
@@ -883,28 +571,10 @@ Primeiro dia de dados — sem comparações disponíveis ainda.
 :::
 ''')
 
-# Compact callout: Sincerão contradictions (negativo + ❤️)
-contrad = []
-current_week = get_week_number(latest['date'])
-for edge in sincerao_data.get("edges", []):
-    if edge.get("week") != current_week:
-        continue
-    if edge.get("type") not in ["nao_ganha", "bomba"]:
-        continue
-    actor = edge.get("actor")
-    target = edge.get("target")
-    if not actor or not target:
-        continue
-    if latest_matrix.get((actor, target), "") == "Coração":
-        tema = edge.get("tema")
-        label = "não ganha" if edge.get("type") == "nao_ganha" else (tema or "bomba")
-        contrad.append(f"{actor} → {target} ({label})")
-
-seen = set()
-contrad = [c for c in contrad if not (c in seen or seen.add(c))]
-
+contrad = index_data.get("contradictions", [])
 if contrad:
-    top_list = contrad[:5]
+    top_list = [f"{c.get('ator')} → {c.get('alvo')} ({'não ganha' if c.get('tipo') == 'nao_ganha' else (c.get('tema') or 'bomba')})"
+                for c in contrad][:5]
     print(f'''
 ::: {{.callout-note title="Contradições do Sincerão (negativo + ❤️)" appearance="simple"}}
 ''')
@@ -921,72 +591,16 @@ if contrad:
 #| label: overview-stats
 #| output: asis
 
-active = [p for p in latest['participants'] if not p.get('characteristics', {}).get('eliminated')]
-n_active = len(active)
-active_names = set(p['name'] for p in active)
+overview = index_data.get("overview", {})
+n_active = overview.get("n_active", 0)
+total_hearts = overview.get("total_hearts", 0)
+total_negative = overview.get("total_negative", 0)
+n_two_sided = overview.get("n_two_sided", 0)
+n_one_sided = overview.get("n_one_sided", 0)
+n_blind_spots = overview.get("n_blind_spots", 0)
+date_display = overview.get("date_display", "")
+n_daily = overview.get("n_daily", 0)
 
-# Contar por grupo
-groups = Counter(p.get('characteristics', {}).get('memberOf', '?') for p in active)
-
-# Contar reações por tipo
-total_reactions = 0
-total_hearts = 0
-total_negative = 0
-for p in active:
-    for rxn in p.get('characteristics', {}).get('receivedReactions', []):
-        amt = rxn.get('amount', 0)
-        total_reactions += amt
-        if rxn.get('label') == 'Coração':
-            total_hearts += amt
-        else:
-            total_negative += amt
-
-# ── Calculate hostility metrics for "game temperature" ──
-n_two_sided = 0      # Mutual enemies (both hate each other)
-n_one_sided = 0      # False friends (A hates B, but B gives ❤️)
-blind_spot_victims = set()   # People who give ❤️ to enemies
-attackers = set()            # People who attack those who love them
-
-checked_pairs = set()
-for (a, b), rxn_a_to_b in latest_matrix.items():
-    if a not in active_names or b not in active_names:
-        continue
-
-    rxn_b_to_a = latest_matrix.get((b, a), '')
-    a_dislikes_b = rxn_a_to_b not in POSITIVE and rxn_a_to_b != ''
-    b_dislikes_a = rxn_b_to_a not in POSITIVE and rxn_b_to_a != ''
-    b_likes_a = rxn_b_to_a in POSITIVE
-
-    pair = frozenset([a, b])
-
-    if a_dislikes_b and b_dislikes_a:
-        if pair not in checked_pairs:
-            n_two_sided += 1
-            checked_pairs.add(pair)
-    elif a_dislikes_b and b_likes_a:
-        n_one_sided += 1
-        attackers.add(a)       # A attacks someone who loves them
-        blind_spot_victims.add(b)  # B gives ❤️ to an enemy
-
-n_blind_spots = len(blind_spot_victims)
-n_attackers = len(attackers)
-
-# Check for paredão
-paredao_names = []
-for p in latest['participants']:
-    roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-    if 'Paredão' in roles:
-        paredao_names.append(p['name'])
-
-# Format date
-from datetime import datetime
-try:
-    date_obj = datetime.strptime(latest['date'], '%Y-%m-%d')
-    date_display = date_obj.strftime('%d/%m')
-except:
-    date_display = latest['date']
-
-# KPI Value Boxes - Two rows with explanations
 print(f'''
 <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
 
@@ -1039,13 +653,7 @@ print(f'''
 #| label: paredao-status-card
 #| output: asis
 
-# Paredão Status Card - shows current paredão state
-paredao_names = []
-for p in latest['participants']:
-    roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-    if 'Paredão' in roles:
-        paredao_names.append(p['name'])
-
+paredao_names = index_data.get("paredao", {}).get("names", [])
 if paredao_names:
     status_text = "Em Votação"
     status_color = "#e74c3c"
@@ -1083,59 +691,7 @@ Para ver o **histórico de paredões anteriores**, acesse: **[Arquivo de Paredõ
 #| label: watchlist-risco
 #| output: asis
 
-# ══════════════════════════════════════════════════════════════════════════════
-# WATCHLIST DE RISCO — Top 5 most vulnerable participants
-# ══════════════════════════════════════════════════════════════════════════════
-
-from collections import Counter
-
-def get_vulnerability_data(matrix, active_names):
-    """Calculate who gives ❤️ to enemies and who attacks friends."""
-    loving_victim = Counter()  # Who gives ❤️ to people who hate them
-    hostile_giver = Counter()  # Who attacks people who love them
-    blind_spots = {}           # {victim: [list of attackers who receive ❤️]}
-
-    for (a, b), rxn_a_to_b in matrix.items():
-        if a not in active_names or b not in active_names:
-            continue
-
-        rxn_b_to_a = matrix.get((b, a), '')
-        a_dislikes_b = rxn_a_to_b not in POSITIVE and rxn_a_to_b != ''
-        b_likes_a = rxn_b_to_a in POSITIVE
-
-        # A dislikes B, but B gives A a ❤️
-        if a_dislikes_b and b_likes_a:
-            hostile_giver[a] += 1   # A is attacking someone who loves them
-            loving_victim[b] += 1   # B gives ❤️ to an enemy
-            # Track who B's attackers are
-            if b not in blind_spots:
-                blind_spots[b] = []
-            blind_spots[b].append(a)
-
-    return loving_victim, hostile_giver, blind_spots
-
-active_for_watchlist = set(p['name'] for p in latest['participants']
-                           if not p.get('characteristics', {}).get('eliminated'))
-
-loving_victim, hostile_giver, blind_spots = get_vulnerability_data(latest_matrix, active_for_watchlist)
-
-# Calculate vulnerability scores: ❤️ given to enemies / (attacks on friends + 1)
-vulnerability_scores = []
-for name in loving_victim:
-    hearts_to_enemies = loving_victim[name]
-    attacks_on_friends = hostile_giver.get(name, 0)
-    ratio = hearts_to_enemies / (attacks_on_friends + 1)
-    vulnerability_scores.append({
-        'name': name,
-        'hearts_to_enemies': hearts_to_enemies,
-        'attacks_on_friends': attacks_on_friends,
-        'ratio': ratio,
-        'grupo': MEMBER_OF.get(name, '?'),
-        'attackers': blind_spots.get(name, [])
-    })
-
-# Sort by vulnerability ratio, take top 5
-top_vulnerable = sorted(vulnerability_scores, key=lambda x: (-x['ratio'], -x['hearts_to_enemies']))[:5]
+top_vulnerable = index_data.get("watchlist", [])
 
 if top_vulnerable:
     print('''
@@ -1148,15 +704,8 @@ Participantes com **pontos cegos** — dão ❤️ para quem os detesta. Podem s
 
     for i, p in enumerate(top_vulnerable):
         # Color by risk level
-        if p['ratio'] >= 3:
-            border_color = '#e74c3c'  # Red - high risk
-            risk_label = 'Alto Risco'
-        elif p['ratio'] >= 2:
-            border_color = '#f39c12'  # Orange - medium risk
-            risk_label = 'Risco Médio'
-        else:
-            border_color = '#f1c40f'  # Yellow - watch
-            risk_label = 'Atenção'
+        border_color = p.get('risk_color', '#f1c40f')
+        risk_label = p.get('risk_label', 'Atenção')
 
         grupo_color = GROUP_COLORS.get(p['grupo'], '#666')
         avatar_url = AVATARS.get(p['name'], '')
@@ -1200,61 +749,19 @@ Cada participante recebe reações dos demais. O **score de sentimento** pondera
 #| label: ranking-prep
 #| include: false
 
-# Pre-calculate data for ranking tabs
-_n_today = len([p for p in latest['participants']
-                if not p.get('characteristics', {}).get('eliminated')])
-_ranking_height = max(500, _n_today * 32)
-
-# Calculate sentiment scores for today
-today_scores = {}
-for p in latest['participants']:
-    if not p.get('characteristics', {}).get('eliminated'):
-        today_scores[p['name']] = {
-            'score': calc_sentiment(p),
-            'group': p.get('characteristics', {}).get('memberOf', '?')
-        }
-
-# Calculate yesterday scores (if available)
-yesterday_scores = {}
-if n_daily >= 2:
-    yesterday = daily_snapshots[-2]
-    for p in yesterday['participants']:
-        if not p.get('characteristics', {}).get('eliminated'):
-            yesterday_scores[p['name']] = calc_sentiment(p)
-
-# Calculate 7-days-ago scores (if available)
-week_ago_scores = {}
-if n_daily >= 7:
-    week_ago = daily_snapshots[-7]
-    for p in week_ago['participants']:
-        if not p.get('characteristics', {}).get('eliminated'):
-            week_ago_scores[p['name']] = calc_sentiment(p)
+ranking_data = index_data.get("ranking", {})
+_ranking_height = ranking_data.get("height", 500)
+today_rows = ranking_data.get("today", [])
+change_yesterday = ranking_data.get("change_yesterday", [])
+change_week = ranking_data.get("change_week", [])
+yesterday_label = ranking_data.get("yesterday_label")
+week_ago_label = ranking_data.get("week_label")
 
 
-def make_sentiment_change_table(today_scores, past_scores, period_label):
+def make_sentiment_change_table(rows, period_label):
     """Create HTML table showing sentiment changes with colors."""
-    if not past_scores:
+    if not rows:
         return f"<p class='text-muted'>Dados insuficientes para comparação de {period_label}.</p>"
-
-    # Calculate changes
-    rows = []
-    for name, data in today_scores.items():
-        today_score = data['score']
-        group = data['group']
-        past_score = past_scores.get(name)
-
-        if past_score is not None:
-            delta = today_score - past_score
-            rows.append({
-                'name': name,
-                'group': group,
-                'past': past_score,
-                'today': today_score,
-                'delta': delta
-            })
-
-    # Sort by delta descending (biggest gainers first)
-    rows.sort(key=lambda x: -x['delta'])
 
     # Build HTML table
     html = '''
@@ -1320,7 +827,7 @@ def make_sentiment_change_table(today_scores, past_scores, period_label):
 ```{python}
 #| label: sentiment-ranking-today
 
-fig = make_sentiment_ranking(latest['participants'], latest_matrix, title_suffix=latest['label'], fixed_height=_ranking_height)
+fig = make_sentiment_ranking(today_rows, title_suffix=latest.get("label", ""), fixed_height=_ranking_height)
 fig.show()
 ```
 
@@ -1330,10 +837,9 @@ fig.show()
 #| label: sentiment-yesterday-today
 #| output: asis
 
-if n_daily >= 2:
-    yesterday_label = daily_snapshots[-2]['label']
-    print(f"<p class='text-muted small'>Mudanças de <strong>{yesterday_label}</strong> para <strong>{latest['label']}</strong></p>")
-    print(make_sentiment_change_table(today_scores, yesterday_scores, "ontem"))
+if change_yesterday:
+    print(f"<p class='text-muted small'>Mudanças de <strong>{yesterday_label}</strong> para <strong>{latest.get('label','')}</strong></p>")
+    print(make_sentiment_change_table(change_yesterday, "ontem"))
 else:
     print("<p class='text-muted'>Dados insuficientes (apenas 1 dia disponível).</p>")
 ```
@@ -1344,12 +850,11 @@ else:
 #| label: sentiment-7d-change
 #| output: asis
 
-if n_daily >= 7:
-    week_ago_label = daily_snapshots[-7]['label']
-    print(f"<p class='text-muted small'>Mudanças de <strong>{week_ago_label}</strong> para <strong>{latest['label']}</strong></p>")
-    print(make_sentiment_change_table(today_scores, week_ago_scores, "7 dias"))
+if change_week:
+    print(f"<p class='text-muted small'>Mudanças de <strong>{week_ago_label}</strong> para <strong>{latest.get('label','')}</strong></p>")
+    print(make_sentiment_change_table(change_week, "7 dias"))
 else:
-    print(f"<p class='text-muted'>Dados insuficientes (apenas {n_daily} dias disponíveis).</p>")
+    print(f"<p class='text-muted'>Dados insuficientes (apenas {overview.get('n_daily', 0)} dias disponíveis).</p>")
 ```
 
 ## Evolução
@@ -1358,33 +863,13 @@ else:
 #| label: sentiment-evolution
 #| output: asis
 
-# Build timeline data for sentiment evolution chart
-timeline_data = []
-if daily_metrics_map:
-    for date_str in sorted(daily_metrics_map.keys()):
-        entry = daily_metrics_map[date_str]
-        for name, score in entry.get('sentiment', {}).items():
-            timeline_data.append({
-                'Data': pd.to_datetime(date_str),
-                'Participante': name,
-                'Sentimento': score,
-                'Grupo': MEMBER_OF.get(name, '?')
-            })
-else:
-    for snap in daily_snapshots:
-        for p in snap['participants']:
-            if p.get('characteristics', {}).get('eliminated'):
-                continue
-            name = p['name']
-            score = calc_sentiment(p)
-            timeline_data.append({
-                'Data': pd.to_datetime(snap['date']),
-                'Participante': name,
-                'Sentimento': score,
-                'Grupo': p.get('characteristics', {}).get('memberOf', '?')
-            })
-
-df_timeline = pd.DataFrame(timeline_data)
+timeline_data = index_data.get("timeline", [])
+df_timeline = pd.DataFrame([{
+    "Data": pd.to_datetime(row["date"]),
+    "Participante": row["name"],
+    "Sentimento": row["sentiment"],
+    "Grupo": row["group"],
+} for row in timeline_data])
 
 if not df_timeline.empty and len(df_timeline['Data'].unique()) > 1:
     # Color palette for participants
@@ -1472,12 +957,8 @@ Quem deu qual reação para quem. Cada célula mostra a reação que a **linha**
 #| label: cross-table
 #| output: asis
 
-# Definir active_names (usado por outras seções abaixo)
-active_names = sorted([p['name'] for p in latest['participants']
-                        if not p.get('characteristics', {}).get('eliminated')])
-
-# HTML table with sticky header/column (mobile-friendly)
-print(make_cross_table_html(latest['participants'], latest_matrix, title_suffix=latest['label']))
+cross_data = index_data.get("cross_table", {})
+print(make_cross_table_html(cross_data, title_suffix=latest.get("label", "")))
 ```
 
 ```{python}
@@ -1486,7 +967,8 @@ print(make_cross_table_html(latest['participants'], latest_matrix, title_suffix=
 
 print("\n### Reações Recebidas por Participante\n")
 print("<p class='text-muted small'>Ordenado por score de sentimento. Células coloridas indicam valores altos.</p>")
-print(make_reaction_summary_html(latest['participants'], collapsed_rows=5))
+summary_data = index_data.get("reaction_summary", {})
+print(make_reaction_summary_html(summary_data, collapsed_rows=5))
 ```
 
 # Perfis Individuais {#perfis}
@@ -1562,129 +1044,51 @@ Faixas: 🟢 **MUITO BAIXA** (<1), 🟡 **BAIXA** (>=1), 🟠 **MÉDIA** (>=3), 
 #| label: sincerao-vs-queridometro
 #| output: asis
 
-current_week = get_week_number(latest['date'])
-sinc_agg = next((a for a in sincerao_data.get("aggregates", []) if a.get("week") == current_week), None)
-
-if not sinc_agg:
+align_rows = index_data.get("sincerao", {}).get("alignment", [])
+if not align_rows:
     print("<p class='text-muted'>Sem dados detalhados do Sincerão nesta semana.</p>")
 else:
-    scores = sinc_agg.get("scores", {})
-    if not scores:
-        print("<p class='text-muted'>Sincerão registrado, mas sem pontuações detalhadas.</p>")
-    else:
-        rows = []
-        for p in latest['participants']:
-            name = p['name']
-            if name in scores:
-                rows.append({
-                    "name": name,
-                    "sincerao_score": scores[name],
-                    "sentiment_score": calc_sentiment(p),
-                    "grupo": p.get("characteristics", {}).get("memberOf", "?"),
-                })
+    df_sinc = pd.DataFrame(align_rows)
+    fig = px.scatter(
+        df_sinc,
+        x="sincerao_score",
+        y="sentiment_score",
+        color="grupo",
+        text="name",
+        color_discrete_map=GROUP_COLORS,
+        title="Impacto do Sincerão (semana) vs Sentimento do Queridômetro",
+        labels={
+            "sincerao_score": "Sincerão (peso agregado)",
+            "sentiment_score": "Sentimento (queridômetro)",
+            "grupo": "Grupo",
+        },
+    )
+    fig.update_traces(textposition="top center")
+    fig.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20))
+    fig.update_xaxes(zeroline=True, zerolinecolor="#555")
+    fig.update_yaxes(zeroline=True, zerolinecolor="#555")
+    fig.show()
 
-        if not rows:
-            print("<p class='text-muted'>Sem participantes com pontuação no Sincerão.</p>")
-        else:
-            df_sinc = pd.DataFrame(rows)
-            max_sinc = max(df_sinc["sincerao_score"].abs().max(), 1e-6)
-            max_sent = max(df_sinc["sentiment_score"].abs().max(), 1e-6)
-            df_sinc["sinc_norm"] = df_sinc["sincerao_score"] / max_sinc
-            df_sinc["sent_norm"] = df_sinc["sentiment_score"] / max_sent
-            df_sinc["alignment"] = (1 - (df_sinc["sinc_norm"] - df_sinc["sent_norm"]).abs()).round(2)
+    df_align = df_sinc[["name", "sincerao_score", "sentiment_score", "alignment"]].sort_values("alignment")
+    print("<h4 style='margin-top:1rem;'>Alinhamento Sincerão × Queridômetro</h4>")
+    print(df_align.to_html(index=False, classes="table table-dark table-sm", border=0))
 
-            fig = px.scatter(
-                df_sinc,
-                x="sincerao_score",
-                y="sentiment_score",
-                color="grupo",
-                text="name",
-                color_discrete_map=GROUP_COLORS,
-                title="Impacto do Sincerão (semana) vs Sentimento do Queridômetro",
-                labels={
-                    "sincerao_score": "Sincerão (peso agregado)",
-                    "sentiment_score": "Sentimento (queridômetro)",
-                    "grupo": "Grupo",
-                },
-            )
-            fig.update_traces(textposition="top center")
-            fig.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20))
-            fig.update_xaxes(zeroline=True, zerolinecolor="#555")
-            fig.update_yaxes(zeroline=True, zerolinecolor="#555")
-            fig.show()
+    # Contradições: Sincerão negativo vs ❤️ no queridômetro
+    contrad = []
+    for edge in index_data.get("contradictions", []):
+        contrad.append({"ator": edge.get("ator"), "alvo": edge.get("alvo"), "tipo": edge.get("tipo")})
 
-            df_align = df_sinc[["name", "sincerao_score", "sentiment_score", "alignment"]].sort_values("alignment")
-            print("<h4 style='margin-top:1rem;'>Alinhamento Sincerão × Queridômetro</h4>")
-            print(df_align.to_html(index=False, classes="table table-dark table-sm", border=0))
-
-            # Contradições: Sincerão negativo vs ❤️ no queridômetro
-            contrad = []
-            for edge in sincerao_data.get("edges", []):
-                if edge.get("week") != current_week:
-                    continue
-                if edge.get("type") not in ["nao_ganha", "bomba"]:
-                    continue
-                actor = edge.get("actor")
-                target = edge.get("target")
-                if not actor or not target:
-                    continue
-                label = latest_matrix.get((actor, target), "")
-                if label == "Coração":
-                    contrad.append({"ator": actor, "alvo": target, "tipo": edge.get("type")})
-
-            if contrad:
-                df_c = pd.DataFrame(contrad).drop_duplicates()
-                print("<h4 style='margin-top:1rem;'>Contradições do Sincerão (negativo + ❤️)</h4>")
-                print(df_c.to_html(index=False, classes="table table-dark table-sm", border=0))
+    if contrad:
+        df_c = pd.DataFrame(contrad).drop_duplicates()
+        print("<h4 style='margin-top:1rem;'>Contradições do Sincerão (negativo + ❤️)</h4>")
+        print(df_c.to_html(index=False, classes="table table-dark table-sm", border=0))
 ```
 
 ```{python}
 #| label: individual-profiles
 #| output: asis
 
-# Ordenar alfabeticamente
-sorted_active = sorted(
-    [p for p in latest['participants'] if not p.get('characteristics', {}).get('eliminated')],
-    key=lambda x: x['name']
-)
-
-power_events = manual_events.get('power_events', []) + auto_events.get('events', [])
-current_week = get_week_number(latest['date'])
-sinc_edges = sincerao_data.get("edges", []) if sincerao_data else []
-sinc_edges_week = [e for e in sinc_edges if e.get("week") == current_week]
-
-SINC_EDGE_WEIGHTS = {
-    "podio": {1: 0.6, 2: 0.4, 3: 0.2},
-    "nao_ganha": -0.8,
-    "bomba": -0.6,
-}
-
-def sinc_edge_modifier(edge):
-    etype = edge.get("type")
-    if etype == "podio":
-        slot = edge.get("slot")
-        return SINC_EDGE_WEIGHTS["podio"].get(slot, 0.2)
-    return SINC_EDGE_WEIGHTS.get(etype, 0.0)
-
-from collections import defaultdict
-sinc_edge_mod = defaultdict(float)
-for edge in sinc_edges_week:
-    actor = edge.get("actor")
-    target = edge.get("target")
-    if actor and target:
-        sinc_edge_mod[(actor, target)] += sinc_edge_modifier(edge)
-
-def pair_sentiment(giver, receiver):
-    label = latest_matrix.get((giver, receiver), "")
-    base = SENTIMENT_WEIGHTS.get(label, 0)
-    return base + sinc_edge_mod.get((giver, receiver), 0)
-
-def normalize_actors(ev):
-    actors = ev.get('actors')
-    if isinstance(actors, list) and actors:
-        return [a for a in actors if a]
-    actor = ev.get('actor')
-    return [actor] if actor else []
+profiles = index_data.get("profiles", [])
 
 source_icons = {
     'big fone': '📞',
@@ -1722,78 +1126,16 @@ def render_actor_avatars(actors, border_color="#666", color_lookup=None, size=24
             parts.append(f'<span style="font-size: 0.9rem;">{icon or "🎬"}</span>')
     return ''.join(parts)
 
-# Votes received (from paredoes.json), accounting for voto duplo/anulado
-votes_received = defaultdict(lambda: defaultdict(int))
-votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-votes_total = defaultdict(int)
-votes_cast = defaultdict(int)
-revealed_votes = defaultdict(set)
-
-for par in paredoes_data.get('paredoes', []) if paredoes_data else []:
-    votos = par.get('votos_casa', {}) or {}
-    if not votos:
-        continue
-    week = par.get('semana')
-    multiplier = defaultdict(lambda: 1)
-
-    for voter in par.get('votos_anulados', []) or []:
-        multiplier[voter] = 0
-    for voter in par.get('impedidos_votar', []) or []:
-        multiplier[voter] = 0
-
-    for ev in power_events:
-        if week and ev.get('week') == week:
-            if ev.get('type') == 'voto_duplo':
-                for a in normalize_actors(ev):
-                    if a:
-                        multiplier[a] = 2
-            if ev.get('type') == 'voto_anulado':
-                target = ev.get('target')
-                if target:
-                    multiplier[target] = 0
-
-    for voter, target in votos.items():
-        v = voter.strip()
-        t = target.strip()
-        mult = multiplier.get(v, 1)
-        if mult <= 0:
-            continue
-        votes_received[t][v] += mult
-        votes_received_by_week[week][t][v] += mult
-        votes_total[t] += mult
-        votes_cast[v] += mult
-
-# Dedo-duro (revealed votes) from manual_events.weekly_events
-for wev in manual_events.get('weekly_events', []) if manual_events else []:
-    dd = wev.get('dedo_duro')
-    if isinstance(dd, dict):
-        voter = dd.get('votante')
-        target = dd.get('alvo')
-        if voter and target:
-            revealed_votes[target].add(voter)
-    elif isinstance(dd, list):
-        for item in dd:
-            voter = item.get('votante')
-            target = item.get('alvo')
-            if voter and target:
-                revealed_votes[target].add(voter)
 
 def make_event_chips(events, border_color, color_lookup=None):
     if not events:
         return "<span style='color:#777;'>—</span>"
-    grouped = defaultdict(lambda: {'count': 0, 'actors': []})
-    for ev in events:
-        etype = ev.get('type')
-        actors = normalize_actors(ev)
-        key = (etype, tuple(actors))
-        grouped[key]['count'] += 1
-        grouped[key]['actors'] = actors
-
     chips = []
-    for (etype, actors), meta in grouped.items():
-        emoji = POWER_EVENT_EMOJI.get(etype, '•')
-        label = POWER_EVENT_LABELS.get(etype, etype)
-        count = meta['count']
+    for ev in events:
+        emoji = ev.get("emoji", "•")
+        label = ev.get("label", ev.get("type"))
+        count = ev.get("count", 1)
+        actors = ev.get("actors", [])
         count_prefix = f"{count}x " if count > 1 else ""
         chip_colors = {color_lookup.get(a) for a in actors} if color_lookup else set()
         chip_colors.discard(None)
@@ -1803,7 +1145,7 @@ def make_event_chips(events, border_color, color_lookup=None):
             chip_border,
             color_lookup=color_lookup,
             size=22,
-            skip_icons={emoji} if emoji else None
+            skip_icons={emoji} if emoji else None,
         )
         actor_label = " + ".join(actors) if actors else ""
         title = f"{label} — {actor_label}" if actor_label else label
@@ -1815,104 +1157,32 @@ def make_event_chips(events, border_color, color_lookup=None):
         )
     return ' '.join(chips)
 
-for p in sorted_active:
-    name = p['name']
-    first_name = name.split()[0]
-    member_of = p.get('characteristics', {}).get('memberOf', '?')
-    group = p.get('characteristics', {}).get('group', '?')
-    balance = p.get('characteristics', {}).get('balance', 0)
-    roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-    score = calc_sentiment(p)
 
-    # Reações recebidas
-    rxn_summary = []
-    for rxn in p.get('characteristics', {}).get('receivedReactions', []):
-        emoji = REACTION_EMOJI.get(rxn['label'], rxn['label'])
-        rxn_summary.append(f"{emoji}×{rxn['amount']}")
+for p in profiles:
+    name = p.get('name')
+    member_of = p.get('member_of', '?')
+    group = p.get('group', '?')
+    balance = p.get('balance', 0)
+    roles = p.get('roles', [])
+    score = p.get('score', 0)
 
-    # Reações que este participante deu
-    given = {}
-    for other_name in active_names:
-        if other_name == name:
-            continue
-        rxn = latest_matrix.get((name, other_name), '')
-        if rxn:
-            emoji = REACTION_EMOJI.get(rxn, rxn)
-            given[emoji] = given.get(emoji, 0) + 1
+    rxn_summary = " ".join([f"{r['emoji']}×{r['count']}" for r in p.get('rxn_summary', [])])
+    given_summary = " | ".join([f"{r['emoji']}×{r['count']}" for r in p.get('given_summary', [])])
 
-    given_summary = " | ".join(f"{e}×{c}" for e, c in sorted(given.items(), key=lambda x: -x[1]))
+    rel = p.get("relations", {})
+    allies = rel.get("allies", [])
+    enemies = rel.get("enemies", [])
+    false_friends = rel.get("false_friends", [])
+    blind_targets = rel.get("blind_targets", [])
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # ANÁLISE ESTRATÉGICA DE RELAÇÕES
-    # ══════════════════════════════════════════════════════════════════════════
-
-    allies = []           # ❤️ mútuo — aliados seguros
-    enemies = []          # Neg mútua — inimigos declarados (votos previsíveis)
-    false_friends = []    # Dou ❤️, recebo neg — PERIGO: podem me votar
-    blind_targets = []    # Dou neg, recebo ❤️ — posso votar neles sem retaliação esperada
-
-    for other_name in active_names:
-        if other_name == name:
-            continue
-        my_rxn = latest_matrix.get((name, other_name), '')
-        their_rxn = latest_matrix.get((other_name, name), '')
-
-        my_score = pair_sentiment(name, other_name)
-        their_score = pair_sentiment(other_name, name)
-
-        my_is_positive = my_score > 0
-        their_is_positive = their_score > 0
-        my_is_negative = my_score < 0
-        their_is_negative = their_score < 0
-
-        if my_is_positive and their_is_positive:
-            allies.append(other_name)
-        elif my_is_negative and their_is_negative:
-            my_emoji = REACTION_EMOJI.get(my_rxn, '?')
-            their_emoji = REACTION_EMOJI.get(their_rxn, '?')
-            enemies.append((other_name, my_emoji, their_emoji))
-        elif my_is_positive and their_is_negative:
-            their_emoji = REACTION_EMOJI.get(their_rxn, '?')
-            false_friends.append((other_name, their_emoji))
-        elif my_is_negative and their_is_positive:
-            my_emoji = REACTION_EMOJI.get(my_rxn, '?')
-            blind_targets.append((other_name, my_emoji))
-
-    # Calculate metrics
-    n_false_friends = len(false_friends)
-    n_blind_targets = len(blind_targets)
-    n_enemies = len(enemies)
     n_allies = len(allies)
-    total_relations = n_allies + n_enemies + n_false_friends + n_blind_targets
-
-    # Vulnerability assessment - based on false friends (blind spots for incoming votes)
-    # Thresholds calibrated to current data: avg ~2.6 false friends, max 9
-    if n_false_friends >= 5:
-        risk_level = "🔴 MUITO VULNERÁVEL"
-        risk_color = "#dc3545"
-    elif n_false_friends >= 3:
-        risk_level = "🟠 VULNERÁVEL"
-        risk_color = "#fd7e14"
-    elif n_false_friends >= 1:
-        risk_level = "🟡 ATENÇÃO"
-        risk_color = "#ffc107"
-    else:
-        risk_level = "🟢 PROTEGIDO"
-        risk_color = "#28a745"
-
-    # Power events (received)
-    target_events_all = [ev for ev in power_events if ev.get('target') == name]
-    target_events_week = [ev for ev in target_events_all if ev.get('week') == current_week]
-    target_events_hist = [ev for ev in target_events_all if ev.get('week') != current_week]
-    pos_events = [ev for ev in target_events_week if ev.get('impacto') == 'positivo']
-    neg_events = [ev for ev in target_events_week if ev.get('impacto') == 'negativo']
-    pos_events_hist = [ev for ev in target_events_hist if ev.get('impacto') == 'positivo']
-    neg_events_hist = [ev for ev in target_events_hist if ev.get('impacto') == 'negativo']
+    n_enemies = len(enemies)
+    n_false_friends = len(false_friends)
 
     ally_names = set(allies)
-    enemy_names = {n for n, *_ in enemies}
-    false_friend_names = {n for n, *_ in false_friends}
-    blind_names = {n for n, *_ in blind_targets}
+    enemy_names = {n["name"] for n in enemies}
+    false_friend_names = {n["name"] for n in false_friends}
+    blind_names = {n["name"] for n in blind_targets}
 
     relation_colors = {}
     relation_colors.update({n: "#28a745" for n in ally_names})
@@ -1920,45 +1190,25 @@ for p in sorted_active:
     relation_colors.update({n: "#ffc107" for n in false_friend_names})
     relation_colors.update({n: "#6f42c1" for n in blind_names})
 
-    pos_html = make_event_chips(pos_events, "#28a745", relation_colors)
-    neg_html = make_event_chips(neg_events, "#dc3545", relation_colors)
-    pos_hist_html = make_event_chips(pos_events_hist, "#2ecc71", relation_colors) if pos_events_hist else ""
-    neg_hist_html = make_event_chips(neg_events_hist, "#e74c3c", relation_colors) if neg_events_hist else ""
+    events = p.get("events", {})
+    pos_html = make_event_chips(events.get("pos_week", []), "#28a745", relation_colors)
+    neg_html = make_event_chips(events.get("neg_week", []), "#dc3545", relation_colors)
+    pos_hist_html = make_event_chips(events.get("pos_hist", []), "#2ecc71", relation_colors) if events.get("pos_hist") else ""
+    neg_hist_html = make_event_chips(events.get("neg_hist", []), "#e74c3c", relation_colors) if events.get("neg_hist") else ""
     hist_html = ""
-    if pos_events_hist:
+    if events.get("pos_hist"):
         hist_html += f"<span style='color:#28a745;'>{pos_hist_html}</span>"
-    if neg_events_hist:
+    if events.get("neg_hist"):
         hist_html += f"<span style='color:#dc3545; margin-left:0.35rem;'>{neg_hist_html}</span>"
 
-    vote_map = votes_received_by_week.get(current_week, {}).get(name, {})
-
-    sincerao_reasons = find_sincerao_reason(sinc_agg, name) if 'sinc_agg' in globals() else []
-    bombs = {}
-    for edge in sinc_edges_week:
-        if edge.get("type") == "bomba" and edge.get("target") == name:
-            tema = edge.get("tema") or "bomba"
-            bombs[tema] = bombs.get(tema, 0) + 1
-
-    chips = []
-    for reason in sincerao_reasons:
-        chips.append(
-            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
-            f"font-size:0.72rem; margin:0.15rem;'>{reason}</span>"
-        )
-    for tema, count in bombs.items():
-        prefix = f"{count}x " if count > 1 else ""
-        chips.append(
-            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
-            f"font-size:0.72rem; margin:0.15rem;'>💣 {prefix}{tema}</span>"
-        )
-    sincerao_html = " ".join(chips) if chips else ""
-    if vote_map:
+    votes = p.get("votes_received", [])
+    if votes:
         vote_chips = []
-        for voter, count in sorted(vote_map.items(), key=lambda x: (-x[1], x[0])):
+        for v in votes:
+            voter = v.get("voter")
+            count = v.get("count", 1)
+            is_revealed = v.get("revealed", False)
             count_prefix = f"{count}x " if count > 1 else ""
-            is_revealed = voter in revealed_votes.get(name, set())
             border = relation_colors.get(voter, "#666")
             reveal_glow = "box-shadow: 0 0 0 2px #17a2b8 inset;" if is_revealed else ""
             badge = " 👁️" if is_revealed else ""
@@ -1974,92 +1224,43 @@ for p in sorted_active:
     else:
         votes_html = ""
 
-    def is_self_inflicted(ev):
-        actors = normalize_actors(ev)
-        return any(a == name for a in actors)
+    sinc = p.get("sincerao", {})
+    chips = []
+    for reason in sinc.get("reasons", []):
+        chips.append(
+            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
+            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
+            f"font-size:0.72rem; margin:0.15rem;'>{reason}</span>"
+        )
+    for tema, count in (sinc.get("bombas", {}) or {}).items():
+        prefix = f"{count}x " if count > 1 else ""
+        chips.append(
+            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
+            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
+            f"font-size:0.72rem; margin:0.15rem;'>💣 {prefix}{tema}</span>"
+        )
+    sincerao_html = " ".join(chips) if chips else ""
 
-    neg_public = [ev for ev in neg_events if ev.get('visibility', 'public') != 'secret' and not is_self_inflicted(ev)]
-    neg_secret = [ev for ev in neg_events if ev.get('visibility', 'public') == 'secret']
-    neg_self = [ev for ev in neg_events if is_self_inflicted(ev)]
+    sinc_contra = p.get("sinc_contra", {})
+    sinc_contra_count = sinc_contra.get("count", 0)
+    sinc_contra_label = ""
+    if sinc_contra_count:
+        targets_txt = ", ".join(sinc_contra.get("targets", []))
+        plural = "ões" if sinc_contra_count > 1 else "ão"
+        sinc_contra_label = (
+            f"<span title='Contradiç{plural} com: {targets_txt}' "
+            f"style='font-size: 0.5em; padding: 3px 10px; border-radius: 4px; "
+            f"background: #6f42c1; color: #fff; vertical-align: middle; font-weight: bold;'>"
+            f"Contradição {sinc_contra_count}x</span>"
+        )
 
-    NEG_EVENT_WEIGHTS = {
-        'indicacao': 2.5,
-        'contragolpe': 2.5,
-        'emparedado': 2.0,
-        'veto_prova': 1.5,
-        'monstro': 1.2,
-        'perdeu_voto': 1.0,
-        'voto_anulado': 0.8,
-        'voto_duplo': 0.6,
-        'exposto': 0.5,
-    }
+    risk_level = p.get("risk_level")
+    risk_color = p.get("risk_color")
+    external_level = p.get("external_level")
+    external_color = p.get("external_color")
+    animosity_level = p.get("animosity_level")
+    animosity_color = p.get("animosity_color")
 
-    def event_weight_neg(ev):
-        return NEG_EVENT_WEIGHTS.get(ev.get('type'), 1.0)
-
-    votes_count = sum(vote_map.values()) if vote_map else 0
-    external_score = (
-        1.0 * votes_count +
-        sum(event_weight_neg(ev) for ev in neg_public) +
-        sum(event_weight_neg(ev) * 0.5 for ev in neg_secret) +
-        0.5 * len(neg_self)
-    )
-    if 'Paredão' in roles:
-        external_score += 2
-
-    def event_weight(ev):
-        ev_week = ev.get('week') or current_week
-        diff = max(0, current_week - ev_week)
-        return 1 / (1 + diff)
-
-    animosity_events = [ev for ev in power_events if ev.get('impacto') == 'negativo' and name in normalize_actors(ev)]
-    ANIMOSITY_WEIGHTS = {
-        'indicacao': 2.0,
-        'contragolpe': 2.0,
-        'monstro': 1.2,
-        'perdeu_voto': 0.8,
-        'voto_anulado': 0.8,
-        'voto_duplo': 0.6,
-        'exposto': 0.5,
-    }
-
-    def animosity_event_weight(ev):
-        return ANIMOSITY_WEIGHTS.get(ev.get('type'), 1.0)
-    animosity_score = (
-        0.25 * sum(1 for rxn in p.get('characteristics', {}).get('receivedReactions', [])
-                   if rxn.get('label') not in POSITIVE) +
-        0.5 * sum(1 for other_name in active_names
-                  if latest_matrix.get((name, other_name), '') and latest_matrix.get((name, other_name), '') not in POSITIVE) +
-        1.5 * sum(event_weight(ev) * animosity_event_weight(ev) for ev in animosity_events)
-    )
-
-    if animosity_score >= 6:
-        animosity_level = "🔴 ALTA"
-        animosity_color = "#dc3545"
-    elif animosity_score >= 3:
-        animosity_level = "🟠 MÉDIA"
-        animosity_color = "#fd7e14"
-    elif animosity_score >= 1:
-        animosity_level = "🟡 BAIXA"
-        animosity_color = "#ffc107"
-    else:
-        animosity_level = "🟢 MUITO BAIXA"
-        animosity_color = "#28a745"
-
-    if external_score >= 6:
-        external_level = "🔴 ALTO"
-        external_color = "#dc3545"
-    elif external_score >= 3:
-        external_level = "🟠 MÉDIO"
-        external_color = "#fd7e14"
-    elif external_score >= 1:
-        external_level = "🟡 BAIXO"
-        external_color = "#ffc107"
-    else:
-        external_level = "🟢 MUITO BAIXO"
-        external_color = "#28a745"
-
-    # Get avatar
     avatar_url = AVATARS.get(name, '')
     cor_grupo = GROUP_COLORS.get(member_of, '#666')
 
@@ -2067,23 +1268,23 @@ for p in sorted_active:
     # PROFILE CARD - Using HTML tables for better formatting
     # ════════════════════════════════════════════════════════════════
 
+    role_text = f" | {', '.join(roles)}" if roles else ""
+    badges = " ".join([
+        f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {risk_color}; color: #fff; vertical-align: middle; font-weight: bold;\">{risk_level}</span>",
+        f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {external_color}; color: #fff; vertical-align: middle; font-weight: bold;\">Risco externo {external_level}</span>",
+        f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {animosity_color}; color: #fff; vertical-align: middle; font-weight: bold;\">Animosidade {animosity_level}</span>",
+        sinc_contra_label or "",
+    ]).strip()
+    avatar_html = (f'<img src="{avatar_url}" alt="{name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid {cor_grupo}; flex-shrink: 0;">'
+                   if avatar_url else "")
     print(f'''
 <div style="margin-top: 2rem; margin-bottom: 1rem; border: 1px solid #444; border-radius: 12px; overflow: hidden; background: #2a2a2a;">
 
 <!-- Header with avatar -->
 <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: linear-gradient(90deg, rgba(48,48,48,0.9), rgba(48,48,48,0.3)); border-left: 5px solid {cor_grupo};">
-''')
-    if avatar_url:
-        print(f'<img src="{avatar_url}" alt="{name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid {cor_grupo}; flex-shrink: 0;">')
-
-    role_text = f" | {', '.join(roles)}" if roles else ""
-    print(f'''
+{avatar_html}
 <div>
-<h3 style="margin: 0 0 0.3rem 0; color: #fff; font-size: 1.4em;">{name}
-  <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {risk_color}; color: #fff; vertical-align: middle; font-weight: bold;">{risk_level}</span>
-  <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {external_color}; color: #fff; vertical-align: middle; font-weight: bold;">Risco externo {external_level}</span>
-  <span style="font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {animosity_color}; color: #fff; vertical-align: middle; font-weight: bold;">Animosidade {animosity_level}</span>
-</h3>
+<h3 style="margin: 0 0 0.3rem 0; color: #fff; font-size: 1.4em;">{name} {badges}</h3>
 <div style="color: #aaa; font-size: 0.95em;">
 <strong style="color: {cor_grupo};">{member_of}</strong> | {group} | Saldo: {balance:,} | Sentimento: <strong style="color: {'#28a745' if score >= 0 else '#dc3545'};">{score:+.1f}</strong>{role_text}
 </div>
@@ -2093,7 +1294,7 @@ for p in sorted_active:
 <!-- Reactions -->
 <div style="padding: 0.8rem 1rem; border-bottom: 1px solid #444; background: #333;">
 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem;">
-<div><strong style="color: #888;">Recebeu:</strong> {' '.join(rxn_summary)}</div>
+<div><strong style="color: #888;">Recebeu:</strong> {rxn_summary}</div>
 <div><strong style="color: #888;">Deu:</strong> {given_summary}</div>
 </div>
 </div>
@@ -2103,21 +1304,20 @@ for p in sorted_active:
 <div style="padding: 0.8rem 1rem; border-bottom: 1px solid #444; background: #2f2f2f;">
 <div style="font-weight: bold; color: #fff; margin-bottom: 0.5rem;">⚡ Dinâmicas do Jogo</div>
 <div style="display: grid; grid-template-columns: 1fr; gap: 0.4rem; font-size: 0.9em;">
-  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #28a745;'>+ Benefícios (semana):</strong> {pos_html}</div>" if pos_events else ""}
-  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #dc3545;'>− Prejuízos (semana):</strong> {neg_html}</div>" if neg_events else ""}
-  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #ffc107;'>🗳️ Votos recebidos:</strong> {votes_html}</div>" if vote_map else ""}
+  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #28a745;'>+ Benefícios (semana):</strong> {pos_html}</div>" if events.get('pos_week') else ""}
+  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #dc3545;'>− Prejuízos (semana):</strong> {neg_html}</div>" if events.get('neg_week') else ""}
+  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #ffc107;'>🗳️ Votos recebidos:</strong> {votes_html}</div>" if votes else ""}
   {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #17a2b8;'>🔥 Sincerão (semana):</strong> {sincerao_html}</div>" if sincerao_html else ""}
-  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #999;'>Histórico da temporada:</strong> {hist_html}</div>" if (pos_events_hist or neg_events_hist) else ""}
+  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #999;'>Histórico da temporada:</strong> {hist_html}</div>" if (events.get('pos_hist') or events.get('neg_hist')) else ""}
 </div>
 </div>
-''' if (pos_events_hist or neg_events_hist or pos_events or neg_events or vote_map or sincerao_html) else ''}
+''' if (events.get('pos_week') or events.get('neg_week') or votes or sincerao_html) else ''}
 
 <!-- Strategic Map -->
 <div style="padding: 1rem;">
 <h4 style="margin: 0 0 0.8rem 0; color: #fff; font-size: 1em; border-bottom: 1px solid #444; padding-bottom: 0.5rem;">🗺️ Mapa Estratégico</h4>
 ''')
 
-    # Allies
     if allies:
         allies_str = ', '.join(sorted(allies))
         print(f'''
@@ -2128,9 +1328,8 @@ for p in sorted_active:
 </div>
 ''')
 
-    # Enemies
     if enemies:
-        enemy_items = [f"{n} <span style='color:#888;'>({me}↔{te})</span>" for n, me, te in sorted(enemies, key=lambda x: x[0])]
+        enemy_items = [f"{e['name']} <span style='color:#888;'>({e['my_emoji']}↔{e['their_emoji']})</span>" for e in enemies]
         enemies_str = ', '.join(enemy_items)
         print(f'''
 <div style="margin-bottom: 0.8rem; padding: 0.6rem; background: rgba(220, 53, 69, 0.1); border-radius: 6px; border-left: 3px solid #dc3545;">
@@ -2140,57 +1339,31 @@ for p in sorted_active:
 </div>
 ''')
 
-    # False Friends - DANGER
     if false_friends:
-        ff_items = [f"<strong>{n}</strong> <span style='color:#dc3545;'>({e})</span>" for n, e in sorted(false_friends, key=lambda x: x[0])]
+        ff_items = [f"<strong>{f['name']}</strong> <span style='color:#dc3545;'>({f['their_emoji']})</span>" for f in false_friends]
         ff_str = ', '.join(ff_items)
         print(f'''
 <div style="margin-bottom: 0.8rem; padding: 0.6rem; background: rgba(255, 193, 7, 0.15); border-radius: 6px; border-left: 3px solid #ffc107;">
 <div style="font-weight: bold; color: #ffc107; margin-bottom: 0.3rem;">⚠️ Falsos Amigos ({n_false_friends}) — PERIGO!</div>
 <div style="color: #ccc; font-size: 0.9em;">{ff_str}</div>
-<div style="color: #dc3545; font-size: 0.8em; margin-top: 0.3rem;">→ {first_name} dá ❤️ mas recebe negatividade. Podem votar contra sem que {first_name} espere!</div>
+<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Eles dão negativa para você. Podem votar contra sem que você espere.</div>
 </div>
 ''')
 
-    # Blind Targets - Undeclared enemies (they don't know)
     if blind_targets:
-        bt_items = [f"{n} <span style='color:#6f42c1;'>({e})</span>" for n, e in sorted(blind_targets, key=lambda x: x[0])]
+        bt_items = [f"<strong>{b['name']}</strong> <span style='color:#28a745;'>({b['my_emoji']})</span>" for b in blind_targets]
         bt_str = ', '.join(bt_items)
         print(f'''
 <div style="margin-bottom: 0.8rem; padding: 0.6rem; background: rgba(111, 66, 193, 0.1); border-radius: 6px; border-left: 3px solid #6f42c1;">
-<div style="font-weight: bold; color: #6f42c1; margin-bottom: 0.3rem;">🗡️ Inimigos Não Declarados ({n_blind_targets})</div>
+<div style="font-weight: bold; color: #6f42c1; margin-bottom: 0.3rem;">🗡️ Inimigos Não Declarados ({len(blind_targets)})</div>
 <div style="color: #ccc; font-size: 0.9em;">{bt_str}</div>
-<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Eles dão ❤️ para {first_name}, mas {first_name} é hostil. Eles não sabem que são alvos.</div>
+<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Eles dão ❤️ para você, mas você é hostil. Eles não sabem que são seus alvos.</div>
 </div>
 ''')
 
-    # Game Analysis
-    insights = []
-    if n_false_friends == 0 and n_enemies == 0:
-        insights.append("🛡️ Posição confortável: sem inimigos e sem falsos amigos.")
-    if n_false_friends >= 3:
-        insights.append(f"🚨 <strong style='color:#dc3545;'>Posição vulnerável</strong>: {n_false_friends} pessoas que considera amigas são hostis.")
-    elif n_false_friends >= 1:
-        insights.append(f"⚡ Atenção: {n_false_friends} falso(s) amigo(s) pode(m) surpreender em votação.")
-    if n_blind_targets >= 3:
-        insights.append(f"🗡️ {n_blind_targets} inimigos não declarados: confiam em {first_name} sem saber que são alvos.")
-    if n_enemies >= 3:
-        insights.append(f"🔥 Polarizante: {n_enemies} inimigos declarados. Alvo provável em paredões.")
-    if n_allies >= 10 and total_relations > 0:
-        pct = n_allies * 100 // total_relations
-        insights.append(f"💪 Base sólida: {n_allies} aliados ({pct}% das relações).")
-
-    if insights:
-        print(f'''
-<div style="padding: 0.6rem; background: #383838; border-radius: 6px; margin-top: 0.5rem;">
-<div style="font-weight: bold; color: #fff; margin-bottom: 0.4rem; font-size: 0.9em;">📊 Análise de Jogo</div>
-<ul style="margin: 0; padding-left: 1.2rem; color: #ccc; font-size: 0.85em;">
-''')
-        for insight in insights:
-            print(f'<li style="margin-bottom: 0.2rem;">{insight}</li>')
-        print('</ul></div>')
-
-    print('</div></div>')  # Close strategic map and card
+    print('</div>')
+    print('</div>')
+    print('</div>')
 ```
 
 ---
