@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-01-26",
+  "_last_updated": "2026-01-28",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -46,7 +46,51 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-1o-paredao.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-a-1a-disputa.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-jonas-sulzbach-vence-a-primeira-prova.ghtml"
-      ]
+      ],
+      "sincerao": {
+        "date": "2026-01-19",
+        "format": "pódio + quem não ganha",
+        "participacao": "todos",
+        "notes": "Todos montaram pódio e indicaram quem não ganha; plateia presente.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/primeiro-sincerao-do-bbb-26-tem-monte-seu-podio-e-indicacoes-de-quem-nao-ganha.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/primeiro-sincerao-do-bbb-26-veja-os-participantes-mais-e-menos-citados.ghtml"
+        ],
+        "stats": {
+          "podio_top": [
+            {
+              "name": "Marciele",
+              "count": 6
+            },
+            {
+              "name": "Babu Santana",
+              "count": 4
+            },
+            {
+              "name": "Edilson",
+              "count": 4
+            }
+          ],
+          "sem_podio": [
+            "Leandro"
+          ],
+          "nao_ganha_top": [
+            {
+              "name": "Marcelo",
+              "count": 3
+            },
+            {
+              "name": "Ana Paula Renault",
+              "count": 3
+            },
+            {
+              "name": "Sol Vega",
+              "count": 3
+            }
+          ],
+          "notes": "Contagens baseadas no balanço do 1º Sincerão (GShow)."
+        }
+      }
     },
     {
       "week": 2,
@@ -69,7 +113,41 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-do-bbb-26-sarah-andrade-ganha-poder-do-veto-no-proximo-paredao.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixa-surpresa-do-bbb-26-ana-paula-renault-tera-direito-ao-voto-que-vale-por-dois-no-proximo-paredao.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-no-bbb-26-alberto-cowboy-e-brigido-indicam-leandro-ao-paredao.ghtml"
-      ]
+      ],
+      "sincerao": {
+        "date": "2026-01-26",
+        "format": "bombas com temas do público + plateia define planta",
+        "participacao": "protagonistas da semana + plateia",
+        "protagonistas": [
+          "Ana Paula Renault",
+          "Alberto Cowboy",
+          "Sarah Andrade",
+          "Leandro",
+          "Matheus",
+          "Brigido",
+          "Jonas Sulzbach",
+          "Babu Santana"
+        ],
+        "temas_publico": [
+          "mais falso",
+          "inútil",
+          "manipulador",
+          "leva-e-traz",
+          "menos confiável",
+          "mais influenciável",
+          "mais chato",
+          "mais vtzeiro"
+        ],
+        "planta": {
+          "target": "Solange Couto",
+          "source": "plateia"
+        },
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/segundo-sincerao-do-bbb-26-tem-temas-escolhidos-pelo-publico.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/falso-inutil-manipulador-e-mais-veja-quem-recebeu-adjetivos-no-sincerao-do-bbb-26.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-com-distribuicao-de-bombas-teve-treta-generalizada-e-ironias-veja-como-foi.ghtml"
+        ]
+      }
     }
   ],
   "special_events": [

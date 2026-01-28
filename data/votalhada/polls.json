@@ -1,0 +1,153 @@
+{
+  "_description": "Poll aggregation data from Votalhada",
+  "_source": "votalhada.blogspot.com",
+  "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
+  "_last_updated": "2026-01-27",
+
+  "paredoes": [
+    {
+      "numero": 1,
+      "data_paredao": "2026-01-21",
+      "data_coleta": "2026-01-20T21:00:00-03:00",
+      "participantes": ["Aline Campos", "Ana Paula Renault", "Milena"],
+
+      "consolidado": {
+        "Aline Campos": 46.19,
+        "Ana Paula Renault": 9.26,
+        "Milena": 44.55,
+        "total_votos": 5024890,
+        "predicao_eliminado": "Aline Campos"
+      },
+
+      "plataformas": {
+        "sites": {
+          "Aline Campos": 42.53,
+          "Ana Paula Renault": 11.89,
+          "Milena": 45.59,
+          "votos": 1934238,
+          "fontes_count": 14
+        },
+        "youtube": {
+          "Aline Campos": 41.67,
+          "Ana Paula Renault": 12.50,
+          "Milena": 45.83,
+          "votos": 899700,
+          "fontes_count": 26
+        },
+        "twitter": {
+          "Aline Campos": 64.88,
+          "Ana Paula Renault": 3.78,
+          "Milena": 31.35,
+          "votos": 551809,
+          "fontes_count": 22
+        },
+        "instagram": {
+          "Aline Campos": 46.71,
+          "Ana Paula Renault": 6.21,
+          "Milena": 47.07,
+          "votos": 1639143,
+          "fontes_count": 14
+        }
+      },
+
+      "serie_temporal": [
+        {"hora": "19/jan 01:00", "Aline Campos": 48.28, "Ana Paula Renault": 16.43, "Milena": 35.28},
+        {"hora": "19/jan 07:00", "Aline Campos": 48.11, "Ana Paula Renault": 14.51, "Milena": 37.39},
+        {"hora": "19/jan 13:00", "Aline Campos": 48.15, "Ana Paula Renault": 11.85, "Milena": 40.00},
+        {"hora": "19/jan 19:00", "Aline Campos": 48.17, "Ana Paula Renault": 10.62, "Milena": 41.21},
+        {"hora": "20/jan 01:00", "Aline Campos": 47.33, "Ana Paula Renault": 9.78, "Milena": 42.89},
+        {"hora": "20/jan 07:00", "Aline Campos": 46.89, "Ana Paula Renault": 9.55, "Milena": 43.56},
+        {"hora": "20/jan 13:00", "Aline Campos": 46.55, "Ana Paula Renault": 9.38, "Milena": 44.07},
+        {"hora": "20/jan 19:00", "Aline Campos": 46.28, "Ana Paula Renault": 9.31, "Milena": 44.41},
+        {"hora": "20/jan 21:00", "Aline Campos": 46.19, "Ana Paula Renault": 9.26, "Milena": 44.55}
+      ],
+
+      "resultado_real": {
+        "Aline Campos": 61.64,
+        "Ana Paula Renault": 5.86,
+        "Milena": 32.50,
+        "eliminado": "Aline Campos",
+        "predicao_correta": true
+      },
+
+      "imagens": [
+        "data/votalhada/2026_01_20/sites.png",
+        "data/votalhada/2026_01_20/twitter.png",
+        "data/votalhada/2026_01_20/youtube.png",
+        "data/votalhada/2026_01_20/instagram.png",
+        "data/votalhada/2026_01_20/consolidados.png"
+      ],
+
+      "fontes": [
+        "https://votalhada.blogspot.com/2026/01/bbb26-1-paredao-sites.html",
+        "https://votalhada.blogspot.com/2026/01/bbb26-1-paredao-consolidados.html"
+      ]
+    },
+    {
+      "numero": 2,
+      "data_paredao": "2026-01-28",
+      "data_coleta": "2026-01-27T18:00:00-03:00",
+      "participantes": ["Brigido", "Leandro", "Matheus"],
+
+      "consolidado": {
+        "Brigido": 11.30,
+        "Leandro": 24.55,
+        "Matheus": 64.15,
+        "total_votos": 3213923,
+        "predicao_eliminado": "Matheus"
+      },
+
+      "plataformas": {
+        "sites": {
+          "Brigido": 13.29,
+          "Leandro": 38.04,
+          "Matheus": 48.67,
+          "votos": 1308901,
+          "fontes_count": 15
+        },
+        "youtube": {
+          "Brigido": 13.21,
+          "Leandro": 20.42,
+          "Matheus": 66.38,
+          "votos": 592100,
+          "fontes_count": 22
+        },
+        "twitter": {
+          "Brigido": 5.14,
+          "Leandro": 14.12,
+          "Matheus": 80.74,
+          "votos": 340264,
+          "fontes_count": 20
+        },
+        "instagram": {
+          "Brigido": 9.63,
+          "Leandro": 12.56,
+          "Matheus": 77.81,
+          "votos": 972658,
+          "fontes_count": 16
+        }
+      },
+
+      "serie_temporal": [
+        {"hora": "26/jan 01:00", "Brigido": 11.27, "Leandro": 16.47, "Matheus": 72.26, "votos": 894767},
+        {"hora": "26/jan 08:00", "Brigido": 11.47, "Leandro": 17.79, "Matheus": 70.74, "votos": 1496376},
+        {"hora": "26/jan 12:00", "Brigido": 11.67, "Leandro": 17.51, "Matheus": 70.82, "votos": 1807602},
+        {"hora": "26/jan 15:00", "Brigido": 11.60, "Leandro": 20.03, "Matheus": 68.37, "votos": 2091475},
+        {"hora": "26/jan 18:00", "Brigido": 11.80, "Leandro": 20.02, "Matheus": 68.17, "votos": 2255870},
+        {"hora": "26/jan 21:00", "Brigido": 11.73, "Leandro": 20.06, "Matheus": 68.20, "votos": 2352366},
+        {"hora": "27/jan 01:00", "Brigido": 11.57, "Leandro": 18.12, "Matheus": 70.30, "votos": 2826935},
+        {"hora": "27/jan 08:00", "Brigido": 11.48, "Leandro": 23.37, "Matheus": 65.15, "votos": 2943180},
+        {"hora": "27/jan 12:00", "Brigido": 11.51, "Leandro": 23.78, "Matheus": 64.72, "votos": 3078721},
+        {"hora": "27/jan 18:00", "Brigido": 11.30, "Leandro": 24.55, "Matheus": 64.15, "votos": 3213923}
+      ],
+
+      "imagens": [
+        "data/votalhada/2026_01_27/consolidados.png"
+      ],
+
+      "fontes": [
+        "https://votalhada.blogspot.com/2026/01/pesquisa2-25.html"
+      ]
+    }
+  ]
+}

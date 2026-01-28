@@ -29,6 +29,9 @@ python scripts/fetch_data.py
 # Build derived data files (auto events, roles, participant index)
 python scripts/build_derived_data.py
 
+# Update program guide weekly timeline
+python scripts/update_programa_doc.py
+
 # Audit all snapshots (find duplicates, unique states)
 python scripts/audit_snapshots.py
 
@@ -38,6 +41,19 @@ quarto render index.qmd
 # Preview with hot reload
 quarto preview
 ```
+
+## Script usage (when to run)
+
+- `scripts/fetch_data.py` — **daily** (or before key events); updates snapshots + derived data.
+- `scripts/build_derived_data.py` — **after any manual edits** in `data/manual_events.json` or `data/paredoes.json`.
+- `scripts/update_programa_doc.py` — **after weekly manual updates** (keeps `docs/PROGRAMA_BBB26.md` table in sync).
+- `scripts/compute_metrics.py` — **legacy CI step** (outputs `data/daily_metrics.json`).
+- `scripts/audit_snapshots.py` / `scripts/analyze_snapshots.py` / `scripts/compare_sameday.py` — **one‑off audits**.
+
+**Votalhada polls (manual):**
+- Update `data/votalhada/polls.json` **Tuesday ~21:00 BRT** (before elimination).
+- After elimination, fill `resultado_real`.
+- See `docs/HANDOFF_VOTALHADA.md` and `data/votalhada/README.md`.
 
 ## Known Issues
 
@@ -106,6 +122,7 @@ This means **every snapshot is a unique complete game state** and must be kept.
 **Manual (human-maintained):**
 - `data/paredoes.json` — formation + results + **percentuais** (not in API).
 - `data/manual_events.json` — Big Fone, contragolpe, voto duplo, veto, perdeu voto, saídas, etc.
+- `data/votalhada/polls.json` — **poll aggregates** (manual capture from Votalhada).
 
 **Important fragmentation (current state):**
 - `cartola.qmd` computes roles and weekly points **inside the page** (not persisted).
@@ -121,6 +138,8 @@ Use this as the **single reference** for what data exists and how it can be reus
 **Manual (curated)**
 - `data/manual_events.json` — **Power events + weekly events** not in API (Big Fone, contragolpe, voto duplo/anulado, dedo‑duro, consensus decisions).
 - `data/paredoes.json` — **Paredão formation + votos da casa + resultado + % público** (percentuais are manual).
+- `data/votalhada/polls.json` — **Poll aggregation** from Votalhada (per paredão).
+- `data/votalhada/README.md` and `docs/HANDOFF_VOTALHADA.md` — collection steps + schema.
 
 **Derived (shared)**
 - `data/derived/roles_daily.json` — Roles + VIP per day (from snapshots).
@@ -131,6 +150,90 @@ Use this as the **single reference** for what data exists and how it can be reus
 
 **Computed (page‑only, should be reusable)**
 - Reaction matrix, sentiment score, relationship categories (Aliados/Inimigos/etc.).
+
+## Participant Data Points & Indexes (how we compute)
+
+This section documents **what data points exist per participant** and **how we derive indexes**.
+Goal: build a **sentiment index between every pair** (A → B) using queridômetro as the base,
+with optional, **rare** power event modifiers.
+
+### Raw participant data (from snapshots)
+- **Reações recebidas**: list of emojis + givers (who gave which reaction).
+- **Saldo (balance)**, **grupo** (Vip/Xepa), **roles** (Líder/Anjo/Monstro/Imune/Paredão).
+- **Avatar**, **grupo de origem** (Pipoca/Veterano/Camarote).
+
+### Derived per‑participant metrics (current snapshot)
+- **Sentiment score**: weighted sum of received reactions.
+  - Weights: Coração +1; Planta/Mala/Biscoito/💔 −0.5; Cobra/Alvo/Vômito/Mentiroso −1.
+- **Aliados / Inimigos / Falsos Amigos / Inimigos Não Declarados**:
+  - Built from the **reaction matrix** (giver → receiver).
+  - Categories:
+    - Aliados: ❤️↔❤️
+    - Inimigos declarados: neg↔neg
+    - Falsos amigos: A dá ❤️, recebe neg de B
+    - Inimigos não declarados: A dá neg, recebe ❤️ de B
+
+### Event data (rare, manual + auto)
+- **Power events** (manual + auto events): usually **one actor → one target**.
+- These are **sparse** compared to queridômetro (daily), so they should be **modifiers**, not the base.
+- Weekly effects (risk) **do not carry**; historical effects (animosity) decay over time.
+- **Sincerão edges** (manual): explicit A → B signals (pódio, “não ganha”, bombas/temas).
+  - Use as **small modifiers** to the sentiment index (see Sincerão framework).
+
+### Sentiment Index (A → B)
+Purpose: a **directional score** showing how A feels about B.
+
+**Base (queridômetro):**
+```
+score_current(A→B) = weight(reaction_label from A to B)
+```
+
+**Optional smoothing (if using multiple days):**
+```
+score_pair(A→B) = 0.6 * score_current
+                + 0.25 * avg_3d
+                + 0.15 * avg_7d
+```
+Where `avg_3d` / `avg_7d` are averages of prior snapshots (if available).
+
+**Event modifiers (rare, optional):**
+- Only apply when we know the **actor** and **target**.
+- Keep weights **small** to avoid overpowering daily reactions.
+```
+score_pair += -0.3 * peso_evento_negativo(actor=A, target=B)
+score_pair += +0.2 * peso_evento_positivo(actor=A, target=B)
+```
+Event weights use the same table as Risco externo (see below). Apply **decay** for older weeks.
+
+### Relationship Summary Score (A ↔ B)
+For symmetric views (alliances / rivalries):
+```
+score_mutual = 0.5 * score_pair(A→B) + 0.5 * score_pair(B→A)
+```
+
+### Risco externo (weekly, from events + votes)
+Computed **per participant, per week**. Uses weighted negative events + votes received:
+```
+risco_externo = 1.0 * votos_recebidos
+              + Σ pesos_prejuizos_publicos
+              + 0.5 * Σ pesos_prejuizos_secretos
+              + 0.5 * auto_infligidos
+              + 2 (se estiver no Paredão)
+```
+
+### Animosidade (historical, decayed)
+Directional: if **A** inflicts negative events on **B**, A accumulates animosity:
+```
+animosidade = 0.25 * reacoes_negativas_recebidas
+            + 0.5 * hostilidades_recebidas
+            + 1.5 * Σ (peso_evento * decay)
+```
+Decay: `peso = 1 / (1 + semanas_passadas)`.
+
+### Why power events are “modifiers”
+- They are **rare** and usually **one‑to‑one** (actor → target).
+- Queridômetro is daily and captures **ongoing sentiment**.
+- Events should **tilt** the index, not dominate it.
 
 ### Cross‑Reference Opportunities (new/strong visuals)
 These are **safe cross‑page ideas** using only existing data:
@@ -239,6 +342,58 @@ data/derived/daily_metrics.json
   ]
 }
 ```
+
+### Sincerão (manual framework)
+
+Sincerão is **manual-only** and varies by week. It creates **explicit directional signals** (A → B).
+Because it’s **rare** and typically **1‑to‑1**, it should **modify** the sentiment index, not replace it.
+
+**Where to store**
+- `data/manual_events.json` → `weekly_events[].sincerao`
+
+**Recommended schema (lightweight)**
+```json
+{
+  "date": "YYYY-MM-DD",
+  "format": "pódio + quem não ganha | bombas | etc",
+  "participacao": "todos | protagonistas da semana + plateia",
+  "protagonistas": ["..."],                // when not all participants
+  "temas_publico": ["mais falso", "..."],  // if bombs/themes chosen by audience
+  "planta": { "target": "Nome", "source": "plateia" },
+  "notes": "...",
+  "fontes": ["https://..."]
+}
+```
+
+**If we want per‑pair edges (for the sentiment index)**
+Store an optional list of **edges**:
+```json
+"edges": [
+  { "actor": "A", "target": "B", "type": "podio", "slot": 1 },
+  { "actor": "A", "target": "C", "type": "podio", "slot": 2 },
+  { "actor": "A", "target": "D", "type": "nao_ganha" },
+  { "actor": "A", "target": "E", "type": "bomba", "tema": "mais falso" }
+]
+```
+
+**Derived signal (optional)**
+- `nao_citado_no_podio`: if **todos participam**, participants not cited in any podium.
+  - This is **not directional**, but signals low popularity/visibility.
+
+**Suggested weights (small modifiers)**
+- `podio slot 1`: +0.6
+- `podio slot 2`: +0.4
+- `podio slot 3`: +0.2
+- `nao_ganha`: −0.8
+- `bomba/tema`: −0.6 (generic negative tag)
+- `planta` (plateia): −0.6 (non‑directional, use as external/visibility signal)
+
+**Workflow**
+1. After Sincerão (Monday), update `weekly_events[].sincerao` with date/format/notes.
+2. If per‑pair edges are available, fill `edges`.
+3. Add **fontes** (GShow) to the event.
+4. Run `python scripts/build_derived_data.py`.
+5. Run `python scripts/update_programa_doc.py` (updates internal weekly timeline).
 
 **Cartola BBB Points**:
 | Event | Points |
@@ -1025,6 +1180,110 @@ Claude will:
 2. Verify participant names match between votos_casa and API
 3. Add the new paredão entry to `index.qmd`
 4. The archive tab will automatically appear after `quarto render`
+
+## Votalhada Poll Data
+
+### What is Votalhada?
+
+[Votalhada](https://votalhada.blogspot.com/) is a Brazilian blog that aggregates poll results from multiple platforms (websites, Twitter/X, YouTube, Instagram) during BBB paredões. They collect data from dozens of sources and compute weighted averages to predict elimination results.
+
+### Data Location
+
+- **Poll data**: `data/votalhada/polls.json`
+- **Documentation**: `data/votalhada/README.md`
+- **Images**: `data/votalhada/YYYY_MM_DD/consolidados.png`
+
+### Quick Workflow
+
+```
+1. Screenshot Consolidados from votalhada.blogspot.com
+2. Save to data/ folder (any filename)
+3. Tell Claude: "Process Votalhada image data/[filename].png for paredão N"
+4. Claude organizes image, extracts data, updates polls.json
+5. Render paredao.qmd to verify
+```
+
+**Only the Consolidados image is needed** — it contains all platform aggregates + time series.
+
+### When to Collect
+
+| Timing | Purpose |
+|--------|---------|
+| **Anytime during voting** | Track poll evolution (preliminary data) |
+| **Tuesday ~21:00 BRT** | Final snapshot before elimination |
+| **After elimination** | Add `resultado_real` with actual percentages |
+
+### Updating Preliminary Data
+
+Poll numbers change during voting. When updating with new data:
+
+| Field | Action |
+|-------|--------|
+| `consolidado` | **OVERWRITE** with latest values |
+| `plataformas` | **OVERWRITE** with latest values |
+| `data_coleta` | **OVERWRITE** with new timestamp |
+| `serie_temporal` | **APPEND** new time points (preserves history) |
+
+### Data Structure (polls.json)
+
+```json
+{
+  "paredoes": [{
+    "numero": 1,
+    "data_paredao": "2026-01-21",
+    "data_coleta": "2026-01-20T21:00:00-03:00",
+    "participantes": ["Name1", "Name2", "Name3"],
+    "consolidado": {
+      "Name1": 46.19,
+      "Name2": 9.26,
+      "Name3": 44.55,
+      "total_votos": 5024890,
+      "predicao_eliminado": "Name1"
+    },
+    "plataformas": {
+      "sites": {"Name1": 42.53, ...},
+      "youtube": {"Name1": 41.67, ...},
+      "twitter": {"Name1": 64.88, ...},
+      "instagram": {"Name1": 46.71, ...}
+    },
+    "resultado_real": {
+      "Name1": 61.64,
+      "eliminado": "Name1",
+      "predicao_correta": true
+    }
+  }]
+}
+```
+
+### Name Matching
+
+Votalhada uses shortened names. Always map to official API names:
+
+| Votalhada | API Name |
+|-----------|----------|
+| "Aline" | "Aline Campos" |
+| "Ana Paula" | "Ana Paula Renault" |
+| "Cowboy" | "Alberto Cowboy" |
+| "Sol" | "Sol Vega" |
+
+### Dashboard Integration
+
+The poll section appears in `paredao.qmd` **right after participant cards**, before historical sections (Formação, Votação):
+
+- **em_andamento**: "📊 Previsão das Enquetes" — current poll predictions with platform breakdown
+- **finalizado**: "📊 Enquetes vs Resultado" — comparison chart + accuracy metrics
+
+Also appears in `paredoes.qmd` (archive) for each finalized paredão.
+
+### Loader Functions
+
+```python
+from data_utils import load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy
+
+polls = load_votalhada_polls()
+poll = get_poll_for_paredao(polls, 1)  # Get poll for 1º Paredão
+accuracy = calculate_poll_accuracy(poll)  # Get accuracy metrics
+```
 
 ## Future Plans
 

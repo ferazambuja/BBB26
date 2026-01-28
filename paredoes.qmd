@@ -26,7 +26,7 @@ from IPython.display import display, HTML
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import load_snapshot, get_all_snapshots, build_reaction_matrix
+from data_utils import load_snapshot, get_all_snapshots, build_reaction_matrix, load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy
 
 # Diretórios
 DATA_DIR = Path("data/snapshots")
@@ -354,6 +354,111 @@ for i, paredao in enumerate(paredoes_finalizados):
         legend=dict(orientation='h', yanchor='bottom', y=1.08, xanchor='center', x=0.5),
     )
     fig.show()
+
+    # ══════════════════════════════════════════════════════════════
+    # 1b. ENQUETES VS RESULTADO (Votalhada)
+    # ══════════════════════════════════════════════════════════════
+
+    polls_data = load_votalhada_polls()
+    poll = get_poll_for_paredao(polls_data, par_num)
+
+    if poll and poll.get('resultado_real'):
+        participantes_poll = poll.get('participantes', [])
+        consolidado = poll.get('consolidado', {})
+        plataformas = poll.get('plataformas', {})
+        resultado = poll['resultado_real']
+        accuracy = calculate_poll_accuracy(poll)
+
+        print("\n## Enquetes vs Resultado\n")
+        print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]}</p>\n')
+
+        # Status badge
+        if accuracy and accuracy['predicao_correta']:
+            status_html = '<span style="background:#3CB44B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">✅ Previsão correta</span>'
+        else:
+            status_html = '<span style="background:#E6194B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">❌ Previsão errada</span>'
+
+        erro_medio = accuracy['erro_medio'] if accuracy else 0
+        print(f'<div style="text-align:center; margin-bottom:1.5rem;">')
+        print(f'{status_html}')
+        print(f'<span style="margin-left:1rem; color:#888;">Erro médio: <strong>{erro_medio:.1f}</strong> pontos percentuais</span>')
+        print(f'</div>\n')
+
+        # Grouped bar chart: Enquetes vs Resultado Real
+        fig_poll = go.Figure()
+
+        # Enquete bars
+        enquete_vals = [consolidado.get(n, 0) for n in participantes_poll]
+        fig_poll.add_trace(go.Bar(
+            x=participantes_poll, y=enquete_vals,
+            text=[f"{v:.1f}%" for v in enquete_vals],
+            textposition='outside', name='Enquete (Consolidado)',
+            marker_color='#9b59b6',
+            hovertemplate='%{x}: %{y:.1f}% (Enquete)<extra></extra>',
+        ))
+
+        # Resultado Real bars
+        resultado_vals = [resultado.get(n, 0) for n in participantes_poll]
+        colors_real = ['#E6194B' if n == resultado.get('eliminado') else '#3CB44B' for n in participantes_poll]
+        fig_poll.add_trace(go.Bar(
+            x=participantes_poll, y=resultado_vals,
+            text=[f"{v:.1f}%" for v in resultado_vals],
+            textposition='outside', name='Resultado Real',
+            marker_color=colors_real,
+            hovertemplate='%{x}: %{y:.1f}% (Real)<extra></extra>',
+        ))
+
+        fig_poll.update_layout(
+            title=dict(text='Enquetes Agregadas vs Resultado Real', y=0.95, x=0.5, xanchor='center'),
+            xaxis_title="", yaxis_title="Votos (%)",
+            yaxis_range=[0, max(max(enquete_vals), max(resultado_vals)) * 1.25],
+            barmode='group',
+            height=400,
+            margin=dict(t=80, b=60),
+            legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        )
+
+        fig_poll.show()
+
+        # Compact platform table
+        print("\n### Por Plataforma\n")
+        print('<table class="table table-striped table-sm" style="max-width: 100%; font-size: 0.9rem;">')
+        print('<thead><tr><th>Plataforma</th>')
+        for nome in participantes_poll:
+            print(f'<th style="text-align:center;">{nome.split()[0]}</th>')
+        print('</tr></thead><tbody>')
+
+        platform_order = ['sites', 'youtube', 'twitter', 'instagram']
+        platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
+
+        for plat in platform_order:
+            if plat in plataformas:
+                pdata = plataformas[plat]
+                print(f'<tr><td>{platform_names.get(plat, plat)}</td>')
+                for nome in participantes_poll:
+                    val = pdata.get(nome, 0)
+                    is_max = val == max(pdata.get(n, 0) for n in participantes_poll)
+                    style = 'font-weight:bold; color:#f39c12;' if is_max else ''
+                    print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
+                print('</tr>')
+
+        # Consolidado row
+        print(f'<tr style="background:rgba(155,89,182,0.2);"><td><strong>Consolidado</strong></td>')
+        for nome in participantes_poll:
+            val = consolidado.get(nome, 0)
+            print(f'<td style="text-align:center; font-weight:bold;">{val:.1f}%</td>')
+        print('</tr>')
+
+        # Real result row
+        print(f'<tr style="background:rgba(52,152,219,0.2);"><td><strong>Resultado Real</strong></td>')
+        for nome in participantes_poll:
+            val = resultado.get(nome, 0)
+            is_elim = nome == resultado.get('eliminado')
+            style = 'font-weight:bold; color:#E6194B;' if is_elim else 'font-weight:bold; color:#3CB44B;'
+            print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
+        print('</tr>')
+
+        print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════
     # 2. FORMAÇÃO E IMUNIZAÇÃO

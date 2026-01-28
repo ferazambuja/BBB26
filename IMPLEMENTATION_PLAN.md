@@ -73,6 +73,38 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | | Fill manual_events.json with past events + source URLs | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
 
+## Syncs & Scripts (manual vs automatic)
+
+### Automatic syncs (CI / GitHub Actions)
+- **API snapshots**: `python scripts/fetch_data.py`  
+  Runs on cron (4×/day). Saves only if changed. Rebuilds `data/derived/*`.
+- **Daily metrics (legacy)**: `python scripts/compute_metrics.py`  
+  Runs after fetch in CI; outputs `data/daily_metrics.json` (legacy).
+- **Render site**: `quarto render`  
+  Runs after data update in CI.
+
+### Manual syncs (editor-driven)
+- **Paredão data**: update `data/paredoes.json` after formation/results.
+- **Manual events**: update `data/manual_events.json` after Big Fone, veto, voto duplo, caixas‑surpresa etc.
+- **Sincerão**: update `weekly_events[].sincerao` in `data/manual_events.json` after Monday show.
+- **Votalhada polls**: update `data/votalhada/polls.json` Tuesday ~21:00 BRT (before elimination), add `resultado_real` after elimination.
+- **Rebuild derived**: `python scripts/build_derived_data.py` after any manual edit.
+- **Update program guide**: `python scripts/update_programa_doc.py` after manual events (updates weekly timeline).
+
+### Script usage guide
+| Script | When to use | Output |
+|---|---|---|
+| `scripts/fetch_data.py` | Daily or before key events | `data/snapshots/*`, `data/latest.json`, `data/derived/*` |
+| `scripts/build_derived_data.py` | After manual edits | `data/derived/*` |
+| `scripts/update_programa_doc.py` | After updating manual events | `docs/PROGRAMA_BBB26.md` (auto table) |
+| `scripts/compute_metrics.py` | Legacy CI step | `data/daily_metrics.json` |
+| `scripts/audit_snapshots.py` | One-off audit | console report |
+| `scripts/analyze_snapshots.py` | Deep integrity check | console report |
+| `scripts/compare_sameday.py` | Intraday diff analysis | console report |
+| `scripts/build_jan18_snapshot.py` | Rebuild synthetic Jan‑18 | writes snapshot file |
+| `scripts/data_utils.py` | Imported by QMDs | shared loaders/parsers |
+| `data/votalhada/polls.json` | Manual update (see `docs/HANDOFF_VOTALHADA.md`) | Poll data for paredões |
+
 ## Weekly Paredão Update Workflow
 
 ### Sunday Night (~22h45 BRT) — Paredão Formation
@@ -106,6 +138,12 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 
 - Add any missing details as they become available from news sources
 - Verify participant names match API exactly
+- **Sincerão (Monday)**: update `weekly_events[].sincerao` with format/participation and add fontes (GShow)
+
+### Tuesday (~21h BRT) — Votalhada Polls
+
+1. **Collect poll data** from Votalhada consolidado/plataformas
+2. **Update `data/votalhada/polls.json`** (see `docs/HANDOFF_VOTALHADA.md`)
 
 ### Tuesday Night (~23h BRT) — Result
 
