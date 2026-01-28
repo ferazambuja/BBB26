@@ -89,7 +89,139 @@
             }
           ],
           "notes": "Contagens baseadas no balanço do 1º Sincerão (GShow)."
-        }
+        },
+        "edges": [
+          {
+            "actor": "Marcelo",
+            "target": "Marciele",
+            "type": "podio",
+            "slot": 3
+          },
+          {
+            "actor": "Sarah Andrade",
+            "target": "Marciele",
+            "type": "podio",
+            "slot": 3
+          },
+          {
+            "actor": "Maxiane",
+            "target": "Marciele",
+            "type": "podio",
+            "slot": 3
+          },
+          {
+            "actor": "Breno",
+            "target": "Marciele",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Brigido",
+            "target": "Marciele",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Jordana",
+            "target": "Marciele",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Edilson",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Matheus",
+            "target": "Edilson",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Chaiany",
+            "target": "Edilson",
+            "type": "podio",
+            "slot": 3
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Edilson",
+            "type": "podio",
+            "slot": 3
+          },
+          {
+            "actor": "Edilson",
+            "target": "Babu Santana",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Juliano Floss",
+            "target": "Babu Santana",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Solange Couto",
+            "target": "Babu Santana",
+            "type": "podio",
+            "slot": 2
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Babu Santana",
+            "type": "podio",
+            "slot": 3
+          },
+          {
+            "actor": "Matheus",
+            "target": "Marcelo",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Paulo Augusto",
+            "target": "Marcelo",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Marcelo",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Aline Campos",
+            "target": "Ana Paula Renault",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Sol Vega",
+            "target": "Ana Paula Renault",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Ana Paula Renault",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Sol Vega",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Edilson",
+            "target": "Sol Vega",
+            "type": "nao_ganha"
+          },
+          {
+            "actor": "Juliano Floss",
+            "target": "Sol Vega",
+            "type": "nao_ganha"
+          }
+        ],
+        "edges_notes": "Parcial: baseado no resumo “mais e menos citados” do GShow."
       }
     },
     {
@@ -147,7 +279,58 @@
           "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/falso-inutil-manipulador-e-mais-veja-quem-recebeu-adjetivos-no-sincerao-do-bbb-26.ghtml",
           "https://gshow.globo.com/google/amp/realities/bbb/bbb-26/sincerao/noticia/segundo-sincerao-do-bbb-26-tem-temas-escolhidos-pelo-publico.ghtml"
         ],
-        "notes": "Quem recebe a bomba pode palpitar quem a indicou; se errar, leva banho de gosma."
+        "notes": "Quem recebe a bomba pode palpitar quem a indicou; se errar, leva banho de gosma.",
+        "edges": [
+          {
+            "actor": "Sarah Andrade",
+            "target": "Juliano Floss",
+            "type": "bomba",
+            "tema": "mais vtzeiro"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Leandro",
+            "type": "bomba",
+            "tema": "mais chato"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Milena",
+            "type": "bomba",
+            "tema": "mais influenciável"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Gabriela",
+            "type": "bomba",
+            "tema": "menos confiável"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "type": "bomba",
+            "tema": "mais leva-e-traz"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Alberto Cowboy",
+            "type": "bomba",
+            "tema": "mais manipulador"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Sol Vega",
+            "type": "bomba",
+            "tema": "mais inútil"
+          },
+          {
+            "actor": "Matheus",
+            "target": "Ana Paula Renault",
+            "type": "bomba",
+            "tema": "mais falsa"
+          }
+        ],
+        "edges_notes": "Baseado no resumo do 2º Sincerão (temas escolhidos pelo público)."
       }
     }
   ],

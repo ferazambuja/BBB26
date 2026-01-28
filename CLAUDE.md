@@ -381,13 +381,26 @@ Store an optional list of **edges**:
 - `nao_citado_no_podio`: if **todos participam**, participants not cited in any podium.
   - This is **not directional**, but signals low popularity/visibility.
 
-**Suggested weights (small modifiers)**
-- `podio slot 1`: +0.6
-- `podio slot 2`: +0.4
-- `podio slot 3`: +0.2
-- `nao_ganha`: −0.8
-- `bomba/tema`: −0.6 (generic negative tag)
-- `planta` (plateia): −0.6 (non‑directional, use as external/visibility signal)
+**Weights used in derived data**
+- **Aggregate (week summary)**:
+  - `podio_mention`: +0.25 per mention
+  - `nao_ganha_mention`: −0.5 per mention
+  - `sem_podio`: −0.4
+  - `planta` (plateia): −0.3
+- **Per‑pair edges (directional)**:
+  - `podio slot 1`: +0.6
+  - `podio slot 2`: +0.4
+  - `podio slot 3`: +0.2
+  - `nao_ganha`: −0.8
+  - `bomba/tema`: −0.6
+
+**Alignment score (Sincerão × Queridômetro)**
+```
+sinc_norm = sinc_score / max_abs_sinc_week
+sent_norm = sentiment_score / max_abs_sentiment_day
+alignment = 1 - |sinc_norm - sent_norm|
+```
+Higher = more aligned; lower = contradiction.
 
 **Workflow**
 1. After Sincerão (Monday), update `weekly_events[].sincerao` with date/format/notes.

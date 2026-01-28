@@ -882,6 +882,37 @@ else:
 Primeiro dia de dados — sem comparações disponíveis ainda.
 :::
 ''')
+
+# Compact callout: Sincerão contradictions (negativo + ❤️)
+contrad = []
+current_week = get_week_number(latest['date'])
+for edge in sincerao_data.get("edges", []):
+    if edge.get("week") != current_week:
+        continue
+    if edge.get("type") not in ["nao_ganha", "bomba"]:
+        continue
+    actor = edge.get("actor")
+    target = edge.get("target")
+    if not actor or not target:
+        continue
+    if latest_matrix.get((actor, target), "") == "Coração":
+        tema = edge.get("tema")
+        label = "não ganha" if edge.get("type") == "nao_ganha" else (tema or "bomba")
+        contrad.append(f"{actor} → {target} ({label})")
+
+seen = set()
+contrad = [c for c in contrad if not (c in seen or seen.add(c))]
+
+if contrad:
+    top_list = contrad[:5]
+    print(f'''
+::: {{.callout-note title="Contradições do Sincerão (negativo + ❤️)" appearance="simple"}}
+''')
+    for item in top_list:
+        print(f"- {item}")
+    print('''
+:::
+''')
 ```
 
 # Visão Geral {#visao-geral}
@@ -1556,6 +1587,12 @@ else:
             print("<p class='text-muted'>Sem participantes com pontuação no Sincerão.</p>")
         else:
             df_sinc = pd.DataFrame(rows)
+            max_sinc = max(df_sinc["sincerao_score"].abs().max(), 1e-6)
+            max_sent = max(df_sinc["sentiment_score"].abs().max(), 1e-6)
+            df_sinc["sinc_norm"] = df_sinc["sincerao_score"] / max_sinc
+            df_sinc["sent_norm"] = df_sinc["sentiment_score"] / max_sent
+            df_sinc["alignment"] = (1 - (df_sinc["sinc_norm"] - df_sinc["sent_norm"]).abs()).round(2)
+
             fig = px.scatter(
                 df_sinc,
                 x="sincerao_score",
@@ -1575,6 +1612,10 @@ else:
             fig.update_xaxes(zeroline=True, zerolinecolor="#555")
             fig.update_yaxes(zeroline=True, zerolinecolor="#555")
             fig.show()
+
+            df_align = df_sinc[["name", "sincerao_score", "sentiment_score", "alignment"]].sort_values("alignment")
+            print("<h4 style='margin-top:1rem;'>Alinhamento Sincerão × Queridômetro</h4>")
+            print(df_align.to_html(index=False, classes="table table-dark table-sm", border=0))
 
             # Contradições: Sincerão negativo vs ❤️ no queridômetro
             contrad = []
@@ -1892,17 +1933,27 @@ for p in sorted_active:
     vote_map = votes_received_by_week.get(current_week, {}).get(name, {})
 
     sincerao_reasons = find_sincerao_reason(sinc_agg, name) if 'sinc_agg' in globals() else []
-    if sincerao_reasons:
-        chips = []
-        for reason in sincerao_reasons:
-            chips.append(
-                f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-                f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
-                f"font-size:0.72rem; margin:0.15rem;'>{reason}</span>"
-            )
-        sincerao_html = " ".join(chips)
-    else:
-        sincerao_html = ""
+    bombs = {}
+    for edge in sinc_edges_week:
+        if edge.get("type") == "bomba" and edge.get("target") == name:
+            tema = edge.get("tema") or "bomba"
+            bombs[tema] = bombs.get(tema, 0) + 1
+
+    chips = []
+    for reason in sincerao_reasons:
+        chips.append(
+            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
+            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
+            f"font-size:0.72rem; margin:0.15rem;'>{reason}</span>"
+        )
+    for tema, count in bombs.items():
+        prefix = f"{count}x " if count > 1 else ""
+        chips.append(
+            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
+            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
+            f"font-size:0.72rem; margin:0.15rem;'>💣 {prefix}{tema}</span>"
+        )
+    sincerao_html = " ".join(chips) if chips else ""
     if vote_map:
         vote_chips = []
         for voter, count in sorted(vote_map.items(), key=lambda x: (-x[1], x[0])):
