@@ -29,7 +29,15 @@ from datetime import datetime
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import require_clean_manual_events
+from data_utils import (
+    require_clean_manual_events, setup_bbb_dark_theme,
+    REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
+    POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
+    POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
+)
+
+require_clean_manual_events()
+setup_bbb_dark_theme()
 
 # Configurações visuais
 plt.rcParams['figure.figsize'] = (14, 8)
@@ -40,103 +48,7 @@ sns.set_theme(style="whitegrid", palette="husl")
 DERIVED_DIR = Path("data/derived")
 INDEX_DATA_FILE = DERIVED_DIR / "index_data.json"
 
-require_clean_manual_events()
-
-# Categorias de reações
-REACTION_EMOJI = {
-    'Coração': '❤️', 'Planta': '🌱', 'Mala': '💼', 'Biscoito': '🍪',
-    'Cobra': '🐍', 'Alvo': '🎯', 'Vômito': '🤮', 'Mentiroso': '🤥',
-    'Coração partido': '💔'
-}
-
-POWER_EVENT_EMOJI = {
-    'lider': '👑',
-    'anjo': '😇',
-    'monstro': '👹',
-    'imunidade': '🛡️',
-    'indicacao': '🎯',
-    'contragolpe': '🌀',
-    'voto_duplo': '🗳️',
-    'voto_anulado': '🚫',
-    'perdeu_voto': '⛔',
-}
-
-POWER_EVENT_LABELS = {
-    'lider': 'Líder',
-    'anjo': 'Anjo',
-    'monstro': 'Monstro',
-    'imunidade': 'Imunidade',
-    'indicacao': 'Indicação',
-    'contragolpe': 'Contragolpe',
-    'voto_duplo': 'Voto 2x',
-    'voto_anulado': 'Voto anulado',
-    'perdeu_voto': 'Perdeu voto',
-}
-
-REACTION_SLUG_TO_LABEL = {
-    'coracao': 'Coração', 'planta': 'Planta', 'mala': 'Mala', 'biscoito': 'Biscoito',
-    'cobra': 'Cobra', 'alvo': 'Alvo', 'vomito': 'Vômito', 'mentiroso': 'Mentiroso',
-    'coracao-partido': 'Coração partido'
-}
-
-SENTIMENT_WEIGHTS = {
-    'Coração': 1.0,
-    'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
-    'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0,
-    'Coração partido': -0.5  # Mild negative (disappointment, not hostility)
-}
-
-POSITIVE = {'Coração'}
-MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}  # 💔 = disappointment, not hostility
-STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso'}
-
-# Cores dos grupos
-GROUP_COLORS = {
-    'Camarote': '#E6194B',
-    'Veterano': '#3CB44B',
-    'Pipoca': '#4363D8',
-}
-
 MEMBER_OF = {}  # preenchido ao carregar dados
-
-# ══════════════════════════════════════════════════════════════
-# Plotly Dark Theme Configuration (matches Bootswatch darkly)
-# ══════════════════════════════════════════════════════════════
-PLOT_BG = '#303030'  # Darkly body background
-PAPER_BG = '#303030'
-GRID_COLOR = '#444444'
-TEXT_COLOR = '#fff'
-
-# Standard layout applied to ALL plots
-import plotly.io as pio
-
-pio.templates['bbb_dark'] = go.layout.Template(
-    layout=go.Layout(
-        paper_bgcolor=PAPER_BG,
-        plot_bgcolor=PLOT_BG,
-        font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
-        title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
-        margin=dict(l=70, r=30, t=70, b=60),
-        xaxis=dict(
-            gridcolor=GRID_COLOR,
-            linecolor=GRID_COLOR,
-            zerolinecolor=GRID_COLOR,
-            title=dict(standoff=15),
-        ),
-        yaxis=dict(
-            gridcolor=GRID_COLOR,
-            linecolor=GRID_COLOR,
-            zerolinecolor=GRID_COLOR,
-            title=dict(standoff=15),
-        ),
-        legend=dict(
-            bgcolor='rgba(0,0,0,0)',
-            bordercolor='rgba(0,0,0,0)',
-        ),
-        colorway=['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
-    )
-)
-pio.templates.default = 'bbb_dark'
 ```
 
 ```{python}
@@ -1043,53 +955,7 @@ Faixas: 🟢 **MUITO BAIXA** (<1), 🟡 **BAIXA** (>=1), 🟠 **MÉDIA** (>=3), 
 
 ## Sincerão vs Queridômetro
 
-```{python}
-#| label: sincerao-vs-queridometro
-#| output: asis
-
-align_rows = index_data.get("sincerao", {}).get("alignment", [])
-sinc_week = index_data.get("sincerao", {}).get("week")
-if not align_rows:
-    if sinc_week:
-        print(f"<p class='text-muted'>Sem dados detalhados do Sincerão para a semana {sinc_week}.</p>")
-    else:
-        print("<p class='text-muted'>Sem dados detalhados do Sincerão.</p>")
-else:
-    df_sinc = pd.DataFrame(align_rows)
-    fig = px.scatter(
-        df_sinc,
-        x="sincerao_score",
-        y="sentiment_score",
-        color="grupo",
-        text="name",
-        color_discrete_map=GROUP_COLORS,
-        title="Impacto do Sincerão (semana) vs Sentimento do Queridômetro",
-        labels={
-            "sincerao_score": "Sincerão (peso agregado)",
-            "sentiment_score": "Sentimento (queridômetro)",
-            "grupo": "Grupo",
-        },
-    )
-    fig.update_traces(textposition="top center")
-    fig.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20))
-    fig.update_xaxes(zeroline=True, zerolinecolor="#555")
-    fig.update_yaxes(zeroline=True, zerolinecolor="#555")
-    fig.show()
-
-    df_align = df_sinc[["name", "sincerao_score", "sentiment_score", "alignment"]].sort_values("alignment")
-    print("<h4 style='margin-top:1rem;'>Alinhamento Sincerão × Queridômetro</h4>")
-    print(df_align.to_html(index=False, classes="table table-dark table-sm", border=0))
-
-    # Contradições: Sincerão negativo vs ❤️ no queridômetro
-    contrad = []
-    for edge in index_data.get("contradictions", []):
-        contrad.append({"ator": edge.get("ator"), "alvo": edge.get("alvo"), "tipo": edge.get("tipo")})
-
-    if contrad:
-        df_c = pd.DataFrame(contrad).drop_duplicates()
-        print("<h4 style='margin-top:1rem;'>Contradições do Sincerão (negativo + ❤️)</h4>")
-        print(df_c.to_html(index=False, classes="table table-dark table-sm", border=0))
-```
+<p class="text-muted">A análise detalhada (alinhamento e contradições) está em <a href="planta.html">Planta Index</a>.</p>
 
 ```{python}
 #| label: individual-profiles

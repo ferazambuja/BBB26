@@ -1,8 +1,134 @@
 #!/usr/bin/env python3
-"""Shared data loading utilities for QMD pages."""
+"""Shared data loading utilities, constants, and theme for QMD pages and scripts.
+
+This module is the SINGLE SOURCE OF TRUTH for:
+- Reaction categories and emoji mappings
+- Sentiment weights
+- Group colors
+- Power event labels/emoji
+- calc_sentiment() function
+- Plotly bbb_dark theme
+- Snapshot loading and reaction matrix utilities
+"""
 
 import json
 from pathlib import Path
+
+
+# ══════════════════════════════════════════════════════════════
+# Reaction Constants (single source of truth)
+# ══════════════════════════════════════════════════════════════
+
+REACTION_EMOJI = {
+    'Coração': '❤️', 'Planta': '🌱', 'Mala': '💼', 'Biscoito': '🍪',
+    'Cobra': '🐍', 'Alvo': '🎯', 'Vômito': '🤮', 'Mentiroso': '🤥',
+    'Coração partido': '💔'
+}
+
+REACTION_SLUG_TO_LABEL = {
+    'coracao': 'Coração', 'planta': 'Planta', 'mala': 'Mala', 'biscoito': 'Biscoito',
+    'cobra': 'Cobra', 'alvo': 'Alvo', 'vomito': 'Vômito', 'mentiroso': 'Mentiroso',
+    'coracao-partido': 'Coração partido'
+}
+
+SENTIMENT_WEIGHTS = {
+    'Coração': 1.0,
+    'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
+    'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0,
+    'Coração partido': -0.5  # Mild negative (disappointment, not hostility)
+}
+
+POSITIVE = {'Coração'}
+MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}
+STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso'}
+
+# ══════════════════════════════════════════════════════════════
+# Group & Power Event Constants
+# ══════════════════════════════════════════════════════════════
+
+GROUP_COLORS = {
+    'Camarote': '#E6194B',
+    'Veterano': '#3CB44B',
+    'Pipoca': '#4363D8',
+}
+
+POWER_EVENT_EMOJI = {
+    'lider': '👑', 'anjo': '😇', 'monstro': '👹',
+    'imunidade': '🛡️', 'indicacao': '🎯', 'contragolpe': '🌀',
+    'voto_duplo': '🗳️', 'voto_anulado': '🚫', 'perdeu_voto': '⛔',
+}
+
+POWER_EVENT_LABELS = {
+    'lider': 'Líder', 'anjo': 'Anjo', 'monstro': 'Monstro',
+    'imunidade': 'Imunidade', 'indicacao': 'Indicação', 'contragolpe': 'Contragolpe',
+    'voto_duplo': 'Voto 2x', 'voto_anulado': 'Voto anulado', 'perdeu_voto': 'Perdeu voto',
+}
+
+
+# ══════════════════════════════════════════════════════════════
+# Plotly bbb_dark Theme
+# ══════════════════════════════════════════════════════════════
+
+PLOT_BG = '#303030'
+PAPER_BG = '#303030'
+GRID_COLOR = '#444444'
+TEXT_COLOR = '#fff'
+
+BBB_COLORWAY = ['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6']
+
+
+def setup_bbb_dark_theme():
+    """Register and activate the bbb_dark Plotly theme.
+
+    Call this once in each QMD setup cell after importing plotly.
+    """
+    import plotly.io as pio
+    import plotly.graph_objects as go
+
+    pio.templates['bbb_dark'] = go.layout.Template(
+        layout=go.Layout(
+            paper_bgcolor=PAPER_BG,
+            plot_bgcolor=PLOT_BG,
+            font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
+            title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
+            margin=dict(l=70, r=30, t=70, b=60),
+            xaxis=dict(
+                gridcolor=GRID_COLOR,
+                linecolor=GRID_COLOR,
+                zerolinecolor=GRID_COLOR,
+                title=dict(standoff=15),
+            ),
+            yaxis=dict(
+                gridcolor=GRID_COLOR,
+                linecolor=GRID_COLOR,
+                zerolinecolor=GRID_COLOR,
+                title=dict(standoff=15),
+            ),
+            legend=dict(
+                bgcolor='rgba(0,0,0,0)',
+                bordercolor='rgba(0,0,0,0)',
+            ),
+            colorway=BBB_COLORWAY,
+        )
+    )
+    pio.templates.default = 'bbb_dark'
+
+
+# ══════════════════════════════════════════════════════════════
+# Shared Functions
+# ══════════════════════════════════════════════════════════════
+
+
+def calc_sentiment(participant):
+    """Calculate sentiment score for a participant from their received reactions.
+
+    Uses SENTIMENT_WEIGHTS: positive = +1, mild_negative = -0.5, strong_negative = -1.
+    """
+    total = 0
+    for rxn in participant.get('characteristics', {}).get('receivedReactions', []):
+        weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
+        total += weight * rxn.get('amount', 0)
+    return total
 
 
 def require_clean_manual_events(audit_path=None):

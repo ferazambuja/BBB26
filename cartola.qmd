@@ -26,52 +26,12 @@ from datetime import datetime
 import sys
 
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import require_clean_manual_events
+from data_utils import (
+    require_clean_manual_events, setup_bbb_dark_theme, GROUP_COLORS,
+)
 
 require_clean_manual_events()
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Shared configuration (matching index.qmd visual language)
-# ══════════════════════════════════════════════════════════════════════════════
-
-# Plotly Dark Theme (same as index.qmd)
-PAPER_BG = 'rgba(34, 34, 34, 1)'
-PLOT_BG = 'rgba(34, 34, 34, 1)'
-GRID_COLOR = 'rgba(68, 68, 68, 0.6)'
-TEXT_COLOR = '#fff'
-
-pio.templates['bbb_dark'] = go.layout.Template(
-    layout=go.Layout(
-        paper_bgcolor=PAPER_BG,
-        plot_bgcolor=PLOT_BG,
-        font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
-        title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
-        xaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
-                   tickfont=dict(size=11)),
-        yaxis=dict(gridcolor=GRID_COLOR, linecolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
-                   tickfont=dict(size=11)),
-        margin=dict(l=60, r=30, t=60, b=50),
-        hoverlabel=dict(
-            bgcolor='rgba(40,40,40,0.95)',
-            font_size=12,
-            font_color='#fff',
-            bordercolor='rgba(0,0,0,0)',
-        ),
-        legend=dict(
-            bgcolor='rgba(40,40,40,0.8)',
-            bordercolor='rgba(0,0,0,0)',
-        ),
-        colorway=['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
-    )
-)
-pio.templates.default = 'bbb_dark'
-
-# Cores dos grupos (same as index.qmd)
-GROUP_COLORS = {
-    'Camarote': '#E6194B',
-    'Veterano': '#3CB44B',
-    'Pipoca': '#4363D8',
-}
+setup_bbb_dark_theme()
 
 def contrast_color(hex_color):
     hex_color = hex_color.lstrip('#')

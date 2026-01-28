@@ -49,13 +49,66 @@ quarto preview
 - `scripts/build_derived_data.py` — **after any manual edits** in `data/manual_events.json` or `data/paredoes.json`.
   - Também gera `data/derived/index_data.json` (tabelas leves para `index.qmd`).
 - `scripts/update_programa_doc.py` — **after weekly manual updates** (keeps `docs/PROGRAMA_BBB26.md` table in sync).
-- `scripts/compute_metrics.py` — **legacy CI step** (outputs `data/daily_metrics.json`).
 - `scripts/audit_snapshots.py` / `scripts/analyze_snapshots.py` / `scripts/compare_sameday.py` — **one‑off audits**.
 
 **Votalhada polls (manual):**
 - Update `data/votalhada/polls.json` **Tuesday ~21:00 BRT** (before elimination).
 - After elimination, fill `resultado_real`.
 - See `docs/HANDOFF_VOTALHADA.md` and `data/votalhada/README.md`.
+
+## Code Architecture Rules
+
+### Single Source of Truth: `scripts/data_utils.py`
+
+All shared constants, functions, and the Plotly theme live in **`scripts/data_utils.py`**. QMD pages and scripts import from it.
+
+**What lives in `data_utils.py`:**
+- Reaction constants: `REACTION_EMOJI`, `REACTION_SLUG_TO_LABEL`, `SENTIMENT_WEIGHTS`, `POSITIVE`, `MILD_NEGATIVE`, `STRONG_NEGATIVE`
+- Visual constants: `GROUP_COLORS`, `POWER_EVENT_EMOJI`, `POWER_EVENT_LABELS`
+- Theme colors: `PLOT_BG`, `PAPER_BG`, `GRID_COLOR`, `TEXT_COLOR`, `BBB_COLORWAY`
+- Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
+- Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `parse_roles()`, `build_reaction_matrix()`
+- Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
+- Audit: `require_clean_manual_events()`
+
+**QMD setup pattern** (every `.qmd` file follows this):
+```python
+import sys
+sys.path.append(str(Path("scripts").resolve()))
+from data_utils import (
+    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    REACTION_EMOJI, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
+    GROUP_COLORS, # ... other imports as needed
+)
+
+require_clean_manual_events()
+setup_bbb_dark_theme()
+```
+
+### Why: Calculations in Scripts, Not QMD Pages
+
+**Rule**: Heavy computation should happen in Python scripts (`scripts/`) that output to `data/derived/`. QMD pages should load precomputed data and render visualizations.
+
+**Reasons:**
+1. **Consistency**: All pages use the same constants, weights, and functions. A change in `SENTIMENT_WEIGHTS` in one place propagates everywhere.
+2. **Performance**: Derived data is computed once; pages render fast.
+3. **Reusability**: New pages can import shared functions without copy-pasting.
+4. **Debugging**: A bug in `calc_sentiment()` is fixed once in `data_utils.py`, not in 7 files.
+
+**What goes where:**
+
+| Location | Purpose | Examples |
+|----------|---------|---------|
+| `scripts/data_utils.py` | Shared constants, functions, theme | `calc_sentiment()`, `REACTION_EMOJI`, `setup_bbb_dark_theme()` |
+| `scripts/build_derived_data.py` | Heavy computation → JSON | roles_daily, auto_events, daily_metrics, plant_index |
+| `scripts/build_index_data.py` | Precompute index page data → JSON | profiles, rankings, highlights, cross-table |
+| `*.qmd` pages | Load JSON + render visualizations | Charts, tables, HTML output |
+
+**Anti-patterns to avoid:**
+- Defining `calc_sentiment()` locally in a QMD file (import from `data_utils`)
+- Copy-pasting `REACTION_EMOJI`, `GROUP_COLORS`, `POSITIVE/MILD_NEGATIVE/STRONG_NEGATIVE` (import from `data_utils`)
+- Defining the Plotly `bbb_dark` template inline (call `setup_bbb_dark_theme()`)
+- Computing in QMD what could be precomputed in a script (use `data/derived/`)
 
 ## Known Issues
 
@@ -101,7 +154,7 @@ This means **every snapshot is a unique complete game state** and must be kept.
 - `data/manual_events.json` — **Manual game events** not in the API (Big Fone, exits, special events)
 - `data/derived/` — **Derived data** built from snapshots + manual events (auto events, roles per day, participants index, daily metrics, index_data)
 - `data/CHANGELOG.md` — Documents data timeline and findings
-- `scripts/data_utils.py` — Shared loaders/parsers used by QMD pages (load snapshots, parse roles, build reaction matrix)
+- `scripts/data_utils.py` — **Single source of truth** for shared constants (REACTION_EMOJI, SENTIMENT_WEIGHTS, GROUP_COLORS, etc.), functions (calc_sentiment, load_snapshot, build_reaction_matrix), and the bbb_dark Plotly theme. Imported by all QMD pages and scripts.
 - New format wraps data: `{ "_metadata": {...}, "participants": [...] }`
 - Old format is just the raw array: `[...]`
 - `scripts/fetch_data.py` handles both formats and saves only when data hash changes

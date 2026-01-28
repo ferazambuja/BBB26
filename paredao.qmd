@@ -29,9 +29,15 @@ from datetime import datetime
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix, require_clean_manual_events
+from data_utils import (
+    load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix,
+    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
+    POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
+)
 
 require_clean_manual_events()
+setup_bbb_dark_theme()
 
 # Configurações visuais
 plt.rcParams['figure.figsize'] = (14, 8)
@@ -42,89 +48,11 @@ sns.set_theme(style="whitegrid", palette="husl")
 DATA_DIR = Path("data/snapshots")
 LATEST_FILE = Path("data/latest.json")
 
-# Categorias de reações
-REACTION_EMOJI = {
-    'Coração': '❤️', 'Planta': '🌱', 'Mala': '💼', 'Biscoito': '🍪',
-    'Cobra': '🐍', 'Alvo': '🎯', 'Vômito': '🤮', 'Mentiroso': '🤥',
-    'Coração partido': '💔'
-}
-
-REACTION_SLUG_TO_LABEL = {
-    'coracao': 'Coração', 'planta': 'Planta', 'mala': 'Mala', 'biscoito': 'Biscoito',
-    'cobra': 'Cobra', 'alvo': 'Alvo', 'vomito': 'Vômito', 'mentiroso': 'Mentiroso',
-    'coracao-partido': 'Coração partido'
-}
-
-SENTIMENT_WEIGHTS = {
-    'Coração': 1.0,
-    'Planta': -0.5, 'Mala': -0.5, 'Biscoito': -0.5,
-    'Cobra': -1.0, 'Alvo': -1.0, 'Vômito': -1.0, 'Mentiroso': -1.0,
-    'Coração partido': -0.5  # Mild negative (disappointment, not hostility)
-}
-
-POSITIVE = {'Coração'}
-MILD_NEGATIVE = {'Planta', 'Mala', 'Biscoito', 'Coração partido'}  # 💔 = disappointment, not hostility
-STRONG_NEGATIVE = {'Cobra', 'Alvo', 'Vômito', 'Mentiroso'}
-
-# Cores dos grupos
-GROUP_COLORS = {
-    'Camarote': '#E6194B',
-    'Veterano': '#3CB44B',
-    'Pipoca': '#4363D8',
-}
-
 MEMBER_OF = {}  # preenchido ao carregar dados
-
-# ══════════════════════════════════════════════════════════════
-# Plotly Dark Theme Configuration (matches Bootswatch darkly)
-# ══════════════════════════════════════════════════════════════
-PLOT_BG = '#303030'  # Darkly body background
-PAPER_BG = '#303030'
-GRID_COLOR = '#444444'
-TEXT_COLOR = '#fff'
-
-# Standard layout applied to ALL plots
-import plotly.io as pio
-
-pio.templates['bbb_dark'] = go.layout.Template(
-    layout=go.Layout(
-        paper_bgcolor=PAPER_BG,
-        plot_bgcolor=PLOT_BG,
-        font=dict(color=TEXT_COLOR, family='Lato, -apple-system, sans-serif', size=13),
-        title=dict(font=dict(size=16), x=0.5, xanchor='center', y=0.95),
-        margin=dict(l=70, r=30, t=70, b=60),
-        xaxis=dict(
-            gridcolor=GRID_COLOR,
-            linecolor=GRID_COLOR,
-            zerolinecolor=GRID_COLOR,
-            title=dict(standoff=15),
-        ),
-        yaxis=dict(
-            gridcolor=GRID_COLOR,
-            linecolor=GRID_COLOR,
-            zerolinecolor=GRID_COLOR,
-            title=dict(standoff=15),
-        ),
-        legend=dict(
-            bgcolor='rgba(0,0,0,0)',
-            bordercolor='rgba(0,0,0,0)',
-        ),
-        colorway=['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
-    )
-)
-pio.templates.default = 'bbb_dark'
 ```
 
 ```{python}
 #| label: load-data
-
-def calc_sentiment(participant):
-    """Calcula o score de sentimento recebido por um participante."""
-    total = 0
-    for rxn in participant.get('characteristics', {}).get('receivedReactions', []):
-        weight = SENTIMENT_WEIGHTS.get(rxn.get('label', ''), 0)
-        total += weight * rxn.get('amount', 0)
-    return total
 
 # Carregar todos os snapshots
 all_snapshot_files = get_all_snapshots()

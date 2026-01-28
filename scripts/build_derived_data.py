@@ -9,24 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from collections import defaultdict
 
+from data_utils import SENTIMENT_WEIGHTS, calc_sentiment
+
 DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
 MANUAL_EVENTS_FILE = Path(__file__).parent.parent / "data" / "manual_events.json"
 DERIVED_DIR = Path(__file__).parent.parent / "data" / "derived"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
 
 ROLES = ["Líder", "Anjo", "Monstro", "Imune", "Paredão"]
-
-SENTIMENT_WEIGHTS = {
-    "Coração": 1.0,
-    "Planta": -0.5,
-    "Mala": -0.5,
-    "Biscoito": -0.5,
-    "Coração partido": -0.5,
-    "Cobra": -1.0,
-    "Alvo": -1.0,
-    "Vômito": -1.0,
-    "Mentiroso": -1.0,
-}
 
 PLANT_INDEX_WEIGHTS = {
     "invisibility": {"weight": 0.0, "label": "Invisibilidade"},
@@ -235,15 +225,6 @@ def build_auto_events(daily_roles):
         prev = roles
 
     return events
-
-
-def calc_sentiment(participant):
-    total = 0
-    for rxn in participant.get("characteristics", {}).get("receivedReactions", []):
-        label = rxn.get("label", "")
-        weight = SENTIMENT_WEIGHTS.get(label, 0)
-        total += weight * rxn.get("amount", 0)
-    return total
 
 
 def build_daily_metrics(daily_snapshots):

@@ -6,6 +6,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from collections import defaultdict, Counter
 
+from data_utils import (
+    load_snapshot, build_reaction_matrix, parse_roles, calc_sentiment,
+    REACTION_EMOJI, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
+    POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
+)
+
 DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
 DERIVED_DIR = Path(__file__).parent.parent / "data" / "derived"
 
@@ -17,58 +23,6 @@ ROLES_DAILY_FILE = DERIVED_DIR / "roles_daily.json"
 PARTICIPANTS_INDEX_FILE = DERIVED_DIR / "participants_index.json"
 PLANT_INDEX_FILE = DERIVED_DIR / "plant_index.json"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
-
-REACTION_EMOJI = {
-    "Coração": "❤️",
-    "Planta": "🌱",
-    "Mala": "💼",
-    "Biscoito": "🍪",
-    "Cobra": "🐍",
-    "Alvo": "🎯",
-    "Vômito": "🤮",
-    "Mentiroso": "🤥",
-    "Coração partido": "💔",
-}
-
-SENTIMENT_WEIGHTS = {
-    "Coração": 1.0,
-    "Planta": -0.5,
-    "Mala": -0.5,
-    "Biscoito": -0.5,
-    "Coração partido": -0.5,
-    "Cobra": -1.0,
-    "Alvo": -1.0,
-    "Vômito": -1.0,
-    "Mentiroso": -1.0,
-}
-
-POSITIVE = {"Coração"}
-MILD_NEGATIVE = {"Planta", "Mala", "Biscoito", "Coração partido"}
-STRONG_NEGATIVE = {"Cobra", "Alvo", "Vômito", "Mentiroso"}
-
-POWER_EVENT_EMOJI = {
-    "lider": "👑",
-    "anjo": "😇",
-    "monstro": "👹",
-    "imunidade": "🛡️",
-    "indicacao": "🎯",
-    "contragolpe": "🌀",
-    "voto_duplo": "🗳️",
-    "voto_anulado": "🚫",
-    "perdeu_voto": "⛔",
-}
-
-POWER_EVENT_LABELS = {
-    "lider": "Líder",
-    "anjo": "Anjo",
-    "monstro": "Monstro",
-    "imunidade": "Imunidade",
-    "indicacao": "Indicação",
-    "contragolpe": "Contragolpe",
-    "voto_duplo": "Voto 2x",
-    "voto_anulado": "Voto anulado",
-    "perdeu_voto": "Perdeu voto",
-}
 
 NEG_EVENT_WEIGHTS = {
     "indicacao": 2.5,
@@ -116,14 +70,6 @@ def load_json(path, default):
     return default
 
 
-def load_snapshot(filepath):
-    with open(filepath, encoding="utf-8") as f:
-        data = json.load(f)
-    if isinstance(data, dict) and "participants" in data:
-        return data["participants"], data.get("_metadata", {})
-    return data, {}
-
-
 def get_all_snapshots():
     if not DATA_DIR.exists():
         return []
@@ -148,47 +94,11 @@ def get_daily_snapshots(snapshots):
     return [by_date[d] for d in sorted(by_date.keys())]
 
 
-def parse_roles(roles_data):
-    if not roles_data:
-        return []
-    labels = []
-    for r in roles_data:
-        if isinstance(r, dict):
-            labels.append(r.get("label", ""))
-        else:
-            labels.append(str(r))
-    return [l for l in labels if l]
-
-
-def build_reaction_matrix(participants):
-    matrix = {}
-    for receiver in participants:
-        rname = receiver.get("name")
-        if not rname:
-            continue
-        for rxn in receiver.get("characteristics", {}).get("receivedReactions", []):
-            label = rxn.get("label", "")
-            for giver in rxn.get("participants", []):
-                gname = giver.get("name")
-                if gname:
-                    matrix[(gname, rname)] = label
-    return matrix
-
-
 def get_week_number(date_str):
     start = datetime(2026, 1, 13)
     date = datetime.strptime(date_str, "%Y-%m-%d")
     delta = (date - start).days
     return max(1, (delta // 7) + 1)
-
-
-def calc_sentiment(participant):
-    total = 0
-    for rxn in participant.get("characteristics", {}).get("receivedReactions", []):
-        label = rxn.get("label", "")
-        weight = SENTIMENT_WEIGHTS.get(label, 0)
-        total += weight * rxn.get("amount", 0)
-    return total
 
 
 def build_alignment(participants, sinc_data, week):
@@ -421,25 +331,56 @@ def build_index_data():
         if new_hostilities:
             highlights.append(f"⚠️ **{len(new_hostilities)}** [nova(s) hostilidade(s)](trajetoria.html#hostilidades-dia) unilateral(is) surgiram")
 
-    # Alignment highlights
-    alignment_rows = build_alignment(latest["participants"], sinc_data, current_week)
+    # Sincerão × Queridômetro (pares)
     sinc_week_used = current_week
-    if not alignment_rows:
-        agg_weeks = [a.get("week") for a in sinc_data.get("aggregates", []) if a.get("scores")]
-        agg_weeks = [w for w in agg_weeks if isinstance(w, int)]
-        if agg_weeks:
-            sinc_week_used = max(agg_weeks)
-            alignment_rows = build_alignment(latest["participants"], sinc_data, sinc_week_used) or []
-    if alignment_rows:
-        df_sorted = sorted(alignment_rows, key=lambda x: x["alignment"], reverse=True)
-        top_aligned = df_sorted[:3]
-        top_contra = list(reversed(df_sorted[-3:]))
-        if top_aligned:
-            aligned_txt = ", ".join([f"{r['name']} ({r['alignment']:.2f})" for r in top_aligned])
-            highlights.append(f"🎯 Top alinhados Sincerão×Queridômetro: {aligned_txt}")
-        if top_contra:
-            contra_txt = ", ".join([f"{r['name']} ({r['alignment']:.2f})" for r in top_contra])
-            highlights.append(f"⚡ Top contraditórios Sincerão×Queridômetro: {contra_txt}")
+    edge_weeks = [e.get("week") for e in sinc_data.get("edges", []) if isinstance(e.get("week"), int)] if sinc_data else []
+    agg_weeks = [a.get("week") for a in sinc_data.get("aggregates", []) if a.get("scores")] if sinc_data else []
+    agg_weeks = [w for w in agg_weeks if isinstance(w, int)]
+    available_weeks = sorted(set(edge_weeks + agg_weeks))
+    if available_weeks and sinc_week_used not in available_weeks:
+        sinc_week_used = max(available_weeks)
+
+    pair_contradictions = []
+    pair_aligned_pos = []
+    pair_aligned_neg = []
+    for edge in sinc_data.get("edges", []) if sinc_data else []:
+        if edge.get("week") != sinc_week_used:
+            continue
+        etype = edge.get("type")
+        if etype not in ["podio", "nao_ganha", "bomba"]:
+            continue
+        actor = edge.get("actor")
+        target = edge.get("target")
+        if not actor or not target:
+            continue
+        rxn = latest_matrix.get((actor, target), "")
+        if not rxn:
+            continue
+        rxn_weight = SENTIMENT_WEIGHTS.get(rxn, 0)
+        rxn_sign = "pos" if rxn_weight > 0 else ("neg" if rxn_weight < 0 else "neu")
+        edge_sign = "pos" if etype == "podio" else "neg"
+        row = {
+            "ator": actor,
+            "alvo": target,
+            "tipo": etype,
+            "tema": edge.get("tema"),
+            "reacao": rxn,
+        }
+        if edge_sign == "neg" and rxn_sign == "pos":
+            pair_contradictions.append(row)
+        elif edge_sign == "pos" and rxn_sign == "pos":
+            pair_aligned_pos.append(row)
+        elif edge_sign == "neg" and rxn_sign == "neg":
+            pair_aligned_neg.append(row)
+
+    if pair_contradictions:
+        sample = pair_contradictions[:3]
+        sample_txt = ", ".join([f"{r['ator']}→{r['alvo']}" for r in sample])
+        highlights.append(f"⚡ Contradições Sincerão×Queridômetro: {sample_txt}")
+    if pair_aligned_pos:
+        sample = pair_aligned_pos[:3]
+        sample_txt = ", ".join([f"{r['ator']}→{r['alvo']}" for r in sample])
+        highlights.append(f"🤝 Alinhamentos positivos Sincerão×Queridômetro: {sample_txt}")
 
     paredao_names = [p["name"] for p in latest["participants"]
                      if "Paredão" in parse_roles(p.get("characteristics", {}).get("roles", []))]
@@ -448,23 +389,7 @@ def build_index_data():
         highlights.append(f"🗳️ [**Paredão ativo**](paredao.html): {names_str}")
 
     # Contradições (Sincerão negativo + ❤️)
-    contrad = []
-    for edge in sinc_data.get("edges", []) if sinc_data else []:
-        if edge.get("week") != current_week:
-            continue
-        if edge.get("type") not in ["nao_ganha", "bomba"]:
-            continue
-        actor = edge.get("actor")
-        target = edge.get("target")
-        if not actor or not target:
-            continue
-        if latest_matrix.get((actor, target), "") == "Coração":
-            contrad.append({
-                "ator": actor,
-                "alvo": target,
-                "tipo": edge.get("type"),
-                "tema": edge.get("tema"),
-            })
+    contrad = pair_contradictions
 
     # Overview stats
     groups = Counter(p.get("characteristics", {}).get("memberOf", "?") for p in active)
@@ -1065,8 +990,12 @@ def build_index_data():
             "max_neg": max_neg,
         },
         "sincerao": {
-            "alignment": alignment_rows or [],
-            "week": sinc_week_used,
+            "week": sinc_week_used if available_weeks else None,
+            "pairs": {
+                "aligned_pos": pair_aligned_pos,
+                "aligned_neg": pair_aligned_neg,
+                "contradictions": pair_contradictions,
+            },
         },
         "vip": {
             "leader": house_leader,

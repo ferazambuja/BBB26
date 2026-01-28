@@ -69,9 +69,6 @@ jobs:
             echo "data_changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Compute daily metrics
-        run: python scripts/compute_metrics.py
-
       - name: Validate JSON snapshots
         run: |
           python -c "
