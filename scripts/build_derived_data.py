@@ -243,6 +243,82 @@ def build_daily_metrics(daily_snapshots):
     return daily
 
 
+def build_sincerao_edges(manual_events):
+    weights = {
+        "podio_mention": 0.25,
+        "nao_ganha_mention": -0.5,
+        "sem_podio": -0.4,
+        "planta_plateia": -0.3,
+        "edge_podio_1": 0.6,
+        "edge_podio_2": 0.4,
+        "edge_podio_3": 0.2,
+        "edge_nao_ganha": -0.8,
+        "edge_bomba": -0.6,
+    }
+
+    weeks = []
+    edges = []
+    aggregates = []
+
+    for weekly in manual_events.get("weekly_events", []) if manual_events else []:
+        sinc = weekly.get("sincerao")
+        if not sinc:
+            continue
+        week = weekly.get("week")
+        date = sinc.get("date")
+
+        weeks.append({
+            "week": week,
+            "date": date,
+            "format": sinc.get("format"),
+            "participacao": sinc.get("participacao"),
+            "protagonistas": sinc.get("protagonistas", []),
+            "temas_publico": sinc.get("temas_publico", []),
+            "planta": sinc.get("planta"),
+            "notes": sinc.get("notes"),
+            "fontes": sinc.get("fontes", []),
+        })
+
+        for edge in sinc.get("edges", []) if isinstance(sinc.get("edges"), list) else []:
+            edge_entry = dict(edge)
+            edge_entry["week"] = week
+            edge_entry["date"] = date
+            edges.append(edge_entry)
+
+        stats = sinc.get("stats", {}) if isinstance(sinc.get("stats"), dict) else {}
+        podio_mentions = {item["name"]: item["count"] for item in stats.get("podio_top", []) if "name" in item}
+        nao_ganha_mentions = {item["name"]: item["count"] for item in stats.get("nao_ganha_top", []) if "name" in item}
+        sem_podio = stats.get("sem_podio", []) if isinstance(stats.get("sem_podio", []), list) else []
+        planta = sinc.get("planta", {}).get("target") if isinstance(sinc.get("planta"), dict) else None
+
+        scores = {}
+        for name, count in podio_mentions.items():
+            scores[name] = scores.get(name, 0) + weights["podio_mention"] * count
+        for name, count in nao_ganha_mentions.items():
+            scores[name] = scores.get(name, 0) + weights["nao_ganha_mention"] * count
+        for name in sem_podio:
+            scores[name] = scores.get(name, 0) + weights["sem_podio"]
+        if planta:
+            scores[planta] = scores.get(planta, 0) + weights["planta_plateia"]
+
+        aggregates.append({
+            "week": week,
+            "date": date,
+            "podio_mentions": podio_mentions,
+            "nao_ganha_mentions": nao_ganha_mentions,
+            "sem_podio": sem_podio,
+            "planta": planta,
+            "scores": scores,
+        })
+
+    return {
+        "_metadata": {"generated_at": datetime.now(timezone.utc).isoformat(), "weights": weights},
+        "weeks": weeks,
+        "edges": edges,
+        "aggregates": aggregates,
+    }
+
+
 def validate_manual_events(participants_index, manual_events):
     names = {p["name"] for p in participants_index}
     warnings = []
@@ -286,6 +362,7 @@ def build_derived_data():
     auto_events = build_auto_events(daily_roles)
     daily_metrics = build_daily_metrics(daily_snapshots)
     warnings = validate_manual_events(participants_index, manual_events)
+    sincerao_edges = build_sincerao_edges(manual_events)
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -308,6 +385,8 @@ def build_derived_data():
         "_metadata": {"generated_at": now, "source": "snapshots", "sentiment_weights": SENTIMENT_WEIGHTS},
         "daily": daily_metrics,
     })
+
+    write_json(DERIVED_DIR / "sincerao_edges.json", sincerao_edges)
 
     write_json(DERIVED_DIR / "validation.json", {
         "_metadata": {"generated_at": now, "source": "manual_events"},

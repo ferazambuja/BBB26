@@ -72,6 +72,20 @@ def load_votalhada_polls(filepath=None):
         return json.load(f)
 
 
+def load_sincerao_edges(filepath=None):
+    """Load derived Sincerão edges/aggregates."""
+    if filepath is None:
+        filepath = Path("data/derived/sincerao_edges.json")
+    else:
+        filepath = Path(filepath)
+
+    if not filepath.exists():
+        return {"weeks": [], "edges": [], "aggregates": []}
+
+    with open(filepath, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def get_poll_for_paredao(polls_data, numero):
     """Get poll data for a specific paredão number.
 

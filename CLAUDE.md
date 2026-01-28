@@ -147,6 +147,7 @@ Use this as the **single reference** for what data exists and how it can be reus
 - `data/derived/daily_metrics.json` — Sentiment + reaction totals per day (for fast timelines).
 - `data/derived/participants_index.json` — Canonical participant list (name, avatar, active, first/last seen).
 - `data/derived/validation.json` — Sanity checks for manual data.
+- `data/derived/sincerao_edges.json` — Sincerão aggregates + optional edges (derived from manual events).
 
 **Computed (page‑only, should be reusable)**
 - Reaction matrix, sentiment score, relationship categories (Aliados/Inimigos/etc.).

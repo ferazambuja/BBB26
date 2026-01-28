@@ -260,6 +260,12 @@ if AUTO_EVENTS_FILE.exists():
     with open(AUTO_EVENTS_FILE, encoding="utf-8") as f:
         auto_events = json.load(f)
 
+sincerao_data = {}
+SINCERAO_FILE = Path("data/derived/sincerao_edges.json")
+if SINCERAO_FILE.exists():
+    with open(SINCERAO_FILE, encoding="utf-8") as f:
+        sincerao_data = json.load(f)
+
 paredoes_data = {}
 PAREDOES_FILE = Path("data/paredoes.json")
 if PAREDOES_FILE.exists():
@@ -1476,8 +1482,8 @@ Fórmula:
 
 ```
 risco_externo = 1.0 * votos_recebidos
-              + 1.5 * prejuizos_publicos
-              + 0.75 * prejuizos_secretos
+              + Σ pesos_prejuizos_publicos
+              + 0.5 × Σ pesos_prejuizos_secretos
               + 0.5 * auto_infligidos
               + 2 (se estiver no Paredao)
 ```
@@ -1513,6 +1519,58 @@ Faixas: 🟢 **MUITO BAIXA** (<1), 🟡 **BAIXA** (>=1), 🟠 **MÉDIA** (>=3), 
 </div>
 </details>
 
+## Sincerão vs Queridômetro
+
+```{python}
+#| label: sincerao-vs-queridometro
+#| output: asis
+
+current_week = get_week_number(latest['date'])
+sinc_agg = next((a for a in sincerao_data.get("aggregates", []) if a.get("week") == current_week), None)
+
+if not sinc_agg:
+    print("<p class='text-muted'>Sem dados detalhados do Sincerão nesta semana.</p>")
+else:
+    scores = sinc_agg.get("scores", {})
+    if not scores:
+        print("<p class='text-muted'>Sincerão registrado, mas sem pontuações detalhadas.</p>")
+    else:
+        rows = []
+        for p in latest['participants']:
+            name = p['name']
+            if name in scores:
+                rows.append({
+                    "name": name,
+                    "sincerao_score": scores[name],
+                    "sentiment_score": calc_sentiment(p),
+                    "grupo": p.get("characteristics", {}).get("memberOf", "?"),
+                })
+
+        if not rows:
+            print("<p class='text-muted'>Sem participantes com pontuação no Sincerão.</p>")
+        else:
+            df_sinc = pd.DataFrame(rows)
+            fig = px.scatter(
+                df_sinc,
+                x="sincerao_score",
+                y="sentiment_score",
+                color="grupo",
+                text="name",
+                color_discrete_map=GROUP_COLORS,
+                title="Impacto do Sincerão (semana) vs Sentimento do Queridômetro",
+                labels={
+                    "sincerao_score": "Sincerão (peso agregado)",
+                    "sentiment_score": "Sentimento (queridômetro)",
+                    "grupo": "Grupo",
+                },
+            )
+            fig.update_traces(textposition="top center")
+            fig.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20))
+            fig.update_xaxes(zeroline=True, zerolinecolor="#555")
+            fig.update_yaxes(zeroline=True, zerolinecolor="#555")
+            fig.show()
+```
+
 ```{python}
 #| label: individual-profiles
 #| output: asis
@@ -1525,6 +1583,34 @@ sorted_active = sorted(
 
 power_events = manual_events.get('power_events', []) + auto_events.get('events', [])
 current_week = get_week_number(latest['date'])
+sinc_edges = sincerao_data.get("edges", []) if sincerao_data else []
+sinc_edges_week = [e for e in sinc_edges if e.get("week") == current_week]
+
+SINC_EDGE_WEIGHTS = {
+    "podio": {1: 0.6, 2: 0.4, 3: 0.2},
+    "nao_ganha": -0.8,
+    "bomba": -0.6,
+}
+
+def sinc_edge_modifier(edge):
+    etype = edge.get("type")
+    if etype == "podio":
+        slot = edge.get("slot")
+        return SINC_EDGE_WEIGHTS["podio"].get(slot, 0.2)
+    return SINC_EDGE_WEIGHTS.get(etype, 0.0)
+
+from collections import defaultdict
+sinc_edge_mod = defaultdict(float)
+for edge in sinc_edges_week:
+    actor = edge.get("actor")
+    target = edge.get("target")
+    if actor and target:
+        sinc_edge_mod[(actor, target)] += sinc_edge_modifier(edge)
+
+def pair_sentiment(giver, receiver):
+    label = latest_matrix.get((giver, receiver), "")
+    base = SENTIMENT_WEIGHTS.get(label, 0)
+    return base + sinc_edge_mod.get((giver, receiver), 0)
 
 def normalize_actors(ev):
     actors = ev.get('actors')
@@ -1704,10 +1790,13 @@ for p in sorted_active:
         my_rxn = latest_matrix.get((name, other_name), '')
         their_rxn = latest_matrix.get((other_name, name), '')
 
-        my_is_positive = my_rxn in POSITIVE
-        their_is_positive = their_rxn in POSITIVE
-        my_is_negative = my_rxn and my_rxn not in POSITIVE
-        their_is_negative = their_rxn and their_rxn not in POSITIVE
+        my_score = pair_sentiment(name, other_name)
+        their_score = pair_sentiment(other_name, name)
+
+        my_is_positive = my_score > 0
+        their_is_positive = their_score > 0
+        my_is_negative = my_score < 0
+        their_is_negative = their_score < 0
 
         if my_is_positive and their_is_positive:
             allies.append(other_name)

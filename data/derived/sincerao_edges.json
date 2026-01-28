@@ -1,0 +1,109 @@
+{
+  "_metadata": {
+    "generated_at": "2026-01-28T00:38:34.810475+00:00",
+    "weights": {
+      "podio_mention": 0.25,
+      "nao_ganha_mention": -0.5,
+      "sem_podio": -0.4,
+      "planta_plateia": -0.3,
+      "edge_podio_1": 0.6,
+      "edge_podio_2": 0.4,
+      "edge_podio_3": 0.2,
+      "edge_nao_ganha": -0.8,
+      "edge_bomba": -0.6
+    }
+  },
+  "weeks": [
+    {
+      "week": 1,
+      "date": "2026-01-19",
+      "format": "pódio + quem não ganha",
+      "participacao": "todos",
+      "protagonistas": [],
+      "temas_publico": [],
+      "planta": null,
+      "notes": "Todos montaram pódio e indicaram quem não ganha; plateia presente.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/primeiro-sincerao-do-bbb-26-tem-monte-seu-podio-e-indicacoes-de-quem-nao-ganha.ghtml",
+        "https://gshow.globo.com/google/amp/realities/bbb/bbb-26/sincerao/noticia/primeiro-sincerao-do-bbb-26-veja-os-participantes-mais-e-menos-citados.ghtml"
+      ]
+    },
+    {
+      "week": 2,
+      "date": "2026-01-26",
+      "format": "bombas com temas do público + plateia define planta",
+      "participacao": "protagonistas da semana + plateia",
+      "protagonistas": [
+        "Ana Paula Renault",
+        "Alberto Cowboy",
+        "Sarah Andrade",
+        "Leandro",
+        "Matheus",
+        "Brigido",
+        "Jonas Sulzbach",
+        "Babu Santana"
+      ],
+      "temas_publico": [
+        "mais falso",
+        "inútil",
+        "manipulador",
+        "leva-e-traz",
+        "menos confiável",
+        "mais influenciável",
+        "mais chato",
+        "mais vtzeiro"
+      ],
+      "planta": {
+        "target": "Solange Couto",
+        "source": "plateia"
+      },
+      "notes": "Quem recebe a bomba pode palpitar quem a indicou; se errar, leva banho de gosma.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/segundo-sincerao-do-bbb-26-tem-temas-escolhidos-pelo-publico.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/falso-inutil-manipulador-e-mais-veja-quem-recebeu-adjetivos-no-sincerao-do-bbb-26.ghtml",
+        "https://gshow.globo.com/google/amp/realities/bbb/bbb-26/sincerao/noticia/segundo-sincerao-do-bbb-26-tem-temas-escolhidos-pelo-publico.ghtml"
+      ]
+    }
+  ],
+  "edges": [],
+  "aggregates": [
+    {
+      "week": 1,
+      "date": "2026-01-19",
+      "podio_mentions": {
+        "Marciele": 6,
+        "Babu Santana": 4,
+        "Edilson": 4
+      },
+      "nao_ganha_mentions": {
+        "Marcelo": 3,
+        "Ana Paula Renault": 3,
+        "Sol Vega": 3
+      },
+      "sem_podio": [
+        "Leandro"
+      ],
+      "planta": null,
+      "scores": {
+        "Marciele": 1.5,
+        "Babu Santana": 1.0,
+        "Edilson": 1.0,
+        "Marcelo": -1.5,
+        "Ana Paula Renault": -1.5,
+        "Sol Vega": -1.5,
+        "Leandro": -0.4
+      }
+    },
+    {
+      "week": 2,
+      "date": "2026-01-26",
+      "podio_mentions": {},
+      "nao_ganha_mentions": {},
+      "sem_podio": [],
+      "planta": "Solange Couto",
+      "scores": {
+        "Solange Couto": -0.3
+      }
+    }
+  ]
+}
