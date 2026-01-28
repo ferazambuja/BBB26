@@ -12,6 +12,7 @@ from collections import defaultdict
 DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
 MANUAL_EVENTS_FILE = Path(__file__).parent.parent / "data" / "manual_events.json"
 DERIVED_DIR = Path(__file__).parent.parent / "data" / "derived"
+PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
 
 ROLES = ["Líder", "Anjo", "Monstro", "Imune", "Paredão"]
 
@@ -27,6 +28,30 @@ SENTIMENT_WEIGHTS = {
     "Mentiroso": -1.0,
 }
 
+PLANT_INDEX_WEIGHTS = {
+    "invisibility": {"weight": 0.0, "label": "Invisibilidade"},
+    "low_power_events": {"weight": 0.45, "label": "Baixa atividade de poder"},
+    "low_sincerao": {"weight": 0.35, "label": "Baixa exposição no Sincerão"},
+    "plant_emoji": {"weight": 0.20, "label": "Emoji 🌱"},
+}
+
+PLANT_POWER_ACTIVITY_WEIGHTS = {
+    "lider": {"actor": 0.0, "target": 4.0},
+    "anjo": {"actor": 0.0, "target": 3.0},
+    "imunidade": {"actor": 0.0, "target": 0.4},
+    "monstro": {"actor": 0.0, "target": 3.0},
+    "indicacao": {"actor": 2.5, "target": 1.5},
+    "contragolpe": {"actor": 2.5, "target": 1.5},
+    "voto_duplo": {"actor": 2.0, "target": 0.0},
+    "voto_anulado": {"actor": 2.0, "target": 0.0},
+    "perdeu_voto": {"actor": 0.0, "target": 1.0},
+    "emparedado": {"actor": 0.0, "target": 0.0},
+    "volta_paredao": {"actor": 0.0, "target": 2.0},
+}
+
+PLANT_INDEX_BONUS_PLATEIA = 15
+PLANT_INDEX_EMOJI_CAP = 0.30
+PLANT_INDEX_ROLLING_WEEKS = 2
 
 def load_snapshot(filepath):
     with open(filepath, encoding="utf-8") as f:
@@ -111,6 +136,8 @@ def build_participants_index(snapshots, manual_events):
         status = manual_participants.get(name, {}).get("status")
         if status:
             rec["status"] = status
+            if status.lower() in {"eliminada", "eliminado", "fora", "desistente"}:
+                rec["active"] = False
 
     return sorted(index.values(), key=lambda x: x["name"])
 
@@ -243,6 +270,277 @@ def build_daily_metrics(daily_snapshots):
     return daily
 
 
+def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes=None):
+    def split_names(value):
+        if not value or not isinstance(value, str):
+            return []
+        if " + " in value:
+            return [v.strip() for v in value.split(" + ") if v.strip()]
+        return [value.strip()]
+
+    weekly = defaultdict(lambda: {"dates": [], "snapshots": []})
+    for snap in daily_snapshots:
+        week = get_week_number(snap["date"])
+        weekly[week]["dates"].append(snap["date"])
+        weekly[week]["snapshots"].append(snap)
+
+    events_by_week = defaultdict(list)
+    for ev in (manual_events.get("power_events", []) if manual_events else []):
+        week = ev.get("week")
+        if week:
+            events_by_week[week].append(ev)
+    for ev in auto_events or []:
+        week = ev.get("week")
+        if week:
+            events_by_week[week].append(ev)
+
+    # Add derived events: return from paredão
+    if paredoes:
+        for p in paredoes.get("paredoes", []):
+            resultado = p.get("resultado") or {}
+            eliminado = resultado.get("eliminado")
+            semana = p.get("semana")
+            data = p.get("data")
+            indicados = [i.get("nome") for i in p.get("indicados_finais", []) if i.get("nome")]
+            for nome in indicados:
+                if eliminado and nome == eliminado:
+                    continue
+                if semana:
+                    events_by_week[semana].append({
+                        "date": data,
+                        "week": semana,
+                        "type": "volta_paredao",
+                        "actor": None,
+                        "target": nome,
+                        "detail": "Voltou do paredão",
+                        "impacto": "positivo",
+                        "origem": "derived",
+                        "source": "paredoes",
+                    })
+
+    sinc_edges_by_week = defaultdict(list)
+    for edge in (sincerao_edges or {}).get("edges", []):
+        week = edge.get("week")
+        if week:
+            sinc_edges_by_week[week].append(edge)
+
+    sinc_weeks = {w.get("week"): w for w in (sincerao_edges or {}).get("weeks", [])}
+
+    weeks_out = []
+    for week in sorted(weekly.keys()):
+        week_snaps = weekly[week]["snapshots"]
+        week_dates = sorted(set(weekly[week]["dates"]))
+        if not week_snaps:
+            continue
+
+        participants = set()
+        received = defaultdict(int)
+        received_planta = defaultdict(int)
+        plant_ratio_sum = defaultdict(float)
+        plant_ratio_days = defaultdict(int)
+        given = defaultdict(int)
+
+        for snap in week_snaps:
+            for p in snap["participants"]:
+                name = p.get("name", "").strip()
+                if not name:
+                    continue
+                participants.add(name)
+                day_received = 0
+                day_planta = 0
+                for rxn in p.get("characteristics", {}).get("receivedReactions", []):
+                    amount = rxn.get("amount", 0) or 0
+                    received[name] += amount
+                    day_received += amount
+                    if rxn.get("label") == "Planta":
+                        received_planta[name] += amount
+                        day_planta += amount
+                    for giver in rxn.get("participants", []):
+                        gname = giver.get("name")
+                        if gname:
+                            given[gname] += 1
+                if day_received > 0:
+                    plant_ratio_sum[name] += (day_planta / day_received)
+                    plant_ratio_days[name] += 1
+
+        power_counts = defaultdict(int)
+        power_activity = defaultdict(float)
+        for ev in events_by_week.get(week, []):
+            actors = split_names(ev.get("actor"))
+            targets = split_names(ev.get("target"))
+            etype = ev.get("type")
+            for actor in actors:
+                if actor:
+                    power_counts[actor] += 1
+                    w = PLANT_POWER_ACTIVITY_WEIGHTS.get(etype, {}).get("actor", 0)
+                    power_activity[actor] += w
+            # Only count targets for some event types (being indicated shouldn't reduce "planta")
+            for target in targets:
+                if not target:
+                    continue
+                target_w = PLANT_POWER_ACTIVITY_WEIGHTS.get(etype, {}).get("target", 0)
+                if target in actors:
+                    actor_w = PLANT_POWER_ACTIVITY_WEIGHTS.get(etype, {}).get("actor", 0)
+                    if target_w > 0 and actor_w == 0:
+                        power_counts[target] += 1
+                        power_activity[target] += target_w
+                    continue
+                if target_w > 0:
+                    power_counts[target] += 1
+                    power_activity[target] += target_w
+
+        sinc_week = sinc_weeks.get(week, {})
+        part_raw = sinc_week.get("participacao")
+        if isinstance(part_raw, list):
+            sinc_participacao = set(part_raw)
+        elif isinstance(part_raw, str):
+            lower = part_raw.lower()
+            if "todos" in lower or "todos os participantes" in lower:
+                sinc_participacao = set(participants)
+            else:
+                sinc_participacao = set(sinc_week.get("protagonistas", []) or [])
+        else:
+            sinc_participacao = set(sinc_week.get("protagonistas", []) or [])
+        sinc_edges = sinc_edges_by_week.get(week, [])
+        for edge in sinc_edges:
+            if edge.get("actor"):
+                sinc_participacao.add(edge["actor"])
+            if edge.get("target"):
+                sinc_participacao.add(edge["target"])
+
+        has_sincerao = bool(sinc_week) or bool(sinc_edges)
+        planta_plateia_target = (sinc_week.get("planta") or {}).get("target")
+
+        totals = {}
+        for name in participants:
+            totals[name] = received[name] + given[name]
+        max_sinc_edges = max((sum(1 for e in sinc_edges if e.get("actor") == name or e.get("target") == name)
+                              for name in participants), default=0)
+        max_power_activity = max(power_activity.values()) if power_activity else 0
+
+        totals_sorted = sorted(totals.items(), key=lambda x: (x[1], x[0]))
+        n_totals = len(totals_sorted)
+        percentiles = {}
+        if n_totals <= 1:
+            for name, _ in totals_sorted:
+                percentiles[name] = 0.0
+        else:
+            for idx, (name, _) in enumerate(totals_sorted):
+                percentiles[name] = idx / (n_totals - 1)
+
+        scores = {}
+        for name in sorted(participants):
+            total_rxn = totals.get(name, 0)
+            invisibility = max(0.0, 1 - percentiles.get(name, 0.0))
+            power_count = power_counts.get(name, 0)
+            activity_score = power_activity.get(name, 0.0)
+            if max_power_activity > 0:
+                low_power_events = max(0.0, 1 - (activity_score / max_power_activity))
+            else:
+                low_power_events = 0.0
+
+            sinc_edges_count = sum(1 for e in sinc_edges if e.get("actor") == name or e.get("target") == name)
+            participated = name in sinc_participacao or sinc_edges_count > 0
+            if has_sincerao:
+                sinc_activity = (1.0 if participated else 0.0) + (0.5 * sinc_edges_count)
+                max_sinc_activity = (1.0 + 0.5 * max_sinc_edges) if max_sinc_edges else (1.0 if has_sincerao else 0.0)
+                if max_sinc_activity > 0:
+                    low_sincerao = max(0.0, 1 - (sinc_activity / max_sinc_activity))
+                else:
+                    low_sincerao = 0.0
+            else:
+                low_sincerao = 0.0
+            sinc_weight = PLANT_INDEX_WEIGHTS["low_sincerao"]["weight"] if has_sincerao else 0.0
+
+            received_total = received.get(name, 0)
+            if plant_ratio_days.get(name, 0) > 0:
+                plant_ratio = plant_ratio_sum[name] / plant_ratio_days[name]
+            else:
+                plant_ratio = 0.0
+            plant_score = min(PLANT_INDEX_EMOJI_CAP, plant_ratio) / PLANT_INDEX_EMOJI_CAP if plant_ratio else 0.0
+
+            bonus = PLANT_INDEX_BONUS_PLATEIA if planta_plateia_target == name else 0
+
+            low_power_weight = PLANT_INDEX_WEIGHTS["low_power_events"]["weight"]
+
+            points = {
+                "invisibility": PLANT_INDEX_WEIGHTS["invisibility"]["weight"] * invisibility * 100,
+                "low_power_events": low_power_weight * low_power_events * 100,
+                "low_sincerao": sinc_weight * low_sincerao * 100,
+                "plant_emoji": PLANT_INDEX_WEIGHTS["plant_emoji"]["weight"] * plant_score * 100,
+                "plateia_bonus": bonus,
+            }
+
+            base = sum(points[k] for k in ["invisibility", "low_power_events", "low_sincerao", "plant_emoji"])
+            score = max(0.0, min(100.0, base + bonus))
+
+            breakdown = [
+                {"label": PLANT_INDEX_WEIGHTS["invisibility"]["label"], "points": round(points["invisibility"], 1)},
+                {"label": PLANT_INDEX_WEIGHTS["low_power_events"]["label"], "points": round(points["low_power_events"], 1)},
+            ]
+            if has_sincerao:
+                breakdown.append({"label": PLANT_INDEX_WEIGHTS["low_sincerao"]["label"], "points": round(points["low_sincerao"], 1)})
+            breakdown.append({"label": PLANT_INDEX_WEIGHTS["plant_emoji"]["label"], "points": round(points["plant_emoji"], 1)})
+            if bonus:
+                breakdown.append({"label": "Plateia definiu planta", "points": bonus})
+
+            scores[name] = {
+                "score": round(score, 1),
+                "components": {
+                    "invisibility": round(invisibility, 3),
+                    "low_power_events": round(low_power_events, 3),
+                    "low_sincerao": round(low_sincerao, 3),
+                    "plant_emoji": round(plant_score, 3),
+                    "plateia_bonus": 1 if bonus else 0,
+                },
+                "breakdown": breakdown,
+                "raw": {
+                    "reactions_total": total_rxn,
+                    "reactions_received": received_total,
+                    "reactions_given": given.get(name, 0),
+                    "plant_received": received_planta.get(name, 0),
+                    "power_events": power_count,
+                    "power_activity": round(activity_score, 2),
+                    "sincerao_edges": sinc_edges_count,
+                    "sincerao_activity": round(((1.0 if participated else 0.0) + (0.5 * sinc_edges_count)) if has_sincerao else 0.0, 2),
+                    "sincerao_participation": participated if has_sincerao else None,
+                    "plateia_planta": planta_plateia_target == name,
+                },
+            }
+
+        weeks_out.append({
+            "week": week,
+            "date_range": {"start": week_dates[0], "end": week_dates[-1]},
+            "scores": scores,
+        })
+
+    history = defaultdict(list)
+    for week in sorted(weeks_out, key=lambda x: x["week"]):
+        for name, rec in week["scores"].items():
+            history[name].append(rec["score"])
+            recent = history[name][-PLANT_INDEX_ROLLING_WEEKS:]
+            rec["rolling"] = round(sum(recent) / len(recent), 1)
+
+    latest_week = max((w["week"] for w in weeks_out), default=None)
+    latest_scores = {}
+    if latest_week is not None:
+        latest_entry = next((w for w in weeks_out if w["week"] == latest_week), None)
+        if latest_entry:
+            latest_scores = latest_entry["scores"]
+
+    return {
+        "_metadata": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "weights": {k: v["weight"] for k, v in PLANT_INDEX_WEIGHTS.items()},
+            "rolling_window": PLANT_INDEX_ROLLING_WEEKS,
+            "emoji_cap": PLANT_INDEX_EMOJI_CAP,
+            "bonus_plateia": PLANT_INDEX_BONUS_PLATEIA,
+        },
+        "weeks": weeks_out,
+        "latest": {"week": latest_week, "scores": latest_scores},
+    }
+
+
 def build_sincerao_edges(manual_events):
     weights = {
         "podio_mention": 0.25,
@@ -370,6 +668,11 @@ def build_derived_data():
     daily_metrics = build_daily_metrics(daily_snapshots)
     warnings = validate_manual_events(participants_index, manual_events)
     sincerao_edges = build_sincerao_edges(manual_events)
+    paredoes = {}
+    if PAREDOES_FILE.exists():
+        with open(PAREDOES_FILE, encoding="utf-8") as f:
+            paredoes = json.load(f)
+    plant_index = build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes)
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -394,6 +697,7 @@ def build_derived_data():
     })
 
     write_json(DERIVED_DIR / "sincerao_edges.json", sincerao_edges)
+    write_json(DERIVED_DIR / "plant_index.json", plant_index)
 
     write_json(DERIVED_DIR / "validation.json", {
         "_metadata": {"generated_at": now, "source": "manual_events"},
@@ -408,6 +712,12 @@ def build_derived_data():
             write_json(DERIVED_DIR / "index_data.json", index_payload)
     except Exception as e:
         print(f"Index data build failed: {e}")
+
+    # Run audit report for manual events (hard fail on issues)
+    from audit_manual_events import run_audit
+    issues_count = run_audit()
+    if issues_count:
+        raise RuntimeError(f"Manual events audit failed with {issues_count} issue(s). See docs/MANUAL_EVENTS_AUDIT.md")
 
     print(f"Derived data written to {DERIVED_DIR}")
 

@@ -35,7 +35,9 @@ from datetime import datetime
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import load_snapshot, get_all_snapshots, build_reaction_matrix
+from data_utils import load_snapshot, get_all_snapshots, build_reaction_matrix, require_clean_manual_events
+
+require_clean_manual_events()
 
 # Clustering imports
 from scipy.cluster.hierarchy import linkage, fcluster, dendrogram

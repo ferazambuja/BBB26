@@ -29,7 +29,9 @@ from datetime import datetime
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix
+from data_utils import load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix, require_clean_manual_events
+
+require_clean_manual_events()
 
 # Configurações visuais
 plt.rcParams['figure.figsize'] = (14, 8)

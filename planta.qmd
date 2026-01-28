@@ -1,0 +1,684 @@
+---
+title: "🌱 Planta Index"
+subtitle: "Tally completo dos sinais que formam o índice"
+---
+
+```{python}
+#| label: setup
+#| message: false
+#| warning: false
+
+import json
+from pathlib import Path
+from collections import defaultdict
+import pandas as pd
+import plotly.express as px
+import sys
+
+sys.path.append(str(Path("scripts").resolve()))
+from data_utils import require_clean_manual_events
+
+require_clean_manual_events()
+
+PLANT_INDEX_FILE = Path("data/derived/plant_index.json")
+MANUAL_EVENTS_FILE = Path("data/manual_events.json")
+AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
+SINCERAO_FILE = Path("data/derived/sincerao_edges.json")
+PARTICIPANTS_INDEX_FILE = Path("data/derived/participants_index.json")
+PAREDOES_FILE = Path("data/paredoes.json")
+
+plant_index = json.loads(PLANT_INDEX_FILE.read_text(encoding="utf-8")) if PLANT_INDEX_FILE.exists() else {}
+manual_events = json.loads(MANUAL_EVENTS_FILE.read_text(encoding="utf-8")) if MANUAL_EVENTS_FILE.exists() else {}
+auto_events = json.loads(AUTO_EVENTS_FILE.read_text(encoding="utf-8")) if AUTO_EVENTS_FILE.exists() else {}
+sinc_data = json.loads(SINCERAO_FILE.read_text(encoding="utf-8")) if SINCERAO_FILE.exists() else {}
+participants_index = json.loads(PARTICIPANTS_INDEX_FILE.read_text(encoding="utf-8")) if PARTICIPANTS_INDEX_FILE.exists() else {}
+paredoes = json.loads(PAREDOES_FILE.read_text(encoding="utf-8")) if PAREDOES_FILE.exists() else {}
+
+latest_week = plant_index.get("latest", {}).get("week")
+latest_scores = plant_index.get("latest", {}).get("scores", {})
+weights = plant_index.get("_metadata", {}).get("weights", {})
+rolling_window = plant_index.get("_metadata", {}).get("rolling_window", 3)
+emoji_cap = plant_index.get("_metadata", {}).get("emoji_cap", 0.30)
+bonus_plateia = plant_index.get("_metadata", {}).get("bonus_plateia", 15)
+
+avatars = {p["name"]: p.get("avatar", "") for p in participants_index.get("participants", []) if p.get("name")}
+active_names = {p["name"] for p in participants_index.get("participants", []) if p.get("name") and p.get("active", True)}
+
+def split_names(value):
+    if not value or not isinstance(value, str):
+        return []
+    if " + " in value:
+        return [v.strip() for v in value.split(" + ") if v.strip()]
+    return [value.strip()]
+
+def week_has_signals(week_entry):
+    if not week_entry:
+        return False
+    for info in week_entry.get("scores", {}).values():
+        raw = info.get("raw", {})
+        if raw.get("power_events", 0) > 0:
+            return True
+        if raw.get("sincerao_edges", 0) > 0:
+            return True
+        if raw.get("plateia_planta"):
+            return True
+    return False
+
+display_week = latest_week
+display_scores = latest_scores
+if plant_index.get("weeks"):
+    # choose latest week with any signals if current week is empty
+    latest_entry = next((w for w in plant_index.get("weeks", []) if w.get("week") == latest_week), None)
+    if latest_entry and not week_has_signals(latest_entry):
+        candidates = [w for w in plant_index.get("weeks", []) if week_has_signals(w)]
+        if candidates:
+            chosen = sorted(candidates, key=lambda w: w.get("week", 0))[-1]
+            display_week = chosen.get("week")
+            display_scores = chosen.get("scores", {})
+
+if active_names and display_scores:
+    display_scores = {k: v for k, v in display_scores.items() if k in active_names}
+
+POWER_EVENT_LABELS = {
+    "lider": "Líder",
+    "anjo": "Anjo",
+    "monstro": "Monstro",
+    "imunidade": "Imunidade",
+    "indicacao": "Indicação",
+    "contragolpe": "Contragolpe",
+    "voto_duplo": "Voto 2x",
+    "voto_anulado": "Voto anulado",
+    "perdeu_voto": "Perdeu voto",
+    "emparedado": "Emparedado",
+    "volta_paredao": "Voltou do paredão",
+}
+POWER_EVENT_EMOJI = {
+    "lider": "👑",
+    "anjo": "😇",
+    "monstro": "👹",
+    "imunidade": "🛡️",
+    "indicacao": "🎯",
+    "contragolpe": "🌀",
+    "voto_duplo": "🗳️",
+    "voto_anulado": "🚫",
+    "perdeu_voto": "⛔",
+    "emparedado": "📌",
+    "volta_paredao": "🔄",
+}
+
+POWER_ACTIVITY_WEIGHTS = {
+    "lider": {"actor": 0.0, "target": 4.0},
+    "anjo": {"actor": 0.0, "target": 3.0},
+    "imunidade": {"actor": 0.0, "target": 0.4},
+    "monstro": {"actor": 0.0, "target": 3.0},
+    "indicacao": {"actor": 2.5, "target": 1.5},
+    "contragolpe": {"actor": 2.5, "target": 1.5},
+    "voto_duplo": {"actor": 2.0, "target": 0.0},
+    "voto_anulado": {"actor": 2.0, "target": 0.0},
+    "perdeu_voto": {"actor": 0.0, "target": 1.0},
+    "emparedado": {"actor": 0.0, "target": 0.0},
+    "volta_paredao": {"actor": 0.0, "target": 2.0},
+}
+
+power_events = (manual_events.get("power_events", []) if manual_events else []) + (auto_events.get("events", []) if auto_events else [])
+for p in paredoes.get("paredoes", []):
+    resultado = p.get("resultado") or {}
+    eliminado = resultado.get("eliminado")
+    semana = p.get("semana")
+    data = p.get("data")
+    for item in p.get("indicados_finais", []):
+        nome = item.get("nome")
+        if not nome or (eliminado and nome == eliminado):
+            continue
+        power_events.append({
+            "date": data,
+            "week": semana,
+            "type": "volta_paredao",
+            "actor": None,
+            "target": nome,
+            "detail": "Voltou do paredão",
+            "origem": "derived",
+            "source": "paredoes",
+        })
+power_by_person = defaultdict(list)
+power_events_by_person = defaultdict(list)
+for ev in power_events:
+    if display_week and ev.get("week") != display_week:
+        continue
+    etype = ev.get("type")
+    label = POWER_EVENT_LABELS.get(etype, etype)
+    emoji = POWER_EVENT_EMOJI.get(etype, "•")
+    date = ev.get("date", "")
+    actor = ev.get("actor")
+    target = ev.get("target")
+    if actor and target and actor == target:
+        power_by_person[actor].append(f"{emoji} {label} (auto) — {date}")
+        actor_w = POWER_ACTIVITY_WEIGHTS.get(etype, {}).get("actor", 0.0)
+        target_w = POWER_ACTIVITY_WEIGHTS.get(etype, {}).get("target", 0.0)
+        w = actor_w if actor_w > 0 else target_w
+        power_events_by_person[actor].append({
+            "label": label,
+            "role": "auto",
+            "weight": w,
+            "date": date,
+            "other": "",
+        })
+    elif actor:
+        power_by_person[actor].append(f"{emoji} {label} (ator) — {date}")
+        w = POWER_ACTIVITY_WEIGHTS.get(etype, {}).get("actor", 0.0)
+        power_events_by_person[actor].append({
+            "label": label,
+            "role": "ator",
+            "weight": w,
+            "date": date,
+            "other": target,
+        })
+    if target and (not actor or actor != target):
+        power_by_person[target].append(f"{emoji} {label} (alvo) — {date}")
+        w = POWER_ACTIVITY_WEIGHTS.get(etype, {}).get("target", 0.0)
+        power_events_by_person[target].append({
+            "label": label,
+            "role": "alvo",
+            "weight": w,
+            "date": date,
+            "other": actor,
+        })
+
+power_event_types = sorted({ev.get("type") for ev in power_events if ev.get("type")})
+
+power_by_person_all = defaultdict(list)
+for ev in power_events:
+    etype = ev.get("type")
+    label = POWER_EVENT_LABELS.get(etype, etype)
+    emoji = POWER_EVENT_EMOJI.get(etype, "•")
+    date = ev.get("date", "")
+    actors = split_names(ev.get("actor"))
+    targets = split_names(ev.get("target"))
+    if len(actors) == 1 and len(targets) == 1 and actors[0] == targets[0]:
+        power_by_person_all[actors[0]].append(f"{emoji} {label} (auto) — {date}")
+        continue
+    for actor in actors:
+        power_by_person_all[actor].append(f"{emoji} {label} (ator) — {date}")
+    for target in targets:
+        power_by_person_all[target].append(f"{emoji} {label} (alvo) — {date}")
+
+sinc_week_data = next((w for w in sinc_data.get("weeks", []) if w.get("week") == display_week), {})
+sinc_participacao = set(sinc_week_data.get("participacao", []) or [])
+planta_plateia_target = (sinc_week_data.get("planta") or {}).get("target")
+sinc_edges = [e for e in sinc_data.get("edges", []) if e.get("week") == display_week]
+
+sinc_by_person = defaultdict(list)
+for edge in sinc_edges:
+    etype = edge.get("type")
+    label = {
+        "podio": "Pódio",
+        "nao_ganha": "Não ganha",
+        "bomba": "Bomba",
+    }.get(etype, etype)
+    actor = edge.get("actor")
+    target = edge.get("target")
+    if actor:
+        tema = edge.get("tema")
+        tema_txt = f" ({tema})" if tema else ""
+        sinc_by_person[actor].append(f"{label} → {target}{tema_txt}")
+    if target:
+        tema = edge.get("tema")
+        tema_txt = f" ({tema})" if tema else ""
+        sinc_by_person[target].append(f"{label} ← {actor}{tema_txt}")
+```
+
+## Como o Planta Index é calculado
+
+```{python}
+#| label: formula
+#| output: asis
+
+if not display_week:
+    print("<p class='text-muted'>Sem dados suficientes para o Planta Index.</p>")
+else:
+    df_w = pd.DataFrame([
+        {"Componente": k, "Peso": v}
+        for k, v in weights.items()
+    ])
+    print(f"<p><strong>Semana exibida:</strong> {display_week}. Rolling médio: {rolling_window} semanas.</p>")
+    if display_week != latest_week:
+        print(f"<p class='text-muted'>Semana {latest_week} não teve eventos; mostrando a última semana com sinais.</p>")
+    print("<p>Score = soma dos componentes (0–100) + bônus de plateia (se existir), limitado entre 0 e 100.</p>")
+    max_emoji_points = int(round(weights.get("plant_emoji", 0) * 100))
+    print(f"<p>Emoji 🌱 usa a <strong>média diária</strong> da semana e é limitado a {emoji_cap*100:.0f}% de peso (máx {max_emoji_points} pontos). Bônus plateia: +{bonus_plateia} pontos.</p>")
+    print(df_w.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
+
+**Definições rápidas dos componentes**
+- **Invisibilidade**: posição relativa (percentil) do total de reações recebidas+dadas na semana (**peso 0 no score**).
+- **Baixa atividade de poder**: usa **pesos por tipo** (ganhar Líder/Anjo vale mais que eventos menores).
+- **Baixa exposição no Sincerão**: edges do Sincerão normalizados (quanto menor, mais “planta”).
+- **Emoji 🌱**: média diária da proporção de “Planta” recebida (cap em 30%, máx 20 pontos).
+- **Plateia definiu planta**: bônus manual quando existir no Sincerão.
+- **Nota importante:** indicações/contragolpes **contam para quem indicou** e também **para quem recebeu** (peso menor).
+
+## Eventos considerados no Planta Index
+
+**Eventos de poder (manual + API) que entram na contagem:**
+```{python}
+#| label: plant-events-list
+#| output: asis
+
+if not power_event_types:
+    print("<p class='text-muted'>Sem eventos de poder registrados.</p>")
+else:
+    labels = list(dict.fromkeys(POWER_EVENT_LABELS.values()))
+    print("<p>" + ", ".join(labels) + "</p>")
+```
+
+**Pesos de atividade (exemplos):**
+- Líder (ganhou): **4.0**
+- Anjo (ganhou): **3.0**
+- Monstro (recebeu): **3.0**
+- Imunidade: **0.4**
+- Indicação / Contragolpe (ator): **2.5**
+- Indicação / Contragolpe (alvo): **1.5**
+- Voto 2x / Voto anulado (ator): **2.0**
+- Perdeu voto (alvo): **1.0**
+
+## Eventos da semana (power_events)
+
+```{python}
+#| label: plant-week-events
+#| output: asis
+
+if not plant_index.get("weeks"):
+    print("<p class='text-muted'>Sem eventos registrados.</p>")
+else:
+    wk = 1
+    week_events = [e for e in power_events if e.get("week") == wk]
+    if not week_events:
+        print("<p class='text-muted'>Nenhum evento de poder registrado nesta semana.</p>")
+    else:
+        rows = []
+        for ev in sorted(week_events, key=lambda x: (x.get("date", ""), x.get("type", ""))):
+            etype = ev.get("type")
+            label = POWER_EVENT_LABELS.get(etype, etype)
+            emoji = POWER_EVENT_EMOJI.get(etype, "•")
+            rows.append({
+                "Data": ev.get("date", ""),
+                "Evento": f"{emoji} {label}",
+                "Ator": ev.get("actor") or "—",
+                "Alvo": ev.get("target") or "—",
+                "Origem": ev.get("origem") or "—",
+            })
+        df_week = pd.DataFrame(rows)
+        print(df_week.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
+
+## Painel Sincerão (semana 1)
+
+```{python}
+#| label: plant-sinc-panels
+#| output: asis
+
+def build_sinc_rows(edges):
+    podio = {}
+    nao_ganha = {}
+    for e in edges:
+        etype = e.get("type")
+        actor = e.get("actor")
+        target = e.get("target")
+        if not actor:
+            continue
+        if etype == "podio":
+            slot = e.get("slot")
+            if slot:
+                podio.setdefault(actor, {})[slot] = target
+        elif etype == "nao_ganha":
+            nao_ganha[actor] = target
+    names = sorted(set(list(podio.keys()) + list(nao_ganha.keys())))
+    rows = []
+    for name in names:
+        p = podio.get(name, {})
+        rows.append({
+            "Participante": name,
+            "1º": p.get(1, name),
+            "2º": p.get(2, "—"),
+            "3º": p.get(3, "—"),
+            "Não ganha": nao_ganha.get(name, "—"),
+        })
+    return rows
+
+if not sinc_data.get("weeks"):
+    print("<p class='text-muted'>Sem dados de Sincerão.</p>")
+else:
+    wk = 1
+    week_meta = next((w for w in sinc_data.get("weeks", []) if w.get("week") == wk), {})
+    edges = [e for e in sinc_data.get("edges", []) if e.get("week") == wk]
+    print("<h4>Sincerão — Semana 1</h4>")
+    if week_meta:
+        print(f"<p><strong>Data:</strong> {week_meta.get('date','')} · <strong>Formato:</strong> {week_meta.get('format','')} </p>")
+        if week_meta.get("notes"):
+            print(f"<p class='text-muted'>{week_meta.get('notes')}</p>")
+    rows = build_sinc_rows(edges)
+    if rows:
+        df = pd.DataFrame(rows)
+        print(df.to_html(index=False, classes="table table-dark table-sm", border=0))
+    else:
+        print("<p class='text-muted'>Sem edges registrados.</p>")
+
+    stats = week_meta.get("stats", {}) if isinstance(week_meta.get("stats", {}), dict) else {}
+    if stats:
+        podio_top = stats.get("podio_top", [])
+        nao_ganha_top = stats.get("nao_ganha_top", [])
+        sem_podio = stats.get("sem_podio", [])
+        if podio_top:
+            top_txt = ", ".join([f"{i.get('name')} ({i.get('count')})" for i in podio_top[:5]])
+            print(f"<p><strong>Top 5 pódio:</strong> {top_txt}</p>")
+        if nao_ganha_top:
+            ng_txt = ", ".join([f"{i.get('name')} ({i.get('count')})" for i in nao_ganha_top[:5]])
+            print(f"<p><strong>Top 5 não ganha:</strong> {ng_txt}</p>")
+        if sem_podio:
+            print(f"<p><strong>Sem pódio:</strong> {', '.join(sem_podio)}</p>")
+        pip = stats.get("pipocometro")
+        if isinstance(pip, dict):
+            prot = pip.get("protagonistas", {})
+            dem = pip.get("demais", {})
+            if prot:
+                print(f"<p><strong>Pipocômetro (protagonistas):</strong> melhor {prot.get('melhor',{}).get('name')} ({prot.get('melhor',{}).get('nota')}) · pior {prot.get('pior',{}).get('name')} ({prot.get('pior',{}).get('nota')})</p>")
+            if dem:
+                print(f"<p><strong>Pipocômetro (demais):</strong> melhor {dem.get('melhor',{}).get('name')} ({dem.get('melhor',{}).get('nota')}) · pior {dem.get('pior',{}).get('name')} ({dem.get('pior',{}).get('nota')})</p>")
+```
+
+**Tipos de edges do Sincerão usados:**
+- Pódio (positivo)
+- Não ganha (negativo)
+- Bomba (negativo)
+- Plateia define planta (bônus)
+
+**O que são edges?**  
+Um edge é uma relação **direcionada** A → B. Exemplo real:  
+**Sarah Andrade → Juliano Floss (bomba)** significa que Sarah apontou Juliano no Sincerão.
+No Planta Index, usamos apenas edges do Sincerão (não do Paredão).
+
+## Exemplo: “Baixa exposição no Sincerão”
+
+```{python}
+#| label: sinc-example
+#| output: asis
+
+if display_week and display_scores:
+    edges_counts = {n: display_scores[n].get("raw", {}).get("sincerao_edges", 0) for n in display_scores}
+    if edges_counts:
+        max_edges = max(edges_counts.values())
+        min_edges = min(edges_counts.values())
+        max_names = [n for n, c in edges_counts.items() if c == max_edges]
+        min_names = [n for n, c in edges_counts.items() if c == min_edges]
+        print(f"<p>Semana {display_week}: máximo de edges = <strong>{max_edges}</strong>.</p>")
+        if max_edges > 0:
+            print(f"<p><strong>Exposição alta</strong> (low_sincerao ≈ 0): {', '.join(max_names[:4])}</p>")
+            print(f"<p><strong>Exposição baixa</strong> (low_sincerao ≈ 1): {', '.join(min_names[:4])}</p>")
+        else:
+            print("<p>Sem edges registrados no Sincerão nesta semana.</p>")
+```
+
+## Evolução semanal do Planta Index
+
+```{python}
+#| label: plant-evolution
+#| output: asis
+
+if plant_index.get("weeks"):
+    weeks = plant_index["weeks"]
+    latest_week_data = display_scores or plant_index.get("latest", {}).get("scores", {})
+    rank_names = sorted(latest_week_data.keys(), key=lambda n: -latest_week_data[n].get("rolling", 0))
+    top_n_default = min(10, max(len(rank_names), 1))
+    rank_map = {name: i + 1 for i, name in enumerate(rank_names)}
+    records = []
+    for w in weeks:
+        week = w.get("week")
+        for name, info in w.get("scores", {}).items():
+            if active_names and name not in active_names:
+                continue
+            if name in rank_map:
+                records.append({
+                    "week": week,
+                    "name": name,
+                    "score": info.get("rolling", info.get("score", 0)),
+                })
+    if records:
+        df_line = pd.DataFrame(records)
+        fig = px.line(df_line, x="week", y="score", color="name", markers=True,
+                      title="Planta Index (rolling) — todos os participantes (filtre por Top N)",
+                      labels={"week": "Semana", "score": "Planta Index", "name": "Participante"})
+        fig.update_layout(height=420, margin=dict(l=20, r=20, t=60, b=20))
+        for trace in fig.data:
+            rank = rank_map.get(trace.name, 999)
+            trace.visible = True if rank <= top_n_default else "legendonly"
+        import json as _json
+        print(f"<div style='margin-bottom:0.5rem;'>Top N: <input id='plantTopN' type='range' min='3' max='{len(rank_names)}' value='{top_n_default}' step='1' style='width:200px;'> <span id='plantTopNVal'>{top_n_default}</span></div>")
+        fig.show()
+        script = f"""
+<script>
+(function() {{
+  const rankMap = {_json.dumps(rank_map)};
+  const slider = document.getElementById('plantTopN');
+  const val = document.getElementById('plantTopNVal');
+  const plots = document.querySelectorAll('.plotly-graph-div');
+  const plot = plots[plots.length - 1];
+  if (!slider || !plot) return;
+  function update(n) {{
+    val.textContent = n;
+    const vis = plot.data.map(t => (rankMap[t.name] || 999) <= n ? true : 'legendonly');
+    Plotly.restyle(plot, {{visible: vis}});
+  }}
+  slider.addEventListener('input', (e) => update(parseInt(e.target.value, 10)));
+  update(parseInt(slider.value, 10));
+}})();
+</script>
+"""
+        print(script)
+else:
+    print("<p class='text-muted'>Sem histórico suficiente para gráfico.</p>")
+```
+
+## Tally completo por participante (semana atual)
+
+```{python}
+#| label: plant-table
+#| output: asis
+
+rows = []
+for name, info in display_scores.items():
+    breakdown = {b["label"]: b.get("points", 0) for b in info.get("breakdown", [])}
+    raw = info.get("raw", {})
+    plant_ratio = 0
+    if raw.get("reactions_received"):
+        plant_ratio = round((raw.get("plant_received", 0) / raw.get("reactions_received", 1)) * 100, 1)
+    rows.append({
+        "Participante": name,
+        "Score (rolling)": info.get("rolling", info.get("score", 0)),
+        "Score (semana)": info.get("score", 0),
+        "Invisibilidade": breakdown.get("Invisibilidade", 0),
+        "Baixa atividade": breakdown.get("Baixa atividade de poder", 0),
+        "Baixa exposição Sincerão": breakdown.get("Baixa exposição no Sincerão", 0),
+        "Emoji 🌱": breakdown.get("Emoji 🌱", 0),
+        "Bônus plateia": breakdown.get("Plateia definiu planta", 0),
+        "Atividade poder": raw.get("power_activity", 0),
+        "Sincerão edges": raw.get("sincerao_edges", 0),
+        "Sincerão atividade": raw.get("sincerao_activity", 0),
+        "Sincerão": "Sim" if raw.get("sincerao_participation") else "Não",
+        "🌱 recebidos": raw.get("plant_received", 0),
+        "🌱 %": plant_ratio,
+    })
+
+if not rows:
+    print("<p class='text-muted'>Sem dados do Planta Index.</p>")
+else:
+    df = pd.DataFrame(rows).sort_values("Score (rolling)", ascending=False)
+    print(df.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
+
+## Tally completo por participante (semana 1)
+
+```{python}
+#| label: plant-table-week1
+#| output: asis
+
+week1_entry = next((w for w in plant_index.get("weeks", []) if w.get("week") == 1), None)
+if not week1_entry:
+    print("<p class='text-muted'>Semana 1 não encontrada.</p>")
+else:
+    rows = []
+    week_scores = week1_entry.get("scores", {})
+    for name, info in week_scores.items():
+        breakdown = {b["label"]: b.get("points", 0) for b in info.get("breakdown", [])}
+        raw = info.get("raw", {})
+        plant_ratio = 0
+        if raw.get("reactions_received"):
+            plant_ratio = round((raw.get("plant_received", 0) / raw.get("reactions_received", 1)) * 100, 1)
+        rows.append({
+            "Participante": name,
+            "Score (semana)": info.get("score", 0),
+            "Invisibilidade": breakdown.get("Invisibilidade", 0),
+            "Baixa atividade": breakdown.get("Baixa atividade de poder", 0),
+            "Baixa exposição Sincerão": breakdown.get("Baixa exposição no Sincerão", 0),
+            "Emoji 🌱": breakdown.get("Emoji 🌱", 0),
+            "Bônus plateia": breakdown.get("Plateia definiu planta", 0),
+            "Atividade poder": raw.get("power_activity", 0),
+            "Sincerão edges": raw.get("sincerao_edges", 0),
+            "Sincerão atividade": raw.get("sincerao_activity", 0),
+            "Sincerão": "Sim" if raw.get("sincerao_participation") else "Não",
+            "🌱 recebidos": raw.get("plant_received", 0),
+            "🌱 %": plant_ratio,
+        })
+
+    if not rows:
+        print("<p class='text-muted'>Sem dados para a semana 1.</p>")
+    else:
+        df = pd.DataFrame(rows).sort_values("Score (semana)", ascending=False)
+        print(df.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
+
+## Participantes com eventos de poder na semana
+
+```{python}
+#| label: plant-power-summary
+#| output: asis
+
+power_rows = []
+for name, events in power_by_person.items():
+    if not events:
+        continue
+    power_rows.append({
+        "Participante": name,
+        "Eventos": " · ".join(events),
+    })
+
+if not power_rows:
+    print("<p class='text-muted'>Nenhum evento de poder registrado na semana.</p>")
+else:
+    df_power = pd.DataFrame(power_rows).sort_values("Participante")
+    print(df_power.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
+
+## Participantes com eventos de poder (temporada)
+
+```{python}
+#| label: plant-power-all
+#| output: asis
+
+power_rows_all = []
+for name, events in power_by_person_all.items():
+    if not events:
+        continue
+    if active_names and name not in active_names:
+        continue
+    power_rows_all.append({
+        "Participante": name,
+        "Eventos": " · ".join(events),
+        "Total": len(events),
+    })
+
+if not power_rows_all:
+    print("<p class='text-muted'>Nenhum evento de poder registrado.</p>")
+else:
+    df_power_all = pd.DataFrame(power_rows_all).sort_values("Total", ascending=False)
+    print(df_power_all.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
+
+## Participantes com exposição no Sincerão (edges)
+
+```{python}
+#| label: plant-sinc-summary
+#| output: asis
+
+sinc_rows = []
+for name, events in sinc_by_person.items():
+    if not events:
+        continue
+    sinc_rows.append({
+        "Participante": name,
+        "Edges": " · ".join(events),
+    })
+
+if not sinc_rows:
+    print("<p class='text-muted'>Nenhum edge do Sincerão registrado na semana.</p>")
+else:
+    df_sinc = pd.DataFrame(sinc_rows).sort_values("Participante")
+    print(df_sinc.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
+
+## Detalhes por participante (eventos e sinais)
+
+```{python}
+#| label: plant-details
+#| output: asis
+
+if not display_scores:
+    print("<p class='text-muted'>Sem dados disponíveis.</p>")
+else:
+    for name in sorted(display_scores.keys()):
+        info = display_scores[name]
+        breakdown = info.get("breakdown", [])
+        raw = info.get("raw", {})
+        power_list = power_by_person.get(name, [])
+        sinc_list = sinc_by_person.get(name, [])
+        sinc_part = raw.get("sincerao_participation")
+        sinc_label = "participou" if sinc_part else ("ausente" if sinc_part is False else "n/a")
+        plateia_flag = " (plateia)" if planta_plateia_target == name else ""
+        power_detail = power_events_by_person.get(name, [])
+
+        print(f"<details style='margin: 0.6rem 0; background:#2a2a2a; border-radius:8px; padding:0.5rem 0.8rem;'>")
+        print(f"<summary style='cursor:pointer; font-weight:600;'>🌱 {name} — Planta Index {info.get('rolling', info.get('score'))}</summary>")
+        print("<div style='margin-top:0.5rem; font-size:0.9rem;'>")
+        print("<strong>Componentes e pontos:</strong>")
+        print("<ul>")
+        for item in breakdown:
+            print(f"<li>{item.get('label')}: +{item.get('points', 0)}</li>")
+        print("</ul>")
+        comps = info.get("components", {})
+        print("<div style='margin-top:0.4rem;'><strong>Componentes (0–1):</strong></div>")
+        print("<div style='margin-left:1rem; color:#bbb;'>"
+              f"Invisibilidade {comps.get('invisibility', 0)} · "
+              f"Baixa atividade {comps.get('low_power_events', 0)} · "
+              f"Baixa exposição Sincerão {comps.get('low_sincerao', 0)} · "
+              f"Emoji 🌱 {comps.get('plant_emoji', 0)}</div>")
+        print(f"<div><strong>Atividade de poder:</strong> {raw.get('power_activity', 0)} (eventos: {raw.get('power_events', 0)})</div>")
+        if power_list:
+            print("<div style='margin-left:1rem; color:#bbb;'>" + " · ".join(power_list) + "</div>")
+        else:
+            print("<div style='margin-left:1rem; color:#777;'>Nenhum evento de poder na semana.</div>")
+        if power_detail:
+            print("<div style='margin-left:1rem; color:#aaa; font-size:0.85rem;'><strong>Pesos por evento:</strong></div>")
+            for evd in power_detail:
+                other = f" → {evd.get('other')}" if evd.get("other") else ""
+                print(f"<div style='margin-left:1.6rem; color:#999; font-size:0.82rem;'>+{evd.get('weight',0)} {evd.get('label')} ({evd.get('role')}){other}</div>")
+        print(f"<div><strong>Sincerão:</strong> {sinc_label}{plateia_flag} (edges: {raw.get('sincerao_edges', 0)}, atividade: {raw.get('sincerao_activity', 0)})</div>")
+        if sinc_list:
+            print("<div style='margin-left:1rem; color:#bbb;'>" + " · ".join(sinc_list) + "</div>")
+        else:
+            print("<div style='margin-left:1rem; color:#777;'>Nenhum edge registrado.</div>")
+        if sinc_part:
+            print("<div style='margin-left:1.6rem; color:#999; font-size:0.82rem;'>+1.0 participação</div>")
+        for _ in range(raw.get('sincerao_edges', 0)):
+            print("<div style='margin-left:1.6rem; color:#999; font-size:0.82rem;'>+0.5 edge</div>")
+        print(f"<div><strong>Emoji 🌱 recebidos:</strong> {raw.get('plant_received', 0)}</div>")
+        print("</div></details>")
+```

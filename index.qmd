@@ -29,6 +29,7 @@ from datetime import datetime
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
+from data_utils import require_clean_manual_events
 
 # Configurações visuais
 plt.rcParams['figure.figsize'] = (14, 8)
@@ -38,6 +39,8 @@ sns.set_theme(style="whitegrid", palette="husl")
 # Diretórios
 DERIVED_DIR = Path("data/derived")
 INDEX_DATA_FILE = DERIVED_DIR / "index_data.json"
+
+require_clean_manual_events()
 
 # Categorias de reações
 REACTION_EMOJI = {
@@ -585,7 +588,7 @@ if contrad:
 ''')
 ```
 
-# Visão Geral {#visao-geral}
+# Visão Geral {#visao-geral-main}
 
 ```{python}
 #| label: overview-stats
@@ -741,7 +744,7 @@ else:
     print("*Nenhum participante com pontos cegos detectado.*")
 ```
 
-# Ranking de Sentimento {#ranking}
+# Ranking de Sentimento {#ranking-sentimento}
 
 Cada participante recebe reações dos demais. O **score de sentimento** pondera: ❤️ = +1, reações leves (🌱💼🍪) = -0.5, reações fortes (🐍🎯🤮🤥💔) = -1.
 
@@ -1045,8 +1048,12 @@ Faixas: 🟢 **MUITO BAIXA** (<1), 🟡 **BAIXA** (>=1), 🟠 **MÉDIA** (>=3), 
 #| output: asis
 
 align_rows = index_data.get("sincerao", {}).get("alignment", [])
+sinc_week = index_data.get("sincerao", {}).get("week")
 if not align_rows:
-    print("<p class='text-muted'>Sem dados detalhados do Sincerão nesta semana.</p>")
+    if sinc_week:
+        print(f"<p class='text-muted'>Sem dados detalhados do Sincerão para a semana {sinc_week}.</p>")
+    else:
+        print("<p class='text-muted'>Sem dados detalhados do Sincerão.</p>")
 else:
     df_sinc = pd.DataFrame(align_rows)
     fig = px.scatter(
@@ -1098,6 +1105,66 @@ source_icons = {
     'castigo do monstro': '👹',
     'dinâmica da casa': '🎬',
 }
+
+print("""
+<style>
+.plant-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.plant-chip:focus { outline: none; }
+.plant-chip .plant-popover {
+    position: absolute;
+    top: 130%;
+    left: 0;
+    min-width: 240px;
+    background: #1f1f1f;
+    border: 1px solid #555;
+    border-radius: 8px;
+    padding: 0.6rem 0.7rem;
+    color: #ddd;
+    font-size: 0.75rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: all 0.15s ease;
+    z-index: 30;
+}
+.plant-chip:hover .plant-popover,
+.plant-chip:focus-within .plant-popover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.plant-popover .plant-title {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+.plant-popover .plant-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.15rem 0;
+    border-bottom: 1px solid #333;
+}
+.plant-popover .plant-row:last-child { border-bottom: none; }
+.plant-popover .plant-muted { color: #999; font-size: 0.7rem; margin-top: 0.3rem; }
+</style>
+""")
+
+def plant_color(score):
+    if score >= 80:
+        return "#2f7d46"
+    if score >= 60:
+        return "#6c8a3c"
+    if score >= 40:
+        return "#b9772a"
+    return "#a94442"
 
 def render_actor_avatars(actors, border_color="#666", color_lookup=None, size=24, skip_icons=None):
     if not actors:
@@ -1166,7 +1233,7 @@ for p in profiles:
     roles = p.get('roles', [])
     score = p.get('score', 0)
 
-    rxn_summary = " ".join([f"{r['emoji']}×{r['count']}" for r in p.get('rxn_summary', [])])
+    rxn_summary = " | ".join([f"{r['emoji']}×{r['count']}" for r in p.get('rxn_summary', [])])
     given_summary = " | ".join([f"{r['emoji']}×{r['count']}" for r in p.get('given_summary', [])])
 
     rel = p.get("relations", {})
@@ -1260,6 +1327,43 @@ for p in profiles:
     external_color = p.get("external_color")
     animosity_level = p.get("animosity_level")
     animosity_color = p.get("animosity_color")
+    plant_info = p.get("plant_index") or {}
+    plant_badge = ""
+    if plant_info and plant_info.get("score") is not None:
+        score_week = plant_info.get("score", 0)
+        score_roll = plant_info.get("rolling", score_week)
+        score_val = int(round(score_roll))
+        plant_week = plant_info.get("week")
+        plant_color_hex = plant_color(score_val)
+        breakdown_rows = []
+        for item in plant_info.get("breakdown", []):
+            points = item.get("points", 0)
+            if points <= 0:
+                continue
+            label = item.get("label", "")
+            breakdown_rows.append(
+                f"<div class='plant-row'><span>{label}</span><span>+{points}</span></div>"
+            )
+        breakdown_html = "".join(breakdown_rows) if breakdown_rows else "<div class='plant-muted'>Sem sinais fortes.</div>"
+        points_map = {item.get("label"): item.get("points", 0) for item in plant_info.get("breakdown", [])}
+        emoji_points = points_map.get("Emoji 🌱", 0)
+        raw = plant_info.get("raw", {})
+        raw_power = raw.get("power_events", 0)
+        sinc_part = raw.get("sincerao_participation", None)
+        sinc_label = "participou" if sinc_part else ("ausente" if sinc_part is False else "n/a")
+        plant_badge = (
+            f"<span class='plant-chip' tabindex='0' "
+            f"style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; "
+            f"background: {plant_color_hex}; color: #fff; vertical-align: middle; font-weight: bold;\">"
+            f"Planta Index {score_val}"
+            f"<div class='plant-popover'>"
+            f"<div class='plant-title'><span>Planta Index</span><span>{score_val}/100</span></div>"
+            f"<div class='plant-muted'>Semana {plant_week} | Rolling {score_roll:.1f}</div>"
+            f"{breakdown_html}"
+            f"<div class='plant-muted'>Eventos de poder: {raw_power} | Sincerão: {sinc_label}</div>"
+            f"<div class='plant-muted'>Emoji 🌱: +{emoji_points}</div>"
+            f"</div></span>"
+        )
 
     avatar_url = AVATARS.get(name, '')
     cor_grupo = GROUP_COLORS.get(member_of, '#666')
@@ -1274,6 +1378,7 @@ for p in profiles:
         f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {external_color}; color: #fff; vertical-align: middle; font-weight: bold;\">Risco externo {external_level}</span>",
         f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {animosity_color}; color: #fff; vertical-align: middle; font-weight: bold;\">Animosidade {animosity_level}</span>",
         sinc_contra_label or "",
+        plant_badge or "",
     ]).strip()
     avatar_html = (f'<img src="{avatar_url}" alt="{name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid {cor_grupo}; flex-shrink: 0;">'
                    if avatar_url else "")
@@ -1286,7 +1391,7 @@ for p in profiles:
 <div>
 <h3 style="margin: 0 0 0.3rem 0; color: #fff; font-size: 1.4em;">{name} {badges}</h3>
 <div style="color: #aaa; font-size: 0.95em;">
-<strong style="color: {cor_grupo};">{member_of}</strong> | {group} | Saldo: {balance:,} | Sentimento: <strong style="color: {'#28a745' if score >= 0 else '#dc3545'};">{score:+.1f}</strong>{role_text}
+<strong style="color: {cor_grupo};">{member_of}</strong> | {group} | VIP: {p.get('vip_days', 0)}d | Xepa: {p.get('xepa_days', 0)}d | Saldo: {balance:,} | Sentimento: <strong style="color: {'#28a745' if score >= 0 else '#dc3545'};">{score:+.1f}</strong>{role_text}
 </div>
 </div>
 </div>
@@ -1361,7 +1466,6 @@ for p in profiles:
 </div>
 ''')
 
-    print('</div>')
     print('</div>')
     print('</div>')
 ```

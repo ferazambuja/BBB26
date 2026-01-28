@@ -5,6 +5,24 @@ import json
 from pathlib import Path
 
 
+def require_clean_manual_events(audit_path=None):
+    """Raise if manual events audit reports inconsistencies."""
+    if audit_path is None:
+        audit_path = Path("data/derived/manual_events_audit.json")
+    else:
+        audit_path = Path(audit_path)
+
+    if not audit_path.exists():
+        raise RuntimeError("manual_events_audit.json não encontrado. Execute scripts/build_derived_data.py")
+
+    with open(audit_path, encoding="utf-8") as f:
+        audit = json.load(f)
+
+    issues = audit.get("issues_count", 0)
+    if issues:
+        raise RuntimeError(f"Manual events audit falhou com {issues} problema(s). Veja docs/MANUAL_EVENTS_AUDIT.md")
+
+
 def load_snapshot(filepath):
     """Load snapshot JSON (new or old format)."""
     with open(filepath, encoding="utf-8") as f:

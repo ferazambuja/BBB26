@@ -184,10 +184,11 @@ if __name__ == "__main__":
     path, changed = fetch_and_save()
 
     if not args.skip_derived:
-        try:
-            from build_derived_data import build_derived_data
-            build_derived_data()
-        except Exception as e:
-            print(f"Warning: failed to build derived data: {e}")
+        from build_derived_data import build_derived_data
+        build_derived_data()
+    else:
+        # Still run audit to avoid silently accepting inconsistent manual data
+        from audit_manual_events import main as audit_main
+        audit_main()
 
     exit(0 if path else 1)

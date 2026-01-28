@@ -61,6 +61,12 @@ Nesta edição, há participação de **plateia convidada**.
 Há **três Big Fones** na casa; o público decide qual deles tocará e qual mensagem será lida pelo Big Boss.  
 Exemplo registrado: **15/01/2026** — Marcelo atendeu, ficou imune e indicou Aline ao Paredão.
 
+### Líder, VIP e Xepa
+O vencedor da **Prova do Líder** ganha a liderança da semana e distribui **pulseiras VIP** para quem terá uma **semana de conforto**.  
+No BBB 26, o Líder recebeu **7 pulseiras** para distribuir.  
+**VIP** tem acesso à **Cozinha VIP** (alimentos mais variados), enquanto a **Xepa** usa a **Cozinha da Xepa**.  
+Além do conforto, a escolha de VIP costuma sinalizar **alianças/afinidades**.
+
 ### Prova do Anjo e Monstro
 O Anjo pode **autoimunizar‑se** ou imunizar outro participante.  
 O Anjo também escolhe quem recebe o **Castigo do Monstro**, que **perde 300 estalecas** e vai para a **Xepa** se estiver no VIP.  
@@ -118,3 +124,10 @@ Ao registrar manualmente o Paredão da semana:
 ## Fontes
 - Wikipédia: página oficial do **Big Brother Brasil 26** (consultada em 27/01/2026).
 - GShow (Sincerão): 1º Sincerão (pódio + quem não ganha) e 2º Sincerão (bombas/temas).
+- GShow: regras do Líder (7 pulseiras VIP, semana de conforto).
+- CNN Brasil: diferença entre **VIP** e **Xepa** (cozinhas separadas).
+
+```
+https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/prova-do-lider-saiba-como-funciona-a-dinamica-do-bbb-26.ghtml
+https://www.cnnbrasil.com.br/entretenimento/bbb-26-entenda-as-diferencas-entre-vip-e-xepa/
+```

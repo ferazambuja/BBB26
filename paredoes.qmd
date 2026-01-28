@@ -26,7 +26,9 @@ from IPython.display import display, HTML
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import load_snapshot, get_all_snapshots, build_reaction_matrix, load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy
+from data_utils import load_snapshot, get_all_snapshots, build_reaction_matrix, load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy, require_clean_manual_events
+
+require_clean_manual_events()
 
 # Diretórios
 DATA_DIR = Path("data/snapshots")

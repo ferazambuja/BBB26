@@ -1,13 +1,13 @@
 {
   "_metadata": {
-    "generated_at": "2026-01-28T01:56:53.887616+00:00"
+    "generated_at": "2026-01-28T20:16:10.357375+00:00"
   },
   "latest": {
     "date": "2026-01-27",
     "label": "2026-01-27"
   },
   "current_week": 3,
-  "current_cycle_week": 2,
+  "current_cycle_week": 3,
   "active_names": [
     "Alberto Cowboy",
     "Ana Paula Renault",
@@ -91,8 +91,10 @@
     "items": [
       "🏆 **Solange Couto** lidera o [ranking](#ranking) (+18.0)",
       "📊 **119 reações** [mudaram](mudancas.html) ontem (26% do total)",
-      "💥 [Maior mudança](mudancas.html): **Maxiane** → **Milena** (de ❤️ para 🤮)",
+      "💥 [Maior mudança](mudancas.html): **Leandro** → **Jordana** (de ❤️ para 🎯)",
       "⚠️ **18** [nova(s) hostilidade(s)](trajetoria.html#hostilidades-dia) unilateral(is) surgiram",
+      "🎯 Top alinhados Sincerão×Queridômetro: Solange Couto (-1.00)",
+      "⚡ Top contraditórios Sincerão×Queridômetro: Solange Couto (-1.00)",
       "🗳️ [**Paredão ativo**](paredao.html): Brigido, Leandro, Matheus"
     ]
   },
@@ -3500,8 +3502,32 @@
     "max_neg": 9
   },
   "sincerao": {
-    "alignment": [],
-    "week": 3
+    "alignment": [
+      {
+        "name": "Solange Couto",
+        "sincerao_score": -0.3,
+        "sentiment_score": 18.0,
+        "grupo": "Camarote",
+        "sinc_norm": -1.0,
+        "sent_norm": 1.0,
+        "alignment": -1.0
+      }
+    ],
+    "week": 2
+  },
+  "vip": {
+    "leader": "Babu Santana",
+    "leader_start": "2026-01-22",
+    "recipients": [
+      "Alberto Cowboy",
+      "Breno",
+      "Edilson",
+      "Juliano Floss",
+      "Marcelo",
+      "Milena",
+      "Solange Couto"
+    ],
+    "weight": 0.2
   },
   "profiles": [
     {
@@ -3629,9 +3655,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 15,
+      "xepa_days": 0,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 4.5
+      },
+      "plant_index": {
+        "score": 28.1,
+        "components": {
+          "invisibility": 0.955,
+          "low_power_events": 0.615,
+          "low_sincerao": 0.0,
+          "plant_emoji": 0.023,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 27.7
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.5
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 1,
+          "power_events": 1,
+          "power_activity": 2.5,
+          "sincerao_edges": 2,
+          "sincerao_activity": 2.0,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 20.4,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -3644,8 +3719,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/ZsOmZy26w2PETRMhfDJfYGFEApk=/330x330/https://s2.glbimg.com/2RNmzxoltTB-tFqFwylLlIsaloI=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/B/a/D8yjaEQpaLfhryU9FpmA/bbb26-cabecograma-transp-veterano-ana-paula-renault.png",
       "risk_level": "🟡 ATENÇÃO",
       "risk_color": "#ffc107",
-      "external_level": "🟡 BAIXO",
-      "external_color": "#ffc107",
+      "external_level": "🟢 MUITO BAIXO",
+      "external_color": "#28a745",
       "animosity_level": "🔴 ALTA",
       "animosity_color": "#dc3545",
       "rxn_summary": [
@@ -3795,7 +3870,9 @@
         ]
       },
       "events": {
-        "pos_week": [
+        "pos_week": [],
+        "neg_week": [],
+        "pos_hist": [
           {
             "type": "voto_duplo",
             "label": "Voto 2x",
@@ -3806,18 +3883,6 @@
             ]
           }
         ],
-        "neg_week": [
-          {
-            "type": "voto_anulado",
-            "label": "Voto anulado",
-            "emoji": "🚫",
-            "count": 1,
-            "actors": [
-              "Sarah Andrade"
-            ]
-          }
-        ],
-        "pos_hist": [],
         "neg_hist": [
           {
             "type": "contragolpe",
@@ -3827,16 +3892,19 @@
             "actors": [
               "Aline Campos"
             ]
+          },
+          {
+            "type": "voto_anulado",
+            "label": "Voto anulado",
+            "emoji": "🚫",
+            "count": 1,
+            "actors": [
+              "Sarah Andrade"
+            ]
           }
         ]
       },
-      "votes_received": [
-        {
-          "voter": "Matheus",
-          "count": 1,
-          "revealed": false
-        }
-      ],
+      "votes_received": [],
       "sincerao": {
         "reasons": [],
         "bombas": {}
@@ -3845,9 +3913,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 2,
+      "xepa_days": 13,
+      "days_total": 15,
       "scores": {
-        "external": 1.8,
+        "external": 0.0,
         "animosity": 8.5
+      },
+      "plant_index": {
+        "score": 33.0,
+        "components": {
+          "invisibility": 0.909,
+          "low_power_events": 0.692,
+          "low_sincerao": 0.0,
+          "plant_emoji": 0.091,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 31.2
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.8
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 4,
+          "power_events": 1,
+          "power_activity": 2.0,
+          "sincerao_edges": 2,
+          "sincerao_activity": 2.0,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 28.8,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -3998,9 +4115,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 15,
+      "xepa_days": 0,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 5.25
+      },
+      "plant_index": {
+        "score": 9.2,
+        "components": {
+          "invisibility": 0.864,
+          "low_power_events": 0.0,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.023,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.5
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 1,
+          "power_events": 2,
+          "power_activity": 6.5,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 30.0,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -4108,9 +4274,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 8,
+      "xepa_days": 7,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 2.0
+      },
+      "plant_index": {
+        "score": 80.9,
+        "components": {
+          "invisibility": 0.818,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.044,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.9
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 2,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 71.1,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -4125,8 +4340,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/_b5DwInET0rY7wBF1tiM64kIJlg=/330x330/https://s2.glbimg.com/zc5oVJ4zDuHmmgkyIf0RW3hs6JE=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/R/g/BMVC2WTUuw2bMTFXXogA/bbb26-cabecograma-transp-brigido.png",
       "risk_level": "🟡 ATENÇÃO",
       "risk_color": "#ffc107",
-      "external_level": "🔴 ALTO",
-      "external_color": "#dc3545",
+      "external_level": "🟡 BAIXO",
+      "external_color": "#ffc107",
       "animosity_level": "🔴 ALTA",
       "animosity_color": "#dc3545",
       "rxn_summary": [
@@ -4251,38 +4466,7 @@
         "pos_hist": [],
         "neg_hist": []
       },
-      "votes_received": [
-        {
-          "voter": "Breno",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Chaiany",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Juliano Floss",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Leandro",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Marcelo",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Milena",
-          "count": 1,
-          "revealed": false
-        }
-      ],
+      "votes_received": [],
       "sincerao": {
         "reasons": [],
         "bombas": {}
@@ -4291,9 +4475,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 2,
+      "xepa_days": 13,
+      "days_total": 15,
       "scores": {
-        "external": 8.0,
+        "external": 2.0,
         "animosity": 7.25
+      },
+      "plant_index": {
+        "score": 23.0,
+        "components": {
+          "invisibility": 0.773,
+          "low_power_events": 0.308,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.022,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 13.8
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.4
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 1,
+          "power_events": 2,
+          "power_activity": 4.5,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 42.9,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -4306,8 +4539,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/qZedzGTwM84vXyVD2tF1AJTF7_g=/330x330/https://s2.glbimg.com/LiU2rYoqPY398bvW8chVhOjdrXo=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/g/F/8iuUVESjCDvv7rmjI7NQ/bbb26-cabecograma-transp-chaiany.png",
       "risk_level": "🔴 MUITO VULNERÁVEL",
       "risk_color": "#dc3545",
-      "external_level": "🟠 MÉDIO",
-      "external_color": "#fd7e14",
+      "external_level": "🟢 MUITO BAIXO",
+      "external_color": "#28a745",
       "animosity_level": "🟡 BAIXA",
       "animosity_color": "#ffc107",
       "rxn_summary": [
@@ -4419,28 +4652,7 @@
           }
         ]
       },
-      "votes_received": [
-        {
-          "voter": "Alberto Cowboy",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Brigido",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Sarah Andrade",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Sol Vega",
-          "count": 1,
-          "revealed": false
-        }
-      ],
+      "votes_received": [],
       "sincerao": {
         "reasons": [],
         "bombas": {}
@@ -4449,9 +4661,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 4,
+      "xepa_days": 6,
+      "days_total": 10,
       "scores": {
-        "external": 4.0,
+        "external": 0.0,
         "animosity": 2.5
+      },
+      "plant_index": {
+        "score": 61.9,
+        "components": {
+          "invisibility": 0.727,
+          "low_power_events": 0.538,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.135,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 24.2
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 2.7
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 6,
+          "power_events": 1,
+          "power_activity": 3.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 57.8,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -4567,9 +4828,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 15,
+      "xepa_days": 0,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 2.25
+      },
+      "plant_index": {
+        "score": 82.7,
+        "components": {
+          "invisibility": 0.682,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.136,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 2.7
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 6,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 68.5,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -4582,8 +4892,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/u9ImjVXhSv10B2XJmc0E7Ddnhmc=/330x330/https://s2.glbimg.com/v4Li3E81EcaXrMSJdbc7pQYDqic=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/h/W/5S7oIeTQqJdDeHus6Pbw/bbb26-cabecograma-transp-gabriela.png",
       "risk_level": "🔴 MUITO VULNERÁVEL",
       "risk_color": "#dc3545",
-      "external_level": "🟠 MÉDIO",
-      "external_color": "#fd7e14",
+      "external_level": "🟢 MUITO BAIXO",
+      "external_color": "#28a745",
       "animosity_level": "🟠 MÉDIA",
       "animosity_color": "#fd7e14",
       "rxn_summary": [
@@ -4712,23 +5022,7 @@
         "pos_hist": [],
         "neg_hist": []
       },
-      "votes_received": [
-        {
-          "voter": "Marciele",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Maxiane",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Samira",
-          "count": 1,
-          "revealed": false
-        }
-      ],
+      "votes_received": [],
       "sincerao": {
         "reasons": [],
         "bombas": {}
@@ -4737,9 +5031,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 4,
+      "xepa_days": 6,
+      "days_total": 10,
       "scores": {
-        "external": 3.0,
+        "external": 0.0,
         "animosity": 4.75
+      },
+      "plant_index": {
+        "score": 55.6,
+        "components": {
+          "invisibility": 0.636,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.091,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.8
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 4,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 56.2,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -4877,17 +5220,7 @@
       },
       "events": {
         "pos_week": [],
-        "neg_week": [
-          {
-            "type": "perdeu_voto",
-            "label": "Perdeu voto",
-            "emoji": "⛔",
-            "count": 1,
-            "actors": [
-              "Jonas Sulzbach"
-            ]
-          }
-        ],
+        "neg_week": [],
         "pos_hist": [
           {
             "type": "anjo",
@@ -4908,7 +5241,17 @@
             ]
           }
         ],
-        "neg_hist": []
+        "neg_hist": [
+          {
+            "type": "perdeu_voto",
+            "label": "Perdeu voto",
+            "emoji": "⛔",
+            "count": 1,
+            "actors": [
+              "Jonas Sulzbach"
+            ]
+          }
+        ]
       },
       "votes_received": [],
       "sincerao": {
@@ -4919,9 +5262,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 9,
+      "xepa_days": 6,
+      "days_total": 15,
       "scores": {
-        "external": 0.5,
+        "external": 0.0,
         "animosity": 7.6
+      },
+      "plant_index": {
+        "score": 25.1,
+        "components": {
+          "invisibility": 0.591,
+          "low_power_events": 0.323,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.089,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 14.5
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.8
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 4,
+          "power_events": 5,
+          "power_activity": 4.4,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 33.6,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -5067,9 +5459,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 2,
+      "xepa_days": 13,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 6.0
+      },
+      "plant_index": {
+        "score": 81.8,
+        "components": {
+          "invisibility": 0.545,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.091,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.8
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 4,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 71.5,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -5082,8 +5523,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/PtJSGYsDrYQjd3T8CyDF20WHKhs=/330x330/https://s2.glbimg.com/vXxdV2s1B42zo2WDdsVfRGMyOEk=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/K/7/RHdeu4RnGdV5xLndEWRw/bbb26-cabecograma-transp-camarote-juliano-floss.png",
       "risk_level": "🟡 ATENÇÃO",
       "risk_color": "#ffc107",
-      "external_level": "🟡 BAIXO",
-      "external_color": "#ffc107",
+      "external_level": "🟢 MUITO BAIXO",
+      "external_color": "#28a745",
       "animosity_level": "🔴 ALTA",
       "animosity_color": "#dc3545",
       "rxn_summary": [
@@ -5219,13 +5660,7 @@
         "pos_hist": [],
         "neg_hist": []
       },
-      "votes_received": [
-        {
-          "voter": "Gabriela",
-          "count": 1,
-          "revealed": false
-        }
-      ],
+      "votes_received": [],
       "sincerao": {
         "reasons": [],
         "bombas": {}
@@ -5234,9 +5669,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 15,
+      "xepa_days": 0,
+      "days_total": 15,
       "scores": {
-        "external": 1.0,
+        "external": 0.0,
         "animosity": 6.5
+      },
+      "plant_index": {
+        "score": 56.9,
+        "components": {
+          "invisibility": 0.5,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.157,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 3.1
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 7,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 55.5,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -5251,8 +5735,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/f6RdJAh_SAC31-SWMnWMSQA6wrQ=/330x330/https://s2.glbimg.com/l-d8hrm4bIorPrws9WAH7_Su4kk=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/Y/v/rIh8MwQemoa6rKOep0cg/bbb26-cabecograma-transp-leandro.png",
       "risk_level": "🟠 VULNERÁVEL",
       "risk_color": "#fd7e14",
-      "external_level": "🟠 MÉDIO",
-      "external_color": "#fd7e14",
+      "external_level": "🟡 BAIXO",
+      "external_color": "#ffc107",
       "animosity_level": "🔴 ALTA",
       "animosity_color": "#dc3545",
       "rxn_summary": [
@@ -5372,7 +5856,9 @@
       },
       "events": {
         "pos_week": [],
-        "neg_week": [
+        "neg_week": [],
+        "pos_hist": [],
+        "neg_hist": [
           {
             "type": "indicacao",
             "label": "Indicação",
@@ -5383,9 +5869,7 @@
               "Brigido"
             ]
           }
-        ],
-        "pos_hist": [],
-        "neg_hist": []
+        ]
       },
       "votes_received": [],
       "sincerao": {
@@ -5396,9 +5880,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 4,
+      "xepa_days": 6,
+      "days_total": 10,
       "scores": {
-        "external": 4.5,
+        "external": 2.0,
         "animosity": 6.0
+      },
+      "plant_index": {
+        "score": 33.4,
+        "components": {
+          "invisibility": 0.455,
+          "low_power_events": 0.462,
+          "low_sincerao": 0.0,
+          "plant_emoji": 0.63,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 20.8
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 12.6
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 28,
+          "power_events": 2,
+          "power_activity": 3.5,
+          "sincerao_edges": 2,
+          "sincerao_activity": 2.0,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 47.3,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -5539,15 +6072,6 @@
             "emoji": "🛡️",
             "count": 1,
             "actors": [
-              "Big Fone"
-            ]
-          },
-          {
-            "type": "imunidade",
-            "label": "Imunidade",
-            "emoji": "🛡️",
-            "count": 1,
-            "actors": [
               "Dinâmica da casa"
             ]
           }
@@ -5573,9 +6097,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 8,
+      "xepa_days": 7,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 7.25
+      },
+      "plant_index": {
+        "score": 80.0,
+        "components": {
+          "invisibility": 0.409,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.0,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.0
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 0,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 43.8,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -5692,9 +6265,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 9,
+      "xepa_days": 6,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 3.25
+      },
+      "plant_index": {
+        "score": 81.8,
+        "components": {
+          "invisibility": 0.364,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.091,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.8
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 4,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 64.8,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -5709,8 +6331,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/WYJqk6ogOfuxegu-TlK60XSKnvQ=/330x330/https://s2.glbimg.com/aFjHi1M-5kw0seiFv81nuXNC330=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/j/D/Q0pEmATHAUkQbYrLcCHA/bbb26-cabecograma-transp-matheus.png",
       "risk_level": "🔴 MUITO VULNERÁVEL",
       "risk_color": "#dc3545",
-      "external_level": "🟠 MÉDIO",
-      "external_color": "#fd7e14",
+      "external_level": "🟡 BAIXO",
+      "external_color": "#ffc107",
       "animosity_level": "🔴 ALTA",
       "animosity_color": "#dc3545",
       "rxn_summary": [
@@ -5858,7 +6480,9 @@
       },
       "events": {
         "pos_week": [],
-        "neg_week": [
+        "neg_week": [],
+        "pos_hist": [],
+        "neg_hist": [
           {
             "type": "indicacao",
             "label": "Indicação",
@@ -5868,9 +6492,7 @@
               "Babu Santana"
             ]
           }
-        ],
-        "pos_hist": [],
-        "neg_hist": []
+        ]
       },
       "votes_received": [],
       "sincerao": {
@@ -5881,9 +6503,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 4,
+      "xepa_days": 6,
+      "days_total": 10,
       "scores": {
-        "external": 4.5,
+        "external": 2.0,
         "animosity": 6.75
+      },
+      "plant_index": {
+        "score": 43.4,
+        "components": {
+          "invisibility": 0.318,
+          "low_power_events": 0.769,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.0,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 34.6
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.0
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 0,
+          "power_events": 1,
+          "power_activity": 1.5,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 48.6,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -5998,9 +6669,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 2,
+      "xepa_days": 13,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 3.75
+      },
+      "plant_index": {
+        "score": 80.0,
+        "components": {
+          "invisibility": 0.273,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.0,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.0
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 0,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 69.1,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -6013,8 +6733,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/jhhEHfCCo3-vUyuyxuH4F8mncs0=/330x330/https://s2.glbimg.com/74ojd_iSoxSzx8o8j693pjUqc_A=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/a/V/A8IXTKToGFnxFGD0l3sA/bbb26-cabecograma-transp-milena.png",
       "risk_level": "🟢 PROTEGIDO",
       "risk_color": "#28a745",
-      "external_level": "🟡 BAIXO",
-      "external_color": "#ffc107",
+      "external_level": "🟢 MUITO BAIXO",
+      "external_color": "#28a745",
       "animosity_level": "🔴 ALTA",
       "animosity_color": "#dc3545",
       "rxn_summary": [
@@ -6171,13 +6891,7 @@
           }
         ]
       },
-      "votes_received": [
-        {
-          "voter": "Solange Couto",
-          "count": 1,
-          "revealed": false
-        }
-      ],
+      "votes_received": [],
       "sincerao": {
         "reasons": [],
         "bombas": {}
@@ -6186,9 +6900,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 8,
+      "xepa_days": 7,
+      "days_total": 15,
       "scores": {
-        "external": 1.0,
+        "external": 0.0,
         "animosity": 8.75
+      },
+      "plant_index": {
+        "score": 45.4,
+        "components": {
+          "invisibility": 0.227,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.0,
+          "plant_emoji": 0.022,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.4
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 1,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 2,
+          "sincerao_activity": 2.0,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 37.4,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -6304,9 +7067,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 2,
+      "xepa_days": 13,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 2.75
+      },
+      "plant_index": {
+        "score": 86.3,
+        "components": {
+          "invisibility": 0.182,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.314,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 6.3
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 14,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 75.8,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -6450,9 +7262,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 2,
+      "xepa_days": 13,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 5.75
+      },
+      "plant_index": {
+        "score": 85.9,
+        "components": {
+          "invisibility": 0.136,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.293,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 5.9
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 13,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": false
+        },
+        "rolling": 72.2,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -6584,9 +7445,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 9,
+      "xepa_days": 6,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 3.1
+      },
+      "plant_index": {
+        "score": 42.6,
+        "components": {
+          "invisibility": 0.091,
+          "low_power_events": 0.692,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.136,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 31.2
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 2.7
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 6,
+          "power_events": 1,
+          "power_activity": 2.0,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 49.4,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -6599,8 +7509,8 @@
       "avatar": "https://s2-globo-play.glbimg.com/sW8IHug_batpHXiolTZPSXMd9cY=/330x330/https://s2.glbimg.com/8Yx5Hr7MqI0fTwxdqvNFZs1JYpU=/i.s3.glbimg.com/v1/AUTH_e84042ef78cb4708aeebdf1c68c6cbd6/internal_photos/bs/2026/u/v/YssA8BSLqU1jttTeq9MA/bbb26-cabecograma-transp-veterano-sol-vega.png",
       "risk_level": "🟠 VULNERÁVEL",
       "risk_color": "#fd7e14",
-      "external_level": "🟠 MÉDIO",
-      "external_color": "#fd7e14",
+      "external_level": "🟢 MUITO BAIXO",
+      "external_color": "#28a745",
       "animosity_level": "🟠 MÉDIA",
       "animosity_color": "#fd7e14",
       "rxn_summary": [
@@ -6729,23 +7639,7 @@
         "pos_hist": [],
         "neg_hist": []
       },
-      "votes_received": [
-        {
-          "voter": "Edilson",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Jordana",
-          "count": 1,
-          "revealed": false
-        },
-        {
-          "voter": "Paulo Augusto",
-          "count": 1,
-          "revealed": false
-        }
-      ],
+      "votes_received": [],
       "sincerao": {
         "reasons": [],
         "bombas": {}
@@ -6754,9 +7648,58 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 2,
+      "xepa_days": 13,
+      "days_total": 15,
       "scores": {
-        "external": 3.0,
+        "external": 0.0,
         "animosity": 5.25
+      },
+      "plant_index": {
+        "score": 59.2,
+        "components": {
+          "invisibility": 0.045,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.25,
+          "plant_emoji": 0.272,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 8.8
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 5.4
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 12,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 1,
+          "sincerao_activity": 1.5,
+          "sincerao_participation": true,
+          "plateia_planta": false
+        },
+        "rolling": 56.9,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     },
     {
@@ -6876,9 +7819,62 @@
         "count": 0,
         "targets": []
       },
+      "vip_days": 8,
+      "xepa_days": 7,
+      "days_total": 15,
       "scores": {
         "external": 0.0,
         "animosity": 3.75
+      },
+      "plant_index": {
+        "score": 100.0,
+        "components": {
+          "invisibility": 0.0,
+          "low_power_events": 1.0,
+          "low_sincerao": 1.0,
+          "plant_emoji": 0.339,
+          "plateia_bonus": 1
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 45.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 35.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 6.8
+          },
+          {
+            "label": "Plateia definiu planta",
+            "points": 15
+          }
+        ],
+        "raw": {
+          "reactions_total": 296,
+          "reactions_received": 148,
+          "reactions_given": 148,
+          "plant_received": 15,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": false,
+          "plateia_planta": true
+        },
+        "rolling": 78.8,
+        "week": 2,
+        "date_range": {
+          "start": "2026-01-20",
+          "end": "2026-01-26"
+        }
       }
     }
   ]

@@ -28,6 +28,7 @@ python scripts/fetch_data.py
 
 # Build derived data files (auto events, roles, participant index, index_data)
 python scripts/build_derived_data.py
+# Also generates docs/MANUAL_EVENTS_AUDIT.md and data/derived/manual_events_audit.json automatically (hard-fail on issues).
 
 # Update program guide weekly timeline
 python scripts/update_programa_doc.py
@@ -151,6 +152,9 @@ Use this as the **single reference** for what data exists and how it can be reus
 - `data/derived/validation.json` — Sanity checks for manual data.
 - `data/derived/sincerao_edges.json` — Sincerão aggregates + optional edges (derived from manual events).
 - `data/derived/index_data.json` — Index tables (highlights, watchlist, rankings, profiles).
+- `data/derived/plant_index.json` — Planta Index per week + rolling averages (derived from snapshots + events).
+- `docs/MANUAL_EVENTS_AUDIT.md` — Manual events audit report (auto‑generated; render hard‑fails if issues).
+- `data/derived/manual_events_audit.json` — Audit status used by QMD pages to block render on inconsistencies.
 
 **Computed (page‑only, should be reusable)**
 - Reaction matrix, sentiment score, relationship categories (Aliados/Inimigos/etc.).
@@ -233,6 +237,48 @@ animosidade = 0.25 * reacoes_negativas_recebidas
             + 1.5 * Σ (peso_evento * decay)
 ```
 Decay: `peso = 1 / (1 + semanas_passadas)`.
+
+### Planta Index (weekly + rolling)
+Goal: quantify how **“planta”** a participant is (low visibility + low participation).
+Computed weekly in `data/derived/plant_index.json` with a 2‑week rolling average.
+
+**Signals (per week):**
+- **Invisibilidade**: 1 − percentile(total_reacoes) within the week (peso 0 no score atual).
+- **Baixa atividade de poder**: 1 − (atividade_poder / max_atividade_poder).  
+  Atividade usa pesos por tipo:
+  - Líder (ganhou): 4.0
+  - Anjo (ganhou): 3.0
+  - Monstro (recebeu): 3.0
+  - Imunidade: 0.4
+  - Indicação/Contragolpe (ator): 2.5
+  - Indicação/Contragolpe (alvo): 1.5
+  - Voto 2x / Voto anulado (ator): 2.0
+  - Perdeu voto (alvo): 1.0
+  - Voltou do paredão: 2.0
+- **Indicação/Contragolpe**: contam para quem indicou **e** para o alvo (peso menor).
+- **Baixa exposição no Sincerão**: usa **participação + edges**:  
+  `sinc_activity = (participou ? 1 : 0) + 0.5 * edges`  
+  `low_sincerao = 1 − (sinc_activity / max_sinc_activity)`  
+- **Emoji 🌱**: média diária da proporção de “Planta” recebida na semana, com cap de 0.30.
+- **Bônus “planta da casa”**: +15 points (plateia escolhe planta no Sincerão).
+
+**Weights (base):**
+```
+0.45 * Baixa atividade de poder
+0.35 * Baixa exposição no Sincerão
+0.20 * Emoji 🌱
+```
+Score = base * 100 + bonus (clamped 0–100). Invisibilidade não entra no score atual.
+
+**Manual event required (plateia “planta da casa”):**
+Add to `manual_events.json` under `weekly_events[].sincerao.planta`:
+```
+{ "target": "Nome do participante", "source": "plateia" }
+```
+This is a **weekly** signal and does **not** carry to the next week.
+
+### Planta Index breakdown page
+Use `planta.qmd` to inspect the full tally per participant (component points + raw signals + events list).
 
 ### Why power events are “modifiers”
 - They are **rare** and usually **one‑to‑one** (actor → target).
@@ -474,6 +520,17 @@ Higher = more aligned; lower = contradiction.
   - `self_inflicted`: `true|false` (se `actor == target`).
   - `visibility`: `public` (sabido na casa) ou `secret` (só revelado depois).
   - `awareness`: `known`/`unknown` (se o alvo sabe quem causou).
+
+**VIP & Xepa (passe do Líder)**:
+- O Líder recebe **pulseiras de VIP** para distribuir; os escolhidos têm **uma semana de conforto** no VIP.
+- A alimentação fica separada: **VIP usa a Cozinha VIP** e **Xepa usa a Cozinha da Xepa**.
+- **Uso analítico**: quem recebe VIP do Líder é um **sinal positivo de relação/aliança** (peso leve, semanal).
+- **Fonte de dados**: a API já expõe `characteristics.group` como `Vip`/`Xepa`, então dá para derivar:
+  - **Edges** `lider -> vip` (benefício) na semana do Líder.
+  - **Sinal de relação** (positivo, leve) entre Líder e VIPs.
+- Observação: VIP é **dinâmica da semana**, não deve “carregar” para semanas seguintes.
+- **Caveat (Quarto Branco / entradas tardias)**: participantes que **entraram após** a vitória do Líder **não recebem** o VIP dele; não criar edge positiva nesses casos.  
+  (Implementado via `first_seen` <= `leader_start_date` no build).
 
 **Votos da casa (público após formação)**:
 - Estão em `data/paredoes.json` → `votos_casa` e **só são públicos após a formação**.

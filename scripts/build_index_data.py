@@ -13,6 +13,9 @@ MANUAL_EVENTS_FILE = Path(__file__).parent.parent / "data" / "manual_events.json
 AUTO_EVENTS_FILE = DERIVED_DIR / "auto_events.json"
 SINCERAO_FILE = DERIVED_DIR / "sincerao_edges.json"
 DAILY_METRICS_FILE = DERIVED_DIR / "daily_metrics.json"
+ROLES_DAILY_FILE = DERIVED_DIR / "roles_daily.json"
+PARTICIPANTS_INDEX_FILE = DERIVED_DIR / "participants_index.json"
+PLANT_INDEX_FILE = DERIVED_DIR / "plant_index.json"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
 
 REACTION_EMOJI = {
@@ -94,6 +97,8 @@ SINC_EDGE_WEIGHTS = {
     "nao_ganha": -0.8,
     "bomba": -0.6,
 }
+
+VIP_EDGE_WEIGHT = 0.2
 
 ROLE_TYPES = {
     "Líder": "lider",
@@ -261,9 +266,38 @@ def build_index_data():
     auto_events = load_json(AUTO_EVENTS_FILE, {"events": []})
     sinc_data = load_json(SINCERAO_FILE, {})
     daily_metrics = load_json(DAILY_METRICS_FILE, {"daily": []})
+    roles_daily = load_json(ROLES_DAILY_FILE, {"daily": []})
+    participants_index = load_json(PARTICIPANTS_INDEX_FILE, {"participants": []})
+    plant_index = load_json(PLANT_INDEX_FILE, {})
     paredoes = load_json(PAREDOES_FILE, {"paredoes": []})
 
     power_events = manual_events.get("power_events", []) + auto_events.get("events", [])
+
+    def plant_week_has_signals(week_entry):
+        if not week_entry:
+            return False
+        for info in week_entry.get("scores", {}).values():
+            raw = info.get("raw", {})
+            if raw.get("power_events", 0) > 0:
+                return True
+            if raw.get("sincerao_edges", 0) > 0:
+                return True
+            if raw.get("plateia_planta"):
+                return True
+        return False
+
+    plant_week = None
+    for w in plant_index.get("weeks", []):
+        if w.get("week") == current_week:
+            plant_week = w
+            break
+    if plant_week is None or not plant_week_has_signals(plant_week):
+        candidates = [w for w in plant_index.get("weeks", []) if plant_week_has_signals(w)]
+        if candidates:
+            plant_week = candidates[-1]
+        elif plant_index.get("weeks"):
+            plant_week = plant_index.get("weeks", [])[-1]
+    plant_scores = plant_week.get("scores", {}) if plant_week else {}
 
     active = [p for p in latest["participants"] if not p.get("characteristics", {}).get("eliminated")]
     active_names = sorted([p["name"] for p in active])
@@ -275,6 +309,45 @@ def build_index_data():
         for role in roles:
             roles_current[role].append(p.get("name"))
 
+    # VIP/Xepa days
+    vip_days = defaultdict(int)
+    xepa_days = defaultdict(int)
+    total_days = defaultdict(int)
+    for snap in daily_snapshots:
+        for p in snap["participants"]:
+            name = p.get("name")
+            if not name:
+                continue
+            group = (p.get("characteristics", {}).get("group") or "").lower()
+            total_days[name] += 1
+            if group == "vip":
+                vip_days[name] += 1
+            elif group == "xepa":
+                xepa_days[name] += 1
+
+    # Leader -> VIP edge (light positive) for current leader
+    house_leader = None
+    if roles_current.get("Líder"):
+        house_leader = roles_current["Líder"][0]
+
+    leader_start_date = latest_date
+    if house_leader and roles_daily.get("daily"):
+        prev = None
+        for entry in sorted(roles_daily.get("daily", []), key=lambda x: x.get("date", "")):
+            leader_list = entry.get("roles", {}).get("Líder", [])
+            leader = leader_list[0] if leader_list else None
+            if leader != prev and leader == house_leader:
+                leader_start_date = entry.get("date", leader_start_date)
+            prev = leader
+
+    first_seen = {p["name"]: p.get("first_seen") for p in participants_index.get("participants", []) if p.get("name")}
+    vip_group = {p.get("name") for p in latest["participants"]
+                 if (p.get("characteristics", {}).get("group") or "").lower() == "vip"}
+    vip_recipients = set(vip_group)
+    if house_leader:
+        vip_recipients.discard(house_leader)
+    if leader_start_date:
+        vip_recipients = {n for n in vip_recipients if first_seen.get(n, leader_start_date) <= leader_start_date}
     active_paredao = next((p for p in paredoes.get("paredoes", []) if p.get("status") == "em_andamento"), None)
     current_cycle_week = active_paredao.get("semana") if active_paredao else current_week
 
@@ -290,8 +363,8 @@ def build_index_data():
                         if not p.get("characteristics", {}).get("eliminated")]
         sentiment_today = {p["name"]: calc_sentiment(p) for p in today_active}
         if sentiment_today:
-            leader_name = max(sentiment_today, key=sentiment_today.get)
-            leader_score = sentiment_today[leader_name]
+            sentiment_leader = max(sentiment_today, key=sentiment_today.get)
+            leader_score = sentiment_today[sentiment_leader]
             streak = 1
             for i in range(len(daily_snapshots) - 2, -1, -1):
                 snap = daily_snapshots[i]
@@ -300,12 +373,12 @@ def build_index_data():
                 if not snap_active:
                     break
                 snap_sent = {p["name"]: calc_sentiment(p) for p in snap_active}
-                if snap_sent and max(snap_sent, key=snap_sent.get) == leader_name:
+                if snap_sent and max(snap_sent, key=snap_sent.get) == sentiment_leader:
                     streak += 1
                 else:
                     break
             streak_text = f" pelo {streak}º dia consecutivo" if streak > 1 else ""
-            highlights.append(f"🏆 **{leader_name}** lidera o [ranking](#ranking){streak_text} ({leader_score:+.1f})")
+            highlights.append(f"🏆 **{sentiment_leader}** lidera o [ranking](#ranking){streak_text} ({leader_score:+.1f})")
 
         common_pairs = set(today_mat.keys()) & set(yesterday_mat.keys())
         changes = [(pair, yesterday_mat[pair], today_mat[pair])
@@ -350,6 +423,13 @@ def build_index_data():
 
     # Alignment highlights
     alignment_rows = build_alignment(latest["participants"], sinc_data, current_week)
+    sinc_week_used = current_week
+    if not alignment_rows:
+        agg_weeks = [a.get("week") for a in sinc_data.get("aggregates", []) if a.get("scores")]
+        agg_weeks = [w for w in agg_weeks if isinstance(w, int)]
+        if agg_weeks:
+            sinc_week_used = max(agg_weeks)
+            alignment_rows = build_alignment(latest["participants"], sinc_data, sinc_week_used) or []
     if alignment_rows:
         df_sorted = sorted(alignment_rows, key=lambda x: x["alignment"], reverse=True)
         top_aligned = df_sorted[:3]
@@ -660,10 +740,15 @@ def build_index_data():
             mod = SINC_EDGE_WEIGHTS.get(etype, 0.0)
         sinc_edge_mod[(actor, target)] += mod
 
+    vip_edge_mod = defaultdict(float)
+    if house_leader:
+        for vip_name in vip_recipients:
+            vip_edge_mod[(house_leader, vip_name)] += VIP_EDGE_WEIGHT
+
     def pair_sentiment(giver, receiver):
         label = latest_matrix.get((giver, receiver), "")
         base = SENTIMENT_WEIGHTS.get(label, 0)
-        return base + sinc_edge_mod.get((giver, receiver), 0)
+        return base + sinc_edge_mod.get((giver, receiver), 0) + vip_edge_mod.get((giver, receiver), 0)
 
     def event_weight(ev):
         ev_week = ev.get("week") or current_week
@@ -874,6 +959,12 @@ def build_index_data():
                 "revealed": voter in revealed_votes.get(name, set()),
             })
 
+        plant_info = plant_scores.get(name)
+        if plant_info and plant_week:
+            plant_info = dict(plant_info)
+            plant_info["week"] = plant_week.get("week")
+            plant_info["date_range"] = plant_week.get("date_range", {})
+
         profiles.append({
             "name": name,
             "member_of": p.get("characteristics", {}).get("memberOf", "?"),
@@ -911,10 +1002,14 @@ def build_index_data():
                 "count": len(sinc_contra_targets),
                 "targets": sorted(sinc_contra_targets),
             },
+            "vip_days": vip_days.get(name, 0),
+            "xepa_days": xepa_days.get(name, 0),
+            "days_total": total_days.get(name, 0),
             "scores": {
                 "external": external_score,
                 "animosity": animosity_score,
             },
+            "plant_index": plant_info,
         })
 
     paredao_status = {
@@ -971,7 +1066,13 @@ def build_index_data():
         },
         "sincerao": {
             "alignment": alignment_rows or [],
-            "week": current_week,
+            "week": sinc_week_used,
+        },
+        "vip": {
+            "leader": house_leader,
+            "leader_start": leader_start_date,
+            "recipients": sorted(vip_recipients),
+            "weight": VIP_EDGE_WEIGHT,
         },
         "profiles": profiles,
     }
