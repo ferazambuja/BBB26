@@ -5,26 +5,20 @@ Checks for discrepancies across all snapshot files.
 """
 
 import json
-import os
 from collections import defaultdict
 from pathlib import Path
 
-SNAPSHOTS_DIR = Path("/Users/fernandovoltolinideazambuja/Documents/GitHub/BBB26/data/snapshots")
+from data_utils import load_snapshot as _load_snapshot, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE
+
+SNAPSHOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "snapshots"
+
 
 def load_snapshot(filepath):
-    """Load a snapshot, handling old/new/synthetic formats."""
-    with open(filepath) as f:
-        data = json.load(f)
-    
-    metadata = None
-    if isinstance(data, dict):
-        metadata = data.get("_metadata", {})
-        participants = data.get("participants", [])
-    elif isinstance(data, list):
-        participants = data
-    else:
-        participants = []
-    
+    """Load a snapshot, returning (metadata, participants).
+
+    Wraps data_utils.load_snapshot which returns (participants, metadata).
+    """
+    participants, metadata = _load_snapshot(filepath)
     return metadata, participants
 
 def get_sorted_snapshots():
@@ -254,10 +248,6 @@ def main():
     print(f"\n{'='*80}")
     print("6. HEART vs NEGATIVE REACTION BALANCE (synthetic vs real)")
     print(f"{'='*80}")
-    
-    POSITIVE = ['Coração']
-    MILD_NEGATIVE = ['Planta', 'Mala', 'Biscoito']
-    STRONG_NEGATIVE = ['Cobra', 'Alvo', 'Vômito', 'Mentiroso', 'Coração partido']
     
     for snap in all_data:
         pos = 0

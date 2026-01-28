@@ -26,7 +26,7 @@ General information about the TV show lives in a dedicated file:
 # Fetch new data (saves only if data changed)
 python scripts/fetch_data.py
 
-# Build derived data files (auto events, roles, participant index, index_data)
+# Build derived data files (auto events, roles, participant index, index_data, cartola)
 python scripts/build_derived_data.py
 # Also generates docs/MANUAL_EVENTS_AUDIT.md and data/derived/manual_events_audit.json automatically (hard-fail on issues).
 
@@ -47,7 +47,7 @@ quarto preview
 
 - `scripts/fetch_data.py` — **daily** (or before key events); updates snapshots + derived data.
 - `scripts/build_derived_data.py` — **after any manual edits** in `data/manual_events.json` or `data/paredoes.json`.
-  - Também gera `data/derived/index_data.json` (tabelas leves para `index.qmd`).
+  - Também gera `data/derived/index_data.json` (tabelas leves para `index.qmd`) e `data/derived/cartola_data.json` (pontuação Cartola).
 - `scripts/update_programa_doc.py` — **after weekly manual updates** (keeps `docs/PROGRAMA_BBB26.md` table in sync).
 - `scripts/audit_snapshots.py` / `scripts/analyze_snapshots.py` / `scripts/compare_sameday.py` — **one‑off audits**.
 
@@ -65,9 +65,10 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 **What lives in `data_utils.py`:**
 - Reaction constants: `REACTION_EMOJI`, `REACTION_SLUG_TO_LABEL`, `SENTIMENT_WEIGHTS`, `POSITIVE`, `MILD_NEGATIVE`, `STRONG_NEGATIVE`
 - Visual constants: `GROUP_COLORS`, `POWER_EVENT_EMOJI`, `POWER_EVENT_LABELS`
+- Cartola constants: `CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI`
 - Theme colors: `PLOT_BG`, `PAPER_BG`, `GRID_COLOR`, `TEXT_COLOR`, `BBB_COLORWAY`
 - Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
-- Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `parse_roles()`, `build_reaction_matrix()`
+- Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
 - Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
 - Audit: `require_clean_manual_events()`
 
@@ -99,16 +100,23 @@ setup_bbb_dark_theme()
 
 | Location | Purpose | Examples |
 |----------|---------|---------|
-| `scripts/data_utils.py` | Shared constants, functions, theme | `calc_sentiment()`, `REACTION_EMOJI`, `setup_bbb_dark_theme()` |
-| `scripts/build_derived_data.py` | Heavy computation → JSON | roles_daily, auto_events, daily_metrics, plant_index |
+| `scripts/data_utils.py` | Shared constants, functions, theme | `calc_sentiment()`, `REACTION_EMOJI`, `CARTOLA_POINTS`, `get_week_number()`, `setup_bbb_dark_theme()` |
+| `scripts/build_derived_data.py` | Heavy computation → JSON | roles_daily, auto_events, daily_metrics, plant_index, cartola_data |
 | `scripts/build_index_data.py` | Precompute index page data → JSON | profiles, rankings, highlights, cross-table |
 | `*.qmd` pages | Load JSON + render visualizations | Charts, tables, HTML output |
+
+**New derived manifest (date selection):**
+- `data/derived/snapshots_index.json` contém todas as datas disponíveis, label amigável e metadados mínimos (participantes, semana).
 
 **Anti-patterns to avoid:**
 - Defining `calc_sentiment()` locally in a QMD file (import from `data_utils`)
 - Copy-pasting `REACTION_EMOJI`, `GROUP_COLORS`, `POSITIVE/MILD_NEGATIVE/STRONG_NEGATIVE` (import from `data_utils`)
 - Defining the Plotly `bbb_dark` template inline (call `setup_bbb_dark_theme()`)
 - Computing in QMD what could be precomputed in a script (use `data/derived/`)
+
+**Documented exception (temporary):**
+- `planta.qmd` ainda monta algumas listas por participante (ex.: eventos por pessoa e edges do Sincerão) **para facilitar a leitura**.  
+  Se essas listas começarem a ser reutilizadas em outras páginas, migrar para `build_derived_data.py` e salvar em `data/derived/`.
 
 ## Known Issues
 
@@ -137,6 +145,11 @@ When rendering `trajetoria.qmd`, Pandoc reports warnings about unclosed divs:
 - **Returns**: Complete state snapshot — NOT cumulative, NOT additive
 - **No timestamp**: API provides no `Last-Modified` header or update timestamp
 - **Update frequency**: Data changes daily at unpredictable times, with intraday changes possible
+
+### Date Selection (static)
+- `data/derived/snapshots_index.json` is the manifest used by the Date View.
+- `datas.qmd` is the dedicated page to explore Queridômetro by date (keeps `index.qmd` lightweight).
+- `_quarto.yml` ships `data/derived/*.json` to `_site/` so browser `fetch()` works on GitHub Pages.
 
 ### Critical: Reactions Are Reassigned Daily
 
@@ -181,8 +194,8 @@ This means **every snapshot is a unique complete game state** and must be kept.
 - `data/votalhada/polls.json` — **poll aggregates** (manual capture from Votalhada).
 
 **Important fragmentation (current state):**
-- `cartola.qmd` computes roles and weekly points **inside the page** (not persisted).
 - Multiple pages duplicate snapshot-loading and role-parsing logic.
+- ~~`cartola.qmd` computes roles and weekly points inside the page~~ — **resolved**: Cartola computation moved to `build_derived_data.py` → `data/derived/cartola_data.json`. The QMD now loads precomputed data.
 
 ### Data Sources Map (canonical)
 Use this as the **single reference** for what data exists and how it can be reused across pages.
@@ -206,6 +219,7 @@ Use this as the **single reference** for what data exists and how it can be reus
 - `data/derived/sincerao_edges.json` — Sincerão aggregates + optional edges (derived from manual events).
 - `data/derived/index_data.json` — Index tables (highlights, watchlist, rankings, profiles).
 - `data/derived/plant_index.json` — Planta Index per week + rolling averages (derived from snapshots + events).
+- `data/derived/cartola_data.json` — Cartola BBB points (leaderboard, weekly breakdown, stats, seen/current roles).
 - `docs/MANUAL_EVENTS_AUDIT.md` — Manual events audit report (auto‑generated; render hard‑fails if issues).
 - `data/derived/manual_events_audit.json` — Audit status used by QMD pages to block render on inconsistencies.
 
@@ -358,7 +372,7 @@ These are **safe cross‑page ideas** using only existing data:
 8. **Coesão por grupo (Pipoca/Veterano/Camarote)**  
    Group‑level affinity + volatility over time (from snapshots + group labels).
 
-**Rule of thumb:** no Cartola points outside `cartola.qmd`; they should never drive non‑Cartola insights.
+**Rule of thumb:** Cartola points are precomputed in `data/derived/cartola_data.json` (built by `build_derived_data.py`). `cartola.qmd` loads this JSON for rendering only. Cartola points should never drive non‑Cartola insights.
 
 ### Manual Events Data (`data/manual_events.json`)
 
@@ -369,7 +383,7 @@ Events **not available from the API** are tracked manually in this JSON file.
 - VIP membership — detected via `characteristics.group`
 - Paredão — detected via `characteristics.roles`
 
-The Cartola page (`cartola.qmd`) auto-detects role transitions by comparing consecutive snapshots.
+Cartola role transitions are auto-detected from consecutive snapshots in `build_derived_data.py` → `build_cartola_data()` and persisted to `data/derived/cartola_data.json`. The QMD page loads precomputed data.
 
 **Structure** (manual-only data):
 - `participants` — Exit status for people who left (desistente, eliminada, desclassificado)
@@ -651,6 +665,12 @@ Higher = more aligned; lower = contradiction.
 - `data/derived/validation.json` — warnings for manual data mismatches.
 - `scripts/build_derived_data.py` builds all derived files.
 - `scripts/fetch_data.py` calls derived builder by default.
+
+**Implemented (2026-01-28)**:
+- `data/derived/cartola_data.json` — Cartola BBB points (leaderboard, weekly breakdown, stats, seen/current roles). Computed by `build_cartola_data()` in `build_derived_data.py`.
+- `cartola.qmd` now loads precomputed JSON instead of computing ~430 lines inline.
+- Cartola constants (`CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI`) and `get_week_number()` moved to `data_utils.py`.
+- `scripts/analyze_snapshots.py` fixed: uses relative path, imports from `data_utils`, fixed `Coração partido` misclassification bug (was `STRONG_NEGATIVE`, now correctly `MILD_NEGATIVE`).
 
 **Adding source URLs (`fontes`):**
 

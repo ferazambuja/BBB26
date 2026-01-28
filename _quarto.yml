@@ -1,8 +1,11 @@
 project:
   type: website
   output-dir: _site
+  resources:
+    - data/derived/*.json
   render:
     - index.qmd
+    - datas.qmd
     - mudancas.qmd
     - trajetoria.qmd
     - paredao.qmd
@@ -19,6 +22,8 @@ website:
         text: "📊 Painel"
       - href: mudancas.qmd
         text: "📅 O Que Mudou"
+      - href: datas.qmd
+        text: "🗓️ Datas"
       - href: trajetoria.qmd
         text: "📈 Trajetória"
       - href: paredao.qmd

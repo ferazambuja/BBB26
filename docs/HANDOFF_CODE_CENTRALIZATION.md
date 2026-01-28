@@ -18,14 +18,18 @@ The codebase had a severe duplication problem: **7 QMD files and 3 Python script
    - 2 scripts: `build_index_data.py`, `build_derived_data.py`
 
 4. **Updated `CLAUDE.md`** with a "Code Architecture Rules" section documenting the pattern.
+5. **Added date selector support**:
+   - New derived manifest: `data/derived/snapshots_index.json` (list of available dates + metadata).
+   - New page: `datas.qmd` (Date View) for browsing Queridômetro by day.
+   - `_quarto.yml` now includes `resources: data/derived/*.json` to ship JSON to `_site/`.
 
 ### Files changed
 
 | File | Change |
 |------|--------|
-| `scripts/data_utils.py` | Added all shared constants, `calc_sentiment()`, `setup_bbb_dark_theme()` |
+| `scripts/data_utils.py` | Added all shared constants, `calc_sentiment()`, `setup_bbb_dark_theme()`, `get_week_number()`, `CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI` |
 | `scripts/build_index_data.py` | Removed local copies of `load_snapshot`, `parse_roles`, `build_reaction_matrix`, `calc_sentiment`, all constants; now imports from `data_utils` |
-| `scripts/build_derived_data.py` | Removed local `SENTIMENT_WEIGHTS` and `calc_sentiment`; now imports from `data_utils` |
+| `scripts/build_derived_data.py` | Removed local `SENTIMENT_WEIGHTS`, `calc_sentiment`, `get_week_number`; added `build_cartola_data()` → `data/derived/cartola_data.json`; now imports from `data_utils` |
 | `scripts/compute_metrics.py` | **Deleted** (dead code) |
 | `data/daily_metrics.json` | **Deleted** (root-level dead file; `data/derived/daily_metrics.json` is the real one) |
 | `.github/workflows/daily-update.yml` | Removed `compute_metrics.py` step |
@@ -35,9 +39,13 @@ The codebase had a severe duplication problem: **7 QMD files and 3 Python script
 | `paredao.qmd` | Same pattern + removed local `calc_sentiment` |
 | `paredoes.qmd` | Same pattern + removed local `calc_sentiment` |
 | `clusters.qmd` | Same pattern (no local `calc_sentiment` to remove) |
-| `cartola.qmd` | Replaced custom theme (rgba-based) with shared theme |
+| `cartola.qmd` | Replaced custom theme (rgba-based) with shared theme; later: deleted ~430 lines of computation, now loads `data/derived/cartola_data.json` |
+| `scripts/analyze_snapshots.py` | Fixed hardcoded path → relative; imports `load_snapshot`, `POSITIVE`, `MILD_NEGATIVE`, `STRONG_NEGATIVE` from `data_utils`; fixed `Coração partido` misclassification bug |
 | `planta.qmd` | Replaced local `REACTION_EMOJI` with import |
 | `CLAUDE.md` | Added "Code Architecture Rules" section |
+| `_quarto.yml` | Added `resources: data/derived/*.json` so derived JSON is available on GitHub Pages |
+| `scripts/build_derived_data.py` | Generates `data/derived/snapshots_index.json` (manifest for date selection) |
+| `datas.qmd` | New "Date View" page with selector + daily metrics |
 
 ---
 
@@ -71,8 +79,8 @@ scripts/build_index_data.py    ──>  data/derived/index_data.json
 
 | Location | Purpose | Examples |
 |----------|---------|---------|
-| `scripts/data_utils.py` | Shared constants, small functions, theme | `REACTION_EMOJI`, `calc_sentiment()`, `setup_bbb_dark_theme()` |
-| `scripts/build_derived_data.py` | Heavy computation -> JSON | roles_daily, auto_events, daily_metrics, plant_index |
+| `scripts/data_utils.py` | Shared constants, small functions, theme | `REACTION_EMOJI`, `CARTOLA_POINTS`, `calc_sentiment()`, `get_week_number()`, `setup_bbb_dark_theme()` |
+| `scripts/build_derived_data.py` | Heavy computation -> JSON | roles_daily, auto_events, daily_metrics, plant_index, cartola_data |
 | `scripts/build_index_data.py` | Precompute index tables -> JSON | profiles, rankings, highlights, cross-table |
 | `*.qmd` pages | Load JSON + render | Charts, tables, HTML cards |
 
@@ -124,6 +132,15 @@ Pages that load from `data/derived/index_data.json` (like `index.qmd`) don't nee
 | Load all snapshots in a QMD to compute a ranking | Precompute in `build_index_data.py`, load JSON in QMD |
 | Add a new constant in one QMD file | Add to `data_utils.py`, import everywhere |
 
+### Date selection (new)
+
+**Why**: static hosting (GitHub Pages) cannot run server code.  
+**How**: use a precomputed manifest + daily metrics JSON.
+
+- `data/derived/snapshots_index.json`: list of available dates, file names, and metadata.
+- `data/derived/daily_metrics.json`: per-day metrics used by the selector.
+- `datas.qmd`: dedicated page to browse dates (keeps `index.qmd` fast).
+
 ### Adding new shared items
 
 1. Add the constant/function to `scripts/data_utils.py`
@@ -153,7 +170,7 @@ quarto render planta.qmd               # OK
 
 ## Remaining opportunities
 
-These were identified in the audit but not implemented yet:
+~~All items below have been resolved (2026-01-28).~~
 
-- **Priority 4**: Extract Cartola computation from `cartola.qmd` into `build_derived_data.py` -> `data/derived/cartola_data.json`. Currently ~400 lines of role tracking and point calculation run inside the QMD page on every render.
-- **`analyze_snapshots.py`**: Still has its own `POSITIVE`/`MILD_NEGATIVE`/`STRONG_NEGATIVE` definitions. It's a one-off audit script so lower priority, but could import from `data_utils.py`.
+- ~~**Priority 4**: Extract Cartola computation from `cartola.qmd` into `build_derived_data.py` -> `data/derived/cartola_data.json`.~~ **Done.** `build_cartola_data()` added to `build_derived_data.py`. Cartola constants (`CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI`) and `get_week_number()` moved to `data_utils.py`. `cartola.qmd` reduced from ~1180 lines to ~480 lines (loads precomputed JSON, renders only).
+- ~~**`analyze_snapshots.py`**: Still has its own `POSITIVE`/`MILD_NEGATIVE`/`STRONG_NEGATIVE` definitions.~~ **Done.** Now imports from `data_utils.py`. Also fixed hardcoded absolute path (→ relative) and a bug where `Coração partido` was incorrectly classified as `STRONG_NEGATIVE` (should be `MILD_NEGATIVE`).

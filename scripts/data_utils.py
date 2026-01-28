@@ -12,6 +12,7 @@ This module is the SINGLE SOURCE OF TRUTH for:
 """
 
 import json
+from datetime import datetime
 from pathlib import Path
 
 
@@ -62,6 +63,67 @@ POWER_EVENT_LABELS = {
     'lider': 'Líder', 'anjo': 'Anjo', 'monstro': 'Monstro',
     'imunidade': 'Imunidade', 'indicacao': 'Indicação', 'contragolpe': 'Contragolpe',
     'voto_duplo': 'Voto 2x', 'voto_anulado': 'Voto anulado', 'perdeu_voto': 'Perdeu voto',
+}
+
+# ══════════════════════════════════════════════════════════════
+# Cartola BBB Constants
+# ══════════════════════════════════════════════════════════════
+
+CARTOLA_POINTS = {
+    'lider': 80,
+    'anjo': 45,
+    'quarto_secreto': 40,
+    'imunizado': 30,
+    'atendeu_big_fone': 30,
+    'salvo_paredao': 25,
+    'nao_eliminado_paredao': 20,
+    'nao_emparedado': 10,
+    'vip': 5,
+    'nao_recebeu_votos': 5,
+    'monstro_retirado_vip': -5,
+    'monstro': -10,
+    'emparedado': -15,
+    'eliminado': -20,
+    'desclassificado': -25,
+    'desistente': -30,
+}
+
+POINTS_LABELS = {
+    'lider': 'Líder',
+    'anjo': 'Anjo',
+    'quarto_secreto': 'Quarto Secreto',
+    'imunizado': 'Imunizado',
+    'atendeu_big_fone': 'Big Fone',
+    'salvo_paredao': 'Salvo do Paredão',
+    'nao_eliminado_paredao': 'Sobreviveu ao Paredão',
+    'nao_emparedado': 'Não Emparedado',
+    'vip': 'VIP',
+    'nao_recebeu_votos': 'Sem Votos da Casa',
+    'monstro_retirado_vip': 'Monstro (saiu do VIP)',
+    'monstro': 'Monstro',
+    'emparedado': 'Emparedado',
+    'eliminado': 'Eliminado',
+    'desclassificado': 'Desclassificado',
+    'desistente': 'Desistente',
+}
+
+POINTS_EMOJI = {
+    'lider': '👑',
+    'anjo': '😇',
+    'quarto_secreto': '🚪',
+    'imunizado': '🛡️',
+    'atendeu_big_fone': '📞',
+    'salvo_paredao': '🎉',
+    'nao_eliminado_paredao': '✅',
+    'nao_emparedado': '🙏',
+    'vip': '⭐',
+    'nao_recebeu_votos': '🕊️',
+    'monstro_retirado_vip': '👹',
+    'monstro': '👹',
+    'emparedado': '🗳️',
+    'eliminado': '❌',
+    'desclassificado': '🚫',
+    'desistente': '🏳️',
 }
 
 
@@ -117,6 +179,17 @@ def setup_bbb_dark_theme():
 # ══════════════════════════════════════════════════════════════
 # Shared Functions
 # ══════════════════════════════════════════════════════════════
+
+
+def get_week_number(date_str):
+    """Calculate BBB26 week number from date string (YYYY-MM-DD).
+
+    Week 1 starts on 2026-01-13 (BBB26 premiere).
+    """
+    start = datetime(2026, 1, 13)
+    date = datetime.strptime(date_str, "%Y-%m-%d")
+    delta = (date - start).days
+    return max(1, (delta // 7) + 1)
 
 
 def calc_sentiment(participant):

@@ -70,6 +70,7 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-26 | Centralized snapshot loaders in `scripts/data_utils.py` and updated QMDs | ✅ Done |
 | 2026-01-26 | Added `daily_metrics.json` derived output for faster timelines | ✅ Done |
 | 2026-01-28 | Added `index_data.json` derived output for `index.qmd` tables | ✅ Done |
+| 2026-01-28 | Added `snapshots_index.json` manifest + `datas.qmd` Date View | ✅ Done |
 | | Calibrar semanalmente o índice de animosidade (power_events + votos + queridômetro) | ⏳ Ongoing |
 | | Fill manual_events.json with past events + source URLs | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |
@@ -79,8 +80,6 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 ### Automatic syncs (CI / GitHub Actions)
 - **API snapshots**: `python scripts/fetch_data.py`  
   Runs on cron (4×/day). Saves only if changed. Rebuilds `data/derived/*`.
-- **Daily metrics (legacy)**: `python scripts/compute_metrics.py`  
-  Runs after fetch in CI; outputs `data/daily_metrics.json` (legacy).
 - **Render site**: `quarto render`  
   Runs after data update in CI.
 
@@ -98,7 +97,6 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | `scripts/fetch_data.py` | Daily or before key events | `data/snapshots/*`, `data/latest.json`, `data/derived/*` |
 | `scripts/build_derived_data.py` | After manual edits | `data/derived/*` |
 | `scripts/update_programa_doc.py` | After updating manual events | `docs/PROGRAMA_BBB26.md` (auto table) |
-| `scripts/compute_metrics.py` | Legacy CI step | `data/daily_metrics.json` |
 | `scripts/audit_snapshots.py` | One-off audit | console report |
 | `scripts/analyze_snapshots.py` | Deep integrity check | console report |
 | `scripts/compare_sameday.py` | Intraday diff analysis | console report |

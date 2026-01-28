@@ -1,0 +1,107 @@
+---
+title: "🗓️ Datas"
+subtitle: "Explorar o Queridômetro por dia"
+---
+
+::: {.callout-note title="Selecionar data (beta)" appearance="simple"}
+Use esta página para navegar pelos dados diários do Queridômetro. Em breve, outras visões serão adicionadas (ex.: tabela cruzada, ranking completo e destaques do dia).
+:::
+
+```{=html}
+<div id="date-view" style="margin: 1rem 0;">
+  <div style="display:flex; flex-wrap:wrap; gap:0.6rem; align-items:center;">
+    <label for="dateSelect" style="font-weight:600;">Data:</label>
+    <select id="dateSelect" style="background:#222; color:#fff; border:1px solid #444; border-radius:6px; padding:0.35rem 0.5rem;"></select>
+    <span id="dateLabel" class="text-muted"></span>
+  </div>
+  <div id="dateSummary" class="text-muted" style="margin-top:0.5rem;">Carregando datas…</div>
+</div>
+
+<div id="dateTable" style="margin-top: 1rem;">
+  <h3>Ranking de sentimento (Queridômetro)</h3>
+  <table class="table table-dark table-sm" style="margin-top:0.5rem;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Participante</th>
+        <th>Sentimento</th>
+      </tr>
+    </thead>
+    <tbody id="sentimentBody"></tbody>
+  </table>
+</div>
+
+<script>
+(async function() {
+  const select = document.getElementById('dateSelect');
+  const labelEl = document.getElementById('dateLabel');
+  const summaryEl = document.getElementById('dateSummary');
+  const tbody = document.getElementById('sentimentBody');
+  if (!select || !summaryEl || !tbody) return;
+
+  try {
+    const [manifestRes, metricsRes] = await Promise.all([
+      fetch('data/derived/snapshots_index.json'),
+      fetch('data/derived/daily_metrics.json')
+    ]);
+    if (!manifestRes.ok || !metricsRes.ok) {
+      summaryEl.textContent = 'Falha ao carregar dados de datas.';
+      return;
+    }
+
+    const manifest = await manifestRes.json();
+    const metricsPayload = await metricsRes.json();
+    const daily = (metricsPayload && metricsPayload.daily) ? metricsPayload.daily : [];
+    const metricsByDate = {};
+    daily.forEach(d => { if (d.date) metricsByDate[d.date] = d; });
+
+    const snapshots = manifest.snapshots || [];
+    snapshots.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.date;
+      opt.textContent = s.label || s.date;
+      select.appendChild(opt);
+    });
+
+    const latest = manifest.latest || (snapshots.length ? snapshots[snapshots.length - 1].date : '');
+    if (latest) select.value = latest;
+
+    function render(date) {
+      const snap = snapshots.find(s => s.date === date);
+      const m = metricsByDate[date];
+      labelEl.textContent = snap ? `• ${snap.label || snap.date}` : '';
+
+      if (!m) {
+        summaryEl.textContent = 'Sem métricas derivadas para esta data.';
+        tbody.innerHTML = '';
+        return;
+      }
+
+      const sentiments = m.sentiment || {};
+      const rows = Object.entries(sentiments)
+        .map(([name, score]) => ({ name, score }))
+        .sort((a, b) => b.score - a.score);
+
+      const avgSent = rows.length ? (rows.reduce((acc, r) => acc + r.score, 0) / rows.length) : 0;
+      summaryEl.textContent = `Participantes: ${m.participant_count} · Reações: ${m.total_reactions} · Sentimento médio: ${avgSent.toFixed(1)}`;
+
+      tbody.innerHTML = '';
+      rows.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${r.name}</td>
+          <td>${r.score.toFixed(1)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    render(select.value);
+    select.addEventListener('change', (e) => render(e.target.value));
+  } catch (err) {
+    summaryEl.textContent = 'Falha ao carregar dados de datas.';
+  }
+})();
+</script>
+```

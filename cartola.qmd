@@ -18,16 +18,14 @@ import json
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 from pathlib import Path
 from collections import defaultdict
-from glob import glob
-from datetime import datetime
 import sys
 
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme, GROUP_COLORS,
+    CARTOLA_POINTS, POINTS_LABELS, POINTS_EMOJI, get_week_number,
 )
 
 require_clean_manual_events()
@@ -41,84 +39,52 @@ def contrast_color(hex_color):
     luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
     return '#000' if luminance > 0.6 else '#fff'
 
-# Cartola BBB Points System
-CARTOLA_POINTS = {
-    'lider': 80,
-    'anjo': 45,
-    'quarto_secreto': 40,
-    'imunizado': 30,
-    'atendeu_big_fone': 30,
-    'salvo_paredao': 25,
-    'nao_eliminado_paredao': 20,
-    'nao_emparedado': 10,
-    'vip': 5,
-    'nao_recebeu_votos': 5,
-    'monstro_retirado_vip': -5,
-    'monstro': -10,
-    'emparedado': -15,
-    'eliminado': -20,
-    'desclassificado': -25,
-    'desistente': -30,
-}
+# Load precomputed Cartola data
+with open("data/derived/cartola_data.json") as f:
+    cartola = json.load(f)
 
-POINTS_LABELS = {
-    'lider': 'Líder',
-    'anjo': 'Anjo',
-    'quarto_secreto': 'Quarto Secreto',
-    'imunizado': 'Imunizado',
-    'atendeu_big_fone': 'Big Fone',
-    'salvo_paredao': 'Salvo do Paredão',
-    'nao_eliminado_paredao': 'Sobreviveu ao Paredão',
-    'nao_emparedado': 'Não Emparedado',
-    'vip': 'VIP',
-    'nao_recebeu_votos': 'Sem Votos da Casa',
-    'monstro_retirado_vip': 'Monstro (saiu do VIP)',
-    'monstro': 'Monstro',
-    'emparedado': 'Emparedado',
-    'eliminado': 'Eliminado',
-    'desclassificado': 'Desclassificado',
-    'desistente': 'Desistente',
-}
+leaderboard = cartola["leaderboard"]
+stats = cartola["stats"]
+n_weeks = cartola["_metadata"]["n_weeks"]
+weekly_points = cartola["weekly_points"]
 
-POINTS_EMOJI = {
-    'lider': '👑',
-    'anjo': '😇',
-    'quarto_secreto': '🚪',
-    'imunizado': '🛡️',
-    'atendeu_big_fone': '📞',
-    'salvo_paredao': '🎉',
-    'nao_eliminado_paredao': '✅',
-    'nao_emparedado': '🙏',
-    'vip': '⭐',
-    'nao_recebeu_votos': '🕊️',
-    'monstro_retirado_vip': '👹',
-    'monstro': '👹',
-    'emparedado': '🗳️',
-    'eliminado': '❌',
-    'desclassificado': '🚫',
-    'desistente': '🏳️',
-}
+n_with_points = stats["n_with_points"]
+n_active = stats["n_active"]
+total_positive = stats["total_positive"]
+total_negative = stats["total_negative"]
+seen_roles = stats["seen_roles"]
+current_roles = stats["current_roles"]
+leader = leaderboard[0] if leaderboard else None
 
-def parse_roles(roles_list):
-    """Extract role labels from API format."""
-    labels = []
-    for r in roles_list:
-        if isinstance(r, dict):
-            labels.append(r.get('label', ''))
-        else:
-            labels.append(str(r))
-    return [l for l in labels if l]
-```
+# Build participant info / avatars / colors from leaderboard
+PARTICIPANT_INFO = {}
+AVATARS = {}
+for entry in leaderboard:
+    name = entry['name']
+    PARTICIPANT_INFO[name] = {
+        'grupo': entry['grupo'],
+        'avatar': entry['avatar'],
+        'active': entry['active'],
+    }
+    if entry['avatar']:
+        AVATARS[name] = entry['avatar']
 
-```{python}
-#| label: load-data
-#| include: false
+all_participants = sorted(PARTICIPANT_INFO.keys())
+palette = (
+    px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+    px.colors.qualitative.Set2 + px.colors.qualitative.Bold
+)
+participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Load all snapshots and build participant info
-# ══════════════════════════════════════════════════════════════════════════════
+# Reconstruct all_points from weekly_points (for evolution chart + weekly tabs)
+all_points = defaultdict(lambda: defaultdict(list))
+for week_str, participants in weekly_points.items():
+    week = int(week_str)
+    for participant, events in participants.items():
+        for evt_data in events:
+            all_points[participant][week].append(tuple(evt_data))
 
-# Load manual events
+# Load manual events (for weekly notes / Big Fone display)
 manual_events_path = Path('data/manual_events.json')
 if manual_events_path.exists():
     with open(manual_events_path) as f:
@@ -126,541 +92,6 @@ if manual_events_path.exists():
 else:
     manual_events = {'participants': {}, 'weekly_events': [], 'special_events': [], 'power_events': [], 'cartola_points_log': []}
 
-# Load derived participants index (if available)
-participants_index = []
-participants_index_path = Path('data/derived/participants_index.json')
-if participants_index_path.exists():
-    with open(participants_index_path) as f:
-        participants_index = json.load(f).get('participants', [])
-
-# Load paredões data (formation, resultados, bate-volta)
-paredoes_path = Path('data/paredoes.json')
-if paredoes_path.exists():
-    with open(paredoes_path) as f:
-        paredoes_data = json.load(f)
-else:
-    paredoes_data = {'paredoes': []}
-
-# Load all snapshots
-snapshot_files = sorted(glob('data/snapshots/*.json'))
-snapshots = []
-for sf in snapshot_files:
-    with open(sf) as f:
-        snap_data = json.load(f)
-    # Handle both old format (list) and new format (dict with 'participants' key)
-    if isinstance(snap_data, list):
-        participants = snap_data
-        metadata = {}
-    else:
-        participants = snap_data.get('participants', [])
-        metadata = snap_data.get('_metadata', {})
-
-    # Extract date from filename
-    fname = Path(sf).stem  # e.g., "2026-01-25_12-00-00"
-    date_str = fname.split('_')[0]  # "2026-01-25"
-
-    snapshots.append({
-        'file': sf,
-        'date': date_str,
-        'participants': participants,
-        'metadata': metadata
-    })
-
-# Get one snapshot per day (last of each day)
-daily_snapshots = {}
-for snap in snapshots:
-    daily_snapshots[snap['date']] = snap
-daily_snapshots = [daily_snapshots[d] for d in sorted(daily_snapshots.keys())]
-
-# Build participant info (prefer derived index if available)
-PARTICIPANT_INFO = {}
-AVATARS = {}
-
-if participants_index:
-    for rec in participants_index:
-        name = rec.get('name', '').strip()
-        if not name:
-            continue
-        avatar = rec.get('avatar', '')
-        PARTICIPANT_INFO[name] = {
-            'grupo': rec.get('grupo', 'Pipoca'),
-            'avatar': avatar,
-            'active': rec.get('active', True)
-        }
-        if avatar:
-            AVATARS[name] = avatar
-else:
-    for snap in snapshots:
-        for p in snap['participants']:
-            name = p['name'].strip()
-            avatar = p.get('avatar', '')  # Avatar is directly on the participant object
-            if name not in PARTICIPANT_INFO:
-                PARTICIPANT_INFO[name] = {
-                    'grupo': p.get('characteristics', {}).get('memberOf', 'Pipoca'),
-                    'avatar': avatar,
-                    'active': True  # Will be updated below
-                }
-            # Update avatar if missing
-            if avatar and (name not in AVATARS or not AVATARS[name]):
-                AVATARS[name] = avatar
-                PARTICIPANT_INFO[name]['avatar'] = avatar
-
-# Mark exited participants as inactive (manual override)
-for name, info in manual_events.get('participants', {}).items():
-    name = name.strip()
-    if name in PARTICIPANT_INFO:
-        PARTICIPANT_INFO[name]['active'] = False
-    else:
-        PARTICIPANT_INFO[name] = {
-            'grupo': 'Pipoca',  # Default
-            'avatar': AVATARS.get(name, ''),
-            'active': False
-        }
-
-# If derived index was not used, ensure active names are marked from latest snapshot
-if not participants_index:
-    latest_names = set()
-    if daily_snapshots:
-        for p in daily_snapshots[-1]['participants']:
-            pname = p['name'].strip()
-            latest_names.add(pname)
-            PARTICIPANT_INFO[pname]['active'] = True
-
-# Build participant colors once (prefer individual colors over group colors)
-all_participants = sorted(PARTICIPANT_INFO.keys())
-palette = (
-    px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
-    px.colors.qualitative.Set2 + px.colors.qualitative.Bold
-)
-participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
-```
-
-```{python}
-#| label: calculate-points
-#| include: false
-
-# ══════════════════════════════════════════════════════════════════════════════
-# AUTO-DETECT POINTS FROM API SNAPSHOTS
-# Detects role transitions and VIP membership automatically.
-# manual_events.json covers: Big Fone, exits, special events.
-# data/paredoes.json covers: salvo / não eliminado / não emparedado.
-# ══════════════════════════════════════════════════════════════════════════════
-
-def get_week_number(date_str):
-    """Calculate week number from date string."""
-    date = datetime.strptime(date_str, '%Y-%m-%d')
-    start = datetime(2026, 1, 13)  # BBB26 start date
-    delta = (date - start).days
-    return max(1, (delta // 7) + 1)
-
-# Helper: find daily snapshot on or before a date
-def get_snapshot_on_or_before(date_str):
-    if not daily_snapshots:
-        return None
-    chosen = None
-    for snap in daily_snapshots:
-        if snap['date'] <= date_str:
-            chosen = snap
-    return chosen or daily_snapshots[-1]
-
-# Helper: check if participant already has an event in the week
-def has_event(name, week, event_key):
-    week_events = calculated_points.get(name, {}).get(week, [])
-    return any(e[0] == event_key for e in week_events)
-
-# Helper: add points once per event per week
-def add_event_points(name, week, event_key, points, date_str):
-    if not name:
-        return
-    week_events = calculated_points[name].get(week, [])
-    if any(e[0] == event_key for e in week_events):
-        return
-    calculated_points[name][week].append((event_key, points, date_str))
-
-# Points storage
-calculated_points = defaultdict(lambda: defaultdict(list))  # {participant: {week: [(event, points, date)]}}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. AUTO-DETECT ROLES FROM API SNAPSHOTS
-# Track role transitions: when a role appears on someone NEW, that's an assignment
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Track who held each role previously
-previous_holders = {
-    'Líder': None,
-    'Anjo': None,
-    'Monstro': set(),
-    'Imune': set(),
-    'Paredão': set(),
-}
-
-# Track VIP membership per week (to award once per week)
-vip_awarded = defaultdict(set)  # {week: {names already awarded}}
-
-# Track role assignments to avoid duplicates
-role_awarded = defaultdict(lambda: defaultdict(set))  # {role: {week: {names}}}
-
-for snap in daily_snapshots:
-    date = snap['date']
-    week = get_week_number(date)
-
-    # Current state from this snapshot
-    current_holders = {
-        'Líder': None,
-        'Anjo': None,
-        'Monstro': set(),
-        'Imune': set(),
-        'Paredão': set(),
-    }
-    current_vip = set()
-
-    for p in snap['participants']:
-        name = p['name'].strip()
-        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-        group = p.get('characteristics', {}).get('group', '')
-
-        # Track current holders
-        for role in roles:
-            if role == 'Líder':
-                current_holders['Líder'] = name
-            elif role == 'Anjo':
-                current_holders['Anjo'] = name
-            elif role == 'Monstro':
-                current_holders['Monstro'].add(name)
-            elif role == 'Imune':
-                current_holders['Imune'].add(name)
-            elif role == 'Paredão':
-                current_holders['Paredão'].add(name)
-
-        # Track VIP
-        if group == 'Vip':
-            current_vip.add(name)
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Detect NEW role assignments (role changed hands)
-    # ─────────────────────────────────────────────────────────────────────────
-
-    # Líder: single holder, detect change
-    if current_holders['Líder'] and current_holders['Líder'] != previous_holders['Líder']:
-        name = current_holders['Líder']
-        if week not in role_awarded['Líder'] or name not in role_awarded['Líder'][week]:
-            calculated_points[name][week].append(('lider', CARTOLA_POINTS['lider'], date))
-            role_awarded['Líder'][week].add(name)
-
-    # Anjo: single holder, detect change
-    # Regra: quando o Anjo é autoimune, acumula com "Imunizado"
-    if current_holders['Anjo'] and current_holders['Anjo'] != previous_holders['Anjo']:
-        name = current_holders['Anjo']
-        if week not in role_awarded['Anjo'] or name not in role_awarded['Anjo'][week]:
-            calculated_points[name][week].append(('anjo', CARTOLA_POINTS['anjo'], date))
-            role_awarded['Anjo'][week].add(name)
-
-    # Monstro: can be multiple, detect NEW entries
-    new_monstros = current_holders['Monstro'] - previous_holders['Monstro']
-    for name in new_monstros:
-        if name not in role_awarded['Monstro'][week]:
-            calculated_points[name][week].append(('monstro', CARTOLA_POINTS['monstro'], date))
-            role_awarded['Monstro'][week].add(name)
-
-    # Imune: can be multiple, detect NEW entries
-    # Regra: Líder não acumula com outros itens → não pontua como imunizado
-    new_imunes = current_holders['Imune'] - previous_holders['Imune']
-    for name in new_imunes:
-        if name == current_holders['Líder'] or has_event(name, week, 'lider'):
-            continue
-        if name not in role_awarded['Imune'][week]:
-            calculated_points[name][week].append(('imunizado', CARTOLA_POINTS['imunizado'], date))
-            role_awarded['Imune'][week].add(name)
-
-    # Paredão: can be multiple, detect NEW entries
-    new_paredao = current_holders['Paredão'] - previous_holders['Paredão']
-    for name in new_paredao:
-        if name not in role_awarded['Paredão'][week]:
-            calculated_points[name][week].append(('emparedado', CARTOLA_POINTS['emparedado'], date))
-            role_awarded['Paredão'][week].add(name)
-
-    # VIP: award once per week per person
-    # Regra: Líder não acumula com VIP
-    for name in current_vip:
-        if name == current_holders['Líder'] or has_event(name, week, 'lider'):
-            continue
-        if name not in vip_awarded[week]:
-            calculated_points[name][week].append(('vip', CARTOLA_POINTS['vip'], date))
-            vip_awarded[week].add(name)
-
-    # Update previous holders for next iteration
-    previous_holders['Líder'] = current_holders['Líder']
-    previous_holders['Anjo'] = current_holders['Anjo']
-    previous_holders['Monstro'] = current_holders['Monstro'].copy()
-    previous_holders['Imune'] = current_holders['Imune'].copy()
-    previous_holders['Paredão'] = current_holders['Paredão'].copy()
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. MANUAL EVENTS (things NOT in API)
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Big Fone (API doesn't track who answered)
-for week_event in manual_events.get('weekly_events', []):
-    week = week_event.get('week', 1)
-    start_date = week_event.get('start_date', '')
-
-    big_fone = week_event.get('big_fone')
-    if big_fone and big_fone.get('atendeu'):
-        bf_date = big_fone.get('date', start_date)
-        name = big_fone['atendeu'].strip()
-        # Check if not already added
-        week_events = calculated_points[name].get(week, [])
-        if not any(e[0] == 'atendeu_big_fone' for e in week_events):
-            calculated_points[name][week].append(('atendeu_big_fone', CARTOLA_POINTS['atendeu_big_fone'], bf_date))
-
-# Participant exits (desistentes, eliminados)
-for name, info in manual_events.get('participants', {}).items():
-    name = name.strip()
-    status = info.get('status')
-    exit_date = info.get('exit_date', '')
-    week = get_week_number(exit_date) if exit_date else 1
-
-    if status == 'desistente':
-        calculated_points[name][week].append(('desistente', CARTOLA_POINTS['desistente'], exit_date))
-    elif status in ('eliminada', 'eliminado'):
-        calculated_points[name][week].append(('eliminado', CARTOLA_POINTS['eliminado'], exit_date))
-    elif status == 'desclassificado':
-        calculated_points[name][week].append(('desclassificado', CARTOLA_POINTS['desclassificado'], exit_date))
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2b. PAREDÃO-DERIVED EVENTS (salvo / não eliminado / não emparedado)
-# Uses data/paredoes.json for formation + results.
-# ─────────────────────────────────────────────────────────────────────────────
-
-for p in paredoes_data.get('paredoes', []):
-    paredao_date = p.get('data', '')
-    if not paredao_date:
-        continue
-    week = p.get('semana') or get_week_number(paredao_date)
-
-    indicados = [i.get('nome') for i in p.get('indicados_finais', []) if i.get('nome')]
-    if not indicados:
-        continue
-
-    # Salvo do paredão: venceu o Bate e Volta (escapou)
-    vencedor_bv = None
-    formacao = p.get('formacao', {})
-    if isinstance(formacao, dict):
-        bv = formacao.get('bate_volta')
-        if isinstance(bv, dict):
-            vencedor_bv = bv.get('vencedor')
-            if vencedor_bv:
-                # Regra: Imunizado por dinâmica não acumula com "Salvo do Paredão"
-                if not has_event(vencedor_bv, week, 'imunizado'):
-                    add_event_points(
-                        vencedor_bv, week, 'salvo_paredao',
-                        CARTOLA_POINTS['salvo_paredao'], paredao_date
-                    )
-
-    # Não eliminado no paredão: indicado que permaneceu
-    resultado = p.get('resultado') or {}
-    eliminado = resultado.get('eliminado')
-    if p.get('status') == 'finalizado' and eliminado:
-        for nome in indicados:
-            if nome != eliminado:
-                add_event_points(
-                    nome, week, 'nao_eliminado_paredao',
-                    CARTOLA_POINTS['nao_eliminado_paredao'], paredao_date
-                )
-
-    # Elegíveis para votação da casa (disponíveis para receber votos)
-    snap = get_snapshot_on_or_before(paredao_date)
-    if snap:
-        ativos = {pp['name'].strip() for pp in snap['participants']}
-
-        # Excluir quem não é elegível pela formação oficial
-        formacao = p.get('formacao', {}) if isinstance(p.get('formacao', {}), dict) else {}
-        lider_form = (formacao.get('lider') or '').strip() if formacao else ''
-        anjo_form = (formacao.get('anjo') or '').strip() if formacao else ''
-        imune_form = ''
-        if isinstance(formacao.get('imunizado'), dict):
-            imune_form = (formacao.get('imunizado', {}).get('quem') or '').strip()
-
-        # Imunidades adicionais vindas de dinâmicas (power_events)
-        extra_imunes = set()
-        for ev in manual_events.get('power_events', []):
-            if ev.get('type') != 'imunidade':
-                continue
-            ev_week = ev.get('week') or get_week_number(ev.get('date', paredao_date))
-            if ev_week == week and ev.get('target'):
-                extra_imunes.add(ev['target'].strip())
-
-        elegiveis = set(ativos)
-        if lider_form:
-            elegiveis.discard(lider_form)
-        if anjo_form:
-            elegiveis.discard(anjo_form)
-        if imune_form:
-            elegiveis.discard(imune_form)
-        elegiveis -= extra_imunes
-
-        # Não emparedado: elegíveis que NÃO foram para o paredão final
-        for nome in elegiveis:
-            if nome in indicados:
-                continue
-            if vencedor_bv and nome == vencedor_bv:
-                continue
-            if has_event(nome, week, 'imunizado'):
-                continue
-            add_event_points(
-                nome, week, 'nao_emparedado',
-                CARTOLA_POINTS['nao_emparedado'], paredao_date
-            )
-
-        # Não recebeu votos da casa: elegíveis com zero votos
-        votos_casa = p.get('votos_casa', {}) or {}
-        if votos_casa:
-            receberam = set(votos_casa.values())
-            for nome in elegiveis:
-                if nome in receberam:
-                    continue
-                if has_event(nome, week, 'imunizado'):
-                    continue
-                add_event_points(
-                    nome, week, 'nao_recebeu_votos',
-                    CARTOLA_POINTS['nao_recebeu_votos'], paredao_date
-                )
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2c. RULE NORMALIZATION (no accumulation with Líder)
-# Keep only Líder points for the week
-# ─────────────────────────────────────────────────────────────────────────────
-for name, weeks in calculated_points.items():
-    for week, events in weeks.items():
-        if any(e[0] == 'lider' for e in events):
-            filtered = [e for e in events if e[0] == 'lider']
-            calculated_points[name][week] = filtered
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. CURRENT STATE (for display)
-# ─────────────────────────────────────────────────────────────────────────────
-current_paredao = set()
-current_lider = None
-current_anjo = None
-current_monstro = set()
-
-if daily_snapshots:
-    latest = daily_snapshots[-1]
-    for p in latest['participants']:
-        name = p['name'].strip()
-        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-        if 'Paredão' in roles:
-            current_paredao.add(name)
-        if 'Líder' in roles:
-            current_lider = name
-        if 'Anjo' in roles:
-            current_anjo = name
-        if 'Monstro' in roles:
-            current_monstro.add(name)
-
-# For stats display
-seen_roles = {}
-for name, weeks in calculated_points.items():
-    for week, events in weeks.items():
-        for event, pts, _ in events:
-            if event == 'lider':
-                seen_roles[(name, 'Líder')] = True
-            elif event == 'anjo':
-                seen_roles[(name, 'Anjo')] = True
-            elif event == 'monstro':
-                seen_roles[(name, 'Monstro')] = True
-```
-
-```{python}
-#| label: merge-points
-#| include: false
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MERGE CALCULATED POINTS WITH CARTOLA_POINTS_LOG OVERRIDES
-# The cartola_points_log can have custom point values that override defaults
-# ══════════════════════════════════════════════════════════════════════════════
-
-all_points = defaultdict(lambda: defaultdict(list))
-all_events_flat = defaultdict(list)
-
-# Start with calculated points
-for participant, weeks in calculated_points.items():
-    for week, events in weeks.items():
-        all_points[participant][week] = list(events)
-        for evt, pts, date in events:
-            all_events_flat[participant].append({
-                'week': week,
-                'event': evt,
-                'points': pts,
-                'date': date
-            })
-
-# Add any extra events from cartola_points_log that weren't captured
-# (e.g., special events with custom point values)
-for entry in manual_events.get('cartola_points_log', []):
-    participant = entry['participant']
-    week = entry['week']
-    for evt in entry.get('events', []):
-        event_type = evt['event']
-        points = evt['points']
-        # Check if this event is already recorded
-        existing = all_points[participant].get(week, [])
-        already_has = any(e[0] == event_type for e in existing)
-        # Only add if not already present (avoid duplicates)
-        if not already_has and event_type not in ['lider', 'anjo', 'monstro', 'emparedado', 'imunizado', 'vip', 'desistente', 'eliminado', 'desclassificado', 'atendeu_big_fone']:
-            all_points[participant][week].append((event_type, points, None))
-            all_events_flat[participant].append({
-                'week': week,
-                'event': event_type,
-                'points': points,
-                'date': None
-            })
-
-# Calculate totals
-totals = {}
-for participant in all_points:
-    total = 0
-    for week_events in all_points[participant].values():
-        total += sum(pts for _, pts, _ in week_events)
-    totals[participant] = total
-
-# Build leaderboard
-leaderboard = []
-for name, total in totals.items():
-    info = PARTICIPANT_INFO.get(name, {'grupo': 'Pipoca', 'avatar': '', 'active': False})
-    leaderboard.append({
-        'name': name,
-        'total': total,
-        'grupo': info.get('grupo', 'Pipoca'),
-        'avatar': AVATARS.get(name, ''),
-        'active': info.get('active', False),
-        'events': all_events_flat.get(name, [])
-    })
-
-# Add participants with 0 points
-for name, info in PARTICIPANT_INFO.items():
-    if name not in totals:
-        leaderboard.append({
-            'name': name,
-            'total': 0,
-            'grupo': info.get('grupo', 'Pipoca'),
-            'avatar': AVATARS.get(name, ''),
-            'active': info.get('active', True),
-            'events': []
-        })
-
-# Sort by total descending
-leaderboard = sorted(leaderboard, key=lambda x: (-x['total'], x['name']))
-
-# Stats
-n_weeks = max([get_week_number(s['date']) for s in daily_snapshots], default=1) if daily_snapshots else 1
-n_with_points = len([p for p in leaderboard if p['total'] != 0])
-n_active = len([p for p in leaderboard if p['active']])
-total_positive = sum(p['total'] for p in leaderboard if p['total'] > 0)
-total_negative = sum(p['total'] for p in leaderboard if p['total'] < 0)
-leader = leaderboard[0] if leaderboard else None
-
-# Weekly breakdown for tabs
 weekly_data = manual_events.get('weekly_events', [])
 ```
 
@@ -678,24 +109,19 @@ if leader and leader['total'] != 0:
     grupo = leader['grupo']
     highlights.append(f"🏆 **{leader['name']}** ({grupo}) lidera com **{leader['total']:+d}** pontos")
 
-# Current roles from latest snapshot
-if daily_snapshots:
-    latest = daily_snapshots[-1]
-    current_roles = {'Líder': [], 'Anjo': [], 'Monstro': [], 'Paredão': []}
-    for p in latest['participants']:
-        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-        for role in roles:
-            if role in current_roles:
-                current_roles[role].append(p['name'].strip())
-
-    if current_roles['Líder']:
-        highlights.append(f"👑 Líder atual: **{', '.join(current_roles['Líder'])}** (+80 pts)")
-    if current_roles['Anjo']:
-        highlights.append(f"😇 Anjo: **{', '.join(current_roles['Anjo'])}** (+45 pts)")
-    if current_roles['Monstro']:
-        highlights.append(f"👹 Monstro: **{', '.join(current_roles['Monstro'])}** (-10 pts)")
-    if current_roles['Paredão']:
-        highlights.append(f"🗳️ No Paredão: **{', '.join(current_roles['Paredão'])}** (-15 pts)")
+# Current roles from precomputed data
+if current_roles.get('Líder'):
+    name = current_roles['Líder']
+    highlights.append(f"👑 Líder atual: **{name}** (+80 pts)")
+if current_roles.get('Anjo'):
+    name = current_roles['Anjo']
+    highlights.append(f"😇 Anjo: **{name}** (+45 pts)")
+if current_roles.get('Monstro'):
+    names = ', '.join(current_roles['Monstro'])
+    highlights.append(f"👹 Monstro: **{names}** (-10 pts)")
+if current_roles.get('Paredão'):
+    names = ', '.join(current_roles['Paredão'])
+    highlights.append(f"🗳️ No Paredão: **{names}** (-15 pts)")
 
 # Worst score
 bottom = [p for p in leaderboard if p['total'] < 0]
@@ -724,10 +150,9 @@ if highlights:
 # KPI Value Boxes (matching index.qmd style)
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Count events from API
-n_lideres = len([k for k in seen_roles if k[1] == 'Líder'])
-n_anjos = len([k for k in seen_roles if k[1] == 'Anjo'])
-n_monstros = len([k for k in seen_roles if k[1] == 'Monstro'])
+n_lideres = len(seen_roles.get('Líder', []))
+n_anjos = len(seen_roles.get('Anjo', []))
+n_monstros = len(seen_roles.get('Monstro', []))
 
 print(f'''
 <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
@@ -815,11 +240,11 @@ if display_list:
                 event_stats[evt['event']]['total'] += evt['points']
 
             event_tags = []
-            for evt_type, stats in sorted(event_stats.items(), key=lambda x: -abs(x[1]['total'])):
+            for evt_type, stats_item in sorted(event_stats.items(), key=lambda x: -abs(x[1]['total'])):
                 emoji = POINTS_EMOJI.get(evt_type, '•')
                 label = POINTS_LABELS.get(evt_type, evt_type)
-                total_pts = stats['total']
-                count = stats['count']
+                total_pts = stats_item['total']
+                count = stats_item['count']
                 pts_color = '#27ae60' if total_pts > 0 else '#e74c3c'
                 count_prefix = f"{count}x " if count > 1 else ""
                 event_tags.append(
@@ -1057,13 +482,13 @@ if n_weeks > 0:
                 print()
 
         # All points this week (from API + manual)
-        week_points = []
+        week_points_list = []
         for participant in all_points:
             if week in all_points[participant]:
                 events = all_points[participant][week]
                 total = sum(pts for _, pts, _ in events)
                 info = PARTICIPANT_INFO.get(participant, {'grupo': 'Pipoca'})
-                week_points.append({
+                week_points_list.append({
                     'name': participant,
                     'total': total,
                     'events': events,
@@ -1071,13 +496,13 @@ if n_weeks > 0:
                     'avatar': AVATARS.get(participant, '')
                 })
 
-        week_points = sorted(week_points, key=lambda x: -x['total'])
+        week_points_list = sorted(week_points_list, key=lambda x: -x['total'])
 
-        if week_points:
+        if week_points_list:
             print('\n**Pontuações da semana:**\n')
             print('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem; margin: 1rem 0;">')
 
-            for wp in week_points:
+            for wp in week_points_list:
                 participant_color = participant_colors.get(wp['name'], '#666')
                 pts_color = '#27ae60' if wp['total'] > 0 else '#e74c3c'
                 avatar = wp['avatar']
