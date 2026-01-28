@@ -301,6 +301,13 @@ else:
         prev_imune = current_imune
 
 power_events = power_events_manual + power_events_auto
+
+# Sincerão derived data
+sincerao_data = {}
+SINCERAO_FILE = Path("data/derived/sincerao_edges.json")
+if SINCERAO_FILE.exists():
+    with open(SINCERAO_FILE, encoding="utf-8") as f:
+        sincerao_data = json.load(f)
 ```
 
 # Visão Geral {#visao-geral}
@@ -388,6 +395,51 @@ if events_data:
     key_events = df_events[df_events['Evento'].str.contains('Entraram|Saiu|Líder')]
     if not key_events.empty:
         display(key_events.style.hide(axis='index'))
+```
+
+# Sincerão (Evolução semanal) {#sincerao}
+
+Evolução semanal dos sinais do Sincerão (agregados), comparando **pódio**, **não ganha** e **planta**.  
+São sinais **raros** e não substituem o queridômetro — servem como **modificadores leves**.
+
+```{python}
+#| label: sincerao-timeline
+#| output: asis
+
+if not sincerao_data or not sincerao_data.get("aggregates"):
+    print("*Sem dados de Sincerão ainda.*")
+else:
+    agg = sincerao_data.get("aggregates", [])
+    rows = []
+    for entry in agg:
+        week = entry.get("week")
+        date = entry.get("date")
+        for name, count in entry.get("podio_mentions", {}).items():
+            rows.append({"week": week, "date": date, "name": name, "metric": "pódio", "value": count})
+        for name, count in entry.get("nao_ganha_mentions", {}).items():
+            rows.append({"week": week, "date": date, "name": name, "metric": "não ganha", "value": count})
+        for name in entry.get("sem_podio", []) or []:
+            rows.append({"week": week, "date": date, "name": name, "metric": "sem pódio", "value": 1})
+        planta = entry.get("planta")
+        if planta:
+            rows.append({"week": week, "date": date, "name": planta, "metric": "planta", "value": 1})
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        print("*Sem métricas agregadas do Sincerão.*")
+    else:
+        fig = px.bar(
+            df,
+            x="name",
+            y="value",
+            color="metric",
+            barmode="group",
+            facet_row="week",
+            title="Sincerão — métricas agregadas por semana",
+            labels={"value": "Menções", "name": "Participante", "metric": "Sinal"},
+        )
+        fig.update_layout(height=380 + 140 * df["week"].nunique(), margin=dict(l=20, r=20, t=60, b=40))
+        fig.show()
 ```
 
 # Poderes & Consequências {#poderes}

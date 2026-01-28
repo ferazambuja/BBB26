@@ -291,15 +291,21 @@ def build_sincerao_edges(manual_events):
         sem_podio = stats.get("sem_podio", []) if isinstance(stats.get("sem_podio", []), list) else []
         planta = sinc.get("planta", {}).get("target") if isinstance(sinc.get("planta"), dict) else None
 
+        reasons = {}
+
         scores = {}
         for name, count in podio_mentions.items():
             scores[name] = scores.get(name, 0) + weights["podio_mention"] * count
+            reasons.setdefault(name, []).append("🏆 pódio")
         for name, count in nao_ganha_mentions.items():
             scores[name] = scores.get(name, 0) + weights["nao_ganha_mention"] * count
+            reasons.setdefault(name, []).append("🚫 não ganha")
         for name in sem_podio:
             scores[name] = scores.get(name, 0) + weights["sem_podio"]
+            reasons.setdefault(name, []).append("🙈 sem pódio")
         if planta:
             scores[planta] = scores.get(planta, 0) + weights["planta_plateia"]
+            reasons.setdefault(planta, []).append("🌿 planta")
 
         aggregates.append({
             "week": week,
@@ -309,6 +315,7 @@ def build_sincerao_edges(manual_events):
             "sem_podio": sem_podio,
             "planta": planta,
             "scores": scores,
+            "reasons": reasons,
         })
 
     return {

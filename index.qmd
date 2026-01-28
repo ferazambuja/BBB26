@@ -271,6 +271,12 @@ PAREDOES_FILE = Path("data/paredoes.json")
 if PAREDOES_FILE.exists():
     with open(PAREDOES_FILE, encoding="utf-8") as f:
         paredoes_data = json.load(f)
+
+def find_sincerao_reason(agg, name):
+    if not agg:
+        return []
+    reasons = agg.get("reasons", {})
+    return reasons.get(name, [])
 ```
 
 ```{python}
@@ -1569,6 +1575,26 @@ else:
             fig.update_xaxes(zeroline=True, zerolinecolor="#555")
             fig.update_yaxes(zeroline=True, zerolinecolor="#555")
             fig.show()
+
+            # Contradições: Sincerão negativo vs ❤️ no queridômetro
+            contrad = []
+            for edge in sincerao_data.get("edges", []):
+                if edge.get("week") != current_week:
+                    continue
+                if edge.get("type") not in ["nao_ganha", "bomba"]:
+                    continue
+                actor = edge.get("actor")
+                target = edge.get("target")
+                if not actor or not target:
+                    continue
+                label = latest_matrix.get((actor, target), "")
+                if label == "Coração":
+                    contrad.append({"ator": actor, "alvo": target, "tipo": edge.get("type")})
+
+            if contrad:
+                df_c = pd.DataFrame(contrad).drop_duplicates()
+                print("<h4 style='margin-top:1rem;'>Contradições do Sincerão (negativo + ❤️)</h4>")
+                print(df_c.to_html(index=False, classes="table table-dark table-sm", border=0))
 ```
 
 ```{python}
@@ -1864,6 +1890,19 @@ for p in sorted_active:
         hist_html += f"<span style='color:#dc3545; margin-left:0.35rem;'>{neg_hist_html}</span>"
 
     vote_map = votes_received_by_week.get(current_week, {}).get(name, {})
+
+    sincerao_reasons = find_sincerao_reason(sinc_agg, name) if 'sinc_agg' in globals() else []
+    if sincerao_reasons:
+        chips = []
+        for reason in sincerao_reasons:
+            chips.append(
+                f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
+                f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
+                f"font-size:0.72rem; margin:0.15rem;'>{reason}</span>"
+            )
+        sincerao_html = " ".join(chips)
+    else:
+        sincerao_html = ""
     if vote_map:
         vote_chips = []
         for voter, count in sorted(vote_map.items(), key=lambda x: (-x[1], x[0])):
@@ -2016,10 +2055,11 @@ for p in sorted_active:
   {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #28a745;'>+ Benefícios (semana):</strong> {pos_html}</div>" if pos_events else ""}
   {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #dc3545;'>− Prejuízos (semana):</strong> {neg_html}</div>" if neg_events else ""}
   {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #ffc107;'>🗳️ Votos recebidos:</strong> {votes_html}</div>" if vote_map else ""}
+  {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #17a2b8;'>🔥 Sincerão (semana):</strong> {sincerao_html}</div>" if sincerao_html else ""}
   {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #999;'>Histórico da temporada:</strong> {hist_html}</div>" if (pos_events_hist or neg_events_hist) else ""}
 </div>
 </div>
-''' if (pos_events_hist or neg_events_hist or pos_events or neg_events or vote_map) else ''}
+''' if (pos_events_hist or neg_events_hist or pos_events or neg_events or vote_map or sincerao_html) else ''}
 
 <!-- Strategic Map -->
 <div style="padding: 1rem;">
