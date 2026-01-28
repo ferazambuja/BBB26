@@ -54,7 +54,8 @@ Nesta edição, há participação de **plateia convidada**.
 - **1º Sincerão (19/01)**: todos montaram **pódio** e indicaram **“quem não ganha”**.  
   Destaques do resumo: Marciele foi a mais citada no pódio; Leandro não foi citado.  
 - **2º Sincerão (26/01)**: distribuição de **bombas** com temas escolhidos pelo público;  
-  plateia escolheu a **“planta”** da casa.
+  quem recebe a bomba pode **palpitar** quem a indicou; se errar, leva **banho de gosma**.  
+  Plateia escolheu a **“planta”** da casa.
 
 ### Big Fone
 Há **três Big Fones** na casa; o público decide qual deles tocará e qual mensagem será lida pelo Big Boss.  
