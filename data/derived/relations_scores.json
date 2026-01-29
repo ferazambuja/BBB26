@@ -1,0 +1,6110 @@
+{
+  "_metadata": {
+    "generated_at": "2026-01-29T00:31:47.210147+00:00",
+    "date": "2026-01-28",
+    "week": 3,
+    "effective_week": 2,
+    "weights": {
+      "queridometro": {
+        "Coração": 1.0,
+        "Planta": -0.5,
+        "Mala": -0.5,
+        "Biscoito": -0.5,
+        "Cobra": -1.0,
+        "Alvo": -1.0,
+        "Vômito": -1.0,
+        "Mentiroso": -1.0,
+        "Coração partido": -0.5
+      },
+      "power_events": {
+        "indicacao": -2.8,
+        "contragolpe": -2.8,
+        "monstro": -1.2,
+        "veto_prova": -1.5,
+        "voto_anulado": -0.8,
+        "perdeu_voto": -0.6,
+        "voto_duplo": 0.0,
+        "imunidade": 0.8
+      },
+      "sincerao": {
+        "podio": {
+          "1": 0.7,
+          "2": 0.5,
+          "3": 0.3
+        },
+        "nao_ganha": -1.0,
+        "bomba": -0.8
+      },
+      "vip": 0.2,
+      "votes": {
+        "secret": -0.8,
+        "revealed": -1.2,
+        "revealed_backlash": -0.6
+      },
+      "visibility_factor": {
+        "public": 1.2,
+        "secret": 0.5
+      },
+      "decay": "1/(1+Δsemana)"
+    }
+  },
+  "edges": [
+    {
+      "type": "power_event",
+      "actor": "Jonas Sulzbach",
+      "target": "Sarah Andrade",
+      "week": 1,
+      "date": "2026-01-18",
+      "weight_raw": 0.96,
+      "weight_roll": 0.48,
+      "weight_week": 0.0,
+      "revealed": false,
+      "event_type": "imunidade",
+      "visibility": "public"
+    },
+    {
+      "type": "power_event",
+      "actor": "Alberto Cowboy",
+      "target": "Milena",
+      "week": 1,
+      "date": "2026-01-18",
+      "weight_raw": -3.36,
+      "weight_roll": -1.68,
+      "weight_week": 0.0,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public"
+    },
+    {
+      "type": "power_event",
+      "actor": "Milena",
+      "target": "Alberto Cowboy",
+      "week": 1,
+      "date": "2026-01-18",
+      "weight_raw": -2.016,
+      "weight_roll": -1.008,
+      "weight_week": 0.0,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "backlash": true
+    },
+    {
+      "type": "power_event",
+      "actor": "Alberto Cowboy",
+      "target": "Leandro",
+      "week": 2,
+      "date": "2026-01-24",
+      "weight_raw": -3.36,
+      "weight_roll": -3.36,
+      "weight_week": -3.36,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public"
+    },
+    {
+      "type": "power_event",
+      "actor": "Leandro",
+      "target": "Alberto Cowboy",
+      "week": 2,
+      "date": "2026-01-24",
+      "weight_raw": -2.016,
+      "weight_roll": -2.016,
+      "weight_week": -2.016,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "backlash": true
+    },
+    {
+      "type": "power_event",
+      "actor": "Brigido",
+      "target": "Leandro",
+      "week": 2,
+      "date": "2026-01-24",
+      "weight_raw": -3.36,
+      "weight_roll": -3.36,
+      "weight_week": -3.36,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public"
+    },
+    {
+      "type": "power_event",
+      "actor": "Leandro",
+      "target": "Brigido",
+      "week": 2,
+      "date": "2026-01-24",
+      "weight_raw": -2.016,
+      "weight_roll": -2.016,
+      "weight_week": -2.016,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "backlash": true
+    },
+    {
+      "type": "power_event",
+      "actor": "Sarah Andrade",
+      "target": "Ana Paula Renault",
+      "week": 2,
+      "date": "2026-01-24",
+      "weight_raw": -0.96,
+      "weight_roll": -0.96,
+      "weight_week": -0.96,
+      "revealed": false,
+      "event_type": "voto_anulado",
+      "visibility": "public"
+    },
+    {
+      "type": "power_event",
+      "actor": "Jonas Sulzbach",
+      "target": "Marcelo",
+      "week": 1,
+      "date": "2026-01-17",
+      "weight_raw": -1.44,
+      "weight_roll": -0.72,
+      "weight_week": 0.0,
+      "revealed": false,
+      "event_type": "monstro",
+      "visibility": "public"
+    },
+    {
+      "type": "power_event",
+      "actor": "Jonas Sulzbach",
+      "target": "Chaiany",
+      "week": 2,
+      "date": "2026-01-23",
+      "weight_raw": -1.44,
+      "weight_roll": -1.44,
+      "weight_week": -1.44,
+      "revealed": false,
+      "event_type": "monstro",
+      "visibility": "public"
+    },
+    {
+      "type": "sincerao",
+      "actor": "Alberto Cowboy",
+      "target": "Edilson",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Alberto Cowboy",
+      "target": "Babu Santana",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Alberto Cowboy",
+      "target": "Milena",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Jonas Sulzbach",
+      "target": "Sarah Andrade",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Jonas Sulzbach",
+      "target": "Alberto Cowboy",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Jonas Sulzbach",
+      "target": "Marcelo",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Marcelo",
+      "target": "Maxiane",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Marcelo",
+      "target": "Marciele",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Marcelo",
+      "target": "Jonas Sulzbach",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Ana Paula Renault",
+      "target": "Milena",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Ana Paula Renault",
+      "target": "Samira",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Milena",
+      "target": "Ana Paula Renault",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Milena",
+      "target": "Breno",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Gabriela",
+      "target": "Chaiany",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Gabriela",
+      "target": "Breno",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Gabriela",
+      "target": "Leandro",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Chaiany",
+      "target": "Gabriela",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Chaiany",
+      "target": "Edilson",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Chaiany",
+      "target": "Sarah Andrade",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Sol Vega",
+      "target": "Solange Couto",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Sol Vega",
+      "target": "Ana Paula Renault",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Babu Santana",
+      "target": "Solange Couto",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Babu Santana",
+      "target": "Edilson",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Babu Santana",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Edilson",
+      "target": "Babu Santana",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Edilson",
+      "target": "Juliano Floss",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Edilson",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Juliano Floss",
+      "target": "Babu Santana",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Juliano Floss",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Juliano Floss",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Paulo Augusto",
+      "target": "Brigido",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Paulo Augusto",
+      "target": "Juliano Floss",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Paulo Augusto",
+      "target": "Marcelo",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Brigido",
+      "target": "Marciele",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Brigido",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Brigido",
+      "target": "Ana Paula Renault",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Leandro",
+      "target": "Chaiany",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Leandro",
+      "target": "Alberto Cowboy",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Solange Couto",
+      "target": "Babu Santana",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Solange Couto",
+      "target": "Gabriela",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Solange Couto",
+      "target": "Samira",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Sarah Andrade",
+      "target": "Jonas Sulzbach",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Sarah Andrade",
+      "target": "Marciele",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Sarah Andrade",
+      "target": "Chaiany",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Jordana",
+      "target": "Marciele",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Jordana",
+      "target": "Leandro",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Marciele",
+      "target": "Maxiane",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Marciele",
+      "target": "Marcelo",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Marciele",
+      "target": "Juliano Floss",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": -1.0,
+      "weight_roll": -0.5,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "nao_ganha",
+      "slot": null,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Maxiane",
+      "target": "Marcelo",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Maxiane",
+      "target": "Marciele",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Breno",
+      "target": "Marciele",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Breno",
+      "target": "Milena",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Samira",
+      "target": "Milena",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.5,
+      "weight_roll": 0.25,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 2,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Samira",
+      "target": "Ana Paula Renault",
+      "week": 1,
+      "date": "2026-01-19",
+      "weight_raw": 0.3,
+      "weight_roll": 0.15,
+      "weight_week": 0.0,
+      "revealed": false,
+      "sinc_type": "podio",
+      "slot": 3,
+      "tema": null
+    },
+    {
+      "type": "sincerao",
+      "actor": "Sarah Andrade",
+      "target": "Juliano Floss",
+      "week": 2,
+      "date": "2026-01-26",
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "sinc_type": "bomba",
+      "slot": null,
+      "tema": "mais vtzeiro"
+    },
+    {
+      "type": "sincerao",
+      "actor": "Alberto Cowboy",
+      "target": "Leandro",
+      "week": 2,
+      "date": "2026-01-26",
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "sinc_type": "bomba",
+      "slot": null,
+      "tema": "mais chato"
+    },
+    {
+      "type": "sincerao",
+      "actor": "Brigido",
+      "target": "Milena",
+      "week": 2,
+      "date": "2026-01-26",
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "sinc_type": "bomba",
+      "slot": null,
+      "tema": "mais influenciável"
+    },
+    {
+      "type": "sincerao",
+      "actor": "Babu Santana",
+      "target": "Gabriela",
+      "week": 2,
+      "date": "2026-01-26",
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "sinc_type": "bomba",
+      "slot": null,
+      "tema": "menos confiável"
+    },
+    {
+      "type": "sincerao",
+      "actor": "Jonas Sulzbach",
+      "target": "Milena",
+      "week": 2,
+      "date": "2026-01-26",
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "sinc_type": "bomba",
+      "slot": null,
+      "tema": "mais leva-e-traz"
+    },
+    {
+      "type": "sincerao",
+      "actor": "Leandro",
+      "target": "Alberto Cowboy",
+      "week": 2,
+      "date": "2026-01-26",
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "sinc_type": "bomba",
+      "slot": null,
+      "tema": "mais manipulador"
+    },
+    {
+      "type": "sincerao",
+      "actor": "Ana Paula Renault",
+      "target": "Sol Vega",
+      "week": 2,
+      "date": "2026-01-26",
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "sinc_type": "bomba",
+      "slot": null,
+      "tema": "mais inútil"
+    },
+    {
+      "type": "vip",
+      "actor": "Babu Santana",
+      "target": "Alberto Cowboy",
+      "week": 2,
+      "date": "2026-01-28",
+      "weight_raw": 0.2,
+      "weight_roll": 0.2,
+      "weight_week": 0.2,
+      "revealed": false
+    },
+    {
+      "type": "vip",
+      "actor": "Babu Santana",
+      "target": "Breno",
+      "week": 2,
+      "date": "2026-01-28",
+      "weight_raw": 0.2,
+      "weight_roll": 0.2,
+      "weight_week": 0.2,
+      "revealed": false
+    },
+    {
+      "type": "vip",
+      "actor": "Babu Santana",
+      "target": "Edilson",
+      "week": 2,
+      "date": "2026-01-28",
+      "weight_raw": 0.2,
+      "weight_roll": 0.2,
+      "weight_week": 0.2,
+      "revealed": false
+    },
+    {
+      "type": "vip",
+      "actor": "Babu Santana",
+      "target": "Juliano Floss",
+      "week": 2,
+      "date": "2026-01-28",
+      "weight_raw": 0.2,
+      "weight_roll": 0.2,
+      "weight_week": 0.2,
+      "revealed": false
+    },
+    {
+      "type": "vip",
+      "actor": "Babu Santana",
+      "target": "Marcelo",
+      "week": 2,
+      "date": "2026-01-28",
+      "weight_raw": 0.2,
+      "weight_roll": 0.2,
+      "weight_week": 0.2,
+      "revealed": false
+    },
+    {
+      "type": "vip",
+      "actor": "Babu Santana",
+      "target": "Milena",
+      "week": 2,
+      "date": "2026-01-28",
+      "weight_raw": 0.2,
+      "weight_roll": 0.2,
+      "weight_week": 0.2,
+      "revealed": false
+    },
+    {
+      "type": "vip",
+      "actor": "Babu Santana",
+      "target": "Solange Couto",
+      "week": 2,
+      "date": "2026-01-28",
+      "weight_raw": 0.2,
+      "weight_roll": 0.2,
+      "weight_week": 0.2,
+      "revealed": false
+    },
+    {
+      "type": "vote",
+      "actor": "Solange Couto",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Ana Paula Renault",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Breno",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Jonas Sulzbach",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Maxiane",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Marcelo",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Sarah Andrade",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Samira",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Milena",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Gabriela",
+      "target": "Paulo Augusto",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Brigido",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Edilson",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Juliano Floss",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Paulo Augusto",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Babu Santana",
+      "target": "Sol Vega",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Jordana",
+      "target": "Edilson",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Marciele",
+      "target": "Juliano Floss",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Sol Vega",
+      "target": "Juliano Floss",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Leandro",
+      "target": "Jonas Sulzbach",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Chaiany",
+      "target": "Brigido",
+      "week": 1,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.4,
+      "weight_week": 0.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Leandro",
+      "target": "Brigido",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Juliano Floss",
+      "target": "Brigido",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Chaiany",
+      "target": "Brigido",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Breno",
+      "target": "Brigido",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Marcelo",
+      "target": "Brigido",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Milena",
+      "target": "Brigido",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Alberto Cowboy",
+      "target": "Chaiany",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Brigido",
+      "target": "Chaiany",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Sol Vega",
+      "target": "Chaiany",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Sarah Andrade",
+      "target": "Chaiany",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Samira",
+      "target": "Gabriela",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Maxiane",
+      "target": "Gabriela",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Marciele",
+      "target": "Gabriela",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Jordana",
+      "target": "Sol Vega",
+      "week": 2,
+      "date": null,
+      "weight_raw": -1.2,
+      "weight_roll": -1.2,
+      "weight_week": -1.2,
+      "revealed": true,
+      "vote_count": 1,
+      "vote_kind": "revealed"
+    },
+    {
+      "type": "vote",
+      "actor": "Sol Vega",
+      "target": "Jordana",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.6,
+      "weight_roll": -0.6,
+      "weight_week": -0.6,
+      "revealed": true,
+      "vote_count": 1,
+      "vote_kind": "revealed_backlash"
+    },
+    {
+      "type": "vote",
+      "actor": "Paulo Augusto",
+      "target": "Sol Vega",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Edilson",
+      "target": "Sol Vega",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Gabriela",
+      "target": "Juliano Floss",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    },
+    {
+      "type": "vote",
+      "actor": "Solange Couto",
+      "target": "Milena",
+      "week": 2,
+      "date": null,
+      "weight_raw": -0.8,
+      "weight_roll": -0.8,
+      "weight_week": -0.8,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret"
+    }
+  ],
+  "pairs": {
+    "Alberto Cowboy": {
+      "Ana Paula Renault": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 0.2,
+        "roll": 0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Leandro": {
+        "week": -5.16,
+        "roll": -5.16,
+        "components_week": {
+          "queridometro": -1.0,
+          "power_event": -3.36,
+          "sincerao": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "power_event": -3.36,
+          "sincerao": -0.8
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": -0.5,
+        "roll": -2.68,
+        "components_week": {
+          "queridometro": -0.5,
+          "power_event": 0.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "power_event": -1.68,
+          "sincerao": -0.5
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Ana Paula Renault": {
+      "Alberto Cowboy": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Brigido": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Gabriela": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jordana": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Marciele": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Maxiane": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Paulo Augusto": {
+        "week": -1.0,
+        "roll": -1.4,
+        "components_week": {
+          "queridometro": -1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": -0.5,
+        "roll": -0.35,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": 0.15
+        }
+      },
+      "Sarah Andrade": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Sol Vega": {
+        "week": -1.8,
+        "roll": -1.8,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        }
+      },
+      "Solange Couto": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      }
+    },
+    "Babu Santana": {
+      "Alberto Cowboy": {
+        "week": 1.2,
+        "roll": 1.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.2,
+        "roll": 1.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        }
+      },
+      "Brigido": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.2,
+        "roll": 1.35,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0,
+          "vip": 0.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15,
+          "vip": 0.2
+        }
+      },
+      "Gabriela": {
+        "week": -1.8,
+        "roll": -1.8,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jordana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.2,
+        "roll": 1.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.2,
+        "roll": 1.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 1.2,
+        "roll": 1.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vip": 0.2
+        }
+      },
+      "Paulo Augusto": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 0.1,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Solange Couto": {
+        "week": 1.2,
+        "roll": 1.45,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0,
+          "vip": 0.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25,
+          "vip": 0.2
+        }
+      }
+    },
+    "Breno": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": -1.3,
+        "roll": -1.3,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 0.6,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Brigido": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -1.0,
+        "roll": -1.5,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.5
+        }
+      },
+      "Babu Santana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Breno": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Chaiany": {
+        "week": 0.2,
+        "roll": 0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Leandro": {
+        "week": -4.36,
+        "roll": -4.36,
+        "components_week": {
+          "queridometro": -1.0,
+          "power_event": -3.36
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "power_event": -3.36
+        }
+      },
+      "Marcelo": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": -1.8,
+        "roll": -1.8,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Samira": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": -0.5,
+        "roll": -0.9,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Chaiany": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 0.2,
+        "roll": -0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -1.2
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": -1.0,
+        "roll": -1.5,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.5
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Edilson": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Leandro": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Samira": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 0.2,
+        "roll": -0.7,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": -0.5,
+          "vote": -1.2
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Gabriela": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Babu Santana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": -1.3,
+        "roll": -1.3,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        }
+      },
+      "Leandro": {
+        "week": -0.5,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marciele": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 0.6,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Jonas Sulzbach": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": -1.94,
+        "roll": -1.94,
+        "components_week": {
+          "queridometro": -0.5,
+          "power_event": -1.44
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "power_event": -1.44
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Jordana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Juliano Floss": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Leandro": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": -0.22,
+        "components_week": {
+          "queridometro": 1.0,
+          "power_event": 0.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "power_event": -0.72,
+          "sincerao": -0.5
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": -1.8,
+        "roll": -1.8,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.8
+        }
+      },
+      "Paulo Augusto": {
+        "week": -0.5,
+        "roll": -0.9,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.73,
+        "components_week": {
+          "queridometro": 1.0,
+          "power_event": 0.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "power_event": 0.48,
+          "sincerao": 0.25
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Jordana": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Babu Santana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": -0.5,
+        "roll": -0.9,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Gabriela": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Leandro": {
+        "week": -1.0,
+        "roll": -1.5,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": -0.5,
+        "roll": -0.25,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": 0.25
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": -0.2,
+        "roll": -0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -1.2
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -1.2
+        }
+      },
+      "Solange Couto": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      }
+    },
+    "Juliano Floss": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Breno": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Brigido": {
+        "week": -1.8,
+        "roll": -1.8,
+        "components_week": {
+          "queridometro": -1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "vote": -0.8
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jordana": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": -0.5,
+        "roll": -0.35,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": 0.15
+        }
+      },
+      "Samira": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Sarah Andrade": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Sol Vega": {
+        "week": -0.5,
+        "roll": -1.4,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Leandro": {
+      "Alberto Cowboy": {
+        "week": -3.816,
+        "roll": -4.316,
+        "components_week": {
+          "queridometro": -1.0,
+          "power_event": -2.016,
+          "sincerao": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "power_event": -2.016,
+          "sincerao": -1.3
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": -3.816,
+        "roll": -3.816,
+        "components_week": {
+          "queridometro": -1.0,
+          "power_event": -2.016,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "power_event": -2.016,
+          "vote": -0.8
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Edilson": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Gabriela": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -1.0,
+        "roll": -1.4,
+        "components_week": {
+          "queridometro": -1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "vote": -0.4
+        }
+      },
+      "Jordana": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Marcelo": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": -1.3,
+        "roll": -1.3,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -0.5,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": -0.5
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Milena": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Paulo Augusto": {
+        "week": -0.5,
+        "roll": -0.9,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Sol Vega": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Marciele": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": -1.3,
+        "roll": -1.3,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.8
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 0.1,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Milena": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Maxiane": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": 0.2,
+        "roll": 0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Leandro": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Milena": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 0.6,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Milena": {
+      "Alberto Cowboy": {
+        "week": -0.5,
+        "roll": -1.508,
+        "components_week": {
+          "queridometro": -0.5,
+          "power_event": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "power_event": -1.008
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": -0.5,
+        "roll": -0.35,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": 0.15
+        }
+      },
+      "Brigido": {
+        "week": -1.8,
+        "roll": -1.8,
+        "components_week": {
+          "queridometro": -1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "vote": -0.8
+        }
+      },
+      "Chaiany": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Edilson": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Gabriela": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jordana": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Leandro": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marcelo": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marciele": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Maxiane": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Paulo Augusto": {
+        "week": -0.5,
+        "roll": -0.9,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Sarah Andrade": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Sol Vega": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Paulo Augusto": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Leandro": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 0.5,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": -0.5
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 0.2,
+        "roll": -0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -1.2
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Samira": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Chaiany": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Edilson": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Gabriela": {
+        "week": 0.2,
+        "roll": 0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Jordana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Juliano Floss": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Leandro": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 0.6,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.4
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Sarah Andrade": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -1.96,
+        "roll": -1.96,
+        "components_week": {
+          "queridometro": -1.0,
+          "power_event": -0.96
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "power_event": -0.96
+        }
+      },
+      "Babu Santana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 0.2,
+        "roll": -0.3,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": -0.5,
+          "vote": -0.8
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Jordana": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Juliano Floss": {
+        "week": 0.2,
+        "roll": 0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": -0.8
+        }
+      },
+      "Leandro": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.15,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 0.6,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      }
+    },
+    "Sol Vega": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -1.0,
+        "roll": -1.5,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": -0.5
+        }
+      },
+      "Babu Santana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Chaiany": {
+        "week": 0.2,
+        "roll": 0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Jordana": {
+        "week": -1.1,
+        "roll": -1.1,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": -0.6
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.6
+        }
+      },
+      "Juliano Floss": {
+        "week": -1.0,
+        "roll": -1.4,
+        "components_week": {
+          "queridometro": -1.0,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "vote": -0.4
+        }
+      },
+      "Leandro": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Paulo Augusto": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Solange Couto": {
+        "week": -0.5,
+        "roll": -0.35,
+        "components_week": {
+          "queridometro": -0.5,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "sincerao": 0.15
+        }
+      }
+    },
+    "Solange Couto": {
+      "Alberto Cowboy": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Ana Paula Renault": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Babu Santana": {
+        "week": 1.0,
+        "roll": 1.25,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": 0.25
+        }
+      },
+      "Breno": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Brigido": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Chaiany": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Edilson": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Gabriela": {
+        "week": -1.0,
+        "roll": -0.85,
+        "components_week": {
+          "queridometro": -1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": -1.0,
+          "sincerao": 0.15
+        }
+      },
+      "Jonas Sulzbach": {
+        "week": -1.0,
+        "roll": -1.0,
+        "components_week": {
+          "queridometro": -1.0
+        },
+        "components_roll": {
+          "queridometro": -1.0
+        }
+      },
+      "Jordana": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Juliano Floss": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Leandro": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      },
+      "Marcelo": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Marciele": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Maxiane": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Milena": {
+        "week": 0.2,
+        "roll": 0.2,
+        "components_week": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "vote": -0.8
+        }
+      },
+      "Paulo Augusto": {
+        "week": -0.5,
+        "roll": -0.9,
+        "components_week": {
+          "queridometro": -0.5,
+          "vote": 0.0
+        },
+        "components_roll": {
+          "queridometro": -0.5,
+          "vote": -0.4
+        }
+      },
+      "Samira": {
+        "week": 1.0,
+        "roll": 0.5,
+        "components_week": {
+          "queridometro": 1.0,
+          "sincerao": 0.0
+        },
+        "components_roll": {
+          "queridometro": 1.0,
+          "sincerao": -0.5
+        }
+      },
+      "Sarah Andrade": {
+        "week": 1.0,
+        "roll": 1.0,
+        "components_week": {
+          "queridometro": 1.0
+        },
+        "components_roll": {
+          "queridometro": 1.0
+        }
+      },
+      "Sol Vega": {
+        "week": -0.5,
+        "roll": -0.5,
+        "components_week": {
+          "queridometro": -0.5
+        },
+        "components_roll": {
+          "queridometro": -0.5
+        }
+      }
+    }
+  }
+}

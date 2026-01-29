@@ -29,3 +29,6 @@ Auto events: 8
 
 ## Sincerão missing date
 (nenhum problema detectado)
+
+## Elimination missing in manual_events participants
+(nenhum problema detectado)

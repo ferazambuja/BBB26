@@ -23,6 +23,10 @@ The codebase had a severe duplication problem: **7 QMD files and 3 Python script
    - New page: `datas.qmd` (Date View) for browsing Queridômetro by day.
    - `_quarto.yml` now includes `resources: data/derived/*.json` to ship JSON to `_site/`.
 
+6. **Added pairwise relations (A→B) derived data + debug page**:
+   - New derived file: `data/derived/relations_scores.json` (queridômetro + power_events + Sincerão + VIP + votos).
+   - New page: `relacoes_debug.qmd` for debugging the full tally (edge list + per‑pair breakdown).
+
 ### Files changed
 
 | File | Change |
@@ -140,6 +144,11 @@ Pages that load from `data/derived/index_data.json` (like `index.qmd`) don't nee
 - `data/derived/snapshots_index.json`: list of available dates, file names, and metadata.
 - `data/derived/daily_metrics.json`: per-day metrics used by the selector.
 - `datas.qmd`: dedicated page to browse dates (keeps `index.qmd` fast).
+
+### Eliminations (API behavior)
+- API usually keeps `eliminated=false`; eliminations are detected by **participant disappearance** between snapshots.
+- Derived file: `data/derived/eliminations_detected.json` (records date, missing, added).
+- Audit warns if a detected elimination is missing from `data/manual_events.json` participants.
 
 ### Adding new shared items
 

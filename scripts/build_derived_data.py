@@ -12,6 +12,7 @@ from collections import defaultdict
 from data_utils import (
     SENTIMENT_WEIGHTS, calc_sentiment, get_week_number,
     CARTOLA_POINTS, POINTS_LABELS, POINTS_EMOJI, parse_roles as du_parse_roles,
+    build_reaction_matrix,
 )
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
@@ -20,6 +21,38 @@ DERIVED_DIR = Path(__file__).parent.parent / "data" / "derived"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
 
 ROLES = ["Líder", "Anjo", "Monstro", "Imune", "Paredão"]
+
+RELATION_POWER_WEIGHTS = {
+    "indicacao": -2.8,
+    "contragolpe": -2.8,
+    "monstro": -1.2,
+    "veto_prova": -1.5,
+    "voto_anulado": -0.8,
+    "perdeu_voto": -0.6,
+    "voto_duplo": 0.0,
+    "imunidade": 0.8,
+}
+
+RELATION_SINC_WEIGHTS = {
+    "podio": {1: 0.7, 2: 0.5, 3: 0.3},
+    "nao_ganha": -1.0,
+    "bomba": -0.8,
+}
+
+RELATION_VOTE_WEIGHTS = {
+    "secret": -0.8,
+    "revealed": -1.2,
+    "revealed_backlash": -0.6,
+}
+
+RELATION_VIP_WEIGHT = 0.2
+RELATION_VISIBILITY_FACTOR = {"public": 1.2, "secret": 0.5}
+RELATION_POWER_BACKLASH_FACTOR = {
+    "indicacao": 0.6,
+    "contragolpe": 0.6,
+}
+
+SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa"}
 
 PLANT_INDEX_WEIGHTS = {
     "invisibility": {"weight": 0.0, "label": "Invisibilidade"},
@@ -83,11 +116,314 @@ def parse_roles(roles_data):
     return [l for l in labels if l]
 
 
+def normalize_actors(ev):
+    actors = ev.get("actors")
+    if isinstance(actors, list) and actors:
+        return [a for a in actors if a]
+    actor = ev.get("actor")
+    if not actor or not isinstance(actor, str):
+        return []
+    if " + " in actor:
+        return [a.strip() for a in actor.split(" + ") if a.strip()]
+    if " e " in actor:
+        return [a.strip() for a in actor.split(" e ") if a.strip()]
+    return [actor.strip()]
+
+
 def get_daily_snapshots(snapshots):
     by_date = {}
     for snap in snapshots:
         by_date[snap["date"]] = snap
     return [by_date[d] for d in sorted(by_date.keys())]
+
+
+def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao_edges, paredoes, daily_roles):
+    """Build pairwise sentiment scores (A -> B) combining queridômetro + events."""
+    latest_date = latest_snapshot["date"]
+    current_week = get_week_number(latest_date)
+    participants = latest_snapshot["participants"]
+    active_names = sorted({p.get("name", "").strip() for p in participants if p.get("name", "").strip()})
+    active_set = set(active_names)
+
+    reaction_matrix = build_reaction_matrix(participants)
+
+    # Votes (by week)
+    votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    revealed_votes = defaultdict(set)
+
+    for par in paredoes.get("paredoes", []) if paredoes else []:
+        votos = par.get("votos_casa", {}) or {}
+        if not votos:
+            continue
+        week = par.get("semana")
+        multiplier = defaultdict(lambda: 1)
+
+        for voter in par.get("votos_anulados", []) or []:
+            multiplier[voter] = 0
+        for voter in par.get("impedidos_votar", []) or []:
+            multiplier[voter] = 0
+
+        for ev in (manual_events.get("power_events", []) if manual_events else []):
+            if week and ev.get("week") == week:
+                if ev.get("type") == "voto_duplo":
+                    for a in normalize_actors(ev):
+                        if a:
+                            multiplier[a] = 2
+                if ev.get("type") == "voto_anulado":
+                    target = ev.get("target")
+                    if target:
+                        multiplier[target] = 0
+
+        for voter, target in votos.items():
+            v = voter.strip()
+            t = target.strip()
+            mult = multiplier.get(v, 1)
+            if mult <= 0:
+                continue
+            votes_received_by_week[week][t][v] += mult
+
+    for wev in manual_events.get("weekly_events", []) if manual_events else []:
+        for key in ("dedo_duro", "voto_revelado"):
+            dd = wev.get(key)
+            if isinstance(dd, dict):
+                voter = dd.get("votante")
+                target = dd.get("alvo")
+                if voter and target:
+                    revealed_votes[target].add(voter)
+            elif isinstance(dd, list):
+                for item in dd:
+                    voter = item.get("votante")
+                    target = item.get("alvo")
+                    if voter and target:
+                        revealed_votes[target].add(voter)
+
+    # Power events (manual + auto)
+    power_events = []
+    power_events.extend(manual_events.get("power_events", []) if manual_events else [])
+    power_events.extend(auto_events or [])
+
+    # Decide effective week for scoring
+    active_paredao = None
+    for p in paredoes.get("paredoes", []) if paredoes else []:
+        if p.get("status") == "em_andamento":
+            active_paredao = p
+            break
+
+    effective_week = current_week
+    if active_paredao and active_paredao.get("semana"):
+        effective_week = active_paredao.get("semana")
+    else:
+        candidate_weeks = []
+        for ev in power_events:
+            w = ev.get("week")
+            if w:
+                candidate_weeks.append(w)
+        for edge in (sincerao_edges or {}).get("edges", []):
+            w = edge.get("week")
+            if w:
+                candidate_weeks.append(w)
+        for par in paredoes.get("paredoes", []) if paredoes else []:
+            w = par.get("semana")
+            if w:
+                candidate_weeks.append(w)
+        candidate_weeks = [w for w in candidate_weeks if w <= current_week]
+        if candidate_weeks:
+            effective_week = max(candidate_weeks)
+
+    def decay_factor(week):
+        if not week:
+            return 1.0
+        diff = max(0, effective_week - week)
+        return 1.0 / (1.0 + diff)
+
+    edges = []
+
+    def add_edge(kind, actor, target, weight, week=None, date=None, meta=None, revealed=False):
+        if not actor or not target:
+            return
+        if actor == target:
+            return
+        if actor not in active_set or target not in active_set:
+            return
+        edge_week = week or effective_week
+        decay = decay_factor(edge_week)
+        edge = {
+            "type": kind,
+            "actor": actor,
+            "target": target,
+            "week": edge_week,
+            "date": date,
+            "weight_raw": weight,
+            "weight_roll": round(weight * decay, 4),
+            "weight_week": round(weight if edge_week == effective_week else 0.0, 4),
+            "revealed": revealed,
+        }
+        if meta:
+            edge.update(meta)
+        edges.append(edge)
+
+    for ev in power_events:
+        ev_type = ev.get("type")
+        base_weight = RELATION_POWER_WEIGHTS.get(ev_type, 0.0)
+        if base_weight == 0:
+            continue
+        if ev.get("self") or ev.get("self_inflicted"):
+            continue
+        target = ev.get("target")
+        if not target:
+            continue
+        actors = normalize_actors(ev)
+        if not actors:
+            continue
+        visibility = ev.get("visibility", "public")
+        vis_factor = RELATION_VISIBILITY_FACTOR.get(visibility, 1.0)
+        weight = base_weight * vis_factor
+        ev_week = ev.get("week") or (get_week_number(ev["date"]) if ev.get("date") else effective_week)
+        for actor in actors:
+            if actor in SYSTEM_ACTORS:
+                continue
+            add_edge(
+                "power_event",
+                actor,
+                target,
+                weight,
+                week=ev_week,
+                date=ev.get("date"),
+                meta={"event_type": ev_type, "visibility": visibility},
+            )
+            backlash_factor = RELATION_POWER_BACKLASH_FACTOR.get(ev_type)
+            if backlash_factor and visibility != "secret":
+                add_edge(
+                    "power_event",
+                    target,
+                    actor,
+                    weight * backlash_factor,
+                    week=ev_week,
+                    date=ev.get("date"),
+                    meta={"event_type": ev_type, "visibility": visibility, "backlash": True},
+                )
+
+    # Sincerão edges
+    for edge in (sincerao_edges or {}).get("edges", []):
+        actor = edge.get("actor")
+        target = edge.get("target")
+        etype = edge.get("type")
+        if etype == "podio":
+            slot = edge.get("slot")
+            base_weight = RELATION_SINC_WEIGHTS["podio"].get(slot, 0.0)
+        else:
+            base_weight = RELATION_SINC_WEIGHTS.get(etype, 0.0)
+        if base_weight == 0:
+            continue
+        add_edge(
+            "sincerao",
+            actor,
+            target,
+            base_weight,
+            week=edge.get("week"),
+            date=edge.get("date"),
+            meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema")},
+        )
+
+    # VIP edges (latest snapshot)
+    if daily_roles:
+        latest_roles = daily_roles[-1]
+        leader = next(iter(latest_roles.get("roles", {}).get("Líder", [])), None)
+        if leader and leader in active_set:
+            for vip_name in latest_roles.get("vip", []):
+                if vip_name == leader:
+                    continue
+                add_edge(
+                    "vip",
+                    leader,
+                    vip_name,
+                    RELATION_VIP_WEIGHT,
+                    week=effective_week,
+                    date=latest_date,
+                )
+
+    # Vote edges
+    for week, targets in votes_received_by_week.items():
+        for target, voters in targets.items():
+            for voter, count in voters.items():
+                if count <= 0:
+                    continue
+                revealed = voter in revealed_votes.get(target, set())
+                vote_kind = "revealed" if revealed else "secret"
+                weight = RELATION_VOTE_WEIGHTS[vote_kind] * count
+                add_edge(
+                    "vote",
+                    voter,
+                    target,
+                    weight,
+                    week=week,
+                    meta={"vote_count": count, "vote_kind": vote_kind},
+                    revealed=revealed,
+                )
+                if revealed:
+                    backlash = RELATION_VOTE_WEIGHTS["revealed_backlash"] * count
+                    add_edge(
+                        "vote",
+                        target,
+                        voter,
+                        backlash,
+                        week=week,
+                        meta={"vote_count": count, "vote_kind": "revealed_backlash"},
+                        revealed=True,
+                    )
+
+    # Aggregate pair scores
+    pairs = {}
+    for a in active_names:
+        pairs[a] = {}
+        for b in active_names:
+            if a == b:
+                continue
+            label = reaction_matrix.get((a, b), "")
+            base = SENTIMENT_WEIGHTS.get(label, 0.0)
+            pairs[a][b] = {
+                "week": round(base, 4),
+                "roll": round(base, 4),
+                "components_week": {"queridometro": round(base, 4)},
+                "components_roll": {"queridometro": round(base, 4)},
+            }
+
+    for edge in edges:
+        actor = edge["actor"]
+        target = edge["target"]
+        if actor not in pairs or target not in pairs[actor]:
+            continue
+        kind = edge["type"]
+        wk_add = edge["weight_week"]
+        roll_add = edge["weight_roll"]
+
+        pairs[actor][target]["week"] = round(pairs[actor][target]["week"] + wk_add, 4)
+        pairs[actor][target]["roll"] = round(pairs[actor][target]["roll"] + roll_add, 4)
+
+        comps_w = pairs[actor][target]["components_week"]
+        comps_r = pairs[actor][target]["components_roll"]
+        comps_w[kind] = round(comps_w.get(kind, 0.0) + wk_add, 4)
+        comps_r[kind] = round(comps_r.get(kind, 0.0) + roll_add, 4)
+
+    return {
+        "_metadata": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "date": latest_date,
+            "week": current_week,
+            "effective_week": effective_week,
+            "weights": {
+                "queridometro": SENTIMENT_WEIGHTS,
+                "power_events": RELATION_POWER_WEIGHTS,
+                "sincerao": RELATION_SINC_WEIGHTS,
+                "vip": RELATION_VIP_WEIGHT,
+                "votes": RELATION_VOTE_WEIGHTS,
+                "visibility_factor": RELATION_VISIBILITY_FACTOR,
+                "decay": "1/(1+Δsemana)",
+            },
+        },
+        "edges": edges,
+        "pairs": pairs,
+    }
 
 
 def build_participants_index(snapshots, manual_events):
@@ -284,6 +620,28 @@ def build_snapshots_manifest(daily_snapshots, daily_metrics):
         "dates": [i["date"] for i in items],
         "snapshots": items,
     }
+
+
+def detect_eliminations(daily_snapshots):
+    records = []
+    prev_names = None
+    prev_date = None
+    for snap in daily_snapshots:
+        date = snap.get("date")
+        names = [p.get("name") for p in snap.get("participants", []) if p.get("name")]
+        if prev_names is not None:
+            missing = [n for n in prev_names if n not in names]
+            added = [n for n in names if n not in prev_names]
+            if missing or added:
+                records.append({
+                    "date": date,
+                    "prev_date": prev_date,
+                    "missing": missing,
+                    "added": added,
+                })
+        prev_names = names
+        prev_date = date
+    return records
 
 
 def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes=None):
@@ -1045,6 +1403,7 @@ def build_derived_data():
     auto_events = build_auto_events(daily_roles)
     daily_metrics = build_daily_metrics(daily_snapshots)
     snapshots_manifest = build_snapshots_manifest(daily_snapshots, daily_metrics)
+    eliminations_detected = detect_eliminations(daily_snapshots)
     warnings = validate_manual_events(participants_index, manual_events)
     sincerao_edges = build_sincerao_edges(manual_events)
     paredoes = {}
@@ -1052,6 +1411,14 @@ def build_derived_data():
         with open(PAREDOES_FILE, encoding="utf-8") as f:
             paredoes = json.load(f)
     plant_index = build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes)
+    relations_scores = build_relations_scores(
+        daily_snapshots[-1],
+        manual_events,
+        auto_events,
+        sincerao_edges,
+        paredoes,
+        daily_roles,
+    )
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -1080,8 +1447,14 @@ def build_derived_data():
         **snapshots_manifest,
     })
 
+    write_json(DERIVED_DIR / "eliminations_detected.json", {
+        "_metadata": {"generated_at": now, "source": "snapshots"},
+        "events": eliminations_detected,
+    })
+
     write_json(DERIVED_DIR / "sincerao_edges.json", sincerao_edges)
     write_json(DERIVED_DIR / "plant_index.json", plant_index)
+    write_json(DERIVED_DIR / "relations_scores.json", relations_scores)
 
     write_json(DERIVED_DIR / "validation.json", {
         "_metadata": {"generated_at": now, "source": "manual_events"},

@@ -71,6 +71,7 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 | 2026-01-26 | Added `daily_metrics.json` derived output for faster timelines | ✅ Done |
 | 2026-01-28 | Added `index_data.json` derived output for `index.qmd` tables | ✅ Done |
 | 2026-01-28 | Added `snapshots_index.json` manifest + `datas.qmd` Date View | ✅ Done |
+| 2026-01-28 | Added `eliminations_detected.json` (API elimination detection) | ✅ Done |
 | | Calibrar semanalmente o índice de animosidade (power_events + votos + queridômetro) | ⏳ Ongoing |
 | | Fill manual_events.json with past events + source URLs | ⏳ Pending |
 | | Enable GitHub Pages | ⏳ Pending |

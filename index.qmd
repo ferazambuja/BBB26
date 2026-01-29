@@ -953,10 +953,6 @@ Faixas: 🟢 **MUITO BAIXA** (<1), 🟡 **BAIXA** (>=1), 🟠 **MÉDIA** (>=3), 
 </div>
 </details>
 
-## Sincerão vs Queridômetro
-
-<p class="text-muted">A análise detalhada (alinhamento e contradições) está em <a href="planta.html">Planta Index</a>.</p>
-
 ```{python}
 #| label: individual-profiles
 #| output: asis
@@ -1282,7 +1278,7 @@ for p in profiles:
   {f"<div style='display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;'><strong style='color: #999;'>Histórico da temporada:</strong> {hist_html}</div>" if (events.get('pos_hist') or events.get('neg_hist')) else ""}
 </div>
 </div>
-''' if (events.get('pos_week') or events.get('neg_week') or votes or sincerao_html) else ''}
+''' if (events.get('pos_week') or events.get('neg_week') or votes or sincerao_html or events.get('pos_hist') or events.get('neg_hist')) else ''}
 
 <!-- Strategic Map -->
 <div style="padding: 1rem;">

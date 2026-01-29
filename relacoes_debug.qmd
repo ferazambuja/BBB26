@@ -1,0 +1,195 @@
+---
+title: "🧭 Relações — Debug"
+subtitle: "Tally completo do score A→B (queridômetro + eventos)"
+---
+
+```{python}
+#| label: setup
+#| message: false
+#| warning: false
+
+import json
+from pathlib import Path
+from collections import defaultdict
+import pandas as pd
+import sys
+
+sys.path.append(str(Path("scripts").resolve()))
+from data_utils import (
+    require_clean_manual_events, get_all_snapshots, load_snapshot,
+    build_reaction_matrix, REACTION_EMOJI, SENTIMENT_WEIGHTS, get_week_number
+)
+
+require_clean_manual_events()
+
+RELATIONS_FILE = Path("data/derived/relations_scores.json")
+DISPLAY_WEEK = 2
+
+relations = json.loads(RELATIONS_FILE.read_text(encoding="utf-8")) if RELATIONS_FILE.exists() else {}
+relations_pairs = relations.get("pairs", {})
+edges = relations.get("edges", [])
+meta = relations.get("_metadata", {})
+
+snapshots = get_all_snapshots()
+latest = snapshots[-1] if snapshots else None
+participants = []
+latest_date = None
+matrix = {}
+week_snapshot = None
+week_date = None
+if snapshots:
+    for fp, date in snapshots:
+        if get_week_number(date) == DISPLAY_WEEK:
+            week_snapshot = (fp, date)
+    if not week_snapshot:
+        week_snapshot = latest
+if week_snapshot:
+    week_fp, week_date = week_snapshot
+    participants, _ = load_snapshot(week_fp)
+    matrix = build_reaction_matrix(participants)
+
+
+def reaction_label(actor, target):
+    label = matrix.get((actor, target), "")
+    emoji = REACTION_EMOJI.get(label, "") if label else ""
+    return label, emoji
+
+
+def flatten_pairs(pairs):
+    rows = []
+    # Build week components from edges for DISPLAY_WEEK
+    week_edges = [e for e in edges if e.get("week") == DISPLAY_WEEK]
+    week_components = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+    for ev in week_edges:
+        actor = ev.get("actor")
+        target = ev.get("target")
+        if not actor or not target:
+            continue
+        kind = ev.get("type")
+        week_components[actor][target][kind] += ev.get("weight_raw", 0.0)
+
+    for actor, targets in pairs.items():
+        for target, rec in targets.items():
+            label, emoji = reaction_label(actor, target)
+            base = SENTIMENT_WEIGHTS.get(label, 0.0)
+            comps_week = week_components.get(actor, {}).get(target, {})
+            comps_roll = rec.get("components_roll", {})
+            week_sum = base + sum(comps_week.values())
+            rows.append({
+                "Ator": actor,
+                "Alvo": target,
+                "Queridômetro": f"{emoji} {label}".strip(),
+                "Q": round(base, 2),
+                "Power (semana)": round(comps_week.get("power_event", 0.0), 2),
+                "Sincerão (semana)": round(comps_week.get("sincerao", 0.0), 2),
+                "VIP (semana)": round(comps_week.get("vip", 0.0), 2),
+                "Voto (semana)": round(comps_week.get("vote", 0.0), 2),
+                "Score semana": round(week_sum, 2),
+                "Power (rolling)": round(comps_roll.get("power_event", 0.0), 2),
+                "Sincerão (rolling)": round(comps_roll.get("sincerao", 0.0), 2),
+                "VIP (rolling)": round(comps_roll.get("vip", 0.0), 2),
+                "Voto (rolling)": round(comps_roll.get("vote", 0.0), 2),
+                "Score rolling": round(rec.get("roll", 0.0), 2),
+            })
+    return pd.DataFrame(rows)
+
+
+pairs_df = flatten_pairs(relations_pairs) if relations_pairs else pd.DataFrame()
+
+edge_rows = []
+for ev in edges:
+    if ev.get("week") != DISPLAY_WEEK:
+        continue
+    edge_rows.append({
+        "Data": ev.get("date"),
+        "Semana": ev.get("week"),
+        "Tipo": ev.get("type"),
+        "Evento": ev.get("event_type") or ev.get("sinc_type"),
+        "Tema": ev.get("tema"),
+        "Slot": ev.get("slot"),
+        "Ator": ev.get("actor"),
+        "Alvo": ev.get("target"),
+        "Visibilidade": ev.get("visibility"),
+        "Backlash": "sim" if ev.get("backlash") else "",
+        "Voto (tipo)": ev.get("vote_kind"),
+        "Revelado": "sim" if ev.get("revealed") else "não",
+        "Peso (semana)": ev.get("weight_week"),
+        "Peso (rolling)": ev.get("weight_roll"),
+    })
+
+edges_df = pd.DataFrame(edge_rows)
+```
+
+## Pesos ativos
+
+```{python}
+#| label: weights
+#| echo: false
+#| output: asis
+
+if meta:
+    print(f"<div><strong>Semana exibida:</strong> {DISPLAY_WEEK}</div>")
+    if week_date:
+        print(f"<div><strong>Snapshot usado:</strong> {week_date}</div>")
+    print(f"<div><strong>Data (último sync):</strong> {meta.get('date')}</div>")
+    print(f"<div><strong>Semana (atual):</strong> {meta.get('week')}</div>")
+    print(f"<div><strong>Semana efetiva:</strong> {meta.get('effective_week')}</div>")
+    print(f"<div><strong>Decay:</strong> {meta.get('weights', {}).get('decay')}</div>")
+    print("<div style='margin-top:0.6rem;'><strong>Pesos (resumo)</strong></div>")
+    print(f"<div>Queridômetro: {meta.get('weights', {}).get('queridometro')}</div>")
+    print(f"<div>Power events: {meta.get('weights', {}).get('power_events')}</div>")
+    print(f"<div>Sincerão: {meta.get('weights', {}).get('sincerao')}</div>")
+    print(f"<div>VIP: {meta.get('weights', {}).get('vip')}</div>")
+    print(f"<div>Votos: {meta.get('weights', {}).get('votes')}</div>")
+    print(f"<div>Visibilidade: {meta.get('weights', {}).get('visibility_factor')}</div>")
+else:
+    print("<div>Sem metadados disponíveis.</div>")
+```
+
+## Pares (A → B) — tabela completa
+
+<p class="text-muted">Tabela calculada com <strong>semana {DISPLAY_WEEK}</strong>. “(semana)” usa apenas edges dessa semana; “(rolling)” usa o acumulado com decay.</p>
+
+```{python}
+#| label: pairs-table
+#| echo: false
+#| output: asis
+
+if pairs_df.empty:
+    print("Nenhum par encontrado.")
+else:
+    pairs_df = pairs_df.sort_values(["Ator", "Score semana"], ascending=[True, False])
+    print(pairs_df.to_html(index=False, classes="table table-sm table-dark", escape=False))
+```
+
+## Detalhes por participante
+
+```{python}
+#| label: pairs-by-actor
+#| echo: false
+#| output: asis
+
+if pairs_df.empty:
+    print("Nenhum par encontrado.")
+else:
+    for actor in sorted(pairs_df["Ator"].unique()):
+        sub = pairs_df[pairs_df["Ator"] == actor].copy()
+        sub = sub.sort_values("Score semana", ascending=False)
+        print(f"<details style='margin: 0.4rem 0;'><summary><strong>{actor}</strong></summary>")
+        print(sub.to_html(index=False, classes="table table-sm table-dark", escape=False))
+        print("</details>")
+```
+
+## Edges individuais (eventos e votos)
+
+```{python}
+#| label: edges-table
+#| echo: false
+#| output: asis
+
+if edges_df.empty:
+    print("Nenhum edge registrado.")
+else:
+    edges_df = edges_df.sort_values(["Semana", "Tipo", "Ator"], ascending=[False, True, True])
+    print(edges_df.to_html(index=False, classes="table table-sm table-dark", escape=False))
+```

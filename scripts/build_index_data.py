@@ -22,6 +22,7 @@ DAILY_METRICS_FILE = DERIVED_DIR / "daily_metrics.json"
 ROLES_DAILY_FILE = DERIVED_DIR / "roles_daily.json"
 PARTICIPANTS_INDEX_FILE = DERIVED_DIR / "participants_index.json"
 PLANT_INDEX_FILE = DERIVED_DIR / "plant_index.json"
+RELATIONS_FILE = DERIVED_DIR / "relations_scores.json"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
 
 NEG_EVENT_WEIGHTS = {
@@ -179,7 +180,11 @@ def build_index_data():
     roles_daily = load_json(ROLES_DAILY_FILE, {"daily": []})
     participants_index = load_json(PARTICIPANTS_INDEX_FILE, {"participants": []})
     plant_index = load_json(PLANT_INDEX_FILE, {})
+    relations_data = load_json(RELATIONS_FILE, {})
     paredoes = load_json(PAREDOES_FILE, {"paredoes": []})
+
+    relations_pairs = relations_data.get("pairs", {}) if isinstance(relations_data, dict) else {}
+    use_relations = bool(relations_pairs)
 
     power_events = manual_events.get("power_events", []) + auto_events.get("events", [])
 
@@ -634,43 +639,49 @@ def build_index_data():
             votes_received_by_week[week][t][v] += mult
 
     for wev in manual_events.get("weekly_events", []) if manual_events else []:
-        dd = wev.get("dedo_duro")
-        if isinstance(dd, dict):
-            voter = dd.get("votante")
-            target = dd.get("alvo")
-            if voter and target:
-                revealed_votes[target].add(voter)
-        elif isinstance(dd, list):
-            for item in dd:
-                voter = item.get("votante")
-                target = item.get("alvo")
+        for key in ("dedo_duro", "voto_revelado"):
+            dd = wev.get(key)
+            if isinstance(dd, dict):
+                voter = dd.get("votante")
+                target = dd.get("alvo")
                 if voter and target:
                     revealed_votes[target].add(voter)
+            elif isinstance(dd, list):
+                for item in dd:
+                    voter = item.get("votante")
+                    target = item.get("alvo")
+                    if voter and target:
+                        revealed_votes[target].add(voter)
 
     current_vote_week = current_cycle_week
 
-    # Sincerao edge modifiers (current week)
+    # Sincerao edges (current week) used for contradictions/insights
     sinc_edges_week = [e for e in sinc_data.get("edges", []) if e.get("week") == current_week]
     sinc_edge_mod = defaultdict(float)
-    for edge in sinc_edges_week:
-        actor = edge.get("actor")
-        target = edge.get("target")
-        if not actor or not target:
-            continue
-        etype = edge.get("type")
-        if etype == "podio":
-            slot = edge.get("slot")
-            mod = SINC_EDGE_WEIGHTS["podio"].get(slot, 0.2)
-        else:
-            mod = SINC_EDGE_WEIGHTS.get(etype, 0.0)
-        sinc_edge_mod[(actor, target)] += mod
-
     vip_edge_mod = defaultdict(float)
-    if house_leader:
-        for vip_name in vip_recipients:
-            vip_edge_mod[(house_leader, vip_name)] += VIP_EDGE_WEIGHT
+    if not use_relations:
+        for edge in sinc_edges_week:
+            actor = edge.get("actor")
+            target = edge.get("target")
+            if not actor or not target:
+                continue
+            etype = edge.get("type")
+            if etype == "podio":
+                slot = edge.get("slot")
+                mod = SINC_EDGE_WEIGHTS["podio"].get(slot, 0.2)
+            else:
+                mod = SINC_EDGE_WEIGHTS.get(etype, 0.0)
+            sinc_edge_mod[(actor, target)] += mod
+
+        if house_leader:
+            for vip_name in vip_recipients:
+                vip_edge_mod[(house_leader, vip_name)] += VIP_EDGE_WEIGHT
 
     def pair_sentiment(giver, receiver):
+        if use_relations:
+            rel = relations_pairs.get(giver, {}).get(receiver)
+            if rel:
+                return rel.get("week", 0)
         label = latest_matrix.get((giver, receiver), "")
         base = SENTIMENT_WEIGHTS.get(label, 0)
         return base + sinc_edge_mod.get((giver, receiver), 0) + vip_edge_mod.get((giver, receiver), 0)

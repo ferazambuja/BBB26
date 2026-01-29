@@ -8,6 +8,7 @@ ROOT = Path(__file__).parent.parent
 MANUAL = ROOT / "data/manual_events.json"
 AUTO = ROOT / "data/derived/auto_events.json"
 PARTICIPANTS = ROOT / "data/derived/participants_index.json"
+ELIMS = ROOT / "data/derived/eliminations_detected.json"
 OUT = ROOT / "docs/MANUAL_EVENTS_AUDIT.md"
 OUT_JSON = ROOT / "data/derived/manual_events_audit.json"
 
@@ -32,6 +33,7 @@ def run_audit():
     manual = load(MANUAL, {})
     auto = load(AUTO, {})
     participants = load(PARTICIPANTS, {}).get("participants", [])
+    elim_events = load(ELIMS, {}).get("events", [])
 
     names = {p.get("name") for p in participants if p.get("name")}
 
@@ -94,6 +96,15 @@ def run_audit():
         if not sinc.get("date"):
             issues["sinc_missing_date"].append((i, weekly.get("week"), sinc))
 
+    # Eliminations detected by API vs manual log
+    manual_participants = manual.get("participants", {}) if isinstance(manual.get("participants"), dict) else {}
+    for ev in elim_events:
+        missing = ev.get("missing", [])
+        for name in missing:
+            status = (manual_participants.get(name) or {}).get("status")
+            if status not in {"eliminado", "eliminada", "desistente", "desclassificado"}:
+                issues["elimination_missing_manual"].append((ev.get("date"), name))
+
     # Write report
     lines = []
     lines.append("# Manual Events Audit")
@@ -121,6 +132,7 @@ def run_audit():
     section("Duplicate manual entries", [f"{key} indexes {idxs}" for key, idxs in issues.get("duplicate_manual", [])])
     section("Sincerão missing sources", [f"weekly idx {i} week {wk}" for i, wk, _ in issues.get("sinc_missing_sources", [])])
     section("Sincerão missing date", [f"weekly idx {i} week {wk}" for i, wk, _ in issues.get("sinc_missing_date", [])])
+    section("Elimination missing in manual_events participants", [f"{date} — {name}" for date, name in issues.get("elimination_missing_manual", [])])
 
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote {OUT}")

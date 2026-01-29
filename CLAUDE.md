@@ -145,6 +145,8 @@ When rendering `trajetoria.qmd`, Pandoc reports warnings about unclosed divs:
 - **Returns**: Complete state snapshot — NOT cumulative, NOT additive
 - **No timestamp**: API provides no `Last-Modified` header or update timestamp
 - **Update frequency**: Data changes daily at unpredictable times, with intraday changes possible
+- **Eliminação**: o participante **some da lista**; o campo `eliminated` na API não é confiável (geralmente sempre `false`).
+- **Detecção automática**: `data/derived/eliminations_detected.json` compara snapshots diários e registra `missing/added`.
 
 ### Date Selection (static)
 - `data/derived/snapshots_index.json` is the manifest used by the Date View.
@@ -205,7 +207,9 @@ Use this as the **single reference** for what data exists and how it can be reus
 - `data/latest.json` — Convenience pointer to most recent snapshot.
 
 **Manual (curated)**
-- `data/manual_events.json` — **Power events + weekly events** not in API (Big Fone, contragolpe, voto duplo/anulado, dedo‑duro, consensus decisions).
+- `data/manual_events.json` — **Power events + weekly events** not in API (Big Fone, contragolpe, voto duplo/anulado, voto revelado, consensus decisions).
+  - `weekly_events[].dedo_duro`: use when a **dinâmica pública** revela voto (dedo‑duro).
+  - `weekly_events[].voto_revelado`: use when the **participant confessa o voto ao alvo** (não é dinâmica pública).
 - `data/paredoes.json` — **Paredão formation + votos da casa + resultado + % público** (percentuais are manual).
 - `data/votalhada/polls.json` — **Poll aggregation** from Votalhada (per paredão).
 - `data/votalhada/README.md` and `docs/HANDOFF_VOTALHADA.md` — collection steps + schema.
@@ -220,6 +224,7 @@ Use this as the **single reference** for what data exists and how it can be reus
 - `data/derived/index_data.json` — Index tables (highlights, watchlist, rankings, profiles).
 - `data/derived/plant_index.json` — Planta Index per week + rolling averages (derived from snapshots + events).
 - `data/derived/cartola_data.json` — Cartola BBB points (leaderboard, weekly breakdown, stats, seen/current roles).
+- `data/derived/relations_scores.json` — Pairwise sentiment scores (A→B) combining queridômetro + power_events + Sincerão + VIP + votos.
 - `docs/MANUAL_EVENTS_AUDIT.md` — Manual events audit report (auto‑generated; render hard‑fails if issues).
 - `data/derived/manual_events_audit.json` — Audit status used by QMD pages to block render on inconsistencies.
 
@@ -256,29 +261,53 @@ with optional, **rare** power event modifiers.
   - Use as **small modifiers** to the sentiment index (see Sincerão framework).
 
 ### Sentiment Index (A → B)
-Purpose: a **directional score** showing how A feels about B.
+Purpose: a **directional score** showing how A feels about B, combining private (queridômetro)
+and public (power events / Sincerão / votos / VIP) signals.
+
+Computed in `data/derived/relations_scores.json`.
 
 **Base (queridômetro):**
 ```
-score_current(A→B) = weight(reaction_label from A to B)
+Q(A→B) = weight(reaction_label from A to B)
 ```
 
-**Optional smoothing (if using multiple days):**
-```
-score_pair(A→B) = 0.6 * score_current
-                + 0.25 * avg_3d
-                + 0.15 * avg_7d
-```
-Where `avg_3d` / `avg_7d` are averages of prior snapshots (if available).
+**Event modifiers (weekly + rolling):**
+- **Power events** (manual + auto, actor → target):
+  - `indicacao` −2.8, `contragolpe` −2.8, `monstro` −1.2,
+    `voto_anulado` −0.8, `perdeu_voto` −0.6, `imunidade` +0.8
+  - **Self‑inflicted** events do not create A→B edges.
+  - **Consensus** (ex.: Alberto + Brigido) = **full weight for each actor**.
+  - **Public** indicacao/contragolpe also add **backlash** B→A (peso menor, fator 0.6).
+  - **Eventos públicos** são amplificados (fator 1.2); secretos = 0.5.
+- **Sincerão edges**:
+  - pódio slot 1/2/3 = +0.7/+0.5/+0.3
+  - “não ganha” −1.0, “bomba” −0.8
+- **VIP** (líder → VIPs da semana): +0.2
+- **Votos da casa** (A vota em B):
+  - voto **secreto**: −0.8 (conta para A→B)
+  - voto **revelado** (dedo‑duro / votação aberta): −1.2 (conta para A→B)
+  - votos secretos **não alteram B→A**; só impactam quem votou.
+  - voto **revelado ao alvo**: adiciona **backlash** B→A (peso menor, −0.6) porque o alvo agora sabe quem votou.
 
-**Event modifiers (rare, optional):**
-- Only apply when we know the **actor** and **target**.
-- Keep weights **small** to avoid overpowering daily reactions.
+**Score semanal (current week):**
 ```
-score_pair += -0.3 * peso_evento_negativo(actor=A, target=B)
-score_pair += +0.2 * peso_evento_positivo(actor=A, target=B)
+Score_week(A→B) = Q + Σ eventos_da_semana + Σ votos_da_semana
 ```
-Event weights use the same table as Risco externo (see below). Apply **decay** for older weeks.
+
+**Semana efetiva (quando a semana atual está “vazia”)**
+- Se **não há Paredão em andamento** e a semana atual não tem eventos, usamos a **última semana com eventos** como “semana efetiva”.
+- Isso evita cair numa semana sem dinâmica (após eliminação, antes da nova liderança).
+
+**Score rolling (decay):**
+```
+Score_roll(A→B) = Q + Σ (evento * 1/(1+Δsemana))
+```
+
+### Relationship Summary Score (A ↔ B)
+For symmetric views (alliances / rivalries):
+```
+score_mutual = 0.5 * Score_week(A→B) + 0.5 * Score_week(B→A)
+```
 
 ### Relationship Summary Score (A ↔ B)
 For symmetric views (alliances / rivalries):
