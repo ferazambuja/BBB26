@@ -23,83 +23,121 @@ from data_utils import (
 require_clean_manual_events()
 
 RELATIONS_FILE = Path("data/derived/relations_scores.json")
-DISPLAY_WEEK = 2
 
 relations = json.loads(RELATIONS_FILE.read_text(encoding="utf-8")) if RELATIONS_FILE.exists() else {}
-relations_pairs = relations.get("pairs", {})
-edges = relations.get("edges", [])
+relations_pairs_daily = relations.get("pairs_daily", {}) or relations.get("pairs", {})
+relations_pairs_paredao = relations.get("pairs_paredao", {}) or relations.get("pairs", {})
+edges_daily = relations.get("edges_daily", []) or relations.get("edges", [])
+edges_paredao = relations.get("edges_paredao", []) or relations.get("edges", [])
 meta = relations.get("_metadata", {})
+DISPLAY_WEEK_DAILY = meta.get("effective_week_daily") or meta.get("week") or 2
+DISPLAY_WEEK_PAREDAO = meta.get("effective_week_paredao") or meta.get("week") or 2
+reference_date_daily = meta.get("reference_date_daily") or meta.get("date")
+reference_date_paredao = meta.get("reference_date_paredao") or meta.get("date")
 
 snapshots = get_all_snapshots()
 latest = snapshots[-1] if snapshots else None
 participants = []
 latest_date = None
-matrix = {}
-week_snapshot = None
-week_date = None
+matrix_daily = {}
+matrix_paredao = {}
+week_snapshot_daily = None
+week_snapshot_paredao = None
+week_date_daily = None
+week_date_paredao = None
 if snapshots:
-    for fp, date in snapshots:
-        if get_week_number(date) == DISPLAY_WEEK:
-            week_snapshot = (fp, date)
-    if not week_snapshot:
-        week_snapshot = latest
-if week_snapshot:
-    week_fp, week_date = week_snapshot
+    if reference_date_daily:
+        for fp, date in snapshots:
+            if date <= reference_date_daily:
+                week_snapshot_daily = (fp, date)
+    if not week_snapshot_daily:
+        for fp, date in snapshots:
+            if get_week_number(date) == DISPLAY_WEEK_DAILY:
+                week_snapshot_daily = (fp, date)
+    if not week_snapshot_daily:
+        week_snapshot_daily = latest
+    if reference_date_paredao:
+        for fp, date in snapshots:
+            if date <= reference_date_paredao:
+                week_snapshot_paredao = (fp, date)
+    if not week_snapshot_paredao:
+        for fp, date in snapshots:
+            if get_week_number(date) == DISPLAY_WEEK_PAREDAO:
+                week_snapshot_paredao = (fp, date)
+    if not week_snapshot_paredao:
+        week_snapshot_paredao = latest
+if week_snapshot_daily:
+    week_fp, week_date_daily = week_snapshot_daily
     participants, _ = load_snapshot(week_fp)
-    matrix = build_reaction_matrix(participants)
+    matrix_daily = build_reaction_matrix(participants)
+if week_snapshot_paredao:
+    week_fp, week_date_paredao = week_snapshot_paredao
+    participants, _ = load_snapshot(week_fp)
+    matrix_paredao = build_reaction_matrix(participants)
 
 
-def reaction_label(actor, target):
+def reaction_label(actor, target, matrix):
     label = matrix.get((actor, target), "")
     emoji = REACTION_EMOJI.get(label, "") if label else ""
     return label, emoji
 
 
-def flatten_pairs(pairs):
-    rows = []
-    # Build week components from edges for DISPLAY_WEEK
-    week_edges = [e for e in edges if e.get("week") == DISPLAY_WEEK]
-    week_components = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
-    for ev in week_edges:
-        actor = ev.get("actor")
-        target = ev.get("target")
-        if not actor or not target:
-            continue
-        kind = ev.get("type")
-        week_components[actor][target][kind] += ev.get("weight_raw", 0.0)
+def classify_relation(score):
+    if score >= 0.5:
+        return "Amigável", "rel-friend"
+    if score <= -0.5:
+        return "Hostil", "rel-hostile"
+    return "Neutro", "rel-neutral"
 
+
+def fmt_score(value):
+    if value is None:
+        return ""
+    cls = "val-zero"
+    if value > 0:
+        cls = "val-pos"
+    elif value < 0:
+        cls = "val-neg"
+    return f"<span class='{cls}'>{value:.2f}</span>"
+
+
+def flatten_pairs(pairs, matrix):
+    rows = []
     for actor, targets in pairs.items():
         for target, rec in targets.items():
-            label, emoji = reaction_label(actor, target)
-            base = SENTIMENT_WEIGHTS.get(label, 0.0)
-            comps_week = week_components.get(actor, {}).get(target, {})
+            label, emoji = reaction_label(actor, target, matrix)
+            comps_week = rec.get("components_week", {})
             comps_roll = rec.get("components_roll", {})
-            week_sum = base + sum(comps_week.values())
+            week_sum = rec.get("week", 0.0)
+            rel_score = rec.get("roll", 0.0)
+            rel_label, rel_class = classify_relation(rel_score)
             rows.append({
                 "Ator": actor,
                 "Alvo": target,
+                "Relação (rolling)": f"<span class='rel-pill {rel_class}'>{rel_label}</span>",
                 "Queridômetro": f"{emoji} {label}".strip(),
-                "Q": round(base, 2),
-                "Power (semana)": round(comps_week.get("power_event", 0.0), 2),
-                "Sincerão (semana)": round(comps_week.get("sincerao", 0.0), 2),
-                "VIP (semana)": round(comps_week.get("vip", 0.0), 2),
-                "Voto (semana)": round(comps_week.get("vote", 0.0), 2),
-                "Score semana": round(week_sum, 2),
-                "Power (rolling)": round(comps_roll.get("power_event", 0.0), 2),
-                "Sincerão (rolling)": round(comps_roll.get("sincerao", 0.0), 2),
-                "VIP (rolling)": round(comps_roll.get("vip", 0.0), 2),
-                "Voto (rolling)": round(comps_roll.get("vote", 0.0), 2),
-                "Score rolling": round(rec.get("roll", 0.0), 2),
+                "Power (semana)": fmt_score(comps_week.get("power_event", 0.0)),
+                "Sincerão (semana)": fmt_score(comps_week.get("sincerao", 0.0)),
+                "VIP (semana)": fmt_score(comps_week.get("vip", 0.0)),
+                "Voto (semana)": fmt_score(comps_week.get("vote", 0.0)),
+                "Score semana": fmt_score(week_sum),
+                "Power (rolling)": fmt_score(comps_roll.get("power_event", 0.0)),
+                "Sincerão (rolling)": fmt_score(comps_roll.get("sincerao", 0.0)),
+                "VIP (rolling)": fmt_score(comps_roll.get("vip", 0.0)),
+                "Voto (rolling)": fmt_score(comps_roll.get("vote", 0.0)),
+                "Score rolling": fmt_score(rec.get("roll", 0.0)),
             })
     return pd.DataFrame(rows)
 
-
-pairs_df = flatten_pairs(relations_pairs) if relations_pairs else pd.DataFrame()
+pairs_daily_df = flatten_pairs(relations_pairs_daily, matrix_daily) if relations_pairs_daily else pd.DataFrame()
+pairs_paredao_df = flatten_pairs(relations_pairs_paredao, matrix_paredao) if relations_pairs_paredao else pd.DataFrame()
 
 edge_rows = []
-for ev in edges:
-    if ev.get("week") != DISPLAY_WEEK:
+for ev in edges_paredao:
+    if ev.get("week") != DISPLAY_WEEK_PAREDAO:
         continue
+    weight_week = ev.get("weight_week")
+    weight_roll = ev.get("weight_roll")
     edge_rows.append({
         "Data": ev.get("date"),
         "Semana": ev.get("week"),
@@ -113,14 +151,56 @@ for ev in edges:
         "Backlash": "sim" if ev.get("backlash") else "",
         "Voto (tipo)": ev.get("vote_kind"),
         "Revelado": "sim" if ev.get("revealed") else "não",
-        "Peso (semana)": ev.get("weight_week"),
-        "Peso (rolling)": ev.get("weight_roll"),
+        "Peso (semana)": fmt_score(weight_week) if weight_week is not None else "",
+        "Peso (rolling)": fmt_score(weight_roll) if weight_roll is not None else "",
     })
 
 edges_df = pd.DataFrame(edge_rows)
+
+event_rows = []
+for ev in edges_paredao:
+    if ev.get("week") != DISPLAY_WEEK_PAREDAO:
+        continue
+    if ev.get("type") == "power_event" and ev.get("event_type") not in {"indicacao", "contragolpe"}:
+        continue
+    if ev.get("type") != "power_event" and ev.get("type") != "vote":
+        continue
+    actor = ev.get("actor")
+    target = ev.get("target")
+    label, emoji = reaction_label(actor, target, matrix_paredao)
+    event_rows.append({
+        "Data": ev.get("date"),
+        "Tipo": ev.get("type"),
+        "Evento": ev.get("event_type"),
+        "Ator": actor,
+        "Alvo": target,
+        "Queridômetro": f"{emoji} {label}".strip(),
+        "Peso evento": fmt_score(ev.get("weight_raw") or 0),
+        "Backlash": "sim" if ev.get("backlash") else "",
+        "Voto (tipo)": ev.get("vote_kind"),
+    })
+
+events_vs_df = pd.DataFrame(event_rows)
 ```
 
 ## Pesos ativos
+
+<style>
+.rel-pill {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.rel-friend { background: rgba(40,167,69,0.18); color: #a8f0b3; border-color: rgba(40,167,69,0.5); }
+.rel-neutral { background: rgba(108,117,125,0.18); color: #d0d0d0; border-color: rgba(108,117,125,0.5); }
+.rel-hostile { background: rgba(220,53,69,0.18); color: #ffb3bb; border-color: rgba(220,53,69,0.55); }
+.val-pos { color: #8ee4a4; font-weight: 600; }
+.val-neg { color: #ff9aa2; font-weight: 600; }
+.val-zero { color: #d0d0d0; }
+</style>
 
 ```{python}
 #| label: weights
@@ -128,13 +208,21 @@ edges_df = pd.DataFrame(edge_rows)
 #| output: asis
 
 if meta:
-    print(f"<div><strong>Semana exibida:</strong> {DISPLAY_WEEK}</div>")
-    if week_date:
-        print(f"<div><strong>Snapshot usado:</strong> {week_date}</div>")
+    print(f"<div><strong>Semana (diária):</strong> {DISPLAY_WEEK_DAILY}</div>")
+    if week_date_daily:
+        print(f"<div><strong>Snapshot diário:</strong> {week_date_daily}</div>")
+    print(f"<div><strong>Semana (paredão):</strong> {DISPLAY_WEEK_PAREDAO}</div>")
+    if week_date_paredao:
+        print(f"<div><strong>Snapshot paredão:</strong> {week_date_paredao}</div>")
     print(f"<div><strong>Data (último sync):</strong> {meta.get('date')}</div>")
     print(f"<div><strong>Semana (atual):</strong> {meta.get('week')}</div>")
-    print(f"<div><strong>Semana efetiva:</strong> {meta.get('effective_week')}</div>")
+    print(f"<div><strong>Semana efetiva (diária):</strong> {meta.get('effective_week_daily')}</div>")
+    print(f"<div><strong>Semana efetiva (paredão):</strong> {meta.get('effective_week_paredao')}</div>")
     print(f"<div><strong>Decay:</strong> {meta.get('weights', {}).get('decay')}</div>")
+    if reference_date_daily:
+        print(f"<div><strong>Queridômetro base (diário):</strong> {reference_date_daily} (rolling 3d)</div>")
+    if reference_date_paredao:
+        print(f"<div><strong>Queridômetro base (paredão):</strong> {reference_date_paredao} (rolling 3d)</div>")
     print("<div style='margin-top:0.6rem;'><strong>Pesos (resumo)</strong></div>")
     print(f"<div>Queridômetro: {meta.get('weights', {}).get('queridometro')}</div>")
     print(f"<div>Power events: {meta.get('weights', {}).get('power_events')}</div>")
@@ -146,34 +234,68 @@ else:
     print("<div>Sem metadados disponíveis.</div>")
 ```
 
-## Pares (A → B) — tabela completa
+## Pares (A → B) — tabela completa (diário)
 
-<p class="text-muted">Tabela calculada com <strong>semana {DISPLAY_WEEK}</strong>. “(semana)” usa apenas edges dessa semana; “(rolling)” usa o acumulado com decay.</p>
+<p class="text-muted">Tabela diária usa <strong>semana {DISPLAY_WEEK_DAILY}</strong>. “(semana)” usa apenas edges dessa semana; “(rolling)” usa o acumulado com decay.</p>
+<p class="text-muted">⚠️ Todos os participantes reagem uns aos outros diariamente. Aqui mostramos o <strong>emoji do dia diário</strong> e o score usa rolling curto de 3 dias.</p>
 
 ```{python}
 #| label: pairs-table
 #| echo: false
 #| output: asis
 
-if pairs_df.empty:
+if pairs_daily_df.empty:
     print("Nenhum par encontrado.")
 else:
-    pairs_df = pairs_df.sort_values(["Ator", "Score semana"], ascending=[True, False])
-    print(pairs_df.to_html(index=False, classes="table table-sm table-dark", escape=False))
+    pairs_daily_df = pairs_daily_df.sort_values(["Ator", "Score semana"], ascending=[True, False])
+    print("""
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 8, false)">Score semana ↓</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 8, true)">Score semana ↑</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 13, false)">Score rolling ↓</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 13, true)">Score rolling ↑</button>
+</div>
+""")
+    print(pairs_daily_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="pairsTable"))
 ```
 
-## Detalhes por participante
+## Pares (A → B) — tabela completa (paredão)
+
+<p class="text-muted">Tabela de paredão usa <strong>semana {DISPLAY_WEEK_PAREDAO}</strong> e snapshot de formação.</p>
+<p class="text-muted">⚠️ Emojis refletem o dia de formação. Score usa rolling curto de 3 dias em torno dessa data.</p>
+
+```{python}
+#| label: pairs-table-paredao
+#| echo: false
+#| output: asis
+
+if pairs_paredao_df.empty:
+    print("Nenhum par encontrado.")
+else:
+    pairs_paredao_df = pairs_paredao_df.sort_values(["Ator", "Score semana"], ascending=[True, False])
+    print("""
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 8, false)">Score semana ↓</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 8, true)">Score semana ↑</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 13, false)">Score rolling ↓</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 13, true)">Score rolling ↑</button>
+</div>
+""")
+    print(pairs_paredao_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="pairsTableParedao"))
+```
+
+## Detalhes por participante (diário)
 
 ```{python}
 #| label: pairs-by-actor
 #| echo: false
 #| output: asis
 
-if pairs_df.empty:
+if pairs_daily_df.empty:
     print("Nenhum par encontrado.")
 else:
-    for actor in sorted(pairs_df["Ator"].unique()):
-        sub = pairs_df[pairs_df["Ator"] == actor].copy()
+    for actor in sorted(pairs_daily_df["Ator"].unique()):
+        sub = pairs_daily_df[pairs_daily_df["Ator"] == actor].copy()
         sub = sub.sort_values("Score semana", ascending=False)
         print(f"<details style='margin: 0.4rem 0;'><summary><strong>{actor}</strong></summary>")
         print(sub.to_html(index=False, classes="table table-sm table-dark", escape=False))
@@ -191,5 +313,55 @@ if edges_df.empty:
     print("Nenhum edge registrado.")
 else:
     edges_df = edges_df.sort_values(["Semana", "Tipo", "Ator"], ascending=[False, True, True])
-    print(edges_df.to_html(index=False, classes="table table-sm table-dark", escape=False))
+    print("""
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 12, false)">Peso semana ↓</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 12, true)">Peso semana ↑</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 13, false)">Peso rolling ↓</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 13, true)">Peso rolling ↑</button>
+</div>
+""")
+    print(edges_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="edgesTable"))
+```
+
+<script>
+function sortTable(tableId, colIndex, asc) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const tbody = table.tBodies[0];
+  const rows = Array.from(tbody.rows);
+  rows.sort((a, b) => {
+    const getVal = (row) => {
+      const cell = row.cells[colIndex];
+      if (!cell) return 0;
+      const text = cell.innerText.replace(',', '.').replace('%','').trim();
+      const num = parseFloat(text);
+      return isNaN(num) ? 0 : num;
+    };
+    const av = getVal(a);
+    const bv = getVal(b);
+    return asc ? (av - bv) : (bv - av);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+</script>
+
+## Votos / Indicações vs Queridômetro (semana exibida)
+
+```{python}
+#| label: events-vs-querido
+#| echo: false
+#| output: asis
+
+if events_vs_df.empty:
+    print("Nenhum evento/voto crítico registrado na semana.")
+else:
+    events_vs_df = events_vs_df.sort_values(["Tipo", "Ator"], ascending=[True, True])
+    print("""
+<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('eventsTable', 6, false)">Peso evento ↓</button>
+  <button class="btn btn-sm btn-outline-light" onclick="sortTable('eventsTable', 6, true)">Peso evento ↑</button>
+</div>
+""")
+    print(events_vs_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="eventsTable"))
 ```

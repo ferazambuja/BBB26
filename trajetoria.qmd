@@ -152,6 +152,7 @@ if MANUAL_EVENTS_FILE.exists():
 else:
     manual_events = {"power_events": []}
 power_events_manual = manual_events.get("power_events", [])
+weekly_events = manual_events.get("weekly_events", [])
 
 # Auto power events from API (Líder / Anjo / Monstro / Imune) — prefer derived file
 power_events_auto = []
@@ -327,51 +328,6 @@ if events_data:
         display(key_events.style.hide(axis='index'))
 ```
 
-# Sincerão (Evolução semanal) {#sincerao}
-
-Evolução semanal dos sinais do Sincerão (agregados), comparando **pódio**, **não ganha** e **planta**.  
-São sinais **raros** e não substituem o queridômetro — servem como **modificadores leves**.
-
-```{python}
-#| label: sincerao-timeline
-#| output: asis
-
-if not sincerao_data or not sincerao_data.get("aggregates"):
-    print("*Sem dados de Sincerão ainda.*")
-else:
-    agg = sincerao_data.get("aggregates", [])
-    rows = []
-    for entry in agg:
-        week = entry.get("week")
-        date = entry.get("date")
-        for name, count in entry.get("podio_mentions", {}).items():
-            rows.append({"week": week, "date": date, "name": name, "metric": "pódio", "value": count})
-        for name, count in entry.get("nao_ganha_mentions", {}).items():
-            rows.append({"week": week, "date": date, "name": name, "metric": "não ganha", "value": count})
-        for name in entry.get("sem_podio", []) or []:
-            rows.append({"week": week, "date": date, "name": name, "metric": "sem pódio", "value": 1})
-        planta = entry.get("planta")
-        if planta:
-            rows.append({"week": week, "date": date, "name": planta, "metric": "planta", "value": 1})
-
-    df = pd.DataFrame(rows)
-    if df.empty:
-        print("*Sem métricas agregadas do Sincerão.*")
-    else:
-        fig = px.bar(
-            df,
-            x="name",
-            y="value",
-            color="metric",
-            barmode="group",
-            facet_row="week",
-            title="Sincerão — métricas agregadas por semana",
-            labels={"value": "Menções", "name": "Participante", "metric": "Sinal"},
-        )
-        fig.update_layout(height=380 + 140 * df["week"].nunique(), margin=dict(l=20, r=20, t=60, b=40))
-        fig.show()
-```
-
 # Poderes & Consequências {#poderes}
 
 Eventos de **dinâmicas da casa** que concedem poderes ou impõem consequências.  
@@ -401,6 +357,10 @@ else:
         'voto_duplo': 'Voto duplo',
         'voto_anulado': 'Voto anulado',
         'perdeu_voto': 'Perdeu voto',
+        'bate_volta': 'Bate-Volta',
+        'veto_ganha_ganha': 'Veto (Ganha-Ganha)',
+        'ganha_ganha_escolha': 'Escolha (Ganha-Ganha)',
+        'barrado_baile': 'Barrado no Baile',
     }
 
     df_power['Tipo'] = df_power['type'].map(tipo_labels).fillna(df_power['type'])
@@ -409,12 +369,62 @@ else:
         'negativo': 'Prejuízo'
     }).fillna('Neutro')
 
-    df_show = df_power.sort_values('Data')[['date', 'Tipo', 'actor', 'target', 'detail', 'impacto']]
+    big_fone_targets = {}
+    for w in weekly_events:
+        bf = w.get("big_fone") if isinstance(w, dict) else None
+        if isinstance(bf, dict):
+            atendeu = bf.get("atendeu")
+            date = bf.get("date")
+            if atendeu and date:
+                big_fone_targets[atendeu] = pd.to_datetime(date)
+
+    def is_big_fone_imunidade(row):
+        if row.get("type") != "imunidade":
+            return False
+        target = row.get("target")
+        if not target or target not in big_fone_targets:
+            return False
+        row_date = row.get("Data") or pd.to_datetime(row.get("date"))
+        bf_date = big_fone_targets.get(target)
+        if row_date is None or bf_date is None:
+            return False
+        return abs((row_date - bf_date).days) <= 1
+
+    # Override context/details for Big Fone immunidade
+    if big_fone_targets:
+        mask = df_power.apply(is_big_fone_imunidade, axis=1)
+        df_power.loc[mask, "source"] = "Big Fone"
+        df_power.loc[mask, "detail"] = "Atendeu o Big Fone e ficou imune"
+
+    def resolve_context(row):
+        source = row.get('source') or ''
+        if source and isinstance(source, str) and source not in {"api_roles", "api"}:
+            return source
+        actor = (row.get('actor') or '').lower()
+        if 'big fone' in actor:
+            return 'Big Fone'
+        if 'caixas' in actor:
+            return 'Caixas-Surpresa'
+        if 'prova do líder' in actor:
+            return 'Prova do Líder'
+        if 'prova do anjo' in actor:
+            return 'Prova do Anjo'
+        if row.get('type') == 'monstro':
+            return 'Castigo do Monstro'
+        if 'bate e volta' in actor:
+            return 'Prova Bate e Volta'
+        if 'dinâmica da casa' in actor:
+            return 'Dinâmica da casa'
+        return '—'
+
+    df_power['Dinâmica'] = df_power.apply(resolve_context, axis=1)
+    df_show = df_power.sort_values('Data')[['date', 'Dinâmica', 'Tipo', 'actor', 'target', 'detail', 'impacto']]
 
     print('<div style="overflow-x:auto; margin: 0.5rem 0 1rem 0;">')
     print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
     print('<thead><tr style="text-align: left; border-bottom: 1px solid #444;">'
           '<th style="padding: 0.5rem;">Data</th>'
+          '<th style="padding: 0.5rem;">Dinâmica</th>'
           '<th style="padding: 0.5rem;">Tipo</th>'
           '<th style="padding: 0.5rem;">Quem deu</th>'
           '<th style="padding: 0.5rem;">Quem recebeu</th>'
@@ -453,10 +463,29 @@ else:
             'caixas-surpresa': '🎁',
             'prova do líder': '👑',
             'prova do anjo': '😇',
+            'prova bate e volta': '🛟',
+            'ganha-ganha': '🎁',
+            'barrado no baile': '🚫',
         }
         lower = label.lower()
         icon = next((icon_map[k] for k in icon_map if k in lower), '🎬')
         return f'<div style="display: flex; align-items: center; gap: 0.4rem;"><span>{icon}</span>{label}</div>'
+
+    def render_context_cell(value):
+        if not value or value == '—':
+            return '—'
+        lower = value.lower()
+        icon_map = {
+            'big fone': '📞',
+            'caixas-surpresa': '🎁',
+            'prova do líder': '👑',
+            'prova do anjo': '😇',
+            'prova bate e volta': '🛟',
+            'ganha-ganha': '🎁',
+            'barrado no baile': '🚫',
+        }
+        icon = next((icon_map[k] for k in icon_map if k in lower), '🎬')
+        return f'<div style="display:flex; align-items:center; gap:0.4rem;"><span>{icon}</span>{value}</div>'
 
     for _, row in df_show.iterrows():
         impacto = row.get('impacto', 'neutro')
@@ -475,6 +504,7 @@ else:
 
         actor_html = render_person_cell(row["actor"], border)
         target_html = render_person_cell(row["target"], border)
+        context_html = render_context_cell(row.get("Dinâmica"))
         impact_badge = (
             f'<span style="display:inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; '
             f'background: {bg}; color: {border}; border: 1px solid {border}; font-size: 0.75rem;">{label}</span>'
@@ -482,6 +512,7 @@ else:
 
         print(f'<tr style="border-left: 4px solid {border}; background: {bg};">'
               f'<td style="padding: 0.45rem 0.5rem;">{row["date"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{context_html}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{row["Tipo"]}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{actor_html}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{target_html}</td>'

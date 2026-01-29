@@ -86,6 +86,7 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
 
 ### Manual syncs (editor-driven)
 - **Paredão data**: update `data/paredoes.json` after formation/results.
+  - **Sempre preencher `data_formacao`** (data da formação do paredão). Essa data é usada na análise de coerência social.
 - **Manual events**: update `data/manual_events.json` after Big Fone, veto, voto duplo, caixas‑surpresa etc.
 - **Sincerão**: update `weekly_events[].sincerao` in `data/manual_events.json` after Monday show.
 - **Votalhada polls**: update `data/votalhada/polls.json` Tuesday ~21:00 BRT (before elimination), add `resultado_real` after elimination.
@@ -133,6 +134,7 @@ This document outlines the plan to automate the BBB26 reaction analysis notebook
    - House votes (who voted for whom)
    - Leader nomination
    - Bate e Volta results (if applicable)
+   - **`data_formacao`** (data da formação do paredão)
 
 ### Monday-Tuesday — Update as Needed
 

@@ -183,7 +183,10 @@ def build_index_data():
     relations_data = load_json(RELATIONS_FILE, {})
     paredoes = load_json(PAREDOES_FILE, {"paredoes": []})
 
-    relations_pairs = relations_data.get("pairs", {}) if isinstance(relations_data, dict) else {}
+    if isinstance(relations_data, dict):
+        relations_pairs = relations_data.get("pairs_daily") or relations_data.get("pairs", {})
+    else:
+        relations_pairs = {}
     use_relations = bool(relations_pairs)
 
     power_events = manual_events.get("power_events", []) + auto_events.get("events", [])

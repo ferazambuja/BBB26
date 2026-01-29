@@ -105,11 +105,15 @@ def load_paredoes():
             'numero': p['numero'],
             'status': p['status'],
             'data': p['data'],
+            'data_formacao': p.get('data_formacao'),
             'titulo': p['titulo'],
             'lider': p.get('formacao', {}).get('lider'),
             'indicado_lider': p.get('formacao', {}).get('indicado_lider'),
             'motivo_lider': p.get('formacao', {}).get('motivo_lider'),
             'formacao': p.get('formacao', {}).get('resumo', ''),
+            'dinamica': p.get('formacao', {}).get('dinamica'),
+            'big_fone': p.get('formacao', {}).get('big_fone'),
+            'contragolpe': p.get('formacao', {}).get('contragolpe'),
             'votos_casa': p.get('votos_casa', {}),
             'fontes': p.get('fontes', []),
         }
@@ -146,6 +150,13 @@ def load_paredoes():
 
 paredoes = load_paredoes()
 polls_data = load_votalhada_polls()
+
+missing_formacao = [p for p in paredoes if p.get('status') == 'finalizado' and not p.get('data_formacao')]
+if missing_formacao:
+    print("::: {.callout-warning title=\"⚠️ data_formacao ausente\" appearance=\"minimal\"}")
+    print("Há paredões finalizados sem `data_formacao`. A análise de coerência social pode ficar menos precisa.")
+    print("Preencha `data_formacao` em `data/paredoes.json`.")
+    print(":::\n")
 ```
 
 ## Resumo das Eliminações
@@ -387,7 +398,8 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     par_num = paredao['numero']
     par_date = paredao['data']
 
-    snap_p, matrix_p, idx_p = get_snapshot_for_date(par_date, snapshots, all_matrices)
+    analysis_date = paredao.get('data_formacao') or par_date
+    snap_p, matrix_p, idx_p = get_snapshot_for_date(analysis_date, snapshots, all_matrices)
     snap_participants = snap_p['participants']
 
     eliminado = next((x for x in paredao['participantes'] if x['resultado'] == 'ELIMINADA'), None)
@@ -397,6 +409,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     active = 'show active' if i == 0 else ''
     print(f'<div class="tab-pane fade {active}" id="paredao-{par_num}" role="tabpanel" aria-labelledby="tab-{par_num}">')
     print(f'<h3 style="margin-top:1.5rem;">{par_num}º Paredão — {paredao["data"]}</h3>')
+    print(f'<p class="text-muted small">📅 Coerência social usa queridômetro do dia <strong>{analysis_date}</strong> (formação).</p>')
 
     # ══════════════════════════════════════════════════════════════
     # HEADER WITH RESULT CARDS
@@ -472,6 +485,55 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
     )
     fig.show()
+
+    # ══════════════════════════════════════════════════════════════
+    # COERÊNCIA SOCIAL (votos + indicações vs queridômetro da formação)
+    # ══════════════════════════════════════════════════════════════
+    votos = paredao.get('votos_casa', {})
+    def alignment_from_reaction(label):
+        if label in (MILD_NEGATIVE | STRONG_NEGATIVE):
+            return "alinhado"
+        if label in POSITIVE:
+            return "contraditorio"
+        return "neutro"
+
+    vote_align = Counter()
+    for votante, alvo in votos.items():
+        label = matrix_p.get((votante, alvo), '')
+        vote_align[alignment_from_reaction(label)] += 1
+
+    indicacoes = []
+    if paredao.get('lider') and paredao.get('indicado_lider'):
+        indicacoes.append(('Líder', paredao.get('lider'), paredao.get('indicado_lider')))
+    if paredao.get('big_fone'):
+        bf = paredao.get('big_fone')
+        if bf.get('atendeu') and bf.get('indicou'):
+            indicacoes.append(('Big Fone', bf.get('atendeu'), bf.get('indicou')))
+    if paredao.get('contragolpe'):
+        cg = paredao.get('contragolpe')
+        if cg.get('de') and cg.get('para'):
+            indicacoes.append(('Contragolpe', cg.get('de'), cg.get('para')))
+    if paredao.get('dinamica'):
+        din = paredao.get('dinamica')
+        indicados = din.get('indicaram') or []
+        alvo = din.get('indicado')
+        for ator in indicados:
+            indicacoes.append((din.get('nome', 'Dinâmica'), ator, alvo))
+
+    ind_align = Counter()
+    for origem, ator, alvo in indicacoes:
+        label = matrix_p.get((ator, alvo), '')
+        ind_align[alignment_from_reaction(label)] += 1
+
+    total_votes = max(1, len(votos))
+    aligned_pct = vote_align["alinhado"] / total_votes * 100
+    contrad_pct = vote_align["contraditorio"] / total_votes * 100
+
+    print("<h4 style='margin-top:1.2rem;'>🧭 Coerência social</h4>")
+    print(f"<p style='font-size:0.98rem;'>Votos: <strong>{aligned_pct:.0f}% alinhados</strong> vs <strong>{contrad_pct:.0f}% contraditórios</strong> com o queridômetro da formação.</p>")
+    if indicacoes:
+        total_ind = len(indicacoes)
+        print(f"<p style='font-size:0.95rem;'>Indicações públicas coerentes: {ind_align['alinhado']}/{total_ind}.</p>")
 
     # ══════════════════════════════════════════════════════════════
     # ENQUETES VS RESULTADO (compact)

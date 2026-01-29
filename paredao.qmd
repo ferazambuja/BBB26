@@ -151,6 +151,7 @@ def load_paredoes():
             'numero': p['numero'],
             'status': p['status'],
             'data': p['data'],
+            'data_formacao': p.get('data_formacao'),
             'titulo': p['titulo'],
             'lider': p.get('formacao', {}).get('lider'),
             'indicado_lider': p.get('formacao', {}).get('indicado_lider'),
@@ -203,6 +204,13 @@ def load_paredoes():
 
 paredoes = load_paredoes()
 
+# Aviso se faltar data_formacao
+missing_formacao = [p for p in paredoes if p.get('status') == 'finalizado' and not p.get('data_formacao')]
+if missing_formacao:
+    print("::: {.callout-warning title=\"⚠️ data_formacao ausente\" appearance=\"minimal\"}")
+    print("Alguns paredões finalizados não possuem `data_formacao`. A análise de coerência pode usar a data do paredão e ficar menos precisa.")
+    print("Preencha `data_formacao` em `data/paredoes.json`.")
+    print(":::\n")
 # ── Carregar dados de enquetes do Votalhada ──
 from data_utils import load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy
 polls_data = load_votalhada_polls()
@@ -873,7 +881,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
 if ultimo and ultimo.get('participantes'):
     indicados = [p['nome'] for p in ultimo['participantes']]
-    paredao_date = ultimo.get('data', latest['date'])
+    analysis_date = ultimo.get('data_formacao') or ultimo.get('data') or latest['date']
     is_finalizado = ultimo.get('status') == 'finalizado'
 
     # ── Determine which snapshot to use for "today" analysis ──
@@ -883,12 +891,12 @@ if ultimo and ultimo.get('participantes'):
         # Find the snapshot closest to paredão date
         snap_for_analysis = None
         for snap in reversed(snapshots):
-            if snap['date'] <= paredao_date:
+            if snap['date'] <= analysis_date:
                 snap_for_analysis = snap
                 break
         if snap_for_analysis is None:
             snap_for_analysis = snapshots[0]
-        analysis_date_label = f"📅 Dados de **{snap_for_analysis['date']}** (dia do paredão)"
+        analysis_date_label = f"📅 Dados de **{snap_for_analysis['date']}** (dia da formação)"
     else:
         snap_for_analysis = latest
         analysis_date_label = f"📅 Dados de **{latest['label']}** (atual)"
@@ -915,7 +923,7 @@ if ultimo and ultimo.get('participantes'):
     for snap in daily_snapshots:
         date = snap['date']
         # For finalizado paredões, don't include data AFTER the paredão
-        if is_finalizado and date > paredao_date:
+        if is_finalizado and date > analysis_date:
             continue
         for p in snap['participants']:
             if p.get('characteristics', {}).get('eliminated'):
@@ -988,10 +996,10 @@ if ultimo and ultimo.get('participantes'):
     # Show data source indicator
     if is_finalizado:
         print(f'<div class="alert alert-secondary" style="font-size: 0.9rem;">')
-        print(f'{analysis_date_label} — análise histórica congelada no momento da votação.')
+        print(f'{analysis_date_label} — análise histórica congelada no momento da formação.')
         print(f'</div>\n')
     else:
-        print(f"Como os emparedados estão no **queridômetro** ({analysis_date_label.replace('📅 ', '')}).\n")
+        print(f"Como os emparedados estavam no **queridômetro** ({analysis_date_label.replace('📅 ', '')}).\n")
 
     # HTML table with avatars
     print('<table class="table table-striped table-hover" style="max-width: 100%; font-size: 1.05rem;">')
@@ -1087,15 +1095,34 @@ tem_votos = ultimo_paredao and ultimo_paredao.get('votos_casa')
 if tem_votos and all_matrices:
     paredao = ultimo_paredao
     votos = paredao['votos_casa']
-    paredao_date = paredao['data']
+    analysis_date = paredao.get('data_formacao') or paredao.get('data')
 
     # Encontrar snapshot mais próximo à data do paredão
     closest_idx = 0
     for i, snap in enumerate(snapshots):
-        if snap['date'] <= paredao_date:
+        if snap['date'] <= analysis_date:
             closest_idx = i
     matrix = all_matrices[closest_idx]
     snap_participants = snapshots[closest_idx]['participants']
+
+    # Lista de indicações/contragolpes/dinâmicas (ator -> alvo)
+    indicacoes = []
+    if paredao.get('lider') and paredao.get('indicado_lider'):
+        indicacoes.append(('Líder', paredao.get('lider'), paredao.get('indicado_lider')))
+    if paredao.get('big_fone'):
+        bf = paredao.get('big_fone')
+        if bf.get('atendeu') and bf.get('indicou'):
+            indicacoes.append(('Big Fone', bf.get('atendeu'), bf.get('indicou')))
+    if paredao.get('contragolpe'):
+        cg = paredao.get('contragolpe')
+        if cg.get('de') and cg.get('para'):
+            indicacoes.append(('Contragolpe', cg.get('de'), cg.get('para')))
+    if paredao.get('dinamica'):
+        din = paredao.get('dinamica')
+        indicados = din.get('indicaram') or []
+        alvo = din.get('indicado')
+        for ator in indicados:
+            indicacoes.append((din.get('nome', 'Dinâmica'), ator, alvo))
 
     # Calcular sentimento e negatividade por participante
     sent_by_name = {}
@@ -1154,7 +1181,7 @@ if tem_votos and all_matrices:
     # ANÁLISE TEMPORAL — COMO OS RELACIONAMENTOS EVOLUÍRAM AO LONGO DO TEMPO
     # ══════════════════════════════════════════════════════════════════════════
 
-    def analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, paredao_date):
+    def analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, analysis_date):
         """
         Analisa a evolução do relacionamento entre votante e alvo ao longo do tempo.
 
@@ -1177,7 +1204,7 @@ if tem_votos and all_matrices:
 
         for i, mat in enumerate(daily_matrices):
             snap_date = daily_snapshots[i]['date']
-            if snap_date > paredao_date:
+            if snap_date > analysis_date:
                 break  # Don't look past paredão date
 
             rxn_v = mat.get((votante, alvo), '')
@@ -1271,7 +1298,7 @@ if tem_votos and all_matrices:
         rxn_from_alvo = matrix.get((alvo, votante), '')
 
         # Add temporal analysis
-        hist = analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, paredao_date)
+        hist = analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, analysis_date)
 
         entry = {
             'votante': votante,
@@ -1341,6 +1368,66 @@ if tem_votos and all_matrices:
               f"A maioria dos votos ({n_esperados}/{total_votes}) veio de quem já dava reações negativas ao alvo.\n")
     else:
         print(f"Este paredão foi **estratégico**. Os votos não seguiram simplesmente as emoções do queridômetro.\n")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PAREDÃO: COERÊNCIA SOCIAL (votos + indicações vs queridômetro)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def alignment_from_reaction(label):
+        if label in (MILD_NEGATIVE | STRONG_NEGATIVE):
+            return "alinhado"
+        if label in POSITIVE:
+            return "contraditorio"
+        return "neutro"
+
+    vote_align = Counter()
+    vote_examples = {"contraditorio": [], "alinhado": []}
+    for votante, alvo in votos.items():
+        label = matrix.get((votante, alvo), '')
+        status = alignment_from_reaction(label)
+        vote_align[status] += 1
+        if status in vote_examples and len(vote_examples[status]) < 4:
+            vote_examples[status].append((votante, alvo, label))
+
+    ind_align = Counter()
+    ind_examples = {"contraditorio": [], "alinhado": []}
+    for origem, ator, alvo in indicacoes:
+        label = matrix.get((ator, alvo), '')
+        status = alignment_from_reaction(label)
+        ind_align[status] += 1
+        if status in ind_examples and len(ind_examples[status]) < 3:
+            ind_examples[status].append((origem, ator, alvo, label))
+
+    total_votes = max(1, len(votos))
+    aligned_pct = vote_align["alinhado"] / total_votes * 100
+    contrad_pct = vote_align["contraditorio"] / total_votes * 100
+
+    print("### 🧭 Paredão: Coerência Social\n")
+    print(f'<p style="font-size: 1.05rem;">Usando o queridômetro do <strong>dia da formação</strong> ({analysis_date}), '
+          f'os votos ficaram <strong>{aligned_pct:.0f}% alinhados</strong> e <strong>{contrad_pct:.0f}% contraditórios</strong>. '
+          f'Isso indica se o paredão foi mais emocional (alinhado) ou estratégico (contraditório).</p>\n')
+
+    if indicacoes:
+        total_ind = len(indicacoes)
+        ind_aligned = ind_align["alinhado"]
+        ind_contra = ind_align["contraditorio"]
+        print(f'<p style="font-size: 1.05rem;">Nas indicações públicas, '
+              f'{ind_aligned}/{total_ind} foram coerentes com reações negativas, '
+              f'e {ind_contra}/{total_ind} contrariaram o queridômetro.</p>\n')
+
+    if vote_examples["contraditorio"]:
+        print("<p style='font-size:1.05rem;'><strong>Contradições de voto (❤️ no queridômetro):</strong></p>")
+        print("<ul>")
+        for votante, alvo, label in vote_examples["contraditorio"]:
+            print(f"<li>{avatar_html(votante, 24)} votou em {avatar_html(alvo, 24)} apesar de dar ❤️.</li>")
+        print("</ul>\n")
+
+    if ind_examples["alinhado"]:
+        print("<p style='font-size:1.05rem;'><strong>Indicações coerentes:</strong></p>")
+        print("<ul>")
+        for origem, ator, alvo, label in ind_examples["alinhado"]:
+            print(f"<li>{origem}: {avatar_html(ator, 24)} já dava negativa para {avatar_html(alvo, 24)}.</li>")
+        print("</ul>\n")
 
     # ══════════════════════════════════════════════════════════════════════════
     # GRÁFICO: DISTRIBUIÇÃO DOS VOTOS POR TIPO DE RELACIONAMENTO
@@ -1659,7 +1746,7 @@ if tem_votos and all_matrices:
 
         # Historical analysis of leader's relationship with nominee
         if n_daily >= 2:
-            hist_indicado = analyze_relationship_history(lider, indicado, daily_matrices, daily_snapshots, paredao_date)
+            hist_indicado = analyze_relationship_history(lider, indicado, daily_matrices, daily_snapshots, analysis_date)
 
             # Only show history section if we have data
             if hist_indicado['pattern'] != 'sem_dados':
@@ -1713,7 +1800,7 @@ if tem_votos and all_matrices:
 
             # Compare history with the alternative
             if n_daily >= 2 and hist_indicado['pattern'] != 'sem_dados':
-                hist_worst = analyze_relationship_history(lider, worst_for_leader, daily_matrices, daily_snapshots, paredao_date)
+                hist_worst = analyze_relationship_history(lider, worst_for_leader, daily_matrices, daily_snapshots, analysis_date)
 
                 print('<table class="table" style="max-width: 600px; font-size: 1.05rem;">')
                 print(f'<thead><tr><th>Comparação</th><th style="text-align:center;">{avatar_html(indicado, 28)}</th><th style="text-align:center;">{avatar_html(worst_for_leader, 28)}</th></tr></thead>')
@@ -2105,8 +2192,13 @@ else:
 Quer ver os paredões anteriores? Acesse o **[Arquivo de Paredões](paredoes.html)** com votação da casa, análise de coerência e reações de cada eliminação.
 :::
 
-::: {.callout-caution title="ℹ️ Sobre os dados" appearance="minimal" collapse="true"}
-Os resultados do Paredão são atualizados após cada eliminação com base em informações oficiais (GShow, transmissão ao vivo). A análise de votos usa os dados do queridômetro mais próximos da data do paredão.
+::: {.callout-caution title="ℹ️ Sobre os dados (limitações e melhorias)" appearance="minimal" collapse="true"}
+- **Data de formação**: a análise usa o queridômetro do **dia da formação** (`data_formacao`). Se faltou snapshot do dia, usamos o mais próximo anterior.
+- **Queridômetro é privado**: contradições não significam falsidade — podem ser **estratégia** (consenso, alvo fácil, proteção de aliados).
+- **Emojis leves** (🌱💼🍪💔) são negativos mas não equivalem a hostilidade forte.  
+  **Melhoria prevista**: ponderar mais forte 🐍🎯🤮🤥 e reduzir peso de negativos leves nas leituras de coerência.
+- **Timing do jogo**: entre eliminação e nova liderança, as relações podem mudar rápido.  
+  **Melhoria prevista**: permitir “média móvel” de 2–3 dias na semana da formação.
 :::
 
 ::: {.callout-tip title="🧭 Navegação"}

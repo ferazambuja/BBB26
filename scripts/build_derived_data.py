@@ -27,6 +27,9 @@ RELATION_POWER_WEIGHTS = {
     "contragolpe": -2.8,
     "monstro": -1.2,
     "veto_prova": -1.5,
+    "veto_ganha_ganha": -0.4,
+    "ganha_ganha_escolha": 0.3,
+    "barrado_baile": -0.4,
     "voto_anulado": -0.8,
     "perdeu_voto": -0.6,
     "voto_duplo": 0.0,
@@ -50,9 +53,12 @@ RELATION_VISIBILITY_FACTOR = {"public": 1.2, "secret": 0.5}
 RELATION_POWER_BACKLASH_FACTOR = {
     "indicacao": 0.6,
     "contragolpe": 0.6,
+    "veto_ganha_ganha": 0.5,
+    "ganha_ganha_escolha": 0.5,
+    "barrado_baile": 0.5,
 }
 
-SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa"}
+SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa", "Prova Bate e Volta"}
 
 PLANT_INDEX_WEIGHTS = {
     "invisibility": {"weight": 0.0, "label": "Invisibilidade"},
@@ -71,6 +77,10 @@ PLANT_POWER_ACTIVITY_WEIGHTS = {
     "voto_duplo": {"actor": 2.0, "target": 0.0},
     "voto_anulado": {"actor": 2.0, "target": 0.0},
     "perdeu_voto": {"actor": 0.0, "target": 1.0},
+    "veto_ganha_ganha": {"actor": 0.0, "target": 0.0},
+    "ganha_ganha_escolha": {"actor": 0.0, "target": 0.0},
+    "barrado_baile": {"actor": 0.0, "target": 0.3},
+    "bate_volta": {"actor": 0.0, "target": 2.5},
     "emparedado": {"actor": 0.0, "target": 0.0},
     "volta_paredao": {"actor": 0.0, "target": 2.0},
 }
@@ -78,6 +88,7 @@ PLANT_POWER_ACTIVITY_WEIGHTS = {
 PLANT_INDEX_BONUS_PLATEIA = 15
 PLANT_INDEX_EMOJI_CAP = 0.30
 PLANT_INDEX_ROLLING_WEEKS = 2
+PLANT_GANHA_GANHA_WEIGHT = 0.3
 
 def load_snapshot(filepath):
     with open(filepath, encoding="utf-8") as f:
@@ -137,7 +148,7 @@ def get_daily_snapshots(snapshots):
     return [by_date[d] for d in sorted(by_date.keys())]
 
 
-def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao_edges, paredoes, daily_roles):
+def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles):
     """Build pairwise sentiment scores (A -> B) combining queridômetro + events."""
     latest_date = latest_snapshot["date"]
     current_week = get_week_number(latest_date)
@@ -145,7 +156,7 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
     active_names = sorted({p.get("name", "").strip() for p in participants if p.get("name", "").strip()})
     active_set = set(active_names)
 
-    reaction_matrix = build_reaction_matrix(participants)
+    reaction_matrix_latest = build_reaction_matrix(participants)
 
     # Votes (by week)
     votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
@@ -202,16 +213,16 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
     power_events.extend(manual_events.get("power_events", []) if manual_events else [])
     power_events.extend(auto_events or [])
 
-    # Decide effective week for scoring
+    # Decide effective week for paredão scoring
     active_paredao = None
     for p in paredoes.get("paredoes", []) if paredoes else []:
         if p.get("status") == "em_andamento":
             active_paredao = p
             break
 
-    effective_week = current_week
+    effective_week_paredao = current_week
     if active_paredao and active_paredao.get("semana"):
-        effective_week = active_paredao.get("semana")
+        effective_week_paredao = active_paredao.get("semana")
     else:
         candidate_weeks = []
         for ev in power_events:
@@ -228,39 +239,80 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
                 candidate_weeks.append(w)
         candidate_weeks = [w for w in candidate_weeks if w <= current_week]
         if candidate_weeks:
-            effective_week = max(candidate_weeks)
+            effective_week_paredao = max(candidate_weeks)
+    effective_week_daily = current_week
 
-    def decay_factor(week):
-        if not week:
-            return 1.0
-        diff = max(0, effective_week - week)
-        return 1.0 / (1.0 + diff)
+    # Determine reference dates for base emoji weights
+    reference_date_paredao = latest_date
+    if paredoes:
+        active_form = None
+        for p in paredoes.get("paredoes", []):
+            if p.get("status") == "em_andamento":
+                active_form = p.get("data_formacao") or p.get("data")
+                break
+        if active_form:
+            reference_date_paredao = active_form
+        else:
+            all_forms = [p.get("data_formacao") or p.get("data")
+                         for p in paredoes.get("paredoes", [])
+                         if p.get("data_formacao") or p.get("data")]
+            if all_forms:
+                reference_date_paredao = sorted(all_forms)[-1]
+    reference_date_daily = latest_date
 
-    edges = []
+    # Build base emoji weights using a short rolling window (3 days)
+    def compute_base_weights(ref_date):
+        base = {}
+        if daily_snapshots:
+            candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
+            if candidates:
+                selected = candidates[-3:]
+                weights = [0.6, 0.3, 0.1][-len(selected):]
+                total_w = sum(weights)
+                weights = [w / total_w for w in weights]
+                matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+                for actor in active_names:
+                    base[actor] = {}
+                    for target in active_names:
+                        if actor == target:
+                            continue
+                        weighted = 0.0
+                        used = 0.0
+                        for w, mat in zip(weights, matrices):
+                            label = mat.get((actor, target), "")
+                            if label:
+                                weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                                used += w
+                        if used == 0.0:
+                            label = reaction_matrix_latest.get((actor, target), "")
+                            weighted = SENTIMENT_WEIGHTS.get(label, 0.0)
+                        base[actor][target] = weighted
+        return base
 
-    def add_edge(kind, actor, target, weight, week=None, date=None, meta=None, revealed=False):
+    base_weights_daily = compute_base_weights(reference_date_daily)
+    base_weights_paredao = compute_base_weights(reference_date_paredao)
+
+    edges_raw = []
+
+    def add_edge_raw(kind, actor, target, weight, week=None, date=None, meta=None, revealed=False):
         if not actor or not target:
             return
         if actor == target:
             return
         if actor not in active_set or target not in active_set:
             return
-        edge_week = week or effective_week
-        decay = decay_factor(edge_week)
         edge = {
             "type": kind,
             "actor": actor,
             "target": target,
-            "week": edge_week,
+            "week": week or effective_week_daily,
             "date": date,
             "weight_raw": weight,
-            "weight_roll": round(weight * decay, 4),
-            "weight_week": round(weight if edge_week == effective_week else 0.0, 4),
             "revealed": revealed,
         }
         if meta:
             edge.update(meta)
-        edges.append(edge)
+        edges_raw.append(edge)
 
     for ev in power_events:
         ev_type = ev.get("type")
@@ -282,7 +334,7 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
         for actor in actors:
             if actor in SYSTEM_ACTORS:
                 continue
-            add_edge(
+            add_edge_raw(
                 "power_event",
                 actor,
                 target,
@@ -293,7 +345,7 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
             )
             backlash_factor = RELATION_POWER_BACKLASH_FACTOR.get(ev_type)
             if backlash_factor and visibility != "secret":
-                add_edge(
+                add_edge_raw(
                     "power_event",
                     target,
                     actor,
@@ -315,7 +367,7 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
             base_weight = RELATION_SINC_WEIGHTS.get(etype, 0.0)
         if base_weight == 0:
             continue
-        add_edge(
+        add_edge_raw(
             "sincerao",
             actor,
             target,
@@ -333,12 +385,12 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
             for vip_name in latest_roles.get("vip", []):
                 if vip_name == leader:
                     continue
-                add_edge(
+                add_edge_raw(
                     "vip",
                     leader,
                     vip_name,
                     RELATION_VIP_WEIGHT,
-                    week=effective_week,
+                    week=effective_week_daily,
                     date=latest_date,
                 )
 
@@ -351,7 +403,7 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
                 revealed = voter in revealed_votes.get(target, set())
                 vote_kind = "revealed" if revealed else "secret"
                 weight = RELATION_VOTE_WEIGHTS[vote_kind] * count
-                add_edge(
+                add_edge_raw(
                     "vote",
                     voter,
                     target,
@@ -362,7 +414,7 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
                 )
                 if revealed:
                     backlash = RELATION_VOTE_WEIGHTS["revealed_backlash"] * count
-                    add_edge(
+                    add_edge_raw(
                         "vote",
                         target,
                         voter,
@@ -372,47 +424,80 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
                         revealed=True,
                     )
 
-    # Aggregate pair scores
-    pairs = {}
-    for a in active_names:
-        pairs[a] = {}
-        for b in active_names:
-            if a == b:
+    def decay_factor(week, effective_week):
+        if not week:
+            return 1.0
+        diff = max(0, effective_week - week)
+        return 1.0 / (1.0 + diff)
+
+    def apply_context_edges(edges_in, effective_week):
+        edges_out = []
+        for edge in edges_in:
+            edge_week = edge.get("week") or effective_week
+            decay = decay_factor(edge_week, effective_week)
+            out = dict(edge)
+            out["week"] = edge_week
+            out["weight_roll"] = round(edge["weight_raw"] * decay, 4)
+            out["weight_week"] = round(edge["weight_raw"] if edge_week == effective_week else 0.0, 4)
+            edges_out.append(out)
+        return edges_out
+
+    def build_pairs(base_weights, edges_ctx, effective_week):
+        pairs = {}
+        for a in active_names:
+            pairs[a] = {}
+            for b in active_names:
+                if a == b:
+                    continue
+                base = base_weights.get(a, {}).get(b)
+                if base is None:
+                    label = reaction_matrix_latest.get((a, b), "")
+                    base = SENTIMENT_WEIGHTS.get(label, 0.0)
+                pairs[a][b] = {
+                    "week": round(base, 4),
+                    "roll": round(base, 4),
+                    "components_week": {"queridometro": round(base, 4)},
+                    "components_roll": {"queridometro": round(base, 4)},
+                }
+
+        for edge in edges_ctx:
+            actor = edge["actor"]
+            target = edge["target"]
+            if actor not in pairs or target not in pairs[actor]:
                 continue
-            label = reaction_matrix.get((a, b), "")
-            base = SENTIMENT_WEIGHTS.get(label, 0.0)
-            pairs[a][b] = {
-                "week": round(base, 4),
-                "roll": round(base, 4),
-                "components_week": {"queridometro": round(base, 4)},
-                "components_roll": {"queridometro": round(base, 4)},
-            }
+            kind = edge["type"]
+            wk_add = edge["weight_week"]
+            roll_add = edge["weight_roll"]
 
-    for edge in edges:
-        actor = edge["actor"]
-        target = edge["target"]
-        if actor not in pairs or target not in pairs[actor]:
-            continue
-        kind = edge["type"]
-        wk_add = edge["weight_week"]
-        roll_add = edge["weight_roll"]
+            pairs[actor][target]["week"] = round(pairs[actor][target]["week"] + wk_add, 4)
+            pairs[actor][target]["roll"] = round(pairs[actor][target]["roll"] + roll_add, 4)
 
-        pairs[actor][target]["week"] = round(pairs[actor][target]["week"] + wk_add, 4)
-        pairs[actor][target]["roll"] = round(pairs[actor][target]["roll"] + roll_add, 4)
+            comps_w = pairs[actor][target]["components_week"]
+            comps_r = pairs[actor][target]["components_roll"]
+            comps_w[kind] = round(comps_w.get(kind, 0.0) + wk_add, 4)
+            comps_r[kind] = round(comps_r.get(kind, 0.0) + roll_add, 4)
 
-        comps_w = pairs[actor][target]["components_week"]
-        comps_r = pairs[actor][target]["components_roll"]
-        comps_w[kind] = round(comps_w.get(kind, 0.0) + wk_add, 4)
-        comps_r[kind] = round(comps_r.get(kind, 0.0) + roll_add, 4)
+        return pairs
+
+    edges_daily = apply_context_edges(edges_raw, effective_week_daily)
+    edges_paredao = apply_context_edges(edges_raw, effective_week_paredao)
+    pairs_daily = build_pairs(base_weights_daily, edges_daily, effective_week_daily)
+    pairs_paredao = build_pairs(base_weights_paredao, edges_paredao, effective_week_paredao)
 
     return {
         "_metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "date": latest_date,
             "week": current_week,
-            "effective_week": effective_week,
+            "effective_week_daily": effective_week_daily,
+            "effective_week_paredao": effective_week_paredao,
+            "reference_date_daily": reference_date_daily,
+            "reference_date_paredao": reference_date_paredao,
             "weights": {
-                "queridometro": SENTIMENT_WEIGHTS,
+                "queridometro": {
+                    "weights": SENTIMENT_WEIGHTS,
+                    "base_window": "3d (0.6/0.3/0.1)",
+                },
                 "power_events": RELATION_POWER_WEIGHTS,
                 "sincerao": RELATION_SINC_WEIGHTS,
                 "vip": RELATION_VIP_WEIGHT,
@@ -421,8 +506,10 @@ def build_relations_scores(latest_snapshot, manual_events, auto_events, sincerao
                 "decay": "1/(1+Δsemana)",
             },
         },
-        "edges": edges,
-        "pairs": pairs,
+        "edges_daily": edges_daily,
+        "edges_paredao": edges_paredao,
+        "pairs_daily": pairs_daily,
+        "pairs_paredao": pairs_paredao,
     }
 
 
@@ -559,6 +646,41 @@ def build_auto_events(daily_roles):
     return events
 
 
+def apply_big_fone_context(auto_events, manual_events):
+    if not auto_events or not manual_events:
+        return auto_events
+    big_fone_map = []
+    for w in manual_events.get("weekly_events", []) if manual_events else []:
+        bf = w.get("big_fone") if isinstance(w, dict) else None
+        if isinstance(bf, dict):
+            atendeu = bf.get("atendeu")
+            date = bf.get("date")
+            if atendeu and date:
+                big_fone_map.append((atendeu, date))
+    if not big_fone_map:
+        return auto_events
+
+    def date_diff(d1, d2):
+        try:
+            return abs((datetime.strptime(d1, "%Y-%m-%d") - datetime.strptime(d2, "%Y-%m-%d")).days)
+        except Exception:
+            return 99
+
+    for ev in auto_events:
+        if ev.get("type") != "imunidade":
+            continue
+        target = ev.get("target")
+        date = ev.get("date")
+        if not target or not date:
+            continue
+        for atendeu, bf_date in big_fone_map:
+            if target == atendeu and date_diff(date, bf_date) <= 1:
+                ev["actor"] = "Big Fone"
+                ev["source"] = "Big Fone"
+                ev["detail"] = "Atendeu o Big Fone e ficou imune"
+    return auto_events
+
+
 def build_daily_metrics(daily_snapshots):
     daily = []
     for snap in daily_snapshots:
@@ -668,6 +790,12 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
         if week:
             events_by_week[week].append(ev)
 
+    weekly_events_by_week = {}
+    for w in (manual_events.get("weekly_events", []) if manual_events else []):
+        week = w.get("week")
+        if week:
+            weekly_events_by_week[week] = w
+
     # Add derived events: return from paredão
     if paredoes:
         for p in paredoes.get("paredoes", []):
@@ -762,6 +890,16 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                 if target_w > 0:
                     power_counts[target] += 1
                     power_activity[target] += target_w
+
+        # Ganha-Ganha: leve sinal de atividade para os sorteados
+        weekly_meta = weekly_events_by_week.get(week, {})
+        ganha = weekly_meta.get("ganha_ganha") if isinstance(weekly_meta, dict) else None
+        if isinstance(ganha, dict):
+            sorteados = ganha.get("sorteados", []) or []
+            for name in sorteados:
+                if name:
+                    power_counts[name] += 1
+                    power_activity[name] += PLANT_GANHA_GANHA_WEIGHT
 
         sinc_week = sinc_weeks.get(week, {})
         part_raw = sinc_week.get("participacao")
@@ -998,6 +1136,15 @@ def build_sincerao_edges(manual_events):
     }
 
 
+def split_names(value):
+    """Split consensus actor names (e.g., 'A + B') into individual names."""
+    if not value or not isinstance(value, str):
+        return []
+    if " + " in value:
+        return [v.strip() for v in value.split(" + ") if v.strip()]
+    return [value.strip()]
+
+
 def validate_manual_events(participants_index, manual_events):
     names = {p["name"] for p in participants_index}
     warnings = []
@@ -1009,10 +1156,15 @@ def validate_manual_events(participants_index, manual_events):
     for ev in manual_events.get("power_events", []):
         actor = ev.get("actor")
         target = ev.get("target")
-        if actor and actor not in names and actor not in ["Big Fone", "Prova do Líder", "Prova do Anjo", "Caixas-Surpresa"]:
-            warnings.append({"type": "unknown_actor", "name": actor, "context": "manual_events.power_events"})
-        if target and target not in names:
-            warnings.append({"type": "unknown_target", "name": target, "context": "manual_events.power_events"})
+        # Handle consensus actors (e.g., "A + B")
+        actors = split_names(actor) if actor else []
+        targets = split_names(target) if target else []
+        for a in actors:
+            if a not in names and a not in SYSTEM_ACTORS:
+                warnings.append({"type": "unknown_actor", "name": a, "context": "manual_events.power_events"})
+        for t in targets:
+            if t not in names:
+                warnings.append({"type": "unknown_target", "name": t, "context": "manual_events.power_events"})
 
     return warnings
 
@@ -1401,6 +1553,7 @@ def build_derived_data():
     participants_index = build_participants_index(snapshots, manual_events)
     daily_roles = build_daily_roles(daily_snapshots)
     auto_events = build_auto_events(daily_roles)
+    auto_events = apply_big_fone_context(auto_events, manual_events)
     daily_metrics = build_daily_metrics(daily_snapshots)
     snapshots_manifest = build_snapshots_manifest(daily_snapshots, daily_metrics)
     eliminations_detected = detect_eliminations(daily_snapshots)
@@ -1413,6 +1566,7 @@ def build_derived_data():
     plant_index = build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes)
     relations_scores = build_relations_scores(
         daily_snapshots[-1],
+        daily_snapshots,
         manual_events,
         auto_events,
         sincerao_edges,

@@ -57,12 +57,18 @@ POWER_EVENT_EMOJI = {
     'lider': '👑', 'anjo': '😇', 'monstro': '👹',
     'imunidade': '🛡️', 'indicacao': '🎯', 'contragolpe': '🌀',
     'voto_duplo': '🗳️', 'voto_anulado': '🚫', 'perdeu_voto': '⛔',
+    'bate_volta': '🛟',
+    'veto_ganha_ganha': '🚫', 'ganha_ganha_escolha': '🎁',
+    'barrado_baile': '🚫',
 }
 
 POWER_EVENT_LABELS = {
     'lider': 'Líder', 'anjo': 'Anjo', 'monstro': 'Monstro',
     'imunidade': 'Imunidade', 'indicacao': 'Indicação', 'contragolpe': 'Contragolpe',
     'voto_duplo': 'Voto 2x', 'voto_anulado': 'Voto anulado', 'perdeu_voto': 'Perdeu voto',
+    'bate_volta': 'Bate-Volta',
+    'veto_ganha_ganha': 'Veto (Ganha-Ganha)', 'ganha_ganha_escolha': 'Escolha (Ganha-Ganha)',
+    'barrado_baile': 'Barrado no Baile',
 }
 
 # ══════════════════════════════════════════════════════════════

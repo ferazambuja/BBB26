@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-01-28",
+  "_last_updated": "2026-01-29",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -41,10 +41,19 @@
         "date": "2026-01-15",
         "consequencia": "Indicou Aline ao paredão e ficou imune"
       },
+      "bate_volta": {
+        "date": "2026-01-18",
+        "vencedor": "Paulo Augusto",
+        "prova": "Jogo de memória",
+        "notes": "Mais votado pela casa, escapou do paredão ao vencer a Prova Bate e Volta."
+      },
       "quarto_secreto": null,
       "notes": "Primeira semana. Henri saiu por orientação médica dia 15.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-esta-imune-e-indica-aline-campos-ao-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/marcelo-atende-ao-big-fone-saiba-quanto-o-potiguar-pontuou-no-cartola-bbb.ghtml",
+        "https://www.cnnbrasil.com.br/entretenimento/bbb/bbb-26-marcelo-atende-o-primeiro-big-fone-e-indica-aline-ao-paredao/",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/primeiro-paredao-do-bbb-26-paulo-augusto-se-livra-da-berlinda-na-prova-bate-e-volta.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-primeiro-paredao-do-bbb-26-aline-campos-ana-paula-renault-e-milena-formam-a-berlinda.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-1o-paredao.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-a-1a-disputa.ghtml",
@@ -662,6 +671,21 @@
         "date": "2026-01-24",
         "resultado": "Leandro indicado ao paredão. Jonas perdeu direito de votar. Sarah vetou o voto de Ana Paula. Ana Paula tinha voto duplo, mas foi vetada."
       },
+      "ganha_ganha": {
+        "date": "2026-01-20",
+        "sorteados": ["Chaiany", "Maxiane", "Marcelo"],
+        "cartas": "Chaiany e Maxiane ganharam R$ 10 mil + informação privilegiada. Marcelo recebeu o poder de veto.",
+        "veto": {"por": "Marcelo", "quem": "Chaiany"},
+        "decisao": {"quem": "Maxiane", "escolha": "informação privilegiada", "perdeu": "R$ 20 mil"},
+        "informacao": "Não haverá Prova Bate e Volta após a votação do domingo."
+      },
+      "barrado_baile": [
+        {
+          "date": "2026-01-21",
+          "lider": "Alberto Cowboy",
+          "alvo": "Leandro"
+        }
+      ],
       "anjo_escolha": "Jonas (Anjo pela 2ª vez) escolheu vídeo da família ao invés de imunizar alguém",
       "voto_revelado": [
         {
@@ -678,13 +702,16 @@
       "notes": "Pedro desistiu dia 19. Aline eliminada dia 21 (1º paredão). 2º paredão formado dia 25: Leandro (caixas), Matheus (líder), Brigido (casa com 6 votos). Sem Bate e Volta.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/maxiane-troca-de-r-10-mil-por-informacao-privilegiada-no-bbb-26-entenda.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/leandro-e-escolhido-para-o-barrado-no-baile-pelo-lider-alberto-cowboy-e-enfrenta-desafio.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/tadeu-schmidt-explica-dinamica-inedita-das-caixas-surpresa-entenda.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/veterano-babu-santana-e-lider-pela-primeira-vez-no-bbb-26-quantas-provas-ele-ja-disputou.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-jonas-sulzbach-vence-segunda-prova.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-do-bbb-26-jonas-sulzbach-perde-o-direito-ao-voto-no-proximo-paredao.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-do-bbb-26-sarah-andrade-ganha-poder-do-veto-no-proximo-paredao.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixa-surpresa-do-bbb-26-ana-paula-renault-tera-direito-ao-voto-que-vale-por-dois-no-proximo-paredao.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-no-bbb-26-alberto-cowboy-e-brigido-indicam-leandro-ao-paredao.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/caixas-surpresa-no-bbb-26-alberto-cowboy-e-brigido-indicam-leandro-ao-paredao.ghtml",
+        "https://gente.ig.com.br/bbb/2026-01-26/leando--matheus-e-brigido-formaram-o-2-paredao-do-bbb-26.html"
       ],
       "sincerao": {
         "date": "2026-01-26",
@@ -773,6 +800,33 @@
         ],
         "edges_notes": "Baseado no resumo do 2º Sincerão (temas escolhidos pelo público)."
       }
+    },
+    {
+      "week": 3,
+      "start_date": "2026-01-27",
+      "end_date": "2026-02-02",
+      "big_fone": null,
+      "quarto_secreto": null,
+      "ganha_ganha": {
+        "date": "2026-01-27",
+        "sorteados": ["Chaiany", "Alberto Cowboy", "Breno"],
+        "cartas": "Breno e Chaiany ganharam R$ 10 mil + informação privilegiada. Alberto ficou com o poder de veto.",
+        "veto": {"por": "Alberto Cowboy", "quem": "Breno"},
+        "decisao": {"quem": "Chaiany", "escolha": "R$ 20 mil", "abriu_mao": "informação privilegiada"},
+        "informacao": "Saber os votos de duas pessoas no último paredão."
+      },
+      "barrado_baile": [
+        {
+          "date": "2026-01-28",
+          "lider": "Babu Santana",
+          "alvo": "Gabriela"
+        }
+      ],
+      "notes": "Semana 3 começa após a eliminação do 2º paredão.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/chaiany-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/gabriela-e-escolhida-para-o-barrado-no-baile-pelo-lider-babu-santana-e-enfrenta-desafio.ghtml"
+      ]
     }
   ],
   "special_events": [
@@ -833,9 +887,27 @@
       "source": "Big Fone",
       "detail": "Indicação direta ao paredão",
       "fontes": [
-        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-esta-imune-e-indica-aline-campos-ao-paredao.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-esta-imune-e-indica-aline-campos-ao-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/marcelo-atende-ao-big-fone-saiba-quanto-o-potiguar-pontuou-no-cartola-bbb.ghtml",
+        "https://www.cnnbrasil.com.br/entretenimento/bbb/bbb-26-marcelo-atende-o-primeiro-big-fone-e-indica-aline-ao-paredao/"
       ],
       "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-01-18",
+      "week": 1,
+      "type": "bate_volta",
+      "actor": "Prova Bate e Volta",
+      "target": "Paulo Augusto",
+      "source": "Bate e Volta",
+      "detail": "Venceu a Prova Bate e Volta e escapou do paredão",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/primeiro-paredao-do-bbb-26-paulo-augusto-se-livra-da-berlinda-na-prova-bate-e-volta.ghtml"
+      ],
+      "impacto": "positivo",
       "origem": "manual",
       "visibility": "public",
       "awareness": "known"
@@ -853,6 +925,102 @@
       ],
       "impacto": "positivo",
       "origem": "manual"
+    },
+    {
+      "date": "2026-01-20",
+      "week": 2,
+      "type": "veto_ganha_ganha",
+      "actor": "Marcelo",
+      "target": "Chaiany",
+      "source": "Ganha-Ganha",
+      "detail": "Recebeu o poder de veto e excluiu Chaiany da dinâmica",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/maxiane-troca-de-r-10-mil-por-informacao-privilegiada-no-bbb-26-entenda.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-01-20",
+      "week": 2,
+      "type": "ganha_ganha_escolha",
+      "actor": "Marcelo",
+      "target": "Maxiane",
+      "source": "Ganha-Ganha",
+      "detail": "Ao vetar Chaiany, deixou Maxiane com a decisão na dinâmica",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/maxiane-troca-de-r-10-mil-por-informacao-privilegiada-no-bbb-26-entenda.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-01-21",
+      "week": 2,
+      "type": "barrado_baile",
+      "actor": "Alberto Cowboy",
+      "target": "Leandro",
+      "source": "Barrado no Baile",
+      "detail": "Líder escolheu para ficar fora da festa do líder",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/leandro-e-escolhido-para-o-barrado-no-baile-pelo-lider-alberto-cowboy-e-enfrenta-desafio.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-01-27",
+      "week": 3,
+      "type": "veto_ganha_ganha",
+      "actor": "Alberto Cowboy",
+      "target": "Breno",
+      "source": "Ganha-Ganha",
+      "detail": "Recebeu o poder de veto e excluiu Breno da dinâmica",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/chaiany-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-01-27",
+      "week": 3,
+      "type": "ganha_ganha_escolha",
+      "actor": "Alberto Cowboy",
+      "target": "Chaiany",
+      "source": "Ganha-Ganha",
+      "detail": "Ao vetar Breno, deixou Chaiany com a decisão na dinâmica",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/chaiany-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-01-28",
+      "week": 3,
+      "type": "barrado_baile",
+      "actor": "Babu Santana",
+      "target": "Gabriela",
+      "source": "Barrado no Baile",
+      "detail": "Líder escolheu para ficar fora da festa do líder",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/gabriela-e-escolhida-para-o-barrado-no-baile-pelo-lider-babu-santana-e-enfrenta-desafio.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
     },
     {
       "date": "2026-01-18",

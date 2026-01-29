@@ -12,7 +12,7 @@ ELIMS = ROOT / "data/derived/eliminations_detected.json"
 OUT = ROOT / "docs/MANUAL_EVENTS_AUDIT.md"
 OUT_JSON = ROOT / "data/derived/manual_events_audit.json"
 
-SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa"}
+SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa", "Prova Bate e Volta"}
 
 
 def load(path, default):
