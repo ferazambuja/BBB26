@@ -41,11 +41,15 @@ RELATION_SINC_WEIGHTS = {
     "nao_ganha": -1.0,
     "bomba": -0.8,
 }
+RELATION_SINC_BACKLASH_FACTOR = {
+    "nao_ganha": 0.3,
+    "bomba": 0.4,
+}
 
 RELATION_VOTE_WEIGHTS = {
-    "secret": -0.8,
-    "revealed": -1.2,
-    "revealed_backlash": -0.6,
+    "secret": -2.0,       # deliberate attempt to eliminate — second only to indicação
+    "revealed": -2.5,     # same + now public (target knows who voted)
+    "revealed_backlash": -1.2,  # target's resentment toward revealed voter
 }
 
 RELATION_VIP_WEIGHT = 0.2
@@ -161,12 +165,16 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
     # Votes (by week)
     votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     revealed_votes = defaultdict(set)
+    vote_week_to_date = {}
 
     for par in paredoes.get("paredoes", []) if paredoes else []:
         votos = par.get("votos_casa", {}) or {}
         if not votos:
             continue
         week = par.get("semana")
+        vote_date = par.get("data_formacao") or par.get("data")
+        if week and vote_date:
+            vote_week_to_date[week] = vote_date
         multiplier = defaultdict(lambda: 1)
 
         for voter in par.get("votos_anulados", []) or []:
@@ -240,7 +248,20 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
         candidate_weeks = [w for w in candidate_weeks if w <= current_week]
         if candidate_weeks:
             effective_week_paredao = max(candidate_weeks)
-    effective_week_daily = current_week
+    candidate_weeks_daily = []
+    for ev in power_events:
+        w = ev.get("week")
+        if w:
+            candidate_weeks_daily.append(w)
+    for edge in (sincerao_edges or {}).get("edges", []):
+        w = edge.get("week")
+        if w:
+            candidate_weeks_daily.append(w)
+    for w in votes_received_by_week.keys():
+        if w:
+            candidate_weeks_daily.append(w)
+    candidate_weeks_daily = [w for w in candidate_weeks_daily if w <= current_week]
+    effective_week_daily = max(candidate_weeks_daily) if candidate_weeks_daily else current_week
 
     # Determine reference dates for base emoji weights
     reference_date_paredao = latest_date
@@ -330,7 +351,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
         visibility = ev.get("visibility", "public")
         vis_factor = RELATION_VISIBILITY_FACTOR.get(visibility, 1.0)
         weight = base_weight * vis_factor
-        ev_week = ev.get("week") or (get_week_number(ev["date"]) if ev.get("date") else effective_week)
+        ev_week = ev.get("week") or (get_week_number(ev["date"]) if ev.get("date") else effective_week_daily)
         for actor in actors:
             if actor in SYSTEM_ACTORS:
                 continue
@@ -376,23 +397,51 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             date=edge.get("date"),
             meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema")},
         )
+        backlash = RELATION_SINC_BACKLASH_FACTOR.get(etype)
+        if backlash:
+            add_edge_raw(
+                "sincerao",
+                target,
+                actor,
+                base_weight * backlash,
+                week=edge.get("week"),
+                date=edge.get("date"),
+                meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema"), "backlash": True},
+            )
 
-    # VIP edges (latest snapshot)
+    # VIP edges — one set per leader reign
+    # Use the first day of each leader's reign as the VIP list (before mid-week
+    # entrants or other changes distort it). New entrants who get auto-VIP from
+    # the program (not the leader's choice) are excluded by comparing against
+    # the previous day's participant list.
     if daily_roles:
-        latest_roles = daily_roles[-1]
-        leader = next(iter(latest_roles.get("roles", {}).get("Líder", [])), None)
-        if leader and leader in active_set:
-            for vip_name in latest_roles.get("vip", []):
-                if vip_name == leader:
-                    continue
-                add_edge_raw(
-                    "vip",
-                    leader,
-                    vip_name,
-                    RELATION_VIP_WEIGHT,
-                    week=effective_week_daily,
-                    date=latest_date,
-                )
+        seen_leaders = set()
+        prev_participants = set()
+        for entry in daily_roles:
+            leader = next(iter(entry.get("roles", {}).get("Líder", [])), None)
+            current_participants = set(entry.get("participants", []))
+            if leader and leader not in seen_leaders and leader in active_set:
+                seen_leaders.add(leader)
+                vip_names = entry.get("vip", [])
+                entry_date = entry.get("date")
+                entry_week = get_week_number(entry_date) if entry_date else effective_week_daily
+                # New entrants = participants today that weren't in the previous snapshot
+                new_entrants = current_participants - prev_participants if prev_participants else set()
+                for vip_name in vip_names:
+                    if vip_name == leader or vip_name not in active_set:
+                        continue
+                    # Skip new entrants who got auto-VIP from the program
+                    if vip_name in new_entrants:
+                        continue
+                    add_edge_raw(
+                        "vip",
+                        leader,
+                        vip_name,
+                        RELATION_VIP_WEIGHT,
+                        week=entry_week,
+                        date=entry_date,
+                    )
+            prev_participants = current_participants
 
     # Vote edges
     for week, targets in votes_received_by_week.items():
@@ -409,6 +458,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                     target,
                     weight,
                     week=week,
+                    date=vote_week_to_date.get(week),
                     meta={"vote_count": count, "vote_kind": vote_kind},
                     revealed=revealed,
                 )
@@ -420,29 +470,39 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                         voter,
                         backlash,
                         week=week,
+                        date=vote_week_to_date.get(week),
                         meta={"vote_count": count, "vote_kind": "revealed_backlash"},
                         revealed=True,
                     )
 
-    def decay_factor(week, effective_week):
-        if not week:
-            return 1.0
-        diff = max(0, effective_week - week)
-        return 1.0 / (1.0 + diff)
+    def apply_context_edges(edges_in):
+        """Prepare context edges with accumulated weights (no decay).
 
-    def apply_context_edges(edges_in, effective_week):
+        All event types accumulate at full weight — no decay applied.
+
+        Rationale (aligned with BBB game dynamics):
+        - Power events, Sincerão, votes: these are real in-game actions that
+          create lasting impact. Participants don't forget being nominated,
+          vetoed, or publicly confronted just because weeks passed.
+          (e.g., Sarah vs Juliano after Sincerão, Leandro vs Brigido/Alberto)
+        - VIP: low-weight signal, but still a deliberate leader choice.
+        - Queridômetro: handled separately via 3-day rolling window (0.6/0.3/0.1)
+          in base weights — it's a daily, secret, mandatory action with no
+          in-game consequences, so recency is already built into the window.
+        """
         edges_out = []
         for edge in edges_in:
-            edge_week = edge.get("week") or effective_week
-            decay = decay_factor(edge_week, effective_week)
             out = dict(edge)
-            out["week"] = edge_week
-            out["weight_roll"] = round(edge["weight_raw"] * decay, 4)
-            out["weight_week"] = round(edge["weight_raw"] if edge_week == effective_week else 0.0, 4)
+            out["weight"] = round(edge["weight_raw"], 4)
             edges_out.append(out)
         return edges_out
 
-    def build_pairs(base_weights, edges_ctx, effective_week):
+    def build_pairs(base_weights, edges_ctx):
+        """Build pairwise scores from queridômetro base + context edges.
+
+        Output per pair: { "score": float, "components": { type: float } }
+        All events accumulate at full weight (no decay, no week filtering).
+        """
         pairs = {}
         for a in active_names:
             pairs[a] = {}
@@ -454,10 +514,8 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                     label = reaction_matrix_latest.get((a, b), "")
                     base = SENTIMENT_WEIGHTS.get(label, 0.0)
                 pairs[a][b] = {
-                    "week": round(base, 4),
-                    "roll": round(base, 4),
-                    "components_week": {"queridometro": round(base, 4)},
-                    "components_roll": {"queridometro": round(base, 4)},
+                    "score": round(base, 4),
+                    "components": {"queridometro": round(base, 4)},
                 }
 
         for edge in edges_ctx:
@@ -466,23 +524,18 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             if actor not in pairs or target not in pairs[actor]:
                 continue
             kind = edge["type"]
-            wk_add = edge["weight_week"]
-            roll_add = edge["weight_roll"]
+            w = edge["weight"]
 
-            pairs[actor][target]["week"] = round(pairs[actor][target]["week"] + wk_add, 4)
-            pairs[actor][target]["roll"] = round(pairs[actor][target]["roll"] + roll_add, 4)
+            pairs[actor][target]["score"] = round(pairs[actor][target]["score"] + w, 4)
 
-            comps_w = pairs[actor][target]["components_week"]
-            comps_r = pairs[actor][target]["components_roll"]
-            comps_w[kind] = round(comps_w.get(kind, 0.0) + wk_add, 4)
-            comps_r[kind] = round(comps_r.get(kind, 0.0) + roll_add, 4)
+            comps = pairs[actor][target]["components"]
+            comps[kind] = round(comps.get(kind, 0.0) + w, 4)
 
         return pairs
 
-    edges_daily = apply_context_edges(edges_raw, effective_week_daily)
-    edges_paredao = apply_context_edges(edges_raw, effective_week_paredao)
-    pairs_daily = build_pairs(base_weights_daily, edges_daily, effective_week_daily)
-    pairs_paredao = build_pairs(base_weights_paredao, edges_paredao, effective_week_paredao)
+    edges = apply_context_edges(edges_raw)
+    pairs_daily = build_pairs(base_weights_daily, edges)
+    pairs_paredao = build_pairs(base_weights_paredao, edges)
 
     return {
         "_metadata": {
@@ -503,11 +556,10 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 "vip": RELATION_VIP_WEIGHT,
                 "votes": RELATION_VOTE_WEIGHTS,
                 "visibility_factor": RELATION_VISIBILITY_FACTOR,
-                "decay": "1/(1+Δsemana)",
+                "decay": "none — all events accumulate at full weight; queridômetro uses 3-day rolling window only",
             },
         },
-        "edges_daily": edges_daily,
-        "edges_paredao": edges_paredao,
+        "edges": edges,
         "pairs_daily": pairs_daily,
         "pairs_paredao": pairs_paredao,
     }

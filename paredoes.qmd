@@ -535,6 +535,87 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         total_ind = len(indicacoes)
         print(f"<p style='font-size:0.95rem;'>Indicações públicas coerentes: {ind_align['alinhado']}/{total_ind}.</p>")
 
+    # Badge vs realidade (contradições)
+        if paredao.get('votos_casa'):
+            votos = paredao['votos_casa']
+        # compute false friends + votes per participant
+        active_names = [p['name'] for p in snap_participants if not p.get('characteristics', {}).get('eliminated')]
+        false_friends = {}
+        for name in active_names:
+            ff = 0
+            for other in active_names:
+                if other == name:
+                    continue
+                my = matrix_p.get((name, other), '')
+                their = matrix_p.get((other, name), '')
+                if my in POSITIVE and their and their not in POSITIVE:
+                    ff += 1
+            false_friends[name] = ff
+
+        # indicacoes publicas / elegibilidade
+        ineligible = set()
+        indicacoes = Counter()
+        if paredao.get('indicado_lider'):
+            ineligible.add(paredao.get('indicado_lider'))
+            indicacoes[paredao.get('indicado_lider')] += 1
+        if paredao.get('big_fone'):
+            bf = paredao.get('big_fone')
+            if bf.get('indicou'):
+                ineligible.add(bf.get('indicou'))
+                indicacoes[bf.get('indicou')] += 1
+        if paredao.get('contragolpe'):
+            cg = paredao.get('contragolpe')
+            if cg.get('para'):
+                ineligible.add(cg.get('para'))
+                indicacoes[cg.get('para')] += 1
+        if paredao.get('dinamica'):
+            din = paredao.get('dinamica')
+            alvo = din.get('indicado')
+            if alvo:
+                ineligible.add(alvo)
+                indicacoes[alvo] += 1
+        if paredao.get('imunizado'):
+            im = paredao.get('imunizado')
+            if im.get('quem'):
+                ineligible.add(im.get('quem'))
+
+        vuln_no_votes = []
+        prot_with_votes = []
+        for name in active_names:
+            votes_count = sum(1 for v, a in votos.items() if a == name)
+            ff = false_friends.get(name, 0)
+            if ff >= 5:
+                vuln = '🔴 MUITO VULNERÁVEL'
+            elif ff >= 3:
+                vuln = '🟠 VULNERÁVEL'
+            elif ff >= 1:
+                vuln = '🟡 ATENÇÃO'
+            else:
+                vuln = '🟢 PROTEGIDO'
+
+            eligible = name not in ineligible
+            if votes_count == 0 and indicacoes.get(name, 0) == 0 and eligible and vuln in ['🟠 VULNERÁVEL', '🔴 MUITO VULNERÁVEL']:
+                vuln_no_votes.append((name, vuln, votes_count))
+            if votes_count >= 3 and eligible and vuln in ['🟢 PROTEGIDO', '🟡 ATENÇÃO']:
+                prot_with_votes.append((name, vuln, votes_count))
+
+        if vuln_no_votes or prot_with_votes:
+            print("<div style='margin-top:0.6rem;'>")
+            print("<p style='font-size:0.95rem;'><strong>Contradições (badge vs realidade)</strong></p>")
+            if vuln_no_votes:
+                print("<p class='text-muted'>Vulneráveis sem votos (surpresa não se confirmou):</p>")
+                print('<ul>')
+                for name, vuln, votes_count in vuln_no_votes:
+                    print(f"<li>{name} — {vuln} (0 votos)</li>")
+                print('</ul>')
+            if prot_with_votes:
+                print("<p class='text-muted'>Protegidos/atenção com muitos votos (voto coletivo/bloco):</p>")
+                print('<ul>')
+                for name, vuln, votes_count in prot_with_votes:
+                    print(f"<li>{name} — {vuln} ({votes_count} votos)</li>")
+                print('</ul>')
+            print("</div>")
+
     # ══════════════════════════════════════════════════════════════
     # ENQUETES VS RESULTADO (compact)
     # ══════════════════════════════════════════════════════════════

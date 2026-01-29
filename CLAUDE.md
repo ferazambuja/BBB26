@@ -236,10 +236,10 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 
 All scoring formulas, weights, and detailed specifications are in **`docs/SCORING_AND_INDEXES.md`**. Key concepts:
 
-- **Sentiment Index (A → B)**: directional score combining queridômetro (3-day moving average) + power event modifiers + Sincerão edges + VIP + votos. Two modes: `pairs_daily` and `pairs_paredao`.
+- **Sentiment Index (A → B)**: directional score combining queridômetro (3-day window) + all accumulated events (power, Sincerão, VIP, votos) at full weight (no decay). Two modes: `pairs_daily` (today's queridômetro) and `pairs_paredao` (formation-date queridômetro); events are identical in both.
 - **Planta Index**: weekly score (0–100) quantifying low visibility + low participation. Weights: 0.45 power activity + 0.35 Sincerão exposure + 0.20 🌱 emoji ratio. Computed in `data/derived/plant_index.json`.
 - **Risco Externo**: weekly per-participant risk from votes received + public/secret negative events + paredão status.
-- **Animosidade**: historical directional score with decay (`1/(1+weeks)`). Experimental.
+- **Animosidade**: historical directional score (no decay — events accumulate). Experimental.
 - **Cartola BBB**: point system (Líder +80 to Desistente -30). Precomputed in `data/derived/cartola_data.json`.
 
 Power events are **modifiers** (rare, one-to-one), not the base — queridômetro drives ongoing sentiment.

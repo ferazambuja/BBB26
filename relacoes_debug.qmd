@@ -17,7 +17,8 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, get_all_snapshots, load_snapshot,
-    build_reaction_matrix, REACTION_EMOJI, SENTIMENT_WEIGHTS, get_week_number
+    build_reaction_matrix, REACTION_EMOJI, SENTIMENT_WEIGHTS, get_week_number,
+    parse_roles, POSITIVE
 )
 
 require_clean_manual_events()
@@ -26,9 +27,7 @@ RELATIONS_FILE = Path("data/derived/relations_scores.json")
 
 relations = json.loads(RELATIONS_FILE.read_text(encoding="utf-8")) if RELATIONS_FILE.exists() else {}
 relations_pairs_daily = relations.get("pairs_daily", {}) or relations.get("pairs", {})
-relations_pairs_paredao = relations.get("pairs_paredao", {}) or relations.get("pairs", {})
-edges_daily = relations.get("edges_daily", []) or relations.get("edges", [])
-edges_paredao = relations.get("edges_paredao", []) or relations.get("edges", [])
+edges = relations.get("edges", []) or relations.get("edges_daily", []) or relations.get("edges_paredao", [])
 meta = relations.get("_metadata", {})
 DISPLAY_WEEK_DAILY = meta.get("effective_week_daily") or meta.get("week") or 2
 DISPLAY_WEEK_PAREDAO = meta.get("effective_week_paredao") or meta.get("week") or 2
@@ -106,59 +105,49 @@ def flatten_pairs(pairs, matrix):
     for actor, targets in pairs.items():
         for target, rec in targets.items():
             label, emoji = reaction_label(actor, target, matrix)
-            comps_week = rec.get("components_week", {})
-            comps_roll = rec.get("components_roll", {})
-            week_sum = rec.get("week", 0.0)
-            rel_score = rec.get("roll", 0.0)
-            rel_label, rel_class = classify_relation(rel_score)
+            comps = rec.get("components", rec.get("components_roll", {}))
+            q_score = comps.get("queridometro", 0.0)
+            score = rec.get("score", rec.get("roll", 0.0))
+            rel_label, rel_class = classify_relation(score)
             rows.append({
                 "Ator": actor,
                 "Alvo": target,
-                "Relação (rolling)": f"<span class='rel-pill {rel_class}'>{rel_label}</span>",
-                "Queridômetro": f"{emoji} {label}".strip(),
-                "Power (semana)": fmt_score(comps_week.get("power_event", 0.0)),
-                "Sincerão (semana)": fmt_score(comps_week.get("sincerao", 0.0)),
-                "VIP (semana)": fmt_score(comps_week.get("vip", 0.0)),
-                "Voto (semana)": fmt_score(comps_week.get("vote", 0.0)),
-                "Score semana": fmt_score(week_sum),
-                "Power (rolling)": fmt_score(comps_roll.get("power_event", 0.0)),
-                "Sincerão (rolling)": fmt_score(comps_roll.get("sincerao", 0.0)),
-                "VIP (rolling)": fmt_score(comps_roll.get("vip", 0.0)),
-                "Voto (rolling)": fmt_score(comps_roll.get("vote", 0.0)),
-                "Score rolling": fmt_score(rec.get("roll", 0.0)),
+                "Relação": f"<span class='rel-pill {rel_class}'>{rel_label}</span>",
+                "Emoji (dia)": f"{emoji} {label}".strip(),
+                "Q (3d)": fmt_score(q_score),
+                "Power": fmt_score(comps.get("power_event", 0.0)),
+                "Sincerão": fmt_score(comps.get("sincerao", 0.0)),
+                "VIP": fmt_score(comps.get("vip", 0.0)),
+                "Voto": fmt_score(comps.get("vote", 0.0)),
+                "Score": fmt_score(score),
             })
     return pd.DataFrame(rows)
 
 pairs_daily_df = flatten_pairs(relations_pairs_daily, matrix_daily) if relations_pairs_daily else pd.DataFrame()
-pairs_paredao_df = flatten_pairs(relations_pairs_paredao, matrix_paredao) if relations_pairs_paredao else pd.DataFrame()
 
 edge_rows = []
-for ev in edges_paredao:
-    if ev.get("week") != DISPLAY_WEEK_PAREDAO:
-        continue
-    weight_week = ev.get("weight_week")
-    weight_roll = ev.get("weight_roll")
+for ev in edges:
+    weight = ev.get("weight", ev.get("weight_roll"))
     edge_rows.append({
-        "Data": ev.get("date"),
-        "Semana": ev.get("week"),
-        "Tipo": ev.get("type"),
-        "Evento": ev.get("event_type") or ev.get("sinc_type"),
-        "Tema": ev.get("tema"),
-        "Slot": ev.get("slot"),
-        "Ator": ev.get("actor"),
-        "Alvo": ev.get("target"),
-        "Visibilidade": ev.get("visibility"),
+        "Data": ev.get("date", ""),
+        "Semana": ev.get("week", ""),
+        "Tipo": ev.get("type", ""),
+        "Evento": ev.get("event_type") or ev.get("sinc_type") or "",
+        "Tema": ev.get("tema") or "",
+        "Slot": ev.get("slot") or "",
+        "Ator": ev.get("actor", ""),
+        "Alvo": ev.get("target", ""),
+        "Visibilidade": ev.get("visibility") or "",
         "Backlash": "sim" if ev.get("backlash") else "",
-        "Voto (tipo)": ev.get("vote_kind"),
+        "Voto (tipo)": ev.get("vote_kind") or "",
         "Revelado": "sim" if ev.get("revealed") else "não",
-        "Peso (semana)": fmt_score(weight_week) if weight_week is not None else "",
-        "Peso (rolling)": fmt_score(weight_roll) if weight_roll is not None else "",
+        "Peso": fmt_score(weight) if weight is not None else "",
     })
 
 edges_df = pd.DataFrame(edge_rows)
 
 event_rows = []
-for ev in edges_paredao:
+for ev in edges:
     if ev.get("week") != DISPLAY_WEEK_PAREDAO:
         continue
     if ev.get("type") == "power_event" and ev.get("event_type") not in {"indicacao", "contragolpe"}:
@@ -208,21 +197,12 @@ events_vs_df = pd.DataFrame(event_rows)
 #| output: asis
 
 if meta:
-    print(f"<div><strong>Semana (diária):</strong> {DISPLAY_WEEK_DAILY}</div>")
-    if week_date_daily:
-        print(f"<div><strong>Snapshot diário:</strong> {week_date_daily}</div>")
-    print(f"<div><strong>Semana (paredão):</strong> {DISPLAY_WEEK_PAREDAO}</div>")
-    if week_date_paredao:
-        print(f"<div><strong>Snapshot paredão:</strong> {week_date_paredao}</div>")
     print(f"<div><strong>Data (último sync):</strong> {meta.get('date')}</div>")
-    print(f"<div><strong>Semana (atual):</strong> {meta.get('week')}</div>")
-    print(f"<div><strong>Semana efetiva (diária):</strong> {meta.get('effective_week_daily')}</div>")
-    print(f"<div><strong>Semana efetiva (paredão):</strong> {meta.get('effective_week_paredao')}</div>")
-    print(f"<div><strong>Decay:</strong> {meta.get('weights', {}).get('decay')}</div>")
     if reference_date_daily:
         print(f"<div><strong>Queridômetro base (diário):</strong> {reference_date_daily} (rolling 3d)</div>")
     if reference_date_paredao:
         print(f"<div><strong>Queridômetro base (paredão):</strong> {reference_date_paredao} (rolling 3d)</div>")
+    print(f"<div><strong>Acumulação:</strong> sem decay — todos os eventos acumulam com peso integral</div>")
     print("<div style='margin-top:0.6rem;'><strong>Pesos (resumo)</strong></div>")
     print(f"<div>Queridômetro: {meta.get('weights', {}).get('queridometro')}</div>")
     print(f"<div>Power events: {meta.get('weights', {}).get('power_events')}</div>")
@@ -234,10 +214,9 @@ else:
     print("<div>Sem metadados disponíveis.</div>")
 ```
 
-## Pares (A → B) — tabela completa (diário)
+## Pares (A → B) — visão diária
 
-<p class="text-muted">Tabela diária usa <strong>semana {DISPLAY_WEEK_DAILY}</strong>. “(semana)” usa apenas edges dessa semana; “(rolling)” usa o acumulado com decay.</p>
-<p class="text-muted">⚠️ Todos os participantes reagem uns aos outros diariamente. Aqui mostramos o <strong>emoji do dia diário</strong> e o score usa rolling curto de 3 dias.</p>
+<p class="text-muted">Tabela diária — queridômetro base usa rolling de 3 dias. Eventos acumulam sem decay (peso integral).</p>
 
 ```{python}
 #| label: pairs-table
@@ -247,44 +226,11 @@ else:
 if pairs_daily_df.empty:
     print("Nenhum par encontrado.")
 else:
-    pairs_daily_df = pairs_daily_df.sort_values(["Ator", "Score semana"], ascending=[True, False])
-    print("""
-<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 8, false)">Score semana ↓</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 8, true)">Score semana ↑</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 13, false)">Score rolling ↓</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTable', 13, true)">Score rolling ↑</button>
-</div>
-""")
+    pairs_daily_df = pairs_daily_df.sort_values(["Ator", "Score"], ascending=[True, False])
     print(pairs_daily_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="pairsTable"))
 ```
 
-## Pares (A → B) — tabela completa (paredão)
-
-<p class="text-muted">Tabela de paredão usa <strong>semana {DISPLAY_WEEK_PAREDAO}</strong> e snapshot de formação.</p>
-<p class="text-muted">⚠️ Emojis refletem o dia de formação. Score usa rolling curto de 3 dias em torno dessa data.</p>
-
-```{python}
-#| label: pairs-table-paredao
-#| echo: false
-#| output: asis
-
-if pairs_paredao_df.empty:
-    print("Nenhum par encontrado.")
-else:
-    pairs_paredao_df = pairs_paredao_df.sort_values(["Ator", "Score semana"], ascending=[True, False])
-    print("""
-<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 8, false)">Score semana ↓</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 8, true)">Score semana ↑</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 13, false)">Score rolling ↓</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('pairsTableParedao', 13, true)">Score rolling ↑</button>
-</div>
-""")
-    print(pairs_paredao_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="pairsTableParedao"))
-```
-
-## Detalhes por participante (diário)
+## Detalhes por participante
 
 ```{python}
 #| label: pairs-by-actor
@@ -296,7 +242,7 @@ if pairs_daily_df.empty:
 else:
     for actor in sorted(pairs_daily_df["Ator"].unique()):
         sub = pairs_daily_df[pairs_daily_df["Ator"] == actor].copy()
-        sub = sub.sort_values("Score semana", ascending=False)
+        sub = sub.sort_values("Score", ascending=False)
         print(f"<details style='margin: 0.4rem 0;'><summary><strong>{actor}</strong></summary>")
         print(sub.to_html(index=False, classes="table table-sm table-dark", escape=False))
         print("</details>")
@@ -313,37 +259,60 @@ if edges_df.empty:
     print("Nenhum edge registrado.")
 else:
     edges_df = edges_df.sort_values(["Semana", "Tipo", "Ator"], ascending=[False, True, True])
-    print("""
-<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 12, false)">Peso semana ↓</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 12, true)">Peso semana ↑</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 13, false)">Peso rolling ↓</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('edgesTable', 13, true)">Peso rolling ↑</button>
-</div>
-""")
     print(edges_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="edgesTable"))
 ```
 
 <script>
-function sortTable(tableId, colIndex, asc) {
-  const table = document.getElementById(tableId);
-  if (!table) return;
-  const tbody = table.tBodies[0];
-  const rows = Array.from(tbody.rows);
-  rows.sort((a, b) => {
-    const getVal = (row) => {
-      const cell = row.cells[colIndex];
-      if (!cell) return 0;
-      const text = cell.innerText.replace(',', '.').replace('%','').trim();
-      const num = parseFloat(text);
-      return isNaN(num) ? 0 : num;
-    };
-    const av = getVal(a);
-    const bv = getVal(b);
-    return asc ? (av - bv) : (bv - av);
-  });
-  rows.forEach(r => tbody.appendChild(r));
-}
+(function() {
+  function sortTable(table, colIndex, asc) {
+    const tbody = table.tBodies[0];
+    if (!tbody) return;
+    const rows = Array.from(tbody.rows);
+    rows.sort((a, b) => {
+      const textA = (a.cells[colIndex] || {}).innerText || '';
+      const textB = (b.cells[colIndex] || {}).innerText || '';
+      const numA = parseFloat(textA.replace(',', '.').replace('%', '').trim());
+      const numB = parseFloat(textB.replace(',', '.').replace('%', '').trim());
+      const bothNumeric = !isNaN(numA) && !isNaN(numB) && textA.trim() !== '' && textB.trim() !== '';
+      if (bothNumeric) {
+        return asc ? (numA - numB) : (numB - numA);
+      }
+      const cmp = textA.localeCompare(textB, 'pt-BR', {sensitivity: 'base'});
+      return asc ? cmp : -cmp;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  function initSortableHeaders() {
+    document.querySelectorAll('table.table-dark').forEach(table => {
+      const headers = table.querySelectorAll('thead th');
+      headers.forEach((th, idx) => {
+        th.style.cursor = 'pointer';
+        th.style.userSelect = 'none';
+        th.title = 'Clique para ordenar';
+        th.dataset.sortDir = 'none';
+        th.addEventListener('click', () => {
+          // Toggle direction: none → desc → asc → desc …
+          const dir = th.dataset.sortDir === 'desc' ? 'asc' : 'desc';
+          // Reset all headers in this table
+          headers.forEach(h => {
+            h.dataset.sortDir = 'none';
+            h.textContent = h.textContent.replace(/ [↑↓]$/, '');
+          });
+          th.dataset.sortDir = dir;
+          th.textContent = th.textContent + (dir === 'asc' ? ' ↑' : ' ↓');
+          sortTable(table, idx, dir === 'asc');
+        });
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSortableHeaders);
+  } else {
+    initSortableHeaders();
+  }
+})();
 </script>
 
 ## Votos / Indicações vs Queridômetro (semana exibida)
@@ -357,11 +326,212 @@ if events_vs_df.empty:
     print("Nenhum evento/voto crítico registrado na semana.")
 else:
     events_vs_df = events_vs_df.sort_values(["Tipo", "Ator"], ascending=[True, True])
-    print("""
-<div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.6rem 0;">
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('eventsTable', 6, false)">Peso evento ↓</button>
-  <button class="btn btn-sm btn-outline-light" onclick="sortTable('eventsTable', 6, true)">Peso evento ↑</button>
-</div>
-""")
     print(events_vs_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="eventsTable"))
+```
+## Badge vs Realidade (Paredões)
+
+```{python}
+#| label: badge-vs-reality
+#| echo: false
+#| output: asis
+
+import pandas as pd
+
+def snapshot_on_or_before(date_str):
+    chosen = None
+    for fp, date in snapshots:
+        if date <= date_str:
+            chosen = (fp, date)
+    return chosen
+
+paredoes_data = json.loads(Path("data/paredoes.json").read_text(encoding="utf-8")) if Path("data/paredoes.json").exists() else {}
+
+def compute_badges_for_snapshot(fp, date_str, vote_week, paredao_data):
+    participants, _ = load_snapshot(fp)
+    active = [p for p in participants if not p.get("characteristics", {}).get("eliminated")]
+    active_names = [p["name"] for p in active]
+    matrix = build_reaction_matrix(active)
+
+    # roles current
+    roles_current = {r: [] for r in ["Líder", "Anjo", "Monstro", "Imune", "Paredão"]}
+    for p in active:
+        name = p["name"]
+        roles = parse_roles(p.get("characteristics", {}).get("roles", []))
+        for r in roles:
+            if r in roles_current:
+                roles_current[r].append(name)
+
+    # load power events
+    manual = json.loads(Path("data/manual_events.json").read_text(encoding="utf-8"))
+    auto = json.loads(Path("data/derived/auto_events.json").read_text(encoding="utf-8")).get("events", [])
+    power_events = manual.get("power_events", []) + auto
+
+    # votes received
+    votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    for par in paredoes_data.get("paredoes", []) if paredoes_data else []:
+        votos = par.get("votos_casa", {}) or {}
+        if not votos:
+            continue
+        week = par.get("semana")
+        for voter, target in votos.items():
+            votes_received_by_week[week][target][voter] += 1
+
+    NEG_EVENT_WEIGHTS = {
+        "indicacao": 2.5,
+        "contragolpe": 2.5,
+        "emparedado": 2.0,
+        "veto_prova": 1.5,
+        "monstro": 1.2,
+        "perdeu_voto": 1.0,
+        "voto_anulado": 0.8,
+        "voto_duplo": 0.6,
+        "exposto": 0.5,
+    }
+
+    def normalize_actors(ev):
+        actors = ev.get("actors")
+        if isinstance(actors, list) and actors:
+            return [a for a in actors if a]
+        actor = ev.get("actor")
+        if not actor:
+            return []
+        if " + " in actor:
+            return [a.strip() for a in actor.split(" + ") if a.strip()]
+        return [actor]
+
+    # Indicações públicas (alvos já no paredão)
+    ineligible = set()
+    indicacoes = defaultdict(int)
+    if paredao_data:
+        form = paredao_data.get('formacao', {}) if isinstance(paredao_data.get('formacao'), dict) else {}
+        indicado_lider = form.get('indicado_lider')
+        if indicado_lider:
+            ineligible.add(indicado_lider)
+            indicacoes[indicado_lider] += 1
+        bf = form.get('big_fone') or {}
+        if isinstance(bf, dict) and bf.get('indicou'):
+            ineligible.add(bf.get('indicou'))
+            indicacoes[bf.get('indicou')] += 1
+        cg = form.get('contragolpe') or {}
+        if isinstance(cg, dict) and cg.get('para'):
+            ineligible.add(cg.get('para'))
+            indicacoes[cg.get('para')] += 1
+        din = form.get('dinamica') or {}
+        alvo = din.get('indicado')
+        if alvo:
+            ineligible.add(alvo)
+            indicacoes[alvo] += 1
+        im = form.get('imunizado') or {}
+        if isinstance(im, dict) and im.get('quem'):
+            ineligible.add(im.get('quem'))
+
+    rows = []
+    for p in active:
+        name = p["name"]
+        roles = parse_roles(p.get("characteristics", {}).get("roles", []))
+        # Vulnerabilidade (false friends)
+        ff = 0
+        for b in active_names:
+            if b == name:
+                continue
+            my = matrix.get((name, b))
+            their = matrix.get((b, name))
+            if my in POSITIVE and their and their not in POSITIVE:
+                ff += 1
+        if ff >= 5:
+            vuln = "🔴 MUITO VULNERÁVEL"
+        elif ff >= 3:
+            vuln = "🟠 VULNERÁVEL"
+        elif ff >= 1:
+            vuln = "🟡 ATENÇÃO"
+        else:
+            vuln = "🟢 PROTEGIDO"
+
+        # External score (votes + events)
+        target_events_all = [ev for ev in power_events if ev.get("target") == name]
+        current_events = []
+        for ev in target_events_all:
+            ev_type = ev.get("type")
+            ev_week = ev.get("week")
+            if ev_type in ["lider", "anjo", "monstro", "imunidade"]:
+                role_label = next((k for k, v in {"Líder": "lider", "Anjo": "anjo", "Monstro": "monstro", "Imune": "imunidade"}.items()
+                                   if v == ev_type), None)
+                if role_label and name in roles_current.get(role_label, []):
+                    current_events.append(ev)
+            elif ev_week == vote_week:
+                current_events.append(ev)
+
+        neg_events = [ev for ev in current_events if ev.get("impacto") == "negativo"]
+        neg_public = [ev for ev in neg_events if ev.get("visibility", "public") != "secret"]
+
+        votes_count = sum(votes_received_by_week.get(vote_week, {}).get(name, {}).values())
+        indic_count = indicacoes.get(name, 0)
+        external_score = (
+            1.0 * votes_count
+            + sum(NEG_EVENT_WEIGHTS.get(ev.get("type"), 1.0) for ev in neg_public)
+        )
+        if "Paredão" in roles:
+            external_score += 2
+
+        if external_score >= 6:
+            external_level = "🔴 ALTO"
+        elif external_score >= 3:
+            external_level = "🟠 MÉDIO"
+        elif external_score >= 1:
+            external_level = "🟡 BAIXO"
+        else:
+            external_level = "🟢 MUITO BAIXO"
+
+        rows.append({
+            "Participante": name,
+            "Votos (casa)": votes_count,
+            "Indicações": indic_count,
+            "Elegível voto": "sim" if name not in ineligible else "não",
+            "Vulnerabilidade": vuln,
+            "Risco externo": external_level,
+            "External score": round(external_score, 2),
+            "Falsos amigos": ff,
+        })
+
+    return pd.DataFrame(rows)
+
+rows_all = []
+for par in paredoes_data.get("paredoes", []) if paredoes_data else []:
+    data_form = par.get("data_formacao") or par.get("data")
+    week = par.get("semana")
+    if not data_form or not week:
+        continue
+    snap = snapshot_on_or_before(data_form)
+    if not snap:
+        continue
+    fp, date_str = snap
+    df = compute_badges_for_snapshot(fp, date_str, week, par)
+    df.insert(0, "Paredão", f"{par.get('numero')}º ({data_form})")
+    rows_all.append(df)
+
+if not rows_all:
+    print("Sem dados de paredão para comparar.")
+else:
+    all_df = pd.concat(rows_all, ignore_index=True)
+    print(all_df.to_html(index=False, classes="table table-sm table-dark", escape=False))
+
+    # Contradições
+    print("\n### Contradições (badge vs realidade)\n")
+    vuln_no_votes = all_df[(all_df["Votos (casa)"] == 0) & (all_df["Indicações"] == 0) & (all_df["Elegível voto"] == "sim")]
+    vuln_no_votes = vuln_no_votes[vuln_no_votes["Vulnerabilidade"].isin(["🟠 VULNERÁVEL", "🔴 MUITO VULNERÁVEL"])]
+    if vuln_no_votes.empty:
+        print("<p class='text-muted'>Nenhum vulnerável sem votos nesta formação.</p>")
+    else:
+        print("<p class='text-muted'>Vulneráveis sem votos (surpresa não se confirmou):</p>")
+        print(vuln_no_votes[["Paredão", "Participante", "Vulnerabilidade", "Votos (casa)"]]
+              .to_html(index=False, classes="table table-sm table-dark", escape=False))
+
+    prot_with_votes = all_df[(all_df["Votos (casa)"] >= 3) & (all_df["Elegível voto"] == "sim")]
+    prot_with_votes = prot_with_votes[prot_with_votes["Vulnerabilidade"].isin(["🟢 PROTEGIDO", "🟡 ATENÇÃO"])]
+    if prot_with_votes.empty:
+        print("<p class='text-muted'>Nenhum protegido/atenção com muitos votos.</p>")
+    else:
+        print("<p class='text-muted'>Protegidos/atenção com muitos votos (voto coletivo/bloco):</p>")
+        print(prot_with_votes[["Paredão", "Participante", "Vulnerabilidade", "Votos (casa)"]]
+              .to_html(index=False, classes="table table-sm table-dark", escape=False))
 ```

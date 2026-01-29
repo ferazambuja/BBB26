@@ -24,7 +24,7 @@ Referenced from `CLAUDE.md` — read this when implementing or modifying scoring
 ### Event data (rare, manual + auto)
 - **Power events** (manual + auto events): usually **one actor → one target**.
 - These are **sparse** compared to queridômetro (daily), so they should be **modifiers**, not the base.
-- Weekly effects (risk) **do not carry**; historical effects (animosity) decay over time.
+- Weekly effects (risk) **do not carry**; historical effects (animosity) accumulate without decay (events persist in participants' memory).
 - **Sincerão edges** (manual): explicit A → B signals (pódio, "não ganha", bombas/temas).
   - Use as **small modifiers** to the sentiment index (see Sincerão framework below).
 - **Bate-Volta** (manual): vencedor sai do paredão e conta como **evento positivo** no Planta Index.
@@ -62,6 +62,8 @@ Q(A→B) = weight(reaction_label from A to B)
   - `veto_ganha_ganha` −0.4, `ganha_ganha_escolha` +0.3 (baixo impacto)
   - `barrado_baile` −0.4 (baixo impacto, público)
   - Ganha-Ganha é público: quem foi vetado tende a gerar **animosidade leve** contra quem vetou (backlash menor).
+  - Sincerão negativo é público: gera **backlash leve** no alvo (bomba/“não ganha”).
+  - **Nenhum tipo de evento sofre decay** no rolling — todos acumulam com peso integral. Razão: no BBB, eventos significativos (indicações, Sincerão, votos) criam mágoas duradouras e alianças que não se dissolvem com o tempo. O queridômetro já usa janela curta de 3 dias como base.
   - **Self-inflicted** events do not create A→B edges.
   - **Consensus** (ex.: Alberto + Brigido) = **full weight for each actor**.
   - **Public** indicacao/contragolpe also add **backlash** B→A (peso menor, fator 0.6).
@@ -70,34 +72,32 @@ Q(A→B) = weight(reaction_label from A to B)
   - pódio slot 1/2/3 = +0.7/+0.5/+0.3
   - "não ganha" −1.0, "bomba" −0.8
 - **VIP** (líder → VIPs da semana): +0.2
-- **Votos da casa** (A vota em B):
-  - voto **secreto**: −0.8 (conta para A→B)
-  - voto **revelado** (dedo-duro / votação aberta): −1.2 (conta para A→B)
+  - Usa a lista VIP do **primeiro dia** de cada reinado do líder (antes de novos participantes distorcerem a lista).
+  - Novos entrantes que recebem VIP automático do programa (não escolha do líder) são **excluídos**.
+  - Cada líder gera edges na **semana correta** (ex.: se o líder ainda aparece na API porque a próxima prova não ocorreu, o week permanece o da sua liderança real).
+- **Votos da casa** (A vota em B) — segundo ato mais forte depois da indicação direta, pois é uma tentativa deliberada de eliminar:
+  - voto **secreto**: −2.0 (conta para A→B)
+  - voto **revelado** (dedo-duro / votação aberta): −2.5 (conta para A→B)
   - votos secretos **não alteram B→A**; só impactam quem votou.
-  - voto **revelado ao alvo**: adiciona **backlash** B→A (peso menor, −0.6) porque o alvo agora sabe quem votou.
+  - voto **revelado ao alvo**: adiciona **backlash** B→A (−1.2) porque o alvo agora sabe quem votou.
 
 ### Dois modos de score
-- **Diário (`pairs_daily`)**: base ancorada em **hoje**, rolling 3 dias; eventos decaem por semana.
-- **Paredão (`pairs_paredao`)**: base ancorada na **data_formacao**; usada para coerência social.
+- **Diário (`pairs_daily`)**: queridômetro base ancorado em **hoje** (rolling 3 dias) + todos os eventos acumulados.
+- **Paredão (`pairs_paredao`)**: queridômetro base ancorado na **data_formacao** do paredão + todos os eventos acumulados. Usada para análise de coerência social.
 
-### Score semanal (current week)
+A diferença entre os dois modos é **apenas o queridômetro base** (qual snapshot de 3 dias). Os eventos são idênticos.
+
+### Score (acumulado, sem decay)
 ```
-Score_week(A→B) = Q + Σ eventos_da_semana + Σ votos_da_semana
+Score(A→B) = Q(base 3d) + Σ eventos (peso integral, sem decay)
 ```
 
-### Semana efetiva (quando a semana atual está "vazia")
-- Se **não há Paredão em andamento** e a semana atual não tem eventos, usamos a **última semana com eventos** como "semana efetiva".
-- Isso evita cair numa semana sem dinâmica (após eliminação, antes da nova liderança).
-
-### Score rolling (decay)
-```
-Score_roll(A→B) = Q + Σ (evento * 1/(1+Δsemana))
-```
+**Por que sem decay?** No BBB, eventos do jogo (indicações, votos, Sincerão, contragolpes) criam impacto duradouro — participantes não "esquecem" uma indicação ou bomba do Sincerão só porque passaram semanas. Exemplos reais: Sarah e Juliano viraram inimigos após Sincerão; Leandro não perdoou Brigido e Alberto após indicação. O queridômetro é o único sinal "fraco" (obrigatório, secreto, sem consequência direta) e já usa janela curta de 3 dias como base — não precisa de decay adicional.
 
 ### Relationship Summary Score (A ↔ B)
 For symmetric views (alliances / rivalries):
 ```
-score_mutual = 0.5 * Score_week(A→B) + 0.5 * Score_week(B→A)
+score_mutual = 0.5 * Score(A→B) + 0.5 * Score(B→A)
 ```
 
 ---
@@ -119,15 +119,15 @@ risco_externo = 1.0 * votos_recebidos
 
 ---
 
-## Animosidade (historical, decayed)
+## Animosidade (historical, sem decay)
 
 Directional: if **A** inflicts negative events on **B**, A accumulates animosity:
 ```
 animosidade = 0.25 * reacoes_negativas_recebidas
             + 0.5 * hostilidades_recebidas
-            + 1.5 * Σ (peso_evento * decay)
+            + 1.5 * Σ peso_evento
 ```
-Decay: `peso = 1 / (1 + semanas_passadas)`.
+Sem decay — eventos acumulam com peso integral (mesma política do score rolling).
 
 - **Animosidade index** é **experimental** e deve ser **recalibrado semanalmente** após indicações/contragolpes/votações.
 - Registre ajustes no `IMPLEMENTATION_PLAN.md` para manter histórico e evitar esquecimento.
