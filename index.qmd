@@ -1,6 +1,6 @@
 ---
 title: "BBB 26 — Painel de Reações"
-subtitle: "Análise das reações entre os participantes do Big Brother Brasil 2026"
+subtitle: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"
 lang: pt-BR
 format:
   html:
@@ -467,101 +467,424 @@ def make_negative_givers_chart(participants, matrix, title_suffix=""):
 #| label: compute-highlights
 #| output: asis
 
-highlights = index_data.get("highlights", {}).get("items", [])
 date_display_pt = index_data.get("highlights", {}).get("date_display", "")
+hl_cards = index_data.get("highlights", {}).get("cards", [])
 
-if highlights:
-    print(f'''
-::: {{.callout-tip title="Destaques do Dia ({date_display_pt})" appearance="simple"}}
-''')
-    for h in highlights:
-        print(f"- {h}")
-    print('''
-:::
-''')
+def av(name, size=48, border_color="#555"):
+    """Avatar image tag."""
+    url = AVATARS.get(name, "")
+    if url:
+        return (f'<img src="{url}" alt="{name}" title="{name}" '
+                f'style="width:{size}px;height:{size}px;border-radius:50%;'
+                f'object-fit:cover;border:2px solid {border_color};flex-shrink:0;">')
+    return f'<span style="display:inline-flex;align-items:center;justify-content:center;width:{size}px;height:{size}px;border-radius:50%;background:#444;color:#ccc;font-size:{size//3}px;border:2px solid {border_color};flex-shrink:0;">{name[:2]}</span>'
+
+def av_pair(giver, receiver, size=36, giver_color="#888", recv_color="#888"):
+    """Two avatars with arrow between them."""
+    return (
+        f'<span style="display:inline-flex;align-items:center;gap:4px;margin:3px 0;">'
+        f'{av(giver, size, giver_color)}'
+        f'<span style="color:#888;font-size:0.8em;">→</span>'
+        f'{av(receiver, size, recv_color)}'
+        f'</span>'
+    )
+
+def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
+    """Card header with icon, title, optional link, badge, data source tag, and subtitle."""
+    title_html = title
+    link_html = f' <a href="{link}" style="color:#888;font-size:0.7rem;text-decoration:none;vertical-align:middle;">ver mais ↗</a>' if link else ""
+    badge_html = f' <span style="background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:500;">{badge}</span>' if badge else ""
+    source_html = f' <span style="font-size:0.6rem;color:#888;padding:1px 6px;border:1px solid #555;border-radius:4px;vertical-align:middle;">{source_tag}</span>' if source_tag else ""
+    subtitle_html = f'<div style="font-size:0.75rem;color:#999;margin-top:2px;line-height:1.3;">{subtitle}</div>' if subtitle else ""
+    return (f'<div style="margin-bottom:0.6rem;">'
+            f'<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">'
+            f'<span style="font-size:1.3rem;">{icon}</span>'
+            f'<span style="font-weight:700;font-size:0.95rem;color:#fff;text-transform:uppercase;letter-spacing:0.03em;">{title_html}</span>'
+            f'{badge_html}{source_html}{link_html}'
+            f'</div>'
+            f'{subtitle_html}</div>')
+
+def stat_chip(value, label, color="#888"):
+    """Small stat chip."""
+    return (f'<span style="display:inline-flex;flex-direction:column;align-items:center;'
+            f'background:rgba(255,255,255,0.06);padding:0.3rem 0.6rem;border-radius:8px;min-width:55px;">'
+            f'<span style="font-size:1.1rem;font-weight:700;color:{color};">{value}</span>'
+            f'<span style="font-size:0.65rem;color:#999;text-transform:uppercase;">{label}</span></span>')
+
+def progress_bar(value, max_val, color="#3498db", height=6):
+    """Mini progress bar."""
+    pct = min(100, value / max_val * 100) if max_val > 0 else 0
+    return (f'<div style="background:rgba(255,255,255,0.08);border-radius:{height//2}px;height:{height}px;width:100%;overflow:hidden;">'
+            f'<div style="width:{pct:.0f}%;height:100%;background:{color};border-radius:{height//2}px;"></div></div>')
+
+
+if not hl_cards:
+    print(f'''<div style="background:#2a2a2a;border-radius:12px;padding:1.5rem;margin:1rem 0;text-align:center;color:#aaa;">
+📅 Primeiro dia de dados — sem comparações disponíveis ainda.</div>''')
 else:
-    print(f'''
-::: {{.callout-note title="Destaques do Dia ({date_display_pt})" appearance="simple"}}
-Primeiro dia de dados — sem comparações disponíveis ainda.
-:::
-''')
+    # Section header
+    print(f'''<div style="margin:1.5rem 0 1rem 0;">
+<h2 style="margin:0 0 0.2rem 0;font-size:1.3rem;color:#fff;">📋 Destaques do Dia <span style="color:#888;font-weight:400;font-size:0.85rem;">({date_display_pt})</span></h2>
+<div style="height:3px;background:linear-gradient(90deg,#f1c40f,#e74c3c,#3498db,#2ecc71);border-radius:2px;"></div>
+</div>''')
 
-contrad = index_data.get("contradictions", [])
-if contrad:
-    top_list = [f"{c.get('ator')} → {c.get('alvo')} ({'não ganha' if c.get('tipo') == 'nao_ganha' else (c.get('tema') or 'bomba')})"
-                for c in contrad][:5]
-    print(f'''
-::: {{.callout-note title="Contradições do Sincerão (negativo + ❤️)" appearance="simple"}}
-''')
-    for item in top_list:
-        print(f"- {item}")
-    print('''
-:::
-''')
-```
+    print('<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:0.8rem;margin-bottom:1.5rem;">')
 
-# Visão Geral {#visao-geral-main}
+    for card in hl_cards:
+        ctype = card.get("type")
+        color = card.get("color", "#555")
 
-```{python}
-#| label: overview-stats
-#| output: asis
+        # ── 🏆 Ranking ──
+        if ctype == "ranking":
+            leader = card["leader"]
+            streak = card.get("streak", 1)
+            streak_txt = f"{streak}º dia consecutivo" if streak > 1 else "hoje"
+            podium = card.get("podium", [])
+            bottom3 = card.get("bottom3", [])
+            mup = card.get("movers_up")
+            mdown = card.get("movers_down")
 
-overview = index_data.get("overview", {})
-n_active = overview.get("n_active", 0)
-total_hearts = overview.get("total_hearts", 0)
-total_negative = overview.get("total_negative", 0)
-n_two_sided = overview.get("n_two_sided", 0)
-n_one_sided = overview.get("n_one_sided", 0)
-n_blind_spots = overview.get("n_blind_spots", 0)
-date_display = overview.get("date_display", "")
-n_daily = overview.get("n_daily", 0)
+            header = card_header(
+                card["icon"], card["title"], card.get("link"), streak_txt,
+                source_tag="📸 Queridômetro hoje",
+                subtitle="Score de hoje (❤️ = +1, negativas = −0.5 a −1). Dado do dia, não acumulado."
+            )
 
-print(f'''
-<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
+            # ── Top 3 podium (compact row) ──
+            podium_html = '<div>'
+            podium_html += '<div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬆ Mais queridos</div>'
+            podium_html += '<div style="display:flex;gap:0.7rem;align-items:flex-end;justify-content:center;padding:0.3rem 0 0.5rem 0;">'
+            medals = ["🥇", "🥈", "🥉"]
+            sizes = [80, 68, 60]
+            for i, p in enumerate(podium[:3]):
+                name = p["name"]
+                score = p["score"]
+                sz = sizes[i]
+                lift = "margin-bottom:10px;" if i == 0 else ("margin-bottom:4px;" if i == 1 else "")
+                border = "#f1c40f" if i == 0 else ("#c0c0c0" if i == 1 else "#cd7f32")
+                podium_html += (
+                    f'<div style="display:flex;flex-direction:column;align-items:center;{lift}">'
+                    f'{av(name, sz, border)}'
+                    f'<span style="font-size:0.85rem;margin-top:2px;">{medals[i]}</span>'
+                    f'<span style="font-size:0.75rem;font-weight:600;color:#fff;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{name.split()[0]}</span>'
+                    f'<span style="font-size:0.8rem;color:{border};font-weight:700;">{score:+.1f}</span>'
+                    f'</div>'
+                )
+            podium_html += '</div></div>'
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_active}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Participantes</div>
+            # ── Bottom 3 (compact row) ──
+            bottom_html = ""
+            if bottom3:
+                bottom_html = '<div>'
+                bottom_html += '<div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬇ Menos queridos</div>'
+                bottom_html += '<div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;">'
+                for p in bottom3:
+                    name = p["name"]
+                    score = p["score"]
+                    score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
+                    bottom_html += (
+                        f'<div style="display:flex;align-items:center;gap:5px;background:rgba(231,76,60,0.08);padding:4px 8px;border-radius:8px;">'
+                        f'{av(name, 48, "#e74c3c")}'
+                        f'<span style="font-size:0.8rem;font-weight:600;color:#ccc;">{name.split()[0]}</span>'
+                        f'<span style="font-size:0.8rem;color:{score_color};font-weight:700;">{score:+.1f}</span>'
+                        f'</div>'
+                    )
+                bottom_html += '</div></div>'
+
+            # ── Movers (compact list: up to 3 risers + 3 fallers) ──
+            movers_html = ""
+            mup_list = mup if isinstance(mup, list) else ([mup] if mup else [])
+            mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
+            if mup_list or mdown_list:
+                movers_html = '<div>'
+                movers_html += '<div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">📅 Variação vs ontem</div>'
+                movers_html += '<div style="display:flex;flex-direction:column;gap:4px;">'
+                for mu in mup_list:
+                    movers_html += (
+                        f'<div style="display:flex;align-items:center;gap:5px;background:rgba(39,174,96,0.1);padding:4px 10px;border-radius:8px;">'
+                        f'{av(mu["name"], 42, "#27ae60")}'
+                        f'<span style="font-size:0.8rem;color:#27ae60;font-weight:700;">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
+                        f'</div>')
+                for md in mdown_list:
+                    movers_html += (
+                        f'<div style="display:flex;align-items:center;gap:5px;background:rgba(231,76,60,0.1);padding:4px 10px;border-radius:8px;">'
+                        f'{av(md["name"], 42, "#e74c3c")}'
+                        f'<span style="font-size:0.8rem;color:#e74c3c;font-weight:700;">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
+                        f'</div>')
+                movers_html += '</div></div>'
+
+            # 3-column grid on desktop, stacks on mobile
+            print(f'''<div style="grid-column:1/-1;background:#2a2a2a;border-radius:12px;border-top:4px solid {color};padding:1rem 1.2rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{header}
+<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:0.6rem;align-items:start;">
+{podium_html}
+{bottom_html}
+{movers_html}
 </div>
+</div>''')
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{total_hearts}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">❤️ Corações</div>
+        # ── 📊 Changes ──
+        elif ctype == "changes":
+            total = card["total"]
+            pct = card["pct"]
+            imp = card["improve"]
+            wor = card["worsen"]
+            lat = card["lateral"]
+            hg = card["hearts_gained"]
+            hl_lost = card["hearts_lost"]
+            direction_color = "#27ae60" if imp > wor else ("#e74c3c" if wor > imp else "#f39c12")
+
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Reações do queridômetro que mudaram de ontem para hoje. Melhorias = score subiu, pioras = score caiu.")}
+<div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.6rem;">
+<span style="font-size:2rem;font-weight:800;color:#fff;">{total}</span>
+<span style="font-size:0.85rem;color:#aaa;">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
-
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{total_negative}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Negativos</div>
+<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+{stat_chip(imp, "melhorias", "#27ae60")}
+{stat_chip(wor, "pioras", "#e74c3c")}
+{stat_chip(lat, "laterais", "#888")}
 </div>
-
-<a href="trajetoria.html#hostilidades-dia" style="flex: 1 1 150px; min-width: 120px; text-decoration: none;">
-<div style="background: linear-gradient(135deg, #d73027 0%, #a50026 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3); cursor: pointer; height: 100%; box-sizing: border-box;">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_two_sided}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">⚔️ Inimigos</div>
-<div style="font-size: 0.65rem; color: rgba(255,255,255,0.6); margin-top: 0.2rem;">pares mútuos</div>
+<div style="display:flex;gap:0.6rem;font-size:0.8rem;color:#aaa;">
+<span style="color:#27ae60;">+{hg} ❤️ ganhados</span> <span style="color:#e74c3c;">-{hl_lost} ❤️ perdidos</span>
 </div>
-</a>
+</div>''')
 
-<a href="trajetoria.html#hostilidades-dia" style="flex: 1 1 150px; min-width: 120px; text-decoration: none;">
-<div style="background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3); cursor: pointer; height: 100%; box-sizing: border-box;">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_one_sided}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">🎭 Falsos Amigos</div>
-<div style="font-size: 0.65rem; color: rgba(255,255,255,0.6); margin-top: 0.2rem;">A detesta B, B dá ❤️</div>
-</div>
-</a>
+        # ── 💥 Dramatic + ⚠️ Hostilities — pair-based cards ──
+        elif ctype in ("dramatic", "hostilities"):
+            items = card.get("items", [])
+            total = card.get("total", len(items))
+            is_hostile = ctype == "hostilities"
+            badge = f"{total}" if total > 1 else None
+            if is_hostile:
+                ch = card_header(card["icon"], card["title"], card.get("link"), badge,
+                    source_tag="📅 Ontem → Hoje",
+                    subtitle="Quem passou a dar reação negativa a alguém que ainda dá ❤️ para eles. O receptor não sabe — ponto cego."
+                )
+            else:
+                ch = card_header(card["icon"], card["title"], card.get("link"), badge,
+                    source_tag="📅 Ontem → Hoje",
+                    subtitle="Trocas extremas: de ❤️ para negativo ou vice-versa. Quanto maior o salto, mais dramática."
+                )
+            pairs_html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.4rem;">'
+            for it in items[:4]:
+                g = it["giver"]
+                r = it["receiver"]
+                if is_hostile:
+                    emoji = it.get("emoji", "?")
+                    label = f'{g.split()[0]} {emoji} {r.split()[0]}'
+                    g_color = "#f39c12"
+                    r_color = "#e74c3c"
+                else:
+                    old_e = it.get("old_emoji", "?")
+                    new_e = it.get("new_emoji", "?")
+                    label = f'{old_e}→{new_e}'
+                    g_color = "#e74c3c" if new_e == "❤️" else "#666"
+                    r_color = "#27ae60" if new_e == "❤️" else "#e74c3c"
+                pairs_html += (
+                    f'<div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.05);'
+                    f'padding:4px 8px;border-radius:8px;" title="{g} → {r}">'
+                    f'{av(g, 40, g_color)}'
+                    f'<span style="font-size:0.8rem;color:#ccc;">{label}</span>'
+                    f'{av(r, 40, r_color)}'
+                    f'</div>'
+                )
+            extra = total - 4
+            if extra > 0:
+                link = card.get("link", "#")
+                pairs_html += f'<a href="{link}" style="display:flex;align-items:center;padding:4px 10px;background:rgba(255,255,255,0.08);border-radius:8px;color:#aaa;font-size:0.75rem;text-decoration:none;">+{extra} mais ↗</a>'
+            pairs_html += '</div>'
 
-<a href="trajetoria.html#hostilidades-dia" style="flex: 1 1 150px; min-width: 120px; text-decoration: none;">
-<div style="background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3); cursor: pointer; height: 100%; box-sizing: border-box;">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_blind_spots}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">👁️ Pontos Cegos</div>
-<div style="font-size: 0.65rem; color: rgba(255,255,255,0.6); margin-top: 0.2rem;">dão ❤️ a inimigos</div>
-</div>
-</a>
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{ch}
+{pairs_html}
+</div>''')
 
-</div>
+        # ── ⚡ Sincerão ──
+        elif ctype == "sincerao":
+            items = card.get("items", [])
+            total = card.get("total", len(items))
+            rows_html = '<div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.3rem;">'
+            for it in items[:3]:
+                ator = it["ator"]
+                alvo = it["alvo"]
+                tipo = it.get("tipo_label", it.get("tipo", "?"))
+                emoji = it.get("emoji", "?")
+                rows_html += (
+                    f'<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);padding:5px 8px;border-radius:8px;">'
+                    f'{av(ator, 38, "#e67e22")}'
+                    f'<span style="font-size:0.8rem;color:#ccc;">{ator.split()[0]}</span>'
+                    f'<span style="font-size:0.7rem;color:#888;">disse <b style="color:#e67e22;">{tipo}</b> mas dá</span>'
+                    f'<span style="font-size:1.1rem;">{emoji}</span>'
+                    f'<span style="font-size:0.7rem;color:#888;">para</span>'
+                    f'{av(alvo, 38, "#27ae60")}'
+                    f'<span style="font-size:0.8rem;color:#ccc;">{alvo.split()[0]}</span>'
+                    f'</div>'
+                )
+            rows_html += '</div>'
 
-<p class="text-muted small" style="margin-top: 0.3rem; text-align: center;">📅 Dados de <strong>{date_display}</strong> — {n_daily} dias de histórico</p>
-''')
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📸 Sincerão + Queridômetro", subtitle="No Sincerão disse negativo (bomba/não ganha) mas no queridômetro dá ❤️. Discurso contradiz reação.")}
+{rows_html}
+</div>''')
+
+        # ── 🗳️ Paredão ──
+        elif ctype == "paredao":
+            nominees = card.get("nominees", [])
+            avatars_html = '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.4rem;justify-content:center;">'
+            for name in nominees:
+                avatars_html += (
+                    f'<div style="display:flex;flex-direction:column;align-items:center;">'
+                    f'{av(name, 60, "#e74c3c")}'
+                    f'<span style="font-size:0.7rem;color:#ccc;margin-top:3px;max-width:70px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{name.split()[0]}</span>'
+                    f'</div>'
+                )
+            avatars_html += '</div>'
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{card_header(card["icon"], card["title"], card.get("link"), subtitle="Participantes emparedados — clique para análise de votos e reações.")}
+{avatars_html}
+</div>''')
+
+        # ── 🎯 Impact ──
+        elif ctype == "impact":
+            items = card.get("items", [])
+            total = card.get("total", len(items))
+            worst_neg = abs(items[0]["negative"]) if items else 1
+            rows_html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.3rem;">'
+            for it in items[:4]:
+                name = it["name"]
+                neg = it["negative"]
+                net = it["net"]
+                bar_pct = min(100, abs(neg) / worst_neg * 100)
+                rows_html += (
+                    f'<div style="display:flex;align-items:center;gap:8px;">'
+                    f'{av(name, 44, "#c0392b")}'
+                    f'<div style="flex:1;min-width:0;">'
+                    f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+                    f'<span style="font-size:0.8rem;font-weight:600;color:#fff;">{name.split()[0]}</span>'
+                    f'<span style="font-size:0.75rem;color:#e74c3c;font-weight:700;">{neg:.1f}</span>'
+                    f'</div>'
+                    f'<div style="background:rgba(255,255,255,0.08);border-radius:3px;height:5px;margin-top:2px;overflow:hidden;">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
+                    f'</div>'
+                    f'</div></div>'
+                )
+            extra = total - 4
+            if extra > 0:
+                rows_html += f'<div style="font-size:0.75rem;color:#888;text-align:center;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+            rows_html += '</div>'
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto negativo acumulado por eventos de poder, votos, Sincerão e VIP. Quem mais sofre ao longo do jogo.")}
+{rows_html}
+</div>''')
+
+        # ── 🔴 Vulnerability ──
+        elif ctype == "vulnerability":
+            items = card.get("items", [])
+            total = card.get("total", len(items))
+            rows_html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.3rem;">'
+            for it in items[:4]:
+                name = it["name"]
+                count = it["count"]
+                level = it.get("level", "warning")
+                enemies = it.get("enemies", [])
+                level_color = "#e74c3c" if level == "critical" else "#f39c12"
+                level_label = "MUITO VULNERÁVEL" if level == "critical" else "VULNERÁVEL"
+                enemy_avatars = ''.join(av(e, 30, level_color) for e in enemies[:4])
+                extra_enemies = len(enemies) - 4
+                rows_html += (
+                    f'<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:8px;">'
+                    f'{av(name, 48, level_color)}'
+                    f'<div style="flex:1;min-width:0;">'
+                    f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+                    f'<span style="font-size:0.85rem;font-weight:600;color:#fff;">{name.split()[0]}</span>'
+                    f'<span style="font-size:0.6rem;padding:2px 6px;border-radius:4px;background:{level_color};color:#fff;font-weight:700;">{level_label}</span>'
+                    f'<span style="font-size:0.75rem;color:{level_color};font-weight:600;">{count} falsos amigos</span>'
+                    f'</div>'
+                    f'<div style="display:flex;gap:2px;margin-top:3px;align-items:center;">'
+                    f'<span style="font-size:0.65rem;color:#888;margin-right:4px;">Quem:</span>'
+                    f'{enemy_avatars}'
+                    f'{f"<span style=&quot;font-size:0.65rem;color:#888;&quot;>+{extra_enemies}</span>" if extra_enemies > 0 else ""}'
+                    f'</div></div></div>'
+                )
+            extra = total - 4
+            if extra > 0:
+                rows_html += f'<div style="font-size:0.75rem;color:#888;text-align:center;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+            rows_html += '</div>'
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Composto", subtitle="Falsos amigos: dá ❤️ a quem tem score negativo contra si (queridômetro + votos + eventos). Risco de voto surpresa.")}
+{rows_html}
+</div>''')
+
+        # ── 💔 Streak Breaks ──
+        elif ctype == "breaks":
+            items = card.get("items", [])
+            total = card.get("total", len(items))
+            strong_count = card.get("strong_count", 0)
+            severity_badge = f"{strong_count} graves" if strong_count else None
+
+            rows_html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.3rem;">'
+            for it in items[:4]:
+                g = it["giver"]
+                r = it["receiver"]
+                streak = it["streak"]
+                new_e = it.get("new_emoji", "?")
+                sev = it.get("severity", "mild")
+                sev_border = "#e74c3c" if sev == "strong" else "#8e44ad"
+                rows_html += (
+                    f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
+                    f'padding:5px 8px;border-radius:8px;border-left:3px solid {sev_border};">'
+                    f'{av(g, 38, sev_border)}'
+                    f'<div style="display:flex;flex-direction:column;align-items:center;">'
+                    f'<span style="font-size:0.7rem;color:#aaa;">{streak}d ❤️</span>'
+                    f'<span style="font-size:0.9rem;">→ {new_e}</span>'
+                    f'</div>'
+                    f'{av(r, 38, sev_border)}'
+                    f'{"<span style=&quot;font-size:0.7rem;color:#e74c3c;font-weight:700;&quot;>🚨</span>" if sev == "strong" else ""}'
+                    f'</div>'
+                )
+            extra = total - 4
+            if extra > 0:
+                rows_html += f'<a href="{card.get("link", "#")}" style="display:flex;align-items:center;padding:5px 10px;background:rgba(255,255,255,0.06);border-radius:8px;color:#aaa;font-size:0.75rem;text-decoration:none;">+{extra} mais ↗</a>'
+            rows_html += '</div>'
+
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{card_header(card["icon"], card["title"], card.get("link"), severity_badge or f"{total}", source_tag="📈 Histórico", subtitle="Alianças longas de ❤️ que foram rompidas. Quanto mais dias seguidos, mais grave a ruptura.")}
+{rows_html}
+</div>''')
+
+        # ── 🧭 Strategic divergence ──
+        elif ctype == "strategic":
+            podium = card.get("podium", [])
+            leader = card.get("leader", "?")
+            strat_html = '<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">'
+            for i, p in enumerate(podium[:3]):
+                medals = ["🥇", "🥈", "🥉"]
+                strat_html += (
+                    f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:8px;">'
+                    f'{av(p["name"], 44, "#9b59b6")}'
+                    f'<span style="font-size:0.8rem;color:#ccc;">{medals[i]} {p["name"].split()[0]}</span>'
+                    f'<span style="font-size:0.8rem;color:#9b59b6;font-weight:700;">{p["score"]:+.2f}</span>'
+                    f'</div>'
+                )
+            strat_html += '</div>'
+            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+{card_header(card["icon"], card["title"], card.get("link"), source_tag="📈 Composto", subtitle="Score médio recebido (queridômetro + votos + eventos). Líder diverge do ranking puro por emoji.")}
+{strat_html}
+</div>''')
+
+        # ── 📅 Context ──
+        elif ctype == "context":
+            week = card.get("week", "?")
+            days = card.get("days", 0)
+            active = card.get("active", 0)
+            print(f'''<div style="grid-column:1/-1;background:linear-gradient(90deg,rgba(46,204,113,0.1),rgba(52,152,219,0.1));border-radius:12px;padding:0.7rem 1rem;display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;align-items:center;">
+<span style="font-size:0.85rem;color:#ccc;"><b style="color:#fff;">📅 Semana {week}</b></span>
+<span style="font-size:0.85rem;color:#ccc;">{days} dias de dados</span>
+<span style="font-size:0.85rem;color:#ccc;">{active} participantes ativos</span>
+</div>''')
+
+    print('</div>')  # close grid
 ```
 
 ```{python}
@@ -603,62 +926,36 @@ Para ver o **histórico de paredões anteriores**, acesse: **[Arquivo de Paredõ
 :::
 
 ```{python}
-#| label: watchlist-risco
+#| label: streak-breaks-display
 #| output: asis
 
-top_vulnerable = index_data.get("watchlist", [])
+# Load streak breaks from relations_scores.json
+_rel_file = Path("data/derived/relations_scores.json")
+_streak_breaks = []
+if _rel_file.exists():
+    with open(_rel_file, encoding="utf-8") as _f:
+        _rel_data = json.load(_f)
+    _streak_breaks = _rel_data.get("streak_breaks", [])
+    _active_set = set(active_names)
+    _streak_breaks = [b for b in _streak_breaks if b.get("giver") in _active_set and b.get("receiver") in _active_set]
 
-if top_vulnerable:
-    print('''
-# Watchlist de Risco {#watchlist}
-
-Participantes com **pontos cegos** — dão ❤️ para quem os detesta. Podem ser surpreendidos em votações.
-
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 1.5rem 0;">
-''')
-
-    for i, p in enumerate(top_vulnerable):
-        # Color by risk level
-        border_color = p.get('risk_color', '#f1c40f')
-        risk_label = p.get('risk_label', 'Atenção')
-
-        grupo_color = GROUP_COLORS.get(p['grupo'], '#666')
-        avatar_url = AVATARS.get(p['name'], '')
-
-        # Show up to 3 attackers
-        attackers_display = ', '.join(p['attackers'][:3])
-        if len(p['attackers']) > 3:
-            attackers_display += f' +{len(p["attackers"]) - 3}'
-
-        print(f'''
-<div style="background: #2a2a2a; border-radius: 10px; border-left: 4px solid {border_color}; padding: 1rem; display: flex; gap: 0.8rem; align-items: flex-start;">
-<div style="flex-shrink: 0;">
-<img src="{avatar_url}" alt="{p['name']}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid {grupo_color}; object-fit: cover;">
-</div>
-<div style="flex: 1; min-width: 0;">
-<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;">
-<span style="font-weight: bold; color: #fff; font-size: 1rem;">{p['name']}</span>
-<span style="background: {border_color}; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase;">{risk_label}</span>
-</div>
-<div style="color: #aaa; font-size: 0.8rem; margin-top: 0.4rem;">
-Dá ❤️ para <strong style="color: #e74c3c;">{p['hearts_to_enemies']}</strong> {('pessoa que o detesta' if p['hearts_to_enemies'] == 1 else 'pessoas que o detestam')}
-</div>
-<div style="color: #888; font-size: 0.75rem; margin-top: 0.3rem;">
-👁️ Pontos cegos: <span style="color: #ccc;">{attackers_display}</span>
-</div>
-</div>
-</div>
-''')
-
-    print('</div>')
-    print(f'\n<p style="text-align: center; margin-top: 0.5rem;"><a href="trajetoria.html#hostilidades-dia" style="color: #6ea8fe; font-size: 0.85rem;">Ver análise completa →</a></p>')
-else:
-    print("*Nenhum participante com pontos cegos detectado.*")
+if _streak_breaks:
+    print("""
+::: {.callout-warning title="💔 Rupturas de Aliança" appearance="simple"}
+Sequências longas de ❤️ que viraram negativo — sinal de confiança quebrada.
+""")
+    for _b in _streak_breaks:
+        _sev = "🔴" if _b.get("severity") == "strong" else "🟡"
+        _emoji = REACTION_EMOJI.get(_b.get("new_emoji", ""), _b.get("new_emoji", ""))
+        print(f"- {_sev} **{_b['giver']}** → **{_b['receiver']}**: {_b['previous_streak']}d ❤️ → {_emoji}")
+    print("""
+:::
+""")
 ```
 
-# Ranking de Sentimento {#ranking-sentimento}
+# Rankings {#ranking-sentimento}
 
-Cada participante recebe reações dos demais. O **score de sentimento** pondera: ❤️ = +1, reações leves (🌱💼🍪) = -0.5, reações fortes (🐍🎯🤮🤥💔) = -1.
+Dois rankings complementares: **Queridômetro** (apenas reações do dia: ❤️ = +1, leves = -0.5, fortes = -1) e **Estratégico** (score composto incluindo queridômetro + eventos de poder + votos + Sincerão + VIP — média recebida de todos os participantes ativos). O score base do queridômetro agora usa 70% janela reativa (3 dias) + 30% memória de sequência + penalidade de ruptura.
 
 ```{python}
 #| label: ranking-prep
@@ -667,77 +964,12 @@ Cada participante recebe reações dos demais. O **score de sentimento** pondera
 ranking_data = index_data.get("ranking", {})
 _ranking_height = ranking_data.get("height", 500)
 today_rows = ranking_data.get("today", [])
-change_yesterday = ranking_data.get("change_yesterday", [])
-change_week = ranking_data.get("change_week", [])
-yesterday_label = ranking_data.get("yesterday_label")
-week_ago_label = ranking_data.get("week_label")
-
-
-def make_sentiment_change_table(rows, period_label):
-    """Create HTML table showing sentiment changes with colors."""
-    if not rows:
-        return f"<p class='text-muted'>Dados insuficientes para comparação de {period_label}.</p>"
-
-    # Build HTML table
-    html = '''
-<div style="max-height: 500px; overflow-y: auto; border-radius: 8px; border: 1px solid #444;">
-<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-<thead style="position: sticky; top: 0; background: #2a2a2a; z-index: 1;">
-<tr style="border-bottom: 2px solid #555;">
-<th style="padding: 0.6rem; text-align: left; color: #ccc;">Participante</th>
-<th style="padding: 0.6rem; text-align: center; color: #ccc;">Antes</th>
-<th style="padding: 0.6rem; text-align: center; color: #ccc;">Hoje</th>
-<th style="padding: 0.6rem; text-align: center; color: #ccc;">Δ</th>
-</tr>
-</thead>
-<tbody>
-'''
-
-    for row in rows:
-        # Color for delta
-        if row['delta'] > 1:
-            delta_color = '#27ae60'  # Green
-            delta_bg = 'rgba(39, 174, 96, 0.2)'
-        elif row['delta'] > 0:
-            delta_color = '#58d68d'  # Light green
-            delta_bg = 'rgba(88, 214, 141, 0.1)'
-        elif row['delta'] < -1:
-            delta_color = '#e74c3c'  # Red
-            delta_bg = 'rgba(231, 76, 60, 0.2)'
-        elif row['delta'] < 0:
-            delta_color = '#ec7063'  # Light red
-            delta_bg = 'rgba(236, 112, 99, 0.1)'
-        else:
-            delta_color = '#888'
-            delta_bg = 'transparent'
-
-        # Arrow emoji
-        if row['delta'] > 0:
-            arrow = '📈'
-        elif row['delta'] < 0:
-            arrow = '📉'
-        else:
-            arrow = '➖'
-
-        # Group color dot
-        group_color = GROUP_COLORS.get(row['group'], '#666')
-
-        html += f'''
-<tr style="border-bottom: 1px solid #333; background: {delta_bg};">
-<td style="padding: 0.5rem;"><span style="color: {group_color}; margin-right: 0.3rem;">●</span>{row['name']}</td>
-<td style="padding: 0.5rem; text-align: center; color: #aaa;">{row['past']:+.1f}</td>
-<td style="padding: 0.5rem; text-align: center; font-weight: 500;">{row['today']:+.1f}</td>
-<td style="padding: 0.5rem; text-align: center; color: {delta_color}; font-weight: bold;">{arrow} {row['delta']:+.1f}</td>
-</tr>
-'''
-
-    html += '</tbody></table></div>'
-    return html
+strategic_rows = ranking_data.get("strategic", [])
 ```
 
 ::: {.panel-tabset}
 
-## Hoje
+## Queridômetro
 
 ```{python}
 #| label: sentiment-ranking-today
@@ -746,119 +978,311 @@ fig = make_sentiment_ranking(today_rows, title_suffix=latest.get("label", ""), f
 fig.show()
 ```
 
-## Ontem→Hoje
+## Estratégico
 
 ```{python}
-#| label: sentiment-yesterday-today
+#| label: strategic-ranking
 #| output: asis
 
-if change_yesterday:
-    print(f"<p class='text-muted small'>Mudanças de <strong>{yesterday_label}</strong> para <strong>{latest.get('label','')}</strong></p>")
-    print(make_sentiment_change_table(change_yesterday, "ontem"))
+if strategic_rows:
+    df_strat = pd.DataFrame(strategic_rows).sort_values('score', ascending=True)
+
+    # Build queridômetro rank lookup for divergence display
+    quer_sorted = sorted(today_rows, key=lambda x: -x['score'])
+    quer_rank = {r['name']: i+1 for i, r in enumerate(quer_sorted)}
+    strat_sorted = sorted(strategic_rows, key=lambda x: -x['score'])
+    strat_rank = {r['name']: i+1 for i, r in enumerate(strat_sorted)}
+
+    fig_s = go.Figure()
+    fig_s.add_trace(go.Bar(
+        y=df_strat['name'],
+        x=df_strat['score'],
+        orientation='h',
+        marker_color=[GROUP_COLORS.get(g, '#999') for g in df_strat['group']],
+        text=[f"{s:+.2f}" for s in df_strat['score']],
+        textposition='outside',
+        hovertemplate='%{y}: %{x:+.2f}<br>Queridômetro: %{customdata[0]:+.1f} (#%{customdata[1]})<br>Estratégico: #%{customdata[2]}<extra></extra>',
+        customdata=list(zip(
+            df_strat['queridometro_score'],
+            [quer_rank.get(n, '?') for n in df_strat['name']],
+            [strat_rank.get(n, '?') for n in df_strat['name']],
+        )),
+        showlegend=False
+    ))
+
+    title_s = "Ranking Estratégico"
+    if latest.get("label"):
+        title_s += f" — {latest['label']}"
+
+    fig_s.update_layout(
+        title=title_s,
+        xaxis_title="Score Composto (média recebida)",
+        yaxis_title="",
+        height=_ranking_height,
+        margin=dict(l=150),
+        shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_strat)-0.5,
+                     line=dict(color='red', dash='dash', width=1))]
+    )
+
+    for group, color in GROUP_COLORS.items():
+        fig_s.add_trace(go.Scatter(
+            x=[None], y=[None], mode='markers',
+            marker=dict(size=10, color=color),
+            name=group, showlegend=True
+        ))
+
+    fig_s.show()
+
+    # Show divergence table
+    divergences = []
+    for r in strategic_rows:
+        name = r['name']
+        qr = quer_rank.get(name, 99)
+        sr = strat_rank.get(name, 99)
+        delta = qr - sr
+        if abs(delta) >= 3:
+            divergences.append((name, qr, sr, delta, r['score'], r['queridometro_score']))
+
+    if divergences:
+        divergences.sort(key=lambda x: -abs(x[3]))
+        print("<details><summary><strong>Maiores divergências entre rankings</strong> (≥3 posições)</summary>")
+        print("<div style='margin-top: 0.5rem; font-size: 0.85rem;'>")
+        for name, qr, sr, delta, cs, qs in divergences:
+            if delta > 0:
+                icon = "📈"
+                desc = f"sobe {delta} posições"
+                color = "#27ae60"
+            else:
+                icon = "📉"
+                desc = f"cai {abs(delta)} posições"
+                color = "#e74c3c"
+            print(f"<div style='padding: 0.3rem 0; border-bottom: 1px solid #333;'>"
+                  f"{icon} <strong>{name}</strong>: Queridômetro #{qr} ({qs:+.1f}) → "
+                  f"Estratégico #{sr} ({cs:+.2f}) — "
+                  f"<span style='color: {color};'>{desc}</span></div>")
+        print("</div></details>")
 else:
-    print("<p class='text-muted'>Dados insuficientes (apenas 1 dia disponível).</p>")
-```
-
-## Em 7 dias
-
-```{python}
-#| label: sentiment-7d-change
-#| output: asis
-
-if change_week:
-    print(f"<p class='text-muted small'>Mudanças de <strong>{week_ago_label}</strong> para <strong>{latest.get('label','')}</strong></p>")
-    print(make_sentiment_change_table(change_week, "7 dias"))
-else:
-    print(f"<p class='text-muted'>Dados insuficientes (apenas {overview.get('n_daily', 0)} dias disponíveis).</p>")
+    print("<p class='text-muted'>Dados de relações não disponíveis.</p>")
 ```
 
 ## Evolução
 
 ```{python}
-#| label: sentiment-evolution
-#| output: asis
+#| label: evolution-shared
+#| include: false
 
-timeline_data = index_data.get("timeline", [])
-df_timeline = pd.DataFrame([{
-    "Data": pd.to_datetime(row["date"]),
-    "Participante": row["name"],
-    "Sentimento": row["sentiment"],
-    "Grupo": row["group"],
-} for row in timeline_data])
+# Shared setup for evolution charts
+_paredoes_markers = []
+_paredoes_file = Path("data/paredoes.json")
+if _paredoes_file.exists():
+    with open(_paredoes_file, encoding="utf-8") as f:
+        _paredoes_json = json.load(f)
+    for _p in _paredoes_json.get('paredoes', []):
+        _paredoes_markers.append({
+            'date': pd.to_datetime(_p['data']),
+            'label': f"🗳️ {_p['numero']}º Paredão",
+        })
 
-if not df_timeline.empty and len(df_timeline['Data'].unique()) > 1:
-    # Color palette for participants
-    all_parts = sorted(df_timeline['Participante'].unique())
-    palette = (
-        px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
-        px.colors.qualitative.Set2 + px.colors.qualitative.Bold
-    )
-    part_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_parts)}
+# Consistent color palette across both charts
+_all_participants = sorted(set(
+    row["name"] for row in index_data.get("timeline", [])
+))
+_palette = (
+    px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+    px.colors.qualitative.Set2 + px.colors.qualitative.Bold
+)
+_part_colors = {name: _palette[i % len(_palette)] for i, name in enumerate(_all_participants)}
 
-    # Top 3 and bottom 3 by latest score - visible by default
-    latest_scores_df = df_timeline.groupby('Participante')['Sentimento'].last()
-    top3 = set(latest_scores_df.nlargest(3).index)
-    bottom3 = set(latest_scores_df.nsmallest(3).index)
-    highlight = top3 | bottom3
+
+def make_evolution_chart(data_rows, score_key, title, y_label, score_fmt="+.1f"):
+    """Build an evolution chart with rank annotations and paredão markers."""
+    if not data_rows:
+        return None
+
+    df = pd.DataFrame([{
+        "Data": pd.to_datetime(row["date"]),
+        "Participante": row["name"],
+        "Score": row[score_key],
+        "Grupo": row.get("group", "?"),
+    } for row in data_rows])
+
+    if df.empty or len(df['Data'].unique()) < 2:
+        return None
+
+    all_parts = sorted(df['Participante'].unique())
+
+    # Find biggest movers: participants with largest score change from first to last appearance
+    first_scores = df.sort_values('Data').groupby('Participante')['Score'].first()
+    last_scores = df.sort_values('Data').groupby('Participante')['Score'].last()
+    deltas = (last_scores - first_scores).dropna()
+
+    top5 = set(last_scores.nlargest(5).index)
+    bottom5 = set(last_scores.nsmallest(5).index)
+    movers = set(deltas.abs().nlargest(5).index)
+    highlight = top5 | bottom5
 
     fig = go.Figure()
 
     for name in all_parts:
-        df_p = df_timeline[df_timeline['Participante'] == name].sort_values('Data')
+        df_p = df[df['Participante'] == name].sort_values('Data')
         is_hl = name in highlight
+        is_mover = name in movers
+
+        # Rank at each date
+        ranks = []
+        for _, row in df_p.iterrows():
+            date_scores = df[df['Data'] == row['Data']].set_index('Participante')['Score']
+            rank = date_scores.rank(ascending=False, method='min').get(name, None)
+            ranks.append(int(rank) if rank is not None else None)
+
+        hover_text = [
+            f"{name}: {s:{score_fmt}} (#{r})" if r else f"{name}: {s:{score_fmt}}"
+            for s, r in zip(df_p['Score'], ranks)
+        ]
 
         fig.add_trace(go.Scatter(
-            x=df_p['Data'], y=df_p['Sentimento'],
+            x=df_p['Data'], y=df_p['Score'],
             mode='lines+markers',
-            name=name,
-            line=dict(width=3 if is_hl else 1.5, color=part_colors[name]),
-            marker=dict(size=6 if is_hl else 4),
-            hovertemplate=f'{name}: ' + '%{y:+.1f}<extra></extra>',
+            name=f"{'📈 ' if is_mover and name in movers - highlight else ''}{name}",
+            line=dict(
+                width=3 if is_hl else 1.5,
+                color=_part_colors.get(name, '#999'),
+            ),
+            marker=dict(size=6 if is_hl else 3),
+            hovertext=hover_text,
+            hoverinfo='text',
             visible=True if is_hl else 'legendonly',
         ))
 
-    # Zero line
-    fig.add_shape(type='line', x0=df_timeline['Data'].min(), x1=df_timeline['Data'].max(),
-                  y0=0, y1=0, line=dict(color='red', dash='dash', width=1))
-
-    # Paredão date lines (load from paredoes.json)
-    paredoes_file = Path("data/paredoes.json")
-    if paredoes_file.exists():
-        with open(paredoes_file, encoding="utf-8") as f:
-            paredoes_data = json.load(f)
-        for p in paredoes_data.get('paredoes', []):
-            paredao_date = pd.to_datetime(p['data'])
-            y_range = [df_timeline['Sentimento'].min() - 2, df_timeline['Sentimento'].max() + 2]
-            fig.add_shape(
-                type='line', x0=paredao_date, x1=paredao_date,
-                y0=y_range[0], y1=y_range[1],
-                line=dict(color='#FF6B6B', dash='dot', width=2),
-            )
-            # Add annotation
+    # Rank annotations at last date for visible traces
+    last_date = df['Data'].max()
+    last_df = df[df['Data'] == last_date].copy()
+    last_df['rank'] = last_df['Score'].rank(ascending=False, method='min').astype(int)
+    for _, row in last_df.iterrows():
+        if row['Participante'] in highlight:
             fig.add_annotation(
-                x=paredao_date, y=y_range[1],
-                text=f"🗳️ {p['numero']}º Paredão",
+                x=last_date, y=row['Score'],
+                text=f"#{int(row['rank'])}",
                 showarrow=False,
-                font=dict(size=11, color='#FF6B6B'),
+                font=dict(size=9, color='#aaa'),
+                xshift=28,
+            )
+
+    # Zero line
+    fig.add_shape(type='line',
+                  x0=df['Data'].min(), x1=df['Data'].max(),
+                  y0=0, y1=0,
+                  line=dict(color='red', dash='dash', width=1))
+
+    # Paredão markers
+    y_min = df['Score'].min()
+    y_max = df['Score'].max()
+    y_range = [y_min - abs(y_max - y_min) * 0.1, y_max + abs(y_max - y_min) * 0.1]
+    for marker in _paredoes_markers:
+        if df['Data'].min() <= marker['date'] <= df['Data'].max():
+            fig.add_shape(
+                type='line', x0=marker['date'], x1=marker['date'],
+                y0=y_range[0], y1=y_range[1],
+                line=dict(color='#FF6B6B', dash='dot', width=1.5),
+            )
+            fig.add_annotation(
+                x=marker['date'], y=y_range[1],
+                text=marker['label'],
+                showarrow=False,
+                font=dict(size=10, color='#FF6B6B'),
                 yshift=10,
             )
 
     fig.update_layout(
-        title="Evolução do Sentimento ao Longo do Tempo",
+        title=title,
         xaxis_title="Data",
-        yaxis_title="Score de Sentimento",
-        height=_ranking_height,  # Same height as Ranking tabs
-        hovermode='x unified',
-        legend=dict(font=dict(size=11), itemsizing='constant'),
-        margin=dict(r=180),  # More room for legend
+        yaxis_title=y_label,
+        height=max(550, len(all_parts) * 20),
+        hovermode='x',
+        legend=dict(
+            font=dict(size=10),
+            itemsizing='constant',
+            bgcolor='rgba(0,0,0,0.5)',
+        ),
+        margin=dict(r=200),
     )
 
-    fig.show()
+    # Add updatemenus for quick presets
+    n_traces = len(all_parts)
+    fig.update_layout(
+        updatemenus=[dict(
+            type='buttons',
+            direction='right',
+            x=0.0, y=1.12,
+            xanchor='left', yanchor='top',
+            bgcolor='rgba(50,50,50,0.8)',
+            font=dict(color='#ccc', size=10),
+            buttons=[
+                dict(label='Top 5 + Bottom 5',
+                     method='update',
+                     args=[{'visible': [
+                         True if name in highlight else 'legendonly'
+                         for name in all_parts
+                     ] + [True] * (len(fig.data) - n_traces)}]),
+                dict(label='Maiores Mudanças',
+                     method='update',
+                     args=[{'visible': [
+                         True if name in movers else 'legendonly'
+                         for name in all_parts
+                     ] + [True] * (len(fig.data) - n_traces)}]),
+                dict(label='Todos',
+                     method='update',
+                     args=[{'visible': [True] * len(fig.data)}]),
+            ],
+        )]
+    )
 
-    print("<p class='text-muted small' style='margin-top: 0.5rem;'>Top 3 e bottom 3 destacados por padrão. Clique na legenda para mostrar/esconder outros participantes.</p>")
+    return fig
+```
+
+::: {.panel-tabset}
+
+### Queridômetro
+
+```{python}
+#| label: evolution-queridometro
+#| output: asis
+
+timeline_data = index_data.get("timeline", [])
+fig_evo_q = make_evolution_chart(
+    timeline_data, "sentiment",
+    title="Evolução do Queridômetro",
+    y_label="Score de Sentimento (soma reações)",
+    score_fmt="+.1f",
+)
+if fig_evo_q:
+    fig_evo_q.show()
+    print("<p class='text-muted small' style='margin-top: 0.3rem;'>Score = soma ponderada de reações recebidas (❤️ +1, leves −0.5, fortes −1). Use os botões acima para alternar entre presets.</p>")
 else:
     print("<p class='text-muted'>Dados insuficientes para gráfico de evolução.</p>")
 ```
+
+### Estratégico
+
+```{python}
+#| label: evolution-strategic
+#| output: asis
+
+strat_timeline_data = index_data.get("strategic_timeline", [])
+fig_evo_s = make_evolution_chart(
+    strat_timeline_data, "score",
+    title="Evolução do Score Estratégico",
+    y_label="Score Composto (média recebida)",
+    score_fmt="+.3f",
+)
+if fig_evo_s:
+    fig_evo_s.show()
+    print("<p class='text-muted small' style='margin-top: 0.3rem;'>Score composto = queridômetro + eventos de poder + votos + Sincerão + VIP (média recebida por participante). Inclui todos os eventos acumulados até cada data.</p>")
+else:
+    print("<p class='text-muted'>Dados de relações não disponíveis para evolução estratégica.</p>")
+```
+
+:::
 
 :::
 
@@ -888,19 +1312,17 @@ print(make_reaction_summary_html(summary_data, collapsed_rows=5))
 
 # Perfis Individuais {#perfis}
 
-<p class="text-muted small">📸 <strong>Dado do dia</strong> — mostra apenas a coleta mais recente.</p>
-
-Detalhamento estratégico de cada participante ativo, incluindo análise de hostilidades e vulnerabilidades no jogo.
+Detalhamento estratégico de cada participante ativo, incluindo análise de relações, vulnerabilidades e impacto no jogo. Scores compostos combinam queridômetro (3 dias) + eventos de poder + votos + Sincerão + VIP.
 
 <details style="margin: 1.5rem 0;">
 <summary style="cursor: pointer; color: #fff; font-weight: 600; background: #2a2a2a; border-radius: 12px; padding: 0.9rem 1.2rem; border-left: 4px solid #17a2b8;">
-ℹ️ Como calculamos Vulnerabilidade, Risco externo e Animosidade (clique para expandir)
+ℹ️ Como calculamos Vulnerabilidade, Impacto Negativo e Hostilidade Gerada (clique para expandir)
 </summary>
 <div style="background: #2a2a2a; border-radius: 12px; padding: 1.2rem; margin-top: 0.8rem; border-left: 4px solid #17a2b8;">
 
 **🎯 Vulnerabilidade a Votos Surpresa**
 
-O badge avalia o risco de receber **votos inesperados** — de pessoas que o participante considera aliadas mas que, na verdade, são hostis ("falsos amigos"). Quem tem muitos inimigos declarados mas zero falsos amigos está em posição mais segura: sabe exatamente de onde vêm as ameaças.
+O badge avalia o risco de receber **votos inesperados** — de pessoas que o participante considera aliadas mas que, na verdade, são hostis ("falsos amigos"). A classificação usa o **score composto** de relações (queridômetro + votos + eventos de poder + Sincerão + VIP), não apenas o emoji. Nos 2 primeiros paredões, falsos amigos votaram contra **2-3× mais** que não-falsos amigos.
 
 | Badge | Critério | Significado |
 |-------|----------|-------------|
@@ -909,46 +1331,31 @@ O badge avalia o risco de receber **votos inesperados** — de pessoas que o par
 | 🟡 **ATENÇÃO** | 1-2 falsos amigos | Posição razoável, mas com pontos cegos. |
 | 🟢 **PROTEGIDO** | 0 falsos amigos | Sem pontos cegos — sabe quem são seus aliados e inimigos. |
 
-**🧭 Risco externo (semana atual)**
+**🧭 Impacto Negativo (acumulado)**
 
-Mede exposição real a votos/eventos negativos **na semana atual** (não carrega para a semana seguinte).  
-Fórmula:
+Mede o quanto o participante foi alvo de eventos negativos ao longo do jogo: indicações, contragolpes, votos recebidos, Sincerão negativo, visibilidade de votos, e backlash. Usa os mesmos pesos calibrados do sistema de relações (`relations_scores.json` → `received_impact.negative`), sem decay — todos os eventos acumulam com peso integral.
 
-```
-risco_externo = 1.0 * votos_recebidos
-              + Σ pesos_prejuizos_publicos
-              + 0.5 × Σ pesos_prejuizos_secretos
-              + 0.5 * auto_infligidos
-              + 2 (se estiver no Paredao)
-```
+Faixas: 🟢 **NENHUM** (0), 🟡 **BAIXO** (< 0), 🟠 **MÉDIO** (≤ -5), 🔴 **ALTO** (≤ -10).
 
-Faixas: 🟢 **MUITO BAIXO** (<1), 🟡 **BAIXO** (>=1), 🟠 **MÉDIO** (>=3), 🔴 **ALTO** (>=6).
+**🔥 Hostilidade Gerada (acumulada)**
 
-**🔥 Animosidade (tendência)**
+Mede o quanto o participante **causou impacto negativo** sobre os demais: soma das edges negativas de eventos de poder, votos, Sincerão e visibilidade. Usa os mesmos pesos calibrados do sistema de relações (`pairs_daily` → componentes não-queridômetro), sem decay.
 
-Mede o quanto o participante **gerou impacto negativo** recente na casa:
+Faixas: 🟢 **NENHUMA** (0), 🟡 **BAIXA** (< 0), 🟠 **MÉDIA** (≤ -4), 🔴 **ALTA** (≤ -8).
 
-```
-animosidade = 0.25 * reacoes_negativas_recebidas
-            + 0.5 * hostilidades_recebidas
-            + 1.5 * soma_eventos_negativos_com_decaimento
-```
+**Categorias de Relação** (baseadas no score composto, não apenas emoji):
 
-O decaimento usa: `peso = 1 / (1 + semanas_passadas)`.  
-Faixas: 🟢 **MUITO BAIXA** (<1), 🟡 **BAIXA** (>=1), 🟠 **MÉDIA** (>=3), 🔴 **ALTA** (>=6).
+- **✅ Aliados** — Score positivo mútuo. Nos 2 paredões, 0% dos aliados votaram contra. Votos seguros.
+- **⚔️ Inimigos** — Score negativo mútuo. Votos contra esperados de ambos os lados.
+- **⚠️ Falsos Amigos** — Seu score é positivo (confia), mas o deles é negativo (hostil). **PERIGO:** votam contra 2-3× mais que não-falsos amigos.
+- **🗡️ Alvos Ocultos** — Seu score é negativo (hostil), mas eles confiam em você. Eles não sabem que são seus alvos.
 
-**Categorias de Relação:**
+O score composto inclui queridômetro (3 dias) + votos recebidos + eventos de poder + Sincerão + VIP. Acertou **68% dos votos** nos paredões vs 37% usando apenas emoji.
 
-- **✅ Aliados** — ❤️ mútuo. Votos seguros, não votarão contra.
-- **⚔️ Inimigos Declarados** — Negatividade mútua. Votos contra esperados de ambos os lados.
-- **⚠️ Falsos Amigos** — Você dá ❤️, mas eles dão negativa. **PERIGO:** podem votar contra você!
-- **🗡️ Inimigos Não Declarados** — Você dá negativa, eles dão ❤️. Eles não sabem que são seus alvos.
-
-**Novos sinais de jogo (dinâmicas públicas):**
-- **Poderes recebidos** (benefícios e prejuízos) mostram acontecimentos **públicos** na casa que podem mudar alianças.
-- **Votos da casa recebidos** mostram o que o **público** viu na formação; quando há **dedo-duro**, o voto aparece marcado.
-- O painel agora separa **Risco social** (percepção) e **Risco externo** (votos/eventos negativos).
-- **Risco externo é experimental** e será recalibrado semanalmente após indicações/contragolpes/votações.
+**Sinais de jogo no perfil:**
+- **Poderes recebidos** (benefícios e prejuízos): acontecimentos na casa que afetam o score.
+- **Votos da casa recebidos**: marcados com dedo-duro quando o voto foi revelado.
+- **Impacto Negativo** e **Hostilidade Gerada**: pesos calibrados do sistema de relações (sem divergência).
 
 </div>
 </details>
@@ -1016,6 +1423,54 @@ print("""
 }
 .plant-popover .plant-row:last-child { border-bottom: none; }
 .plant-popover .plant-muted { color: #999; font-size: 0.7rem; margin-top: 0.3rem; }
+
+/* Badge chip with popover (reusable for Impacto Negativo, Hostilidade Gerada) */
+.badge-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: default;
+}
+.badge-chip:focus { outline: none; }
+.badge-chip .badge-popover {
+    position: absolute;
+    top: 130%;
+    left: 0;
+    min-width: 250px;
+    background: #1f1f1f;
+    border: 1px solid #555;
+    border-radius: 8px;
+    padding: 0.6rem 0.7rem;
+    color: #ddd;
+    font-size: 0.75rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: all 0.15s ease;
+    z-index: 30;
+}
+.badge-chip:hover .badge-popover,
+.badge-chip:focus-within .badge-popover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.badge-popover .bp-title {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+.badge-popover .bp-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.15rem 0;
+    border-bottom: 1px solid #333;
+}
+.badge-popover .bp-row:last-child { border-bottom: none; }
+.badge-popover .bp-muted { color: #999; font-size: 0.7rem; margin-top: 0.3rem; }
 </style>
 """)
 
@@ -1066,9 +1521,7 @@ def make_event_chips(events, border_color, color_lookup=None):
         count = ev.get("count", 1)
         actors = ev.get("actors", [])
         count_prefix = f"{count}x " if count > 1 else ""
-        chip_colors = {color_lookup.get(a) for a in actors} if color_lookup else set()
-        chip_colors.discard(None)
-        chip_border = chip_colors.pop() if len(chip_colors) == 1 else border_color
+        chip_border = border_color
         actor_html = render_actor_avatars(
             actors,
             chip_border,
@@ -1189,6 +1642,59 @@ for p in profiles:
     external_color = p.get("external_color")
     animosity_level = p.get("animosity_level")
     animosity_color = p.get("animosity_color")
+    scores_data = p.get("scores", {})
+
+    # Component labels for popover breakdown
+    COMP_LABELS = {
+        "power_event": "Eventos de poder",
+        "sincerao": "Sincerão",
+        "vote": "Votos",
+        "vip": "VIP",
+        "anjo": "Anjo",
+        "visibility": "Visibilidade",
+    }
+
+    # Build Impacto Negativo popover
+    ext_score = scores_data.get("external", 0)
+    ext_pos = scores_data.get("external_positive", 0)
+    ext_count = scores_data.get("external_count", 0)
+    ext_bd = scores_data.get("external_breakdown", {})
+    ext_rows = "".join(
+        f"<div class='bp-row'><span>{COMP_LABELS.get(k, k)}</span><span>{v:+.1f}</span></div>"
+        for k, v in sorted(ext_bd.items(), key=lambda x: x[1])
+    ) if ext_bd else "<div class='bp-muted'>Nenhum evento negativo recebido.</div>"
+    external_badge = (
+        f"<span class='badge-chip' tabindex='0' "
+        f"style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; "
+        f"background: {external_color}; color: #fff; vertical-align: middle; font-weight: bold;\">"
+        f"Impacto Negativo {external_level}"
+        f"<div class='badge-popover'>"
+        f"<div class='bp-title'><span>Impacto Negativo</span><span>{ext_score:.1f}</span></div>"
+        f"<div class='bp-muted'>Eventos recebidos: {ext_count} | Positivos: +{ext_pos:.1f}</div>"
+        f"{ext_rows}"
+        f"<div class='bp-muted'>Soma de edges negativas recebidas (sem decay)</div>"
+        f"</div></span>"
+    )
+
+    # Build Hostilidade Gerada popover
+    anim_score = scores_data.get("animosity", 0)
+    anim_bd = scores_data.get("animosity_breakdown", {})
+    anim_rows = "".join(
+        f"<div class='bp-row'><span>{COMP_LABELS.get(k, k)}</span><span>{v:+.1f}</span></div>"
+        for k, v in sorted(anim_bd.items(), key=lambda x: x[1])
+    ) if anim_bd else "<div class='bp-muted'>Nenhum evento negativo causado.</div>"
+    animosity_badge = (
+        f"<span class='badge-chip' tabindex='0' "
+        f"style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; "
+        f"background: {animosity_color}; color: #fff; vertical-align: middle; font-weight: bold;\">"
+        f"Hostilidade Gerada {animosity_level}"
+        f"<div class='badge-popover'>"
+        f"<div class='bp-title'><span>Hostilidade Gerada</span><span>{anim_score:.1f}</span></div>"
+        f"{anim_rows}"
+        f"<div class='bp-muted'>Soma de edges negativas enviadas (sem decay)</div>"
+        f"</div></span>"
+    )
+
     plant_info = p.get("plant_index") or {}
     plant_badge = ""
     if plant_info and plant_info.get("score") is not None:
@@ -1234,11 +1740,36 @@ for p in profiles:
     # PROFILE CARD - Using HTML tables for better formatting
     # ════════════════════════════════════════════════════════════════
 
+    # Build Vulnerability popover
+    ff_names_list = [f["name"] for f in false_friends[:5]]
+    ff_names_str = ", ".join(ff_names_list)
+    if len(false_friends) > 5:
+        ff_names_str += f" +{len(false_friends) - 5}"
+    vuln_rows = (
+        f"<div class='bp-row'><span>Falsos amigos</span><span>{n_false_friends}</span></div>"
+        f"<div class='bp-row'><span>Aliados</span><span>{n_allies}</span></div>"
+        f"<div class='bp-row'><span>Inimigos</span><span>{n_enemies}</span></div>"
+        f"<div class='bp-row'><span>Alvos ocultos</span><span>{len(blind_targets)}</span></div>"
+    )
+    vuln_detail = f"<div class='bp-muted'>Pontos cegos: {ff_names_str}</div>" if ff_names_list else "<div class='bp-muted'>Sem pontos cegos.</div>"
+    vulnerability_badge = (
+        f"<span class='badge-chip' tabindex='0' "
+        f"style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; "
+        f"background: {risk_color}; color: #fff; vertical-align: middle; font-weight: bold;\">"
+        f"{risk_level}"
+        f"<div class='badge-popover'>"
+        f"<div class='bp-title'><span>Vulnerabilidade</span><span>{n_false_friends} falsos amigos</span></div>"
+        f"{vuln_rows}"
+        f"{vuln_detail}"
+        f"<div class='bp-muted'>Baseado no score composto (68% de acerto em votos)</div>"
+        f"</div></span>"
+    )
+
     role_text = f" | {', '.join(roles)}" if roles else ""
     badges = " ".join([
-        f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {risk_color}; color: #fff; vertical-align: middle; font-weight: bold;\">{risk_level}</span>",
-        f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {external_color}; color: #fff; vertical-align: middle; font-weight: bold;\">Risco externo {external_level}</span>",
-        f"<span style=\"font-size: 0.5em; padding: 3px 10px; border-radius: 4px; background: {animosity_color}; color: #fff; vertical-align: middle; font-weight: bold;\">Animosidade {animosity_level}</span>",
+        vulnerability_badge,
+        external_badge,
+        animosity_badge,
         sinc_contra_label or "",
         plant_badge or "",
     ]).strip()
@@ -1291,7 +1822,7 @@ for p in profiles:
 <div style="margin-bottom: 0.8rem; padding: 0.6rem; background: rgba(40, 167, 69, 0.1); border-radius: 6px; border-left: 3px solid #28a745;">
 <div style="font-weight: bold; color: #28a745; margin-bottom: 0.3rem;">✅ Aliados ({n_allies})</div>
 <div style="color: #ccc; font-size: 0.9em;">{allies_str}</div>
-<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Votos seguros. Não votarão contra.</div>
+<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Score positivo mútuo (queridômetro + eventos + votos). Votos seguros.</div>
 </div>
 ''')
 
@@ -1300,9 +1831,9 @@ for p in profiles:
         enemies_str = ', '.join(enemy_items)
         print(f'''
 <div style="margin-bottom: 0.8rem; padding: 0.6rem; background: rgba(220, 53, 69, 0.1); border-radius: 6px; border-left: 3px solid #dc3545;">
-<div style="font-weight: bold; color: #dc3545; margin-bottom: 0.3rem;">⚔️ Inimigos Declarados ({n_enemies})</div>
+<div style="font-weight: bold; color: #dc3545; margin-bottom: 0.3rem;">⚔️ Inimigos ({n_enemies})</div>
 <div style="color: #ccc; font-size: 0.9em;">{enemies_str}</div>
-<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Hostilidade mútua. Votos contra esperados de ambos os lados.</div>
+<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Score negativo mútuo. Votos contra esperados de ambos os lados.</div>
 </div>
 ''')
 
@@ -1313,7 +1844,7 @@ for p in profiles:
 <div style="margin-bottom: 0.8rem; padding: 0.6rem; background: rgba(255, 193, 7, 0.15); border-radius: 6px; border-left: 3px solid #ffc107;">
 <div style="font-weight: bold; color: #ffc107; margin-bottom: 0.3rem;">⚠️ Falsos Amigos ({n_false_friends}) — PERIGO!</div>
 <div style="color: #ccc; font-size: 0.9em;">{ff_str}</div>
-<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Eles dão negativa para você. Podem votar contra sem que você espere.</div>
+<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Seu score é positivo, mas o deles é negativo. Votam contra 2-3× mais.</div>
 </div>
 ''')
 
@@ -1322,9 +1853,9 @@ for p in profiles:
         bt_str = ', '.join(bt_items)
         print(f'''
 <div style="margin-bottom: 0.8rem; padding: 0.6rem; background: rgba(111, 66, 193, 0.1); border-radius: 6px; border-left: 3px solid #6f42c1;">
-<div style="font-weight: bold; color: #6f42c1; margin-bottom: 0.3rem;">🗡️ Inimigos Não Declarados ({len(blind_targets)})</div>
+<div style="font-weight: bold; color: #6f42c1; margin-bottom: 0.3rem;">🗡️ Alvos Ocultos ({len(blind_targets)})</div>
 <div style="color: #ccc; font-size: 0.9em;">{bt_str}</div>
-<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Eles dão ❤️ para você, mas você é hostil. Eles não sabem que são seus alvos.</div>
+<div style="color: #6c757d; font-size: 0.8em; margin-top: 0.3rem;">→ Seu score é negativo, mas o deles é positivo. Eles não sabem que são seus alvos.</div>
 </div>
 ''')
 
@@ -1335,5 +1866,5 @@ for p in profiles:
 ---
 
 <div class="alert alert-info" role="alert">
-<strong>💡 Sobre este painel:</strong> Este painel acompanha as reações do queridômetro do BBB 26. As reações <strong>mudam diariamente</strong> — os participantes podem trocar suas escolhas a cada Raio-X. Seções marcadas com 📸 mostram apenas o dia mais recente; seções marcadas com 📈 mostram a evolução ao longo do tempo. Acompanhamento desde 13 de janeiro de 2026.
+<strong>💡 Sobre este painel:</strong> Análise estratégica do BBB 26 combinando <strong>queridômetro</strong> (reações diárias), <strong>eventos de poder</strong> (indicações, contragolpes, monstro), <strong>votos da casa</strong>, <strong>Sincerão</strong> e <strong>dinâmicas semanais</strong>. Os scores compostos usam pesos calibrados sem decay — todos os eventos acumulam. Acertou <strong>68% dos votos</strong> nos 2 primeiros paredões. Acompanhamento desde 13 de janeiro de 2026.
 </div>

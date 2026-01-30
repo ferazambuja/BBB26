@@ -13,13 +13,15 @@ Referenced from `CLAUDE.md` — read this when implementing or modifying scoring
 ### Derived per-participant metrics (current snapshot)
 - **Sentiment score**: weighted sum of received reactions.
   - Weights: Coração +1; Planta/Mala/Biscoito/💔 −0.5; Cobra/Alvo/Vômito/Mentiroso −1.
-- **Aliados / Inimigos / Falsos Amigos / Inimigos Não Declarados**:
-  - Built from the **reaction matrix** (giver → receiver).
-  - Categories:
-    - Aliados: ❤️↔❤️
-    - Inimigos declarados: neg↔neg
-    - Falsos amigos: A dá ❤️, recebe neg de B
-    - Inimigos não declarados: A dá neg, recebe ❤️ de B
+- **Aliados / Inimigos / Falsos Amigos / Alvos Ocultos**:
+  - Built from the **composite pair score** (`pair_sentiment()` using `pairs_daily` from `relations_scores.json`).
+  - Score includes: queridômetro (streak-aware: 70% 3-day reactive window + 30% streak memory + break penalty) + power events + votes + Sincerão + VIP (all at full weight, no decay).
+  - Categories (based on sign of composite score, not raw emoji):
+    - Aliados: score A→B > 0 AND score B→A > 0
+    - Inimigos: score A→B < 0 AND score B→A < 0
+    - Falsos amigos: score A→B > 0 AND score B→A < 0
+    - Alvos ocultos: score A→B < 0 AND score B→A > 0
+  - Prediction accuracy: 68% of house votes (vs 37% using queridômetro only). 0% ally betrayals.
 
 ### Event data (rare, manual + auto)
 - **Power events** (manual + auto events): usually **one actor → one target**.
@@ -45,15 +47,64 @@ Computed in `data/derived/relations_scores.json`:
 - `pairs_daily` para uso geral diário.
 - `pairs_paredao` para análises de coerência na formação do paredão.
 
-### Base (queridômetro)
+### Base (queridômetro) — Streak-Aware Scoring
+
+O queridômetro base combina três sinais:
+
 ```
-Q(A→B) = weight(reaction_label from A to B)
+Q_reactive(A→B) = Σ w_i * sentiment(emoji_i)   for last 3 days
+                  where w = [0.6, 0.3, 0.1]
+
+streak_len      = consecutive days of same sentiment category ending today
+consistency     = min(streak_len, 10) / 10       # 0.0–1.0, caps at 10 days
+Q_memory(A→B)   = consistency * sentiment(latest_category)
+
+break_penalty   = -0.15 * min(prev_streak, 15) / 15
+                  if previous positive streak ≥ 5 broke to negative, else 0
+
+Q_final(A→B)    = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
 ```
 
+**Pesos:**
+- **70% reativo** — o emoji de hoje é o sinal mais importante (o jogo é ao vivo)
+- **30% memória** — sequências longas reforçam o sinal (15 dias de ❤️ é aliança real)
+- **Penalidade de ruptura** é aditiva (máx. −0.15) — sinal de "confiança quebrada"
+
+**Categorias de sentimento:**
+- `positive`: ❤️ (Coração)
+- `mild_negative`: 🌱💼🍪💔 (Planta, Mala, Biscoito, Coração partido)
+- `strong_negative`: 🐍🎯🤮🤥 (Cobra, Alvo, Vômito, Mentiroso)
+
 ### Janela curta (mais fiel ao jogo)
-- O **queridômetro base** usa uma **média móvel curta de 3 dias** (0.6/0.3/0.1),
+- O **queridômetro reativo** usa uma **média móvel curta de 3 dias** (0.6/0.3/0.1),
   centrada na **data de formação** do paredão ativo (ou a última `data_formacao` conhecida).
+- A **memória de sequência** considera todo o histórico do par.
 - Se faltar snapshot no período, cai para o **snapshot mais recente**.
+
+### Detecção de Rupturas de Aliança (Streak Breaks)
+
+Uma ruptura é detectada quando:
+1. O par teve **5+ dias consecutivos** de categoria `positive` (❤️)
+2. A categoria mudou para `mild_negative` ou `strong_negative`
+3. A nova sequência tem no máximo 3 dias (ruptura recente)
+
+**Severidade:**
+- `strong`: nova categoria é `strong_negative` (🐍🎯🤮🤥)
+- `mild`: nova categoria é `mild_negative` (🌱💼🍪💔)
+
+**Output:** `streak_breaks` list in `relations_scores.json`:
+```json
+{
+  "giver": "Nome",
+  "receiver": "Nome",
+  "previous_streak": 14,
+  "previous_category": "positive",
+  "new_emoji": "Cobra",
+  "new_category": "strong_negative",
+  "date": "2026-01-27",
+  "severity": "strong"
+}
+```
 
 ### Event modifiers (weekly + rolling)
 - **Power events** (manual + auto, actor → target):
@@ -63,7 +114,7 @@ Q(A→B) = weight(reaction_label from A to B)
   - `barrado_baile` −0.4 (baixo impacto, público)
   - Ganha-Ganha é público: quem foi vetado tende a gerar **animosidade leve** contra quem vetou (backlash menor).
   - Sincerão negativo é público: gera **backlash leve** no alvo (bomba/“não ganha”).
-  - **Nenhum tipo de evento sofre decay** no rolling — todos acumulam com peso integral. Razão: no BBB, eventos significativos (indicações, Sincerão, votos) criam mágoas duradouras e alianças que não se dissolvem com o tempo. O queridômetro já usa janela curta de 3 dias como base.
+  - **Nenhum tipo de evento sofre decay** no rolling — todos acumulam com peso integral. Razão: no BBB, eventos significativos (indicações, Sincerão, votos) criam mágoas duradouras e alianças que não se dissolvem com o tempo. O queridômetro usa scoring streak-aware (70% reativo + 30% memória + penalidade de ruptura).
   - **Self-inflicted** events do not create A→B edges.
   - **Consensus** (ex.: Alberto + Brigido) = **full weight for each actor**.
   - **Public** indicacao/contragolpe also add **backlash** B→A (peso menor, fator 0.6).
@@ -155,35 +206,19 @@ Além do metadado, quando o Anjo é autoimune e não usa o poder extra, uma edge
 
 ---
 
-## Risco Externo (weekly, from events + votes)
+## Impacto Negativo Recebido (acumulado)
 
-Computed **per participant, per week**. Uses weighted negative events + votes received:
-```
-risco_externo = 1.0 * votos_recebidos
-              + Σ pesos_prejuizos_publicos
-              + 0.5 * Σ pesos_prejuizos_secretos
-              + 0.5 * auto_infligidos
-              + 2 (se estiver no Paredão)
-```
+Reads directly from `received_impact.negative` in `relations_scores.json`. This value is the sum of all negative event edges targeting a participant (power events, votes, Sincerão, visibility factors, backlash), using the same calibrated weights as the Sentiment Index — no separate constants or decay.
 
-**Risco (sugestão de cálculo)**:
-- Separar em **Risco social (percebido)** vs **Risco externo (real)**.
-- `Risco social`: peso maior para eventos **públicos** de prejuízo causados por outros + conflitos/reactions negativas.
+Thresholds: 🟢 **NENHUM** (0), 🟡 **BAIXO** (< 0), 🟠 **MÉDIO** (≤ -5), 🔴 **ALTO** (≤ -10).
 
 ---
 
-## Animosidade (historical, sem decay)
+## Hostilidade Gerada (acumulada)
 
-Directional: if **A** inflicts negative events on **B**, A accumulates animosity:
-```
-animosidade = 0.25 * reacoes_negativas_recebidas
-            + 0.5 * hostilidades_recebidas
-            + 1.5 * Σ peso_evento
-```
-Sem decay — eventos acumulam com peso integral (mesma política do score rolling).
+Sums outgoing negative event edges from `pairs_daily` components (excluding `queridometro`). For each target, sums `min(0, component_weight)` for all non-queridômetro components (power events, votes, Sincerão edges, visibility). Uses the same calibrated weights as the pairs system — no separate constants or decay.
 
-- **Animosidade index** é **experimental** e deve ser **recalibrado semanalmente** após indicações/contragolpes/votações.
-- Registre ajustes no `IMPLEMENTATION_PLAN.md` para manter histórico e evitar esquecimento.
+Thresholds: 🟢 **NENHUMA** (0), 🟡 **BAIXA** (< 0), 🟠 **MÉDIA** (≤ -4), 🔴 **ALTA** (≤ -8).
 
 ---
 
@@ -197,13 +232,6 @@ Sem decay — eventos acumulam com peso integral (mesma política do score rolli
 - `monstro`: **1.2**
 - `perdeu_voto`: **1.0**
 - `voto_anulado`: **0.8**
-- `voto_duplo`: **0.6**
-- `exposto`: **0.5**
-
-### Pesos para Animosidade (autor do evento)
-- `indicacao`, `contragolpe`: **2.0**
-- `monstro`: **1.2**
-- `perdeu_voto`, `voto_anulado`: **0.8**
 - `voto_duplo`: **0.6**
 - `exposto`: **0.5**
 
@@ -470,7 +498,7 @@ Built by `build_prova_rankings()` in `scripts/build_derived_data.py`.
   - Quando houver repetição, mostrar `2x`/`3x`.
 - Para eventos **auto-infligidos**, usar badge `auto` (ex.: ↺) e reduzir peso no "risco social".
 - Mostrar **Votos da casa recebidos** como linha separada.
-- **Cores dos chips**: seguir as categorias de relação do perfil (Aliados=verde, Inimigos Declarados=vermelho, Falsos Amigos=amarelo, Inimigos Não Declarados=roxo).
+- **Cores dos chips**: seguir as categorias de relação do perfil (Aliados=verde, Inimigos=vermelho, Falsos Amigos=amarelo, Alvos Ocultos=roxo).
 
 ---
 
@@ -520,7 +548,7 @@ These are **safe cross-page ideas** using only existing data:
 1. **Eventos → Mudanças de sentimento** — Overlay `power_events` on daily sentiment timeline to show pre/post shifts.
 2. **Voto vs Queridômetro (contradições)** — Highlight cases where someone dá ❤️ but votou contra.
 3. **Caminho do Paredão** — Formation flow (Líder/Anjo/indicação/contragolpe/votos) with timestamps + outcomes.
-4. **Risco externo calibrado** — Compare weekly risk score vs actual house votes received to validate weights.
+4. **Impacto Negativo calibrado** — Compare cumulative negative impact vs actual house votes received to validate weights (now uses same weights as pairs system).
 5. **Efeito do Monstro/Anjo** — Show how targets' reactions change the day after the event.
 6. **Mapa de votos revelados (dedo-duro)** — Surface only revealed votes as public signals in perfis.
 7. **Polarização vs Popularidade** — Scatter: sentiment vs #inimigos / falsos amigos.

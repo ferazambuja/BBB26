@@ -11,8 +11,9 @@ from collections import defaultdict
 
 from data_utils import (
     SENTIMENT_WEIGHTS, calc_sentiment, get_week_number,
-    CARTOLA_POINTS, POINTS_LABELS, POINTS_EMOJI, parse_roles as du_parse_roles,
+    CARTOLA_POINTS,
     build_reaction_matrix,
+    POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
 )
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
@@ -182,6 +183,144 @@ def get_daily_snapshots(snapshots):
     return [by_date[d] for d in sorted(by_date.keys())]
 
 
+def _classify_sentiment(label):
+    """Classify an emoji label into a sentiment category string."""
+    if label in POSITIVE:
+        return "positive"
+    if label in STRONG_NEGATIVE:
+        return "strong_negative"
+    if label in MILD_NEGATIVE:
+        return "mild_negative"
+    return None
+
+
+def _sentiment_value_for_category(cat):
+    """Return a representative sentiment weight for a streak category."""
+    if cat == "positive":
+        return 1.0
+    if cat == "mild_negative":
+        return -0.5
+    if cat == "strong_negative":
+        return -1.0
+    return 0.0
+
+
+def compute_streak_data(daily_snapshots, eliminated_last_seen=None):
+    """Compute emoji streak info and detect alliance breaks for all pairs.
+
+    Returns:
+        streak_info: dict[actor][target] = {
+            streak_len, streak_category, streak_sentiment,
+            previous_streak_len, previous_category,
+            break_from_positive, total_days
+        }
+        streak_breaks: list of detected break events
+    """
+    if not daily_snapshots:
+        return {}, []
+
+    # Build per-pair emoji history in chronological order
+    pair_history = defaultdict(list)  # (actor, target) → [(date, label), ...]
+    for snap in daily_snapshots:
+        date = snap["date"]
+        matrix = build_reaction_matrix(snap["participants"])
+        seen_pairs = set()
+        for (actor, target), label in matrix.items():
+            if label:
+                pair_history[(actor, target)].append((date, label))
+                seen_pairs.add((actor, target))
+
+    streak_info = defaultdict(dict)
+    streak_breaks = []
+    latest_date = daily_snapshots[-1]["date"] if daily_snapshots else None
+
+    for (actor, target), history in pair_history.items():
+        if len(history) == 0:
+            continue
+
+        # Determine the reference date: use last_seen for eliminated participants
+        ref_date = latest_date
+        if eliminated_last_seen:
+            if actor in eliminated_last_seen and eliminated_last_seen[actor]:
+                ref_date = eliminated_last_seen[actor]
+            if target in eliminated_last_seen and eliminated_last_seen[target]:
+                t_date = eliminated_last_seen[target]
+                if t_date and (ref_date is None or t_date < ref_date):
+                    ref_date = t_date
+
+        # Filter history up to reference date
+        relevant = [(d, l) for d, l in history if d <= ref_date] if ref_date else history
+        if not relevant:
+            continue
+
+        total_days = len(relevant)
+
+        # Classify each day
+        categorized = [(d, _classify_sentiment(l)) for d, l in relevant]
+        categorized = [(d, c) for d, c in categorized if c is not None]
+        if not categorized:
+            continue
+
+        # Walk backwards to find current streak
+        current_cat = categorized[-1][1]
+        streak_len = 0
+        for _, c in reversed(categorized):
+            if c == current_cat:
+                streak_len += 1
+            else:
+                break
+
+        # Find previous streak (before current one)
+        previous_streak_len = 0
+        previous_category = None
+        remaining = categorized[:len(categorized) - streak_len]
+        if remaining:
+            previous_category = remaining[-1][1]
+            for _, c in reversed(remaining):
+                if c == previous_category:
+                    previous_streak_len += 1
+                else:
+                    break
+
+        # Detect break from positive
+        break_from_positive = (
+            previous_category == "positive"
+            and previous_streak_len >= 5
+            and current_cat in ("mild_negative", "strong_negative")
+            and streak_len <= 3  # break is recent (within last 3 days)
+        )
+
+        info = {
+            "streak_len": streak_len,
+            "streak_category": current_cat,
+            "streak_sentiment": _sentiment_value_for_category(current_cat),
+            "previous_streak_len": previous_streak_len,
+            "previous_category": previous_category,
+            "break_from_positive": break_from_positive,
+            "total_days": total_days,
+        }
+        streak_info[actor][target] = info
+
+        if break_from_positive and ref_date:
+            severity = "strong" if current_cat == "strong_negative" else "mild"
+            latest_label = relevant[-1][1] if relevant else ""
+            streak_breaks.append({
+                "giver": actor,
+                "receiver": target,
+                "previous_streak": previous_streak_len,
+                "previous_category": "positive",
+                "new_emoji": latest_label,
+                "new_category": current_cat,
+                "date": ref_date,
+                "severity": severity,
+            })
+
+    # Sort breaks by severity (strong first) then by previous streak length (longest first)
+    streak_breaks.sort(key=lambda x: (0 if x["severity"] == "strong" else 1, -x["previous_streak"]))
+
+    return dict(streak_info), streak_breaks
+
+
 def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles, participants_index=None):
     """Build pairwise sentiment scores (A -> B) combining queridômetro + events."""
     latest_date = latest_snapshot["date"]
@@ -207,6 +346,9 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
         for p in participants_index:
             if not p.get("active", True) and p.get("name") not in EXCLUDED_PARTICIPANTS:
                 eliminated_last_seen[p["name"]] = p.get("last_seen")
+
+    # Compute streak data for all pairs (streak length, break detection)
+    streak_info, streak_breaks = compute_streak_data(daily_snapshots, eliminated_last_seen)
 
     reaction_matrix_latest = build_reaction_matrix(participants)
 
@@ -348,11 +490,31 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 reference_date_paredao = sorted(all_forms)[-1]
     reference_date_daily = latest_date
 
-    # Build base emoji weights using a short rolling window (3 days)
+    # Build base emoji weights using a short rolling window (3 days) + streak memory + break penalty
+    def _blend_streak(q_reactive, actor, target):
+        """Blend reactive score with streak memory and break penalty.
+
+        Q_final = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
+        """
+        streak = streak_info.get(actor, {}).get(target)
+        if not streak:
+            return q_reactive
+
+        s_len = streak.get("streak_len", 0)
+        s_sentiment = streak.get("streak_sentiment", 0.0)
+        consistency = min(s_len, 10) / 10.0
+        q_memory = consistency * s_sentiment
+
+        break_pen = 0.0
+        if streak.get("break_from_positive"):
+            prev_len = streak.get("previous_streak_len", 0)
+            break_pen = -0.15 * min(prev_len, 15) / 15.0
+
+        return 0.7 * q_reactive + 0.3 * q_memory + break_pen
+
     def compute_base_weights(ref_date, name_list=None):
         if name_list is None:
             name_list = active_names
-        name_set = set(name_list)
         base = {}
         if daily_snapshots:
             candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
@@ -379,7 +541,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                         if used == 0.0:
                             label = reaction_matrix_latest.get((actor, target), "")
                             weighted = SENTIMENT_WEIGHTS.get(label, 0.0)
-                        base[actor][target] = weighted
+                        base[actor][target] = _blend_streak(weighted, actor, target)
         return base
 
     def compute_base_weights_all(ref_date):
@@ -413,7 +575,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                         used += w
                 if used == 0.0:
                     weighted = 0.0
-                base[elim_name][target] = weighted
+                base[elim_name][target] = _blend_streak(weighted, elim_name, target)
 
             # Also compute what active participants gave the eliminated participant
             for actor in all_names:
@@ -430,7 +592,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                         used += w
                 if used == 0.0:
                     weighted = 0.0
-                base[actor][elim_name] = weighted
+                base[actor][elim_name] = _blend_streak(weighted, actor, elim_name)
 
         return base
 
@@ -688,9 +850,10 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
           vetoed, or publicly confronted just because weeks passed.
           (e.g., Sarah vs Juliano after Sincerão, Leandro vs Brigido/Alberto)
         - VIP: low-weight signal, but still a deliberate leader choice.
-        - Queridômetro: handled separately via 3-day rolling window (0.6/0.3/0.1)
-          in base weights — it's a daily, secret, mandatory action with no
-          in-game consequences, so recency is already built into the window.
+        - Queridômetro: handled separately via streak-aware scoring —
+          70% 3-day reactive window (0.6/0.3/0.1) + 30% streak memory + break penalty.
+          It's a daily, secret, mandatory action with no in-game consequences,
+          so recency is primary but consistency matters.
         """
         edges_out = []
         for edge in edges_in:
@@ -717,9 +880,16 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 if base is None:
                     label = reaction_matrix_latest.get((a, b), "")
                     base = SENTIMENT_WEIGHTS.get(label, 0.0)
+                # Add streak metadata to components
+                streak = streak_info.get(a, {}).get(b)
+                s_len = streak.get("streak_len", 0) if streak else 0
+                has_break = bool(streak.get("break_from_positive")) if streak else False
+
                 pair_entry = {
                     "score": round(base, 4),
                     "components": {"queridometro": round(base, 4)},
+                    "streak_len": s_len,
+                    "break": has_break,
                 }
                 if include_active_flag:
                     pair_entry["active_pair"] = (a in active_set and b in active_set)
@@ -746,7 +916,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
     pairs_all = build_pairs(base_weights_all, edges, name_list=all_names, include_active_flag=True)
 
     # --- GAP 2: Contradiction detection (vote vs queridômetro) ---
-    vote_edges = [e for e in edges if e["type"] == "vote" and not e.get("backlash")]
+    vote_edges = [e for e in edges if e["type"] == "vote" and not e.get("backlash") and "backlash" not in e.get("vote_kind", "")]
     contradiction_entries = []
     for ve in vote_edges:
         actor = ve["actor"]
@@ -834,7 +1004,9 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             "weights": {
                 "queridometro": {
                     "weights": SENTIMENT_WEIGHTS,
-                    "base_window": "3d (0.6/0.3/0.1)",
+                    "base_window": "3d reactive (0.6/0.3/0.1) × 0.7 + streak memory × 0.3 + break penalty",
+                    "streak_memory": "consistency (min(streak_len, 10)/10) × sentiment_direction",
+                    "break_penalty": "−0.15 × min(prev_streak, 15)/15 when positive streak ≥5 breaks negative",
                 },
                 "power_events": RELATION_POWER_WEIGHTS,
                 "sincerao": RELATION_SINC_WEIGHTS,
@@ -842,7 +1014,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 "votes": RELATION_VOTE_WEIGHTS,
                 "anjo": RELATION_ANJO_WEIGHTS,
                 "visibility_factor": RELATION_VISIBILITY_FACTOR,
-                "decay": "none — all events accumulate at full weight; queridômetro uses 3-day rolling window only",
+                "decay": "none — all events accumulate at full weight; queridômetro uses 3-day reactive window (70%) + streak memory (30%) + break penalty",
             },
             "anjo_autoimune_events": anjo_autoimune_events,
         },
@@ -853,6 +1025,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
         "contradictions": contradictions,
         "received_impact": received_impact,
         "voting_blocs": voting_blocs,
+        "streak_breaks": streak_breaks,
     }
 
 
@@ -1057,6 +1230,242 @@ def build_daily_metrics(daily_snapshots):
         })
 
     return daily
+
+
+def build_daily_changes_summary(daily_snapshots):
+    """For each consecutive pair of daily snapshots, compute change statistics.
+
+    Returns a list of dicts with per-day change metrics for historical volatility charts.
+    """
+    results = []
+    for i in range(1, len(daily_snapshots)):
+        prev_snap = daily_snapshots[i - 1]
+        curr_snap = daily_snapshots[i]
+        prev_matrix = build_reaction_matrix(prev_snap["participants"])
+        curr_matrix = build_reaction_matrix(curr_snap["participants"])
+
+        prev_names = {p["name"] for p in prev_snap["participants"] if p.get("name")}
+        curr_names = {p["name"] for p in curr_snap["participants"] if p.get("name")}
+        common = prev_names & curr_names
+
+        total_pairs = len(common) * (len(common) - 1)
+        n_melhora = 0
+        n_piora = 0
+        n_lateral = 0
+        dramatic_count = 0
+        hearts_gained = 0
+        hearts_lost = 0
+        receiver_delta = defaultdict(float)
+        giver_changes = defaultdict(int)
+
+        for giver in common:
+            for receiver in common:
+                if giver == receiver:
+                    continue
+                prev_rxn = prev_matrix.get((giver, receiver), "")
+                curr_rxn = curr_matrix.get((giver, receiver), "")
+                if prev_rxn == curr_rxn:
+                    continue
+
+                prev_w = SENTIMENT_WEIGHTS.get(prev_rxn, 0)
+                curr_w = SENTIMENT_WEIGHTS.get(curr_rxn, 0)
+                delta = curr_w - prev_w
+
+                if delta > 0:
+                    n_melhora += 1
+                elif delta < 0:
+                    n_piora += 1
+                else:
+                    n_lateral += 1
+
+                if abs(delta) >= 1.5:
+                    dramatic_count += 1
+
+                if curr_rxn in POSITIVE and prev_rxn not in POSITIVE:
+                    hearts_gained += 1
+                if prev_rxn in POSITIVE and curr_rxn not in POSITIVE:
+                    hearts_lost += 1
+
+                receiver_delta[receiver] += delta
+                giver_changes[giver] += 1
+
+        total_changes = n_melhora + n_piora + n_lateral
+        pct_changed = (total_changes / total_pairs * 100) if total_pairs > 0 else 0.0
+
+        top_receiver = {"name": "", "delta": 0.0}
+        top_loser = {"name": "", "delta": 0.0}
+        if receiver_delta:
+            best = max(receiver_delta.items(), key=lambda x: x[1])
+            top_receiver = {"name": best[0], "delta": round(best[1], 2)}
+            worst = min(receiver_delta.items(), key=lambda x: x[1])
+            top_loser = {"name": worst[0], "delta": round(worst[1], 2)}
+
+        top_volatile_giver = {"name": "", "changes": 0}
+        if giver_changes:
+            top_g = max(giver_changes.items(), key=lambda x: x[1])
+            top_volatile_giver = {"name": top_g[0], "changes": top_g[1]}
+
+        results.append({
+            "date": curr_snap["date"],
+            "total_changes": total_changes,
+            "n_melhora": n_melhora,
+            "n_piora": n_piora,
+            "n_lateral": n_lateral,
+            "pct_changed": round(pct_changed, 1),
+            "dramatic_count": dramatic_count,
+            "hearts_gained": hearts_gained,
+            "hearts_lost": hearts_lost,
+            "top_receiver": top_receiver,
+            "top_loser": top_loser,
+            "top_volatile_giver": top_volatile_giver,
+        })
+
+    return results
+
+
+def build_hostility_daily_counts(daily_snapshots):
+    """For each daily snapshot, count mutual and one-sided hostilities.
+
+    Returns a list of dicts with per-day hostility counts.
+    """
+    results = []
+    for snap in daily_snapshots:
+        matrix = build_reaction_matrix(snap["participants"])
+        active_names = {p["name"] for p in snap["participants"] if p.get("name")}
+
+        mutual_count = 0
+        one_sided_count = 0
+        checked = set()
+
+        for (a, b), rxn_ab in matrix.items():
+            if a not in active_names or b not in active_names:
+                continue
+            pair = frozenset([a, b])
+            if pair in checked:
+                continue
+
+            rxn_ba = matrix.get((b, a), "")
+            a_neg = rxn_ab not in POSITIVE and rxn_ab != ""
+            b_neg = rxn_ba not in POSITIVE and rxn_ba != ""
+            b_pos = rxn_ba in POSITIVE
+            a_pos = rxn_ab in POSITIVE
+
+            if a_neg and b_neg:
+                mutual_count += 1
+                checked.add(pair)
+            else:
+                # Check one-sided both directions
+                if a_neg and b_pos:
+                    one_sided_count += 1
+                if b_neg and a_pos:
+                    one_sided_count += 1
+                checked.add(pair)
+
+        results.append({
+            "date": snap["date"],
+            "mutual_count": mutual_count,
+            "one_sided_count": one_sided_count,
+            "total_hostility": mutual_count + one_sided_count,
+        })
+
+    return results
+
+
+def build_vulnerability_history(daily_snapshots):
+    """For each daily snapshot, compute false friends and blind attacks per participant.
+
+    false_friends: gives ❤️ to people who give them negative
+    blind_attacks: gives negative to people who give them ❤️
+    """
+    results = []
+    for snap in daily_snapshots:
+        matrix = build_reaction_matrix(snap["participants"])
+        active_names = {p["name"] for p in snap["participants"] if p.get("name")}
+
+        participants = {}
+        for name in active_names:
+            false_friends = 0
+            blind_attacks = 0
+            for other in active_names:
+                if name == other:
+                    continue
+                my_rxn = matrix.get((name, other), "")
+                their_rxn = matrix.get((other, name), "")
+
+                i_give_heart = my_rxn in POSITIVE
+                they_give_neg = their_rxn not in POSITIVE and their_rxn != ""
+                i_give_neg = my_rxn not in POSITIVE and my_rxn != ""
+                they_give_heart = their_rxn in POSITIVE
+
+                if i_give_heart and they_give_neg:
+                    false_friends += 1
+                if i_give_neg and they_give_heart:
+                    blind_attacks += 1
+
+            participants[name] = {
+                "false_friends": false_friends,
+                "blind_attacks": blind_attacks,
+            }
+
+        results.append({
+            "date": snap["date"],
+            "participants": participants,
+        })
+
+    return results
+
+
+def build_impact_history(relations_scores):
+    """Build cumulative impact history per participant per date from relations_scores edges.
+
+    Each edge in relations_scores has a date and weight. We accumulate positive/negative
+    weights cumulatively per participant (as target) over time.
+    """
+    edges = relations_scores.get("edges", [])
+    if not edges:
+        return []
+
+    # Group edges by date
+    edges_by_date = defaultdict(list)
+    for edge in edges:
+        date = edge.get("date")
+        if date:
+            edges_by_date[date].append(edge)
+
+    # Accumulate per-participant impact over time
+    cumulative_pos = defaultdict(float)
+    cumulative_neg = defaultdict(float)
+    results = []
+
+    for date in sorted(edges_by_date.keys()):
+        for edge in edges_by_date[date]:
+            target = edge.get("target", "")
+            weight = edge.get("weight", 0)
+            if not target:
+                continue
+            if weight > 0:
+                cumulative_pos[target] += weight
+            elif weight < 0:
+                cumulative_neg[target] += weight
+
+        # Snapshot all participants seen so far
+        all_names = set(cumulative_pos.keys()) | set(cumulative_neg.keys())
+        participants = {}
+        for name in all_names:
+            pos = cumulative_pos.get(name, 0)
+            neg = cumulative_neg.get(name, 0)
+            participants[name] = {
+                "positive": round(pos, 3),
+                "negative": round(neg, 3),
+                "net": round(pos + neg, 3),
+            }
+
+        results.append({
+            "date": date,
+            "participants": participants,
+        })
+
+    return results
 
 
 def format_date_label(date_str):
@@ -2016,21 +2425,26 @@ def build_prova_rankings(provas_data, participants_index):
         })
 
     # Aggregate per participant
-    participant_stats = defaultdict(lambda: {
-        "total_points": 0.0,
-        "provas_participated": 0,
-        "provas_available": 0,
-        "wins": 0,
-        "top3": 0,
-        "best_position": None,
-        "detail": [],
-    })
+    participant_stats: dict[str, dict] = {}
+
+    def _get_prova_stats(name: str) -> dict:
+        if name not in participant_stats:
+            participant_stats[name] = {
+                "total_points": 0.0,
+                "provas_participated": 0,
+                "provas_available": 0,
+                "wins": 0,
+                "top3": 0,
+                "best_position": None,
+                "detail": [],
+            }
+        return participant_stats[name]
 
     for pr in prova_results:
         multiplier = PROVA_TYPE_MULTIPLIER.get(pr["tipo"], 1.0)
 
         for name in all_participant_names:
-            stats = participant_stats[name]
+            stats = _get_prova_stats(name)
 
             if name not in pr["available_names"]:
                 continue  # wasn't in the house for this prova
@@ -2165,7 +2579,6 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
         return None
 
     pairs_daily = relations_scores.get("pairs_daily", {})
-    voting_blocs = relations_scores.get("voting_blocs", [])
     contradictions_list = relations_scores.get("contradictions", {}).get("vote_vs_queridometro", [])
     meta = relations_scores.get("_metadata", {})
 
@@ -2324,8 +2737,8 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
             rev = inter_cluster_directed.get(f"{lb}->{la}", 0)
             inter_cluster_sym[f"{la}<>{lb}"] = (fwd + rev) / 2
 
-    best_label = max(cluster_internal_avg, key=cluster_internal_avg.get)
-    worst_pair_key = min(inter_cluster_sym, key=inter_cluster_sym.get) if inter_cluster_sym else None
+    best_label = max(cluster_internal_avg, key=lambda k: cluster_internal_avg[k])
+    worst_pair_key = min(inter_cluster_sym, key=lambda k: inter_cluster_sym[k]) if inter_cluster_sym else None
     n_tensions = sum(1 for v in inter_cluster_sym.values() if v < -0.3)
 
     # -------------------------------------------------------------------
@@ -2482,6 +2895,9 @@ def build_derived_data():
     auto_events = build_auto_events(daily_roles)
     auto_events = apply_big_fone_context(auto_events, manual_events)
     daily_metrics = build_daily_metrics(daily_snapshots)
+    daily_changes_summary = build_daily_changes_summary(daily_snapshots)
+    hostility_daily_counts = build_hostility_daily_counts(daily_snapshots)
+    vulnerability_history = build_vulnerability_history(daily_snapshots)
     snapshots_manifest = build_snapshots_manifest(daily_snapshots, daily_metrics)
     eliminations_detected = detect_eliminations(daily_snapshots)
     warnings = validate_manual_events(participants_index, manual_events)
@@ -2527,9 +2943,15 @@ def build_derived_data():
         "events": auto_events,
     })
 
+    impact_history = build_impact_history(relations_scores)
+
     write_json(DERIVED_DIR / "daily_metrics.json", {
         "_metadata": {"generated_at": now, "source": "snapshots", "sentiment_weights": SENTIMENT_WEIGHTS},
         "daily": daily_metrics,
+        "daily_changes": daily_changes_summary,
+        "hostility_counts": hostility_daily_counts,
+        "vulnerability_history": vulnerability_history,
+        "impact_history": impact_history,
     })
 
     write_json(DERIVED_DIR / "snapshots_index.json", {

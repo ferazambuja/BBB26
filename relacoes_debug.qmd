@@ -31,6 +31,7 @@ relations_pairs_all = relations.get("pairs_all", {})
 contradictions = relations.get("contradictions", {})
 received_impact = relations.get("received_impact", {})
 voting_blocs = relations.get("voting_blocs", [])
+streak_breaks = relations.get("streak_breaks", [])
 edges = relations.get("edges", []) or relations.get("edges_daily", []) or relations.get("edges_paredao", [])
 meta = relations.get("_metadata", {})
 DISPLAY_WEEK_DAILY = meta.get("effective_week_daily") or meta.get("week") or 2
@@ -113,12 +114,15 @@ def flatten_pairs(pairs, matrix):
             q_score = comps.get("queridometro", 0.0)
             score = rec.get("score", rec.get("roll", 0.0))
             rel_label, rel_class = classify_relation(score)
+            s_len = rec.get("streak_len", 0)
+            has_break = rec.get("break", False)
             rows.append({
                 "Ator": actor,
                 "Alvo": target,
                 "Relação": f"<span class='rel-pill {rel_class}'>{rel_label}</span>",
                 "Emoji (dia)": f"{emoji} {label}".strip(),
                 "Q (3d)": fmt_score(q_score),
+                "Streak": f"{'💔 ' if has_break else ''}{s_len}d",
                 "Power": fmt_score(comps.get("power_event", 0.0)),
                 "Sincerão": fmt_score(comps.get("sincerao", 0.0)),
                 "VIP": fmt_score(comps.get("vip", 0.0)),
@@ -220,7 +224,7 @@ else:
 
 ## Pares (A → B) — visão diária
 
-<p class="text-muted">Tabela diária — queridômetro base usa rolling de 3 dias. Eventos acumulam sem decay (peso integral).</p>
+<p class="text-muted">Tabela diária — queridômetro usa 70% janela reativa (3d) + 30% memória de sequência + penalidade de ruptura. Eventos acumulam sem decay (peso integral). 💔 = aliança rompida.</p>
 
 ```{python}
 #| label: pairs-table
@@ -453,6 +457,28 @@ else:
     print("<p class='text-muted'>Nenhum bloco de votação detectado (mín. 4 votos no mesmo alvo).</p>")
 ```
 
+## Rupturas de Aliança (Streak Breaks)
+
+<p class="text-muted">Sequências de 5+ dias de ❤️ que viraram negativo — sinal de "confiança quebrada".</p>
+
+```{python}
+#| label: streak-breaks
+#| echo: false
+#| output: asis
+
+if streak_breaks:
+    for b in streak_breaks:
+        sev_icon = "🔴" if b.get("severity") == "strong" else "🟡"
+        emoji_label = b.get("new_emoji", "")
+        print(
+            f"<div style='margin:0.4rem 0;'>{sev_icon} <strong>{b['giver']}</strong> → "
+            f"<strong>{b['receiver']}</strong>: {b['previous_streak']}d ❤️ → {emoji_label} "
+            f"<span class='text-muted'>({b.get('date', '')})</span></div>"
+        )
+else:
+    print("<p class='text-muted'>Nenhuma ruptura de aliança detectada (mín. 5 dias de ❤️ seguidos).</p>")
+```
+
 ## Badge vs Realidade (Paredões)
 
 ```{python}
@@ -501,17 +527,9 @@ def compute_badges_for_snapshot(fp, date_str, vote_week, paredao_data):
         for voter, target in votos.items():
             votes_received_by_week[week][target][voter] += 1
 
-    NEG_EVENT_WEIGHTS = {
-        "indicacao": 2.5,
-        "contragolpe": 2.5,
-        "emparedado": 2.0,
-        "veto_prova": 1.5,
-        "monstro": 1.2,
-        "perdeu_voto": 1.0,
-        "voto_anulado": 0.8,
-        "voto_duplo": 0.6,
-        "exposto": 0.5,
-    }
+    # Impacto Negativo — use received_impact from relations_scores.json
+    relations_data = json.loads(Path("data/derived/relations_scores.json").read_text(encoding="utf-8")) if Path("data/derived/relations_scores.json").exists() else {}
+    received_impact = relations_data.get("received_impact", {})
 
     def normalize_actors(ev):
         actors = ev.get("actors")
@@ -573,39 +591,21 @@ def compute_badges_for_snapshot(fp, date_str, vote_week, paredao_data):
             vuln = "🟢 PROTEGIDO"
 
         # External score (votes + events)
-        target_events_all = [ev for ev in power_events if ev.get("target") == name]
-        current_events = []
-        for ev in target_events_all:
-            ev_type = ev.get("type")
-            ev_week = ev.get("week")
-            if ev_type in ["lider", "anjo", "monstro", "imunidade"]:
-                role_label = next((k for k, v in {"Líder": "lider", "Anjo": "anjo", "Monstro": "monstro", "Imune": "imunidade"}.items()
-                                   if v == ev_type), None)
-                if role_label and name in roles_current.get(role_label, []):
-                    current_events.append(ev)
-            elif ev_week == vote_week:
-                current_events.append(ev)
-
-        neg_events = [ev for ev in current_events if ev.get("impacto") == "negativo"]
-        neg_public = [ev for ev in neg_events if ev.get("visibility", "public") != "secret"]
-
         votes_count = sum(votes_received_by_week.get(vote_week, {}).get(name, {}).values())
         indic_count = indicacoes.get(name, 0)
-        external_score = (
-            1.0 * votes_count
-            + sum(NEG_EVENT_WEIGHTS.get(ev.get("type"), 1.0) for ev in neg_public)
-        )
-        if "Paredão" in roles:
-            external_score += 2
 
-        if external_score >= 6:
+        # Impacto Negativo from relations_scores.json
+        impact = received_impact.get(name, {})
+        external_score = impact.get("negative", 0)
+
+        if external_score <= -10:
             external_level = "🔴 ALTO"
-        elif external_score >= 3:
+        elif external_score <= -5:
             external_level = "🟠 MÉDIO"
-        elif external_score >= 1:
+        elif external_score < 0:
             external_level = "🟡 BAIXO"
         else:
-            external_level = "🟢 MUITO BAIXO"
+            external_level = "🟢 NENHUM"
 
         rows.append({
             "Participante": name,
@@ -613,8 +613,8 @@ def compute_badges_for_snapshot(fp, date_str, vote_week, paredao_data):
             "Indicações": indic_count,
             "Elegível voto": "sim" if name not in ineligible else "não",
             "Vulnerabilidade": vuln,
-            "Risco externo": external_level,
-            "External score": round(external_score, 2),
+            "Impacto Negativo": external_level,
+            "Impact score": round(external_score, 2),
             "Falsos amigos": ff,
         })
 

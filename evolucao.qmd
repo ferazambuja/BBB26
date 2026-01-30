@@ -1,0 +1,1238 @@
+---
+title: "BBB 26 — Evolução"
+subtitle: "Como o jogo está evoluindo: rankings, sentimento, impacto e pulso diário"
+lang: pt-BR
+format:
+  html:
+    code-tools: false
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+
+import json
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from pathlib import Path
+from collections import defaultdict, Counter
+from datetime import datetime
+
+import sys
+sys.path.append(str(Path("scripts").resolve()))
+from data_utils import (
+    load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix,
+    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
+    POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
+    POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
+)
+
+require_clean_manual_events()
+setup_bbb_dark_theme()
+
+DATA_DIR = Path("data/snapshots")
+MEMBER_OF = {}
+AVATARS = {}
+```
+
+```{python}
+#| label: load-data
+#| include: false
+
+# ── Load precomputed data ──
+daily_metrics_data = {}
+DM_FILE = Path("data/derived/daily_metrics.json")
+if DM_FILE.exists():
+    with open(DM_FILE, encoding="utf-8") as f:
+        daily_metrics_data = json.load(f)
+
+daily_metrics_list = daily_metrics_data.get("daily", [])
+daily_metrics_map = {d.get("date"): d for d in daily_metrics_list}
+daily_changes = daily_metrics_data.get("daily_changes", [])
+hostility_counts = daily_metrics_data.get("hostility_counts", [])
+vulnerability_history = daily_metrics_data.get("vulnerability_history", [])
+impact_history = daily_metrics_data.get("impact_history", [])
+
+# Relations scores
+relations_data = {}
+REL_FILE = Path("data/derived/relations_scores.json")
+if REL_FILE.exists():
+    with open(REL_FILE, encoding="utf-8") as f:
+        relations_data = json.load(f)
+
+received_impact = relations_data.get("received_impact", {})
+streak_breaks = relations_data.get("streak_breaks", [])
+
+# Index data (strategic timeline)
+index_data = {}
+IDX_FILE = Path("data/derived/index_data.json")
+if IDX_FILE.exists():
+    with open(IDX_FILE, encoding="utf-8") as f:
+        index_data = json.load(f)
+
+strategic_timeline = index_data.get("strategic_timeline", [])
+
+# Manual + auto events
+MANUAL_EVENTS_FILE = Path("data/manual_events.json")
+manual_events = {}
+if MANUAL_EVENTS_FILE.exists():
+    with open(MANUAL_EVENTS_FILE, encoding="utf-8") as f:
+        manual_events = json.load(f)
+power_events_manual = manual_events.get("power_events", [])
+weekly_events = manual_events.get("weekly_events", [])
+
+AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
+power_events_auto = []
+if AUTO_EVENTS_FILE.exists():
+    with open(AUTO_EVENTS_FILE, encoding="utf-8") as f:
+        auto_payload = json.load(f)
+    power_events_auto = auto_payload.get("events", [])
+power_events = power_events_manual + power_events_auto
+
+# Roles daily
+roles_daily = []
+ROLES_FILE = Path("data/derived/roles_daily.json")
+if ROLES_FILE.exists():
+    with open(ROLES_FILE, encoding="utf-8") as f:
+        roles_payload = json.load(f)
+    roles_daily = roles_payload.get("daily", [])
+
+# Paredões
+paredoes_data = {"paredoes": []}
+PAREDOES_FILE = Path("data/paredoes.json")
+if PAREDOES_FILE.exists():
+    with open(PAREDOES_FILE, encoding="utf-8") as f:
+        paredoes_data = json.load(f)
+
+# ── Load snapshots for diff heatmap + balance charts ──
+all_snapshot_files = get_all_snapshots()
+snapshots = []
+for fp, date_str in all_snapshot_files:
+    participants, metadata = load_snapshot(fp)
+    snapshots.append({
+        'filepath': fp, 'date': date_str, 'timestamp': fp.stem,
+        'participants': participants, 'metadata': metadata,
+    })
+
+all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+for snap in snapshots:
+    for p in snap['participants']:
+        name = p['name']
+        if name not in MEMBER_OF:
+            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
+        if name not in AVATARS and p.get('avatar'):
+            AVATARS[name] = p['avatar']
+
+for snap in snapshots:
+    meta = snap.get('metadata') or {}
+    snap['label'] = snap['date'] + (' (sintético)' if meta.get('synthetic') else '')
+    snap['synthetic'] = meta.get('synthetic', False)
+
+# Late entrants
+first_snap_names = set(p['name'] for p in snapshots[0]['participants'])
+late_entrants = {}
+_seen = set(first_snap_names)
+for snap in snapshots[1:]:
+    cur = set(p['name'] for p in snap['participants'])
+    for name in cur - _seen:
+        if name not in late_entrants:
+            late_entrants[name] = snap['date']
+    _seen |= cur
+
+n_snapshots = len(snapshots)
+latest = snapshots[-1]
+latest_matrix = all_matrices[-1]
+
+# Daily snapshots (one per date)
+_by_date = {}
+for i, snap in enumerate(snapshots):
+    _by_date[snap['date']] = i
+_daily_indices = sorted(_by_date.values())
+daily_snapshots = [snapshots[i] for i in _daily_indices]
+daily_matrices = [all_matrices[i] for i in _daily_indices]
+n_daily = len(daily_snapshots)
+```
+
+# Manchete do Dia {#manchete}
+
+```{python}
+#| label: manchete
+#| output: asis
+
+# Auto-generate headline from: streak_breaks (strongest), daily_changes (biggest delta)
+headline_parts = []
+
+if streak_breaks:
+    sb = streak_breaks[0]
+    emoji = REACTION_EMOJI.get(sb.get("new_emoji", ""), "❓")
+    headline_parts.append(
+        f"💔 **{sb['giver']}** rompeu **{sb['previous_streak']} dias** de aliança com **{sb['receiver']}** → {emoji}"
+    )
+
+if daily_changes:
+    dc = daily_changes[-1]
+    n_ch = dc["total_changes"]
+    pct = dc["pct_changed"]
+    top_r = dc["top_receiver"]
+    top_l = dc["top_loser"]
+    headline_parts.append(
+        f"📊 **{n_ch} mudanças** ({pct:.0f}% das relações) — "
+        f"🟢 {dc['n_melhora']} melhorias | 🔴 {dc['n_piora']} pioras"
+    )
+    stats = []
+    if top_r["name"]:
+        stats.append(f"Ganhador: **{top_r['name']}** ({top_r['delta']:+.1f})")
+    if top_l["name"]:
+        stats.append(f"Perdedor: **{top_l['name']}** ({top_l['delta']:+.1f})")
+    if dc["hearts_lost"]:
+        stats.append(f"❤️ perdidos: {dc['hearts_lost']}")
+    if stats:
+        headline_parts.append(" | ".join(stats))
+
+if headline_parts:
+    print(f"""
+::: {{.callout-important title="Manchete do Dia" appearance="simple"}}
+{"<br>".join(headline_parts)}
+:::
+""")
+else:
+    print("")
+```
+
+```{python}
+#| label: date-info
+#| output: asis
+
+if n_daily >= 2:
+    print(f"""
+<div class="alert alert-info">
+📅 Comparando: <strong>{daily_snapshots[-2]['label']}</strong> → <strong>{daily_snapshots[-1]['label']}</strong>
+| 📈 Analisando <strong>{n_daily} dias</strong> de dados
+</div>
+""")
+```
+
+# Pulso Diário {#pulso}
+
+📅 **Comparação dia-a-dia** — O que mudou de ontem para hoje.
+
+::: {.panel-tabset}
+
+## Ganhadores & Perdedores
+
+```{python}
+#| label: winners-losers
+#| output: asis
+
+if n_daily >= 2:
+    prev_snap = daily_snapshots[-2]
+    curr_snap = daily_snapshots[-1]
+    prev_matrix = daily_matrices[-2]
+    curr_matrix = daily_matrices[-1]
+    prev_date = prev_snap['date']
+    curr_date = curr_snap['date']
+
+    prev_names = set(p['name'] for p in prev_snap['participants']
+                     if not p.get('characteristics', {}).get('eliminated'))
+    curr_names = set(p['name'] for p in curr_snap['participants']
+                     if not p.get('characteristics', {}).get('eliminated'))
+    common_names = prev_names & curr_names
+
+    changes_list = []
+    for giver in sorted(common_names):
+        for receiver in sorted(common_names):
+            if giver == receiver:
+                continue
+            prev_rxn = prev_matrix.get((giver, receiver), '')
+            curr_rxn = curr_matrix.get((giver, receiver), '')
+            if prev_rxn != curr_rxn:
+                prev_w = SENTIMENT_WEIGHTS.get(prev_rxn, 0)
+                curr_w = SENTIMENT_WEIGHTS.get(curr_rxn, 0)
+                delta = curr_w - prev_w
+                changes_list.append({
+                    'Emissor': giver, 'Receptor': receiver,
+                    'Antes': REACTION_EMOJI.get(prev_rxn, '?'),
+                    'Depois': REACTION_EMOJI.get(curr_rxn, '?'),
+                    'prev_rxn': prev_rxn, 'curr_rxn': curr_rxn,
+                    'Tipo': 'Melhora' if delta > 0 else ('Piora' if delta < 0 else 'Lateral'),
+                    'Delta': delta,
+                    'Color': '#1a9850' if delta > 0 else ('#d73027' if delta < 0 else '#888'),
+                    'emissor_grupo': MEMBER_OF.get(giver, '?'),
+                    'receptor_grupo': MEMBER_OF.get(receiver, '?'),
+                })
+
+    if changes_list:
+        receiver_delta = defaultdict(float)
+        for c in changes_list:
+            receiver_delta[c['Receptor']] += c['Delta']
+
+        receiver_data = [
+            {'name': name, 'delta': delta, 'group': MEMBER_OF.get(name, '?'),
+             'color': '#1a9850' if delta > 0 else '#d73027'}
+            for name, delta in receiver_delta.items() if delta != 0
+        ]
+        receiver_data.sort(key=lambda x: x['delta'])
+
+        if receiver_data:
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                y=[d['name'] for d in receiver_data],
+                x=[d['delta'] for d in receiver_data],
+                orientation='h',
+                marker_color=[d['color'] for d in receiver_data],
+                text=[f"{d['delta']:+.1f}" for d in receiver_data],
+                textposition='outside',
+                hovertemplate='%{y}: %{x:+.1f} pontos<extra></extra>',
+            ))
+            fig.add_vline(x=0, line_width=2, line_color='white')
+            fig.update_layout(
+                title="Impacto Líquido: Quem Ganhou/Perdeu Pontos de Sentimento",
+                xaxis_title="Δ Sentimento (soma das mudanças recebidas)",
+                height=max(400, len(receiver_data) * 28),
+                margin=dict(l=150), showlegend=False,
+            )
+            fig.show()
+
+            benefited = sorted([(k, v) for k, v in receiver_delta.items() if v > 0], key=lambda x: -x[1])
+            suffered = sorted([(k, v) for k, v in receiver_delta.items() if v < 0], key=lambda x: x[1])
+            if benefited:
+                print(f"**Ganhadores do dia:** {', '.join(f'{n} (+{v:.1f})' for n, v in benefited[:3])}")
+            if suffered:
+                print(f"\n**Perdedores do dia:** {', '.join(f'{n} ({v:.1f})' for n, v in suffered[:3])}")
+    else:
+        print("*Nenhuma mudança detectada.*")
+else:
+    changes_list = []
+    print("*Dados insuficientes — são necessárias pelo menos 2 coletas diárias.*")
+```
+
+## Quem Mudou de Opinião
+
+```{python}
+#| label: volatility-chart
+#| output: asis
+
+if n_daily >= 2 and changes_list:
+    giver_changes = Counter(c['Emissor'] for c in changes_list)
+    giver_volatility = giver_changes.most_common()
+
+    giver_data = []
+    for name, count in giver_volatility:
+        given_melhora = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Melhora')
+        given_piora = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Piora')
+        given_lateral = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Lateral')
+        giver_data.append({
+            'name': name, 'total': count,
+            'melhora': given_melhora, 'piora': given_piora,
+            'lateral': given_lateral, 'group': MEMBER_OF.get(name, '?')
+        })
+    giver_data.sort(key=lambda x: x['total'], reverse=True)
+
+    if giver_data:
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in giver_data], x=[d['melhora'] for d in giver_data],
+            name='Melhorou opinião', orientation='h', marker_color='#1a9850',
+        ))
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in giver_data], x=[d['piora'] for d in giver_data],
+            name='Piorou opinião', orientation='h', marker_color='#d73027',
+        ))
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in giver_data], x=[d['lateral'] for d in giver_data],
+            name='Mudança lateral', orientation='h', marker_color='#888',
+        ))
+        fig.update_layout(
+            title=dict(text="Volatilidade: Quem Mais Mudou de Opinião?", y=0.98, x=0.5, xanchor='center'),
+            xaxis_title="Número de opiniões alteradas", barmode='stack',
+            height=max(500, len(giver_data) * 28),
+            margin=dict(l=150, t=100),
+            legend=dict(orientation='h', yanchor='top', y=1.12, xanchor='center', x=0.5),
+        )
+        fig.show()
+
+        top_volatile = giver_data[:3]
+        vol_str = ', '.join(f"{d['name']} ({d['total']} mudanças)" for d in top_volatile)
+        print(f"**Mais voláteis:** {vol_str}")
+```
+
+## Fluxo de Reações (Sankey)
+
+```{python}
+#| label: sankey-reactions
+#| output: asis
+
+if n_daily >= 2 and changes_list:
+    transition_counts = Counter()
+    for c in changes_list:
+        transition_counts[(c['prev_rxn'], c['curr_rxn'])] += 1
+
+    all_reactions = ['Coração', 'Planta', 'Mala', 'Biscoito', 'Cobra', 'Alvo', 'Vômito', 'Mentiroso', 'Coração partido']
+    reaction_colors = {
+        'Coração': '#1a9850', 'Planta': '#91cf60', 'Mala': '#d9ef8b',
+        'Biscoito': '#fee08b', 'Cobra': '#fc8d59', 'Alvo': '#f46d43',
+        'Vômito': '#d73027', 'Mentiroso': '#a50026', 'Coração partido': '#67001f'
+    }
+
+    before_labels = [f"{REACTION_EMOJI.get(r, r)} antes" for r in all_reactions]
+    after_labels = [f"{REACTION_EMOJI.get(r, r)} depois" for r in all_reactions]
+    node_labels = before_labels + after_labels
+    node_colors = [reaction_colors.get(r, '#999') for r in all_reactions] * 2
+
+    sources, targets, values, link_colors = [], [], [], []
+    for (from_rxn, to_rxn), count in transition_counts.items():
+        if from_rxn in all_reactions and to_rxn in all_reactions:
+            from_idx = all_reactions.index(from_rxn)
+            to_idx = all_reactions.index(to_rxn) + len(all_reactions)
+            sources.append(from_idx)
+            targets.append(to_idx)
+            values.append(count)
+            from_w = SENTIMENT_WEIGHTS.get(from_rxn, 0)
+            to_w = SENTIMENT_WEIGHTS.get(to_rxn, 0)
+            if to_w > from_w:
+                link_colors.append('rgba(26, 152, 80, 0.5)')
+            elif to_w < from_w:
+                link_colors.append('rgba(215, 48, 39, 0.5)')
+            else:
+                link_colors.append('rgba(136, 136, 136, 0.5)')
+
+    if values:
+        fig = go.Figure(data=[go.Sankey(
+            node=dict(pad=15, thickness=20, line=dict(color='black', width=0.5),
+                      label=node_labels, color=node_colors),
+            link=dict(source=sources, target=targets, value=values, color=link_colors)
+        )])
+        fig.update_layout(title=f"Fluxo de Reações: {prev_date} → {curr_date}", font_size=10, height=500)
+        fig.show()
+
+        hearts_lost = sum(v for (f, t), v in transition_counts.items() if f == 'Coração' and t != 'Coração')
+        hearts_gained = sum(v for (f, t), v in transition_counts.items() if f != 'Coração' and t == 'Coração')
+        print(f"**Corações perdidos:** {hearts_lost} | **Corações ganhos:** {hearts_gained}")
+```
+
+## Mapa de Diferenças
+
+```{python}
+#| label: diff-heatmap
+#| output: asis
+
+def make_difference_table_html(changes_list, common_names, prev_date, curr_date):
+    if not changes_list:
+        return "<p>Nenhuma mudança detectada.</p>"
+    active_names_sorted = sorted(common_names)
+    short_names = [n.split()[0] if len(n) > 10 else n for n in active_names_sorted]
+    change_lookup = {(c['Emissor'], c['Receptor']): c for c in changes_list}
+
+    def get_cell_style(delta):
+        if delta >= 1.5: return "background: #1a9850; color: #fff;"
+        elif delta >= 0.5: return "background: #91cf60; color: #000;"
+        elif delta <= -1.5: return "background: #d73027; color: #fff;"
+        elif delta <= -0.5: return "background: #fc8d59; color: #000;"
+        return "background: #ffffbf; color: #000;"
+
+    html = [f'''
+<div style="overflow-x: auto; max-width: 100%;">
+<p class="text-muted small">Mudanças: {prev_date} → {curr_date} | ⭐ = mudança dramática</p>
+<style>
+.diff-table {{ border-collapse: separate; border-spacing: 0; font-size: 0.8rem; width: max-content; }}
+.diff-table th, .diff-table td {{ padding: 3px 5px; text-align: center; border: 1px solid #555; min-width: 40px; white-space: nowrap; }}
+.diff-table thead th {{ position: sticky; top: 0; background: #222; z-index: 2; font-weight: bold; font-size: 0.75rem; }}
+.diff-table tbody th {{ position: sticky; left: 0; background: #222; z-index: 1; font-weight: bold; text-align: right; font-size: 0.75rem; }}
+.diff-table thead th:first-child {{ z-index: 3; left: 0; }}
+.diff-table td {{ font-size: 0.9rem; }}
+.diff-table td:hover {{ outline: 2px solid #fff; }}
+</style>
+<table class="diff-table"><thead><tr><th style="background: #222;">↓ / →</th>''']
+    for short in short_names:
+        html.append(f'<th>{short}</th>')
+    html.append('</tr></thead><tbody>')
+    for i, giver in enumerate(active_names_sorted):
+        html.append(f'<tr><th>{short_names[i]}</th>')
+        for j, receiver in enumerate(active_names_sorted):
+            if giver == receiver:
+                html.append('<td style="background: #333; color: #555;">—</td>')
+            else:
+                key = (giver, receiver)
+                if key in change_lookup:
+                    c = change_lookup[key]
+                    style = get_cell_style(c['Delta'])
+                    star = "⭐" if abs(c['Delta']) >= 1.5 else ""
+                    tooltip = f"{giver} → {receiver}: {c['Antes']}→{c['Depois']} (Δ{c['Delta']:+.1f})"
+                    html.append(f'<td style="{style}" title="{tooltip}">{c["Antes"]}→{c["Depois"]}{star}</td>')
+                else:
+                    html.append('<td style="background: #2a2a2a; color: #555;">·</td>')
+        html.append('</tr>')
+    html.append('</tbody></table></div>')
+    return '\n'.join(html)
+
+if n_daily >= 2 and changes_list:
+    print(make_difference_table_html(changes_list, common_names, prev_date, curr_date))
+else:
+    print("<p class='text-muted'>Dados insuficientes para comparação.</p>")
+```
+
+:::
+
+# Cronologia do Jogo {#cronologia}
+
+Linha do tempo dos principais eventos da temporada: entradas, saídas e mudanças de roles.
+
+```{python}
+#| label: timeline-events
+
+events_data = []
+all_names_seen = set()
+
+for i, snap in enumerate(snapshots):
+    current_names = set(p['name'] for p in snap['participants'])
+    active_names = set(p['name'] for p in snap['participants']
+                       if not p.get('characteristics', {}).get('eliminated'))
+
+    if i > 0:
+        prev_names = set(p['name'] for p in snapshots[i-1]['participants'])
+        appeared = current_names - prev_names
+        disappeared = prev_names - current_names
+
+        if appeared:
+            events_data.append({
+                'Data': snap['date'], 'Evento': f"✅ Entraram: {', '.join(sorted(appeared))}",
+                'Participantes': len(active_names)
+            })
+        if disappeared:
+            for name in disappeared:
+                events_data.append({
+                    'Data': snap['date'], 'Evento': f"❌ Saiu: {name}",
+                    'Participantes': len(active_names)
+                })
+
+    for p in snap['participants']:
+        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+        for role in roles:
+            if role in ('Líder', 'Paredão') and i > 0:
+                prev_snap_p = {pp['name']: pp for pp in snapshots[i-1]['participants']}
+                if p['name'] in prev_snap_p:
+                    prev_roles = parse_roles(prev_snap_p[p['name']].get('characteristics', {}).get('roles', []))
+                    if role not in prev_roles:
+                        events_data.append({
+                            'Data': snap['date'], 'Evento': f"🏆 {p['name']} → {role}",
+                            'Participantes': len(active_names)
+                        })
+    all_names_seen |= current_names
+
+if events_data:
+    df_events = pd.DataFrame(events_data).drop_duplicates()
+    key_events = df_events[df_events['Evento'].str.contains('Entraram|Saiu|Líder')]
+    if not key_events.empty:
+        display(key_events.style.hide(axis='index'))
+```
+
+```{python}
+#| label: streak-breaks-timeline
+#| output: asis
+
+if streak_breaks:
+    print("\n### 💔 Rupturas de Aliança Recentes\n")
+    for sb in streak_breaks[:5]:
+        emoji = REACTION_EMOJI.get(sb.get("new_emoji", ""), "❓")
+        severity_icon = "🔴" if sb.get("severity") == "strong" else "🟡"
+        print(f"- {severity_icon} **{sb['giver']}** → **{sb['receiver']}**: "
+              f"{sb['previous_streak']} dias de ❤️ rompidos → {emoji} ({sb['date']})")
+```
+
+# Evolução do Sentimento {#sentimento}
+
+📈 **Dado acumulado** — Como o sentimento de cada participante evoluiu ao longo da temporada.
+
+```{python}
+#| label: sentiment-prep
+#| include: false
+
+# Build timeline data from precomputed metrics
+timeline_data = []
+if daily_metrics_map:
+    for date_str in sorted(daily_metrics_map.keys()):
+        entry = daily_metrics_map[date_str]
+        for name, score in entry.get('sentiment', {}).items():
+            timeline_data.append({
+                'Data': pd.to_datetime(date_str),
+                'Participante': name,
+                'Sentimento': score,
+                'Grupo': MEMBER_OF.get(name, '?')
+            })
+else:
+    for snap in daily_snapshots:
+        for p in snap['participants']:
+            if p.get('characteristics', {}).get('eliminated'):
+                continue
+            timeline_data.append({
+                'Data': pd.to_datetime(snap['date']),
+                'Participante': p['name'],
+                'Sentimento': calc_sentiment(p),
+                'Grupo': p.get('characteristics', {}).get('memberOf', '?')
+            })
+
+df_timeline = pd.DataFrame(timeline_data)
+
+if not df_timeline.empty:
+    df_timeline['Rank'] = df_timeline.groupby('Data')['Sentimento'].rank(ascending=False, method='min').astype(int)
+
+all_participants = sorted(df_timeline['Participante'].unique()) if not df_timeline.empty else []
+palette = (px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+           px.colors.qualitative.Set2 + px.colors.qualitative.Bold)
+participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
+
+if not df_timeline.empty:
+    latest_scores = df_timeline.groupby('Participante')['Sentimento'].last()
+    top3 = set(latest_scores.nlargest(3).index)
+    bottom3 = set(latest_scores.nsmallest(3).index)
+    highlight = top3 | bottom3
+else:
+    highlight = set()
+```
+
+```{python}
+#| label: fatos-rapidos-lideranca
+#| output: asis
+
+if len(daily_snapshots) >= 2:
+    def get_ranking(snap):
+        scores = [(p['name'], calc_sentiment(p)) for p in snap['participants']
+                  if not p.get('characteristics', {}).get('eliminated')]
+        return sorted(scores, key=lambda x: -x[1])
+
+    latest_ranking = get_ranking(daily_snapshots[-1])
+    current_leader = latest_ranking[0][0]
+    current_leader_score = latest_ranking[0][1]
+
+    days_leading = 0
+    for snap in reversed(daily_snapshots):
+        ranking = get_ranking(snap)
+        if ranking and ranking[0][0] == current_leader:
+            days_leading += 1
+        else:
+            break
+
+    first_ranking = get_ranking(daily_snapshots[0])
+    first_rank_dict = {name: i+1 for i, (name, _) in enumerate(first_ranking)}
+    latest_rank_dict = {name: i+1 for i, (name, _) in enumerate(latest_ranking)}
+
+    position_changes = [(name, first_rank_dict[name] - rank, rank)
+                        for name, rank in latest_rank_dict.items() if name in first_rank_dict]
+    biggest_rise = max(position_changes, key=lambda x: x[1]) if position_changes else None
+    biggest_drop = min(position_changes, key=lambda x: x[1]) if position_changes else None
+
+    facts = [f"**{current_leader}** lidera com **{current_leader_score:+.1f}** pontos"]
+    if days_leading > 1:
+        facts.append(f"há **{days_leading} dias** consecutivos")
+    detail_facts = []
+    if biggest_rise and biggest_rise[1] > 2:
+        detail_facts.append(f"• Maior subida: **{biggest_rise[0]}** (+{biggest_rise[1]} posições)")
+    if biggest_drop and biggest_drop[1] < -2:
+        detail_facts.append(f"• Maior queda: **{biggest_drop[0]}** ({biggest_drop[1]} posições)")
+
+    print(f"""
+::: {{.callout-note title="Fatos Rápidos" appearance="simple"}}
+{' '.join(facts[:2])}
+
+{"<br>".join(detail_facts)}
+:::
+""")
+```
+
+::: {.panel-tabset}
+
+### Ranking (Bump Chart)
+
+```{python}
+#| label: bump-chart
+
+if not df_timeline.empty:
+    fig = go.Figure()
+    final_ranks = df_timeline[df_timeline['Data'] == df_timeline['Data'].max()].set_index('Participante')['Rank']
+    sorted_participants = final_ranks.sort_values().index.tolist()
+
+    for name in sorted_participants:
+        df_p = df_timeline[df_timeline['Participante'] == name].sort_values('Data')
+        is_hl = name in highlight
+        p_color = participant_colors.get(name, '#666')
+        latest_rank = int(df_p['Rank'].iloc[-1])
+
+        fig.add_trace(go.Scatter(
+            x=df_p['Data'], y=df_p['Rank'], mode='lines+markers',
+            name=f"{name} ({latest_rank}º)",
+            line=dict(width=3 if is_hl else 1.5, color=p_color),
+            marker=dict(size=8 if is_hl else 5, color=p_color),
+            hovertemplate=f'{name}<br>Posição: %{{y}}º<br>Score: %{{customdata:+.1f}}<extra></extra>',
+            customdata=df_p['Sentimento'],
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    n_participants = len(sorted_participants)
+    fig.update_layout(
+        title="Evolução do Ranking de Sentimento (Bump Chart)",
+        xaxis_title="Data", yaxis_title="Posição no Ranking",
+        yaxis=dict(autorange='reversed', tickmode='linear', tick0=1,
+                   dtick=1 if n_participants <= 15 else 2,
+                   range=[n_participants + 0.5, 0.5]),
+        height=max(500, n_participants * 25), hovermode='x unified',
+        legend=dict(font=dict(size=10), itemsizing='constant'),
+    )
+    fig.show()
+```
+
+### Score (Linhas)
+
+```{python}
+#| label: sentiment-lines
+
+if not df_timeline.empty:
+    fig = go.Figure()
+    for name in all_participants:
+        df_p = df_timeline[df_timeline['Participante'] == name].sort_values('Data')
+        is_hl = name in highlight
+        fig.add_trace(go.Scatter(
+            x=df_p['Data'], y=df_p['Sentimento'], mode='lines+markers',
+            name=name,
+            line=dict(width=3 if is_hl else 1.5, color=participant_colors[name]),
+            marker=dict(size=6 if is_hl else 4),
+            hovertemplate=f'{name}: ' + '%{y:+.1f}<extra></extra>',
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    fig.add_shape(type='line', x0=df_timeline['Data'].min(), x1=df_timeline['Data'].max(),
+                  y0=0, y1=0, line=dict(color='red', dash='dash', width=1))
+
+    for p in paredoes_data.get('paredoes', []):
+        paredao_date = pd.to_datetime(p['data'])
+        y_range = [df_timeline['Sentimento'].min() - 2, df_timeline['Sentimento'].max() + 2]
+        fig.add_shape(type='line', x0=paredao_date, x1=paredao_date,
+                      y0=y_range[0], y1=y_range[1],
+                      line=dict(color='#FF6B6B', dash='dot', width=2))
+        fig.add_annotation(x=paredao_date, y=y_range[1],
+                           text=f"🗳️ {p['numero']}º Paredão", showarrow=False,
+                           font=dict(size=11, color='#FF6B6B'), yshift=10)
+
+    n_active = len([p for p in daily_snapshots[-1]['participants']
+                    if not p.get('characteristics', {}).get('eliminated')])
+    fig.update_layout(
+        title="Evolução do Sentimento ao Longo do Tempo",
+        xaxis_title="Data", yaxis_title="Score de Sentimento",
+        height=max(500, n_active * 32), hovermode='x unified',
+        legend=dict(font=dict(size=11), itemsizing='constant'),
+        margin=dict(r=180),
+    )
+    fig.show()
+```
+
+### Score Estratégico
+
+```{python}
+#| label: strategic-timeline
+#| output: asis
+
+if strategic_timeline:
+    df_strat = pd.DataFrame(strategic_timeline)
+    if not df_strat.empty and 'date' in df_strat.columns and 'name' in df_strat.columns and 'score' in df_strat.columns:
+        fig = go.Figure()
+        df_strat['date'] = pd.to_datetime(df_strat['date'])
+        strat_names = sorted(df_strat['name'].unique())
+
+        for name in strat_names:
+            df_p = df_strat[df_strat['name'] == name].sort_values('date')
+            is_hl = name in highlight
+            fig.add_trace(go.Scatter(
+                x=df_p['date'], y=df_p['score'], mode='lines',
+                name=name,
+                line=dict(width=3 if is_hl else 1.5, color=participant_colors.get(name, '#666')),
+                hovertemplate=f'{name}: ' + '%{y:+.2f}<extra></extra>',
+                visible=True if is_hl else 'legendonly',
+            ))
+
+        fig.update_layout(
+            title="Score Estratégico (Queridômetro + Eventos)",
+            xaxis_title="Data", yaxis_title="Score Composto",
+            height=max(500, len(strat_names) * 25),
+            hovermode='x unified',
+            legend=dict(font=dict(size=10), itemsizing='constant'),
+        )
+        fig.show()
+    else:
+        print("*Dados estratégicos indisponíveis.*")
+else:
+    print("*Dados estratégicos indisponíveis.*")
+```
+
+:::
+
+### Destaques {#destaques-sentimento}
+
+```{python}
+#| label: destaques-sentimento
+#| output: asis
+
+if len(daily_snapshots) >= 3:
+    def _get_ranking(snap):
+        scores = [(p['name'], calc_sentiment(p)) for p in snap['participants']
+                  if not p.get('characteristics', {}).get('eliminated')]
+        return sorted(scores, key=lambda x: -x[1])
+
+    first_ranking = _get_ranking(daily_snapshots[0])
+    latest_ranking = _get_ranking(daily_snapshots[-1])
+    first_rank_dict = {name: i+1 for i, (name, _) in enumerate(first_ranking)}
+    latest_rank_dict = {name: i+1 for i, (name, _) in enumerate(latest_ranking)}
+
+    position_changes = [(name, abs(first_rank_dict[name] - rank), rank, first_rank_dict[name])
+                        for name, rank in latest_rank_dict.items() if name in first_rank_dict]
+    most_stable = min(position_changes, key=lambda x: (x[1], x[2])) if position_changes else None
+
+    rises = [(name, first_rank_dict[name] - rank, rank) for name, rank in latest_rank_dict.items()
+             if name in first_rank_dict and first_rank_dict[name] - rank > 0]
+    falls = [(name, first_rank_dict[name] - rank, rank) for name, rank in latest_rank_dict.items()
+             if name in first_rank_dict and first_rank_dict[name] - rank < 0]
+    biggest_rise = max(rises, key=lambda x: x[1]) if rises else None
+    biggest_fall = min(falls, key=lambda x: x[1]) if falls else None
+
+    current_leader = latest_ranking[0][0]
+    leader_score = latest_ranking[0][1]
+    leader_first_rank = first_rank_dict.get(current_leader, "?")
+
+    sections = []
+    if leader_first_rank != 1 and leader_first_rank != "?":
+        sections.append(f"**🏆 {current_leader}** subiu da **{leader_first_rank}ª posição** para o topo. "
+                        f"Com **{leader_score:+.1f}** pontos, consolidou-se como o mais querido.")
+    else:
+        sections.append(f"**🏆 {current_leader}** lidera com **{leader_score:+.1f}** pontos.")
+
+    if biggest_rise and biggest_rise[1] >= 3:
+        name, change, rank = biggest_rise
+        sections.append(f"**📈 Maior Ascensão:** **{name}** ({MEMBER_OF.get(name, '?')}) subiu **{change} posições** → {rank}º lugar.")
+    if biggest_fall and biggest_fall[1] <= -3:
+        name, change, rank = biggest_fall
+        sections.append(f"**📉 Maior Queda:** **{name}** ({MEMBER_OF.get(name, '?')}) caiu **{abs(change)} posições** → {rank}º lugar.")
+    if most_stable and most_stable[1] <= 2:
+        name, change, rank, first_rank = most_stable
+        if change == 0:
+            sections.append(f"**⚓ Mais Estável:** **{name}** manteve a mesma posição ({rank}º) desde o início.")
+        else:
+            sections.append(f"**⚓ Mais Estável:** **{name}** variou apenas {change} posição (de {first_rank}º para {rank}º).")
+
+    if sections:
+        print("::: {.callout-tip title=\"Destaques\" appearance=\"simple\"}")
+        print("<br>".join(sections))
+        print(":::")
+```
+
+# Impacto Acumulado {#impacto}
+
+📈 **Dado acumulado** — Impacto de eventos de poder, votos e Sincerão sobre cada participante.
+
+::: {.panel-tabset}
+
+## Impacto Negativo Recebido
+
+```{python}
+#| label: received-impact
+#| output: asis
+
+if received_impact:
+    impact_data = []
+    for name, data in received_impact.items():
+        if isinstance(data, dict):
+            pos = data.get("positive", 0)
+            neg = data.get("negative", 0)
+        else:
+            pos = 0
+            neg = float(data) if data < 0 else 0
+        impact_data.append({'name': name, 'positive': pos, 'negative': neg, 'net': pos + neg})
+
+    impact_data.sort(key=lambda x: x['net'])
+
+    if impact_data:
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in impact_data],
+            x=[d['negative'] for d in impact_data],
+            name='Negativo', orientation='h', marker_color='#e74c3c',
+        ))
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in impact_data],
+            x=[d['positive'] for d in impact_data],
+            name='Positivo', orientation='h', marker_color='#2ecc71',
+        ))
+        fig.update_layout(
+            title="Impacto Acumulado por Participante (Eventos + Votos + Sincerão)",
+            xaxis_title="Impacto", barmode='relative',
+            height=max(400, len(impact_data) * 28),
+            margin=dict(l=150),
+        )
+        fig.show()
+else:
+    print("*Dados de impacto indisponíveis.*")
+```
+
+## Trajetória de Impacto
+
+```{python}
+#| label: impact-trajectory
+#| output: asis
+
+if impact_history:
+    fig = go.Figure()
+    # Get all participant names from last entry
+    last_entry = impact_history[-1]
+    names = sorted(last_entry.get("participants", {}).keys())
+    dates = [pd.to_datetime(e["date"]) for e in impact_history]
+
+    for name in names:
+        neg_values = [e.get("participants", {}).get(name, {}).get("negative", 0) for e in impact_history]
+        is_hl = name in highlight
+        fig.add_trace(go.Scatter(
+            x=dates, y=neg_values, mode='lines',
+            name=name,
+            line=dict(width=3 if is_hl else 1.5, color=participant_colors.get(name, '#666')),
+            hovertemplate=f'{name}: ' + '%{y:.2f}<extra></extra>',
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    fig.update_layout(
+        title="Trajetória de Impacto Negativo Acumulado",
+        xaxis_title="Data", yaxis_title="Impacto Negativo Acumulado",
+        height=500, hovermode='x unified',
+        legend=dict(font=dict(size=10)),
+    )
+    fig.show()
+else:
+    print("*Dados de trajetória de impacto indisponíveis.*")
+```
+
+## Vulnerabilidade
+
+```{python}
+#| label: vulnerability-chart
+#| output: asis
+
+if vulnerability_history:
+    fig = go.Figure()
+    last_entry = vulnerability_history[-1]
+    names = sorted(last_entry.get("participants", {}).keys())
+    dates = [pd.to_datetime(e["date"]) for e in vulnerability_history]
+
+    for name in names:
+        ff_values = [e.get("participants", {}).get(name, {}).get("false_friends", 0) for e in vulnerability_history]
+        is_hl = name in highlight
+        fig.add_trace(go.Scatter(
+            x=dates, y=ff_values, mode='lines',
+            name=name,
+            line=dict(width=3 if is_hl else 1.5, color=participant_colors.get(name, '#666')),
+            hovertemplate=f'{name}: ' + '%{y} falsos amigos<extra></extra>',
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    fig.update_layout(
+        title="Vulnerabilidade: Falsos Amigos ao Longo do Tempo",
+        xaxis_title="Data", yaxis_title="Nº de falsos amigos (dá ❤️ a quem detesta)",
+        height=500, hovermode='x unified',
+        legend=dict(font=dict(size=10)),
+    )
+    fig.show()
+    print("Quem está cada vez mais exposto a votos surpresa?")
+else:
+    print("*Dados de vulnerabilidade indisponíveis.*")
+```
+
+:::
+
+# Volatilidade Histórica {#volatilidade}
+
+📅 **Comparação dia-a-dia** — Como a volatilidade do jogo evoluiu ao longo do tempo.
+
+```{python}
+#| label: volatility-history
+#| output: asis
+
+if daily_changes:
+    dates = [pd.to_datetime(d["date"]) for d in daily_changes]
+    total_changes = [d["total_changes"] for d in daily_changes]
+    hearts_gained = [d["hearts_gained"] for d in daily_changes]
+    hearts_lost = [d["hearts_lost"] for d in daily_changes]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=dates, y=total_changes, mode='lines+markers',
+        name='Total de mudanças', line=dict(color='#3498db', width=2),
+    ))
+    fig.add_trace(go.Bar(
+        x=dates, y=hearts_gained, name='❤️ ganhos', marker_color='#2ecc71', opacity=0.6,
+    ))
+    fig.add_trace(go.Bar(
+        x=dates, y=[-h for h in hearts_lost], name='❤️ perdidos', marker_color='#e74c3c', opacity=0.6,
+    ))
+
+    # Annotate paredão dates
+    for p in paredoes_data.get('paredoes', []):
+        pdate = pd.to_datetime(p['data'])
+        fig.add_vline(x=pdate, line_width=1, line_dash='dot', line_color='#FF6B6B')
+        fig.add_annotation(x=pdate, y=max(total_changes) if total_changes else 50,
+                           text=f"🗳️ {p['numero']}º", showarrow=False,
+                           font=dict(size=9, color='#FF6B6B'), yshift=15)
+
+    fig.update_layout(
+        title="Volatilidade Diária: Mudanças de Reação ao Longo do Tempo",
+        xaxis_title="Data", yaxis_title="Quantidade",
+        height=450, barmode='relative',
+        legend=dict(orientation='h', y=-0.15),
+    )
+    fig.show()
+else:
+    print("*Dados históricos de mudanças indisponíveis.*")
+```
+
+# Saldo (Estalecas) {#saldo}
+
+📈 **Dado acumulado** — Evolução do saldo de cada participante ao longo do tempo.
+
+```{python}
+#| label: late-caption-balance
+#| output: asis
+
+if late_entrants:
+    _by_d = {}
+    for n, d in late_entrants.items():
+        _by_d.setdefault(d, []).append(n)
+    _parts = [f"{', '.join(sorted(ns))} (entraram em {d})" for d, ns in sorted(_by_d.items())]
+    print(f'<p class="text-muted small">⚠️ Participantes que entraram depois: {"; ".join(_parts)}</p>')
+```
+
+```{python}
+#| label: balance-timeline
+
+balance_data = []
+for i, snap in enumerate(snapshots):
+    for p in snap['participants']:
+        if p.get('characteristics', {}).get('eliminated'):
+            continue
+        balance_data.append({
+            'Data': pd.to_datetime(snap['date']),
+            'Participante': p['name'],
+            'Saldo': p.get('characteristics', {}).get('balance', 0),
+            'Grupo': p.get('characteristics', {}).get('memberOf', '?')
+        })
+
+df_balance = pd.DataFrame(balance_data)
+
+if not df_balance.empty:
+    all_bal = sorted(df_balance['Participante'].unique())
+    palette_bal = (px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
+                   px.colors.qualitative.Set2 + px.colors.qualitative.Bold)
+    bal_colors = {name: palette_bal[i % len(palette_bal)] for i, name in enumerate(all_bal)}
+
+    latest_bal = df_balance.groupby('Participante')['Saldo'].last()
+    top3_bal = set(latest_bal.nlargest(3).index)
+    bottom3_bal = set(latest_bal.nsmallest(3).index)
+    hl_bal = top3_bal | bottom3_bal
+
+    fig = go.Figure()
+    for name in all_bal:
+        df_p = df_balance[df_balance['Participante'] == name].sort_values('Data')
+        is_hl = name in hl_bal
+        fig.add_trace(go.Scatter(
+            x=df_p['Data'], y=df_p['Saldo'], mode='lines+markers', name=name,
+            line=dict(width=3 if is_hl else 1.5, color=bal_colors[name]),
+            marker=dict(size=6 if is_hl else 4),
+            hovertemplate=f'{name}: ' + '%{y:,} Estalecas<extra></extra>',
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    fig.update_layout(
+        title="Evolução do Saldo (Estalecas)",
+        xaxis_title="Data", yaxis_title="Saldo (Estalecas)",
+        height=600, hovermode='x unified',
+        legend=dict(font=dict(size=10), itemsizing='constant'),
+    )
+    fig.show()
+```
+
+# Poderes & Consequências {#poderes}
+
+📈 **Dado acumulado** — Eventos de dinâmicas da casa: poderes, castigos e consequências.
+
+::: {.panel-tabset}
+
+## 📅 Linha do Tempo
+
+```{python}
+#| label: power-timeline
+#| output: asis
+
+if not power_events:
+    print("*Nenhum poder registrado ainda.*")
+else:
+    df_power = pd.DataFrame(power_events).copy()
+    df_power['Data'] = pd.to_datetime(df_power['date'])
+
+    tipo_labels = {
+        'lider': 'Líder', 'anjo': 'Anjo', 'monstro': 'Monstro',
+        'imunidade': 'Imunidade', 'indicacao': 'Indicação',
+        'contragolpe': 'Contragolpe', 'voto_duplo': 'Voto duplo',
+        'voto_anulado': 'Voto anulado', 'perdeu_voto': 'Perdeu voto',
+        'bate_volta': 'Bate-Volta', 'veto_ganha_ganha': 'Veto (Ganha-Ganha)',
+        'ganha_ganha_escolha': 'Escolha (Ganha-Ganha)',
+        'barrado_baile': 'Barrado no Baile',
+    }
+    df_power['Tipo'] = df_power['type'].map(tipo_labels).fillna(df_power['type'])
+
+    big_fone_targets = {}
+    for w in weekly_events:
+        raw_bf = w.get("big_fone") if isinstance(w, dict) else None
+        bf_list = raw_bf if isinstance(raw_bf, list) else ([raw_bf] if isinstance(raw_bf, dict) else [])
+        for bf in bf_list:
+            if not isinstance(bf, dict):
+                continue
+            atendeu = bf.get("atendeu")
+            date = bf.get("date")
+            if atendeu and date:
+                big_fone_targets[atendeu] = pd.to_datetime(date)
+
+    def is_big_fone_imunidade(row):
+        if row.get("type") != "imunidade":
+            return False
+        target = row.get("target")
+        if not target or target not in big_fone_targets:
+            return False
+        row_date = row.get("Data") or pd.to_datetime(row.get("date"))
+        bf_date = big_fone_targets.get(target)
+        if row_date is None or bf_date is None:
+            return False
+        return abs((row_date - bf_date).days) <= 1
+
+    if big_fone_targets:
+        mask = df_power.apply(is_big_fone_imunidade, axis=1)
+        df_power.loc[mask, "source"] = "Big Fone"
+        df_power.loc[mask, "detail"] = "Atendeu o Big Fone e ficou imune"
+
+    def resolve_context(row):
+        source = row.get('source') or ''
+        if source and isinstance(source, str) and source not in {"api_roles", "api"}:
+            return source
+        actor = (row.get('actor') or '').lower()
+        if 'big fone' in actor: return 'Big Fone'
+        if 'caixas' in actor: return 'Caixas-Surpresa'
+        if 'prova do líder' in actor: return 'Prova do Líder'
+        if 'prova do anjo' in actor: return 'Prova do Anjo'
+        if row.get('type') == 'monstro': return 'Castigo do Monstro'
+        if 'bate e volta' in actor: return 'Prova Bate e Volta'
+        if 'dinâmica da casa' in actor: return 'Dinâmica da casa'
+        return '—'
+
+    df_power['Dinâmica'] = df_power.apply(resolve_context, axis=1)
+    df_show = df_power.sort_values('Data')[['date', 'Dinâmica', 'Tipo', 'actor', 'target', 'detail', 'impacto']]
+
+    def render_person_cell(value, border):
+        if isinstance(value, list):
+            items = [v for v in value if v]
+            if not items: return '—'
+            avatar_htmls = []
+            for name in items:
+                if name in AVATARS and AVATARS[name]:
+                    avatar_htmls.append(
+                        f'<img src="{AVATARS[name]}" style="width: 24px; height: 24px; border-radius: 50%; '
+                        f'border: 2px solid {border}; object-fit: cover; margin-right: -6px;">')
+            return f'<div style="display: flex; align-items: center; gap: 0.4rem;">{"".join(avatar_htmls)}<span>{" + ".join(items)}</span></div>'
+        label = value or '—'
+        if label in AVATARS and AVATARS[label]:
+            return (f'<div style="display: flex; align-items: center;">'
+                    f'<img src="{AVATARS[label]}" style="width: 28px; height: 28px; border-radius: 50%; '
+                    f'border: 2px solid {border}; object-fit: cover; margin-right: 0.4rem;">{label}</div>')
+        icon_map = {'big fone': '📞', 'caixas-surpresa': '🎁', 'prova do líder': '👑',
+                    'prova do anjo': '😇', 'prova bate e volta': '🛟', 'ganha-ganha': '🎁', 'barrado no baile': '🚫'}
+        icon = next((icon_map[k] for k in icon_map if k in label.lower()), '🎬')
+        return f'<div style="display: flex; align-items: center; gap: 0.4rem;"><span>{icon}</span>{label}</div>'
+
+    def render_context_cell(value):
+        if not value or value == '—': return '—'
+        icon_map = {'big fone': '📞', 'caixas-surpresa': '🎁', 'prova do líder': '👑',
+                    'prova do anjo': '😇', 'prova bate e volta': '🛟', 'ganha-ganha': '🎁', 'barrado no baile': '🚫'}
+        icon = next((icon_map[k] for k in icon_map if k in value.lower()), '🎬')
+        return f'<div style="display:flex; align-items:center; gap:0.4rem;"><span>{icon}</span>{value}</div>'
+
+    print('<div style="overflow-x:auto; margin: 0.5rem 0 1rem 0;">')
+    print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
+    print('<thead><tr style="text-align: left; border-bottom: 1px solid #444;">'
+          '<th style="padding: 0.5rem;">Data</th><th style="padding: 0.5rem;">Dinâmica</th>'
+          '<th style="padding: 0.5rem;">Tipo</th><th style="padding: 0.5rem;">Quem deu</th>'
+          '<th style="padding: 0.5rem;">Quem recebeu</th><th style="padding: 0.5rem;">Consequência</th>'
+          '<th style="padding: 0.5rem;">Impacto</th></tr></thead><tbody>')
+
+    for _, row in df_show.iterrows():
+        impacto = row.get('impacto', 'neutro')
+        if impacto == 'positivo':
+            border, bg, label = '#2ecc71', 'rgba(46, 204, 113, 0.12)', 'Benefício'
+        elif impacto == 'negativo':
+            border, bg, label = '#e74c3c', 'rgba(231, 76, 60, 0.12)', 'Prejuízo'
+        else:
+            border, bg, label = '#95a5a6', 'rgba(149, 165, 166, 0.08)', 'Neutro'
+        actor_html = render_person_cell(row["actor"], border)
+        target_html = render_person_cell(row["target"], border)
+        context_html = render_context_cell(row.get("Dinâmica"))
+        badge = (f'<span style="display:inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; '
+                 f'background: {bg}; color: {border}; border: 1px solid {border}; font-size: 0.75rem;">{label}</span>')
+        print(f'<tr style="border-left: 4px solid {border}; background: {bg};">'
+              f'<td style="padding: 0.45rem 0.5rem;">{row["date"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{context_html}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{row["Tipo"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{actor_html}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{target_html}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{row["detail"]}</td>'
+              f'<td style="padding: 0.45rem 0.5rem;">{badge}</td></tr>')
+    print('</tbody></table></div>')
+```
+
+## 📊 Impacto por Participante
+
+```{python}
+#| label: power-impact
+#| output: asis
+
+if not power_events:
+    print("*Nenhum poder registrado ainda.*")
+else:
+    df_power = pd.DataFrame(power_events).copy()
+    df_power['impacto'] = df_power.get('impacto', 'neutro')
+    counts = df_power.pivot_table(index='target', columns='impacto', values='type', aggfunc='count', fill_value=0)
+    pos = counts.get('positivo', pd.Series(dtype=int))
+    neg = counts.get('negativo', pd.Series(dtype=int))
+    impact = pd.DataFrame({'positivo': pos, 'negativo': neg}).fillna(0)
+    impact['saldo'] = impact['positivo'] - impact['negativo']
+    impact = impact.sort_values('saldo')
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(y=impact.index, x=[-v for v in impact['negativo']],
+                         orientation='h', name='Prejuízo', marker_color='#e74c3c'))
+    fig.add_trace(go.Bar(y=impact.index, x=impact['positivo'],
+                         orientation='h', name='Benefício', marker_color='#2ecc71'))
+    fig.update_layout(title='Saldo de poderes por participante', barmode='relative',
+                      xaxis_title='Eventos', height=360 + 18 * len(impact))
+    fig.show()
+```
+
+:::
+
+---
+
+<div class="alert alert-secondary mt-5">
+<h5>📍 Navegação</h5>
+<p class="mb-0">
+<a href="index.html"><strong>📊 Painel</strong></a> — Estado atual |
+<a href="relacoes.html"><strong>🤝 Relações</strong></a> — Mapa social |
+<a href="paredao.html"><strong>🗳️ Paredão</strong></a> — Paredão atual |
+<a href="paredoes.html"><strong>📚 Arquivo</strong></a> — Histórico
+</p>
+</div>

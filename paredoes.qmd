@@ -519,7 +519,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     active = 'show active' if i == 0 else ''
     print(f'<div class="tab-pane fade {active}" id="paredao-{par_num}" role="tabpanel" aria-labelledby="tab-{par_num}">')
     print(f'<h3 style="margin-top:1.5rem;">{par_num}º Paredão — {paredao["data"]}</h3>')
-    print(f'<p class="text-muted small">📅 Coerência social usa queridômetro do dia <strong>{analysis_date}</strong> (formação).</p>')
+    print(f'<p class="text-muted small">📅 Coerência social usa queridômetro do dia <strong>{analysis_date}</strong> (formação). Score base: 70% janela reativa + 30% memória de sequência.</p>')
 
     # ══════════════════════════════════════════════════════════════
     # HEADER WITH RESULT CARDS

@@ -775,7 +775,7 @@ print('</div>')
 
 **Score composto (A → B):** Combinação de 6 sinais:
 
-- **Queridômetro** — janela móvel de 3 dias (pesos: 0.6 / 0.3 / 0.1)
+- **Queridômetro** — 70% janela reativa de 3 dias (0.6 / 0.3 / 0.1) + 30% memória de sequência + penalidade de ruptura
 - **Eventos de poder** — indicação, contragolpe, monstro, veto, etc. (acumulam sem decay)
 - **Sincerão** — pódio e bombas
 - **VIP** — compartilhamento de grupo

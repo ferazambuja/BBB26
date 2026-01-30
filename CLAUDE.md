@@ -116,17 +116,7 @@ setup_bbb_dark_theme()
 
 ## Known Issues
 
-### Quarto render warnings in trajetoria.qmd
-
-When rendering `trajetoria.qmd`, Pandoc reports warnings about unclosed divs:
-```
-[WARNING] Div at line 437 column 1 unclosed at line 2493...
-[WARNING] The following string was found in the document: :::
-```
-
-**Cause**: Pandoc/Quarto processing quirk with complex documents containing fenced divs and dynamic markdown output.
-
-**Impact**: None — the final HTML is valid and renders correctly. The TOC works properly.
+*(No known issues at this time.)*
 
 ## Data Architecture
 
@@ -166,7 +156,7 @@ The API returns the **current state** of all reactions, not a history. Participa
 - `index_data.json` — precomputed tables for `index.qmd`
 - `plant_index.json` — Planta Index per week + rolling averages
 - `cartola_data.json` — Cartola BBB points (leaderboard, weekly breakdown, stats)
-- `relations_scores.json` — pairwise sentiment scores (A→B) with **daily** and **paredão** versions
+- `relations_scores.json` — pairwise sentiment scores (A→B) with **daily** and **paredão** versions, plus `streak_breaks` (detected alliance ruptures)
 - `sincerao_edges.json` — Sincerão aggregates + optional edges
 - `prova_rankings.json` — competition performance rankings (leaderboard, per-prova detail)
 - `snapshots_index.json` — manifest of available dates for the Date View
@@ -238,10 +228,10 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 
 All scoring formulas, weights, and detailed specifications are in **`docs/SCORING_AND_INDEXES.md`**. Key concepts:
 
-- **Sentiment Index (A → B)**: directional score combining queridômetro (3-day window) + all accumulated events (power, Sincerão, VIP, votos) at full weight (no decay). Two modes: `pairs_daily` (today's queridômetro) and `pairs_paredao` (formation-date queridômetro); events are identical in both.
+- **Sentiment Index (A → B)**: directional score combining streak-aware queridômetro (70% 3-day reactive window + 30% streak memory + break penalty) + all accumulated events (power, Sincerão, VIP, votos) at full weight (no decay). Two modes: `pairs_daily` (today's queridômetro) and `pairs_paredao` (formation-date queridômetro); events are identical in both. Streak breaks (long ❤️ streaks turning negative) are detected and stored in `streak_breaks`.
 - **Planta Index**: weekly score (0–100) quantifying low visibility + low participation. Weights: 0.45 power activity + 0.35 Sincerão exposure + 0.20 🌱 emoji ratio. Computed in `data/derived/plant_index.json`.
-- **Risco Externo**: weekly per-participant risk from votes received + public/secret negative events + paredão status.
-- **Animosidade**: historical directional score (no decay — events accumulate). Experimental.
+- **Impacto Negativo**: per-participant negative impact received, from `received_impact` in `relations_scores.json`. Same calibrated weights as pairs system, no decay.
+- **Hostilidade Gerada**: per-participant outgoing negative event edges, from `pairs_daily` components (non-queridômetro). Same calibrated weights, no decay.
 - **Cartola BBB**: point system (Líder +80 to Desistente -30). Precomputed in `data/derived/cartola_data.json`.
 - **Prova Rankings**: competition performance ranking with type multipliers (Líder 1.5×, Anjo 1.0×, Bate-Volta 0.75×) and placement points (1st=10 to 9th+=0.5). Precomputed in `data/derived/prova_rankings.json`.
 
@@ -264,8 +254,8 @@ Full schema, fill rules, and update procedures are in **`docs/MANUAL_EVENTS_GUID
 ```
 BBB26/
 ├── index.qmd               # Main dashboard — overview, rankings, heatmap, profiles
-├── mudancas.qmd            # Day-over-day changes (O Que Mudou)
-├── trajetoria.qmd          # Trajectory — sentiment evolution, hostilities, clusters, graphs
+├── evolucao.qmd            # Temporal evolution — rankings, sentiment, impact, daily pulse, balance
+├── relacoes.qmd            # Social fabric — alliances, rivalries, streak breaks, contradictions, network
 ├── paredao.qmd             # Current paredão status + vote analysis
 ├── paredoes.qmd            # Paredão archive — historical analysis per paredão
 ├── cartola.qmd             # Cartola BBB points leaderboard
@@ -306,8 +296,8 @@ BBB26/
 | Page | File | Purpose |
 |------|------|---------|
 | **Painel** | `index.qmd` | Main dashboard: overview, ranking, heatmap, profiles |
-| **O Que Mudou** | `mudancas.qmd` | Day-over-day changes: winners/losers, volatility, Sankey |
-| **Trajetória** | `trajetoria.qmd` | Evolution: sentiment, alliances, hostilities, clusters, graphs |
+| **Evolução** | `evolucao.qmd` | Temporal: rankings, sentiment evolution, impact, daily pulse, balance, powers |
+| **Relações** | `relacoes.qmd` | Social fabric: alliances, rivalries, streak breaks, contradictions, hostility map, network graph |
 | **Paredão** | `paredao.qmd` | Current paredão: formation, votes, vote-reaction analysis |
 | **Arquivo** | `paredoes.qmd` | Paredão archive: historical analysis per elimination |
 
