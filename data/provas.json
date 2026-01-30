@@ -184,6 +184,55 @@
         }
       ],
       "fontes": ["GShow — Prova do Anjo Semana 2"]
+    },
+    {
+      "numero": 6,
+      "tipo": "lider",
+      "week": 3,
+      "date": "2026-01-29",
+      "nome": "Prova do Líder — Circuito Mercado Pago + Celulares",
+      "formato": "circuito_equipe_sorte",
+      "vencedor": "Maxiane",
+      "participantes_total": 20,
+      "excluidos": [
+        {"nome": "Brigido", "motivo": "vetado pelo Big Fone (Breno)"}
+      ],
+      "fases": [
+        {
+          "fase": 1,
+          "tipo": "equipe_revezamento",
+          "nota": "Circuito com portas: caminho rápido (Mercado Pago) ou com obstáculos. Revezamento com bastão, cronômetro por equipe. Equipe com melhor tempo avançou à fase 2. Chaiany esqueceu o bastão (item obrigatório), prejudicando o Grupo 1.",
+          "grupos": {
+            "1": ["Babu Santana", "Chaiany", "Ana Paula Renault", "Milena"],
+            "2": ["Sarah Andrade", "Alberto Cowboy", "Jonas Sulzbach", "Paulo Augusto"],
+            "3": ["Samira", "Edilson", "Juliano Floss", "Leandro"],
+            "4": ["Marcelo", "Breno", "Marciele", "Maxiane"],
+            "5": ["Solange Couto", "Sol Vega", "Jordana", "Gabriela"]
+          },
+          "classificacao": [
+            {"pos": 1, "grupo": 4, "membros": ["Breno", "Maxiane", "Marcelo", "Marciele"], "tempo": "00:23.635"},
+            {"pos": 2, "grupo": 2, "membros": ["Sarah Andrade", "Paulo Augusto", "Alberto Cowboy", "Jonas Sulzbach"], "tempo": "00:40.805"},
+            {"pos": 3, "grupo": 5, "membros": ["Gabriela", "Solange Couto", "Sol Vega", "Jordana"], "tempo": "00:41.410"},
+            {"pos": 4, "grupo": 3, "membros": ["Juliano Floss", "Leandro", "Edilson", "Samira"], "tempo": "01:00.480"},
+            {"pos": 5, "grupo": 1, "membros": ["Chaiany", "Ana Paula Renault", "Milena", "Babu Santana"], "eliminados": true}
+          ]
+        },
+        {
+          "fase": 2,
+          "tipo": "individual_sorte",
+          "nota": "Celulares numerados: mensagem positiva = elimina outro; mensagem negativa = nada. 3 positivos entre todos. Último restante vence. Breno eliminou Marciele, Marcelo eliminou Breno, Maxiane venceu contra Marcelo.",
+          "classificacao": [
+            {"pos": 1, "nome": "Maxiane"},
+            {"pos": 2, "nome": "Marcelo"},
+            {"pos": 3, "nome": "Breno", "eliminado_por": "Marcelo"},
+            {"pos": 4, "nome": "Marciele", "eliminado_por": "Breno"}
+          ]
+        }
+      ],
+      "fontes": [
+        "https://exame.com/pop/bbb-26-maxiane-vence-a-prova-do-lider-veja-como-foi/",
+        "https://www.terra.com.br/diversao/tv/reality-shows/prova-do-lider-no-bbb-26-maxiane-vence-apos-erro-imperdoavel-de-chaiany-e-web-cobra-indicacao-ao-paredao-vamos-ver-se-tem-coragem,0750977b7ba7641483d250c64d103340pzvcl8td.html"
+      ]
     }
   ]
 }

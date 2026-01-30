@@ -1963,31 +1963,33 @@ def build_prova_rankings(provas_data, participants_index):
                     phase2_names.add(entry["nome"])
                 elif "dupla" in entry:
                     phase2_names.update(entry["dupla"])
+                elif "membros" in entry:
+                    phase2_names.update(entry["membros"])
 
             # Phase 1 non-finalists get their Phase 1 position + offset
+            # For team provas, each member of a group shares the group's position
             for entry in fase1.get("classificacao", []):
                 names_in_entry = []
                 if "nome" in entry:
                     names_in_entry = [entry["nome"]]
                 elif "dupla" in entry:
                     names_in_entry = list(entry["dupla"])
+                elif "membros" in entry:
+                    names_in_entry = list(entry["membros"])
 
                 for name in names_in_entry:
                     if name in phase2_names:
                         continue  # already assigned from Phase 2
                     if name in excluded_names:
                         continue
-                    if entry.get("dq"):
+                    if entry.get("dq") or entry.get("eliminados"):
                         positions[name] = "dq"
                         continue
                     pos = entry.get("pos")
                     if pos is not None:
                         # Offset by number of Phase 2 positions (since those are final 1..N)
-                        # But only offset for entries not already in top positions
-                        # For duo provas: Phase 1 pos 2 becomes pos 4 (offset by 2 Phase 2 slots)
+                        # For team provas: all members of a group share the same offset position
                         final_pos = pos + n_phase2
-                        # If this position's value is ≤ n_phase2, it means they were
-                        # in the winning group but lost Phase 2 — they're already handled
                         positions[name] = final_pos
                     # else: unknown position, leave as None
 
@@ -2132,11 +2134,13 @@ def _assign_phase_positions(positions, fase, excluded_names):
             names_in_entry = [entry["nome"]]
         elif "dupla" in entry:
             names_in_entry = list(entry["dupla"])
+        elif "membros" in entry:
+            names_in_entry = list(entry["membros"])
 
         for name in names_in_entry:
             if name in excluded_names:
                 continue
-            if entry.get("dq"):
+            if entry.get("dq") or entry.get("eliminados"):
                 positions[name] = "dq"
             else:
                 pos = entry.get("pos")
