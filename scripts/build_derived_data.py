@@ -2131,6 +2131,316 @@ def _assign_phase_positions(positions, fase, excluded_names):
                     positions[name] = pos
 
 
+def build_clusters_data(relations_scores, participants_index, paredoes_data):
+    """Build community detection + vote alignment data for clusters.qmd.
+
+    Uses Louvain community detection on the composite relation scores graph.
+    Outputs: communities, auto-names, inter-cluster metrics, vote alignment,
+    and polarization data — all precomputed so clusters.qmd just renders.
+    """
+    import numpy as np
+
+    try:
+        import networkx as nx
+        from networkx.algorithms.community import louvain_communities
+    except ImportError:
+        print("networkx not available — skipping clusters_data")
+        return None
+
+    pairs_daily = relations_scores.get("pairs_daily", {})
+    voting_blocs = relations_scores.get("voting_blocs", [])
+    contradictions_list = relations_scores.get("contradictions", {}).get("vote_vs_queridometro", [])
+    meta = relations_scores.get("_metadata", {})
+
+    # Active participants
+    pi_list = participants_index if isinstance(participants_index, list) else participants_index.get("participants", participants_index)
+    active_names = sorted([p["name"] for p in pi_list if p.get("active", True)])
+    n_active = len(active_names)
+    name_to_idx = {name: i for i, name in enumerate(active_names)}
+    participant_info = {p["name"]: {"grupo": p.get("grupo", "?"), "avatar": p.get("avatar", "")} for p in pi_list}
+
+    # -------------------------------------------------------------------
+    # Score matrices
+    # -------------------------------------------------------------------
+    score_mat = [[0.0] * n_active for _ in range(n_active)]
+    for src, targets in pairs_daily.items():
+        if src not in name_to_idx:
+            continue
+        i = name_to_idx[src]
+        for tgt, entry in targets.items():
+            if tgt not in name_to_idx:
+                continue
+            j = name_to_idx[tgt]
+            score_mat[i][j] = entry["score"]
+
+    # Symmetric
+    sym_mat = [[0.0] * n_active for _ in range(n_active)]
+    for i in range(n_active):
+        for j in range(n_active):
+            sym_mat[i][j] = (score_mat[i][j] + score_mat[j][i]) / 2
+
+    # -------------------------------------------------------------------
+    # Vote co-occurrence matrix
+    # -------------------------------------------------------------------
+    paredoes_list = paredoes_data.get("paredoes", paredoes_data) if isinstance(paredoes_data, dict) else paredoes_data
+    finalized = [p for p in paredoes_list if p.get("status") == "finalizado" and p.get("votos_casa")]
+    n_paredoes = len(finalized)
+
+    vote_cooccur = [[0] * n_active for _ in range(n_active)]
+    vote_participated = [[0] * n_active for _ in range(n_active)]
+
+    for par in finalized:
+        vc = par["votos_casa"]
+        voters = [v for v in vc if v in name_to_idx]
+        for a in voters:
+            for b in voters:
+                if a == b:
+                    continue
+                ia, ib = name_to_idx[a], name_to_idx[b]
+                vote_participated[ia][ib] += 1
+                if vc[a] == vc[b]:
+                    vote_cooccur[ia][ib] += 1
+
+    vote_align = [[0.0] * n_active for _ in range(n_active)]
+    for i in range(n_active):
+        for j in range(n_active):
+            if vote_participated[i][j] > 0:
+                vote_align[i][j] = vote_cooccur[i][j] / vote_participated[i][j]
+
+    # -------------------------------------------------------------------
+    # Louvain community detection
+    # -------------------------------------------------------------------
+    G = nx.Graph()
+    for name in active_names:
+        G.add_node(name, group=participant_info.get(name, {}).get("grupo", "?"))
+
+    for i, a in enumerate(active_names):
+        for j, b in enumerate(active_names):
+            if i >= j:
+                continue
+            w = sym_mat[i][j]
+            if w > 0:
+                G.add_edge(a, b, weight=w)
+
+    communities_sets = louvain_communities(G, weight='weight', resolution=1.0, seed=42)
+    communities_sets = sorted(communities_sets, key=lambda c: -len(c))
+
+    cluster_of = {}
+    cluster_members = {}
+    for idx, comm in enumerate(communities_sets):
+        label = idx + 1
+        cluster_members[label] = sorted(comm)
+        for name in comm:
+            cluster_of[name] = label
+
+    n_clusters = len(communities_sets)
+
+    # -------------------------------------------------------------------
+    # Auto-naming
+    # -------------------------------------------------------------------
+    CLUSTER_COLORS_LIST = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22']
+
+    cluster_names = {}
+    cluster_colors = {}
+
+    for label, members in cluster_members.items():
+        groups = [participant_info.get(m, {}).get("grupo", "?") for m in members]
+        from collections import Counter as _Counter
+        group_counts = _Counter(groups)
+        dominant_group, dominant_count = group_counts.most_common(1)[0]
+        pct_dominant = dominant_count / len(members)
+
+        indices = [name_to_idx[m] for m in members]
+        internal_scores = [sym_mat[a][b] for a in indices for b in indices if a != b]
+        avg_internal = sum(internal_scores) / len(internal_scores) if internal_scores else 0
+
+        if pct_dominant >= 0.70:
+            base = f"Núcleo {dominant_group}"
+        else:
+            base = "Grupo Misto"
+
+        if avg_internal > 1.5:
+            prefix = "Aliança "
+        elif avg_internal < 0:
+            prefix = "Frente "
+        else:
+            prefix = ""
+
+        name = f"{prefix}{base}"
+
+        existing_names = list(cluster_names.values())
+        if name in existing_names:
+            for ch in "ABCDEFGH":
+                candidate = f"{name} {ch}"
+                if candidate not in existing_names:
+                    name = candidate
+                    break
+
+        cluster_names[label] = name
+        cluster_colors[label] = CLUSTER_COLORS_LIST[(label - 1) % len(CLUSTER_COLORS_LIST)]
+
+    # -------------------------------------------------------------------
+    # Cluster metrics
+    # -------------------------------------------------------------------
+    cluster_internal_avg = {}
+    for label, members in cluster_members.items():
+        indices = [name_to_idx[m] for m in members]
+        scores = [sym_mat[a][b] for a in indices for b in indices if a != b]
+        cluster_internal_avg[label] = sum(scores) / len(scores) if scores else 0
+
+    inter_cluster_directed = {}
+    for la in sorted(cluster_members):
+        for lb in sorted(cluster_members):
+            if la == lb:
+                continue
+            idx_a = [name_to_idx[m] for m in cluster_members[la]]
+            idx_b = [name_to_idx[m] for m in cluster_members[lb]]
+            scores = [score_mat[a][b] for a in idx_a for b in idx_b]
+            inter_cluster_directed[f"{la}->{lb}"] = sum(scores) / len(scores) if scores else 0
+
+    inter_cluster_sym = {}
+    for la in sorted(cluster_members):
+        for lb in sorted(cluster_members):
+            if la >= lb:
+                continue
+            fwd = inter_cluster_directed.get(f"{la}->{lb}", 0)
+            rev = inter_cluster_directed.get(f"{lb}->{la}", 0)
+            inter_cluster_sym[f"{la}<>{lb}"] = (fwd + rev) / 2
+
+    best_label = max(cluster_internal_avg, key=cluster_internal_avg.get)
+    worst_pair_key = min(inter_cluster_sym, key=inter_cluster_sym.get) if inter_cluster_sym else None
+    n_tensions = sum(1 for v in inter_cluster_sym.values() if v < -0.3)
+
+    # -------------------------------------------------------------------
+    # Polarization per participant
+    # -------------------------------------------------------------------
+    polarization = []
+    for name in active_names:
+        idx = name_to_idx[name]
+        incoming = [score_mat[j][idx] for j in range(n_active) if j != idx]
+        avg_in = sum(incoming) / len(incoming) if incoming else 0
+        std_in = (sum((x - avg_in) ** 2 for x in incoming) / len(incoming)) ** 0.5 if incoming else 0
+        n_contras = sum(1 for c in contradictions_list if c.get("actor") == name or c.get("target") == name)
+
+        # Top love / hate
+        named_incoming = [(active_names[j], score_mat[j][idx]) for j in range(n_active) if j != idx]
+        top_love = sorted(named_incoming, key=lambda x: -x[1])[:3]
+        top_hate = sorted(named_incoming, key=lambda x: x[1])[:3]
+
+        # Positive received total
+        pos_received = sum(v for v in incoming if v > 0)
+
+        polarization.append({
+            "name": name,
+            "grupo": participant_info.get(name, {}).get("grupo", "?"),
+            "cluster": cluster_of.get(name, 0),
+            "avg_received": round(avg_in, 4),
+            "std_received": round(std_in, 4),
+            "contradictions": n_contras,
+            "pos_received": round(pos_received, 4),
+            "top_love": [{"name": n, "score": round(s, 2)} for n, s in top_love],
+            "top_hate": [{"name": n, "score": round(s, 2)} for n, s in top_hate],
+        })
+
+    # -------------------------------------------------------------------
+    # Build output payload
+    # -------------------------------------------------------------------
+    communities_out = []
+    for label in sorted(cluster_members):
+        members = cluster_members[label]
+        from collections import Counter as _Counter
+        groups = _Counter(participant_info.get(m, {}).get("grupo", "?") for m in members)
+
+        # External best/worst
+        best_ext = None
+        worst_ext = None
+        for other in sorted(cluster_members):
+            if other == label:
+                continue
+            key = f"{min(label,other)}<>{max(label,other)}"
+            val = inter_cluster_sym.get(key, 0)
+            if best_ext is None or val > best_ext["score"]:
+                best_ext = {"label": other, "name": cluster_names[other], "score": round(val, 4)}
+            if worst_ext is None or val < worst_ext["score"]:
+                worst_ext = {"label": other, "name": cluster_names[other], "score": round(val, 4)}
+
+        communities_out.append({
+            "label": label,
+            "name": cluster_names[label],
+            "color": cluster_colors[label],
+            "members": members,
+            "group_composition": dict(groups.most_common()),
+            "cohesion": round(cluster_internal_avg[label], 4),
+            "best_external": best_ext,
+            "worst_external": worst_ext,
+        })
+
+    inter_cluster_out = []
+    for key, val in sorted(inter_cluster_sym.items()):
+        la, lb = [int(x) for x in key.split("<>")]
+        fwd_key = f"{la}->{lb}"
+        rev_key = f"{lb}->{la}"
+        # Vote alignment between clusters
+        idx_a = [name_to_idx[m] for m in cluster_members[la]]
+        idx_b = [name_to_idx[m] for m in cluster_members[lb]]
+        cross_vote = [vote_align[a][b] for a in idx_a for b in idx_b if vote_participated[a][b] > 0]
+        avg_vote_align = sum(cross_vote) / len(cross_vote) if cross_vote else None
+
+        inter_cluster_out.append({
+            "cluster_a": la,
+            "cluster_b": lb,
+            "name_a": cluster_names[la],
+            "name_b": cluster_names[lb],
+            "score_sym": round(val, 4),
+            "score_a_to_b": round(inter_cluster_directed.get(fwd_key, 0), 4),
+            "score_b_to_a": round(inter_cluster_directed.get(rev_key, 0), 4),
+            "vote_alignment": round(avg_vote_align, 4) if avg_vote_align is not None else None,
+        })
+
+    # Score and vote alignment as ordered lists (cluster-ordered)
+    cluster_order = []
+    for label in sorted(cluster_members):
+        members = cluster_members[label]
+        member_scores = []
+        for m in members:
+            idx_m = name_to_idx[m]
+            avg_in = np.mean([sym_mat[name_to_idx[o]][idx_m] for o in members if o != m]) if len(members) > 1 else 0
+            member_scores.append((m, float(avg_in)))
+        member_scores.sort(key=lambda x: -x[1])
+        cluster_order.extend([m for m, _ in member_scores])
+
+    ordered_indices = [name_to_idx[n] for n in cluster_order]
+    sym_ordered = [[round(sym_mat[i][j], 4) for j in ordered_indices] for i in ordered_indices]
+    vote_ordered = [[round(vote_align[i][j], 4) for j in ordered_indices] for i in ordered_indices]
+
+    return {
+        "_metadata": {
+            "generated_at": meta.get("generated_at", ""),
+            "date": meta.get("date", ""),
+            "week": meta.get("week", 0),
+            "reference_date": meta.get("reference_date_daily", ""),
+            "n_active": n_active,
+            "n_clusters": n_clusters,
+            "n_paredoes": n_paredoes,
+            "n_contradictions": len(contradictions_list),
+            "n_tensions": n_tensions,
+            "best_cohesion": {"label": int(best_label), "name": cluster_names[best_label], "score": round(cluster_internal_avg[best_label], 4)},
+            "worst_rivalry": {
+                "key": worst_pair_key,
+                "score": round(inter_cluster_sym[worst_pair_key], 4),
+                "text": f"{cluster_names[int(worst_pair_key.split('<>')[0])]} vs {cluster_names[int(worst_pair_key.split('<>')[1])]}"
+            } if worst_pair_key else None,
+        },
+        "active_names": active_names,
+        "cluster_order": cluster_order,
+        "communities": communities_out,
+        "inter_cluster": inter_cluster_out,
+        "polarization": polarization,
+        "score_matrix_ordered": sym_ordered,
+        "vote_matrix_ordered": vote_ordered,
+    }
+
+
 def write_json(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -2219,6 +2529,10 @@ def build_derived_data():
     write_json(DERIVED_DIR / "plant_index.json", plant_index)
     write_json(DERIVED_DIR / "relations_scores.json", relations_scores)
     write_json(DERIVED_DIR / "prova_rankings.json", prova_rankings)
+
+    clusters_data = build_clusters_data(relations_scores, participants_index, paredoes)
+    if clusters_data:
+        write_json(DERIVED_DIR / "clusters_data.json", clusters_data)
 
     write_json(DERIVED_DIR / "validation.json", {
         "_metadata": {"generated_at": now, "source": "manual_events"},

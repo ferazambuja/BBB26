@@ -1,6 +1,6 @@
 ---
 title: "BBB 26 — Clusters de Afinidade"
-subtitle: "Laboratório experimental: análise de agrupamentos e padrões de relacionamento"
+subtitle: "Comunidades, blocos de votação e dinâmica de grupos"
 lang: pt-BR
 format:
   html:
@@ -10,287 +10,476 @@ execute:
   warning: false
 ---
 
-::: {.callout-warning}
-## Página Experimental
-
-Esta página contém análises experimentais de clustering. Os algoritmos e visualizações estão em desenvolvimento e podem mudar.
-:::
-
 ```{python}
 #| label: setup
 #| include: false
 
 import json
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import seaborn as sns
-import plotly.express as px
+import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from pathlib import Path
-from collections import defaultdict, Counter
-from datetime import datetime
+from collections import Counter
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    load_snapshot, get_all_snapshots, build_reaction_matrix,
     require_clean_manual_events, setup_bbb_dark_theme,
-    REACTION_EMOJI, SENTIMENT_WEIGHTS,
-    POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
+    GROUP_COLORS,
 )
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
 
-# Clustering imports
-from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
-from scipy.spatial.distance import squareform
-
-# Configurações visuais
-plt.rcParams['figure.figsize'] = (14, 8)
-plt.rcParams['font.size'] = 11
-sns.set_theme(style="whitegrid", palette="husl")
-
-# Diretórios
-DATA_DIR = Path("data/snapshots")
-LATEST_FILE = Path("data/latest.json")
-
-MEMBER_OF = {}
+import networkx as nx
 ```
 
 ```{python}
 #| label: load-data
-
-# Carregar todos os snapshots
-all_snapshot_files = get_all_snapshots()
-snapshots = []
-for fp, date_str in all_snapshot_files:
-    participants, metadata = load_snapshot(fp)
-    snapshots.append({
-        'filepath': fp,
-        'date': date_str,
-        'timestamp': fp.stem,
-        'participants': participants,
-        'metadata': metadata
-    })
-
-all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
-
-for snap in snapshots:
-    for p in snap['participants']:
-        name = p['name']
-        if name not in MEMBER_OF:
-            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
-
-latest = snapshots[-1]
-latest_matrix = all_matrices[-1]
-```
-
-# Clustering por Sentimento Mútuo
-
-Agrupamento hierárquico baseado em sentimento mútuo entre participantes. Participantes no mesmo cluster tendem a se dar bem entre si.
-
-```{python}
-#| label: build-matrices
 #| include: false
 
-# Build sentiment matrix for current snapshot
-active_cluster = sorted([p['name'] for p in latest['participants']
-                         if not p.get('characteristics', {}).get('eliminated')])
-n_clust = len(active_cluster)
-name_to_idx_clust = {name: i for i, name in enumerate(active_cluster)}
+# ══════════════════════════════════════════════════════════════════════════════
+# DATA LOADING — all precomputed by build_derived_data.py
+# ══════════════════════════════════════════════════════════════════════════════
 
-sent_mat = np.zeros((n_clust, n_clust))
-for (giver, receiver), rxn in latest_matrix.items():
-    if giver in name_to_idx_clust and receiver in name_to_idx_clust:
-        i, j = name_to_idx_clust[giver], name_to_idx_clust[receiver]
-        sent_mat[i, j] = SENTIMENT_WEIGHTS.get(rxn, 0)
+with open("data/derived/clusters_data.json") as f:
+    clusters = json.load(f)
 
-# Mutual sentiment matrix
-mutual_mat = (sent_mat + sent_mat.T) / 2
+with open("data/derived/relations_scores.json") as f:
+    rel_data = json.load(f)
 
-# Distance matrix (higher sentiment = lower distance)
-dist_mat = 2 - mutual_mat
-np.fill_diagonal(dist_mat, 0)
+with open("data/derived/participants_index.json") as f:
+    participants_index = json.load(f)
 
-# Hierarchical clustering
-condensed = squareform(dist_mat)
-Z = linkage(condensed, method='ward')
+# --- Metadata ---
+meta = clusters["_metadata"]
+ref_date = meta["reference_date"]
+current_week = meta["week"]
+n_active = meta["n_active"]
+n_clusters = meta["n_clusters"]
+n_paredoes = meta["n_paredoes"]
+n_contradictions = meta["n_contradictions"]
+n_tensions = meta["n_tensions"]
+best_cohesion = meta["best_cohesion"]
+worst_rivalry = meta["worst_rivalry"]
+
+# --- Precomputed structures ---
+active_names = clusters["active_names"]
+cluster_order = clusters["cluster_order"]
+communities = clusters["communities"]
+inter_cluster = clusters["inter_cluster"]
+polarization = clusters["polarization"]
+score_matrix_ordered = np.array(clusters["score_matrix_ordered"])
+vote_matrix_ordered = np.array(clusters["vote_matrix_ordered"])
+
+# --- Voting blocs + contradictions from relations_scores ---
+voting_blocs = rel_data.get("voting_blocs", [])
+contradictions_list = rel_data.get("contradictions", {}).get("vote_vs_queridometro", [])
+
+# --- Participant info ---
+PARTICIPANT_INFO = {}
+AVATARS = {}
+for p in participants_index["participants"]:
+    PARTICIPANT_INFO[p["name"]] = {
+        "grupo": p["grupo"],
+        "avatar": p.get("avatar", ""),
+        "active": p["active"],
+    }
+    if p.get("avatar"):
+        AVATARS[p["name"]] = p["avatar"]
+
+# --- Rebuild lookup dicts from precomputed communities ---
+name_to_idx = {name: i for i, name in enumerate(active_names)}
+cluster_of = {}
+cluster_members = {}
+cluster_names = {}
+cluster_colors = {}
+cluster_cohesion = {}
+for comm in communities:
+    label = comm["label"]
+    cluster_members[label] = comm["members"]
+    cluster_names[label] = comm["name"]
+    cluster_colors[label] = comm["color"]
+    cluster_cohesion[label] = comm["cohesion"]
+    for m in comm["members"]:
+        cluster_of[m] = label
+
+# --- Rebuild directed score matrix (for network graph + polarizer cards) ---
+pairs_daily = rel_data["pairs_daily"]
+score_mat = np.zeros((n_active, n_active))
+for src, targets in pairs_daily.items():
+    if src not in name_to_idx:
+        continue
+    i = name_to_idx[src]
+    for tgt, entry in targets.items():
+        if tgt not in name_to_idx:
+            continue
+        j = name_to_idx[tgt]
+        score_mat[i, j] = entry["score"]
+
+sym_mat = (score_mat + score_mat.T) / 2
 ```
 
-## Avaliação de k (Silhouette Score)
+```{python}
+#| label: destaques
+#| output: asis
 
-O silhouette score mede quão bem cada participante se encaixa no seu cluster. Valores mais altos indicam clusters mais bem definidos.
+# ══════════════════════════════════════════════════════════════════════════════
+# DESTAQUES - Key highlights callout
+# ══════════════════════════════════════════════════════════════════════════════
+
+highlights = []
+highlights.append(f"Louvain detectou **{n_clusters} comunidades** entre {n_active} participantes ativos")
+highlights.append(f"Comunidade mais coesa: **{best_cohesion['name']}** (sentimento médio {best_cohesion['score']:+.2f})")
+if worst_rivalry:
+    highlights.append(f"Maior rivalidade entre clusters: **{worst_rivalry['text']} ({worst_rivalry['score']:+.2f})**")
+if n_contradictions > 0:
+    highlights.append(f"**{n_contradictions}** contradições voto vs. queridômetro detectadas")
+
+print(f'''
+<div style="background: #2a2a2a; border-left: 4px solid #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
+<div style="font-weight: 700; margin-bottom: 0.5rem;">Destaques — Semana {current_week}</div>
+<ul style="margin: 0; padding-left: 1.2rem;">
+''')
+for h in highlights:
+    print(f"<li>{h}</li>")
+print("</ul></div>")
+```
 
 ```{python}
-#| label: silhouette-evaluation
+#| label: kpi-boxes
+#| output: asis
 
-from sklearn.metrics import silhouette_score
+# ══════════════════════════════════════════════════════════════════════════════
+# KPI VALUE BOXES
+# ══════════════════════════════════════════════════════════════════════════════
 
-k_range = range(2, min(8, n_clust))
-scores = []
+overall_cohesion = np.mean([c["cohesion"] for c in communities])
 
-for k in k_range:
-    cluster_labels = fcluster(Z, k, criterion='maxclust')
-    if len(set(cluster_labels)) > 1:  # Need at least 2 clusters
-        score = silhouette_score(dist_mat, cluster_labels, metric='precomputed')
-        scores.append({'k': k, 'score': score})
+print(f'''
+<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
 
-df_scores = pd.DataFrame(scores)
-optimal_k = df_scores.loc[df_scores['score'].idxmax(), 'k'] if not df_scores.empty else 4
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_clusters}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Comunidades</div>
+</div>
 
-# Bar chart of scores
-fig = go.Figure(go.Bar(
-    x=df_scores['k'],
-    y=df_scores['score'],
-    marker_color=['#00bc8c' if k == optimal_k else '#3498db' for k in df_scores['k']],
-    text=[f"{s:.3f}" for s in df_scores['score']],
-    textposition='outside'
-))
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{overall_cohesion:+.2f}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Coesão Média</div>
+</div>
+
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_tensions}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Tensões</div>
+</div>
+
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_contradictions}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Contradições</div>
+</div>
+
+</div>
+
+<p class="text-muted small" style="margin-top: 0.3rem;">Baseado em scores compostos (queridômetro + votos + eventos de poder + Sincerão + VIP). Referência: {ref_date}.</p>
+''')
+```
+
+# Comunidades por Sentimento
+
+Comunidades detectadas pelo algoritmo Louvain sobre o grafo de afinidades compostas. Participantes no mesmo grupo tendem a ter sentimento mútuo positivo.
+
+```{python}
+#| label: network-graph
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NETWORK GRAPH — nodes colored by cluster, edges by score sign
+# Layout is a visualization concern, computed here with networkx spring_layout
+# ══════════════════════════════════════════════════════════════════════════════
+
+G_viz = nx.Graph()
+for name in active_names:
+    grupo = PARTICIPANT_INFO[name]["grupo"]
+    cl = cluster_of[name]
+    G_viz.add_node(name, group=grupo, cluster=cl)
+
+# Add edges where |sym_score| > 0.5
+for i, a in enumerate(active_names):
+    for j, b in enumerate(active_names):
+        if i >= j:
+            continue
+        w = sym_mat[i, j]
+        if abs(w) > 0.5:
+            G_viz.add_edge(a, b, weight=w)
+
+pos = nx.spring_layout(G_viz, k=2.5, iterations=80, seed=42)
+
+# Edge traces: positive (green) and negative (red)
+edge_traces = []
+for edge_type, color, dash, legend_name in [
+    ('positive', '#2ca02c', 'solid', 'Afinidade (score > 0.5)'),
+    ('negative', '#d62728', 'dash', 'Tensão (score < -0.5)')
+]:
+    edge_x, edge_y = [], []
+    for u, v, data in G_viz.edges(data=True):
+        w = data['weight']
+        if edge_type == 'positive' and w <= 0:
+            continue
+        if edge_type == 'negative' and w >= 0:
+            continue
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    if edge_x:
+        edge_traces.append(go.Scatter(
+            x=edge_x, y=edge_y,
+            line=dict(width=1.5, color=color, dash=dash),
+            hoverinfo='none',
+            mode='lines',
+            name=legend_name,
+            showlegend=True
+        ))
+
+# Convex hull shading per cluster
+hull_traces = []
+from scipy.spatial import ConvexHull
+
+for label, members in cluster_members.items():
+    if len(members) < 3:
+        continue
+    pts = np.array([pos[m] for m in members])
+    try:
+        hull = ConvexHull(pts)
+        hull_pts = pts[hull.vertices]
+        hull_pts = np.vstack([hull_pts, hull_pts[0]])
+        centroid = pts.mean(axis=0)
+        expanded = centroid + 1.15 * (hull_pts - centroid)
+        color_hex = cluster_colors[label].lstrip('#')
+        r, g, b = int(color_hex[:2], 16), int(color_hex[2:4], 16), int(color_hex[4:], 16)
+        hull_traces.append(go.Scatter(
+            x=expanded[:, 0], y=expanded[:, 1],
+            fill='toself',
+            fillcolor=f'rgba({r},{g},{b},0.08)',
+            line=dict(color=f'rgba({r},{g},{b},0.3)', width=1, dash='dot'),
+            mode='lines',
+            name=cluster_names[label],
+            showlegend=True,
+            hoverinfo='skip'
+        ))
+    except Exception:
+        pass
+
+# Use precomputed pos_received from polarization data
+pol_lookup = {p["name"]: p for p in polarization}
+
+# Node trace
+node_x = [pos[n][0] for n in active_names if n in pos]
+node_y = [pos[n][1] for n in active_names if n in pos]
+nodes_in_graph = [n for n in active_names if n in pos]
+
+node_colors_list = [cluster_colors[cluster_of[n]] for n in nodes_in_graph]
+node_sizes = [max(12, min(40, 15 + pol_lookup.get(n, {}).get("pos_received", 0) * 3)) for n in nodes_in_graph]
+
+node_trace = go.Scatter(
+    x=node_x, y=node_y,
+    mode='markers+text',
+    text=[n.split()[0] for n in nodes_in_graph],
+    textposition='top center',
+    textfont=dict(size=9),
+    marker=dict(size=node_sizes, color=node_colors_list, line=dict(width=1.5, color='white')),
+    hovertemplate='%{hovertext}<extra></extra>',
+    hovertext=[
+        f"<b>{n}</b><br>"
+        f"Grupo: {PARTICIPANT_INFO[n]['grupo']}<br>"
+        f"Cluster: {cluster_names[cluster_of[n]]}<br>"
+        f"Sentimento recebido: {pol_lookup.get(n, {}).get('pos_received', 0):+.1f}"
+        for n in nodes_in_graph
+    ],
+    showlegend=False
+)
+
+fig = go.Figure(data=hull_traces + edge_traces + [node_trace])
 
 fig.update_layout(
-    title=f"Silhouette Score por Número de Clusters (Ótimo: k={int(optimal_k)})",
-    xaxis_title="Número de Clusters (k)",
-    yaxis_title="Silhouette Score",
-    height=400,
-    xaxis=dict(tickmode='linear', dtick=1)
+    title=f"Grafo de Comunidades — {ref_date}",
+    height=700,
+    showlegend=True,
+    legend=dict(x=0, y=-0.1, orientation='h'),
+    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    annotations=[
+        dict(text="Tamanho do nó = sentimento positivo recebido | Cor = comunidade | Arestas: verde = afinidade, vermelho = tensão",
+             xref="paper", yref="paper", x=0.5, y=-0.08, showarrow=False, font=dict(size=10))
+    ]
 )
 
 fig.show()
 ```
 
+## Perfil das Comunidades
+
 ```{python}
-#| label: optimal-info
+#| label: community-cards
 #| output: asis
 
-print(f"""
-<div class="alert alert-info">
-<strong>Resultado:</strong> O algoritmo sugere <strong>k={int(optimal_k)}</strong> clusters como a melhor divisão
-(silhouette score: {df_scores[df_scores['k']==optimal_k]['score'].values[0]:.3f}).
-</div>
-""")
+# ══════════════════════════════════════════════════════════════════════════════
+# COMMUNITY PROFILE CARDS — all data from precomputed communities
+# ══════════════════════════════════════════════════════════════════════════════
+
+for comm in communities:
+    label = comm["label"]
+    name = comm["name"]
+    color = comm["color"]
+    members = comm["members"]
+    cohesion = comm["cohesion"]
+    best_ext = comm["best_external"]
+    worst_ext = comm["worst_external"]
+    comp = comm["group_composition"]
+
+    comp_str = ", ".join(f"{cnt} {g}" for g, cnt in comp.items())
+
+    # Member avatars
+    avatar_html = ""
+    for m in members:
+        avatar_url = AVATARS.get(m, "")
+        short = m.split()[0]
+        if avatar_url:
+            avatar_html += f'<img src="{avatar_url}" title="{m}" style="width:36px;height:36px;border-radius:50%;margin:2px;border:2px solid {color};" />'
+        else:
+            avatar_html += f'<div style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#444;text-align:center;line-height:36px;margin:2px;border:2px solid {color};font-size:12px;">{short[0]}</div>'
+
+    ext_alliance = f"{best_ext['name']} ({best_ext['score']:+.2f})" if best_ext else "—"
+    ext_rivalry = f"{worst_ext['name']} ({worst_ext['score']:+.2f})" if worst_ext else "—"
+
+    card_html = f'<div style="background:#2a2a2a;border-left:4px solid {color};border-radius:8px;padding:1rem;margin:1rem 0;">'
+    card_html += f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">'
+    card_html += f'<div style="display:inline;font-size:1.2rem;font-weight:700;color:{color};">{name}</div>'
+    card_html += f' <div style="display:inline;font-size:0.85rem;color:#aaa;margin-left:0.5rem;">{len(members)} membros · {comp_str}</div>'
+    card_html += f' <div style="display:inline;background:#333;padding:2px 8px;border-radius:12px;font-size:0.75rem;margin-left:auto;">Coesão: {cohesion:+.2f}</div>'
+    card_html += '</div>'
+    card_html += f'<div style="margin:0.6rem 0;">{avatar_html}</div>'
+    card_html += f'<div style="font-size:0.85rem;color:#ccc;">🤝 Aliança externa: <b>{ext_alliance}</b> &nbsp;·&nbsp; ⚔️ Rivalidade externa: <b>{ext_rivalry}</b></div>'
+    card_html += '</div>'
+    print(card_html)
 ```
 
-## Grupos Identificados
+# Mapa de Afinidade
+
+Heatmap de sentimento composto (queridômetro + eventos + votos) entre todos os participantes, ordenado por comunidade. Linhas brancas separam as comunidades.
 
 ```{python}
-#| label: cluster-groups
-#| output: asis
+#| label: affinity-heatmap
 
-# Use optimal k
-clusters = fcluster(Z, int(optimal_k), criterion='maxclust')
+# ══════════════════════════════════════════════════════════════════════════════
+# HEATMAP — precomputed cluster-ordered score matrix
+# ══════════════════════════════════════════════════════════════════════════════
 
-# Build cluster data
-cluster_data = defaultdict(list)
-for name, cluster in zip(active_cluster, clusters):
-    group = MEMBER_OF.get(name, '?')
-    cluster_data[cluster].append((name, group))
+short_names = [n.split()[0] if len(n.split()[0]) <= 10 else n.split()[0][:8] + '.' for n in cluster_order]
 
-# Calculate inter-cluster sentiment
-cluster_indices = defaultdict(list)
-for i, (name, cluster) in enumerate(zip(active_cluster, clusters)):
-    cluster_indices[cluster].append(i)
-
-inter_cluster_sent = {}
-for c1 in sorted(cluster_data.keys()):
-    for c2 in sorted(cluster_data.keys()):
-        if c1 >= c2:
-            continue
-        sentiments = []
-        for i in cluster_indices[c1]:
-            for j in cluster_indices[c2]:
-                sentiments.append(mutual_mat[i, j])
-        inter_cluster_sent[(c1, c2)] = np.mean(sentiments) if sentiments else 0
-
-# Display clusters
-for c in sorted(cluster_data.keys()):
-    members = cluster_data[c]
-    group_counts = Counter(g for _, g in members)
-    composition = ", ".join(f"{count} {g}" for g, count in sorted(group_counts.items(), key=lambda x: -x[1]))
-
-    member_list = ", ".join(f"**{name}**" for name, _ in members)
-    print(f"### Cluster {c} ({len(members)} membros)\n")
-    print(f"**Composição:** {composition}\n")
-    print(f"**Membros:** {member_list}\n")
-```
-
-## Dinâmica Entre Clusters
-
-```{python}
-#| label: inter-cluster
-#| output: asis
-
-rivalry_pairs = [(pair, sent) for pair, sent in inter_cluster_sent.items() if sent < -0.1]
-alliance_pairs = [(pair, sent) for pair, sent in inter_cluster_sent.items() if sent > 0.3]
-
-if rivalry_pairs:
-    print("### Tensões\n")
-    for (c1, c2), sent in sorted(rivalry_pairs, key=lambda x: x[1]):
-        print(f"- Cluster {c1} vs Cluster {c2}: sentimento médio {sent:+.2f} ⚔️")
-    print("")
-
-if alliance_pairs:
-    print("### Afinidades\n")
-    for (c1, c2), sent in sorted(alliance_pairs, key=lambda x: -x[1]):
-        print(f"- Cluster {c1} + Cluster {c2}: sentimento médio {sent:+.2f} ❤️")
-    print("")
-
-if not rivalry_pairs and not alliance_pairs:
-    print("*Clusters relativamente independentes — sem tensões ou afinidades fortes.*")
-```
-
-## Mapa de Afinidade (Heatmap por Cluster)
-
-```{python}
-#| label: cluster-heatmap
-
-# Create a reordered heatmap by cluster
-cluster_order = []
-for c in sorted(cluster_data.keys()):
-    cluster_order.extend([name for name, _ in cluster_data[c]])
-
-# Reorder matrix
-ordered_indices = [name_to_idx_clust[name] for name in cluster_order]
-reordered_mat = mutual_mat[np.ix_(ordered_indices, ordered_indices)]
-
-# Create annotations showing cluster boundaries
+# Cluster boundary lines
 shapes = []
 cumsum = 0
-cluster_sizes = [len(cluster_data[c]) for c in sorted(cluster_data.keys())]
-for size in cluster_sizes[:-1]:
+for comm in communities:
+    size = len(comm["members"])
     cumsum += size
-    shapes.append(dict(type='line', x0=-0.5, x1=n_clust-0.5, y0=cumsum-0.5, y1=cumsum-0.5,
-                       line=dict(color='white', width=2)))
-    shapes.append(dict(type='line', x0=cumsum-0.5, x1=cumsum-0.5, y0=-0.5, y1=n_clust-0.5,
-                       line=dict(color='white', width=2)))
+    if cumsum < n_active:
+        shapes.append(dict(type='line', x0=-0.5, x1=n_active-0.5, y0=cumsum-0.5, y1=cumsum-0.5,
+                           line=dict(color='white', width=2)))
+        shapes.append(dict(type='line', x0=cumsum-0.5, x1=cumsum-0.5, y0=-0.5, y1=n_active-0.5,
+                           line=dict(color='white', width=2)))
 
-# Short names for display
-short_names_clust = [name.split()[0] if len(name.split()[0]) <= 10 else name.split()[0][:8] + '.'
-                     for name in cluster_order]
+vmax = max(3, float(np.max(np.abs(score_matrix_ordered))))
 
 fig = go.Figure(go.Heatmap(
-    z=reordered_mat,
-    x=short_names_clust,
-    y=short_names_clust,
+    z=score_matrix_ordered.tolist(),
+    x=short_names,
+    y=short_names,
     colorscale=[
-        [0, '#d62728'],
-        [0.25, '#ff7f0e'],
-        [0.5, '#7f7f7f'],
-        [0.75, '#98df8a'],
-        [1, '#2ca02c']
+        [0, '#8b0000'],
+        [0.25, '#d62728'],
+        [0.45, '#7f7f7f'],
+        [0.55, '#7f7f7f'],
+        [0.75, '#2ca02c'],
+        [1, '#006400']
     ],
-    zmin=-1, zmax=1,
-    hovertemplate='%{y} → %{x}<br>Sentimento mútuo: %{z:+.2f}<extra></extra>',
-    colorbar=dict(title="Sentimento", tickvals=[-1, -0.5, 0, 0.5, 1],
-                  ticktext=['Rivalidade', 'Tensão', 'Neutro', 'Simpatia', 'Aliança'])
+    zmid=0,
+    zmin=-vmax, zmax=vmax,
+    hovertemplate='%{y} ↔ %{x}<br>Score composto: %{z:+.2f}<extra></extra>',
+    colorbar=dict(title="Score", tickformat="+.1f")
+))
+
+# Cluster label annotations at midpoints
+cumsum = 0
+annotations = []
+for comm in communities:
+    size = len(comm["members"])
+    mid = cumsum + size / 2 - 0.5
+    cumsum += size
+    annotations.append(dict(
+        x=n_active + 0.3, y=mid,
+        text=comm["name"],
+        showarrow=False,
+        font=dict(size=9, color=comm["color"]),
+        xref='x', yref='y',
+        xanchor='left'
+    ))
+
+fig.update_layout(
+    title="Mapa de Afinidade Composta (ordenado por comunidade)",
+    height=750,
+    xaxis=dict(tickangle=45, side='bottom'),
+    yaxis=dict(autorange='reversed'),
+    shapes=shapes,
+    annotations=annotations,
+    margin=dict(r=140),
+)
+
+fig.show()
+```
+
+# Blocos de Votação
+
+::: {.callout-note}
+Blocos de votação se tornam mais confiáveis com mais paredões. Os padrões abaixo são indicativos, não definitivos.
+:::
+
+```{python}
+#| label: vote-caveat
+#| output: asis
+print(f'''
+<div style="background: #2a2a2a; border-left: 4px solid #3498db; border-radius: 8px; padding: 0.6rem 1rem; margin: 0.5rem 0; font-size: 0.9rem;">
+ℹ️ Dados baseados em <b>{n_paredoes} paredões</b> finalizados. Os blocos abaixo mostram quem votou no mesmo alvo em cada semana.
+</div>
+''')
+```
+
+## Matriz de Alinhamento de Votos
+
+```{python}
+#| label: vote-alignment-heatmap
+
+# ══════════════════════════════════════════════════════════════════════════════
+# VOTE ALIGNMENT MATRIX — precomputed cluster-ordered vote matrix
+# ══════════════════════════════════════════════════════════════════════════════
+
+vote_display = vote_matrix_ordered.copy()
+np.fill_diagonal(vote_display, np.nan)
+
+fig = go.Figure(go.Heatmap(
+    z=vote_display.tolist(),
+    x=short_names,
+    y=short_names,
+    colorscale=[[0, '#1a1a2e'], [0.5, '#16537e'], [1, '#2ecc71']],
+    zmin=0, zmax=1,
+    hovertemplate='%{y} & %{x}<br>Alinhamento: %{z:.0%}<extra></extra>',
+    colorbar=dict(title="Alinhamento", tickformat=".0%")
 ))
 
 fig.update_layout(
-    title="Mapa de Afinidade (ordenado por cluster)",
-    height=750,
+    title="Alinhamento de Votos (fração de paredões com mesmo alvo)",
+    height=700,
     xaxis=dict(tickangle=45, side='bottom'),
     yaxis=dict(autorange='reversed'),
     shapes=shapes,
@@ -299,47 +488,303 @@ fig.update_layout(
 fig.show()
 ```
 
-## Participantes Mais Polarizadores
+## Blocos de Votação por Semana
 
 ```{python}
-#| label: polarizing
+#| label: voting-blocs
 #| output: asis
 
-# Most negativity given
-neg_given = [(active_cluster[i], (sent_mat[i, :] < 0).sum()) for i in range(n_clust)]
-top_givers = sorted(neg_given, key=lambda x: -x[1])[:3]
+# ══════════════════════════════════════════════════════════════════════════════
+# VOTING BLOCS from precomputed data (relations_scores.json)
+# ══════════════════════════════════════════════════════════════════════════════
 
-# Most negativity received
-neg_received = [(active_cluster[i], (sent_mat[:, i] < 0).sum()) for i in range(n_clust)]
-top_targets = sorted(neg_received, key=lambda x: -x[1])[:3]
+if not voting_blocs:
+    print('<p class="text-muted">Nenhum bloco de votação registrado.</p>')
+else:
+    # Count multi-bloc voters
+    voter_bloc_count = Counter()
+    for bloc in voting_blocs:
+        for v in bloc.get("voters", []):
+            voter_bloc_count[v] += 1
+    multi_bloc = {v for v, c in voter_bloc_count.items() if c > 1}
 
-# Most mutual enemies
-enemy_counts = [(active_cluster[i], (mutual_mat[i, :] < 0).sum()) for i in range(n_clust)]
-top_enemies = sorted(enemy_counts, key=lambda x: -x[1])[:3]
+    for bloc in sorted(voting_blocs, key=lambda b: (b.get("week", 0), -b.get("count", 0))):
+        week = bloc.get("week", "?")
+        target = bloc.get("target", "?")
+        voters = bloc.get("voters", [])
+        count = bloc.get("count", len(voters))
 
-print(f"**Mais negatividade dada:** {', '.join(f'{name} ({count})' for name, count in top_givers)}\n")
-print(f"**Mais negatividade recebida:** {', '.join(f'{name} ({count})' for name, count in top_targets)}\n")
-print(f"**Mais rivalidades mútuas:** {', '.join(f'{name} ({count})' for name, count in top_enemies)}\n")
+        voter_tags = []
+        for v in voters:
+            short = v.split()[0]
+            if v in multi_bloc:
+                voter_tags.append(f'<b style="background:#f39c12;color:#000;padding:1px 6px;border-radius:10px;font-size:0.8rem;font-weight:600;">{short}</b>')
+            else:
+                voter_tags.append(f'<b style="background:#444;padding:1px 6px;border-radius:10px;font-size:0.8rem;font-weight:normal;">{short}</b>')
+
+        bloc_html = f'<div style="background:#2a2a2a;border-left:4px solid #e74c3c;border-radius:8px;padding:0.8rem 1rem;margin:0.5rem 0;">'
+        bloc_html += f'<div style="font-weight:600;">Semana {week} — Alvo: <b style="color:#e74c3c;">{target}</b> <b style="color:#888;">({count} votos)</b></div>'
+        bloc_html += f'<div style="margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:4px;">{" ".join(voter_tags)}</div>'
+        bloc_html += '</div>'
+        print(bloc_html)
+
+    if multi_bloc:
+        multi_names = ", ".join(f"**{v.split()[0]}**" for v in sorted(multi_bloc))
+        print(f'\n<p class="text-muted small" style="margin-top: 0.5rem;">Votantes em múltiplos blocos (destaque amarelo): {multi_names}</p>')
 ```
 
----
+## Contradições Voto vs. Queridômetro
 
-# Melhorias Futuras
+Participantes que deram reação positiva no queridômetro mas votaram contra o mesmo alvo — ou vice-versa. Essas contradições revelam estratégia ou mudança de opinião.
 
-Esta página é experimental. Melhorias planejadas:
+```{python}
+#| label: contradictions-table
+#| output: asis
 
-- [ ] **Auto-naming de clusters** — Nomear clusters por característica dominante (ex: "Núcleo Veterano")
-- [ ] **Temporal tracking** — Acompanhar como clusters mudam ao longo do tempo
-- [ ] **Vote-based clustering** — Agrupar por padrões de votação (após 3+ paredões)
-- [ ] **Dendrograma interativo** — Visualização da árvore hierárquica
+# ══════════════════════════════════════════════════════════════════════════════
+# CONTRADICTIONS TABLE (from relations_scores.json)
+# ══════════════════════════════════════════════════════════════════════════════
 
----
+if not contradictions_list:
+    print('<p class="text-muted">Nenhuma contradição voto vs. queridômetro detectada.</p>')
+else:
+    sorted_contras = sorted(contradictions_list, key=lambda c: -(c.get("queridometro", 0) - c.get("vote_weight", 0)))
 
-<div class="alert alert-secondary">
-<strong>Navegação</strong>
-<ul class="mb-0">
-  <li><a href="index.html">📊 Painel</a> — Estado atual das reações</li>
-  <li><a href="trajetoria.html">📈 Trajetória</a> — Evolução ao longo do tempo</li>
-  <li><a href="paredao.html">🗳️ Paredão</a> — Paredão atual</li>
-</ul>
-</div>
+    print('''
+<div style="overflow-x: auto; margin: 1rem 0;">
+<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+<thead>
+<tr style="border-bottom: 2px solid #555;">
+  <th style="padding: 8px; text-align: left;">Ator</th>
+  <th style="padding: 8px; text-align: left;">Alvo</th>
+  <th style="padding: 8px; text-align: center;">Queridômetro</th>
+  <th style="padding: 8px; text-align: center;">Voto</th>
+  <th style="padding: 8px; text-align: center;">Tipo</th>
+  <th style="padding: 8px; text-align: center;">Semana</th>
+</tr>
+</thead>
+<tbody>
+''')
+
+    for c in sorted_contras:
+        actor = c.get("actor", "?")
+        target = c.get("target", "?")
+        qscore = c.get("queridometro", 0)
+        vote_w = c.get("vote_weight", 0)
+        kind = c.get("vote_kind", "?")
+        week = c.get("week", "?")
+
+        severity = qscore - vote_w
+        if severity > 2.5:
+            row_color = "rgba(231,76,60,0.15)"
+        elif severity > 1.5:
+            row_color = "rgba(243,156,18,0.10)"
+        else:
+            row_color = "transparent"
+
+        qcolor = "#2ecc71" if qscore > 0 else "#e74c3c" if qscore < 0 else "#888"
+        vcolor = "#e74c3c" if vote_w < 0 else "#2ecc71" if vote_w > 0 else "#888"
+
+        print(f'''<tr style="border-bottom: 1px solid #333; background: {row_color};">
+  <td style="padding: 6px 8px;">{actor}</td>
+  <td style="padding: 6px 8px;">{target}</td>
+  <td style="padding: 6px 8px; text-align: center; color: {qcolor}; font-weight: 600;">{qscore:+.1f}</td>
+  <td style="padding: 6px 8px; text-align: center; color: {vcolor}; font-weight: 600;">{vote_w:+.1f}</td>
+  <td style="padding: 6px 8px; text-align: center;">{kind}</td>
+  <td style="padding: 6px 8px; text-align: center;">{week}</td>
+</tr>''')
+
+    print('</tbody></table></div>')
+```
+
+# Dinâmica Entre Comunidades
+
+```{python}
+#| label: inter-cluster-heatmap
+
+# ══════════════════════════════════════════════════════════════════════════════
+# INTER-CLUSTER HEATMAP — precomputed inter-cluster scores
+# ══════════════════════════════════════════════════════════════════════════════
+
+sorted_labels = sorted(cluster_members.keys())
+n_cl = len(sorted_labels)
+inter_mat = np.zeros((n_cl, n_cl))
+
+# Build matrix from precomputed inter_cluster data
+inter_directed_lookup = {}
+for entry in inter_cluster:
+    a, b = entry["cluster_a"], entry["cluster_b"]
+    inter_directed_lookup[(a, b)] = entry["score_a_to_b"]
+    inter_directed_lookup[(b, a)] = entry["score_b_to_a"]
+
+for i, la in enumerate(sorted_labels):
+    for j, lb in enumerate(sorted_labels):
+        if la == lb:
+            inter_mat[i, j] = cluster_cohesion[la]
+        else:
+            inter_mat[i, j] = inter_directed_lookup.get((la, lb), 0)
+
+cl_names_short = [cluster_names[l] for l in sorted_labels]
+
+fig = go.Figure(go.Heatmap(
+    z=inter_mat,
+    x=cl_names_short,
+    y=cl_names_short,
+    colorscale=[
+        [0, '#8b0000'],
+        [0.35, '#d62728'],
+        [0.5, '#7f7f7f'],
+        [0.65, '#2ca02c'],
+        [1, '#006400']
+    ],
+    zmid=0,
+    text=[[f"{inter_mat[i,j]:+.2f}" for j in range(n_cl)] for i in range(n_cl)],
+    texttemplate="%{text}",
+    hovertemplate='%{y} → %{x}<br>Score médio: %{z:+.2f}<extra></extra>',
+    colorbar=dict(title="Score", tickformat="+.1f")
+))
+
+fig.update_layout(
+    title="Sentimento Médio Entre Comunidades (diagonal = coesão interna)",
+    height=400,
+    xaxis=dict(side='bottom'),
+    yaxis=dict(autorange='reversed'),
+)
+
+fig.show()
+```
+
+```{python}
+#| label: inter-cluster-narrative
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# INTER-CLUSTER NARRATIVE TEXT — precomputed data
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("### Relações Entre Comunidades\n")
+
+for entry in sorted(inter_cluster, key=lambda e: e["score_sym"]):
+    name_a = entry["name_a"]
+    name_b = entry["name_b"]
+    val = entry["score_sym"]
+    fwd = entry["score_a_to_b"]
+    rev = entry["score_b_to_a"]
+    vote_al = entry.get("vote_alignment")
+
+    if val > 0.5:
+        classification = "🤝 Aliança"
+    elif val > -0.3:
+        classification = "😐 Neutro"
+    elif val > -1.0:
+        classification = "⚡ Tensão"
+    else:
+        classification = "⚔️ Rivalidade"
+
+    vote_text = f" · Alinhamento de voto: {vote_al:.0%}" if vote_al is not None else ""
+
+    asym = abs(fwd - rev)
+    asym_note = ""
+    if asym > 0.5:
+        if fwd > rev:
+            asym_note = f" (assimetria: {name_a} mais positivo que {name_b})"
+        else:
+            asym_note = f" (assimetria: {name_b} mais positivo que {name_a})"
+
+    print(f"- **{name_a}** × **{name_b}**: {classification} ({val:+.2f}){asym_note}{vote_text}\n")
+```
+
+# Participantes Polarizadores
+
+Ranking por **dispersão** de sentimento recebido: participantes com alto desvio-padrão dividem opiniões (são amados por uns e rejeitados por outros).
+
+```{python}
+#| label: polarization-chart
+
+# ══════════════════════════════════════════════════════════════════════════════
+# POLARIZATION — precomputed dispersion data
+# ══════════════════════════════════════════════════════════════════════════════
+
+polar_df = pd.DataFrame(polarization).sort_values('std_received', ascending=True)
+
+fig = go.Figure(go.Bar(
+    y=polar_df['name'].apply(lambda n: n.split()[0]),
+    x=polar_df['std_received'],
+    orientation='h',
+    marker_color=[cluster_colors[cluster_of[n]] for n in polar_df['name']],
+    hovertemplate='<b>%{y}</b><br>Dispersão: %{x:.2f}<br>Sentimento médio: %{customdata[0]:+.2f}<br>Cluster: %{customdata[1]}<br>Contradições: %{customdata[2]}<extra></extra>',
+    customdata=list(zip(
+        polar_df['avg_received'],
+        [cluster_names[cluster_of[n]] for n in polar_df['name']],
+        polar_df['contradictions'],
+    )),
+))
+
+fig.update_layout(
+    title="Dispersão de Sentimento Recebido (mais polarizador = mais alto)",
+    height=600,
+    xaxis_title="Desvio-padrão do score recebido",
+    yaxis=dict(autorange='reversed'),
+    margin=dict(l=120),
+)
+
+fig.show()
+```
+
+```{python}
+#| label: polarizer-cards
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TOP 3 POLARIZER MINI-CARDS — precomputed data
+# ══════════════════════════════════════════════════════════════════════════════
+
+top3 = sorted(polarization, key=lambda d: -d['std_received'])[:3]
+
+print('<div style="display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0;">')
+
+for entry in top3:
+    name = entry['name']
+    avatar = AVATARS.get(name, "")
+    cl = cluster_of[name]
+
+    love_str = ", ".join(f'{e["name"].split()[0]} ({e["score"]:+.1f})' for e in entry["top_love"])
+    hate_str = ", ".join(f'{e["name"].split()[0]} ({e["score"]:+.1f})' for e in entry["top_hate"])
+
+    avatar_html = f'<img src="{avatar}" style="width:48px;height:48px;border-radius:50%;border:2px solid {cluster_colors[cl]};" />' if avatar else ""
+
+    p_html = f'<div style="flex:1 1 250px;background:#2a2a2a;border-radius:8px;padding:1rem;border-top:3px solid {cluster_colors[cl]};">'
+    p_html += f'<div style="display:flex;gap:0.7rem;align-items:center;margin-bottom:0.5rem;">{avatar_html}<div><div style="font-weight:700;">{name}</div><div style="font-size:0.8rem;color:#aaa;">{entry["grupo"]} · {cluster_names[cl]}</div></div></div>'
+    p_html += f'<div style="font-size:0.85rem;">'
+    p_html += f'<div style="color:#aaa;">Dispersão: <b>{entry["std_received"]:.2f}</b> · Média: <b>{entry["avg_received"]:+.2f}</b></div>'
+    p_html += f'<div style="margin-top:0.3rem;">💚 Mais positivos: {love_str}</div>'
+    p_html += f'<div>🔴 Mais negativos: {hate_str}</div>'
+    p_html += f'<div style="color:#f39c12;margin-top:0.2rem;">⚡ Contradições: {entry["contradictions"]}</div>'
+    p_html += '</div></div>'
+    print(p_html)
+
+print('</div>')
+```
+
+# Metodologia
+
+::: {.callout-tip collapse="true"}
+## Como funciona esta análise
+
+**Detecção de comunidades:** Algoritmo de Louvain aplicado sobre o grafo de afinidades compostas. Apenas arestas positivas (sentimento mútuo > 0) definem comunidades — a ausência de conexão positiva já indica separação.
+
+**Score composto (A → B):** Combinação de 6 sinais:
+
+- **Queridômetro** — janela móvel de 3 dias (pesos: 0.6 / 0.3 / 0.1)
+- **Eventos de poder** — indicação, contragolpe, monstro, veto, etc. (acumulam sem decay)
+- **Sincerão** — pódio e bombas
+- **VIP** — compartilhamento de grupo
+- **Votos da casa** — votos secretos e abertos
+- **Anjo** — almoço do anjo, duo, autoimunidade
+
+**Alinhamento de votos:** Fração de paredões em que dois participantes votaram no mesmo alvo (0% a 100%). Com poucos paredões, esse dado é indicativo.
+
+**Contradições:** Quando um participante dá ❤️ no queridômetro mas vota contra o mesmo alvo no paredão (ou vice-versa). Revela estratégia ou mudança rápida de opinião.
+
+**Auto-nomeação:** Comunidades são nomeadas automaticamente: >70% de um grupo → "Núcleo {Grupo}"; coesão alta (>1.5) → prefixo "Aliança"; coesão negativa → prefixo "Frente".
+:::

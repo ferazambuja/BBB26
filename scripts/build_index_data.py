@@ -684,7 +684,7 @@ def build_index_data():
         if use_relations:
             rel = relations_pairs.get(giver, {}).get(receiver)
             if rel:
-                return rel.get("week", 0)
+                return rel.get("score", 0)
         label = latest_matrix.get((giver, receiver), "")
         base = SENTIMENT_WEIGHTS.get(label, 0)
         return base + sinc_edge_mod.get((giver, receiver), 0) + vip_edge_mod.get((giver, receiver), 0)
