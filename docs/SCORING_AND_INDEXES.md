@@ -75,11 +75,32 @@ Q(A→B) = weight(reaction_label from A to B)
   - Usa a lista VIP do **primeiro dia** de cada reinado do líder (antes de novos participantes distorcerem a lista).
   - Novos entrantes que recebem VIP automático do programa (não escolha do líder) são **excluídos**.
   - Cada líder gera edges na **semana correta** (ex.: se o líder ainda aparece na API porque a próxima prova não ocorreu, o week permanece o da sua liderança real).
-- **Votos da casa** (A vota em B) — segundo ato mais forte depois da indicação direta, pois é uma tentativa deliberada de eliminar:
-  - voto **secreto**: −2.0 (conta para A→B)
-  - voto **revelado** (dedo-duro / votação aberta): −2.5 (conta para A→B)
-  - votos secretos **não alteram B→A**; só impactam quem votou.
-  - voto **revelado ao alvo**: adiciona **backlash** B→A (−1.2) porque o alvo agora sabe quem votou.
+- **Anjo dynamics** (Almoço, Duo, Não-Imunização):
+
+  | Tipo | Direção | Peso | Significado |
+  |------|---------|------|-------------|
+  | **Almoço do Anjo** | Anjo → convidado | +0.15 | Anjo escolhe 3 pessoas para almoço especial (declaração pública de afinidade) |
+  | **Duo Anjo** | Mútuo (A ↔ B) | +0.10 cada | Dupla na Prova do Anjo (colaboração; acumula se repetir) |
+  | **Não imunizou** | Aliado mais próximo → Anjo | −0.15 | Anjo autoimune tinha poder extra de imunizar, mas escolheu não usar (decepção sutil do aliado) |
+
+  - Almoço do Anjo é um sinal público — todos na casa sabem quem foi convidado.
+  - Duo é parcialmente sorte (sorteio ou contexto), mas repetição (Jonas + Sarah 2×) indica afinidade real.
+  - Não-imunizou aplica-se **apenas** quando Anjo autoimune + poder extra disponível + não usado. O aliado mais próximo é o duo partner. Quando o Anjo já imunizou alguém com o poder padrão (semana 1), a recusa do extra é menos impactante e não gera edge.
+  - Dados em `manual_events.json` → `weekly_events[].anjo`.
+
+- **Votos da casa** (A vota em B) — segundo ato mais forte depois da indicação direta, pois é uma tentativa deliberada de eliminar.
+  Quatro níveis de visibilidade, cada um com pesos diferentes:
+
+  | Tipo | A→B (voter) | B→A (backlash) | Quando usar |
+  |------|------------|----------------|-------------|
+  | **Secreto** | −2.0 | 0 | Padrão (confessionário). Alvo não sabe quem votou. |
+  | **Confissão** | −2.0 | −1.0 | Votante **escolheu** contar ao alvo. Honestidade atenua ressentimento. |
+  | **Dedo-duro** | −2.0 | −1.2 | Dinâmica do jogo **revelou** o voto. Exposição involuntária. |
+  | **Votação aberta** | −2.5 | −1.5 | Toda a casa viu. Votante **escolheu** hostilidade pública. |
+
+  - Voter→Target é −2.0 para secreto, confissão e dedo-duro — a **intenção** de eliminar é idêntica (voto foi dado no confessionário nos três casos). Votação aberta é −2.5 porque o votante **escolheu** declarar hostilidade publicamente.
+  - Votos secretos **não geram backlash** (alvo não sabe).
+  - Registro em `manual_events.json`: `confissao_voto`, `dedo_duro`, ou `votacao_aberta` no paredão. Ver `docs/MANUAL_EVENTS_GUIDE.md`.
 
 ### Dois modos de score
 - **Diário (`pairs_daily`)**: queridômetro base ancorado em **hoje** (rolling 3 dias) + todos os eventos acumulados.
@@ -99,6 +120,38 @@ For symmetric views (alliances / rivalries):
 ```
 score_mutual = 0.5 * Score(A→B) + 0.5 * Score(B→A)
 ```
+
+### Três modos de pares
+
+- **`pairs_daily`**: ativos apenas (21 participantes). Queridômetro ancorado em hoje.
+- **`pairs_paredao`**: ativos apenas. Queridômetro ancorado na formação do paredão.
+- **`pairs_all`**: todos os participantes (ativos + eliminados, exceto Henri Castelli — apenas 1 dia de dados). Cada par inclui `"active_pair": bool` (true se ambos ativos). Q_base de participantes eliminados usa seu último snapshot (`last_seen`).
+
+### Contradição voto × queridômetro
+
+Quando A dá reação positiva (Q > 0) a B mas vota para eliminar B, há uma contradição. O campo `contradictions` no JSON agrega:
+- `vote_vs_queridometro`: lista de entradas com actor, target, Q, peso do voto, semana
+- `total`, `total_vote_edges`, `rate`: totais e taxa de contradição
+- `context_notes`: notas contextuais (ex.: impacto da desistência de Pedro na semana 1)
+- Per-pair: `vote_contradiction: true` em `pairs_all` e `pairs_daily`
+
+### Impacto recebido (`received_impact`)
+
+Agregação por participante do peso total de edges recebidas (incoming):
+- `positive`: soma de edges positivas recebidas
+- `negative`: soma de edges negativas recebidas
+- `total`: soma total
+- `count`: número de edges recebidas
+
+### Blocos de votação (`voting_blocs`)
+
+Semanas com 4+ participantes votando no mesmo alvo. Cada entrada: `week`, `date`, `target`, `voters` (lista), `count`.
+
+### Anjo autoimune (`anjo_autoimune_events`)
+
+Metadado em `_metadata`: lista de semanas em que o Anjo escolheu autoimunidade (vídeo de família) em vez de imunizar outro participante. Campos: `anjo`, `week`, `date`.
+
+Além do metadado, quando o Anjo é autoimune e não usa o poder extra, uma edge `anjo_nao_imunizou` (−0.15) é gerada do aliado mais próximo (duo partner) → Anjo. Ver seção de pesos acima.
 
 ---
 
@@ -250,12 +303,13 @@ Store an optional list of **edges**:
 - `sem_podio`: −0.4
 - `planta` (plateia): −0.3
 
-**Per-pair edges (directional)**:
-- `podio slot 1`: +0.6
-- `podio slot 2`: +0.4
-- `podio slot 3`: +0.2
-- `nao_ganha`: −0.8
-- `bomba/tema`: −0.6
+**Per-pair edges (directional)** — used in `build_relations_scores()`:
+- `podio slot 1`: +0.7
+- `podio slot 2`: +0.5
+- `podio slot 3`: +0.3
+- `nao_ganha`: −1.0
+- `bomba/tema`: −0.8
+- Backlash factors: `nao_ganha` 0.3, `bomba` 0.4 (target → actor)
 
 ### Alignment score (Sincerão × Queridômetro)
 ```
@@ -320,6 +374,62 @@ Higher = more aligned; lower = contradiction.
 - `salvo_paredao` — **Venceu o Bate e Volta** (escapou do paredão). Não acumula com `nao_emparedado`.
 - `nao_eliminado_paredao` — Indicados finais que **permaneceram** após o resultado.
 - `nao_emparedado` — Participantes **ativos** na semana **fora da lista final** do paredão.
+
+---
+
+## Prova Rankings (competition performance)
+
+Per-participant ranking based on placement in each BBB26 competition. Computed in `data/derived/prova_rankings.json` from `data/provas.json`.
+
+### Competition types and multipliers
+
+| Type | Multiplier | Description |
+|------|-----------|-------------|
+| `lider` | 1.5× | Prova do Líder — highest stakes, winner leads the house |
+| `anjo` | 1.0× | Prova do Anjo — winner protects someone |
+| `bate_volta` | 0.75× | Bate e Volta — paredão escape, fewer participants |
+
+### Placement points
+
+| Position | Base Points |
+|----------|-------------|
+| 1st | 10 |
+| 2nd | 7 |
+| 3rd | 5 |
+| 4th | 4 |
+| 5th | 3 |
+| 6th | 2 |
+| 7th-8th | 1 |
+| 9th+ | 0.5 |
+| DQ | 0 |
+
+**Weighted points** = base_points × type_multiplier
+
+### Position assignment logic
+
+- **Single phase**: positions come directly from `classificacao`.
+- **Multi-phase (duo → individual)**: Phase 2 finalists get Phase 2 positions. Phase 1 non-finalists get their Phase 1 position + offset (number of Phase 2 slots).
+- **Duo phases**: both members of a duo share the duo's position.
+- **Ties**: all tied participants get the same position points.
+- **DQ**: 0 points.
+- **Excluded** (líder, lottery, medical): `null` — not counted in averages.
+- **Unknown position**: `null` — only score what we know.
+
+### Per-participant aggregation
+
+- `total_points`: sum of all weighted points
+- `avg_points`: total / participated
+- `provas_participated`: count where points ≠ null
+- `provas_available`: total provas while in the house
+- `participation_rate`: participated / available
+- `wins`: 1st place finishes
+- `top3`: top-3 finishes
+- `best_position`: best placement achieved
+
+### Data source
+
+`data/provas.json` — manual data with competition results, phases, and standings.
+Built by `build_prova_rankings()` in `scripts/build_derived_data.py`.
 
 ---
 

@@ -19,6 +19,7 @@ DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
 MANUAL_EVENTS_FILE = Path(__file__).parent.parent / "data" / "manual_events.json"
 DERIVED_DIR = Path(__file__).parent.parent / "data" / "derived"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
+PROVAS_FILE = Path(__file__).parent.parent / "data" / "provas.json"
 
 ROLES = ["Líder", "Anjo", "Monstro", "Imune", "Paredão"]
 
@@ -47,9 +48,25 @@ RELATION_SINC_BACKLASH_FACTOR = {
 }
 
 RELATION_VOTE_WEIGHTS = {
-    "secret": -2.0,       # deliberate attempt to eliminate — second only to indicação
-    "revealed": -2.5,     # same + now public (target knows who voted)
-    "revealed_backlash": -1.2,  # target's resentment toward revealed voter
+    # --- Voter → Target (A voted to eliminate B) ---
+    "secret": -2.0,           # deliberate attempt to eliminate — second only to indicação
+    "confissao": -2.0,        # same intent; voter voluntarily confessed to target (no extra penalty — honesty)
+    "dedo_duro": -2.0,        # same intent; vote exposed by game mechanic (voter didn't choose exposure)
+    "open_vote": -2.5,        # voter publicly declared hostility (votação aberta — chose to do it in front of everyone)
+    # --- Target → Voter backlash (B resents A for voting against them) ---
+    # Only exists when target LEARNS who voted — intensity depends on how they learned.
+    "confissao_backlash": -1.0,       # softest: voter came clean voluntarily (some respect for honesty)
+    "dedo_duro_backlash": -1.2,       # stronger: involuntary exposure by game mechanic
+    "open_vote_backlash": -1.5,       # strongest: entire house witnessed the public vote
+}
+# Legacy alias for backward compatibility with older data
+RELATION_VOTE_WEIGHTS["revealed"] = RELATION_VOTE_WEIGHTS["dedo_duro"]
+RELATION_VOTE_WEIGHTS["revealed_backlash"] = RELATION_VOTE_WEIGHTS["dedo_duro_backlash"]
+
+RELATION_ANJO_WEIGHTS = {
+    "almoco_anjo": 0.15,        # Anjo → each lunch invitee (public affinity signal)
+    "duo_anjo": 0.10,           # Mutual: duo partners in Prova do Anjo (collaborative bond)
+    "anjo_nao_imunizou": -0.15, # Closest ally → Anjo (disappointment when Anjo had chance but didn't protect)
 }
 
 RELATION_VIP_WEIGHT = 0.2
@@ -90,6 +107,19 @@ PLANT_POWER_ACTIVITY_WEIGHTS = {
 }
 
 PLANT_INDEX_BONUS_PLATEIA = 15
+
+# ── Prova Rankings constants ──
+PROVA_TYPE_MULTIPLIER = {
+    "lider": 1.5,
+    "anjo": 1.0,
+    "bate_volta": 0.75,
+}
+
+PROVA_PLACEMENT_POINTS = {
+    1: 10, 2: 7, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 1,
+}
+PROVA_PLACEMENT_DEFAULT = 0.5  # 9th and beyond
+PROVA_DQ_POINTS = 0
 PLANT_INDEX_EMOJI_CAP = 0.30
 PLANT_INDEX_ROLLING_WEEKS = 2
 PLANT_GANHA_GANHA_WEIGHT = 0.3
@@ -152,13 +182,31 @@ def get_daily_snapshots(snapshots):
     return [by_date[d] for d in sorted(by_date.keys())]
 
 
-def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles):
+def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles, participants_index=None):
     """Build pairwise sentiment scores (A -> B) combining queridômetro + events."""
     latest_date = latest_snapshot["date"]
     current_week = get_week_number(latest_date)
     participants = latest_snapshot["participants"]
     active_names = sorted({p.get("name", "").strip() for p in participants if p.get("name", "").strip()})
     active_set = set(active_names)
+
+    # Build all_names from participants_index (includes eliminated, excludes Henri Castelli — only 1 day of data)
+    EXCLUDED_PARTICIPANTS = {"Henri Castelli"}
+    if participants_index:
+        all_names = sorted({
+            p["name"] for p in participants_index
+            if p.get("name") and p["name"] not in EXCLUDED_PARTICIPANTS
+        })
+    else:
+        all_names = list(active_names)
+    all_names_set = set(all_names)
+
+    # Build last_seen map for eliminated participants
+    eliminated_last_seen = {}
+    if participants_index:
+        for p in participants_index:
+            if not p.get("active", True) and p.get("name") not in EXCLUDED_PARTICIPANTS:
+                eliminated_last_seen[p["name"]] = p.get("last_seen")
 
     reaction_matrix_latest = build_reaction_matrix(participants)
 
@@ -201,20 +249,39 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 continue
             votes_received_by_week[week][t][v] += mult
 
+    # Track how each vote was revealed: maps (voter, target) → revelation type
+    vote_revelation_type = {}  # (voter, target) → "confissao" | "dedo_duro" | "open_vote"
+
     for wev in manual_events.get("weekly_events", []) if manual_events else []:
-        for key in ("dedo_duro", "voto_revelado"):
+        # Each key maps to a different revelation type
+        revelation_keys = {
+            "confissao_voto": "confissao",
+            "dedo_duro": "dedo_duro",
+            "voto_revelado": "dedo_duro",  # legacy — treat as dedo_duro
+        }
+        for key, rev_type in revelation_keys.items():
             dd = wev.get(key)
             if isinstance(dd, dict):
                 voter = dd.get("votante")
                 target = dd.get("alvo")
                 if voter and target:
                     revealed_votes[target].add(voter)
+                    vote_revelation_type[(voter, target)] = rev_type
             elif isinstance(dd, list):
                 for item in dd:
                     voter = item.get("votante")
                     target = item.get("alvo")
                     if voter and target:
                         revealed_votes[target].add(voter)
+                        vote_revelation_type[(voter, target)] = rev_type
+
+    # Paredão-level votação aberta: all votes in that week become open_vote
+    open_vote_weeks = set()
+    for par in paredoes.get("paredoes", []) if paredoes else []:
+        if par.get("votacao_aberta"):
+            week = par.get("semana")
+            if week:
+                open_vote_weeks.add(week)
 
     # Power events (manual + auto)
     power_events = []
@@ -282,7 +349,10 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
     reference_date_daily = latest_date
 
     # Build base emoji weights using a short rolling window (3 days)
-    def compute_base_weights(ref_date):
+    def compute_base_weights(ref_date, name_list=None):
+        if name_list is None:
+            name_list = active_names
+        name_set = set(name_list)
         base = {}
         if daily_snapshots:
             candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
@@ -292,9 +362,11 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 total_w = sum(weights)
                 weights = [w / total_w for w in weights]
                 matrices = [build_reaction_matrix(s["participants"]) for s in selected]
-                for actor in active_names:
+                for actor in name_list:
+                    if actor in base:
+                        continue
                     base[actor] = {}
-                    for target in active_names:
+                    for target in name_list:
                         if actor == target:
                             continue
                         weighted = 0.0
@@ -310,8 +382,61 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                         base[actor][target] = weighted
         return base
 
+    def compute_base_weights_all(ref_date):
+        """Compute base weights for all participants, using last_seen snapshots for eliminated ones."""
+        base = compute_base_weights(ref_date, active_names)
+
+        # For eliminated participants, compute Q_base from their last known snapshot
+        for elim_name, last_seen in eliminated_last_seen.items():
+            if not last_seen:
+                continue
+            elim_ref = last_seen
+            elim_candidates = [s for s in daily_snapshots if s.get("date") <= elim_ref]
+            if not elim_candidates:
+                continue
+            selected = elim_candidates[-3:]
+            weights = [0.6, 0.3, 0.1][-len(selected):]
+            total_w = sum(weights)
+            weights = [w / total_w for w in weights]
+            matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+
+            base[elim_name] = {}
+            for target in all_names:
+                if elim_name == target:
+                    continue
+                weighted = 0.0
+                used = 0.0
+                for w, mat in zip(weights, matrices):
+                    label = mat.get((elim_name, target), "")
+                    if label:
+                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                        used += w
+                if used == 0.0:
+                    weighted = 0.0
+                base[elim_name][target] = weighted
+
+            # Also compute what active participants gave the eliminated participant
+            for actor in all_names:
+                if actor == elim_name:
+                    continue
+                if actor not in base:
+                    base[actor] = {}
+                weighted = 0.0
+                used = 0.0
+                for w, mat in zip(weights, matrices):
+                    label = mat.get((actor, elim_name), "")
+                    if label:
+                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                        used += w
+                if used == 0.0:
+                    weighted = 0.0
+                base[actor][elim_name] = weighted
+
+        return base
+
     base_weights_daily = compute_base_weights(reference_date_daily)
     base_weights_paredao = compute_base_weights(reference_date_paredao)
+    base_weights_all = compute_base_weights_all(reference_date_daily)
 
     edges_raw = []
 
@@ -320,7 +445,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             return
         if actor == target:
             return
-        if actor not in active_set or target not in active_set:
+        if actor not in all_names_set or target not in all_names_set:
             return
         edge = {
             "type": kind,
@@ -420,7 +545,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
         for entry in daily_roles:
             leader = next(iter(entry.get("roles", {}).get("Líder", [])), None)
             current_participants = set(entry.get("participants", []))
-            if leader and leader not in seen_leaders and leader in active_set:
+            if leader and leader not in seen_leaders and leader in all_names_set:
                 seen_leaders.add(leader)
                 vip_names = entry.get("vip", [])
                 entry_date = entry.get("date")
@@ -428,7 +553,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 # New entrants = participants today that weren't in the previous snapshot
                 new_entrants = current_participants - prev_participants if prev_participants else set()
                 for vip_name in vip_names:
-                    if vip_name == leader or vip_name not in active_set:
+                    if vip_name == leader or vip_name not in all_names_set:
                         continue
                     # Skip new entrants who got auto-VIP from the program
                     if vip_name in new_entrants:
@@ -443,15 +568,89 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                     )
             prev_participants = current_participants
 
+    # Anjo dynamics edges (almoco_anjo, duo_anjo, anjo_nao_imunizou)
+    for wev in manual_events.get("weekly_events", []) if manual_events else []:
+        anjo_data = wev.get("anjo")
+        if not anjo_data:
+            continue
+        week_num = wev.get("week", effective_week_daily)
+        anjo_name = anjo_data.get("vencedor")
+        if not anjo_name:
+            continue
+
+        # Almoço do Anjo: Anjo → each invitee (positive affinity)
+        almoco_date = anjo_data.get("almoco_date")
+        for invitee in anjo_data.get("almoco_convidados", []):
+            add_edge_raw(
+                "anjo",
+                anjo_name,
+                invitee,
+                RELATION_ANJO_WEIGHTS["almoco_anjo"],
+                week=week_num,
+                date=almoco_date,
+                meta={"anjo_type": "almoco_anjo"},
+            )
+
+        # Duo Anjo: mutual edge between duo partners
+        duo = anjo_data.get("duo", [])
+        prova_date = anjo_data.get("prova_date")
+        if len(duo) == 2:
+            a, b = duo
+            add_edge_raw(
+                "anjo",
+                a,
+                b,
+                RELATION_ANJO_WEIGHTS["duo_anjo"],
+                week=week_num,
+                date=prova_date,
+                meta={"anjo_type": "duo_anjo"},
+            )
+            add_edge_raw(
+                "anjo",
+                b,
+                a,
+                RELATION_ANJO_WEIGHTS["duo_anjo"],
+                week=week_num,
+                date=prova_date,
+                meta={"anjo_type": "duo_anjo"},
+            )
+
+        # Anjo não imunizou: disappointment from closest ally
+        # Only applies when Anjo had autoimune + extra power available but chose not to use it
+        if anjo_data.get("tipo") == "autoimune" and not anjo_data.get("usou_extra_poder", True):
+            # The closest ally is the duo partner (if different from Anjo)
+            duo_partner = next((d for d in duo if d != anjo_name), None)
+            if duo_partner:
+                add_edge_raw(
+                    "anjo",
+                    duo_partner,
+                    anjo_name,
+                    RELATION_ANJO_WEIGHTS["anjo_nao_imunizou"],
+                    week=week_num,
+                    date=almoco_date,
+                    meta={"anjo_type": "anjo_nao_imunizou"},
+                )
+
     # Vote edges
     for week, targets in votes_received_by_week.items():
         for target, voters in targets.items():
             for voter, count in voters.items():
                 if count <= 0:
                     continue
-                revealed = voter in revealed_votes.get(target, set())
-                vote_kind = "revealed" if revealed else "secret"
+                # Determine vote visibility type
+                is_open_week = week in open_vote_weeks
+                is_individually_revealed = voter in revealed_votes.get(target, set())
+
+                if is_open_week:
+                    vote_kind = "open_vote"
+                elif is_individually_revealed:
+                    # Use the specific revelation type (confissao or dedo_duro)
+                    vote_kind = vote_revelation_type.get((voter, target), "dedo_duro")
+                else:
+                    vote_kind = "secret"
+
                 weight = RELATION_VOTE_WEIGHTS[vote_kind] * count
+                is_revealed = vote_kind != "secret"
                 add_edge_raw(
                     "vote",
                     voter,
@@ -460,10 +659,13 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                     week=week,
                     date=vote_week_to_date.get(week),
                     meta={"vote_count": count, "vote_kind": vote_kind},
-                    revealed=revealed,
+                    revealed=is_revealed,
                 )
-                if revealed:
-                    backlash = RELATION_VOTE_WEIGHTS["revealed_backlash"] * count
+                # Backlash: target resents voter (only when target knows who voted)
+                if is_revealed:
+                    backlash_key = f"{vote_kind}_backlash"
+                    backlash_weight = RELATION_VOTE_WEIGHTS.get(backlash_key, RELATION_VOTE_WEIGHTS.get("dedo_duro_backlash", -1.2))
+                    backlash = backlash_weight * count
                     add_edge_raw(
                         "vote",
                         target,
@@ -471,7 +673,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                         backlash,
                         week=week,
                         date=vote_week_to_date.get(week),
-                        meta={"vote_count": count, "vote_kind": "revealed_backlash"},
+                        meta={"vote_count": count, "vote_kind": backlash_key},
                         revealed=True,
                     )
 
@@ -497,26 +699,31 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             edges_out.append(out)
         return edges_out
 
-    def build_pairs(base_weights, edges_ctx):
+    def build_pairs(base_weights, edges_ctx, name_list=None, include_active_flag=False):
         """Build pairwise scores from queridômetro base + context edges.
 
         Output per pair: { "score": float, "components": { type: float } }
         All events accumulate at full weight (no decay, no week filtering).
         """
+        if name_list is None:
+            name_list = active_names
         pairs = {}
-        for a in active_names:
+        for a in name_list:
             pairs[a] = {}
-            for b in active_names:
+            for b in name_list:
                 if a == b:
                     continue
                 base = base_weights.get(a, {}).get(b)
                 if base is None:
                     label = reaction_matrix_latest.get((a, b), "")
                     base = SENTIMENT_WEIGHTS.get(label, 0.0)
-                pairs[a][b] = {
+                pair_entry = {
                     "score": round(base, 4),
                     "components": {"queridometro": round(base, 4)},
                 }
+                if include_active_flag:
+                    pair_entry["active_pair"] = (a in active_set and b in active_set)
+                pairs[a][b] = pair_entry
 
         for edge in edges_ctx:
             actor = edge["actor"]
@@ -536,6 +743,84 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
     edges = apply_context_edges(edges_raw)
     pairs_daily = build_pairs(base_weights_daily, edges)
     pairs_paredao = build_pairs(base_weights_paredao, edges)
+    pairs_all = build_pairs(base_weights_all, edges, name_list=all_names, include_active_flag=True)
+
+    # --- GAP 2: Contradiction detection (vote vs queridômetro) ---
+    vote_edges = [e for e in edges if e["type"] == "vote" and not e.get("backlash")]
+    contradiction_entries = []
+    for ve in vote_edges:
+        actor = ve["actor"]
+        target = ve["target"]
+        q_val = pairs_all.get(actor, {}).get(target, {}).get("components", {}).get("queridometro", 0.0)
+        if q_val > 0:
+            contradiction_entries.append({
+                "actor": actor,
+                "target": target,
+                "queridometro": round(q_val, 4),
+                "vote_weight": ve["weight"],
+                "vote_kind": ve.get("vote_kind", "secret"),
+                "week": ve.get("week"),
+                "date": ve.get("date"),
+            })
+
+    total_non_backlash_votes = len(vote_edges)
+    contradictions = {
+        "vote_vs_queridometro": contradiction_entries,
+        "total": len(contradiction_entries),
+        "total_vote_edges": total_non_backlash_votes,
+        "rate": round(len(contradiction_entries) / total_non_backlash_votes, 4) if total_non_backlash_votes else 0.0,
+        "context_notes": {
+            "week_1": "Pedro (most rejected, many planned to vote for him) quit on Jan 19, voting day. Participants redirected votes to Paulo Augusto despite weak animosity. Also first-week bonds were less established.",
+        },
+    }
+
+    # Per-pair vote_contradiction flag in pairs_all and pairs_daily
+    for pairs_dict in [pairs_all, pairs_daily]:
+        for actor, targets in pairs_dict.items():
+            for target, rec in targets.items():
+                comps = rec.get("components", {})
+                q_val = comps.get("queridometro", 0.0)
+                vote_val = comps.get("vote", 0.0)
+                rec["vote_contradiction"] = (q_val > 0 and vote_val < 0)
+
+    # --- GAP 4: Anjo autoimune metadata ---
+    anjo_autoimune_events = []
+    for par in paredoes.get("paredoes", []) if paredoes else []:
+        form = par.get("formacao", {})
+        if isinstance(form, dict) and form.get("anjo_autoimune"):
+            anjo_autoimune_events.append({
+                "anjo": form.get("anjo"),
+                "week": par.get("semana"),
+                "date": par.get("data_formacao") or par.get("data"),
+            })
+
+    # --- GAP 5: Received impact aggregation ---
+    received_impact = {}
+    for name in all_names:
+        incoming = [e for e in edges if e["target"] == name]
+        pos = sum(e["weight"] for e in incoming if e["weight"] > 0)
+        neg = sum(e["weight"] for e in incoming if e["weight"] < 0)
+        received_impact[name] = {
+            "positive": round(pos, 4),
+            "negative": round(neg, 4),
+            "total": round(pos + neg, 4),
+            "count": len(incoming),
+        }
+
+    # --- GAP 7: Bloc voting detection ---
+    voting_blocs = []
+    for week, targets in votes_received_by_week.items():
+        for target, voters in targets.items():
+            voter_list = sorted(v for v, c in voters.items() if c > 0)
+            if len(voter_list) >= 4:
+                voting_blocs.append({
+                    "week": week,
+                    "date": vote_week_to_date.get(week),
+                    "target": target,
+                    "voters": voter_list,
+                    "count": len(voter_list),
+                })
+    voting_blocs = sorted(voting_blocs, key=lambda x: (x.get("week", 0), -x.get("count", 0)))
 
     return {
         "_metadata": {
@@ -555,13 +840,19 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 "sincerao": RELATION_SINC_WEIGHTS,
                 "vip": RELATION_VIP_WEIGHT,
                 "votes": RELATION_VOTE_WEIGHTS,
+                "anjo": RELATION_ANJO_WEIGHTS,
                 "visibility_factor": RELATION_VISIBILITY_FACTOR,
                 "decay": "none — all events accumulate at full weight; queridômetro uses 3-day rolling window only",
             },
+            "anjo_autoimune_events": anjo_autoimune_events,
         },
         "edges": edges,
         "pairs_daily": pairs_daily,
         "pairs_paredao": pairs_paredao,
+        "pairs_all": pairs_all,
+        "contradictions": contradictions,
+        "received_impact": received_impact,
+        "voting_blocs": voting_blocs,
     }
 
 
@@ -1583,6 +1874,263 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
     }
 
 
+def build_prova_rankings(provas_data, participants_index):
+    """Build per-participant ranking from competition placements.
+
+    For each prova, determines final positions considering multi-phase
+    competitions, duo phases, ties, DQs, and excluded participants.
+    Applies type-based multipliers to base placement points.
+    """
+    provas_list = provas_data.get("provas", []) if provas_data else []
+    if not provas_list:
+        return {
+            "_metadata": {
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "total_provas": 0,
+                "scoring": {
+                    "placement_points": PROVA_PLACEMENT_POINTS,
+                    "placement_default": PROVA_PLACEMENT_DEFAULT,
+                    "type_multipliers": PROVA_TYPE_MULTIPLIER,
+                },
+            },
+            "leaderboard": [],
+            "provas_summary": [],
+        }
+
+    # Build participant availability: which provas existed while each was in the house
+    pi_map = {}
+    for p in participants_index:
+        pi_map[p["name"]] = {
+            "first_seen": p.get("first_seen"),
+            "last_seen": p.get("last_seen"),
+            "active": p.get("active", True),
+        }
+    all_participant_names = set(pi_map.keys())
+
+    # For each prova, compute final positions for every participant
+    prova_results = []  # list of dicts: { prova_numero, tipo, week, positions: {name: pos_or_None} }
+
+    for prova in provas_list:
+        numero = prova["numero"]
+        tipo = prova["tipo"]
+        week = prova["week"]
+        prova_date = prova.get("date", "")
+        fases = prova.get("fases", [])
+        excluded_names = {e["nome"] for e in prova.get("excluidos", [])}
+
+        # Determine who participated: everyone in the house on prova date minus excluded
+        available_names = set()
+        for name, info in pi_map.items():
+            first = info.get("first_seen", "")
+            last = info.get("last_seen", "")
+            if first and first <= prova_date and (not last or last >= prova_date):
+                available_names.add(name)
+            elif not first:
+                available_names.add(name)
+
+        # Build final positions from phases
+        positions = {}  # name -> position (int) or None
+
+        if len(fases) == 1:
+            # Single phase: positions come directly from classificacao
+            fase = fases[0]
+            _assign_phase_positions(positions, fase, excluded_names)
+        elif len(fases) == 2:
+            fase1 = fases[0]
+            fase2 = fases[1]
+            n_phase2 = len(fase2.get("classificacao", []))
+
+            # Phase 2 finalists get their Phase 2 positions
+            _assign_phase_positions(positions, fase2, excluded_names)
+
+            # Phase 2 participant names (to exclude from Phase 1 offset)
+            phase2_names = set()
+            for entry in fase2.get("classificacao", []):
+                if "nome" in entry:
+                    phase2_names.add(entry["nome"])
+                elif "dupla" in entry:
+                    phase2_names.update(entry["dupla"])
+
+            # Phase 1 non-finalists get their Phase 1 position + offset
+            for entry in fase1.get("classificacao", []):
+                names_in_entry = []
+                if "nome" in entry:
+                    names_in_entry = [entry["nome"]]
+                elif "dupla" in entry:
+                    names_in_entry = list(entry["dupla"])
+
+                for name in names_in_entry:
+                    if name in phase2_names:
+                        continue  # already assigned from Phase 2
+                    if name in excluded_names:
+                        continue
+                    if entry.get("dq"):
+                        positions[name] = "dq"
+                        continue
+                    pos = entry.get("pos")
+                    if pos is not None:
+                        # Offset by number of Phase 2 positions (since those are final 1..N)
+                        # But only offset for entries not already in top positions
+                        # For duo provas: Phase 1 pos 2 becomes pos 4 (offset by 2 Phase 2 slots)
+                        final_pos = pos + n_phase2
+                        # If this position's value is ≤ n_phase2, it means they were
+                        # in the winning group but lost Phase 2 — they're already handled
+                        positions[name] = final_pos
+                    # else: unknown position, leave as None
+
+        # Mark excluded as None (not 0)
+        for name in excluded_names:
+            if name in available_names:
+                positions[name] = None
+
+        # Anyone in available_names but not in positions gets None (unknown)
+        for name in available_names:
+            if name not in positions:
+                positions[name] = None
+
+        prova_results.append({
+            "numero": numero,
+            "tipo": tipo,
+            "week": week,
+            "date": prova_date,
+            "positions": positions,
+            "available_names": available_names,
+            "excluded_names": excluded_names,
+            "vencedor": prova.get("vencedor"),
+            "participantes_total": prova.get("participantes_total", 0),
+        })
+
+    # Aggregate per participant
+    participant_stats = defaultdict(lambda: {
+        "total_points": 0.0,
+        "provas_participated": 0,
+        "provas_available": 0,
+        "wins": 0,
+        "top3": 0,
+        "best_position": None,
+        "detail": [],
+    })
+
+    for pr in prova_results:
+        multiplier = PROVA_TYPE_MULTIPLIER.get(pr["tipo"], 1.0)
+
+        for name in all_participant_names:
+            stats = participant_stats[name]
+
+            if name not in pr["available_names"]:
+                continue  # wasn't in the house for this prova
+            stats["provas_available"] += 1
+
+            pos = pr["positions"].get(name)
+            if pos is None:
+                # Excluded or unknown — don't count
+                stats["detail"].append({
+                    "prova": pr["numero"],
+                    "tipo": pr["tipo"],
+                    "week": pr["week"],
+                    "position": None,
+                    "base_pts": None,
+                    "weighted_pts": None,
+                })
+                continue
+
+            if pos == "dq":
+                base_pts = PROVA_DQ_POINTS
+                final_pos = None
+            else:
+                final_pos = pos
+                base_pts = PROVA_PLACEMENT_POINTS.get(pos, PROVA_PLACEMENT_DEFAULT)
+
+            weighted_pts = round(base_pts * multiplier, 2)
+            stats["total_points"] += weighted_pts
+            stats["provas_participated"] += 1
+
+            if final_pos is not None:
+                if final_pos == 1:
+                    stats["wins"] += 1
+                if final_pos <= 3:
+                    stats["top3"] += 1
+                if stats["best_position"] is None or final_pos < stats["best_position"]:
+                    stats["best_position"] = final_pos
+
+            stats["detail"].append({
+                "prova": pr["numero"],
+                "tipo": pr["tipo"],
+                "week": pr["week"],
+                "position": final_pos if pos != "dq" else "dq",
+                "base_pts": base_pts,
+                "weighted_pts": weighted_pts,
+            })
+
+    # Build leaderboard sorted by total_points desc
+    leaderboard = []
+    for name, stats in participant_stats.items():
+        if stats["provas_available"] == 0:
+            continue  # skip participants with no provas available
+        avg = round(stats["total_points"] / stats["provas_participated"], 2) if stats["provas_participated"] > 0 else 0.0
+        participation_rate = round(stats["provas_participated"] / stats["provas_available"], 2) if stats["provas_available"] > 0 else 0.0
+        leaderboard.append({
+            "name": name,
+            "total_points": round(stats["total_points"], 2),
+            "avg_points": avg,
+            "provas_participated": stats["provas_participated"],
+            "provas_available": stats["provas_available"],
+            "participation_rate": participation_rate,
+            "wins": stats["wins"],
+            "top3": stats["top3"],
+            "best_position": stats["best_position"],
+            "detail": stats["detail"],
+        })
+
+    leaderboard.sort(key=lambda x: (-x["total_points"], -x["wins"], x["name"]))
+
+    # Build provas summary
+    provas_summary = []
+    for pr in prova_results:
+        provas_summary.append({
+            "numero": pr["numero"],
+            "tipo": pr["tipo"],
+            "week": pr["week"],
+            "date": pr["date"],
+            "vencedor": pr["vencedor"],
+            "participantes": pr["participantes_total"],
+        })
+
+    return {
+        "_metadata": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "total_provas": len(provas_list),
+            "scoring": {
+                "placement_points": PROVA_PLACEMENT_POINTS,
+                "placement_default": PROVA_PLACEMENT_DEFAULT,
+                "type_multipliers": PROVA_TYPE_MULTIPLIER,
+            },
+        },
+        "leaderboard": leaderboard,
+        "provas_summary": provas_summary,
+    }
+
+
+def _assign_phase_positions(positions, fase, excluded_names):
+    """Assign positions from a single phase's classificacao to the positions dict."""
+    for entry in fase.get("classificacao", []):
+        names_in_entry = []
+        if "nome" in entry:
+            names_in_entry = [entry["nome"]]
+        elif "dupla" in entry:
+            names_in_entry = list(entry["dupla"])
+
+        for name in names_in_entry:
+            if name in excluded_names:
+                continue
+            if entry.get("dq"):
+                positions[name] = "dq"
+            else:
+                pos = entry.get("pos")
+                if pos is not None:
+                    positions[name] = pos
+
+
 def write_json(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -1615,6 +2163,14 @@ def build_derived_data():
     if PAREDOES_FILE.exists():
         with open(PAREDOES_FILE, encoding="utf-8") as f:
             paredoes = json.load(f)
+    # Build prova rankings
+    provas_data = {}
+    if PROVAS_FILE.exists():
+        with open(PROVAS_FILE, encoding="utf-8") as f:
+            provas_data = json.load(f)
+
+    prova_rankings = build_prova_rankings(provas_data, participants_index)
+
     plant_index = build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes)
     relations_scores = build_relations_scores(
         daily_snapshots[-1],
@@ -1624,6 +2180,7 @@ def build_derived_data():
         sincerao_edges,
         paredoes,
         daily_roles,
+        participants_index=participants_index,
     )
 
     now = datetime.now(timezone.utc).isoformat()
@@ -1661,6 +2218,7 @@ def build_derived_data():
     write_json(DERIVED_DIR / "sincerao_edges.json", sincerao_edges)
     write_json(DERIVED_DIR / "plant_index.json", plant_index)
     write_json(DERIVED_DIR / "relations_scores.json", relations_scores)
+    write_json(DERIVED_DIR / "prova_rankings.json", prova_rankings)
 
     write_json(DERIVED_DIR / "validation.json", {
         "_metadata": {"generated_at": now, "source": "manual_events"},

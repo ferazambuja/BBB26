@@ -27,6 +27,10 @@ RELATIONS_FILE = Path("data/derived/relations_scores.json")
 
 relations = json.loads(RELATIONS_FILE.read_text(encoding="utf-8")) if RELATIONS_FILE.exists() else {}
 relations_pairs_daily = relations.get("pairs_daily", {}) or relations.get("pairs", {})
+relations_pairs_all = relations.get("pairs_all", {})
+contradictions = relations.get("contradictions", {})
+received_impact = relations.get("received_impact", {})
+voting_blocs = relations.get("voting_blocs", [])
 edges = relations.get("edges", []) or relations.get("edges_daily", []) or relations.get("edges_paredao", [])
 meta = relations.get("_metadata", {})
 DISPLAY_WEEK_DAILY = meta.get("effective_week_daily") or meta.get("week") or 2
@@ -328,6 +332,127 @@ else:
     events_vs_df = events_vs_df.sort_values(["Tipo", "Ator"], ascending=[True, True])
     print(events_vs_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="eventsTable"))
 ```
+## Pares eliminados (pairs_all)
+
+<p class="text-muted">Pares envolvendo participantes eliminados/desistentes. Q_base usa último snapshot antes da saída.</p>
+
+```{python}
+#| label: pairs-eliminated
+#| echo: false
+#| output: asis
+
+if relations_pairs_all:
+    elim_rows = []
+    for actor, targets in relations_pairs_all.items():
+        for target, rec in targets.items():
+            if rec.get("active_pair", True):
+                continue
+            comps = rec.get("components", {})
+            q_score = comps.get("queridometro", 0.0)
+            score = rec.get("score", 0.0)
+            rel_label, rel_class = classify_relation(score)
+            elim_rows.append({
+                "Ator": actor,
+                "Alvo": target,
+                "Relação": f"<span class='rel-pill {rel_class}'>{rel_label}</span>",
+                "Q (3d)": fmt_score(q_score),
+                "Power": fmt_score(comps.get("power_event", 0.0)),
+                "Sincerão": fmt_score(comps.get("sincerao", 0.0)),
+                "VIP": fmt_score(comps.get("vip", 0.0)),
+                "Voto": fmt_score(comps.get("vote", 0.0)),
+                "Score": fmt_score(score),
+            })
+    if elim_rows:
+        elim_df = pd.DataFrame(elim_rows).sort_values(["Score"], ascending=[True])
+        print(f"<div class='text-muted'>{len(elim_rows)} pares com pelo menos 1 participante eliminado/desistente</div>")
+        print(elim_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="elimPairsTable"))
+    else:
+        print("<p class='text-muted'>Nenhum par com participantes eliminados encontrado.</p>")
+else:
+    print("<p class='text-muted'>pairs_all não disponível.</p>")
+```
+
+## Contradições (voto vs queridômetro)
+
+<p class="text-muted">Casos em que A deu reação positiva (Q > 0) a B, mas votou para eliminá-lo. Taxa de contradição reflete a dissociação entre emoji secreto e voto real.</p>
+
+```{python}
+#| label: contradictions
+#| echo: false
+#| output: asis
+
+if contradictions:
+    total = contradictions.get("total", 0)
+    total_votes = contradictions.get("total_vote_edges", 0)
+    rate = contradictions.get("rate", 0)
+    print(f"<div><strong>Contradições:</strong> {total} de {total_votes} votos ({rate:.0%})</div>")
+
+    ctx = contradictions.get("context_notes", {})
+    if ctx.get("week_1"):
+        print(f"<div class='text-muted' style='margin-top:0.3rem;font-size:0.85rem;'>⚠️ Semana 1: {ctx['week_1']}</div>")
+
+    entries = contradictions.get("vote_vs_queridometro", [])
+    if entries:
+        rows = []
+        for e in entries:
+            rows.append({
+                "Semana": e.get("week"),
+                "Ator": e.get("actor"),
+                "Alvo": e.get("target"),
+                "Q (base)": fmt_score(e.get("queridometro", 0)),
+                "Peso voto": fmt_score(e.get("vote_weight", 0)),
+                "Tipo voto": e.get("vote_kind", ""),
+            })
+        cdf = pd.DataFrame(rows).sort_values(["Semana", "Ator"])
+        print(cdf.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="contradictionsTable"))
+else:
+    print("<p class='text-muted'>Sem dados de contradição.</p>")
+```
+
+## Impacto recebido (por participante)
+
+<p class="text-muted">Total de peso de edges recebidas (incoming) por cada participante, incluindo eliminados.</p>
+
+```{python}
+#| label: received-impact
+#| echo: false
+#| output: asis
+
+if received_impact:
+    ri_rows = []
+    for name, rec in sorted(received_impact.items(), key=lambda x: x[1].get("total", 0)):
+        ri_rows.append({
+            "Participante": name,
+            "Positivo": fmt_score(rec.get("positive", 0)),
+            "Negativo": fmt_score(rec.get("negative", 0)),
+            "Total": fmt_score(rec.get("total", 0)),
+            "Edges": rec.get("count", 0),
+        })
+    ri_df = pd.DataFrame(ri_rows)
+    print(ri_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="receivedImpactTable"))
+else:
+    print("<p class='text-muted'>Sem dados de impacto recebido.</p>")
+```
+
+## Blocos de votação
+
+<p class="text-muted">Semanas com 4+ participantes votando no mesmo alvo — sinal de votação em bloco.</p>
+
+```{python}
+#| label: voting-blocs
+#| echo: false
+#| output: asis
+
+if voting_blocs:
+    for bloc in voting_blocs:
+        voters = ", ".join(bloc.get("voters", []))
+        print(f"<div style='margin:0.4rem 0;'><strong>Semana {bloc.get('week')}</strong> — "
+              f"<span class='val-neg'>{bloc.get('count')} votos</span> em <strong>{bloc.get('target')}</strong>"
+              f"<br><span class='text-muted'>{voters}</span></div>")
+else:
+    print("<p class='text-muted'>Nenhum bloco de votação detectado (mín. 4 votos no mesmo alvo).</p>")
+```
+
 ## Badge vs Realidade (Paredões)
 
 ```{python}

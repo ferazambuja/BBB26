@@ -11,6 +11,7 @@ project:
     - paredao.qmd
     - paredoes.qmd
     - cartola.qmd
+    - provas.qmd
     - clusters.qmd
     - planta.qmd
     - relacoes_debug.qmd
@@ -23,22 +24,26 @@ website:
         text: "📊 Painel"
       - href: mudancas.qmd
         text: "📅 O Que Mudou"
-      - href: datas.qmd
-        text: "🗓️ Datas"
       - href: trajetoria.qmd
         text: "📈 Trajetória"
       - href: paredao.qmd
-        text: "🗳️ Paredão"
+        text: "🗳️ Paredão (Atual)"
       - href: cartola.qmd
         text: "🏆 Cartola"
-      - href: clusters.qmd
-        text: "🧪 Clusters"
-      - href: planta.qmd
-        text: "🌱 Planta"
-      - href: relacoes_debug.qmd
-        text: "🧭 Relações (debug)"
+      - href: provas.qmd
+        text: "🏅 Provas"
       - href: paredoes.qmd
-        text: "📚 Arquivo"
+        text: "📚 Paredões"
+      - text: "🔬 Mais"
+        menu:
+          - href: datas.qmd
+            text: "🗓️ Datas"
+          - href: clusters.qmd
+            text: "🧪 Clusters"
+          - href: planta.qmd
+            text: "🌱 Planta"
+          - href: relacoes_debug.qmd
+            text: "🧭 Relações (debug)"
   page-footer:
     center: |
       Dados: [GloboPlay API](https://www.globoplay.com.br/)

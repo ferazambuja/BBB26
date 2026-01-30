@@ -64,6 +64,91 @@ Only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, 
 - A detecção usa **1 snapshot por dia** (último do dia). Mudanças intra-dia podem não aparecer.
 - **Monstro**: o `actor` é o **Anjo da semana** (quando disponível), pois o Anjo escolhe quem recebe o Castigo do Monstro.
 
+### Vote Visibility Events (in `weekly_events`)
+
+BBB votes are cast in the confessionário (secret to the house, shown to TV audience). Votes can become known to participants through three mechanisms, each tracked separately:
+
+| Key in `weekly_events` | Type | Description | Example |
+|------------------------|------|-------------|---------|
+| `confissao_voto` | Voluntary | Participant **chose** to tell the target they voted for them | Jordana told Sol after paredão formation |
+| `dedo_duro` | Game mechanic | A participant **receives the power** to reveal someone else's vote | (Not yet happened in BBB26) |
+| `voto_revelado` | Legacy | **Deprecated** — use `confissao_voto` or `dedo_duro` instead | Treated as `dedo_duro` for scoring |
+
+**Paredão-level open voting** (`votacao_aberta`):
+When the entire week uses open voting (all votes cast publicly), set `"votacao_aberta": true` in the paredão entry in `data/paredoes.json`. All votes in that week automatically get `open_vote` classification.
+
+**Schema for `confissao_voto` / `dedo_duro`:**
+```json
+{
+  "date": "YYYY-MM-DD",
+  "votante": "Nome de quem votou",
+  "alvo": "Nome de quem recebeu o voto",
+  "contexto": "Descrição do que aconteceu",
+  "fontes": ["https://..."]
+}
+```
+
+Can be a single object or an array of objects (multiple revelations in the same week).
+
+**How to decide which type:**
+- Did the voter **choose** to tell someone? → `confissao_voto`
+- Did a game mechanic **force** the revelation? → `dedo_duro`
+- Is the entire week's voting public? → Set `votacao_aberta: true` in `data/paredoes.json`
+
+**Scoring impact:**
+
+| Type | Voter→Target | Target→Voter (backlash) | Rationale |
+|------|-------------|------------------------|-----------|
+| `secret` | -2.0 | 0 | Target doesn't know who voted |
+| `confissao` | -2.0 | -1.0 | Voter showed honesty; target resents but respects |
+| `dedo_duro` | -2.0 | -1.2 | Involuntary exposure; stronger resentment |
+| `open_vote` | -2.5 | -1.5 | Public declaration of hostility |
+
+Note: voter→target weight is the same (-2.0) for secret, confissão, and dedo-duro because the **intent to eliminate** was identical (vote was cast secretly in all three cases). Only `open_vote` gets -2.5 because the voter **chose** to publicly declare hostility.
+
+### Anjo Dynamics (`weekly_events[].anjo`)
+
+Each week's `anjo` object records the full Prova do Anjo dynamics. Schema:
+
+```json
+{
+  "vencedor": "Jonas Sulzbach",
+  "duo": ["Jonas Sulzbach", "Sarah Andrade"],
+  "prova_date": "2026-01-17",
+  "tipo": "normal",
+  "almoco_date": "2026-01-18",
+  "almoco_convidados": ["Alberto Cowboy", "Aline Campos", "Sarah Andrade"],
+  "escolha": "video_familia",
+  "imunizou": "Sarah Andrade",
+  "extra_poder": "imunidade_extra",
+  "usou_extra_poder": false,
+  "notas": "...",
+  "fontes": ["..."]
+}
+```
+
+| Field | Required | Values |
+|-------|----------|--------|
+| `vencedor` | Yes | API name of the Anjo |
+| `duo` | Yes | Array of 2 names (duo partners in the prova) |
+| `prova_date` | Yes | Date of the Prova do Anjo |
+| `tipo` | Yes | `"normal"` (Anjo chooses who to immunize) or `"autoimune"` (Anjo is self-immune) |
+| `almoco_date` | Yes | Date of the Almoço do Anjo |
+| `almoco_convidados` | Yes | Array of 3 names invited to the lunch |
+| `escolha` | Yes | `"video_familia"` or `"imunidade_extra"` |
+| `imunizou` | If applicable | Who received standard immunity (null if autoimune and didn't use power) |
+| `extra_poder` | Yes | What power was offered (e.g. `"imunidade_extra"`) |
+| `usou_extra_poder` | Yes | `true` if Anjo used the extra power, `false` if chose video/other |
+| `notas` | Optional | Contextual notes |
+| `fontes` | Yes | Source URLs |
+
+**Scoring edges generated:**
+- `almoco_anjo`: Anjo → each invitee (+0.15)
+- `duo_anjo`: Mutual between duo partners (+0.10 each way, accumulates per occurrence)
+- `anjo_nao_imunizou`: Duo partner → Anjo (−0.15) — only when `tipo: "autoimune"` AND `usou_extra_poder: false`
+
+**When to fill:** After each Prova do Anjo (usually Saturday), with Almoço details from Sunday.
+
 ### `cartola_points_log`
 Only events **not inferable** from snapshots or paredões (salvo, não eliminado, etc.).
 - Structure: one entry per participant/week with `events: [{event, points, date, fonte?}]`.

@@ -155,6 +155,7 @@ The API returns the **current state** of all reactions, not a history. Participa
 **Manual (human-maintained):**
 - `data/manual_events.json` — power events + weekly events not in API. See `docs/MANUAL_EVENTS_GUIDE.md`.
 - `data/paredoes.json` — paredão formation + votos da casa + resultado + % público. See `docs/HANDOFF_PAREDAO.md`.
+- `data/provas.json` — competition results and placements for all BBB26 provas (Líder, Anjo, Bate e Volta).
 - `data/votalhada/polls.json` — poll aggregation from Votalhada. See `docs/HANDOFF_VOTALHADA.md`.
 
 **Derived** (`data/derived/`, built by `scripts/build_derived_data.py`):
@@ -167,6 +168,7 @@ The API returns the **current state** of all reactions, not a history. Participa
 - `cartola_data.json` — Cartola BBB points (leaderboard, weekly breakdown, stats)
 - `relations_scores.json` — pairwise sentiment scores (A→B) with **daily** and **paredão** versions
 - `sincerao_edges.json` — Sincerão aggregates + optional edges
+- `prova_rankings.json` — competition performance rankings (leaderboard, per-prova detail)
 - `snapshots_index.json` — manifest of available dates for the Date View
 - `validation.json`, `manual_events_audit.json`, `eliminations_detected.json` — sanity checks
 
@@ -241,6 +243,7 @@ All scoring formulas, weights, and detailed specifications are in **`docs/SCORIN
 - **Risco Externo**: weekly per-participant risk from votes received + public/secret negative events + paredão status.
 - **Animosidade**: historical directional score (no decay — events accumulate). Experimental.
 - **Cartola BBB**: point system (Líder +80 to Desistente -30). Precomputed in `data/derived/cartola_data.json`.
+- **Prova Rankings**: competition performance ranking with type multipliers (Líder 1.5×, Anjo 1.0×, Bate-Volta 0.75×) and placement points (1st=10 to 9th+=0.5). Precomputed in `data/derived/prova_rankings.json`.
 
 Power events are **modifiers** (rare, one-to-one), not the base — queridômetro drives ongoing sentiment.
 
@@ -248,9 +251,11 @@ Power events are **modifiers** (rare, one-to-one), not the base — queridômetr
 
 Full schema, fill rules, and update procedures are in **`docs/MANUAL_EVENTS_GUIDE.md`**.
 
-**Structure**: `participants` (exits), `weekly_events` (Big Fone, Sincerão, Ganha‑Ganha, Barrado no Baile), `special_events` (dinâmicas), `power_events` (contragolpe, veto, voto duplo, ganha‑ganha, barrado, etc.), `cartola_points_log` (manual overrides).
+**Structure**: `participants` (exits), `weekly_events` (Big Fone, Sincerão, Ganha‑Ganha, Barrado no Baile, vote visibility events), `special_events` (dinâmicas), `power_events` (contragolpe, veto, voto duplo, ganha‑ganha, barrado, etc.), `cartola_points_log` (manual overrides).
 
 **API auto-detects**: Líder, Anjo, Monstro, Imune, VIP, Paredão. Manual events fill what the API does not expose.
+
+**Vote visibility** (in `weekly_events`): `confissao_voto` (voluntary confession to target), `dedo_duro` (game mechanic reveals vote). For full-week open voting, set `votacao_aberta: true` in the paredão entry in `data/paredoes.json`. See `docs/MANUAL_EVENTS_GUIDE.md` for full schema.
 
 **After any edit**: run `python scripts/build_derived_data.py` to update derived data.
 
