@@ -989,13 +989,24 @@ def build_auto_events(daily_roles):
     return events
 
 
+def _normalize_big_fone(raw):
+    """Normalize big_fone field to a list of dicts (supports legacy single-object and new array)."""
+    if raw is None:
+        return []
+    if isinstance(raw, dict):
+        return [raw]
+    if isinstance(raw, list):
+        return [bf for bf in raw if isinstance(bf, dict)]
+    return []
+
+
 def apply_big_fone_context(auto_events, manual_events):
     if not auto_events or not manual_events:
         return auto_events
     big_fone_map = []
     for w in manual_events.get("weekly_events", []) if manual_events else []:
-        bf = w.get("big_fone") if isinstance(w, dict) else None
-        if isinstance(bf, dict):
+        bf_list = _normalize_big_fone(w.get("big_fone") if isinstance(w, dict) else None)
+        for bf in bf_list:
             atendeu = bf.get("atendeu")
             date = bf.get("date")
             if atendeu and date:
@@ -1626,13 +1637,15 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
     for week_event in manual_events.get('weekly_events', []):
         week = week_event.get('week', 1)
         start_date = week_event.get('start_date', '')
-        big_fone = week_event.get('big_fone')
-        if big_fone and big_fone.get('atendeu'):
-            bf_date = big_fone.get('date', start_date)
-            name = big_fone['atendeu'].strip()
-            week_events = calculated_points[name].get(week, [])
-            if not any(e[0] == 'atendeu_big_fone' for e in week_events):
-                calculated_points[name][week].append(('atendeu_big_fone', CARTOLA_POINTS['atendeu_big_fone'], bf_date))
+        bf_list = _normalize_big_fone(week_event.get('big_fone'))
+        for big_fone in bf_list:
+            if big_fone.get('atendeu'):
+                bf_date = big_fone.get('date', start_date)
+                name = big_fone['atendeu'].strip()
+                week_events = calculated_points[name].get(week, [])
+                # Avoid duplicate: check both event type and date
+                if not any(e[0] == 'atendeu_big_fone' and e[2] == bf_date for e in week_events):
+                    calculated_points[name][week].append(('atendeu_big_fone', CARTOLA_POINTS['atendeu_big_fone'], bf_date))
 
     for name, info in manual_events.get('participants', {}).items():
         name = name.strip()

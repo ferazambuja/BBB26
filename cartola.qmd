@@ -466,9 +466,11 @@ if n_weeks > 0:
         # Special events from manual data
         if week_info:
             special_events = []
-            if week_info.get('big_fone'):
-                bf = week_info['big_fone']
-                special_events.append(f"📞 **Big Fone**: {bf.get('atendeu', '?')} atendeu — {bf.get('consequencia', '')}")
+            raw_bf = week_info.get('big_fone')
+            bf_list = raw_bf if isinstance(raw_bf, list) else ([raw_bf] if isinstance(raw_bf, dict) else [])
+            for bf in bf_list:
+                if isinstance(bf, dict) and bf.get('atendeu'):
+                    special_events.append(f"📞 **Big Fone**: {bf.get('atendeu', '?')} atendeu — {bf.get('consequencia', '')}")
             if week_info.get('caixas_surpresa'):
                 cs = week_info['caixas_surpresa']
                 special_events.append(f"🎁 **Caixas-Surpresa**: {cs.get('resultado', '')}")

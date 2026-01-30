@@ -371,8 +371,11 @@ else:
 
     big_fone_targets = {}
     for w in weekly_events:
-        bf = w.get("big_fone") if isinstance(w, dict) else None
-        if isinstance(bf, dict):
+        raw_bf = w.get("big_fone") if isinstance(w, dict) else None
+        bf_list = raw_bf if isinstance(raw_bf, list) else ([raw_bf] if isinstance(raw_bf, dict) else [])
+        for bf in bf_list:
+            if not isinstance(bf, dict):
+                continue
             atendeu = bf.get("atendeu")
             date = bf.get("date")
             if atendeu and date:

@@ -36,6 +36,13 @@ Use for **desistência / eliminação / desclassificação**.
 ### `weekly_events`
 Week-scoped dynamics (Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile, caixas, notes).
 
+**Big Fone (manual):**
+- `weekly_events[].big_fone` is an **array** (multiple Big Fones can happen in the same week).
+- Each entry: `{"atendeu": "Name", "date": "YYYY-MM-DD", "consequencia": "..."}`.
+- Use `null` when no Big Fone occurred that week.
+- Always create a corresponding **power_event** for the consequence (e.g., `indicacao`, `veto_prova`).
+- Cartola: each answerer gets +30 points (`atendeu_big_fone`).
+
 **Ganha‑Ganha (manual):**
 - Registre em `weekly_events[].ganha_ganha` com `date`, `sorteados`, `veto`, `decisao`, `informacao`.
 - Sempre crie **power_events** correspondentes:
@@ -58,7 +65,7 @@ Only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, 
 - `origem`: `manual` (quando registrado no JSON) ou `api` (quando derivado automaticamente).
 - If `actor` is not a person, use standardized labels: `Big Fone`, `Prova do Líder`, `Prova do Anjo`, `Prova Bate e Volta`, `Caixas-Surpresa`.
 
-**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`.
+**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`, `veto_prova`.
 
 **Auto-detectados da API** (`scripts/build_derived_data.py`): Líder/Anjo/Monstro/Imune são derivados das mudanças de papéis nos snapshots diários e salvos em `data/derived/auto_events.json` com `origem: "api"`.
 - A detecção usa **1 snapshot por dia** (último do dia). Mudanças intra-dia podem não aparecer.
@@ -204,3 +211,176 @@ Each entry in `manual_events.json` has a `fontes` array for GShow/news article U
 | VIP members | `"BBB 26 VIP semana" site:gshow.globo.com` |
 
 **Best sources**: GShow (official), UOL, Terra, Exame, NSC Total, Rádio Itatiaia
+
+---
+
+## Semana 3 — Dinâmica: 4 Big Fones (29 Jan–2 Fev 2026)
+
+Reference: https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml
+
+**Líder da semana**: Maxiane (venceu Prova do Líder na quinta 29).
+
+### Cronograma
+
+| Dia | Evento | Status | O que registrar |
+|-----|--------|--------|-----------------|
+| Qui 29 | **Big Fone #1** (prata) | **Feito** | `big_fone[]` + `power_event` veto_prova |
+| Qui 29 | Prova do Líder | **Feito** | Auto-detectado (Maxiane = Líder) |
+| Sex 30, 7h | **Big Fone #2** (prata, academia) | Pendente | `big_fone[]` entry |
+| Sex 30, ao vivo | **Big Fone #3** (dourado, sala/cozinha) | Pendente | `big_fone[]` entry |
+| Sáb 31 | Prova do Anjo | Pendente | Auto-detectado |
+| Sáb 31, ao vivo | **Big Fone #4** (votação do público) | Pendente | `big_fone[]` entry |
+| Sáb 31 | Consenso Big Fone → indicação ao paredão | Pendente | `power_event` indicacao + `paredoes.json` dinamica |
+| Dom 1 | Presente do Anjo (troca vídeo por imunidade extra) | Pendente | `power_event` imunidade (se aceitar) |
+| Dom 1 | Formação de Paredão triplo | Pendente | `paredoes.json` entrada completa |
+| Dom 1 | Prova Bate e Volta | Pendente | `paredoes.json` bate_volta |
+| Ter 3 | Eliminação | Pendente | `participants`, `paredoes.json` resultado |
+
+### Big Fone #1 — REGISTRADO
+
+- **Atendeu**: Breno
+- **Consequência**: Vetou Brigido das 3 provas da semana
+- **power_event**: `veto_prova` (Breno → Brigido, -1.5 weight)
+
+### Big Fone #2 (Sex 7h) — TEMPLATE
+
+Quando acontecer, adicionar em `data/manual_events.json`:
+
+```jsonc
+// Em weekly_events[week 3].big_fone (append ao array existente):
+{"atendeu": "NOME", "date": "2026-01-30", "consequencia": "DESCREVER"}
+```
+
+Consequência ainda desconhecida. Se tiver power_event associado, adicionar também.
+
+### Big Fone #3 (Sex ao vivo) — TEMPLATE
+
+```jsonc
+// Em weekly_events[week 3].big_fone (append ao array existente):
+{"atendeu": "NOME", "date": "2026-01-30", "consequencia": "DESCREVER"}
+```
+
+### Big Fone #4 (Sáb ao vivo) — TEMPLATE
+
+```jsonc
+// Em weekly_events[week 3].big_fone (append ao array existente):
+{"atendeu": "NOME", "date": "2026-01-31", "consequencia": "DESCREVER"}
+```
+
+### Consenso Big Fone → Indicação ao Paredão
+
+Os 3 participantes que atenderam ao Big Fone (#2, #3, #4) devem escolher **em consenso** uma pessoa para ser emparedada. Se não houver consenso, os 3 vão ao paredão.
+
+**Em `data/manual_events.json` — power_events:**
+```jsonc
+{
+  "date": "2026-02-01",
+  "week": 3,
+  "type": "indicacao",
+  "actor": "NOME1 + NOME2 + NOME3",
+  "actors": ["NOME1", "NOME2", "NOME3"],
+  "target": "INDICADO",
+  "source": "Big Fone",
+  "detail": "Indicação em consenso pelos participantes do Big Fone",
+  "fontes": ["URL"],
+  "impacto": "negativo",
+  "origem": "manual",
+  "visibility": "public",
+  "awareness": "known"
+}
+```
+
+**Em `data/paredoes.json` — formacao.dinamica:**
+```jsonc
+"dinamica": {
+  "nome": "Big Fone (Consenso)",
+  "indicaram": ["NOME1", "NOME2", "NOME3"],
+  "indicado": "INDICADO"
+}
+```
+
+> **Nota**: Segue o mesmo padrão da Caixas-Surpresa (Semana 2). O `normalize_actors()` em `build_derived_data.py` distribui o peso de `indicacao` (-2.8) para cada ator→alvo.
+
+### Presente do Anjo — Imunidade Extra
+
+Se o Anjo aceitar trocar o vídeo da família por imunidade:
+
+```jsonc
+// Em power_events:
+{
+  "date": "2026-02-01",
+  "week": 3,
+  "type": "imunidade",
+  "actor": "NOME_ANJO",
+  "target": "NOME_ANJO",
+  "source": "Presente do Anjo",
+  "detail": "Abriu mão do vídeo da família em troca de imunidade extra",
+  "fontes": ["URL"],
+  "impacto": "positivo",
+  "origem": "manual",
+  "visibility": "public",
+  "awareness": "known"
+}
+```
+
+Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outro como de costume).
+
+### Formação do 3º Paredão (Domingo)
+
+**Paredão triplo** com estas fontes de emparedados:
+1. Indicação do Líder (Maxiane)
+2. Indicação por consenso dos 3 do Big Fone
+3. 2 mais votados pela casa
+4. Prova Bate e Volta (escape)
+
+**Template para `data/paredoes.json`:**
+```jsonc
+{
+  "numero": 3,
+  "status": "em_andamento",
+  "data": "2026-02-03",
+  "data_formacao": "2026-02-01",
+  "titulo": "3º Paredão — 3 de Fevereiro de 2026",
+  "semana": 3,
+  "formacao": {
+    "resumo": "DESCREVER TODA A FORMAÇÃO",
+    "lider": "Maxiane",
+    "indicado_lider": "NOME",
+    "motivo_lider": "MOTIVO",
+    "anjo": "NOME_ANJO",
+    "anjo_autoimune": false,
+    "imunizado": {"por": "NOME_ANJO", "quem": "NOME_IMUNIZADO"},
+    "dinamica": {
+      "nome": "Big Fone (Consenso)",
+      "indicaram": ["NOME1", "NOME2", "NOME3"],
+      "indicado": "NOME"
+    },
+    "bate_volta": {
+      "participantes": ["NOME_A", "NOME_B", "NOME_C"],
+      "vencedor": "NOME",
+      "prova": "DESCREVER"
+    }
+  },
+  "indicados_finais": [
+    {"nome": "NOME", "grupo": "GRUPO", "como": "Líder"},
+    {"nome": "NOME", "grupo": "GRUPO", "como": "Big Fone (Consenso)"},
+    {"nome": "NOME", "grupo": "GRUPO", "como": "Casa (N votos)"}
+  ],
+  "votos_casa": {},
+  "fontes": ["URL"]
+}
+```
+
+> **Brigido**: vetado das 3 provas (Líder, Anjo, Bate e Volta). Se cair no paredão, NÃO pode disputar Bate e Volta. Documentar em `bate_volta.impedidos` se relevante.
+
+### Checklist pós-eventos
+
+- [ ] Big Fone #2 registrado em `big_fone[]` + power_event (se aplicável)
+- [ ] Big Fone #3 registrado em `big_fone[]` + power_event (se aplicável)
+- [ ] Big Fone #4 registrado em `big_fone[]` + power_event (se aplicável)
+- [ ] Consenso registrado em power_events (indicacao com actors array)
+- [ ] Presente do Anjo registrado (se aceito: imunidade; se não: nada)
+- [ ] `data/paredoes.json` com entrada do 3º Paredão
+- [ ] `data/provas.json` atualizado (Prova do Líder, Prova do Anjo, Bate e Volta)
+- [ ] `python scripts/build_derived_data.py` rodado após cada atualização
+- [ ] Fetch API diário para capturar mudanças de roles/VIP
