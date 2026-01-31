@@ -161,6 +161,43 @@ Only events **not inferable** from snapshots or paredões (salvo, não eliminado
 - Structure: one entry per participant/week with `events: [{event, points, date, fonte?}]`.
 - Always include matching `fontes` in `manual_events.json` for the underlying real-world event.
 
+### `scheduled_events`
+
+Future/upcoming events that haven't happened yet. Displayed in the **Cronologia do Jogo** (both `index.qmd` and `evolucao.qmd`) with distinct styling (dashed borders, 🔮 prefix, yellow time badge).
+
+**Schema:**
+```json
+{
+  "date": "2026-02-01",
+  "week": 3,
+  "category": "paredao_formacao",
+  "emoji": "🗳️",
+  "title": "3º Paredão — Formação (triplo)",
+  "detail": "Imunidades: 1 pelo Anjo (+1 extra se ganhar). Emparedados: 1 consenso Big Fone + 1 indicação Líder + 2 mais votados pela casa.",
+  "time": "Ao Vivo",
+  "participants": [],
+  "fontes": ["https://gshow.globo.com/..."]
+}
+```
+
+**Fields:**
+- `date` — expected date (YYYY-MM-DD)
+- `week` — week number
+- `category` — same categories as other events (e.g., `big_fone`, `anjo`, `paredao_formacao`, `paredao_resultado`)
+- `emoji` — display emoji
+- `title` — event title (keep distinct from real events to avoid premature dedup)
+- `detail` — description of what's expected
+- `time` — schedule info: `"Ao Vivo"`, `"7h"`, `"A definir"`, etc. Shown as yellow badge.
+- `participants` — leave empty `[]` until event happens
+- `fontes` — GShow article confirming the schedule
+
+**How it works:**
+- `build_game_timeline()` adds these with `"status": "scheduled"` and `"source": "scheduled"`.
+- Auto-dedup: if a real event already exists with the same `(date, category, title)`, the scheduled entry is skipped.
+- **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then remove the corresponding entry from `scheduled_events` and run `build_derived_data.py`.
+
+**When to fill:** When GShow publishes the "Dinâmica da Semana" article (usually Thursday/Friday), add all upcoming events for the week.
+
 ---
 
 ## API vs Manual
@@ -179,6 +216,8 @@ Only events **not inferable** from snapshots or paredões (salvo, não eliminado
 - After Barrado no Baile (líder escolhe quem não vai à festa)
 - After any **power effect** (veto, voto duplo, perdeu voto, contragolpe, imunidade)
 - After each paredão result to log **salvos/sobreviventes** and any point events not detectable via API
+- When GShow publishes **Dinâmica da Semana** (usually Thu/Fri), add upcoming events to `scheduled_events`
+- After a scheduled event **actually happens**, record real data and remove the entry from `scheduled_events`
 - Depois de qualquer edição manual, rode `python scripts/build_derived_data.py` para atualizar `data/derived/`.
 
 ---

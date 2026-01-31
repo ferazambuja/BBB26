@@ -461,6 +461,32 @@ Built by `build_prova_rankings()` in `scripts/build_derived_data.py`.
 
 ---
 
+## VIP/Xepa Tracking
+
+A **VIP period** corresponds to one Líder's reign. VIP group is set once when a new Líder takes power.
+
+### How VIP weeks are counted
+- Walk `roles_daily.json` and detect dates where the Líder role changes to a new person.
+- On each leader transition date, the last daily snapshot reflects the new leader's VIP selection.
+- Count +1 VIP or +1 Xepa per participant per leader period.
+- Maximum VIP selections = number of distinct leaders.
+
+### Leader periods (`leader_periods` in `index_data.json`)
+Each entry contains:
+- `leader`: name of the Líder
+- `start`: date the Líder took power
+- `end`: date the next Líder took power (or latest date if current)
+- `vip`: list of participants in VIP during this period
+- `xepa`: list of participants in Xepa during this period
+
+### Why not track VIP composition changes?
+VIP composition can change for reasons other than leader selection (late entrants joining the house, participants quitting). Tracking leader transitions from `roles_daily.json` ensures we count only actual leader selections.
+
+### Data source
+Built by `build_index_data.py`. Uses `roles_daily.json` for leader transitions and daily snapshots for VIP/Xepa group membership.
+
+---
+
 ## Power Events — Awareness & Visibility
 
 - `actor` e `target` devem sempre existir — o **alvo sabe quem causou** o evento quando a dinâmica é pública (Big Fone, Caixas-Surpresa, Líder/Anjo).
@@ -555,6 +581,44 @@ These are **safe cross-page ideas** using only existing data:
 8. **Coesão por grupo (Pipoca/Veterano/Camarote)** — Group-level affinity + volatility over time.
 
 **Rule of thumb:** Cartola points are precomputed in `data/derived/cartola_data.json`. `cartola.qmd` loads this JSON for rendering only. Cartola points should never drive non-Cartola insights.
+
+---
+
+## Game Timeline (`game_timeline.json`)
+
+Unified chronological timeline merging **all** event sources into a single feed. Displayed as "Cronologia do Jogo" in both `index.qmd` (first section) and `evolucao.qmd`.
+
+### Sources (merged in order)
+1. **Entries & exits** — from `eliminations_detected.json` + `manual_events.participants`
+2. **Auto roles** — Líder, Anjo, Monstro, Imune from `auto_events.json`
+3. **Power events** — from `manual_events.power_events` (indicação, contragolpe, veto, etc.)
+4. **Weekly events** — Big Fone, Sincerão, Ganha-Ganha, Barrado no Baile from `manual_events.weekly_events`
+5. **Paredão** — formation + resultado from `paredoes.json`
+6. **Special events** — dinâmicas from `manual_events.special_events`
+7. **Scheduled events** — future events from `manual_events.scheduled_events` (tagged `status: "scheduled"`)
+
+### Event schema
+```json
+{
+  "date": "2026-01-30",
+  "week": 3,
+  "category": "big_fone",
+  "emoji": "📞",
+  "title": "Big Fone — Babu Santana atendeu",
+  "detail": "Recebeu pulseira prateada...",
+  "participants": ["Babu Santana"],
+  "source": "weekly_events",
+  "status": "scheduled",  // only for future events; absent for past events
+  "time": "Ao Vivo"       // only for scheduled events
+}
+```
+
+### Deduplication
+Events are deduped by `(date, category, title)`. Scheduled events are processed last, so a real event always takes priority.
+
+### Rendering
+- **Past events**: solid border, filled badge, plain detail text
+- **Scheduled events**: dashed border, outlined badge, 🔮 prefix on detail, yellow time badge
 
 ---
 

@@ -24,6 +24,8 @@ PARTICIPANTS_INDEX_FILE = DERIVED_DIR / "participants_index.json"
 PLANT_INDEX_FILE = DERIVED_DIR / "plant_index.json"
 RELATIONS_FILE = DERIVED_DIR / "relations_scores.json"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
+CARTOLA_FILE = DERIVED_DIR / "cartola_data.json"
+PROVA_FILE = DERIVED_DIR / "prova_rankings.json"
 
 ROLE_TYPES = {
     "Líder": "lider",
@@ -152,6 +154,8 @@ def build_index_data():
     plant_index = load_json(PLANT_INDEX_FILE, {})
     relations_data = load_json(RELATIONS_FILE, {})
     paredoes = load_json(PAREDOES_FILE, {"paredoes": []})
+    cartola_data = load_json(CARTOLA_FILE, {})
+    prova_data = load_json(PROVA_FILE, {})
 
     if isinstance(relations_data, dict):
         relations_pairs = relations_data.get("pairs_daily") or relations_data.get("pairs", {})
@@ -214,6 +218,69 @@ def build_index_data():
             elif group == "xepa":
                 xepa_days[name] += 1
 
+    # VIP weeks selected — based on leader transitions (not VIP composition changes).
+    # A "VIP period" = the time a specific Líder is in power.
+    # On each leader transition date, the daily snapshot reflects the new leader's VIP selection.
+    vip_weeks_selected = defaultdict(int)
+    xepa_weeks = defaultdict(int)
+    leader_periods = []
+
+    # Build daily snapshot lookup by date
+    daily_snap_by_date = {snap["date"]: snap for snap in daily_snapshots}
+
+    # Detect leader transitions from roles_daily
+    rd_entries = sorted(roles_daily.get("daily", []), key=lambda x: x.get("date", ""))
+    prev_leader = None
+    transition_dates = []
+    for entry in rd_entries:
+        leader_list = entry.get("roles", {}).get("Líder", [])
+        leader = leader_list[0] if leader_list else None
+        if leader and leader != prev_leader:
+            transition_dates.append((entry["date"], leader))
+        prev_leader = leader
+
+    # For each transition, read VIP/Xepa from that date's daily snapshot
+    for i, (trans_date, leader_name) in enumerate(transition_dates):
+        # Determine end date (next transition or last available date)
+        if i + 1 < len(transition_dates):
+            end_date = transition_dates[i + 1][0]
+        else:
+            # Current leader — end is latest date (open-ended)
+            end_date = daily_snapshots[-1]["date"] if daily_snapshots else trans_date
+
+        # Get VIP/Xepa from the transition date snapshot
+        snap = daily_snap_by_date.get(trans_date)
+        if not snap:
+            continue
+
+        period_vip = []
+        period_xepa = []
+        all_in_house = set()
+        for p in snap["participants"]:
+            nm = p.get("name")
+            if not nm:
+                continue
+            all_in_house.add(nm)
+            grp = (p.get("characteristics", {}).get("group") or "").lower()
+            if grp == "vip":
+                period_vip.append(nm)
+            elif grp == "xepa":
+                period_xepa.append(nm)
+
+        # Count VIP/Xepa selections per participant
+        for nm in period_vip:
+            vip_weeks_selected[nm] += 1
+        for nm in period_xepa:
+            xepa_weeks[nm] += 1
+
+        leader_periods.append({
+            "leader": leader_name,
+            "start": trans_date,
+            "end": end_date,
+            "vip": sorted(period_vip),
+            "xepa": sorted(period_xepa),
+        })
+
     # Leader -> VIP edge (light positive) for current leader
     house_leader = None
     if roles_current.get("Líder"):
@@ -275,8 +342,8 @@ def build_index_data():
                     break
 
             sorted_today = sorted(sentiment_today.items(), key=lambda x: x[1], reverse=True)
-            podium = [{"name": n, "score": s} for n, s in sorted_today[:3]]
-            bottom3 = [{"name": n, "score": s} for n, s in sorted_today[-3:]]
+            podium = [{"name": n, "score": s} for n, s in sorted_today[:6]]
+            bottom3 = [{"name": n, "score": s} for n, s in sorted_today[-6:]]
 
             deltas = {}
             for name, score in sentiment_today.items():
@@ -985,6 +1052,69 @@ def build_index_data():
         label = latest_matrix.get((giver, receiver), "")
         return SENTIMENT_WEIGHTS.get(label, 0)
 
+    # ── Curiosity lookup dicts ──
+    # Cartola: name → {total, rank}
+    cartola_lb = cartola_data.get("leaderboard", [])
+    cartola_sorted = sorted(cartola_lb, key=lambda x: x.get("total", 0), reverse=True)
+    cartola_by_name = {}
+    for i, entry in enumerate(cartola_sorted):
+        cartola_by_name[entry.get("name", "")] = {"total": entry.get("total", 0), "rank": i + 1}
+
+    # Provas: name → leaderboard entry
+    prova_lb = prova_data.get("leaderboard", [])
+    prova_by_name = {e["name"]: e for e in prova_lb if e.get("name")}
+
+    # Sentiment history: name → [(date, score)]
+    sentiment_history = defaultdict(list)
+    for day in daily_metrics.get("daily", []):
+        date_str_d = day.get("date", "")
+        for nm, sc in day.get("sentiment", {}).items():
+            sentiment_history[nm].append((date_str_d, sc))
+
+    # Streak breaks data
+    streak_breaks_data = relations_data.get("streak_breaks", []) if isinstance(relations_data, dict) else []
+
+    # Longest received heart streaks per participant + count of 10+ day streaks
+    longest_streaks = {}
+    long_alliance_counts = defaultdict(int)
+    for pair_giver, targets in relations_pairs.items():
+        if not isinstance(targets, dict):
+            continue
+        for pair_receiver, rel in targets.items():
+            if not isinstance(rel, dict):
+                continue
+            slen = rel.get("streak_len", 0)
+            if slen >= 10:
+                long_alliance_counts[pair_receiver] += 1
+            if slen > longest_streaks.get(pair_receiver, {}).get("len", 0):
+                longest_streaks[pair_receiver] = {"len": slen, "partner": pair_giver}
+
+    # Total house votes received per participant (all paredões)
+    total_house_votes = Counter()
+    for par in paredoes.get("paredoes", []):
+        for voter, target in (par.get("votos_casa") or {}).items():
+            total_house_votes[target.strip()] += 1
+
+    # Ever nominated / survived paredão
+    ever_nominated = set()
+    survived_paredao = set()
+    for par in paredoes.get("paredoes", []):
+        resultado = par.get("resultado", {})
+        eliminado = resultado.get("eliminado", "") if resultado else ""
+        for ind in par.get("indicados_finais", []):
+            nome = ind.get("nome", "") if isinstance(ind, dict) else ind
+            if nome:
+                ever_nominated.add(nome)
+                if par.get("status") == "finalizado" and nome != eliminado:
+                    survived_paredao.add(nome)
+
+    # Breaks given/received counts
+    breaks_given_count = Counter(b["giver"] for b in streak_breaks_data)
+    breaks_received_count = Counter(b["receiver"] for b in streak_breaks_data)
+
+    # Total leader periods available
+    n_leader_periods = len(leader_periods)
+
     profiles = []
     for p in sorted(active, key=lambda x: x["name"]):
         name = p["name"]
@@ -996,6 +1126,9 @@ def build_index_data():
             rxn_summary.append({"emoji": emoji, "count": rxn.get("amount", 0)})
 
         given = {}
+        # Per-person reaction details (for expandable RECEBEU/DEU)
+        received_detail = []  # who gave this person what emoji
+        given_detail = []  # what this person gave to whom
         for other_name in active_names:
             if other_name == name:
                 continue
@@ -1003,6 +1136,11 @@ def build_index_data():
             if rxn:
                 emoji = REACTION_EMOJI.get(rxn, rxn)
                 given[emoji] = given.get(emoji, 0) + 1
+                given_detail.append({"name": other_name, "emoji": emoji})
+            # What other_name gave to this person
+            rxn_from = latest_matrix.get((other_name, name), "")
+            if rxn_from:
+                received_detail.append({"name": other_name, "emoji": REACTION_EMOJI.get(rxn_from, rxn_from)})
         given_summary = [{"emoji": e, "count": c} for e, c in sorted(given.items(), key=lambda x: -x[1])]
 
         allies = []
@@ -1021,22 +1159,32 @@ def build_index_data():
             my_is_negative = my_score < 0
             their_is_negative = their_score < 0
             if my_is_positive and their_is_positive:
-                allies.append(other_name)
+                allies.append({
+                    "name": other_name,
+                    "my_score": round(my_score, 2),
+                    "their_score": round(their_score, 2),
+                })
             elif my_is_negative and their_is_negative:
                 enemies.append({
                     "name": other_name,
                     "my_emoji": REACTION_EMOJI.get(my_rxn, "?"),
                     "their_emoji": REACTION_EMOJI.get(their_rxn, "?"),
+                    "my_score": round(my_score, 2),
+                    "their_score": round(their_score, 2),
                 })
             elif my_is_positive and their_is_negative:
                 false_friends.append({
                     "name": other_name,
                     "their_emoji": REACTION_EMOJI.get(their_rxn, "?"),
+                    "my_score": round(my_score, 2),
+                    "their_score": round(their_score, 2),
                 })
             elif my_is_negative and their_is_positive:
                 blind_targets.append({
                     "name": other_name,
                     "my_emoji": REACTION_EMOJI.get(my_rxn, "?"),
+                    "my_score": round(my_score, 2),
+                    "their_score": round(their_score, 2),
                 })
 
         n_false_friends = len(false_friends)
@@ -1180,6 +1328,186 @@ def build_index_data():
             plant_info["week"] = plant_week.get("week")
             plant_info["date_range"] = plant_week.get("date_range", {})
 
+        # ── Build curiosities ──
+        curiosities = []
+
+        # 1. Streak break given (high drama)
+        my_breaks_given = [b for b in streak_breaks_data if b.get("giver") == name]
+        my_breaks_received = [b for b in streak_breaks_data if b.get("receiver") == name]
+        if my_breaks_given:
+            worst = max(my_breaks_given, key=lambda b: b.get("previous_streak", 0))
+            curiosities.append({"icon": "💔", "text": f"Rompeu aliança de {worst.get('previous_streak', 0)}d com {worst['receiver']}", "priority": 9})
+
+        # 2. Streak break received
+        if my_breaks_received:
+            worst = max(my_breaks_received, key=lambda b: b.get("previous_streak", 0))
+            curiosities.append({"icon": "💔", "text": f"Perdeu aliança de {worst.get('previous_streak', 0)}d de {worst['giver']}", "priority": 8})
+
+        # 3. Serial betrayer (multiple breaks given)
+        n_breaks_given = breaks_given_count.get(name, 0)
+        if n_breaks_given >= 2:
+            curiosities.append({"icon": "🗡️", "text": f"Traidor em série: rompeu {n_breaks_given} alianças", "priority": 7})
+
+        # 4. Competition wins
+        prov = prova_by_name.get(name)
+        if prov:
+            wins = prov.get("wins", 0)
+            if wins > 0:
+                curiosities.append({"icon": "🥇", "text": f"{wins} vitória(s) em provas", "priority": 7})
+
+        # 5. Most betrayed (multiple breaks received)
+        n_breaks_received = breaks_received_count.get(name, 0)
+        if n_breaks_received >= 2:
+            curiosities.append({"icon": "😢", "text": f"Mais traído: perdeu {n_breaks_received} alianças", "priority": 6})
+
+        # 6. Vote target (many house votes)
+        n_house_votes = total_house_votes.get(name, 0)
+        if n_house_votes >= 5:
+            curiosities.append({"icon": "🎯", "text": f"Alvo da casa: {n_house_votes} votos recebidos", "priority": 6})
+
+        # 7. Many alliances (10+ day streaks)
+        n_long_alliances = long_alliance_counts.get(name, 0)
+        ls = longest_streaks.get(name, {})
+        if n_long_alliances >= 10:
+            curiosities.append({"icon": "🤝", "text": f"{n_long_alliances} alianças de 10+ dias (recorde: {ls.get('len', 0)}d)", "priority": 6})
+        elif ls.get("len", 0) >= 10:
+            # Fallback: show single longest alliance
+            curiosities.append({"icon": "🤝", "text": f"Aliança mais longa: {ls['len']}d de ❤️ de {ls['partner']}", "priority": 5})
+
+        # 8. Polarizer (many allies AND many enemies)
+        n_allies = len(allies)
+        n_enemies_count = len(enemies)
+        if n_allies >= 5 and n_enemies_count >= 5:
+            curiosities.append({"icon": "⚡", "text": f"Polarizador: {n_allies} aliados vs {n_enemies_count} inimigos", "priority": 5})
+
+        # 9. Untouchable (0 house votes, present in 2+ paredões)
+        n_paredoes_present = sum(1 for par in paredoes.get("paredoes", [])
+                                  if par.get("votos_casa") and name in {v.strip() for v in par["votos_casa"].keys()})
+        if n_house_votes == 0 and n_paredoes_present >= 2:
+            curiosities.append({"icon": "🛡️", "text": "Intocável: nunca recebeu voto da casa", "priority": 5})
+
+        # 10. Survived paredão
+        if name in survived_paredao:
+            curiosities.append({"icon": "🔥", "text": "Sobreviveu ao paredão", "priority": 5})
+
+        # 11. Biggest single-day sentiment swing (threshold raised to ±5)
+        hist = sentiment_history.get(name, [])
+        if len(hist) >= 2:
+            max_swing = 0
+            swing_date = ""
+            swing_delta = 0.0
+            for j in range(1, len(hist)):
+                delta = hist[j][1] - hist[j - 1][1]
+                if abs(delta) > abs(max_swing):
+                    max_swing = delta
+                    swing_date = hist[j][0]
+                    swing_delta = delta
+            if abs(max_swing) >= 5:
+                direction = "📈" if swing_delta > 0 else "📉"
+                try:
+                    d = datetime.strptime(swing_date, "%Y-%m-%d").strftime("%d/%m")
+                except Exception:
+                    d = swing_date
+                curiosities.append({"icon": direction, "text": f"Maior variação: {swing_delta:+.1f} em {d}", "priority": 5})
+
+        # 12. VIP favorite (selected 2+ times by leaders)
+        n_vip_sel = vip_weeks_selected.get(name, 0)
+        if n_vip_sel >= 2 and n_leader_periods >= 2:
+            curiosities.append({"icon": "✨", "text": f"VIP favorito: selecionado {n_vip_sel}× de {n_leader_periods} líderes", "priority": 5})
+
+        # 13. Competition top-3 (no wins)
+        if prov:
+            top3 = prov.get("top3", 0)
+            wins = prov.get("wins", 0)
+            if top3 >= 2 and wins == 0:
+                curiosities.append({"icon": "🎯", "text": f"{top3} top-3 em provas", "priority": 4})
+            elif wins == 0 and prov.get("best_position"):
+                curiosities.append({"icon": "🎯", "text": f"Melhor posição em provas: {prov['best_position']}º", "priority": 4})
+
+        # 14. Never VIP (selected by leaders)
+        if n_vip_sel == 0 and n_leader_periods >= 2:
+            curiosities.append({"icon": "🍽️", "text": "Nunca selecionado para o VIP", "priority": 4})
+
+        # 15. Favorite emoji given (most-given non-❤️ emoji to 5+ people)
+        non_heart_given = [r for r in given_summary if r.get("emoji") != "❤️"]
+        if non_heart_given and non_heart_given[0]["count"] >= 5:
+            fav = non_heart_given[0]
+            curiosities.append({"icon": "🎭", "text": f"Emoji favorito: dá {fav['emoji']} para {fav['count']} colegas", "priority": 3})
+
+        # 16. Hearts-given ratio
+        total_given_hearts = sum(r["count"] for r in given_summary if r.get("emoji") == "❤️")
+        total_given = sum(r["count"] for r in given_summary)
+        if total_given > 0:
+            heart_pct = round(total_given_hearts / total_given * 100)
+            if heart_pct >= 80:
+                curiosities.append({"icon": "❤️", "text": f"Dá ❤️ para {heart_pct}% dos colegas", "priority": 3})
+            elif heart_pct <= 40:
+                curiosities.append({"icon": "🐍", "text": f"Só dá ❤️ para {heart_pct}% dos colegas", "priority": 3})
+
+        # 17. Cartola ranking (demoted from 5 → 3)
+        cart = cartola_by_name.get(name)
+        if cart:
+            curiosities.append({"icon": "🏆", "text": f"Cartola BBB: {cart['total']} pts ({cart['rank']}º lugar)", "priority": 3})
+
+        # 18. VIP/Xepa day stats
+        _vip_d = vip_days.get(name, 0)
+        _xepa_d = xepa_days.get(name, 0)
+        _total_d = total_days.get(name, 0)
+        if _total_d >= 5:
+            vip_pct = round(_vip_d / _total_d * 100) if _total_d > 0 else 0
+            if vip_pct >= 75:
+                curiosities.append({"icon": "✨", "text": f"VIP em {vip_pct}% dos dias", "priority": 2})
+            elif vip_pct <= 25 and _xepa_d > 0:
+                curiosities.append({"icon": "🍽️", "text": f"Xepa em {100 - vip_pct}% dos dias", "priority": 2})
+
+        # 19. Never nominated
+        if name not in ever_nominated and name in active_set:
+            curiosities.append({"icon": "🛡️", "text": "Nunca foi ao paredão", "priority": 2})
+
+        # 20. Planta invisível (high plant index = very plant-like)
+        _plant = plant_scores.get(name)
+        if _plant and isinstance(_plant, dict):
+            _plant_score = _plant.get("score", 0)
+            if _plant_score >= 60:
+                curiosities.append({"icon": "🌱", "text": f"Plantinha invisível: {_plant_score:.0f} no Plant Index", "priority": 4})
+
+        # 21. Biggest rival (mutual enemy with worst combined score)
+        if enemies:
+            worst_enemy = min(enemies, key=lambda e: e.get("my_score", 0) + e.get("their_score", 0))
+            combined = round(worst_enemy.get("my_score", 0) + worst_enemy.get("their_score", 0), 1)
+            curiosities.append({"icon": "🔗", "text": f"Maior rival: {worst_enemy['name']} (score {combined:+.1f})", "priority": 4})
+
+        # 22. Em queda: weekly score drop ≥ 8 points
+        if len(hist) >= 5:
+            # Compare last value vs value ~7 days ago
+            recent_score = hist[-1][1]
+            week_back_score = hist[-min(7, len(hist))][1]
+            weekly_drop = recent_score - week_back_score
+            if weekly_drop <= -8:
+                curiosities.append({"icon": "📉", "text": f"Em queda: {weekly_drop:+.1f} pts na semana", "priority": 5})
+            elif weekly_drop >= 8:
+                curiosities.append({"icon": "📈", "text": f"Em alta: {weekly_drop:+.1f} pts na semana", "priority": 5})
+
+        # 23. Secret vote target (unrevealed votes from many people)
+        _vote_map = votes_received_by_week.get(current_vote_week, {}).get(name, {})
+        _revealed = revealed_votes.get(name, set())
+        _secret_voters = [v for v in _vote_map if v not in _revealed]
+        if len(_secret_voters) >= 3:
+            curiosities.append({"icon": "🤐", "text": f"Alvo oculto: {len(_secret_voters)} votos secretos", "priority": 5})
+
+        # 24. Paredão target: nominated multiple times across paredões
+        _n_nominations = sum(
+            1 for par in paredoes.get("paredoes", [])
+            for ind in par.get("indicados_finais", [])
+            if (ind.get("nome", "") if isinstance(ind, dict) else ind) == name
+        )
+        if _n_nominations >= 2:
+            curiosities.append({"icon": "⚠️", "text": f"Alvo frequente: {_n_nominations}× no paredão", "priority": 5})
+
+        # Sort by priority, keep all (record-holder post-processing will trim)
+        curiosities.sort(key=lambda x: x.get("priority", 0), reverse=True)
+        curiosities = curiosities[:8]
+
         profiles.append({
             "name": name,
             "member_of": p.get("characteristics", {}).get("memberOf", "?"),
@@ -1196,8 +1524,10 @@ def build_index_data():
             "animosity_color": animosity_color,
             "rxn_summary": rxn_summary,
             "given_summary": given_summary,
+            "received_detail": sorted(received_detail, key=lambda x: x["name"]),
+            "given_detail": sorted(given_detail, key=lambda x: x["name"]),
             "relations": {
-                "allies": sorted(allies),
+                "allies": sorted(allies, key=lambda x: x["name"]),
                 "enemies": sorted(enemies, key=lambda x: x["name"]),
                 "false_friends": sorted(false_friends, key=lambda x: x["name"]),
                 "blind_targets": sorted(blind_targets, key=lambda x: x["name"]),
@@ -1220,6 +1550,8 @@ def build_index_data():
             "vip_days": vip_days.get(name, 0),
             "xepa_days": xepa_days.get(name, 0),
             "days_total": total_days.get(name, 0),
+            "vip_weeks": vip_weeks_selected.get(name, 0),
+            "xepa_weeks": xepa_weeks.get(name, 0),
             "scores": {
                 "external": external_score,
                 "external_positive": external_positive,
@@ -1229,7 +1561,208 @@ def build_index_data():
                 "animosity_breakdown": {k: round(v, 2) for k, v in sorted(animosity_breakdown.items(), key=lambda x: x[1])},
             },
             "plant_index": plant_info,
+            "curiosities": curiosities,
         })
+
+    # ── Record-holder curiosities (post-processing) ──
+    # Compute records across all active participants, then inject into profiles.
+    record_data = {}
+    for prof in profiles:
+        nm = prof["name"]
+        if nm not in active_set:
+            continue
+        rel = prof.get("relations", {})
+        record_data[nm] = {
+            "allies": len(rel.get("allies", [])),
+            "enemies": len(rel.get("enemies", [])),
+            "false_friends": len(rel.get("false_friends", [])),
+            "blind_targets": len(rel.get("blind_targets", [])),
+        }
+        # hearts-given %
+        gs = prof.get("given_summary", [])
+        total_g = sum(r["count"] for r in gs)
+        hearts_g = sum(r["count"] for r in gs if r.get("emoji") == "❤️")
+        record_data[nm]["heart_pct"] = round(hearts_g / total_g * 100) if total_g > 0 else 0
+        record_data[nm]["neg_pct"] = 100 - record_data[nm]["heart_pct"] if total_g > 0 else 0
+
+    # Find record holders (minimum thresholds to avoid trivial records)
+    records_to_check = [
+        ("allies", 3, "👑", "Mais aliados da casa ({v})", 6),
+        ("enemies", 3, "⚔️", "Mais inimigos da casa ({v})", 6),
+        ("false_friends", 2, "🎭", "Mais falsos amigos ({v})", 6),
+        ("blind_targets", 2, "🙈", "Mais alvos cegos ({v})", 6),
+        ("heart_pct", 70, "💝", "Mais generoso com ❤️ ({v}%)", 5),
+        ("neg_pct", 50, "💀", "Mais hostil da casa ({v}% negativos)", 5),
+    ]
+
+    record_holders = {}  # name -> list of curiosity dicts
+    for field, min_val, icon, template, priority in records_to_check:
+        if not record_data:
+            continue
+        best_name = max(record_data, key=lambda n: record_data[n].get(field, 0))
+        best_val = record_data[best_name].get(field, 0)
+        if best_val < min_val:
+            continue
+        # Check for ties — skip if tied (not a clear record)
+        tied = [n for n in record_data if record_data[n].get(field, 0) == best_val]
+        if len(tied) > 1:
+            continue
+        record_holders.setdefault(best_name, []).append({
+            "icon": icon, "text": template.format(v=best_val), "priority": priority,
+        })
+
+    # Inject record curiosities into profiles and re-sort/trim, then strip priority
+    MAX_CURIOSITIES = 8
+    for prof in profiles:
+        nm = prof["name"]
+        if nm in record_holders:
+            combined = record_holders[nm] + prof.get("curiosities", [])
+            combined.sort(key=lambda x: x.get("priority", 0), reverse=True)
+            prof["curiosities"] = [{"icon": c["icon"], "text": c["text"]} for c in combined[:MAX_CURIOSITIES]]
+        else:
+            prof["curiosities"] = [{"icon": c["icon"], "text": c["text"]} for c in prof.get("curiosities", [])[:MAX_CURIOSITIES]]
+
+    # ── Build eliminated/exited participants list ──
+    eliminated_list = []
+    manual_participants = manual_events.get("participants", {})
+    for exit_name, exit_info in manual_participants.items():
+        if not isinstance(exit_info, dict):
+            continue
+        status = exit_info.get("status", "")
+        status_labels = {
+            "eliminada": "Eliminada",
+            "eliminado": "Eliminado",
+            "desistente": "Desistente",
+            "desclassificado": "Desclassificado",
+            "desclassificada": "Desclassificada",
+        }
+        label = status_labels.get(status, status.capitalize())
+        eliminated_list.append({
+            "name": exit_name,
+            "status": status,
+            "status_label": label,
+            "exit_date": exit_info.get("exit_date", ""),
+            "exit_reason": exit_info.get("exit_reason", ""),
+            "paredao_numero": exit_info.get("paredao_numero"),
+            "avatar": avatars.get(exit_name, ""),
+            "member_of": member_of.get(exit_name, "?"),
+        })
+    eliminated_list.sort(key=lambda x: x.get("exit_date", ""))
+
+    # ── Big Fone consensus analysis ──
+    # Find current week's Big Fone bracelet holders (consensus group)
+    # Only include attendees whose consequence mentions "consenso" or "pulseira"
+    big_fone_attendees = []
+    for wev in manual_events.get("weekly_events", []):
+        if wev.get("week") == current_cycle_week:
+            for bf in wev.get("big_fone", []) or []:
+                att = bf.get("atendeu", "")
+                cons = (bf.get("consequencia", "") or "").lower()
+                if att and att in active_set and ("consenso" in cons or "pulseira" in cons):
+                    big_fone_attendees.append(att)
+            break
+
+    big_fone_consensus = None
+    if len(big_fone_attendees) >= 2:
+        # Compute pair scores from each attendee to every possible target
+        bf_set = set(big_fone_attendees)
+        possible_targets = [n for n in active_names if n not in bf_set]
+
+        # Immune participants can't be nominated
+        immune_roles = {"Imune", "Líder", "Anjo"}
+        immune_names = set()
+        for role_name, holders in roles_current.items():
+            if role_name in immune_roles:
+                immune_names.update(holders)
+
+        target_analysis = []
+        for target in possible_targets:
+            entry = {
+                "name": target,
+                "avatar": avatars.get(target, ""),
+                "member_of": member_of.get(target, "?"),
+                "immune": target in immune_names,
+                "scores": {},
+                "emojis": {},
+                "target_emojis": {},
+            }
+            combined = 0.0
+            all_negative = True
+            for att in big_fone_attendees:
+                sc = pair_sentiment(att, target)
+                entry["scores"][att] = round(sc, 2)
+                combined += sc
+                if sc >= 0:
+                    all_negative = False
+                # Current emoji given
+                rxn_label = latest_matrix.get((att, target), "")
+                entry["emojis"][att] = REACTION_EMOJI.get(rxn_label, "?")
+                # What target gives back
+                rxn_back = latest_matrix.get((target, att), "")
+                entry["target_emojis"][att] = REACTION_EMOJI.get(rxn_back, "?")
+
+            entry["combined_score"] = round(combined, 2)
+            entry["all_negative"] = all_negative
+            target_analysis.append(entry)
+
+        target_analysis.sort(key=lambda x: x["combined_score"])
+
+        # Classify into tiers
+        for entry in target_analysis:
+            if entry["immune"]:
+                entry["tier"] = "immune"
+            elif entry["all_negative"]:
+                entry["tier"] = "consensus"
+            elif all(entry["scores"].get(att, 0) < 0 for att in big_fone_attendees[:2]):
+                # At least the known attendees agree
+                entry["tier"] = "likely"
+            elif any(entry["scores"].get(att, 0) < 0 for att in big_fone_attendees):
+                entry["tier"] = "split"
+            else:
+                entry["tier"] = "safe"
+
+        # Potential 3rd attendees: everyone not already attending and not immune
+        potential_3rd = []
+        for candidate in active_names:
+            if candidate in bf_set or candidate in immune_names:
+                continue
+            # For each candidate, compute which consensus targets they'd agree/disagree on
+            agreement_targets = []
+            disagreement_targets = []
+            target_scores = {}
+            consensus_targets = [t for t in target_analysis if t["tier"] == "consensus" and not t["immune"]]
+            for ct in consensus_targets:
+                tname = ct["name"]
+                if tname == candidate:
+                    continue
+                cand_score = pair_sentiment(candidate, tname)
+                target_scores[tname] = round(cand_score, 2)
+                if cand_score < 0:
+                    agreement_targets.append(tname)
+                else:
+                    disagreement_targets.append(tname)
+
+            potential_3rd.append({
+                "name": candidate,
+                "avatar": avatars.get(candidate, ""),
+                "member_of": member_of.get(candidate, "?"),
+                "is_consensus_target": candidate in {t["name"] for t in consensus_targets},
+                "agrees_on": agreement_targets,
+                "disagrees_on": disagreement_targets,
+                "target_scores": target_scores,
+                "n_agrees": len(agreement_targets),
+                "n_disagrees": len(disagreement_targets),
+                "difficulty": len(disagreement_targets) / max(len(consensus_targets), 1),
+            })
+
+        potential_3rd.sort(key=lambda x: (-x["n_disagrees"], x["n_agrees"]))
+
+        big_fone_consensus = {
+            "attendees": big_fone_attendees,
+            "targets": target_analysis,
+            "potential_3rd": potential_3rd,
+            "n_consensus_targets": sum(1 for t in target_analysis if t["tier"] == "consensus"),
+        }
 
     paredao_status = {
         "names": sorted(paredao_names),
@@ -1300,7 +1833,10 @@ def build_index_data():
             "recipients": sorted(vip_recipients),
             "weight": 0.2,
         },
+        "leader_periods": leader_periods,
         "profiles": profiles,
+        "eliminated": eliminated_list,
+        "big_fone_consensus": big_fone_consensus,
     }
 
     return payload

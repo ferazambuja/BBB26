@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-01-29",
+  "_last_updated": "2026-01-30",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -28,7 +28,22 @@
       ]
     },
     "Matheus": {
-      "status": "eliminado"
+      "status": "eliminado",
+      "exit_date": "2026-01-28",
+      "paredao_numero": 2,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/matheus-e-o-segundo-eliminado-do-bbb-26.ghtml"
+      ]
+    },
+    "Paulo Augusto": {
+      "status": "desclassificado",
+      "exit_date": "2026-01-30",
+      "exit_reason": "Desclassificado por agressão a Jonas Sulzbach durante corrida para o Big Fone. Puxou o braço de Jonas causando sua queda, colocando em risco a integridade física do brother.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/paulo-augusto-esta-fora-do-bbb-26.ghtml",
+        "https://www.omelete.com.br/series-tv/bbb-26-paulo-augusto-e-expulso-apos-empurrar-jonas",
+        "https://exame.com/pop/bbb-26-paulo-augusto-e-expulso-do-programa-por-agredir-brother/"
+      ]
     }
   },
   "weekly_events": [
@@ -861,6 +876,19 @@
           "atendeu": "Breno",
           "date": "2026-01-29",
           "consequencia": "Vetou Brigido das 3 provas da semana (Líder, Anjo, Bate e Volta)"
+        },
+        {
+          "atendeu": "Babu Santana",
+          "date": "2026-01-30",
+          "consequencia": "Recebeu pulseira prateada. Em consenso com os outros 2 atendentes do Big Fone, deverá indicar alguém ao paredão."
+        },
+        {
+          "atendeu": "Marcelo",
+          "date": "2026-01-30",
+          "consequencia": "Recebeu pulseira dourada. Em consenso com os outros 2 atendentes do Big Fone, deverá indicar alguém ao paredão.",
+          "fontes": [
+            "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-ouve-mensagem-sobre-pulseira-dourada.ghtml"
+          ]
         }
       ],
       "quarto_secreto": null,
@@ -883,7 +911,8 @@
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/chaiany-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/gabriela-e-escolhida-para-o-barrado-no-baile-pelo-lider-babu-santana-e-enfrenta-desafio.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-breno-veta-brigido-de-tres-provas-da-semana.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-breno-veta-brigido-de-tres-provas-da-semana.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-ouve-mensagem-sobre-pulseira-dourada.ghtml"
       ]
     }
   ],
@@ -1201,5 +1230,62 @@
       "awareness": "known"
     }
   ],
-  "cartola_points_log": []
+  "cartola_points_log": [],
+  "scheduled_events": [
+    {
+      "date": "2026-01-31",
+      "week": 3,
+      "category": "anjo",
+      "emoji": "🕊️",
+      "title": "Prova do Anjo",
+      "detail": "Prova do Anjo da semana",
+      "time": "A definir",
+      "participants": [],
+      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
+    },
+    {
+      "date": "2026-01-31",
+      "week": 3,
+      "category": "big_fone",
+      "emoji": "📞",
+      "title": "Big Fone — votação do público",
+      "detail": "Público vota para decidir qual será um dos três telefones. Ao vivo, os 3 atendentes do Big Fone escolhem em consenso 1 pessoa para o Paredão.",
+      "time": "Ao Vivo",
+      "participants": [],
+      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
+    },
+    {
+      "date": "2026-02-01",
+      "week": 3,
+      "category": "anjo",
+      "emoji": "🕊️",
+      "title": "Presente do Anjo",
+      "detail": "Poderá ganhar +1 imunidade em troca de abrir mão do vídeo da família",
+      "time": "Ao Vivo",
+      "participants": [],
+      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
+    },
+    {
+      "date": "2026-02-01",
+      "week": 3,
+      "category": "paredao_formacao",
+      "emoji": "🗳️",
+      "title": "3º Paredão — Formação (triplo)",
+      "detail": "Imunidades: 1 pelo Anjo (+1 extra se ganhar). Emparedados: 1 consenso Big Fone + 1 indicação Líder + 2 mais votados pela casa. Prova Bate e Volta.",
+      "time": "Ao Vivo",
+      "participants": [],
+      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
+    },
+    {
+      "date": "2026-02-03",
+      "week": 3,
+      "category": "paredao_resultado",
+      "emoji": "🏁",
+      "title": "3º Paredão — Eliminação",
+      "detail": "Uma pessoa deixa o programa",
+      "time": "Ao Vivo",
+      "participants": [],
+      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
+    }
+  ]
 }

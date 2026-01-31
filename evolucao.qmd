@@ -220,6 +220,123 @@ if n_daily >= 2:
 """)
 ```
 
+# Cronologia do Jogo {#cronologia}
+
+Linha do tempo completa dos eventos da temporada — eventos mais recentes primeiro.
+
+```{python}
+#| label: timeline-events
+#| output: asis
+
+timeline_path = Path("data/derived/game_timeline.json")
+if timeline_path.exists():
+    with open(timeline_path, encoding="utf-8") as f:
+        timeline_data = json.load(f)
+    timeline_events = timeline_data.get("events", [])
+else:
+    timeline_events = []
+
+if timeline_events:
+    cat_colors = {
+        "entrada": "#28a745", "saida": "#dc3545", "lider": "#ffc107",
+        "anjo": "#87ceeb", "monstro": "#9b59b6", "imune": "#17a2b8",
+        "big_fone": "#ff6b35", "paredao_formacao": "#e74c3c",
+        "paredao_resultado": "#c0392b", "indicacao": "#e67e22",
+        "contragolpe": "#d35400", "bate_volta": "#f39c12",
+        "sincerao": "#1abc9c", "ganha_ganha": "#2ecc71",
+        "barrado_baile": "#95a5a6", "dinamica": "#8e44ad",
+        "veto": "#7f8c8d", "poder": "#e74c3c",
+        "imunidade": "#17a2b8", "perdeu_voto": "#95a5a6",
+        "voto_anulado": "#7f8c8d", "voto_duplo": "#e67e22",
+        "veto_ganha_ganha": "#7f8c8d", "ganha_ganha_escolha": "#2ecc71",
+        "veto_prova": "#7f8c8d",
+    }
+    cat_labels = {
+        "entrada": "Entrada", "saida": "Saída", "lider": "Líder",
+        "anjo": "Anjo", "monstro": "Monstro", "imune": "Imune",
+        "big_fone": "Big Fone", "paredao_formacao": "Paredão",
+        "paredao_resultado": "Resultado", "indicacao": "Indicação",
+        "contragolpe": "Contragolpe", "bate_volta": "Bate-Volta",
+        "sincerao": "Sincerão", "ganha_ganha": "Ganha-Ganha",
+        "barrado_baile": "Barrado", "dinamica": "Dinâmica",
+        "veto": "Veto", "poder": "Poder",
+        "imunidade": "Imune", "perdeu_voto": "Perdeu Voto",
+        "voto_anulado": "Voto Anulado", "voto_duplo": "Voto Duplo",
+        "veto_ganha_ganha": "Veto GG", "ganha_ganha_escolha": "Escolha GG",
+        "veto_prova": "Veto Prova",
+    }
+
+    # Group by week, then reverse: latest week first, latest events first
+    weeks = {}
+    for ev in timeline_events:
+        w = ev.get("week", 0)
+        weeks.setdefault(w, []).append(ev)
+
+    sorted_weeks = sorted(weeks.items(), key=lambda x: x[0], reverse=True)
+
+    html = '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
+    html += '<table style="width:100%; border-collapse:collapse; font-size:0.9em;">'
+    html += '<thead style="position:sticky; top:0; z-index:1;">'
+    html += '<tr style="background:#1a1a2e; color:#eee;">'
+    html += '<th style="padding:8px; text-align:left;">Data</th>'
+    html += '<th style="padding:8px; text-align:center; min-width:130px;">Tipo</th>'
+    html += '<th style="padding:8px; text-align:left;">Evento</th>'
+    html += '<th style="padding:8px; text-align:left;">Detalhe</th>'
+    html += '</tr></thead><tbody>'
+
+    for week_num, week_events in sorted_weeks:
+        html += f'<tr style="background:#16213e;"><td colspan="4" style="padding:6px 8px; font-weight:bold; color:#ffc107;">Semana {week_num}</td></tr>'
+        for ev in reversed(week_events):
+            cat = ev.get("category", "")
+            color = cat_colors.get(cat, "#666")
+            label = cat_labels.get(cat, cat.replace("_", " ").capitalize())
+            emoji = ev.get("emoji", "")
+            title = ev.get("title", "")
+            detail = ev.get("detail", "")
+            date = ev.get("date", "")
+            is_scheduled = ev.get("status") == "scheduled"
+            time_info = ev.get("time", "")
+
+            if is_scheduled:
+                badge = f'<span style="background:transparent; color:{color}; border:1px dashed {color}; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                time_badge = f'<br><span style="background:#ffc107; color:#000; padding:1px 5px; border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>' if time_info else ''
+                row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
+                title_cell = f'{emoji} {title}{time_badge}'
+                date_cell = f'{date}'
+                detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
+            else:
+                badge = f'<span style="background:{color}; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                row_style = 'border-bottom:1px solid #333;'
+                title_cell = f'{emoji} {title}'
+                date_cell = date
+                detail_text = detail
+
+            html += f'<tr style="{row_style}">'
+            html += f'<td style="padding:6px 8px; color:#aaa; white-space:nowrap;">{date_cell}</td>'
+            html += f'<td style="padding:6px 8px; text-align:center;">{badge}</td>'
+            html += f'<td style="padding:6px 8px;">{title_cell}</td>'
+            html += f'<td style="padding:6px 8px; color:#999; font-size:0.85em;">{detail_text}</td>'
+            html += '</tr>'
+
+    html += '</tbody></table></div>'
+    print(html)
+else:
+    print("<p class='text-muted'>Nenhum evento na cronologia. Execute <code>python scripts/build_derived_data.py</code>.</p>")
+```
+
+```{python}
+#| label: streak-breaks-timeline
+#| output: asis
+
+if streak_breaks:
+    print("\n### 💔 Rupturas de Aliança Recentes\n")
+    for sb in streak_breaks[:5]:
+        emoji = REACTION_EMOJI.get(sb.get("new_emoji", ""), "❓")
+        severity_icon = "🔴" if sb.get("severity") == "strong" else "🟡"
+        print(f"- {severity_icon} **{sb['giver']}** → **{sb['receiver']}**: "
+              f"{sb['previous_streak']} dias de ❤️ rompidos → {emoji} ({sb['date']})")
+```
+
 # Pulso Diário {#pulso}
 
 📅 **Comparação dia-a-dia** — O que mudou de ontem para hoje.
@@ -480,72 +597,6 @@ else:
 ```
 
 :::
-
-# Cronologia do Jogo {#cronologia}
-
-Linha do tempo dos principais eventos da temporada: entradas, saídas e mudanças de roles.
-
-```{python}
-#| label: timeline-events
-
-events_data = []
-all_names_seen = set()
-
-for i, snap in enumerate(snapshots):
-    current_names = set(p['name'] for p in snap['participants'])
-    active_names = set(p['name'] for p in snap['participants']
-                       if not p.get('characteristics', {}).get('eliminated'))
-
-    if i > 0:
-        prev_names = set(p['name'] for p in snapshots[i-1]['participants'])
-        appeared = current_names - prev_names
-        disappeared = prev_names - current_names
-
-        if appeared:
-            events_data.append({
-                'Data': snap['date'], 'Evento': f"✅ Entraram: {', '.join(sorted(appeared))}",
-                'Participantes': len(active_names)
-            })
-        if disappeared:
-            for name in disappeared:
-                events_data.append({
-                    'Data': snap['date'], 'Evento': f"❌ Saiu: {name}",
-                    'Participantes': len(active_names)
-                })
-
-    for p in snap['participants']:
-        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-        for role in roles:
-            if role in ('Líder', 'Paredão') and i > 0:
-                prev_snap_p = {pp['name']: pp for pp in snapshots[i-1]['participants']}
-                if p['name'] in prev_snap_p:
-                    prev_roles = parse_roles(prev_snap_p[p['name']].get('characteristics', {}).get('roles', []))
-                    if role not in prev_roles:
-                        events_data.append({
-                            'Data': snap['date'], 'Evento': f"🏆 {p['name']} → {role}",
-                            'Participantes': len(active_names)
-                        })
-    all_names_seen |= current_names
-
-if events_data:
-    df_events = pd.DataFrame(events_data).drop_duplicates()
-    key_events = df_events[df_events['Evento'].str.contains('Entraram|Saiu|Líder')]
-    if not key_events.empty:
-        display(key_events.style.hide(axis='index'))
-```
-
-```{python}
-#| label: streak-breaks-timeline
-#| output: asis
-
-if streak_breaks:
-    print("\n### 💔 Rupturas de Aliança Recentes\n")
-    for sb in streak_breaks[:5]:
-        emoji = REACTION_EMOJI.get(sb.get("new_emoji", ""), "❓")
-        severity_icon = "🔴" if sb.get("severity") == "strong" else "🟡"
-        print(f"- {severity_icon} **{sb['giver']}** → **{sb['receiver']}**: "
-              f"{sb['previous_streak']} dias de ❤️ rompidos → {emoji} ({sb['date']})")
-```
 
 # Evolução do Sentimento {#sentimento}
 
@@ -1059,6 +1110,178 @@ if not df_balance.empty:
     )
     fig.show()
 ```
+
+# VIP & Xepa {#vip-xepa}
+
+📅 **Comparação por líder** — Quem cada Líder escolheu para o VIP e quantas vezes cada participante foi selecionado.
+
+::: {.panel-tabset}
+
+## 📊 Composição por Líder
+
+```{python}
+#| label: vip-heatmap
+#| fig-cap: "VIP/Xepa por período de liderança"
+
+leader_periods = index_data.get("leader_periods", [])
+
+if not leader_periods:
+    print("*Nenhum período de liderança registrado.*")
+else:
+    # Build participant list: active participants sorted by VIP count (desc)
+    all_names_set = set()
+    for lp in leader_periods:
+        all_names_set.update(lp["vip"])
+        all_names_set.update(lp["xepa"])
+
+    # Count VIP selections per participant
+    vip_count = Counter()
+    for lp in leader_periods:
+        for n in lp["vip"]:
+            vip_count[n] += 1
+
+    # Sort: most VIP first, then alphabetical
+    sorted_names = sorted(all_names_set, key=lambda n: (-vip_count.get(n, 0), n))
+
+    # Build matrix: rows=participants, cols=leader periods
+    # Values: 1=VIP, -1=Xepa, 0=not in house
+    z_vals = []
+    text_vals = []
+    for name in sorted_names:
+        row = []
+        text_row = []
+        for lp in leader_periods:
+            if name in lp["vip"]:
+                row.append(1)
+                text_row.append("VIP")
+            elif name in lp["xepa"]:
+                row.append(-1)
+                text_row.append("Xepa")
+            else:
+                row.append(0)
+                text_row.append("Fora")
+        z_vals.append(row)
+        text_vals.append(text_row)
+
+    col_labels = [f"👑 {lp['leader'].split()[0]}<br><sub>{lp['start'][5:]}</sub>" for lp in leader_periods]
+
+    # Custom colorscale: Xepa=gray, absent=dark, VIP=gold
+    colorscale = [
+        [0.0, "#555555"],    # Xepa (gray)
+        [0.5, "#1a1a2e"],    # Not in house (dark)
+        [1.0, "#f1c40f"],    # VIP (gold)
+    ]
+
+    fig = go.Figure(data=go.Heatmap(
+        z=z_vals, x=col_labels, y=sorted_names,
+        text=text_vals, texttemplate="%{text}",
+        colorscale=colorscale, zmin=-1, zmax=1,
+        showscale=False,
+        hovertemplate="%{y} — %{text} (Líder: %{x})<extra></extra>",
+    ))
+
+    fig.update_layout(
+        title="Composição VIP/Xepa por Líder",
+        height=max(400, len(sorted_names) * 28),
+        yaxis=dict(autorange="reversed", dtick=1),
+        xaxis=dict(side="top"),
+        margin=dict(l=140),
+    )
+    fig.show()
+```
+
+## 🏆 Quem Ficou Mais no VIP
+
+```{python}
+#| label: vip-bar
+#| fig-cap: "Contagem de vezes VIP vs Xepa por participante"
+
+leader_periods = index_data.get("leader_periods", [])
+
+if not leader_periods:
+    print("*Nenhum período de liderança registrado.*")
+else:
+    vip_count = Counter()
+    xepa_count = Counter()
+    all_names_set = set()
+    for lp in leader_periods:
+        for n in lp["vip"]:
+            vip_count[n] += 1
+            all_names_set.add(n)
+        for n in lp["xepa"]:
+            xepa_count[n] += 1
+            all_names_set.add(n)
+
+    # Sort by VIP count descending
+    sorted_names = sorted(all_names_set, key=lambda n: (-vip_count.get(n, 0), xepa_count.get(n, 0), n))
+
+    vip_vals = [vip_count.get(n, 0) for n in sorted_names]
+    xepa_vals = [-xepa_count.get(n, 0) for n in sorted_names]  # negative for left side
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=sorted_names, x=vip_vals, orientation='h', name='VIP',
+        marker_color='#f1c40f',
+        text=[f"{v}×" if v > 0 else "" for v in vip_vals],
+        textposition='outside',
+        hovertemplate="%{y}: VIP %{x}×<extra></extra>",
+    ))
+    fig.add_trace(go.Bar(
+        y=sorted_names, x=xepa_vals, orientation='h', name='Xepa',
+        marker_color='#7f8c8d',
+        text=[f"{abs(v)}×" if v < 0 else "" for v in xepa_vals],
+        textposition='outside',
+        hovertemplate="%{y}: Xepa %{customdata}×<extra></extra>",
+        customdata=[xepa_count.get(n, 0) for n in sorted_names],
+    ))
+
+    n_periods = len(leader_periods)
+    fig.update_layout(
+        title=f"VIP vs Xepa ({n_periods} períodos de liderança)",
+        barmode='overlay',
+        height=max(400, len(sorted_names) * 28),
+        yaxis=dict(autorange="reversed"),
+        xaxis=dict(
+            title="← Xepa | VIP →",
+            zeroline=True, zerolinecolor='white', zerolinewidth=1,
+            range=[-(n_periods + 0.5), n_periods + 0.5],
+        ),
+        legend=dict(orientation='h', yanchor='bottom', y=1.02),
+    )
+    fig.show()
+```
+
+## 📋 Detalhes dos Períodos
+
+```{python}
+#| label: vip-detail
+#| output: asis
+
+leader_periods = index_data.get("leader_periods", [])
+
+if not leader_periods:
+    print("*Nenhum período de liderança registrado.*")
+else:
+    for i, lp in enumerate(leader_periods):
+        leader = lp["leader"]
+        avatar = AVATARS.get(leader, "")
+        start = lp["start"][5:]  # MM-DD
+        end = lp["end"][5:]
+
+        avatar_html = f'<img src="{avatar}" width="32" style="border-radius:50%;vertical-align:middle;margin-right:6px">' if avatar else ""
+
+        print(f"""
+<div style="background:#1a1a2e; border:1px solid #f1c40f33; border-radius:8px; padding:12px; margin-bottom:12px">
+<h4 style="margin:0 0 8px">{avatar_html}👑 {leader} <span style="color:#888;font-size:0.85em">({start} → {end})</span></h4>
+
+**VIP ({len(lp['vip'])}):** {', '.join(lp['vip'])}
+
+**Xepa ({len(lp['xepa'])}):** {', '.join(lp['xepa'])}
+</div>
+""")
+```
+
+:::
 
 # Poderes & Consequências {#poderes}
 

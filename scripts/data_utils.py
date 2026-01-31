@@ -134,6 +134,48 @@ POINTS_EMOJI = {
 
 
 # ══════════════════════════════════════════════════════════════
+# Analysis Descriptions (single source of truth for QMD pages)
+# ══════════════════════════════════════════════════════════════
+
+ANALYSIS_DESCRIPTIONS = {
+    "composite_score_brief": (
+        "Score composto: queridômetro (70% janela reativa de 3 dias + 30% memória "
+        "de sequência + penalidade de ruptura) + eventos de poder + votos + Sincerão + VIP, "
+        "todos acumulados sem decay."
+    ),
+    "composite_score_chart": (
+        "Dois rankings complementares: **Queridômetro** (apenas reações do dia: "
+        "❤️ = +1, leves = -0.5, fortes = -1) e **Estratégico** (score composto "
+        "incluindo queridômetro + eventos de poder + votos + Sincerão + VIP — média "
+        "recebida de todos os participantes ativos). O score base do queridômetro usa "
+        "70% janela reativa (3 dias) + 30% memória de sequência + penalidade de ruptura."
+    ),
+    "strategic_evolution_caption": (
+        "Score composto = queridômetro (70% reativo 3d + 30% memória de sequência "
+        "+ penalidade de ruptura) + eventos de poder + votos + Sincerão + VIP "
+        "(média recebida por participante). Inclui todos os eventos acumulados até cada data."
+    ),
+    "profiles_intro": (
+        "Detalhamento estratégico de cada participante ativo, incluindo análise de relações, "
+        "vulnerabilidades e impacto no jogo. Score composto: queridômetro (70% reativo 3d + "
+        "30% memória de sequência + penalidade de ruptura) + eventos acumulados sem decay."
+    ),
+    "profiles_footer": (
+        "O score composto inclui queridômetro (70% reativo 3d + 30% memória + penalidade de ruptura) "
+        "+ votos recebidos + eventos de poder + Sincerão + VIP, todos acumulados sem decay. "
+        "Acertou **68% dos votos** nos paredões vs 37% usando apenas emoji."
+    ),
+    "vulnerability_long": (
+        "O badge avalia o risco de receber **votos inesperados** — de pessoas que o participante "
+        "considera aliadas mas que, na verdade, são hostis (\"falsos amigos\"). A classificação usa "
+        "o **score composto** de relações (queridômetro streak-aware + votos + eventos de poder + "
+        "Sincerão + VIP), não apenas o emoji. Nos 2 primeiros paredões, falsos amigos votaram contra "
+        "**2-3×** mais que não-falsos amigos."
+    ),
+}
+
+
+# ══════════════════════════════════════════════════════════════
 # Plotly bbb_dark Theme
 # ══════════════════════════════════════════════════════════════
 

@@ -58,6 +58,13 @@ quarto preview
 - `scripts/update_programa_doc.py` — **after weekly manual updates** (keeps `docs/PROGRAMA_BBB26.md` table in sync).
 - `scripts/audit_snapshots.py` / `scripts/analyze_snapshots.py` / `scripts/compare_sameday.py` — **one-off audits**.
 
+**Scheduled events (upcoming week dynamics):**
+- Add future events to `data/manual_events.json` → `scheduled_events` array with `date`, `week`, `category`, `emoji`, `title`, `detail`, `time` (e.g., "Ao Vivo", "7h", "A definir").
+- `build_game_timeline()` includes them in `game_timeline.json` with `"status": "scheduled"` and `"source": "scheduled"`.
+- Auto-dedup: if a real event already exists with same (date, category, title), the scheduled entry is skipped.
+- Rendered in Cronologia do Jogo (both `index.qmd` and `evolucao.qmd`) with dashed borders, outlined badges, yellow time badge, and 🔮 prefix.
+- **After an event happens**: record the real data normally, remove from `scheduled_events`, rebuild.
+
 **Votalhada polls (manual):**
 - Update `data/votalhada/polls.json` **Tuesday ~21:00 BRT** (before elimination).
 - After elimination, fill `resultado_real`.
@@ -73,6 +80,7 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Reaction constants: `REACTION_EMOJI`, `REACTION_SLUG_TO_LABEL`, `SENTIMENT_WEIGHTS`, `POSITIVE`, `MILD_NEGATIVE`, `STRONG_NEGATIVE`
 - Visual constants: `GROUP_COLORS`, `POWER_EVENT_EMOJI`, `POWER_EVENT_LABELS`
 - Cartola constants: `CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI`
+- Analysis descriptions: `ANALYSIS_DESCRIPTIONS` — centralized explanation text for QMD pages (composite score, profiles intro/footer, vulnerability explanation). Single source of truth for scoring descriptions shown to users.
 - Theme colors: `PLOT_BG`, `PAPER_BG`, `GRID_COLOR`, `TEXT_COLOR`, `BBB_COLORWAY`
 - Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
 - Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
@@ -86,7 +94,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     REACTION_EMOJI, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
-    GROUP_COLORS, # ... other imports as needed
+    GROUP_COLORS, ANALYSIS_DESCRIPTIONS, # ... other imports as needed
 )
 
 require_clean_manual_events()
@@ -109,6 +117,7 @@ setup_bbb_dark_theme()
 - Copy-pasting `REACTION_EMOJI`, `GROUP_COLORS`, `POSITIVE/MILD_NEGATIVE/STRONG_NEGATIVE` (import from `data_utils`)
 - Defining the Plotly `bbb_dark` template inline (call `setup_bbb_dark_theme()`)
 - Computing in QMD what could be precomputed in a script (use `data/derived/`)
+- Hardcoding scoring explanation text in QMD files (use `ANALYSIS_DESCRIPTIONS` from `data_utils`)
 
 **Documented exception (temporary):**
 - `planta.qmd` ainda monta algumas listas por participante (ex.: eventos por pessoa e edges do Sincerão) **para facilitar a leitura**.
@@ -160,6 +169,7 @@ The API returns the **current state** of all reactions, not a history. Participa
 - `sincerao_edges.json` — Sincerão aggregates + optional edges
 - `prova_rankings.json` — competition performance rankings (leaderboard, per-prova detail)
 - `snapshots_index.json` — manifest of available dates for the Date View
+- `game_timeline.json` — unified chronological timeline (past + scheduled events). Displayed in `index.qmd` and `evolucao.qmd`.
 - `validation.json`, `manual_events_audit.json`, `eliminations_detected.json` — sanity checks
 
 ### Reaction Categories
@@ -223,6 +233,8 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 | Jan 18 | 24 | Chaiany, Gabriela, Leandro, Matheus enter |
 | Jan 19 | 23 | Pedro **desistiu** (quit) |
 | Jan 21 | 22 | Aline Campos **eliminada** (1º Paredão) |
+| Jan 28 | 21 | Matheus **eliminado** (2º Paredão) |
+| Jan 30 | 20 | Paulo Augusto **desclassificado** (agressão durante Big Fone) |
 
 ## Scoring & Indexes (summary)
 
@@ -234,6 +246,7 @@ All scoring formulas, weights, and detailed specifications are in **`docs/SCORIN
 - **Hostilidade Gerada**: per-participant outgoing negative event edges, from `pairs_daily` components (non-queridômetro). Same calibrated weights, no decay.
 - **Cartola BBB**: point system (Líder +80 to Desistente -30). Precomputed in `data/derived/cartola_data.json`.
 - **Prova Rankings**: competition performance ranking with type multipliers (Líder 1.5×, Anjo 1.0×, Bate-Volta 0.75×) and placement points (1st=10 to 9th+=0.5). Precomputed in `data/derived/prova_rankings.json`.
+- **VIP/Xepa Tracking**: VIP week = participant in VIP during a leader period. Counted at leader transitions only (from `roles_daily.json` Líder changes). `leader_periods` in `index_data.json` stores full composition per leader. See `docs/SCORING_AND_INDEXES.md` for details.
 
 Power events are **modifiers** (rare, one-to-one), not the base — queridômetro drives ongoing sentiment.
 
@@ -267,10 +280,12 @@ BBB26/
 ├── data/
 │   ├── snapshots/           # Canonical JSON snapshots (one per unique data state)
 │   ├── derived/             # Precomputed JSON (built by scripts)
-│   ├── votalhada/           # Poll aggregation data
+│   ├── votalhada/           # Poll aggregation data + README.md
 │   ├── latest.json          # Most recent snapshot
 │   ├── paredoes.json        # Paredão data (formation, house votes, results)
-│   └── manual_events.json   # Manual game events (Big Fone, exits, special events)
+│   ├── provas.json          # Competition results (Líder, Anjo, Bate e Volta)
+│   ├── manual_events.json   # Manual game events (Big Fone, exits, special events, scheduled)
+│   └── CHANGELOG.md         # API data change audit + snapshot history
 ├── scripts/
 │   ├── data_utils.py        # Single source of truth — constants, functions, theme
 │   ├── fetch_data.py        # Fetch API, save if changed (hash comparison)
@@ -284,9 +299,15 @@ BBB26/
 │   ├── HANDOFF_PAREDAO.md        # Paredão workflow, schemas, display logic
 │   ├── MANUAL_EVENTS_GUIDE.md    # Manual events schema and fill rules
 │   ├── HANDOFF_VOTALHADA.md      # Votalhada poll collection workflow
-│   └── PROGRAMA_BBB26.md         # TV show rules, format, dynamics
+│   ├── HANDOFF_CODE_CENTRALIZATION.md # Code dedup refactoring log
+│   ├── RELATIONS_REVIEW.md       # Relations scoring system audit
+│   ├── AI_REVIEW_HANDOUT.md      # Context handout for AI dashboard reviews
+│   ├── MANUAL_EVENTS_AUDIT.md    # Auto-generated audit of manual events
+│   ├── PROGRAMA_BBB26.md         # TV show rules, format, dynamics
+│   └── reviews/                  # AI model reviews (14 reviews + consolidation)
 ├── requirements.txt         # Python dependencies
-└── IMPLEMENTATION_PLAN.md   # GitHub Actions + Quarto + Pages plan
+├── IMPLEMENTATION_PLAN.md   # GitHub Actions + Quarto + Pages plan
+└── REORGANIZATION_PLAN.md   # Dashboard restructuring log (2026-01)
 ```
 
 ## Page Architecture
@@ -355,7 +376,6 @@ The `votos_casa` dict and all manual data use participant names as keys. These *
 | `Matheus` | Pipoca | First name only (entered Jan 18) |
 | `Maxiane` | Pipoca | First name only |
 | `Milena` | Pipoca | First name only |
-| `Paulo Augusto` | Pipoca | Full name used |
 | `Samira` | Pipoca | First name only |
 | `Sarah Andrade` | Veterano | Full name used |
 | `Sol Vega` | Veterano | Full name used |
@@ -364,6 +384,8 @@ The `votos_casa` dict and all manual data use participant names as keys. These *
 **Eliminated/Exited (no longer in API):**
 - `Aline Campos` — Eliminada (1º Paredão, Jan 21)
 - `Henri Castelli` — Desistente (Jan 15)
+- `Matheus` — Eliminado (2º Paredão, Jan 28)
+- `Paulo Augusto` — Desclassificado (agressão, Jan 30)
 - `Pedro` — Desistente (Jan 19)
 
 **Before adding manual data**, always verify names against the snapshot:
@@ -390,3 +412,25 @@ Full schema, workflow, and dashboard integration: see **`docs/HANDOFF_VOTALHADA.
 ## Future Plans
 
 See `IMPLEMENTATION_PLAN.md` for GitHub Actions + Quarto + GitHub Pages automation setup.
+
+## Documentation Index
+
+All project documentation and their purposes:
+
+| File | Purpose |
+|------|---------|
+| **`CLAUDE.md`** | Master project guide — architecture, data flows, conventions (this file) |
+| **`docs/SCORING_AND_INDEXES.md`** | Full scoring formulas, weights, and index specs (Sentiment, Planta, Cartola, Provas) |
+| **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema, fill rules, and update procedures for `manual_events.json` |
+| **`docs/HANDOFF_PAREDAO.md`** | Paredão workflow, data schemas, snapshot timing, display logic |
+| **`docs/HANDOFF_VOTALHADA.md`** | Votalhada poll integration workflow and loader functions |
+| **`docs/HANDOFF_CODE_CENTRALIZATION.md`** | Log of code deduplication refactoring (~700 lines consolidated) |
+| **`docs/RELATIONS_REVIEW.md`** | Audit of A→B relationship scoring system and build process |
+| **`docs/AI_REVIEW_HANDOUT.md`** | Context handout for AI models reviewing the dashboard |
+| **`docs/MANUAL_EVENTS_AUDIT.md`** | Auto-generated validation report for manual events (built by `build_derived_data.py`) |
+| **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, selection, dynamics (non-analytical) |
+| **`docs/reviews/`** | 14 AI model reviews + `CONSOLIDATION.md` + `PROMPTS.md` |
+| **`data/CHANGELOG.md`** | API data change audit — snapshot dedup analysis and timeline |
+| **`data/votalhada/README.md`** | Votalhada data structure and screenshot-to-data workflow |
+| **`IMPLEMENTATION_PLAN.md`** | GitHub Actions + Quarto + Pages automation plan |
+| **`REORGANIZATION_PLAN.md`** | Dashboard restructuring log (index.qmd split into multiple pages) |

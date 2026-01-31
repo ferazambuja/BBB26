@@ -2871,6 +2871,227 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
     }
 
 
+def build_game_timeline(eliminations_detected, auto_events, manual_events, paredoes_data):
+    """Build a unified chronological timeline merging all event sources."""
+    events = []
+
+    # --- 1. Entries and exits from eliminations_detected ---
+    participant_details = manual_events.get("participants", {})
+    for rec in eliminations_detected:
+        date = rec["date"]
+        week = get_week_number(date)
+        for name in rec.get("added", []):
+            events.append({
+                "date": date, "week": week, "category": "entrada",
+                "emoji": "✅", "title": f"{name} entrou",
+                "detail": "", "participants": [name], "source": "eliminations_detected",
+            })
+        for name in rec.get("missing", []):
+            info = participant_details.get(name, {})
+            status = info.get("status", "saiu")
+            reason = info.get("exit_reason", "")
+            status_emoji = {"desistente": "🚪", "eliminada": "❌", "eliminado": "❌", "desclassificado": "⛔"}.get(status, "❌")
+            detail = f"{status.capitalize()}" + (f" — {reason}" if reason else "")
+            events.append({
+                "date": date, "week": week, "category": "saida",
+                "emoji": status_emoji, "title": f"{name} saiu",
+                "detail": detail, "participants": [name], "source": "eliminations_detected",
+            })
+
+    # --- 2. Auto events (Líder, Anjo, Monstro, Imune) ---
+    type_map = {
+        "lider": ("lider", "👑"), "anjo": ("anjo", "🕊️"),
+        "monstro": ("monstro", "👹"), "imunidade": ("imune", "🛡️"),
+    }
+    for ev in auto_events:
+        t = ev.get("type", "")
+        cat, emoji = type_map.get(t, ("poder", "⚡"))
+        date = ev.get("date", "")
+        week = ev.get("week") or (get_week_number(date) if date else 0)
+        target = ev.get("target", "")
+        events.append({
+            "date": date, "week": week, "category": cat,
+            "emoji": emoji, "title": f"{target} → {t.capitalize()}",
+            "detail": ev.get("detail", ""), "participants": [target] if target else [],
+            "source": "auto_events",
+        })
+
+    # --- 3. Power events (manual) ---
+    power_emoji = {
+        "indicacao": "🎯", "contragolpe": "⚔️", "bate_volta": "🔄",
+        "veto": "🚫", "big_fone": "📞", "voto_duplo": "✌️",
+        "perdeu_voto": "🔇", "ganhou_veto": "🛡️", "ganha_ganha": "🎰",
+        "barrado_baile": "🚫", "monstro": "👹",
+    }
+    for ev in manual_events.get("power_events", []):
+        t = ev.get("type", "poder")
+        date = ev.get("date", "")
+        week = ev.get("week") or (get_week_number(date) if date else 0)
+        actor = ev.get("actor", "")
+        target = ev.get("target", "")
+        emoji = power_emoji.get(t, "⚡")
+        title_parts = []
+        if actor and actor != target:
+            title_parts.append(f"{actor} → {target}")
+        elif actor:
+            title_parts.append(actor)
+        title_parts.append(t.replace("_", " ").capitalize())
+        participants = list({p for p in [actor, target] if p})
+        events.append({
+            "date": date, "week": week, "category": t,
+            "emoji": emoji, "title": " — ".join(title_parts),
+            "detail": ev.get("detail", ""), "participants": participants,
+            "source": "power_events",
+        })
+
+    # --- 4. Weekly events (Big Fone, Sincerão, Ganha-Ganha, Barrado no Baile) ---
+    for we in manual_events.get("weekly_events", []):
+        week = we.get("week", 0)
+        # Big Fone
+        for bf in (we.get("big_fone") or []):
+            date = bf.get("date", we.get("start_date", ""))
+            w = get_week_number(date) if date else week
+            atendeu = bf.get("atendeu", "")
+            events.append({
+                "date": date, "week": w, "category": "big_fone",
+                "emoji": "📞", "title": f"Big Fone — {atendeu} atendeu",
+                "detail": bf.get("consequencia", ""), "participants": [atendeu] if atendeu else [],
+                "source": "weekly_events",
+            })
+        # Sincerão
+        sinc = we.get("sincerao")
+        if sinc and isinstance(sinc, dict):
+            date = sinc.get("date", "")
+            w = get_week_number(date) if date else week
+            fmt = sinc.get("format", "")
+            events.append({
+                "date": date, "week": w, "category": "sincerao",
+                "emoji": "🗣️", "title": "Sincerão",
+                "detail": fmt, "participants": [], "source": "weekly_events",
+            })
+        # Ganha-Ganha
+        gg = we.get("ganha_ganha")
+        if gg and isinstance(gg, dict):
+            date = gg.get("date", we.get("start_date", ""))
+            w = get_week_number(date) if date else week
+            events.append({
+                "date": date, "week": w, "category": "ganha_ganha",
+                "emoji": "🎰", "title": "Ganha-Ganha",
+                "detail": gg.get("resultado", ""), "participants": gg.get("participants", []),
+                "source": "weekly_events",
+            })
+        # Barrado no Baile
+        bb = we.get("barrado_baile")
+        if bb and isinstance(bb, dict):
+            date = bb.get("date", we.get("start_date", ""))
+            w = get_week_number(date) if date else week
+            events.append({
+                "date": date, "week": w, "category": "barrado_baile",
+                "emoji": "🚫", "title": "Barrado no Baile",
+                "detail": bb.get("resultado", ""), "participants": bb.get("participants", []),
+                "source": "weekly_events",
+            })
+
+    # --- 5. Paredão formation + resultado ---
+    paredao_list = []
+    if isinstance(paredoes_data, dict):
+        paredao_list = paredoes_data.get("paredoes", [])
+    elif isinstance(paredoes_data, list):
+        paredao_list = paredoes_data
+    for p in paredao_list:
+        num = p.get("numero", "?")
+        # Formation
+        data_form = p.get("data_formacao", "")
+        if data_form:
+            week = get_week_number(data_form)
+            indicados = [i.get("nome", "") for i in p.get("indicados_finais", [])]
+            detail_parts = []
+            formacao = p.get("formacao", {})
+            if formacao.get("indicado_lider"):
+                detail_parts.append(f"Líder indicou {formacao['indicado_lider']}")
+            cg = formacao.get("contragolpe") or {}
+            if cg.get("de"):
+                detail_parts.append(f"Contragolpe: {cg['de']} → {cg.get('para', '?')}")
+            bv = formacao.get("bate_volta") or {}
+            if bv.get("vencedor"):
+                detail_parts.append(f"Bate-Volta: {bv['vencedor']} escapou")
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_formacao",
+                "emoji": "🗳️", "title": f"{num}º Paredão — Formação",
+                "detail": "; ".join(detail_parts),
+                "participants": indicados, "source": "paredoes",
+            })
+        # Result
+        resultado = p.get("resultado", {})
+        data_elim = p.get("data", "")
+        if resultado and data_elim:
+            week = get_week_number(data_elim)
+            eliminado = resultado.get("eliminado", "")
+            votos = resultado.get("votos", {})
+            pct = ""
+            if eliminado and eliminado in votos:
+                v = votos[eliminado]
+                pct = f" ({v.get('voto_total', v.get('voto_unico', '?'))}%)"
+            events.append({
+                "date": data_elim, "week": week, "category": "paredao_resultado",
+                "emoji": "🏁", "title": f"{num}º Paredão — Resultado",
+                "detail": f"{eliminado} eliminado{pct}" if eliminado else "",
+                "participants": [eliminado] if eliminado else [], "source": "paredoes",
+            })
+
+    # --- 6. Special events (dinâmicas, new entrants) ---
+    for se in manual_events.get("special_events", []):
+        date = se.get("date", "")
+        week = get_week_number(date) if date else 0
+        name = se.get("name", se.get("description", "Evento especial"))
+        participants = se.get("participants", se.get("participants_affected", []))
+        events.append({
+            "date": date, "week": week, "category": "dinamica",
+            "emoji": "⭐", "title": name,
+            "detail": se.get("description", se.get("resultado", "")),
+            "participants": participants if isinstance(participants, list) else [],
+            "source": "special_events",
+        })
+
+    # --- 7. Scheduled (future) events ---
+    existing_keys = {(e["date"], e["category"], e["title"]) for e in events}
+    for se in manual_events.get("scheduled_events", []):
+        date = se.get("date", "")
+        week = se.get("week") or (get_week_number(date) if date else 0)
+        key = (date, se.get("category", ""), se.get("title", ""))
+        if key in existing_keys:
+            continue  # skip if a real event already covers this
+        events.append({
+            "date": date, "week": week, "category": se.get("category", "dinamica"),
+            "emoji": se.get("emoji", "🔮"), "title": se.get("title", ""),
+            "detail": se.get("detail", ""),
+            "participants": se.get("participants", []),
+            "source": "scheduled",
+            "status": "scheduled",
+            "time": se.get("time", ""),
+        })
+
+    # --- Sort by date, then by category priority ---
+    cat_order = {
+        "entrada": 0, "saida": 1, "lider": 2, "anjo": 3, "monstro": 4, "imune": 5,
+        "big_fone": 6, "paredao_formacao": 7, "indicacao": 8, "contragolpe": 9,
+        "bate_volta": 10, "veto": 11, "sincerao": 12, "ganha_ganha": 13,
+        "barrado_baile": 14, "dinamica": 15, "paredao_resultado": 16,
+    }
+    events.sort(key=lambda e: (e.get("date", ""), cat_order.get(e.get("category", ""), 99)))
+
+    # Deduplicate: same date + category + same title → keep first
+    seen = set()
+    unique = []
+    for e in events:
+        key = (e["date"], e["category"], e["title"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(e)
+
+    return unique
+
+
 def write_json(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -2968,6 +3189,12 @@ def build_derived_data():
     write_json(DERIVED_DIR / "plant_index.json", plant_index)
     write_json(DERIVED_DIR / "relations_scores.json", relations_scores)
     write_json(DERIVED_DIR / "prova_rankings.json", prova_rankings)
+
+    game_timeline = build_game_timeline(eliminations_detected, auto_events, manual_events, paredoes)
+    write_json(DERIVED_DIR / "game_timeline.json", {
+        "_metadata": {"generated_at": now, "source": "all_events"},
+        "events": game_timeline,
+    })
 
     clusters_data = build_clusters_data(relations_scores, participants_index, paredoes)
     if clusters_data:
