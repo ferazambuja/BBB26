@@ -112,6 +112,7 @@ Uma ruptura é detectada quando:
     `voto_anulado` −0.8, `perdeu_voto` −0.6, `imunidade` +0.8
   - `veto_ganha_ganha` −0.4, `ganha_ganha_escolha` +0.3 (baixo impacto)
   - `barrado_baile` −0.4 (baixo impacto, público)
+  - `mira_do_lider` −0.5 (público, backlash 0.5; descontinuado após semana 1)
   - Ganha-Ganha é público: quem foi vetado tende a gerar **animosidade leve** contra quem vetou (backlash menor).
   - Sincerão negativo é público: gera **backlash leve** no alvo (bomba/“não ganha”).
   - **Nenhum tipo de evento sofre decay** no rolling — todos acumulam com peso integral. Razão: no BBB, eventos significativos (indicações, Sincerão, votos) criam mágoas duradouras e alianças que não se dissolvem com o tempo. O queridômetro usa scoring streak-aware (70% reativo + 30% memória + penalidade de ruptura).
@@ -234,6 +235,19 @@ Thresholds: 🟢 **NENHUMA** (0), 🟡 **BAIXA** (< 0), 🟠 **MÉDIA** (≤ -4)
 - `voto_anulado`: **0.8**
 - `voto_duplo`: **0.6**
 - `exposto`: **0.5**
+- `mira_do_lider`: **0.5**
+
+### Na Mira do Líder (descontinuado)
+
+Dinâmica usada apenas na semana 1 (liderança de Alberto Cowboy) e descontinuada após backlash do público.
+
+**Regra**: O líder escolhe **5 participantes** como alvos potenciais na sexta-feira. No domingo, deve indicar **exatamente 1 dos 5** ao paredão — não pode escolher fora da lista.
+
+**Peso no scoring**: −0.5 (actor → target) para cada um dos 5 alvos. O indicado final recebe adicionalmente `indicacao` (−2.8). Backlash factor: 0.5 (target → leader). Visibilidade: pública (fator 1.2×).
+
+**Planta Index**: target activity 0.5 (ser alvo gera visibilidade moderada).
+
+**Por que −0.5?** É uma declaração pública de distância/desconfiança do líder, mas sem consequência direta para 4 dos 5 alvos. Similar a `exposto` ou `barrado_baile` em gravidade.
 
 ---
 
@@ -255,6 +269,7 @@ Computed weekly in `data/derived/plant_index.json` with a 2-week rolling average
   - Voto 2x / Voto anulado (ator): 2.0
   - Perdeu voto (alvo): 1.0
   - Barrado no Baile (alvo): 0.3
+  - Na Mira do Líder (alvo): 0.5
   - Bate-Volta (vencedor): 2.5
   - Ganha-Ganha (veto/decisão): **não entra** no Planta Index (baixo impacto de jogo).
   - Ganha-Ganha (sorteados): **leve atividade** (+0.3) só para sinalizar participação mínima.
@@ -264,15 +279,23 @@ Computed weekly in `data/derived/plant_index.json` with a 2-week rolling average
   `sinc_activity = (participou ? 1 : 0) + 0.5 * edges`
   `low_sincerao = 1 − (sinc_activity / max_sinc_activity)`
 - **Emoji 🌱**: média diária da proporção de "Planta" recebida na semana, com cap de 0.30.
+- **Consenso ❤️ (heart_uniformity)**: avg daily(hearts_received / total_received), cap 85%.
+  Soft-gated: `effective = raw × low_power_events`. Active players → ~0 contribution.
 - **Bônus "planta da casa"**: +15 points (plateia escolhe planta no Sincerão).
 
 ### Weights (base)
 ```
-0.45 * Baixa atividade de poder
-0.35 * Baixa exposição no Sincerão
-0.20 * Emoji 🌱
+0.10 * Invisibilidade
+0.35 * Baixa atividade de poder
+0.25 * Baixa exposição no Sincerão
+0.15 * Emoji 🌱
+0.15 * Consenso ❤️
 ```
-Score = base * 100 + bonus (clamped 0–100). Invisibilidade não entra no score atual.
+Score = base * 100 + bonus (clamped 0–100).
+
+### Sincerão carry-forward
+When no Sincerão in current week, previous week's `low_sincerao` value × 0.7 decay.
+Two consecutive weeks without Sincerão → 0.49× of original value.
 
 ### Manual event required (plateia "planta da casa")
 Add to `manual_events.json` under `weekly_events[].sincerao.planta`:
@@ -282,7 +305,7 @@ Add to `manual_events.json` under `weekly_events[].sincerao.planta`:
 This is a **weekly** signal and does **not** carry to the next week.
 
 ### Planta Index breakdown page
-Use `planta.qmd` to inspect the full tally per participant (component points + raw signals + events list).
+Use `planta_debug.qmd` to inspect the full tally per participant (component points + raw signals + events list).
 
 ---
 
@@ -453,6 +476,16 @@ Per-participant ranking based on placement in each BBB26 competition. Computed i
 - `wins`: 1st place finishes
 - `top3`: top-3 finishes
 - `best_position`: best placement achieved
+
+### Bracket data structure (duel-format)
+
+Provas with duel/elimination formats (e.g., `eliminacao_duelos`) use a richer bracket structure in their phase data:
+
+- `classificacao_quartas`: array of quarterfinal duels `{duelo, jogadores, vencedor, nota?}`
+- `classificacao_semis`: array of semifinal duels
+- `classificacao_final`: array of final duels
+
+These are rendered as a visual bracket tree in `provas.qmd`. The standard `classificacao` array still exists alongside for ranking purposes.
 
 ### Data source
 

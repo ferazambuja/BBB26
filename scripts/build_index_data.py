@@ -43,6 +43,162 @@ def load_json(path, default):
     return default
 
 
+def build_big_fone_consensus(
+    manual_events, current_cycle_week, active_names, active_set,
+    avatars, member_of, roles_current, latest_matrix, pair_sentiment_fn,
+):
+    """Build Big Fone consensus analysis for the current week.
+
+    Returns a dict with attendees, target analysis, potential 3rd persons,
+    and facilitator/disruptor lists — or None if fewer than 2 bracelet holders.
+    """
+    big_fone_attendees = []
+    for wev in manual_events.get("weekly_events", []):
+        if wev.get("week") == current_cycle_week:
+            for bf in wev.get("big_fone", []) or []:
+                att = bf.get("atendeu", "")
+                cons = (bf.get("consequencia", "") or "").lower()
+                if att and att in active_set and ("consenso" in cons or "pulseira" in cons):
+                    big_fone_attendees.append(att)
+            break
+
+    if len(big_fone_attendees) < 2:
+        return None
+
+    bf_set = set(big_fone_attendees)
+    possible_targets = [n for n in active_names if n not in bf_set]
+
+    # Immune participants can't be nominated
+    immune_roles = {"Imune", "Líder", "Anjo"}
+    immune_names = set()
+    for role_name, holders in roles_current.items():
+        if role_name in immune_roles:
+            immune_names.update(holders)
+
+    target_analysis = []
+    for target in possible_targets:
+        entry = {
+            "name": target,
+            "avatar": avatars.get(target, ""),
+            "member_of": member_of.get(target, "?"),
+            "immune": target in immune_names,
+            "scores": {},
+            "emojis": {},
+            "target_emojis": {},
+        }
+        combined = 0.0
+        all_negative = True
+        for att in big_fone_attendees:
+            sc = pair_sentiment_fn(att, target)
+            entry["scores"][att] = round(sc, 2)
+            combined += sc
+            if sc >= 0:
+                all_negative = False
+            rxn_label = latest_matrix.get((att, target), "")
+            entry["emojis"][att] = REACTION_EMOJI.get(rxn_label, "?")
+            rxn_back = latest_matrix.get((target, att), "")
+            entry["target_emojis"][att] = REACTION_EMOJI.get(rxn_back, "?")
+
+        entry["combined_score"] = round(combined, 2)
+        entry["all_negative"] = all_negative
+        target_analysis.append(entry)
+
+    target_analysis.sort(key=lambda x: x["combined_score"])
+
+    # Classify into tiers
+    for entry in target_analysis:
+        if entry["immune"]:
+            entry["tier"] = "immune"
+        elif entry["all_negative"]:
+            entry["tier"] = "consensus"
+        elif all(entry["scores"].get(att, 0) < 0 for att in big_fone_attendees[:2]):
+            entry["tier"] = "likely"
+        elif any(entry["scores"].get(att, 0) < 0 for att in big_fone_attendees):
+            entry["tier"] = "split"
+        else:
+            entry["tier"] = "safe"
+
+    # Potential 3rd attendees
+    potential_3rd = []
+    for candidate in active_names:
+        if candidate in bf_set or candidate in immune_names:
+            continue
+        agreement_targets = []
+        disagreement_targets = []
+        target_scores = {}
+        consensus_targets = [t for t in target_analysis if t["tier"] == "consensus" and not t["immune"]]
+        for ct in consensus_targets:
+            tname = ct["name"]
+            if tname == candidate:
+                continue
+            cand_score = pair_sentiment_fn(candidate, tname)
+            target_scores[tname] = round(cand_score, 2)
+            if cand_score < 0:
+                agreement_targets.append(tname)
+            else:
+                disagreement_targets.append(tname)
+
+        potential_3rd.append({
+            "name": candidate,
+            "avatar": avatars.get(candidate, ""),
+            "member_of": member_of.get(candidate, "?"),
+            "is_consensus_target": candidate in {t["name"] for t in consensus_targets},
+            "agrees_on": agreement_targets,
+            "disagrees_on": disagreement_targets,
+            "target_scores": target_scores,
+            "n_agrees": len(agreement_targets),
+            "n_disagrees": len(disagreement_targets),
+            "difficulty": len(disagreement_targets) / max(len(consensus_targets), 1),
+        })
+
+    potential_3rd.sort(key=lambda x: (-x["n_disagrees"], x["n_agrees"]))
+
+    # Per-target consensus probability
+    consensus_targets_list = [t for t in target_analysis if t["tier"] == "consensus" and not t["immune"]]
+    non_target_3rds = [p for p in potential_3rd if not p.get("is_consensus_target")]
+    n_possible_3rds = len(non_target_3rds)
+
+    for ct in consensus_targets_list:
+        tname = ct["name"]
+        n_agree = sum(1 for p in non_target_3rds if tname in p.get("agrees_on", []))
+        ct["consensus_pct"] = round(100.0 * n_agree / n_possible_3rds, 1) if n_possible_3rds > 0 else 0
+        ct["n_3rds_agree"] = n_agree
+        ct["n_possible_3rds"] = n_possible_3rds
+        ct["facilitators"] = [p["name"] for p in non_target_3rds if tname in p.get("agrees_on", [])]
+        ct["blockers"] = [p["name"] for p in non_target_3rds if tname not in p.get("agrees_on", [])]
+
+    # Mutual hostility analysis
+    for ct in consensus_targets_list:
+        mutual = {}
+        for att in big_fone_attendees:
+            back_emoji = ct["target_emojis"].get(att, "?")
+            back_rxn = latest_matrix.get((ct["name"], att), "")
+            is_negative_back = back_rxn in MILD_NEGATIVE or back_rxn in STRONG_NEGATIVE
+            is_strong_back = back_rxn in STRONG_NEGATIVE
+            mutual[att] = {
+                "emoji": back_emoji,
+                "reaction": back_rxn,
+                "is_negative": is_negative_back,
+                "is_strong": is_strong_back,
+            }
+        ct["mutual_hostility"] = mutual
+        ct["is_fully_mutual"] = all(m["is_negative"] for m in mutual.values())
+
+    # Top disruptors/facilitators summary
+    facilitators = [p for p in non_target_3rds if p["n_disagrees"] == 0 and p["n_agrees"] > 0]
+    disruptors = [p for p in non_target_3rds if p["n_agrees"] == 0 and p["n_disagrees"] > 0]
+
+    return {
+        "attendees": big_fone_attendees,
+        "targets": target_analysis,
+        "potential_3rd": potential_3rd,
+        "n_consensus_targets": sum(1 for t in target_analysis if t["tier"] == "consensus"),
+        "n_possible_3rds": n_possible_3rds,
+        "facilitators": [p["name"] for p in facilitators],
+        "disruptors": [p["name"] for p in disruptors],
+    }
+
+
 def get_all_snapshots():
     if not DATA_DIR.exists():
         return []
@@ -887,7 +1043,7 @@ def build_index_data():
                 "n_sources": len(incoming),
             })
 
-    # Timeline data (queridômetro sentiment per day)
+    # Timeline data (queridômetro sentiment per day) — with precomputed rank
     timeline = []
     daily_metrics_map = {d.get("date"): d for d in daily_metrics.get("daily", [])}
     if daily_metrics_map:
@@ -912,6 +1068,19 @@ def build_index_data():
                     "sentiment": calc_sentiment(p),
                     "group": p.get("characteristics", {}).get("memberOf", "?"),
                 })
+
+    # Add rank per date to timeline
+    _tl_by_date = defaultdict(list)
+    for row in timeline:
+        _tl_by_date[row["date"]].append(row)
+    for _date_rows in _tl_by_date.values():
+        _sorted = sorted(_date_rows, key=lambda r: r["sentiment"], reverse=True)
+        _prev_score, _prev_rank = None, 0
+        for i, row in enumerate(_sorted):
+            if row["sentiment"] != _prev_score:
+                _prev_rank = i + 1
+                _prev_score = row["sentiment"]
+            row["rank"] = _prev_rank
 
     # Strategic timeline — per-day composite scores (queridômetro + accumulated events)
     strategic_timeline = []
@@ -952,6 +1121,19 @@ def build_index_data():
                         "score": round(sum(incoming) / len(incoming), 3),
                         "group": member_of.get(name, "?"),
                     })
+
+    # Add rank per date to strategic_timeline
+    _stl_by_date = defaultdict(list)
+    for row in strategic_timeline:
+        _stl_by_date[row["date"]].append(row)
+    for _date_rows in _stl_by_date.values():
+        _sorted = sorted(_date_rows, key=lambda r: r["score"], reverse=True)
+        _prev_score, _prev_rank = None, 0
+        for i, row in enumerate(_sorted):
+            if row["score"] != _prev_score:
+                _prev_rank = i + 1
+                _prev_score = row["score"]
+            row["rank"] = _prev_rank
 
     # Cross table
     cross_names = active_names
@@ -1650,119 +1832,10 @@ def build_index_data():
     eliminated_list.sort(key=lambda x: x.get("exit_date", ""))
 
     # ── Big Fone consensus analysis ──
-    # Find current week's Big Fone bracelet holders (consensus group)
-    # Only include attendees whose consequence mentions "consenso" or "pulseira"
-    big_fone_attendees = []
-    for wev in manual_events.get("weekly_events", []):
-        if wev.get("week") == current_cycle_week:
-            for bf in wev.get("big_fone", []) or []:
-                att = bf.get("atendeu", "")
-                cons = (bf.get("consequencia", "") or "").lower()
-                if att and att in active_set and ("consenso" in cons or "pulseira" in cons):
-                    big_fone_attendees.append(att)
-            break
-
-    big_fone_consensus = None
-    if len(big_fone_attendees) >= 2:
-        # Compute pair scores from each attendee to every possible target
-        bf_set = set(big_fone_attendees)
-        possible_targets = [n for n in active_names if n not in bf_set]
-
-        # Immune participants can't be nominated
-        immune_roles = {"Imune", "Líder", "Anjo"}
-        immune_names = set()
-        for role_name, holders in roles_current.items():
-            if role_name in immune_roles:
-                immune_names.update(holders)
-
-        target_analysis = []
-        for target in possible_targets:
-            entry = {
-                "name": target,
-                "avatar": avatars.get(target, ""),
-                "member_of": member_of.get(target, "?"),
-                "immune": target in immune_names,
-                "scores": {},
-                "emojis": {},
-                "target_emojis": {},
-            }
-            combined = 0.0
-            all_negative = True
-            for att in big_fone_attendees:
-                sc = pair_sentiment(att, target)
-                entry["scores"][att] = round(sc, 2)
-                combined += sc
-                if sc >= 0:
-                    all_negative = False
-                # Current emoji given
-                rxn_label = latest_matrix.get((att, target), "")
-                entry["emojis"][att] = REACTION_EMOJI.get(rxn_label, "?")
-                # What target gives back
-                rxn_back = latest_matrix.get((target, att), "")
-                entry["target_emojis"][att] = REACTION_EMOJI.get(rxn_back, "?")
-
-            entry["combined_score"] = round(combined, 2)
-            entry["all_negative"] = all_negative
-            target_analysis.append(entry)
-
-        target_analysis.sort(key=lambda x: x["combined_score"])
-
-        # Classify into tiers
-        for entry in target_analysis:
-            if entry["immune"]:
-                entry["tier"] = "immune"
-            elif entry["all_negative"]:
-                entry["tier"] = "consensus"
-            elif all(entry["scores"].get(att, 0) < 0 for att in big_fone_attendees[:2]):
-                # At least the known attendees agree
-                entry["tier"] = "likely"
-            elif any(entry["scores"].get(att, 0) < 0 for att in big_fone_attendees):
-                entry["tier"] = "split"
-            else:
-                entry["tier"] = "safe"
-
-        # Potential 3rd attendees: everyone not already attending and not immune
-        potential_3rd = []
-        for candidate in active_names:
-            if candidate in bf_set or candidate in immune_names:
-                continue
-            # For each candidate, compute which consensus targets they'd agree/disagree on
-            agreement_targets = []
-            disagreement_targets = []
-            target_scores = {}
-            consensus_targets = [t for t in target_analysis if t["tier"] == "consensus" and not t["immune"]]
-            for ct in consensus_targets:
-                tname = ct["name"]
-                if tname == candidate:
-                    continue
-                cand_score = pair_sentiment(candidate, tname)
-                target_scores[tname] = round(cand_score, 2)
-                if cand_score < 0:
-                    agreement_targets.append(tname)
-                else:
-                    disagreement_targets.append(tname)
-
-            potential_3rd.append({
-                "name": candidate,
-                "avatar": avatars.get(candidate, ""),
-                "member_of": member_of.get(candidate, "?"),
-                "is_consensus_target": candidate in {t["name"] for t in consensus_targets},
-                "agrees_on": agreement_targets,
-                "disagrees_on": disagreement_targets,
-                "target_scores": target_scores,
-                "n_agrees": len(agreement_targets),
-                "n_disagrees": len(disagreement_targets),
-                "difficulty": len(disagreement_targets) / max(len(consensus_targets), 1),
-            })
-
-        potential_3rd.sort(key=lambda x: (-x["n_disagrees"], x["n_agrees"]))
-
-        big_fone_consensus = {
-            "attendees": big_fone_attendees,
-            "targets": target_analysis,
-            "potential_3rd": potential_3rd,
-            "n_consensus_targets": sum(1 for t in target_analysis if t["tier"] == "consensus"),
-        }
+    big_fone_consensus = build_big_fone_consensus(
+        manual_events, current_cycle_week, active_names, active_set,
+        avatars, member_of, roles_current, latest_matrix, pair_sentiment,
+    )
 
     paredao_status = {
         "names": sorted(paredao_names),

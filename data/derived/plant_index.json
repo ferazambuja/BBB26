@@ -1,14 +1,17 @@
 {
   "_metadata": {
-    "generated_at": "2026-01-31T07:07:08.705776+00:00",
+    "generated_at": "2026-02-01T03:11:34.583955+00:00",
     "weights": {
-      "invisibility": 0.0,
-      "low_power_events": 0.45,
-      "low_sincerao": 0.35,
-      "plant_emoji": 0.2
+      "invisibility": 0.1,
+      "low_power_events": 0.35,
+      "low_sincerao": 0.25,
+      "plant_emoji": 0.15,
+      "heart_uniformity": 0.15
     },
     "rolling_window": 2,
     "emoji_cap": 0.3,
+    "heart_cap": 0.85,
+    "sincerao_decay": 0.7,
     "bonus_plateia": 15
   },
   "weeks": [
@@ -20,18 +23,19 @@
       },
       "scores": {
         "Alberto Cowboy": {
-          "score": 12.6,
+          "score": 16.5,
           "components": {
             "invisibility": 0.75,
             "low_power_events": 0.0,
             "low_sincerao": 0.333,
             "plant_emoji": 0.048,
+            "heart_uniformity": 0.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 7.5
             },
             {
               "label": "Baixa atividade de poder",
@@ -39,11 +43,15 @@
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.0
+              "points": 0.7
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 0.0
             }
           ],
           "raw": {
@@ -51,40 +59,49 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 2,
-            "power_events": 2,
+            "heart_received": 115,
+            "heart_ratio": 0.812,
+            "heart_uniformity_raw": 0.956,
+            "heart_uniformity_effective": 0.0,
+            "power_events": 7,
             "power_activity": 6.5,
             "sincerao_edges": 6,
             "sincerao_activity": 4.0,
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 12.6
+          "rolling": 16.5
         },
         "Aline Campos": {
-          "score": 29.8,
+          "score": 35.4,
           "components": {
             "invisibility": 0.708,
             "low_power_events": 0.385,
             "low_sincerao": 0.083,
             "plant_emoji": 0.48,
+            "heart_uniformity": 0.372,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 7.1
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 17.3
+              "points": 13.5
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 2.9
+              "points": 2.1
             },
             {
               "label": "Emoji 🌱",
-              "points": 9.6
+              "points": 7.2
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 5.6
             }
           ],
           "raw": {
@@ -92,6 +109,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 20,
+            "heart_received": 117,
+            "heart_ratio": 0.822,
+            "heart_uniformity_raw": 0.967,
+            "heart_uniformity_effective": 0.372,
             "power_events": 2,
             "power_activity": 4.0,
             "sincerao_edges": 9,
@@ -99,33 +120,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 29.8
+          "rolling": 35.4
         },
         "Ana Paula Renault": {
-          "score": 24.6,
+          "score": 31.6,
           "components": {
             "invisibility": 0.667,
             "low_power_events": 0.462,
             "low_sincerao": 0.083,
             "plant_emoji": 0.048,
+            "heart_uniformity": 0.401,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 6.7
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 20.8
+              "points": 16.2
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 2.9
+              "points": 2.1
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.0
+              "points": 0.7
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 6.0
             }
           ],
           "raw": {
@@ -133,6 +159,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 2,
+            "heart_received": 105,
+            "heart_ratio": 0.739,
+            "heart_uniformity_raw": 0.869,
+            "heart_uniformity_effective": 0.401,
             "power_events": 2,
             "power_activity": 3.5,
             "sincerao_edges": 9,
@@ -140,33 +170,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 24.6
+          "rolling": 31.6
         },
         "Babu Santana": {
-          "score": 50.8,
+          "score": 60.4,
           "components": {
             "invisibility": 0.625,
             "low_power_events": 1.0,
             "low_sincerao": 0.167,
             "plant_emoji": 0.0,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 6.2
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 5.8
+              "points": 4.2
             },
             {
               "label": "Emoji 🌱",
               "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -174,6 +209,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 0,
+            "heart_received": 142,
+            "heart_ratio": 1.0,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 8,
@@ -181,33 +220,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 50.8
+          "rolling": 60.4
         },
         "Breno": {
-          "score": 61.3,
+          "score": 63.5,
           "components": {
             "invisibility": 0.583,
-            "low_power_events": 1.0,
+            "low_power_events": 0.923,
             "low_sincerao": 0.333,
             "plant_emoji": 0.234,
+            "heart_uniformity": 0.902,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 5.8
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 32.3
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 4.7
+              "points": 3.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.5
             }
           ],
           "raw": {
@@ -215,40 +259,49 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 10,
-            "power_events": 0,
-            "power_activity": 0.0,
+            "heart_received": 118,
+            "heart_ratio": 0.83,
+            "heart_uniformity_raw": 0.977,
+            "heart_uniformity_effective": 0.902,
+            "power_events": 1,
+            "power_activity": 0.5,
             "sincerao_edges": 6,
             "sincerao_activity": 4.0,
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 61.3
+          "rolling": 63.5
         },
         "Brigido": {
-          "score": 62.8,
+          "score": 67.0,
           "components": {
             "invisibility": 0.542,
             "low_power_events": 1.0,
             "low_sincerao": 0.417,
             "plant_emoji": 0.159,
+            "heart_uniformity": 0.919,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 5.4
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 14.6
+              "points": 10.4
             },
             {
               "label": "Emoji 🌱",
-              "points": 3.2
+              "points": 2.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.8
             }
           ],
           "raw": {
@@ -256,6 +309,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 7,
+            "heart_received": 111,
+            "heart_ratio": 0.781,
+            "heart_uniformity_raw": 0.919,
+            "heart_uniformity_effective": 0.919,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 5,
@@ -263,33 +320,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 62.8
+          "rolling": 67.0
         },
         "Chaiany": {
-          "score": 53.8,
+          "score": 65.8,
           "components": {
             "invisibility": 0.958,
             "low_power_events": 1.0,
             "low_sincerao": 0.25,
             "plant_emoji": 0.0,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 9.6
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
               "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -297,6 +359,10 @@
             "reactions_received": 45,
             "reactions_given": 45,
             "plant_received": 0,
+            "heart_received": 45,
+            "heart_ratio": 1.0,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 7,
@@ -304,33 +370,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 53.8
+          "rolling": 65.8
         },
         "Edilson": {
-          "score": 54.2,
+          "score": 61.7,
           "components": {
             "invisibility": 0.5,
             "low_power_events": 1.0,
             "low_sincerao": 0.167,
             "plant_emoji": 0.17,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 5.0
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 5.8
+              "points": 4.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 3.4
+              "points": 2.6
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -338,6 +409,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 7,
+            "heart_received": 131,
+            "heart_ratio": 0.922,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 8,
@@ -345,33 +420,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 54.2
+          "rolling": 61.7
         },
         "Gabriela": {
-          "score": 56.7,
+          "score": 67.5,
           "components": {
             "invisibility": 0.917,
             "low_power_events": 1.0,
             "low_sincerao": 0.333,
             "plant_emoji": 0.0,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 9.2
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
               "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -379,6 +459,10 @@
             "reactions_received": 45,
             "reactions_given": 45,
             "plant_received": 0,
+            "heart_received": 44,
+            "heart_ratio": 0.977,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 6,
@@ -386,33 +470,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 56.7
+          "rolling": 67.5
         },
         "Henri Castelli": {
-          "score": 80.8,
+          "score": 85.0,
           "components": {
             "invisibility": 1.0,
             "low_power_events": 1.0,
             "low_sincerao": 0.833,
             "plant_emoji": 0.333,
+            "heart_uniformity": 0.941,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 10.0
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 29.2
+              "points": 20.8
             },
             {
               "label": "Emoji 🌱",
-              "points": 6.7
+              "points": 5.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.1
             }
           ],
           "raw": {
@@ -420,6 +509,10 @@
             "reactions_received": 40,
             "reactions_given": 40,
             "plant_received": 4,
+            "heart_received": 32,
+            "heart_ratio": 0.8,
+            "heart_uniformity_raw": 0.941,
+            "heart_uniformity_effective": 0.941,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -427,33 +520,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 80.8
+          "rolling": 85.0
         },
         "Jonas Sulzbach": {
-          "score": 42.1,
+          "score": 43.5,
           "components": {
             "invisibility": 0.458,
             "low_power_events": 0.538,
             "low_sincerao": 0.333,
             "plant_emoji": 0.308,
+            "heart_uniformity": 0.477,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 4.6
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 24.2
+              "points": 18.8
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 6.2
+              "points": 4.6
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 7.2
             }
           ],
           "raw": {
@@ -461,6 +559,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 13,
+            "heart_received": 107,
+            "heart_ratio": 0.754,
+            "heart_uniformity_raw": 0.887,
+            "heart_uniformity_effective": 0.477,
             "power_events": 3,
             "power_activity": 3.0,
             "sincerao_edges": 6,
@@ -468,33 +570,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 42.1
+          "rolling": 43.5
         },
         "Jordana": {
-          "score": 61.1,
+          "score": 65.7,
           "components": {
             "invisibility": 0.417,
             "low_power_events": 1.0,
             "low_sincerao": 0.417,
             "plant_emoji": 0.075,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 4.2
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 14.6
+              "points": 10.4
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.5
+              "points": 1.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -502,6 +609,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 3,
+            "heart_received": 123,
+            "heart_ratio": 0.864,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 5,
@@ -509,33 +620,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 61.1
+          "rolling": 65.7
         },
         "Juliano Floss": {
-          "score": 54.1,
+          "score": 60.4,
           "components": {
             "invisibility": 0.375,
             "low_power_events": 1.0,
             "low_sincerao": 0.167,
             "plant_emoji": 0.163,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 3.8
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 5.8
+              "points": 4.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 3.3
+              "points": 2.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -543,6 +659,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 7,
+            "heart_received": 128,
+            "heart_ratio": 0.9,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 8,
@@ -550,33 +670,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 54.1
+          "rolling": 60.4
         },
         "Leandro": {
-          "score": 61.2,
+          "score": 70.5,
           "components": {
             "invisibility": 0.875,
             "low_power_events": 1.0,
             "low_sincerao": 0.333,
             "plant_emoji": 0.227,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 8.8
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 4.5
+              "points": 3.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -584,6 +709,10 @@
             "reactions_received": 45,
             "reactions_given": 45,
             "plant_received": 3,
+            "heart_received": 40,
+            "heart_ratio": 0.887,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 6,
@@ -591,33 +720,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 61.2
+          "rolling": 70.5
         },
         "Marcelo": {
-          "score": 7.5,
+          "score": 10.3,
           "components": {
             "invisibility": 0.333,
             "low_power_events": 0.092,
             "low_sincerao": 0.083,
             "plant_emoji": 0.021,
+            "heart_uniformity": 0.089,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 3.3
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 4.2
+              "points": 3.2
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 2.9
+              "points": 2.1
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.4
+              "points": 0.3
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 1.3
             }
           ],
           "raw": {
@@ -625,6 +759,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 1,
+            "heart_received": 116,
+            "heart_ratio": 0.816,
+            "heart_uniformity_raw": 0.96,
+            "heart_uniformity_effective": 0.089,
             "power_events": 3,
             "power_activity": 5.9,
             "sincerao_edges": 9,
@@ -632,25 +770,26 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 7.5
+          "rolling": 10.3
         },
         "Marciele": {
-          "score": 47.7,
+          "score": 55.0,
           "components": {
             "invisibility": 0.292,
             "low_power_events": 1.0,
             "low_sincerao": 0.0,
             "plant_emoji": 0.137,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 2.9
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
@@ -658,7 +797,11 @@
             },
             {
               "label": "Emoji 🌱",
-              "points": 2.7
+              "points": 2.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -666,6 +809,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 6,
+            "heart_received": 130,
+            "heart_ratio": 0.916,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 10,
@@ -673,33 +820,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 47.7
+          "rolling": 55.0
         },
         "Matheus": {
-          "score": 53.8,
+          "score": 64.6,
           "components": {
             "invisibility": 0.833,
             "low_power_events": 1.0,
             "low_sincerao": 0.25,
             "plant_emoji": 0.0,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 8.3
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
               "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -707,6 +859,10 @@
             "reactions_received": 45,
             "reactions_given": 45,
             "plant_received": 0,
+            "heart_received": 43,
+            "heart_ratio": 0.955,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 7,
@@ -714,33 +870,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 53.8
+          "rolling": 64.6
         },
         "Maxiane": {
-          "score": 58.2,
+          "score": 58.1,
           "components": {
             "invisibility": 0.25,
-            "low_power_events": 1.0,
+            "low_power_events": 0.923,
             "low_sincerao": 0.333,
             "plant_emoji": 0.075,
+            "heart_uniformity": 0.923,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 2.5
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 32.3
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.5
+              "points": 1.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.8
             }
           ],
           "raw": {
@@ -748,40 +909,49 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 3,
-            "power_events": 0,
-            "power_activity": 0.0,
+            "heart_received": 123,
+            "heart_ratio": 0.865,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 0.923,
+            "power_events": 1,
+            "power_activity": 0.5,
             "sincerao_edges": 6,
             "sincerao_activity": 4.0,
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 58.2
+          "rolling": 58.1
         },
         "Milena": {
-          "score": 29.4,
+          "score": 26.4,
           "components": {
             "invisibility": 0.208,
-            "low_power_events": 0.462,
+            "low_power_events": 0.385,
             "low_sincerao": 0.167,
             "plant_emoji": 0.141,
+            "heart_uniformity": 0.308,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 2.1
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 20.8
+              "points": 13.5
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 5.8
+              "points": 4.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 2.8
+              "points": 2.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 4.6
             }
           ],
           "raw": {
@@ -789,40 +959,49 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 6,
-            "power_events": 2,
-            "power_activity": 3.5,
+            "heart_received": 97,
+            "heart_ratio": 0.681,
+            "heart_uniformity_raw": 0.801,
+            "heart_uniformity_effective": 0.308,
+            "power_events": 3,
+            "power_activity": 4.0,
             "sincerao_edges": 8,
             "sincerao_activity": 5.0,
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 29.4
+          "rolling": 26.4
         },
         "Paulo Augusto": {
-          "score": 47.9,
+          "score": 41.8,
           "components": {
             "invisibility": 0.167,
-            "low_power_events": 0.615,
+            "low_power_events": 0.538,
             "low_sincerao": 0.333,
             "plant_emoji": 0.427,
+            "heart_uniformity": 0.44,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 1.7
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 27.7
+              "points": 18.8
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 8.5
+              "points": 6.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 6.6
             }
           ],
           "raw": {
@@ -830,40 +1009,49 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 18,
-            "power_events": 1,
-            "power_activity": 2.5,
+            "heart_received": 99,
+            "heart_ratio": 0.694,
+            "heart_uniformity_raw": 0.817,
+            "heart_uniformity_effective": 0.44,
+            "power_events": 2,
+            "power_activity": 3.0,
             "sincerao_edges": 6,
             "sincerao_activity": 4.0,
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 47.9
+          "rolling": 41.8
         },
         "Pedro": {
-          "score": 74.8,
+          "score": 74.4,
           "components": {
             "invisibility": 0.792,
             "low_power_events": 1.0,
             "low_sincerao": 0.833,
             "plant_emoji": 0.029,
+            "heart_uniformity": 0.683,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 7.9
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 29.2
+              "points": 20.8
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.6
+              "points": 0.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 10.3
             }
           ],
           "raw": {
@@ -871,6 +1059,10 @@
             "reactions_received": 120,
             "reactions_given": 120,
             "plant_received": 1,
+            "heart_received": 69,
+            "heart_ratio": 0.581,
+            "heart_uniformity_raw": 0.683,
+            "heart_uniformity_effective": 0.683,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -878,33 +1070,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 74.8
+          "rolling": 74.4
         },
         "Samira": {
-          "score": 58.4,
+          "score": 56.8,
           "components": {
             "invisibility": 0.125,
-            "low_power_events": 1.0,
+            "low_power_events": 0.923,
             "low_sincerao": 0.333,
             "plant_emoji": 0.089,
+            "heart_uniformity": 0.905,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 1.2
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 32.3
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.8
+              "points": 1.3
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.6
             }
           ],
           "raw": {
@@ -912,40 +1109,49 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 4,
-            "power_events": 0,
-            "power_activity": 0.0,
+            "heart_received": 118,
+            "heart_ratio": 0.833,
+            "heart_uniformity_raw": 0.981,
+            "heart_uniformity_effective": 0.905,
+            "power_events": 1,
+            "power_activity": 0.5,
             "sincerao_edges": 6,
             "sincerao_activity": 4.0,
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 58.4
+          "rolling": 56.8
         },
         "Sarah Andrade": {
-          "score": 56.2,
+          "score": 57.9,
           "components": {
             "invisibility": 0.083,
             "low_power_events": 0.938,
             "low_sincerao": 0.333,
             "plant_emoji": 0.118,
+            "heart_uniformity": 0.938,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 0.8
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 42.2
+              "points": 32.8
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 2.4
+              "points": 1.8
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.1
             }
           ],
           "raw": {
@@ -953,6 +1159,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 5,
+            "heart_received": 121,
+            "heart_ratio": 0.853,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 0.938,
             "power_events": 1,
             "power_activity": 0.4,
             "sincerao_edges": 6,
@@ -960,33 +1170,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 56.2
+          "rolling": 57.9
         },
         "Sol Vega": {
-          "score": 54.5,
+          "score": 55.8,
           "components": {
             "invisibility": 0.042,
             "low_power_events": 1.0,
             "low_sincerao": 0.167,
             "plant_emoji": 0.185,
+            "heart_uniformity": 0.894,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 0.4
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 5.8
+              "points": 4.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 3.7
+              "points": 2.8
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.4
             }
           ],
           "raw": {
@@ -994,6 +1209,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 8,
+            "heart_received": 108,
+            "heart_ratio": 0.76,
+            "heart_uniformity_raw": 0.894,
+            "heart_uniformity_effective": 0.894,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 8,
@@ -1001,15 +1220,16 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 54.5
+          "rolling": 55.8
         },
         "Solange Couto": {
-          "score": 57.6,
+          "score": 59.0,
           "components": {
             "invisibility": 0.0,
             "low_power_events": 1.0,
             "low_sincerao": 0.333,
             "plant_emoji": 0.046,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
@@ -1019,15 +1239,19 @@
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 11.7
+              "points": 8.3
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.9
+              "points": 0.7
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -1035,6 +1259,10 @@
             "reactions_received": 142,
             "reactions_given": 142,
             "plant_received": 2,
+            "heart_received": 128,
+            "heart_ratio": 0.9,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 6,
@@ -1042,7 +1270,7 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 57.6
+          "rolling": 59.0
         }
       }
     },
@@ -1054,22 +1282,23 @@
       },
       "scores": {
         "Alberto Cowboy": {
-          "score": 28.1,
+          "score": 40.0,
           "components": {
             "invisibility": 0.955,
             "low_power_events": 0.615,
             "low_sincerao": 0.0,
             "plant_emoji": 0.023,
+            "heart_uniformity": 0.572,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 9.5
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 27.7
+              "points": 21.5
             },
             {
               "label": "Baixa exposição no Sincerão",
@@ -1077,7 +1306,11 @@
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.5
+              "points": 0.3
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 8.6
             }
           ],
           "raw": {
@@ -1085,6 +1318,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 1,
+            "heart_received": 117,
+            "heart_ratio": 0.791,
+            "heart_uniformity_raw": 0.93,
+            "heart_uniformity_effective": 0.572,
             "power_events": 2,
             "power_activity": 2.5,
             "sincerao_edges": 2,
@@ -1092,33 +1329,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 20.4
+          "rolling": 28.2
         },
         "Aline Campos": {
-          "score": 92.1,
+          "score": 91.9,
           "components": {
             "invisibility": 1.0,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.606,
+            "heart_uniformity": 0.856,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 10.0
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 12.1
+              "points": 9.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 12.8
             }
           ],
           "raw": {
@@ -1126,6 +1368,10 @@
             "reactions_received": 22,
             "reactions_given": 22,
             "plant_received": 4,
+            "heart_received": 16,
+            "heart_ratio": 0.727,
+            "heart_uniformity_raw": 0.856,
+            "heart_uniformity_effective": 0.856,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1133,25 +1379,26 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 60.9
+          "rolling": 63.7
         },
         "Ana Paula Renault": {
-          "score": 33.0,
+          "score": 42.4,
           "components": {
             "invisibility": 0.909,
             "low_power_events": 0.692,
             "low_sincerao": 0.0,
             "plant_emoji": 0.091,
+            "heart_uniformity": 0.511,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 9.1
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 31.2
+              "points": 24.2
             },
             {
               "label": "Baixa exposição no Sincerão",
@@ -1159,7 +1406,11 @@
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.8
+              "points": 1.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 7.7
             }
           ],
           "raw": {
@@ -1167,6 +1418,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 4,
+            "heart_received": 93,
+            "heart_ratio": 0.628,
+            "heart_uniformity_raw": 0.738,
+            "heart_uniformity_effective": 0.511,
             "power_events": 1,
             "power_activity": 2.0,
             "sincerao_edges": 2,
@@ -1174,21 +1429,22 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 28.8
+          "rolling": 37.0
         },
         "Babu Santana": {
-          "score": 9.2,
+          "score": 15.2,
           "components": {
             "invisibility": 0.864,
             "low_power_events": 0.0,
             "low_sincerao": 0.25,
             "plant_emoji": 0.023,
+            "heart_uniformity": 0.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 8.6
             },
             {
               "label": "Baixa atividade de poder",
@@ -1196,11 +1452,15 @@
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.5
+              "points": 0.3
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 0.0
             }
           ],
           "raw": {
@@ -1208,6 +1468,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 1,
+            "heart_received": 132,
+            "heart_ratio": 0.892,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 0.0,
             "power_events": 2,
             "power_activity": 6.5,
             "sincerao_edges": 1,
@@ -1215,33 +1479,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 30.0
+          "rolling": 37.8
         },
         "Breno": {
-          "score": 80.9,
+          "score": 83.8,
           "components": {
             "invisibility": 0.818,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.044,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 8.2
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 0.9
+              "points": 0.7
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -1249,6 +1518,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 2,
+            "heart_received": 130,
+            "heart_ratio": 0.879,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1256,33 +1529,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 71.1
+          "rolling": 73.7
         },
         "Brigido": {
-          "score": 23.0,
+          "score": 28.3,
           "components": {
             "invisibility": 0.773,
             "low_power_events": 0.308,
             "low_sincerao": 0.25,
             "plant_emoji": 0.022,
+            "heart_uniformity": 0.215,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 7.7
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 13.8
+              "points": 10.8
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.4
+              "points": 0.3
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 3.2
             }
           ],
           "raw": {
@@ -1290,6 +1568,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 1,
+            "heart_received": 88,
+            "heart_ratio": 0.594,
+            "heart_uniformity_raw": 0.698,
+            "heart_uniformity_effective": 0.215,
             "power_events": 2,
             "power_activity": 4.5,
             "sincerao_edges": 1,
@@ -1297,33 +1579,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 42.9
+          "rolling": 47.6
         },
         "Chaiany": {
-          "score": 59.9,
+          "score": 57.7,
           "components": {
             "invisibility": 0.727,
             "low_power_events": 0.492,
             "low_sincerao": 1.0,
             "plant_emoji": 0.135,
+            "heart_uniformity": 0.411,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 7.3
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 22.2
+              "points": 17.2
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 35.0
+              "points": 25.0
             },
             {
               "label": "Emoji 🌱",
-              "points": 2.7
+              "points": 2.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 6.2
             }
           ],
           "raw": {
@@ -1331,6 +1618,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 6,
+            "heart_received": 105,
+            "heart_ratio": 0.71,
+            "heart_uniformity_raw": 0.835,
+            "heart_uniformity_effective": 0.411,
             "power_events": 2,
             "power_activity": 3.3,
             "sincerao_edges": 0,
@@ -1338,33 +1629,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 56.8
+          "rolling": 61.8
         },
         "Edilson": {
-          "score": 82.7,
+          "score": 83.6,
           "components": {
             "invisibility": 0.682,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.136,
+            "heart_uniformity": 0.985,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 6.8
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 2.7
+              "points": 2.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.8
             }
           ],
           "raw": {
@@ -1372,6 +1668,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 6,
+            "heart_received": 124,
+            "heart_ratio": 0.837,
+            "heart_uniformity_raw": 0.985,
+            "heart_uniformity_effective": 0.985,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1379,33 +1679,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 68.5
+          "rolling": 72.7
         },
         "Gabriela": {
-          "score": 55.6,
+          "score": 60.5,
           "components": {
             "invisibility": 0.636,
             "low_power_events": 1.0,
             "low_sincerao": 0.25,
             "plant_emoji": 0.091,
+            "heart_uniformity": 0.769,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 6.4
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.8
+              "points": 1.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 11.5
             }
           ],
           "raw": {
@@ -1413,6 +1718,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 4,
+            "heart_received": 97,
+            "heart_ratio": 0.654,
+            "heart_uniformity_raw": 0.769,
+            "heart_uniformity_effective": 0.769,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 1,
@@ -1420,33 +1729,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 56.2
+          "rolling": 64.0
         },
         "Jonas Sulzbach": {
-          "score": 25.1,
+          "score": 28.6,
           "components": {
             "invisibility": 0.591,
             "low_power_events": 0.323,
             "low_sincerao": 0.25,
             "plant_emoji": 0.089,
+            "heart_uniformity": 0.252,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 5.9
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 14.5
+              "points": 11.3
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.8
+              "points": 1.3
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 3.8
             }
           ],
           "raw": {
@@ -1454,6 +1768,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 4,
+            "heart_received": 98,
+            "heart_ratio": 0.662,
+            "heart_uniformity_raw": 0.779,
+            "heart_uniformity_effective": 0.252,
             "power_events": 5,
             "power_activity": 4.4,
             "sincerao_edges": 1,
@@ -1461,33 +1779,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 33.6
+          "rolling": 36.0
         },
         "Jordana": {
-          "score": 81.8,
+          "score": 81.1,
           "components": {
             "invisibility": 0.545,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.091,
+            "heart_uniformity": 0.953,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 5.5
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 1.8
+              "points": 1.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.3
             }
           ],
           "raw": {
@@ -1495,6 +1818,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 4,
+            "heart_received": 120,
+            "heart_ratio": 0.81,
+            "heart_uniformity_raw": 0.953,
+            "heart_uniformity_effective": 0.953,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1502,33 +1829,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 71.5
+          "rolling": 73.4
         },
         "Juliano Floss": {
-          "score": 56.9,
+          "score": 62.9,
           "components": {
             "invisibility": 0.5,
             "low_power_events": 1.0,
             "low_sincerao": 0.25,
             "plant_emoji": 0.157,
+            "heart_uniformity": 0.953,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 5.0
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 3.1
+              "points": 2.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.3
             }
           ],
           "raw": {
@@ -1536,6 +1868,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 7,
+            "heart_received": 120,
+            "heart_ratio": 0.81,
+            "heart_uniformity_raw": 0.953,
+            "heart_uniformity_effective": 0.953,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 1,
@@ -1543,25 +1879,26 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 55.5
+          "rolling": 61.6
         },
         "Leandro": {
-          "score": 31.3,
+          "score": 32.0,
           "components": {
             "invisibility": 0.455,
             "low_power_events": 0.415,
             "low_sincerao": 0.0,
             "plant_emoji": 0.63,
+            "heart_uniformity": 0.231,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 4.5
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 18.7
+              "points": 14.5
             },
             {
               "label": "Baixa exposição no Sincerão",
@@ -1569,7 +1906,11 @@
             },
             {
               "label": "Emoji 🌱",
-              "points": 12.6
+              "points": 9.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 3.5
             }
           ],
           "raw": {
@@ -1577,6 +1918,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 28,
+            "heart_received": 70,
+            "heart_ratio": 0.474,
+            "heart_uniformity_raw": 0.557,
+            "heart_uniformity_effective": 0.231,
             "power_events": 3,
             "power_activity": 3.8,
             "sincerao_edges": 2,
@@ -1584,33 +1929,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 46.2
+          "rolling": 51.2
         },
         "Marcelo": {
-          "score": 77.9,
+          "score": 76.4,
           "components": {
             "invisibility": 0.409,
             "low_power_events": 0.954,
             "low_sincerao": 1.0,
             "plant_emoji": 0.0,
+            "heart_uniformity": 0.926,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 4.1
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 42.9
+              "points": 33.4
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 35.0
+              "points": 25.0
             },
             {
               "label": "Emoji 🌱",
               "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.9
             }
           ],
           "raw": {
@@ -1618,6 +1968,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 0,
+            "heart_received": 122,
+            "heart_ratio": 0.825,
+            "heart_uniformity_raw": 0.971,
+            "heart_uniformity_effective": 0.926,
             "power_events": 3,
             "power_activity": 0.3,
             "sincerao_edges": 0,
@@ -1625,33 +1979,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 42.7
+          "rolling": 43.4
         },
         "Marciele": {
-          "score": 81.8,
+          "score": 80.0,
           "components": {
             "invisibility": 0.364,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.091,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 3.6
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 1.8
+              "points": 1.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -1659,6 +2018,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 4,
+            "heart_received": 129,
+            "heart_ratio": 0.872,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1666,33 +2029,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 64.8
+          "rolling": 67.5
         },
         "Matheus": {
-          "score": 43.4,
+          "score": 41.5,
           "components": {
             "invisibility": 0.318,
             "low_power_events": 0.769,
             "low_sincerao": 0.25,
             "plant_emoji": 0.0,
+            "heart_uniformity": 0.342,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 3.2
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 34.6
+              "points": 26.9
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
               "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 5.1
             }
           ],
           "raw": {
@@ -1700,6 +2068,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 0,
+            "heart_received": 56,
+            "heart_ratio": 0.378,
+            "heart_uniformity_raw": 0.444,
+            "heart_uniformity_effective": 0.342,
             "power_events": 1,
             "power_activity": 1.5,
             "sincerao_edges": 1,
@@ -1707,33 +2079,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 48.6
+          "rolling": 53.0
         },
         "Maxiane": {
-          "score": 77.9,
+          "score": 74.6,
           "components": {
             "invisibility": 0.273,
             "low_power_events": 0.954,
             "low_sincerao": 1.0,
             "plant_emoji": 0.0,
+            "heart_uniformity": 0.902,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 2.7
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 42.9
+              "points": 33.4
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 35.0
+              "points": 25.0
             },
             {
               "label": "Emoji 🌱",
               "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.5
             }
           ],
           "raw": {
@@ -1741,6 +2118,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 0,
+            "heart_received": 119,
+            "heart_ratio": 0.804,
+            "heart_uniformity_raw": 0.946,
+            "heart_uniformity_effective": 0.902,
             "power_events": 1,
             "power_activity": 0.3,
             "sincerao_edges": 0,
@@ -1748,25 +2129,26 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 68.1
+          "rolling": 66.3
         },
         "Milena": {
-          "score": 45.4,
+          "score": 50.6,
           "components": {
             "invisibility": 0.227,
             "low_power_events": 1.0,
             "low_sincerao": 0.0,
             "plant_emoji": 0.022,
+            "heart_uniformity": 0.866,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 2.3
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
@@ -1774,7 +2156,11 @@
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.4
+              "points": 0.3
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.0
             }
           ],
           "raw": {
@@ -1782,6 +2168,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 1,
+            "heart_received": 109,
+            "heart_ratio": 0.736,
+            "heart_uniformity_raw": 0.866,
+            "heart_uniformity_effective": 0.866,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 2,
@@ -1789,33 +2179,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 37.4
+          "rolling": 38.5
         },
         "Paulo Augusto": {
-          "score": 86.3,
+          "score": 80.7,
           "components": {
             "invisibility": 0.182,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.314,
+            "heart_uniformity": 0.947,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 1.8
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 6.3
+              "points": 4.7
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.2
             }
           ],
           "raw": {
@@ -1823,6 +2218,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 14,
+            "heart_received": 119,
+            "heart_ratio": 0.805,
+            "heart_uniformity_raw": 0.947,
+            "heart_uniformity_effective": 0.947,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1830,33 +2229,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 67.1
+          "rolling": 61.2
         },
         "Samira": {
-          "score": 85.9,
+          "score": 80.8,
           "components": {
             "invisibility": 0.136,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.293,
+            "heart_uniformity": 1.0,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 1.4
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 5.9
+              "points": 4.4
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 15.0
             }
           ],
           "raw": {
@@ -1864,6 +2268,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 13,
+            "heart_received": 127,
+            "heart_ratio": 0.859,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 1.0,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1871,33 +2279,38 @@
             "sincerao_participation": false,
             "plateia_planta": false
           },
-          "rolling": 72.2
+          "rolling": 68.8
         },
         "Sarah Andrade": {
-          "score": 42.6,
+          "score": 42.9,
           "components": {
             "invisibility": 0.091,
             "low_power_events": 0.692,
             "low_sincerao": 0.25,
             "plant_emoji": 0.136,
+            "heart_uniformity": 0.633,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 0.9
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 31.2
+              "points": 24.2
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 2.7
+              "points": 2.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 9.5
             }
           ],
           "raw": {
@@ -1905,6 +2318,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 6,
+            "heart_received": 115,
+            "heart_ratio": 0.777,
+            "heart_uniformity_raw": 0.914,
+            "heart_uniformity_effective": 0.633,
             "power_events": 1,
             "power_activity": 2.0,
             "sincerao_edges": 1,
@@ -1912,33 +2329,38 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 49.4
+          "rolling": 50.4
         },
         "Sol Vega": {
-          "score": 59.2,
+          "score": 55.5,
           "components": {
             "invisibility": 0.045,
             "low_power_events": 1.0,
             "low_sincerao": 0.25,
             "plant_emoji": 0.272,
+            "heart_uniformity": 0.645,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 0.5
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
             },
             {
               "label": "Baixa exposição no Sincerão",
-              "points": 8.8
+              "points": 6.2
             },
             {
               "label": "Emoji 🌱",
-              "points": 5.4
+              "points": 4.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 9.7
             }
           ],
           "raw": {
@@ -1946,6 +2368,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 12,
+            "heart_received": 81,
+            "heart_ratio": 0.548,
+            "heart_uniformity_raw": 0.645,
+            "heart_uniformity_effective": 0.645,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 1,
@@ -1953,15 +2379,16 @@
             "sincerao_participation": true,
             "plateia_planta": false
           },
-          "rolling": 56.9
+          "rolling": 55.6
         },
         "Solange Couto": {
-          "score": 100.0,
+          "score": 94.3,
           "components": {
             "invisibility": 0.0,
             "low_power_events": 1.0,
             "low_sincerao": 1.0,
             "plant_emoji": 0.339,
+            "heart_uniformity": 0.946,
             "plateia_bonus": 1
           },
           "breakdown": [
@@ -1971,15 +2398,19 @@
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Baixa exposição no Sincerão",
               "points": 35.0
             },
             {
+              "label": "Baixa exposição no Sincerão",
+              "points": 25.0
+            },
+            {
               "label": "Emoji 🌱",
-              "points": 6.8
+              "points": 5.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.2
             },
             {
               "label": "Plateia definiu planta",
@@ -1991,6 +2422,10 @@
             "reactions_received": 148,
             "reactions_given": 148,
             "plant_received": 15,
+            "heart_received": 119,
+            "heart_ratio": 0.804,
+            "heart_uniformity_raw": 0.946,
+            "heart_uniformity_effective": 0.946,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -1998,7 +2433,7 @@
             "sincerao_participation": false,
             "plateia_planta": true
           },
-          "rolling": 78.8
+          "rolling": 76.7
         }
       }
     },
@@ -2006,37 +2441,50 @@
       "week": 3,
       "date_range": {
         "start": "2026-01-27",
-        "end": "2026-01-30"
+        "end": "2026-01-31"
       },
       "scores": {
         "Alberto Cowboy": {
-          "score": 43.3,
+          "score": 55.7,
           "components": {
             "invisibility": 0.905,
             "low_power_events": 0.925,
             "low_sincerao": 0.0,
-            "plant_emoji": 0.083,
+            "plant_emoji": 0.102,
+            "heart_uniformity": 0.849,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 9.0
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 41.6
+              "points": 32.4
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 0.0
             },
             {
               "label": "Emoji 🌱",
-              "points": 1.7
+              "points": 1.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 12.7
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 2,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 3,
+            "heart_received": 78,
+            "heart_ratio": 0.78,
+            "heart_uniformity_raw": 0.917,
+            "heart_uniformity_effective": 0.849,
             "power_events": 3,
             "power_activity": 0.3,
             "sincerao_edges": 0,
@@ -2044,110 +2492,149 @@
             "sincerao_participation": null,
             "plateia_planta": false
           },
-          "rolling": 35.7
+          "rolling": 47.9
         },
         "Ana Paula Renault": {
-          "score": 48.3,
+          "score": 21.6,
           "components": {
             "invisibility": 0.857,
-            "low_power_events": 1.0,
+            "low_power_events": 0.25,
             "low_sincerao": 0.0,
-            "plant_emoji": 0.165,
+            "plant_emoji": 0.167,
+            "heart_uniformity": 0.12,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 8.6
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 8.8
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 0.0
             },
             {
               "label": "Emoji 🌱",
-              "points": 3.3
+              "points": 2.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 1.8
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 4,
-            "power_events": 0,
-            "power_activity": 0.0,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 5,
+            "heart_received": 41,
+            "heart_ratio": 0.409,
+            "heart_uniformity_raw": 0.481,
+            "heart_uniformity_effective": 0.12,
+            "power_events": 1,
+            "power_activity": 3.0,
             "sincerao_edges": 0,
             "sincerao_activity": 0.0,
             "sincerao_participation": null,
             "plateia_planta": false
           },
-          "rolling": 40.6
+          "rolling": 32.0
         },
         "Babu Santana": {
-          "score": 45.8,
+          "score": 30.7,
           "components": {
             "invisibility": 0.81,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.042,
+            "low_power_events": 0.375,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.033,
+            "heart_uniformity": 0.31,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 8.1
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 13.1
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.8
+              "points": 0.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 4.6
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
             "plant_received": 1,
-            "power_events": 1,
-            "power_activity": 0.0,
+            "heart_received": 70,
+            "heart_ratio": 0.702,
+            "heart_uniformity_raw": 0.825,
+            "heart_uniformity_effective": 0.31,
+            "power_events": 2,
+            "power_activity": 2.5,
             "sincerao_edges": 0,
             "sincerao_activity": 0.0,
             "sincerao_participation": null,
             "plateia_planta": false
           },
-          "rolling": 27.5
+          "rolling": 22.9
         },
         "Breno": {
-          "score": 44.9,
+          "score": 72.4,
           "components": {
             "invisibility": 0.762,
             "low_power_events": 0.925,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.165,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.167,
+            "heart_uniformity": 0.826,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 7.6
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 41.6
+              "points": 32.4
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
             },
             {
               "label": "Emoji 🌱",
-              "points": 3.3
+              "points": 2.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 12.4
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 4,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 5,
+            "heart_received": 76,
+            "heart_ratio": 0.759,
+            "heart_uniformity_raw": 0.893,
+            "heart_uniformity_effective": 0.826,
             "power_events": 2,
             "power_activity": 0.3,
             "sincerao_edges": 0,
@@ -2155,295 +2642,49 @@
             "sincerao_participation": null,
             "plateia_planta": false
           },
-          "rolling": 62.9
+          "rolling": 78.1
         },
         "Brigido": {
-          "score": 45.8,
+          "score": 56.9,
           "components": {
             "invisibility": 0.714,
             "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.042,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.033,
+            "heart_uniformity": 0.659,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 7.1
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.8
+              "points": 0.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 9.9
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
             "plant_received": 1,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 34.4
-        },
-        "Chaiany": {
-          "score": 44.9,
-          "components": {
-            "invisibility": 0.667,
-            "low_power_events": 0.925,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.163,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 41.6
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 3.3
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 4,
-            "power_events": 1,
-            "power_activity": 0.3,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 52.4
-        },
-        "Edilson": {
-          "score": 48.3,
-          "components": {
-            "invisibility": 0.619,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.163,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 3.3
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 4,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 65.5
-        },
-        "Gabriela": {
-          "score": 43.3,
-          "components": {
-            "invisibility": 0.571,
-            "low_power_events": 0.925,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.083,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 41.6
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 1.7
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 2,
-            "power_events": 1,
-            "power_activity": 0.3,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 49.5
-        },
-        "Jonas Sulzbach": {
-          "score": 45.0,
-          "components": {
-            "invisibility": 0.524,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.0,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 0.0
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 0,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 35.0
-        },
-        "Jordana": {
-          "score": 46.7,
-          "components": {
-            "invisibility": 0.476,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.083,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 1.7
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 2,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 64.2
-        },
-        "Juliano Floss": {
-          "score": 45.8,
-          "components": {
-            "invisibility": 0.429,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.04,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 0.8
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 1,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 51.3
-        },
-        "Leandro": {
-          "score": 54.0,
-          "components": {
-            "invisibility": 0.381,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.452,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 9.0
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 11,
+            "heart_received": 56,
+            "heart_ratio": 0.56,
+            "heart_uniformity_raw": 0.659,
+            "heart_uniformity_effective": 0.659,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -2453,182 +2694,97 @@
           },
           "rolling": 42.6
         },
-        "Marcelo": {
-          "score": 45.8,
+        "Chaiany": {
+          "score": 71.8,
           "components": {
-            "invisibility": 0.333,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.042,
+            "invisibility": 0.667,
+            "low_power_events": 0.925,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.2,
+            "heart_uniformity": 0.816,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 6.7
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 32.4
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.8
+              "points": 3.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 12.2
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 1,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 61.9
-        },
-        "Marciele": {
-          "score": 51.6,
-          "components": {
-            "invisibility": 0.286,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.329,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 6.6
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 8,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 66.7
-        },
-        "Matheus": {
-          "score": 45.0,
-          "components": {
-            "invisibility": 1.0,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.0,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 0.0
-            }
-          ],
-          "raw": {
-            "reactions_total": 42,
-            "reactions_received": 21,
-            "reactions_given": 21,
-            "plant_received": 0,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 44.2
-        },
-        "Maxiane": {
-          "score": 1.6,
-          "components": {
-            "invisibility": 0.238,
-            "low_power_events": 0.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.081,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 0.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 1.6
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 2,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 6,
+            "heart_received": 75,
+            "heart_ratio": 0.75,
+            "heart_uniformity_raw": 0.883,
+            "heart_uniformity_effective": 0.816,
             "power_events": 1,
-            "power_activity": 4.0,
+            "power_activity": 0.3,
             "sincerao_edges": 0,
             "sincerao_activity": 0.0,
             "sincerao_participation": null,
             "plateia_planta": false
           },
-          "rolling": 39.8
+          "rolling": 64.8
         },
-        "Milena": {
-          "score": 45.8,
+        "Edilson": {
+          "score": 75.5,
           "components": {
-            "invisibility": 0.19,
+            "invisibility": 0.619,
             "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.042,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.165,
+            "heart_uniformity": 0.953,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 6.2
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
             },
             {
               "label": "Emoji 🌱",
-              "points": 0.8
+              "points": 2.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.3
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 1,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 5,
+            "heart_received": 81,
+            "heart_ratio": 0.81,
+            "heart_uniformity_raw": 0.953,
+            "heart_uniformity_effective": 0.953,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -2636,149 +2792,51 @@
             "sincerao_participation": null,
             "plateia_planta": false
           },
-          "rolling": 45.6
+          "rolling": 79.5
         },
-        "Paulo Augusto": {
-          "score": 56.0,
+        "Gabriela": {
+          "score": 51.9,
           "components": {
-            "invisibility": 0.952,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.548,
+            "invisibility": 0.571,
+            "low_power_events": 0.925,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.137,
+            "heart_uniformity": 0.49,
             "plateia_bonus": 0
           },
           "breakdown": [
             {
               "label": "Invisibilidade",
-              "points": 0.0
+              "points": 5.7
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 32.4
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
             },
             {
               "label": "Emoji 🌱",
-              "points": 11.0
+              "points": 2.1
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 7.4
             }
           ],
           "raw": {
-            "reactions_total": 142,
-            "reactions_received": 61,
-            "reactions_given": 81,
-            "plant_received": 10,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 71.2
-        },
-        "Samira": {
-          "score": 57.4,
-          "components": {
-            "invisibility": 0.143,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.619,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 12.4
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 15,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 71.7
-        },
-        "Sarah Andrade": {
-          "score": 45.8,
-          "components": {
-            "invisibility": 0.095,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.042,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 0.8
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 1,
-            "power_events": 0,
-            "power_activity": 0.0,
-            "sincerao_edges": 0,
-            "sincerao_activity": 0.0,
-            "sincerao_participation": null,
-            "plateia_planta": false
-          },
-          "rolling": 44.2
-        },
-        "Sol Vega": {
-          "score": 53.3,
-          "components": {
-            "invisibility": 0.048,
-            "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.413,
-            "plateia_bonus": 0
-          },
-          "breakdown": [
-            {
-              "label": "Invisibilidade",
-              "points": 0.0
-            },
-            {
-              "label": "Baixa atividade de poder",
-              "points": 45.0
-            },
-            {
-              "label": "Emoji 🌱",
-              "points": 8.3
-            }
-          ],
-          "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 10,
-            "power_events": 0,
-            "power_activity": 0.0,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 4,
+            "heart_received": 45,
+            "heart_ratio": 0.45,
+            "heart_uniformity_raw": 0.53,
+            "heart_uniformity_effective": 0.49,
+            "power_events": 1,
+            "power_activity": 0.3,
             "sincerao_edges": 0,
             "sincerao_activity": 0.0,
             "sincerao_participation": null,
@@ -2786,13 +2844,664 @@
           },
           "rolling": 56.2
         },
+        "Jonas Sulzbach": {
+          "score": 38.2,
+          "components": {
+            "invisibility": 0.524,
+            "low_power_events": 0.625,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.035,
+            "heart_uniformity": 0.412,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 5.2
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 21.9
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 0.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 6.2
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 1,
+            "heart_received": 56,
+            "heart_ratio": 0.56,
+            "heart_uniformity_raw": 0.659,
+            "heart_uniformity_effective": 0.412,
+            "power_events": 1,
+            "power_activity": 1.5,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 33.4
+        },
+        "Jordana": {
+          "score": 69.9,
+          "components": {
+            "invisibility": 0.476,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.172,
+            "heart_uniformity": 0.669,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 4.8
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 2.6
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 10.0
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 5,
+            "heart_received": 57,
+            "heart_ratio": 0.569,
+            "heart_uniformity_raw": 0.669,
+            "heart_uniformity_effective": 0.669,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 75.5
+        },
+        "Juliano Floss": {
+          "score": 26.9,
+          "components": {
+            "invisibility": 0.429,
+            "low_power_events": 0.375,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.067,
+            "heart_uniformity": 0.274,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 4.3
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 13.1
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 1.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 4.1
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 2,
+            "heart_received": 62,
+            "heart_ratio": 0.62,
+            "heart_uniformity_raw": 0.73,
+            "heart_uniformity_effective": 0.274,
+            "power_events": 1,
+            "power_activity": 2.5,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 44.9
+        },
+        "Leandro": {
+          "score": 53.6,
+          "components": {
+            "invisibility": 0.381,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.0,
+            "plant_emoji": 0.432,
+            "heart_uniformity": 0.554,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 3.8
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 0.0
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 6.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 8.3
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 13,
+            "heart_received": 47,
+            "heart_ratio": 0.471,
+            "heart_uniformity_raw": 0.554,
+            "heart_uniformity_effective": 0.554,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 42.8
+        },
+        "Marcelo": {
+          "score": 39.4,
+          "components": {
+            "invisibility": 0.333,
+            "low_power_events": 0.375,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.033,
+            "heart_uniformity": 0.327,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 3.3
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 13.1
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 0.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 4.9
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 1,
+            "heart_received": 74,
+            "heart_ratio": 0.74,
+            "heart_uniformity_raw": 0.871,
+            "heart_uniformity_effective": 0.327,
+            "power_events": 1,
+            "power_activity": 2.5,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 57.9
+        },
+        "Marciele": {
+          "score": 74.8,
+          "components": {
+            "invisibility": 0.286,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.369,
+            "heart_uniformity": 0.929,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 2.9
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 5.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 13.9
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 11,
+            "heart_received": 79,
+            "heart_ratio": 0.789,
+            "heart_uniformity_raw": 0.929,
+            "heart_uniformity_effective": 0.929,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 77.4
+        },
+        "Matheus": {
+          "score": 56.1,
+          "components": {
+            "invisibility": 1.0,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.0,
+            "heart_uniformity": 0.448,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 10.0
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 0.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 6.7
+            }
+          ],
+          "raw": {
+            "reactions_total": 42,
+            "reactions_received": 21,
+            "reactions_given": 21,
+            "plant_received": 0,
+            "heart_received": 8,
+            "heart_ratio": 0.381,
+            "heart_uniformity_raw": 0.448,
+            "heart_uniformity_effective": 0.448,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 48.8
+        },
+        "Maxiane": {
+          "score": 20.9,
+          "components": {
+            "invisibility": 0.238,
+            "low_power_events": 0.0,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.065,
+            "heart_uniformity": 0.0,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 2.4
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 0.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 1.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 0.0
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 2,
+            "heart_received": 88,
+            "heart_ratio": 0.88,
+            "heart_uniformity_raw": 1.0,
+            "heart_uniformity_effective": 0.0,
+            "power_events": 1,
+            "power_activity": 4.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 47.8
+        },
+        "Milena": {
+          "score": 45.3,
+          "components": {
+            "invisibility": 0.19,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.0,
+            "plant_emoji": 0.068,
+            "heart_uniformity": 0.492,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 1.9
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 0.0
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 1.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 7.4
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 2,
+            "heart_received": 42,
+            "heart_ratio": 0.418,
+            "heart_uniformity_raw": 0.492,
+            "heart_uniformity_effective": 0.492,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 48.0
+        },
+        "Paulo Augusto": {
+          "score": 82.4,
+          "components": {
+            "invisibility": 0.952,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.548,
+            "heart_uniformity": 0.81,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 9.5
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 8.2
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 12.1
+            }
+          ],
+          "raw": {
+            "reactions_total": 142,
+            "reactions_received": 61,
+            "reactions_given": 81,
+            "plant_received": 10,
+            "heart_received": 42,
+            "heart_ratio": 0.688,
+            "heart_uniformity_raw": 0.81,
+            "heart_uniformity_effective": 0.81,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 81.6
+        },
+        "Samira": {
+          "score": 74.2,
+          "components": {
+            "invisibility": 0.143,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.53,
+            "heart_uniformity": 0.824,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 1.4
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 8.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 12.4
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 16,
+            "heart_received": 70,
+            "heart_ratio": 0.7,
+            "heart_uniformity_raw": 0.824,
+            "heart_uniformity_effective": 0.824,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 77.5
+        },
+        "Sarah Andrade": {
+          "score": 18.1,
+          "components": {
+            "invisibility": 0.095,
+            "low_power_events": 0.25,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.068,
+            "heart_uniformity": 0.2,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 1.0
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 8.8
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 1.0
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 3.0
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 2,
+            "heart_received": 68,
+            "heart_ratio": 0.68,
+            "heart_uniformity_raw": 0.8,
+            "heart_uniformity_effective": 0.2,
+            "power_events": 2,
+            "power_activity": 3.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 30.5
+        },
+        "Sol Vega": {
+          "score": 56.6,
+          "components": {
+            "invisibility": 0.048,
+            "low_power_events": 1.0,
+            "low_sincerao": 0.175,
+            "plant_emoji": 0.435,
+            "heart_uniformity": 0.682,
+            "plateia_bonus": 0
+          },
+          "breakdown": [
+            {
+              "label": "Invisibilidade",
+              "points": 0.5
+            },
+            {
+              "label": "Baixa atividade de poder",
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 4.4
+            },
+            {
+              "label": "Emoji 🌱",
+              "points": 6.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 10.2
+            }
+          ],
+          "raw": {
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 13,
+            "heart_received": 58,
+            "heart_ratio": 0.58,
+            "heart_uniformity_raw": 0.682,
+            "heart_uniformity_effective": 0.682,
+            "power_events": 0,
+            "power_activity": 0.0,
+            "sincerao_edges": 0,
+            "sincerao_activity": 0.0,
+            "sincerao_participation": null,
+            "plateia_planta": false
+          },
+          "rolling": 56.0
+        },
         "Solange Couto": {
-          "score": 51.6,
+          "score": 72.8,
           "components": {
             "invisibility": 0.0,
             "low_power_events": 1.0,
-            "low_sincerao": 0.0,
-            "plant_emoji": 0.329,
+            "low_sincerao": 0.7,
+            "plant_emoji": 0.369,
+            "heart_uniformity": 0.987,
             "plateia_bonus": 0
           },
           "breakdown": [
@@ -2802,18 +3511,30 @@
             },
             {
               "label": "Baixa atividade de poder",
-              "points": 45.0
+              "points": 35.0
+            },
+            {
+              "label": "Baixa exposição no Sincerão",
+              "points": 17.5
             },
             {
               "label": "Emoji 🌱",
-              "points": 6.6
+              "points": 5.5
+            },
+            {
+              "label": "Consenso ❤️",
+              "points": 14.8
             }
           ],
           "raw": {
-            "reactions_total": 161,
-            "reactions_received": 81,
-            "reactions_given": 80,
-            "plant_received": 8,
+            "reactions_total": 199,
+            "reactions_received": 100,
+            "reactions_given": 99,
+            "plant_received": 11,
+            "heart_received": 84,
+            "heart_ratio": 0.839,
+            "heart_uniformity_raw": 0.987,
+            "heart_uniformity_effective": 0.987,
             "power_events": 0,
             "power_activity": 0.0,
             "sincerao_edges": 0,
@@ -2821,7 +3542,7 @@
             "sincerao_participation": null,
             "plateia_planta": false
           },
-          "rolling": 75.8
+          "rolling": 83.5
         }
       }
     }
@@ -2830,33 +3551,46 @@
     "week": 3,
     "scores": {
       "Alberto Cowboy": {
-        "score": 43.3,
+        "score": 55.7,
         "components": {
           "invisibility": 0.905,
           "low_power_events": 0.925,
           "low_sincerao": 0.0,
-          "plant_emoji": 0.083,
+          "plant_emoji": 0.102,
+          "heart_uniformity": 0.849,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 9.0
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 41.6
+            "points": 32.4
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
           },
           {
             "label": "Emoji 🌱",
-            "points": 1.7
+            "points": 1.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 12.7
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 2,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 3,
+          "heart_received": 78,
+          "heart_ratio": 0.78,
+          "heart_uniformity_raw": 0.917,
+          "heart_uniformity_effective": 0.849,
           "power_events": 3,
           "power_activity": 0.3,
           "sincerao_edges": 0,
@@ -2864,110 +3598,149 @@
           "sincerao_participation": null,
           "plateia_planta": false
         },
-        "rolling": 35.7
+        "rolling": 47.9
       },
       "Ana Paula Renault": {
-        "score": 48.3,
+        "score": 21.6,
         "components": {
           "invisibility": 0.857,
-          "low_power_events": 1.0,
+          "low_power_events": 0.25,
           "low_sincerao": 0.0,
-          "plant_emoji": 0.165,
+          "plant_emoji": 0.167,
+          "heart_uniformity": 0.12,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 8.6
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 45.0
+            "points": 8.8
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
           },
           {
             "label": "Emoji 🌱",
-            "points": 3.3
+            "points": 2.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 1.8
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 4,
-          "power_events": 0,
-          "power_activity": 0.0,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 5,
+          "heart_received": 41,
+          "heart_ratio": 0.409,
+          "heart_uniformity_raw": 0.481,
+          "heart_uniformity_effective": 0.12,
+          "power_events": 1,
+          "power_activity": 3.0,
           "sincerao_edges": 0,
           "sincerao_activity": 0.0,
           "sincerao_participation": null,
           "plateia_planta": false
         },
-        "rolling": 40.6
+        "rolling": 32.0
       },
       "Babu Santana": {
-        "score": 45.8,
+        "score": 30.7,
         "components": {
           "invisibility": 0.81,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.042,
+          "low_power_events": 0.375,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.033,
+          "heart_uniformity": 0.31,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 8.1
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 45.0
+            "points": 13.1
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
           },
           {
             "label": "Emoji 🌱",
-            "points": 0.8
+            "points": 0.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 4.6
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
           "plant_received": 1,
-          "power_events": 1,
-          "power_activity": 0.0,
+          "heart_received": 70,
+          "heart_ratio": 0.702,
+          "heart_uniformity_raw": 0.825,
+          "heart_uniformity_effective": 0.31,
+          "power_events": 2,
+          "power_activity": 2.5,
           "sincerao_edges": 0,
           "sincerao_activity": 0.0,
           "sincerao_participation": null,
           "plateia_planta": false
         },
-        "rolling": 27.5
+        "rolling": 22.9
       },
       "Breno": {
-        "score": 44.9,
+        "score": 72.4,
         "components": {
           "invisibility": 0.762,
           "low_power_events": 0.925,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.165,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.167,
+          "heart_uniformity": 0.826,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 7.6
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 41.6
+            "points": 32.4
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
           },
           {
             "label": "Emoji 🌱",
-            "points": 3.3
+            "points": 2.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 12.4
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 4,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 5,
+          "heart_received": 76,
+          "heart_ratio": 0.759,
+          "heart_uniformity_raw": 0.893,
+          "heart_uniformity_effective": 0.826,
           "power_events": 2,
           "power_activity": 0.3,
           "sincerao_edges": 0,
@@ -2975,295 +3748,49 @@
           "sincerao_participation": null,
           "plateia_planta": false
         },
-        "rolling": 62.9
+        "rolling": 78.1
       },
       "Brigido": {
-        "score": 45.8,
+        "score": 56.9,
         "components": {
           "invisibility": 0.714,
           "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.042,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.033,
+          "heart_uniformity": 0.659,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 7.1
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 45.0
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
           },
           {
             "label": "Emoji 🌱",
-            "points": 0.8
+            "points": 0.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 9.9
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
           "plant_received": 1,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 34.4
-      },
-      "Chaiany": {
-        "score": 44.9,
-        "components": {
-          "invisibility": 0.667,
-          "low_power_events": 0.925,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.163,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 41.6
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 3.3
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 4,
-          "power_events": 1,
-          "power_activity": 0.3,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 52.4
-      },
-      "Edilson": {
-        "score": 48.3,
-        "components": {
-          "invisibility": 0.619,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.163,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 3.3
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 4,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 65.5
-      },
-      "Gabriela": {
-        "score": 43.3,
-        "components": {
-          "invisibility": 0.571,
-          "low_power_events": 0.925,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.083,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 41.6
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 1.7
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 2,
-          "power_events": 1,
-          "power_activity": 0.3,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 49.5
-      },
-      "Jonas Sulzbach": {
-        "score": 45.0,
-        "components": {
-          "invisibility": 0.524,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.0,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 0.0
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 0,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 35.0
-      },
-      "Jordana": {
-        "score": 46.7,
-        "components": {
-          "invisibility": 0.476,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.083,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 1.7
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 2,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 64.2
-      },
-      "Juliano Floss": {
-        "score": 45.8,
-        "components": {
-          "invisibility": 0.429,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.04,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 0.8
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 1,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 51.3
-      },
-      "Leandro": {
-        "score": 54.0,
-        "components": {
-          "invisibility": 0.381,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.452,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 9.0
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 11,
+          "heart_received": 56,
+          "heart_ratio": 0.56,
+          "heart_uniformity_raw": 0.659,
+          "heart_uniformity_effective": 0.659,
           "power_events": 0,
           "power_activity": 0.0,
           "sincerao_edges": 0,
@@ -3273,182 +3800,97 @@
         },
         "rolling": 42.6
       },
-      "Marcelo": {
-        "score": 45.8,
+      "Chaiany": {
+        "score": 71.8,
         "components": {
-          "invisibility": 0.333,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.042,
+          "invisibility": 0.667,
+          "low_power_events": 0.925,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.2,
+          "heart_uniformity": 0.816,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 6.7
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 45.0
+            "points": 32.4
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
           },
           {
             "label": "Emoji 🌱",
-            "points": 0.8
+            "points": 3.0
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 12.2
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 1,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 61.9
-      },
-      "Marciele": {
-        "score": 51.6,
-        "components": {
-          "invisibility": 0.286,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.329,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 6.6
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 8,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 66.7
-      },
-      "Matheus": {
-        "score": 45.0,
-        "components": {
-          "invisibility": 1.0,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.0,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 0.0
-          }
-        ],
-        "raw": {
-          "reactions_total": 42,
-          "reactions_received": 21,
-          "reactions_given": 21,
-          "plant_received": 0,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 44.2
-      },
-      "Maxiane": {
-        "score": 1.6,
-        "components": {
-          "invisibility": 0.238,
-          "low_power_events": 0.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.081,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 0.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 1.6
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 2,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 6,
+          "heart_received": 75,
+          "heart_ratio": 0.75,
+          "heart_uniformity_raw": 0.883,
+          "heart_uniformity_effective": 0.816,
           "power_events": 1,
-          "power_activity": 4.0,
+          "power_activity": 0.3,
           "sincerao_edges": 0,
           "sincerao_activity": 0.0,
           "sincerao_participation": null,
           "plateia_planta": false
         },
-        "rolling": 39.8
+        "rolling": 64.8
       },
-      "Milena": {
-        "score": 45.8,
+      "Edilson": {
+        "score": 75.5,
         "components": {
-          "invisibility": 0.19,
+          "invisibility": 0.619,
           "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.042,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.165,
+          "heart_uniformity": 0.953,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 6.2
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 45.0
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
           },
           {
             "label": "Emoji 🌱",
-            "points": 0.8
+            "points": 2.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 14.3
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 1,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 5,
+          "heart_received": 81,
+          "heart_ratio": 0.81,
+          "heart_uniformity_raw": 0.953,
+          "heart_uniformity_effective": 0.953,
           "power_events": 0,
           "power_activity": 0.0,
           "sincerao_edges": 0,
@@ -3456,149 +3898,51 @@
           "sincerao_participation": null,
           "plateia_planta": false
         },
-        "rolling": 45.6
+        "rolling": 79.5
       },
-      "Paulo Augusto": {
-        "score": 56.0,
+      "Gabriela": {
+        "score": 51.9,
         "components": {
-          "invisibility": 0.952,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.548,
+          "invisibility": 0.571,
+          "low_power_events": 0.925,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.137,
+          "heart_uniformity": 0.49,
           "plateia_bonus": 0
         },
         "breakdown": [
           {
             "label": "Invisibilidade",
-            "points": 0.0
+            "points": 5.7
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 45.0
+            "points": 32.4
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
           },
           {
             "label": "Emoji 🌱",
-            "points": 11.0
+            "points": 2.1
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 7.4
           }
         ],
         "raw": {
-          "reactions_total": 142,
-          "reactions_received": 61,
-          "reactions_given": 81,
-          "plant_received": 10,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 71.2
-      },
-      "Samira": {
-        "score": 57.4,
-        "components": {
-          "invisibility": 0.143,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.619,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 12.4
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 15,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 71.7
-      },
-      "Sarah Andrade": {
-        "score": 45.8,
-        "components": {
-          "invisibility": 0.095,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.042,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 0.8
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 1,
-          "power_events": 0,
-          "power_activity": 0.0,
-          "sincerao_edges": 0,
-          "sincerao_activity": 0.0,
-          "sincerao_participation": null,
-          "plateia_planta": false
-        },
-        "rolling": 44.2
-      },
-      "Sol Vega": {
-        "score": 53.3,
-        "components": {
-          "invisibility": 0.048,
-          "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.413,
-          "plateia_bonus": 0
-        },
-        "breakdown": [
-          {
-            "label": "Invisibilidade",
-            "points": 0.0
-          },
-          {
-            "label": "Baixa atividade de poder",
-            "points": 45.0
-          },
-          {
-            "label": "Emoji 🌱",
-            "points": 8.3
-          }
-        ],
-        "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 10,
-          "power_events": 0,
-          "power_activity": 0.0,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 4,
+          "heart_received": 45,
+          "heart_ratio": 0.45,
+          "heart_uniformity_raw": 0.53,
+          "heart_uniformity_effective": 0.49,
+          "power_events": 1,
+          "power_activity": 0.3,
           "sincerao_edges": 0,
           "sincerao_activity": 0.0,
           "sincerao_participation": null,
@@ -3606,13 +3950,664 @@
         },
         "rolling": 56.2
       },
+      "Jonas Sulzbach": {
+        "score": 38.2,
+        "components": {
+          "invisibility": 0.524,
+          "low_power_events": 0.625,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.035,
+          "heart_uniformity": 0.412,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 5.2
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 21.9
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 6.2
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 1,
+          "heart_received": 56,
+          "heart_ratio": 0.56,
+          "heart_uniformity_raw": 0.659,
+          "heart_uniformity_effective": 0.412,
+          "power_events": 1,
+          "power_activity": 1.5,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 33.4
+      },
+      "Jordana": {
+        "score": 69.9,
+        "components": {
+          "invisibility": 0.476,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.172,
+          "heart_uniformity": 0.669,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 4.8
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 2.6
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 10.0
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 5,
+          "heart_received": 57,
+          "heart_ratio": 0.569,
+          "heart_uniformity_raw": 0.669,
+          "heart_uniformity_effective": 0.669,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 75.5
+      },
+      "Juliano Floss": {
+        "score": 26.9,
+        "components": {
+          "invisibility": 0.429,
+          "low_power_events": 0.375,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.067,
+          "heart_uniformity": 0.274,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 4.3
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 13.1
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.0
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 4.1
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 2,
+          "heart_received": 62,
+          "heart_ratio": 0.62,
+          "heart_uniformity_raw": 0.73,
+          "heart_uniformity_effective": 0.274,
+          "power_events": 1,
+          "power_activity": 2.5,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 44.9
+      },
+      "Leandro": {
+        "score": 53.6,
+        "components": {
+          "invisibility": 0.381,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.0,
+          "plant_emoji": 0.432,
+          "heart_uniformity": 0.554,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 3.8
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 6.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 8.3
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 13,
+          "heart_received": 47,
+          "heart_ratio": 0.471,
+          "heart_uniformity_raw": 0.554,
+          "heart_uniformity_effective": 0.554,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 42.8
+      },
+      "Marcelo": {
+        "score": 39.4,
+        "components": {
+          "invisibility": 0.333,
+          "low_power_events": 0.375,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.033,
+          "heart_uniformity": 0.327,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 3.3
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 13.1
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 4.9
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 1,
+          "heart_received": 74,
+          "heart_ratio": 0.74,
+          "heart_uniformity_raw": 0.871,
+          "heart_uniformity_effective": 0.327,
+          "power_events": 1,
+          "power_activity": 2.5,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 57.9
+      },
+      "Marciele": {
+        "score": 74.8,
+        "components": {
+          "invisibility": 0.286,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.369,
+          "heart_uniformity": 0.929,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 2.9
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 5.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 13.9
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 11,
+          "heart_received": 79,
+          "heart_ratio": 0.789,
+          "heart_uniformity_raw": 0.929,
+          "heart_uniformity_effective": 0.929,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 77.4
+      },
+      "Matheus": {
+        "score": 56.1,
+        "components": {
+          "invisibility": 1.0,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.0,
+          "heart_uniformity": 0.448,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 10.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 0.0
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 6.7
+          }
+        ],
+        "raw": {
+          "reactions_total": 42,
+          "reactions_received": 21,
+          "reactions_given": 21,
+          "plant_received": 0,
+          "heart_received": 8,
+          "heart_ratio": 0.381,
+          "heart_uniformity_raw": 0.448,
+          "heart_uniformity_effective": 0.448,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 48.8
+      },
+      "Maxiane": {
+        "score": 20.9,
+        "components": {
+          "invisibility": 0.238,
+          "low_power_events": 0.0,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.065,
+          "heart_uniformity": 0.0,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 2.4
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 0.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.0
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 0.0
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 2,
+          "heart_received": 88,
+          "heart_ratio": 0.88,
+          "heart_uniformity_raw": 1.0,
+          "heart_uniformity_effective": 0.0,
+          "power_events": 1,
+          "power_activity": 4.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 47.8
+      },
+      "Milena": {
+        "score": 45.3,
+        "components": {
+          "invisibility": 0.19,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.0,
+          "plant_emoji": 0.068,
+          "heart_uniformity": 0.492,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 1.9
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 0.0
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.0
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 7.4
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 2,
+          "heart_received": 42,
+          "heart_ratio": 0.418,
+          "heart_uniformity_raw": 0.492,
+          "heart_uniformity_effective": 0.492,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 48.0
+      },
+      "Paulo Augusto": {
+        "score": 82.4,
+        "components": {
+          "invisibility": 0.952,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.548,
+          "heart_uniformity": 0.81,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 9.5
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 8.2
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 12.1
+          }
+        ],
+        "raw": {
+          "reactions_total": 142,
+          "reactions_received": 61,
+          "reactions_given": 81,
+          "plant_received": 10,
+          "heart_received": 42,
+          "heart_ratio": 0.688,
+          "heart_uniformity_raw": 0.81,
+          "heart_uniformity_effective": 0.81,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 81.6
+      },
+      "Samira": {
+        "score": 74.2,
+        "components": {
+          "invisibility": 0.143,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.53,
+          "heart_uniformity": 0.824,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 1.4
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 8.0
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 12.4
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 16,
+          "heart_received": 70,
+          "heart_ratio": 0.7,
+          "heart_uniformity_raw": 0.824,
+          "heart_uniformity_effective": 0.824,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 77.5
+      },
+      "Sarah Andrade": {
+        "score": 18.1,
+        "components": {
+          "invisibility": 0.095,
+          "low_power_events": 0.25,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.068,
+          "heart_uniformity": 0.2,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 1.0
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 8.8
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 1.0
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 3.0
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 2,
+          "heart_received": 68,
+          "heart_ratio": 0.68,
+          "heart_uniformity_raw": 0.8,
+          "heart_uniformity_effective": 0.2,
+          "power_events": 2,
+          "power_activity": 3.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 30.5
+      },
+      "Sol Vega": {
+        "score": 56.6,
+        "components": {
+          "invisibility": 0.048,
+          "low_power_events": 1.0,
+          "low_sincerao": 0.175,
+          "plant_emoji": 0.435,
+          "heart_uniformity": 0.682,
+          "plateia_bonus": 0
+        },
+        "breakdown": [
+          {
+            "label": "Invisibilidade",
+            "points": 0.5
+          },
+          {
+            "label": "Baixa atividade de poder",
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 4.4
+          },
+          {
+            "label": "Emoji 🌱",
+            "points": 6.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 10.2
+          }
+        ],
+        "raw": {
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 13,
+          "heart_received": 58,
+          "heart_ratio": 0.58,
+          "heart_uniformity_raw": 0.682,
+          "heart_uniformity_effective": 0.682,
+          "power_events": 0,
+          "power_activity": 0.0,
+          "sincerao_edges": 0,
+          "sincerao_activity": 0.0,
+          "sincerao_participation": null,
+          "plateia_planta": false
+        },
+        "rolling": 56.0
+      },
       "Solange Couto": {
-        "score": 51.6,
+        "score": 72.8,
         "components": {
           "invisibility": 0.0,
           "low_power_events": 1.0,
-          "low_sincerao": 0.0,
-          "plant_emoji": 0.329,
+          "low_sincerao": 0.7,
+          "plant_emoji": 0.369,
+          "heart_uniformity": 0.987,
           "plateia_bonus": 0
         },
         "breakdown": [
@@ -3622,18 +4617,30 @@
           },
           {
             "label": "Baixa atividade de poder",
-            "points": 45.0
+            "points": 35.0
+          },
+          {
+            "label": "Baixa exposição no Sincerão",
+            "points": 17.5
           },
           {
             "label": "Emoji 🌱",
-            "points": 6.6
+            "points": 5.5
+          },
+          {
+            "label": "Consenso ❤️",
+            "points": 14.8
           }
         ],
         "raw": {
-          "reactions_total": 161,
-          "reactions_received": 81,
-          "reactions_given": 80,
-          "plant_received": 8,
+          "reactions_total": 199,
+          "reactions_received": 100,
+          "reactions_given": 99,
+          "plant_received": 11,
+          "heart_received": 84,
+          "heart_ratio": 0.839,
+          "heart_uniformity_raw": 0.987,
+          "heart_uniformity_effective": 0.987,
           "power_events": 0,
           "power_activity": 0.0,
           "sincerao_edges": 0,
@@ -3641,7 +4648,7 @@
           "sincerao_participation": null,
           "plateia_planta": false
         },
-        "rolling": 75.8
+        "rolling": 83.5
       }
     }
   }

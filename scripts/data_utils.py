@@ -60,6 +60,7 @@ POWER_EVENT_EMOJI = {
     'bate_volta': '🛟',
     'veto_ganha_ganha': '🚫', 'ganha_ganha_escolha': '🎁',
     'barrado_baile': '🚫',
+    'mira_do_lider': '🔭',
 }
 
 POWER_EVENT_LABELS = {
@@ -69,6 +70,7 @@ POWER_EVENT_LABELS = {
     'bate_volta': 'Bate-Volta',
     'veto_ganha_ganha': 'Veto (Ganha-Ganha)', 'ganha_ganha_escolha': 'Escolha (Ganha-Ganha)',
     'barrado_baile': 'Barrado no Baile',
+    'mira_do_lider': 'Na Mira do Líder',
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -403,3 +405,107 @@ def calculate_poll_accuracy(poll_data):
             for nome in participantes
         }
     }
+
+
+# ══════════════════════════════════════════════════════════════
+# Timeline (Cronologia do Jogo) Constants & Rendering
+# ══════════════════════════════════════════════════════════════
+
+TIMELINE_CAT_COLORS = {
+    "entrada": "#28a745", "saida": "#dc3545", "lider": "#ffc107",
+    "anjo": "#87ceeb", "monstro": "#9b59b6", "imune": "#17a2b8",
+    "big_fone": "#ff6b35", "paredao_formacao": "#e74c3c",
+    "paredao_resultado": "#c0392b", "indicacao": "#e67e22",
+    "contragolpe": "#d35400", "bate_volta": "#f39c12",
+    "sincerao": "#1abc9c", "ganha_ganha": "#2ecc71",
+    "barrado_baile": "#95a5a6", "dinamica": "#8e44ad",
+    "veto": "#7f8c8d", "poder": "#e74c3c",
+    "imunidade": "#17a2b8", "perdeu_voto": "#95a5a6",
+    "voto_anulado": "#7f8c8d", "voto_duplo": "#e67e22",
+    "veto_ganha_ganha": "#7f8c8d", "ganha_ganha_escolha": "#2ecc71",
+    "veto_prova": "#7f8c8d",
+}
+
+TIMELINE_CAT_LABELS = {
+    "entrada": "Entrada", "saida": "Saída", "lider": "Líder",
+    "anjo": "Anjo", "monstro": "Monstro", "imune": "Imune",
+    "big_fone": "Big Fone", "paredao_formacao": "Paredão",
+    "paredao_resultado": "Resultado", "indicacao": "Indicação",
+    "contragolpe": "Contragolpe", "bate_volta": "Bate-Volta",
+    "sincerao": "Sincerão", "ganha_ganha": "Ganha-Ganha",
+    "barrado_baile": "Barrado", "dinamica": "Dinâmica",
+    "veto": "Veto", "poder": "Poder",
+    "imunidade": "Imune", "perdeu_voto": "Perdeu Voto",
+    "voto_anulado": "Voto Anulado", "voto_duplo": "Voto Duplo",
+    "veto_ganha_ganha": "Veto GG", "ganha_ganha_escolha": "Escolha GG",
+    "veto_prova": "Veto Prova",
+}
+
+
+def render_cronologia_html(timeline_events):
+    """Render game timeline as an HTML table. Returns HTML string."""
+    if not timeline_events:
+        return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+
+    # Group by week, then reverse: latest week first, latest events first
+    weeks = {}
+    for ev in timeline_events:
+        w = ev.get("week", 0)
+        weeks.setdefault(w, []).append(ev)
+
+    sorted_weeks = sorted(weeks.items(), key=lambda x: x[0], reverse=True)
+
+    html = '<style>'
+    html += '@media (max-width: 640px) {'
+    html += '  .cronologia-table th:nth-child(4),'
+    html += '  .cronologia-table td:nth-child(4) { display: none; }'
+    html += '  .cronologia-table { font-size: 0.8em; }'
+    html += '  .cronologia-table td, .cronologia-table th { padding: 4px 6px; }'
+    html += '}'
+    html += '</style>'
+    html += '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
+    html += '<table class="cronologia-table" style="width:100%; border-collapse:collapse; font-size:0.9em;">'
+    html += '<thead style="position:sticky; top:0; z-index:1;">'
+    html += '<tr style="background:#1a1a2e; color:#eee;">'
+    html += '<th style="padding:8px; text-align:left;">Data</th>'
+    html += '<th style="padding:8px; text-align:center; min-width:130px;">Tipo</th>'
+    html += '<th style="padding:8px; text-align:left;">Evento</th>'
+    html += '<th style="padding:8px; text-align:left;">Detalhe</th>'
+    html += '</tr></thead><tbody>'
+
+    for week_num, week_events in sorted_weeks:
+        html += f'<tr style="background:#16213e;"><td colspan="4" style="padding:6px 8px; font-weight:bold; color:#ffc107;">Semana {week_num}</td></tr>'
+        for ev in reversed(week_events):
+            cat = ev.get("category", "")
+            color = TIMELINE_CAT_COLORS.get(cat, "#666")
+            label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
+            emoji = ev.get("emoji", "")
+            title = ev.get("title", "")
+            detail = ev.get("detail", "")
+            date = ev.get("date", "")
+            is_scheduled = ev.get("status") == "scheduled"
+            time_info = ev.get("time", "")
+
+            if is_scheduled:
+                badge = f'<span style="background:transparent; color:{color}; border:1px dashed {color}; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                time_badge = f'<br><span style="background:#ffc107; color:#000; padding:1px 5px; border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>' if time_info else ''
+                row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
+                title_cell = f'{emoji} {title}{time_badge}'
+                date_cell = f'{date}'
+                detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
+            else:
+                badge = f'<span style="background:{color}; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                row_style = 'border-bottom:1px solid #333;'
+                title_cell = f'{emoji} {title}'
+                date_cell = date
+                detail_text = detail
+
+            html += f'<tr style="{row_style}">'
+            html += f'<td style="padding:6px 8px; color:#aaa; white-space:nowrap;">{date_cell}</td>'
+            html += f'<td style="padding:6px 8px; text-align:center;">{badge}</td>'
+            html += f'<td style="padding:6px 8px;">{title_cell}</td>'
+            html += f'<td style="padding:6px 8px; color:#999; font-size:0.85em;">{detail_text}</td>'
+            html += '</tr>'
+
+    html += '</tbody></table></div>'
+    return html

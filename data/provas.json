@@ -1,6 +1,6 @@
 {
   "_description": "Competition results and placements for all BBB26 provas.",
-  "_last_updated": "2026-01-29",
+  "_last_updated": "2026-01-31",
   "provas": [
     {
       "numero": 1,
@@ -232,6 +232,80 @@
       "fontes": [
         "https://exame.com/pop/bbb-26-maxiane-vence-a-prova-do-lider-veja-como-foi/",
         "https://www.terra.com.br/diversao/tv/reality-shows/prova-do-lider-no-bbb-26-maxiane-vence-apos-erro-imperdoavel-de-chaiany-e-web-cobra-indicacao-ao-paredao-vamos-ver-se-tem-coragem,0750977b7ba7641483d250c64d103340pzvcl8td.html"
+      ]
+    },
+    {
+      "numero": 7,
+      "tipo": "anjo",
+      "week": 3,
+      "date": "2026-01-31",
+      "nome": "Prova do Anjo — Barris Amstel + Duelos",
+      "formato": "eliminacao_duelos",
+      "vencedor": "Sarah Andrade",
+      "participantes_total": 18,
+      "excluidos": [
+        {"nome": "Maxiane", "motivo": "líder da semana"},
+        {"nome": "Brigido", "motivo": "vetado pelo Big Fone (Breno)"}
+      ],
+      "fases": [
+        {
+          "fase": 1,
+          "tipo": "individual_sorte",
+          "nota": "Barris com ingredientes da Amstel: lúpulo, malte ou água = avança; milho = eliminado. Ordem por sorteio numérico.",
+          "classificacao": [
+            {"pos": 1, "nome": "Marcelo", "resultado": "avancou"},
+            {"pos": 1, "nome": "Breno", "resultado": "avancou"},
+            {"pos": 1, "nome": "Jonas Sulzbach", "resultado": "avancou"},
+            {"pos": 1, "nome": "Gabriela", "resultado": "avancou"},
+            {"pos": 1, "nome": "Sarah Andrade", "resultado": "avancou"},
+            {"pos": 1, "nome": "Jordana", "resultado": "avancou"},
+            {"pos": 1, "nome": "Ana Paula Renault", "resultado": "avancou"},
+            {"pos": 1, "nome": "Solange Couto", "resultado": "avancou"},
+            {"pos": 9, "nome": "Sol Vega", "resultado": "milho"},
+            {"pos": 9, "nome": "Milena", "resultado": "milho"},
+            {"pos": 9, "nome": "Marciele", "resultado": "milho"},
+            {"pos": 9, "nome": "Leandro", "resultado": "milho"},
+            {"pos": 9, "nome": "Juliano Floss", "resultado": "milho"},
+            {"pos": 9, "nome": "Edilson", "resultado": "milho"},
+            {"pos": 9, "nome": "Chaiany", "resultado": "milho"},
+            {"pos": 9, "nome": "Samira", "resultado": "milho"},
+            {"pos": 9, "nome": "Babu Santana", "resultado": "milho"},
+            {"pos": 9, "nome": "Alberto Cowboy", "resultado": "milho"}
+          ]
+        },
+        {
+          "fase": 2,
+          "tipo": "duelos",
+          "nota": "Duelos em pistas com barris: encontrar pelúcias (malte, lúpulo, água), navegar em barco usando boia nos pinos. Proibido usar pinos para impulso ou derrubar pelúcias corretas.",
+          "classificacao_quartas": [
+            {"duelo": 1, "jogadores": ["Marcelo", "Breno"], "vencedor": "Breno"},
+            {"duelo": 2, "jogadores": ["Jonas Sulzbach", "Gabriela"], "vencedor": "Gabriela", "nota": "Jonas desclassificado (usou pino para impulso, revisão de imagens)"},
+            {"duelo": 3, "jogadores": ["Sarah Andrade", "Jordana"], "vencedor": "Sarah Andrade"},
+            {"duelo": 4, "jogadores": ["Ana Paula Renault", "Solange Couto"], "vencedor": "Solange Couto", "nota": "Ana Paula desclassificada (apertou botão antes de guardar ingredientes na caixa)"}
+          ],
+          "classificacao_semis": [
+            {"duelo": 5, "jogadores": ["Breno", "Gabriela"], "vencedor": "Breno"},
+            {"duelo": 6, "jogadores": ["Sarah Andrade", "Solange Couto"], "vencedor": "Sarah Andrade"}
+          ],
+          "classificacao_final": [
+            {"duelo": 7, "jogadores": ["Breno", "Sarah Andrade"], "vencedor": "Sarah Andrade"}
+          ],
+          "classificacao": [
+            {"pos": 1, "nome": "Sarah Andrade"},
+            {"pos": 2, "nome": "Breno"},
+            {"pos": 3, "nome": "Gabriela", "nota": "semifinal"},
+            {"pos": 3, "nome": "Solange Couto", "nota": "semifinal", "tied": true},
+            {"pos": 5, "nome": "Jordana", "nota": "quartas"},
+            {"pos": 5, "nome": "Marcelo", "nota": "quartas", "tied": true},
+            {"pos": 5, "nome": "Jonas Sulzbach", "dq": true, "nota": "quartas — desclassificado"},
+            {"pos": 5, "nome": "Ana Paula Renault", "dq": true, "nota": "quartas — desclassificada"}
+          ]
+        }
+      ],
+      "fontes": [
+        "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/acompanhe-a-prova-do-anjo-do-bbb-26-deste-sabado-31-1.3738810",
+        "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/castigo-do-monstro-do-bbb-26-e-o-domino-ana-paula-renault-foi-escolhida-por-sarah-andrade-1.3738872",
+        "https://www.itatiaia.com.br/entretenimento/bbb/prova-do-anjo-bbb-26-vencedor-duas-vezes-jonas-quebra-regra-e-e-desclassificado"
       ]
     }
   ]

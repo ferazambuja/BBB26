@@ -374,6 +374,72 @@ if provas_list:
                 print('</tbody></table>')
                 print('</div>')
 
+        # Bracket visualization for duel-format competitions
+        for fase in fases:
+            quartas = fase.get("classificacao_quartas")
+            semis = fase.get("classificacao_semis")
+            final = fase.get("classificacao_final")
+            if quartas and semis and final:
+                print(f'\n**Chave de Duelos — Fase {fase["fase"]}**\n')
+
+                def bracket_cell(name, is_winner=False, is_dq=False, nota=""):
+                    style = "padding: 4px 8px; white-space: nowrap; font-size: 0.85rem;"
+                    if is_dq:
+                        style += " color: #e74c3c; text-decoration: line-through;"
+                        suffix = ' <span style="font-size:0.7rem; color:#e74c3c;">(DQ)</span>'
+                    elif is_winner:
+                        style += " color: #f1c40f; font-weight: bold;"
+                        suffix = ""
+                    else:
+                        style += " color: #aaa;"
+                        suffix = ""
+                    return f'<div style="{style}">{name}{suffix}</div>'
+
+                def matchup_box(duelo, round_label=""):
+                    j = duelo["jogadores"]
+                    v = duelo["vencedor"]
+                    nota = duelo.get("nota", "")
+                    dq_names = set()
+                    if "desclassificad" in nota.lower():
+                        for n in j:
+                            if n != v:
+                                dq_names.add(n)
+                    cells = ""
+                    for name in j:
+                        cells += bracket_cell(name, is_winner=(name == v), is_dq=(name in dq_names))
+                    box = f'<div style="border: 1px solid #555; border-radius: 6px; background: #2a2a2a; margin: 4px 0; min-width: 160px;">'
+                    box += cells
+                    box += f'</div>'
+                    return box
+
+                # Build the bracket as a 3-column flex layout
+                print('<div style="display: flex; gap: 1.5rem; align-items: stretch; overflow-x: auto; margin: 0.5rem 0 1.5rem 0;">')
+
+                # Column 1: Quartas
+                print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
+                print('<div style="text-align: center; font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 4px;">Quartas</div>')
+                for d in quartas:
+                    print(matchup_box(d))
+                print('</div>')
+
+                # Column 2: Semis
+                print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
+                print('<div style="text-align: center; font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 4px;">Semis</div>')
+                for d in semis:
+                    print(matchup_box(d))
+                print('</div>')
+
+                # Column 3: Final
+                print('<div style="display: flex; flex-direction: column; justify-content: center;">')
+                print('<div style="text-align: center; font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 4px;">Final</div>')
+                for d in final:
+                    print(matchup_box(d))
+                    winner = d["vencedor"]
+                    print(f'<div style="text-align: center; margin-top: 6px; font-size: 1rem;">🏆 <span style="color: #f1c40f; font-weight: bold;">{winner}</span></div>')
+                print('</div>')
+
+                print('</div>')
+
         # Points awarded for this prova (from leaderboard detail)
         multiplier = scoring["type_multipliers"].get(tipo, 1.0)
         mult_label = f"{multiplier:.1f}x" if multiplier != 1.0 else "1.0x"

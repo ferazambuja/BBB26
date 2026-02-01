@@ -61,9 +61,9 @@ quarto preview
 **Scheduled events (upcoming week dynamics):**
 - Add future events to `data/manual_events.json` → `scheduled_events` array with `date`, `week`, `category`, `emoji`, `title`, `detail`, `time` (e.g., "Ao Vivo", "7h", "A definir").
 - `build_game_timeline()` includes them in `game_timeline.json` with `"status": "scheduled"` and `"source": "scheduled"`.
-- Auto-dedup: if a real event already exists with same (date, category, title), the scheduled entry is skipped.
-- Rendered in Cronologia do Jogo (both `index.qmd` and `evolucao.qmd`) with dashed borders, outlined badges, yellow time badge, and 🔮 prefix.
-- **After an event happens**: record the real data normally, remove from `scheduled_events`, rebuild.
+- Auto-dedup by `(date, category)`: if a real event already exists with the same date and category, the scheduled entry is automatically skipped (regardless of title differences).
+- Rendered in Cronologia do Jogo (via `render_cronologia_html()` from `data_utils`) with dashed borders, outlined badges, yellow time badge, and 🔮 prefix.
+- **After an event happens**: record the real data normally, rebuild. The scheduled entry is auto-dropped if a matching real event exists. Remove from `scheduled_events` for cleanup, but dedup handles it either way.
 
 **Votalhada polls (manual):**
 - Update `data/votalhada/polls.json` **Tuesday ~21:00 BRT** (before elimination).
@@ -85,6 +85,7 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
 - Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
 - Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
+- Timeline rendering: `render_cronologia_html()`, `TIMELINE_CAT_COLORS`, `TIMELINE_CAT_LABELS`
 - Audit: `require_clean_manual_events()`
 
 **QMD setup pattern** (every `.qmd` file follows this):
@@ -120,8 +121,14 @@ setup_bbb_dark_theme()
 - Hardcoding scoring explanation text in QMD files (use `ANALYSIS_DESCRIPTIONS` from `data_utils`)
 
 **Documented exception (temporary):**
-- `planta.qmd` ainda monta algumas listas por participante (ex.: eventos por pessoa e edges do Sincerão) **para facilitar a leitura**.
+- `planta_debug.qmd` ainda monta algumas listas por participante (ex.: eventos por pessoa e edges do Sincerão) **para facilitar a leitura**.
   Se essas listas começarem a ser reutilizadas em outras páginas, migrar para `build_derived_data.py` e salvar em `data/derived/`.
+
+## Tool Preferences
+
+- **Code navigation**: Prefer LSP operations (`goToDefinition`, `findReferences`, `hover`, `documentSymbol`) over Grep/Glob when navigating Python code. Use LSP for finding references, understanding types, and tracing call chains.
+- **When to use LSP**: After locating a symbol (via Grep/Glob), use LSP for follow-up navigation — finding all callers, checking type signatures, listing definitions, and understanding scope.
+- **When Grep/Glob is still appropriate**: Initial broad text searches, searching across non-Python files (JSON, QMD, Markdown), and pattern matching where semantic analysis isn't needed.
 
 ## Known Issues
 
@@ -241,7 +248,7 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 All scoring formulas, weights, and detailed specifications are in **`docs/SCORING_AND_INDEXES.md`**. Key concepts:
 
 - **Sentiment Index (A → B)**: directional score combining streak-aware queridômetro (70% 3-day reactive window + 30% streak memory + break penalty) + all accumulated events (power, Sincerão, VIP, votos) at full weight (no decay). Two modes: `pairs_daily` (today's queridômetro) and `pairs_paredao` (formation-date queridômetro); events are identical in both. Streak breaks (long ❤️ streaks turning negative) are detected and stored in `streak_breaks`.
-- **Planta Index**: weekly score (0–100) quantifying low visibility + low participation. Weights: 0.45 power activity + 0.35 Sincerão exposure + 0.20 🌱 emoji ratio. Computed in `data/derived/plant_index.json`.
+- **Planta Index**: weekly score (0–100) quantifying low visibility + low participation. Weights: 0.10 invisibility + 0.35 power activity + 0.25 Sincerão exposure + 0.15 🌱 emoji ratio + 0.15 heart uniformity (soft-gated by activity). Sincerão carry-forward with 0.7× decay. Computed in `data/derived/plant_index.json`.
 - **Impacto Negativo**: per-participant negative impact received, from `received_impact` in `relations_scores.json`. Same calibrated weights as pairs system, no decay.
 - **Hostilidade Gerada**: per-participant outgoing negative event edges, from `pairs_daily` components (non-queridômetro). Same calibrated weights, no decay.
 - **Cartola BBB**: point system (Líder +80 to Desistente -30). Precomputed in `data/derived/cartola_data.json`.
@@ -260,6 +267,8 @@ Full schema, fill rules, and update procedures are in **`docs/MANUAL_EVENTS_GUID
 
 **Vote visibility** (in `weekly_events`): `confissao_voto` (voluntary confession to target), `dedo_duro` (game mechanic reveals vote). For full-week open voting, set `votacao_aberta: true` in the paredão entry in `data/paredoes.json`. See `docs/MANUAL_EVENTS_GUIDE.md` for full schema.
 
+**Consensus events** (multiple actors on one target): Use a **single** `power_event` with `"actor": "A + B + C"` (display string) and `"actors": ["A", "B", "C"]` (array for edge creation). This produces 1 timeline row + N correct relationship edges. Never use separate entries per actor.
+
 **After any edit**: run `python scripts/build_derived_data.py` to update derived data.
 
 ## Repository Structure
@@ -272,7 +281,7 @@ BBB26/
 ├── paredao.qmd             # Current paredão status + vote analysis
 ├── paredoes.qmd            # Paredão archive — historical analysis per paredão
 ├── cartola.qmd             # Cartola BBB points leaderboard
-├── planta.qmd              # Planta Index breakdown per participant
+├── planta_debug.qmd        # Planta Index debug breakdown
 ├── datas.qmd               # Date View — explore queridômetro by date
 ├── clusters.qmd            # Affinity clusters analysis
 ├── relacoes_debug.qmd      # Relations scoring debug page
@@ -321,8 +330,9 @@ BBB26/
 | **Relações** | `relacoes.qmd` | Social fabric: alliances, rivalries, streak breaks, contradictions, hostility map, network graph |
 | **Paredão** | `paredao.qmd` | Current paredão: formation, votes, vote-reaction analysis |
 | **Arquivo** | `paredoes.qmd` | Paredão archive: historical analysis per elimination |
+| **Provas** | `provas.qmd` | Competition performance rankings and bracket results |
 
-**Additional pages:** `cartola.qmd` (Cartola points), `planta.qmd` (Planta Index), `datas.qmd` (Date View), `clusters.qmd` (affinity clusters), `relacoes_debug.qmd` (relations debug).
+**Additional pages:** `cartola.qmd` (Cartola points), `planta_debug.qmd` (Planta Index debug), `datas.qmd` (Date View), `clusters.qmd` (affinity clusters), `relacoes_debug.qmd` (relations debug).
 
 **Design decisions**: Each `.qmd` renders independently (no shared Python state). Dark theme (`darkly`) with custom `bbb_dark` Plotly template. Full-width layout with TOC sidebar.
 

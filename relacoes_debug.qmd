@@ -18,7 +18,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, get_all_snapshots, load_snapshot,
     build_reaction_matrix, REACTION_EMOJI, SENTIMENT_WEIGHTS, get_week_number,
-    parse_roles, POSITIVE
+    parse_roles, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, POWER_EVENT_EMOJI
 )
 
 require_clean_manual_events()
@@ -479,6 +479,309 @@ else:
     print("<p class='text-muted'>Nenhuma ruptura de aliança detectada (mín. 5 dias de ❤️ seguidos).</p>")
 ```
 
+## Percepção do Poder: Líder/Anjo
+
+<p class="text-muted">Como a casa reage (no queridômetro secreto) quando alguém ganha Líder ou Anjo? Compara a média de ❤️ e negativos recebidos antes, durante e depois de cada período de poder.</p>
+
+```{python}
+#| label: power-perception
+#| echo: false
+#| output: asis
+
+def get_daily_snapshot_map():
+    """Group snapshots by date, keep last per day."""
+    by_date = {}
+    for fp, date in snapshots:
+        by_date[date] = fp
+    return by_date
+
+def compute_reception_metrics(filepath, name):
+    """Load snapshot, compute hearts/negatives received for one participant."""
+    participants_list, _ = load_snapshot(filepath)
+    p = next((p for p in participants_list if p.get("name") == name), None)
+    if not p:
+        return None
+    hearts = 0
+    negatives = 0
+    total = 0
+    for rxn in p.get("characteristics", {}).get("receivedReactions", []):
+        label = rxn.get("label", "")
+        amount = rxn.get("amount", 0) or 0
+        total += amount
+        if label in POSITIVE:
+            hearts += amount
+        elif label in MILD_NEGATIVE or label in STRONG_NEGATIVE:
+            negatives += amount
+    return {"hearts": hearts, "negatives": negatives, "total": total}
+
+def avg_metrics(metrics_list):
+    """Average a list of metric dicts."""
+    valid = [m for m in metrics_list if m]
+    if not valid:
+        return None
+    n = len(valid)
+    return {
+        "hearts": sum(m["hearts"] for m in valid) / n,
+        "negatives": sum(m["negatives"] for m in valid) / n,
+        "total": sum(m["total"] for m in valid) / n,
+    }
+
+def fmt_metrics(m):
+    """Format metrics as HTML string."""
+    if not m or m["total"] == 0:
+        return "N/A"
+    h_pct = m["hearts"] / m["total"] * 100
+    n_pct = m["negatives"] / m["total"] * 100
+    return f"❤️ {m['hearts']:.0f} ({h_pct:.0f}%) · 🐍 {m['negatives']:.0f} ({n_pct:.0f}%)"
+
+def fmt_delta(before, during):
+    """Format delta between two metric windows."""
+    if not before or not during or before["total"] == 0 or during["total"] == 0:
+        return "N/A"
+    dh = during["hearts"] - before["hearts"]
+    dn = during["negatives"] - before["negatives"]
+    dh_pct = (during["hearts"]/during["total"] - before["hearts"]/before["total"]) * 100
+    dn_pct = (during["negatives"]/during["total"] - before["negatives"]/before["total"]) * 100
+    return f"{dh:+.0f} ❤️ ({dh_pct:+.0f}pp)<br>{dn:+.0f} neg ({dn_pct:+.0f}pp)"
+
+def detect_role_periods(role_name):
+    """Parse roles_daily to find (name, start_date, end_date) periods."""
+    roles_data = json.loads(Path("data/derived/roles_daily.json").read_text(encoding="utf-8"))
+    periods = []
+    current_holder = None
+    current_start = None
+    last_date = None
+    for entry in roles_data["daily"]:
+        date = entry["date"]
+        holders = entry["roles"].get(role_name, [])
+        holder = holders[0] if holders else None
+        if holder != current_holder:
+            if current_holder and current_start:
+                periods.append((current_holder, current_start, last_date))
+            current_holder = holder
+            current_start = date if holder else None
+        last_date = date
+    if current_holder and current_start:
+        periods.append((current_holder, current_start, last_date))
+    return periods
+
+daily_map = get_daily_snapshot_map()
+all_dates = sorted(daily_map.keys())
+
+rows_power = []
+for role_name, role_label, role_emoji in [("Líder", "Líder", "👑"), ("Anjo", "Anjo", "😇")]:
+    periods = detect_role_periods(role_name)
+    for holder, start, end in periods:
+        # Before: last 2 dates before start
+        before_dates = [d for d in all_dates if d < start][-2:]
+        # During: dates in [start, end]
+        during_dates = [d for d in all_dates if start <= d <= end]
+        # After: first 2 dates after end
+        after_dates = [d for d in all_dates if d > end][:2]
+
+        before_metrics = avg_metrics([compute_reception_metrics(daily_map[d], holder) for d in before_dates if d in daily_map])
+        during_metrics = avg_metrics([compute_reception_metrics(daily_map[d], holder) for d in during_dates if d in daily_map])
+
+        is_ongoing = (end == all_dates[-1]) if all_dates else False
+        if is_ongoing:
+            after_str = "<em>Em andamento</em>"
+            delta_str = fmt_delta(before_metrics, during_metrics)
+        else:
+            after_metrics = avg_metrics([compute_reception_metrics(daily_map[d], holder) for d in after_dates if d in daily_map])
+            after_str = fmt_metrics(after_metrics)
+            delta_str = fmt_delta(before_metrics, during_metrics)
+
+        n_days = len(during_dates)
+        rows_power.append({
+            "Poder": f"{role_emoji} {role_label}",
+            "Participante": holder,
+            "Período": f"{start} → {end}",
+            "Dias": n_days,
+            "Antes": fmt_metrics(before_metrics),
+            "Durante": fmt_metrics(during_metrics),
+            "Depois": after_str,
+            "Δ Durante−Antes": delta_str,
+        })
+
+if rows_power:
+    power_df = pd.DataFrame(rows_power)
+    print(power_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="powerPerceptionTable"))
+else:
+    print("<p class='text-muted'>Sem períodos de Líder/Anjo detectados.</p>")
+```
+
+## Impacto Dirigido: Reações antes/depois de eventos
+
+<p class="text-muted">Como o queridômetro muda entre ator↔alvo antes e depois de eventos dirigidos (indicação, contragolpe, monstro, veto, etc.)? Mostra a reação específica que cada um dava ao outro.</p>
+
+```{python}
+#| label: directed-impact
+#| echo: false
+#| output: asis
+
+# Load all directed events
+manual_path = Path("data/manual_events.json")
+auto_path = Path("data/derived/auto_events.json")
+
+directed_events = []
+
+# Manual power events
+if manual_path.exists():
+    manual = json.loads(manual_path.read_text(encoding="utf-8"))
+    for ev in manual.get("power_events", []):
+        etype = ev.get("type", "")
+        actor = ev.get("actor", "")
+        target = ev.get("target", "")
+        # Skip non-directed, self-targeted, multi-actor, system actors
+        if not actor or not target or actor == target:
+            continue
+        if " + " in actor:
+            continue
+        if ev.get("self") or ev.get("self_inflicted"):
+            continue
+        skip_types = {"ganha_ganha_escolha", "emparedado", "bate_volta"}
+        if etype in skip_types:
+            continue
+        system_actors = {"Prova do Líder", "Big Fone", "Dinâmica da casa", "Prova do Anjo", "Prova Bate e Volta"}
+        if actor in system_actors:
+            continue
+        directed_events.append({
+            "date": ev.get("date"),
+            "type": etype,
+            "actor": actor,
+            "target": target,
+            "source": ev.get("source", ""),
+        })
+
+# Auto events (monstro mainly — lider/anjo have system actors)
+if auto_path.exists():
+    auto = json.loads(auto_path.read_text(encoding="utf-8"))
+    for ev in auto.get("events", []):
+        etype = ev.get("type", "")
+        actor = ev.get("actor", "")
+        target = ev.get("target", "")
+        if not actor or not target or actor == target:
+            continue
+        system_actors = {"Prova do Líder", "Big Fone", "Dinâmica da casa", "Prova do Anjo", "Prova Bate e Volta"}
+        if actor in system_actors:
+            continue
+        if etype in {"monstro"}:
+            directed_events.append({
+                "date": ev.get("date"),
+                "type": etype,
+                "actor": actor,
+                "target": target,
+                "source": ev.get("source", ""),
+            })
+
+# Deduplicate by (date, type, actor, target)
+seen = set()
+unique_events = []
+for ev in directed_events:
+    key = (ev["date"], ev["type"], ev["actor"], ev["target"])
+    if key not in seen:
+        seen.add(key)
+        unique_events.append(ev)
+unique_events.sort(key=lambda e: (e["date"], e["type"]))
+
+# Build reaction changes
+rows_directed = []
+for ev in unique_events:
+    event_date = ev["date"]
+    actor = ev["actor"]
+    target = ev["target"]
+    etype = ev["type"]
+    emoji = POWER_EVENT_EMOJI.get(etype, "")
+
+    # Before: last snapshot date strictly before event date
+    before_dates = [d for d in all_dates if d < event_date]
+    # After: first snapshot date >= event date
+    after_dates = [d for d in all_dates if d >= event_date]
+
+    before_date = before_dates[-1] if before_dates else None
+    after_date = after_dates[0] if after_dates else None
+
+    # If before == after (event on snapshot day), push before back one more
+    if before_date and after_date and before_date == after_date:
+        before_dates_strict = [d for d in all_dates if d < before_date]
+        before_date = before_dates_strict[-1] if before_dates_strict else None
+
+    def get_reaction_pair(date_key, a, b):
+        if not date_key or date_key not in daily_map:
+            return "—", "—"
+        ps, _ = load_snapshot(daily_map[date_key])
+        mat = build_reaction_matrix(ps)
+        names_in = {p.get("name") for p in ps}
+        ab_label = mat.get((a, b), "")
+        ba_label = mat.get((b, a), "")
+        ab_str = f"{REACTION_EMOJI.get(ab_label, '')} {ab_label}".strip() if ab_label else ("—" if a in names_in and b in names_in else "— <em>(saiu)</em>")
+        ba_str = f"{REACTION_EMOJI.get(ba_label, '')} {ba_label}".strip() if ba_label else ("—" if a in names_in and b in names_in else "— <em>(saiu)</em>")
+        return ab_str, ba_str
+
+    ab_before, ba_before = get_reaction_pair(before_date, actor, target)
+    ab_after, ba_after = get_reaction_pair(after_date, actor, target)
+
+    # Flag notable changes
+    def classify_reaction(label_str):
+        if "Coração" in label_str and "partido" not in label_str:
+            return "positive"
+        if any(neg in label_str for neg in ["Cobra", "Alvo", "Vômito", "Mentiroso"]):
+            return "strong_neg"
+        if any(neg in label_str for neg in ["Planta", "Mala", "Biscoito", "partido"]):
+            return "mild_neg"
+        return "unknown"
+
+    signals = []
+    # Target turned hostile toward actor?
+    ba_cls_before = classify_reaction(ba_before)
+    ba_cls_after = classify_reaction(ba_after)
+    if ba_cls_before == "positive" and ba_cls_after in ("strong_neg", "mild_neg"):
+        signals.append("🔥 Alvo retaliou")
+    elif ba_cls_before in ("strong_neg", "mild_neg") and ba_cls_after in ("strong_neg", "mild_neg"):
+        signals.append("🧊 Hostilidade mantida")
+    # Actor changed toward target?
+    ab_cls_before = classify_reaction(ab_before)
+    ab_cls_after = classify_reaction(ab_after)
+    if ab_cls_before == "positive" and ab_cls_after in ("strong_neg", "mild_neg"):
+        signals.append("⚡ Ator rompeu")
+    # Bidirectional escalation
+    if (ba_cls_after in ("strong_neg", "mild_neg") and ab_cls_after in ("strong_neg", "mild_neg")
+            and (ba_cls_before == "positive" or ab_cls_before == "positive")):
+        signals.append("💣 Escalada mútua")
+
+    signal_str = "<br>".join(signals) if signals else "—"
+
+    rows_directed.append({
+        "Data": event_date,
+        "Evento": f"{emoji} {etype}",
+        "Ator": actor,
+        "Alvo": target,
+        "Ator→Alvo (antes)": ab_before,
+        "Ator→Alvo (depois)": ab_after,
+        "Alvo→Ator (antes)": ba_before,
+        "Alvo→Ator (depois)": ba_after,
+        "Sinal": signal_str,
+    })
+
+if rows_directed:
+    dir_df = pd.DataFrame(rows_directed)
+    print(dir_df.to_html(index=False, classes="table table-sm table-dark", escape=False, table_id="directedImpactTable"))
+else:
+    print("<p class='text-muted'>Nenhum evento dirigido encontrado.</p>")
+```
+
+## Observações sobre timing
+
+<div class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">
+<ul>
+<li><strong>Queridômetro</strong> atualiza ~10h-12h BRT (após o Raio-X). Líder é decidido domingo à noite → primeira mudança visível aparece na terça.</li>
+<li><strong>Anjo</strong> tem ciclo curto (~1-2 dias), tornando as janelas "antes/depois" mais ruidosas.</li>
+<li><strong>Queridômetro é SECRETO</strong> — mudanças refletem sentimento genuíno, não performance. Mas eventos públicos (indicação, monstro) são conhecidos por todos.</li>
+<li><strong>Amostra pequena</strong>: 3 ciclos de Líder, 2 de Anjo, ~15 eventos dirigidos. Tendências são indicativas, não estatisticamente significativas.</li>
+<li><strong>"Antes" e "depois"</strong> comparam snapshots adjacentes — pode incluir efeito de outros eventos simultâneos.</li>
+</ul>
+</div>
+
 ## Badge vs Realidade (Paredões)
 
 ```{python}
@@ -488,150 +791,32 @@ else:
 
 import pandas as pd
 
-def snapshot_on_or_before(date_str):
-    chosen = None
-    for fp, date in snapshots:
-        if date <= date_str:
-            chosen = (fp, date)
-    return chosen
-
+# Load precomputed badge data
+_pb_path = Path("data/derived/paredao_badges.json")
+paredao_badges_data = json.load(open(_pb_path, encoding="utf-8")) if _pb_path.exists() else {}
 paredoes_data = json.loads(Path("data/paredoes.json").read_text(encoding="utf-8")) if Path("data/paredoes.json").exists() else {}
-
-def compute_badges_for_snapshot(fp, date_str, vote_week, paredao_data):
-    participants, _ = load_snapshot(fp)
-    active = [p for p in participants if not p.get("characteristics", {}).get("eliminated")]
-    active_names = [p["name"] for p in active]
-    matrix = build_reaction_matrix(active)
-
-    # roles current
-    roles_current = {r: [] for r in ["Líder", "Anjo", "Monstro", "Imune", "Paredão"]}
-    for p in active:
-        name = p["name"]
-        roles = parse_roles(p.get("characteristics", {}).get("roles", []))
-        for r in roles:
-            if r in roles_current:
-                roles_current[r].append(name)
-
-    # load power events
-    manual = json.loads(Path("data/manual_events.json").read_text(encoding="utf-8"))
-    auto = json.loads(Path("data/derived/auto_events.json").read_text(encoding="utf-8")).get("events", [])
-    power_events = manual.get("power_events", []) + auto
-
-    # votes received
-    votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-    for par in paredoes_data.get("paredoes", []) if paredoes_data else []:
-        votos = par.get("votos_casa", {}) or {}
-        if not votos:
-            continue
-        week = par.get("semana")
-        for voter, target in votos.items():
-            votes_received_by_week[week][target][voter] += 1
-
-    # Impacto Negativo — use received_impact from relations_scores.json
-    relations_data = json.loads(Path("data/derived/relations_scores.json").read_text(encoding="utf-8")) if Path("data/derived/relations_scores.json").exists() else {}
-    received_impact = relations_data.get("received_impact", {})
-
-    def normalize_actors(ev):
-        actors = ev.get("actors")
-        if isinstance(actors, list) and actors:
-            return [a for a in actors if a]
-        actor = ev.get("actor")
-        if not actor:
-            return []
-        if " + " in actor:
-            return [a.strip() for a in actor.split(" + ") if a.strip()]
-        return [actor]
-
-    # Indicações públicas (alvos já no paredão)
-    ineligible = set()
-    indicacoes = defaultdict(int)
-    if paredao_data:
-        form = paredao_data.get('formacao', {}) if isinstance(paredao_data.get('formacao'), dict) else {}
-        indicado_lider = form.get('indicado_lider')
-        if indicado_lider:
-            ineligible.add(indicado_lider)
-            indicacoes[indicado_lider] += 1
-        bf = form.get('big_fone') or {}
-        if isinstance(bf, dict) and bf.get('indicou'):
-            ineligible.add(bf.get('indicou'))
-            indicacoes[bf.get('indicou')] += 1
-        cg = form.get('contragolpe') or {}
-        if isinstance(cg, dict) and cg.get('para'):
-            ineligible.add(cg.get('para'))
-            indicacoes[cg.get('para')] += 1
-        din = form.get('dinamica') or {}
-        alvo = din.get('indicado')
-        if alvo:
-            ineligible.add(alvo)
-            indicacoes[alvo] += 1
-        im = form.get('imunizado') or {}
-        if isinstance(im, dict) and im.get('quem'):
-            ineligible.add(im.get('quem'))
-
-    rows = []
-    for p in active:
-        name = p["name"]
-        roles = parse_roles(p.get("characteristics", {}).get("roles", []))
-        # Vulnerabilidade (false friends)
-        ff = 0
-        for b in active_names:
-            if b == name:
-                continue
-            my = matrix.get((name, b))
-            their = matrix.get((b, name))
-            if my in POSITIVE and their and their not in POSITIVE:
-                ff += 1
-        if ff >= 5:
-            vuln = "🔴 MUITO VULNERÁVEL"
-        elif ff >= 3:
-            vuln = "🟠 VULNERÁVEL"
-        elif ff >= 1:
-            vuln = "🟡 ATENÇÃO"
-        else:
-            vuln = "🟢 PROTEGIDO"
-
-        # External score (votes + events)
-        votes_count = sum(votes_received_by_week.get(vote_week, {}).get(name, {}).values())
-        indic_count = indicacoes.get(name, 0)
-
-        # Impacto Negativo from relations_scores.json
-        impact = received_impact.get(name, {})
-        external_score = impact.get("negative", 0)
-
-        if external_score <= -10:
-            external_level = "🔴 ALTO"
-        elif external_score <= -5:
-            external_level = "🟠 MÉDIO"
-        elif external_score < 0:
-            external_level = "🟡 BAIXO"
-        else:
-            external_level = "🟢 NENHUM"
-
-        rows.append({
-            "Participante": name,
-            "Votos (casa)": votes_count,
-            "Indicações": indic_count,
-            "Elegível voto": "sim" if name not in ineligible else "não",
-            "Vulnerabilidade": vuln,
-            "Impacto Negativo": external_level,
-            "Impact score": round(external_score, 2),
-            "Falsos amigos": ff,
-        })
-
-    return pd.DataFrame(rows)
 
 rows_all = []
 for par in paredoes_data.get("paredoes", []) if paredoes_data else []:
+    numero = par.get("numero")
     data_form = par.get("data_formacao") or par.get("data")
-    week = par.get("semana")
-    if not data_form or not week:
+    if not numero or not data_form:
         continue
-    snap = snapshot_on_or_before(data_form)
-    if not snap:
+    badge_entry = paredao_badges_data.get("by_paredao", {}).get(str(numero), {})
+    badges = badge_entry.get("badges", [])
+    if not badges:
         continue
-    fp, date_str = snap
-    df = compute_badges_for_snapshot(fp, date_str, week, par)
-    df.insert(0, "Paredão", f"{par.get('numero')}º ({data_form})")
+    df = pd.DataFrame([{
+        "Participante": b["participante"],
+        "Votos (casa)": b["votos_casa"],
+        "Indicações": b["indicacoes"],
+        "Elegível voto": "sim" if b["elegivel_voto"] else "não",
+        "Vulnerabilidade": b["vulnerabilidade"],
+        "Impacto Negativo": b["impacto_negativo"],
+        "Impact score": b["impact_score"],
+        "Falsos amigos": b["falsos_amigos"],
+    } for b in badges])
+    df.insert(0, "Paredão", f"{numero}º ({data_form})")
     rows_all.append(df)
 
 if not rows_all:
@@ -659,4 +844,639 @@ else:
         print("<p class='text-muted'>Protegidos/atenção com muitos votos (voto coletivo/bloco):</p>")
         print(prot_with_votes[["Paredão", "Participante", "Vulnerabilidade", "Votos (casa)"]]
               .to_html(index=False, classes="table table-sm table-dark", escape=False))
+```
+
+## Retro: Big Fone Consenso (Semana 3)
+
+Os 3 atendentes do Big Fone (Juliano Floss, Babu Santana, Marcelo) escolheram **Jonas Sulzbach** por consenso.
+O scoring previu corretamente? Os componentes fazem sentido?
+
+```{python}
+#| label: big-fone-retro
+#| echo: false
+#| output: asis
+
+# Load consensus analysis + relations for component breakdown
+_idx_path = Path("data/derived/index_data.json")
+_rel_path = Path("data/derived/relations_scores.json")
+bfc = None
+rel_data = {}
+if _idx_path.exists():
+    bfc = json.load(open(_idx_path, encoding="utf-8")).get("big_fone_consensus")
+if _rel_path.exists():
+    rel_data = json.load(open(_rel_path, encoding="utf-8"))
+
+ACTUAL_TARGET = "Jonas Sulzbach"
+pairs_daily = rel_data.get("pairs_daily", {})
+
+if not bfc or not bfc.get("attendees"):
+    print("<p class='text-muted'>Dados do consenso não disponíveis.</p>")
+else:
+    attendees = bfc["attendees"]
+    targets = bfc.get("targets", [])
+    consensus_targets = [t for t in targets if t.get("tier") == "consensus"]
+    by_score = sorted(consensus_targets, key=lambda t: t["combined_score"])
+    actual = next((t for t in targets if t["name"] == ACTUAL_TARGET), None)
+    rank_score = next((i for i, t in enumerate(by_score, 1) if t["name"] == ACTUAL_TARGET), None)
+
+    html = '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+
+    # --- Verdict badge ---
+    if rank_score == 1:
+        verdict_color, verdict = "#2ecc71", "ACERTOU — Jonas era #1 entre os alvos dos 3"
+    elif rank_score and rank_score <= 2:
+        verdict_color, verdict = "#f39c12", f"PRÓXIMO — Jonas era #{rank_score}"
+    else:
+        verdict_color, verdict = "#e74c3c", f"ERROU — Jonas era #{rank_score}" if rank_score else "Não previsto"
+
+    html += f'<div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem; flex-wrap:wrap;">'
+    html += f'<span style="background:{verdict_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.9em;">{verdict}</span>'
+    html += f'<span style="color:#aaa; font-size:0.85em;">Alvo real: <strong style="color:#eee;">{ACTUAL_TARGET}</strong></span>'
+    html += '</div>'
+
+    # --- Main table: all consensus targets ranked, with per-attendee breakdown ---
+    html += '<h4 style="color:#f0c040; margin:1rem 0 0.5rem;">Alvos viáveis: quem os 3 atacavam no queridômetro</h4>'
+    html += '<p style="color:#888; font-size:0.8em; margin-bottom:0.5rem;">Somente alvos que <em>todos os 3</em> davam reação negativa. Ordenado pelo score combinado (soma dos 3 pair scores).</p>'
+
+    html += '<div style="overflow-x:auto;">'
+    html += '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">'
+    html += '<tr style="border-bottom:1px solid #555;">'
+    html += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Alvo</th>'
+    for att in attendees:
+        html += f'<th style="padding:6px 8px; text-align:center; color:#ccc;">{att.split()[0]}</th>'
+    html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Combinado</th>'
+    html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Jonas→alvo?</th>'
+    html += '</tr>'
+
+    for t in by_score:
+        is_actual = t["name"] == ACTUAL_TARGET
+        row_bg = "background:#1a2a1a;" if is_actual else ""
+        row_border = "border-left:3px solid #2ecc71;" if is_actual else ""
+
+        html += f'<tr style="{row_bg} {row_border} border-bottom:1px solid #333;">'
+        marker = " ✅" if is_actual else ""
+        html += f'<td style="padding:6px 8px; color:#eee;"><strong>{t["name"]}</strong>{marker}</td>'
+
+        # Per-attendee score + emoji
+        for att in attendees:
+            sc = t["scores"].get(att, 0)
+            em = t["emojis"].get(att, "?")
+            html += f'<td style="padding:6px 8px; text-align:center;">{em} <span style="color:#e74c3c;">{sc:+.2f}</span></td>'
+
+        # Combined
+        html += f'<td style="padding:6px 8px; text-align:center; color:#e74c3c; font-weight:bold;">{t["combined_score"]:+.2f}</td>'
+
+        # Mutual indicator
+        is_mutual = t.get("is_fully_mutual", False)
+        mutual_label = "⚔️ Mútuo" if is_mutual else "❤️ Não sabe"
+        mutual_color = "#e74c3c" if is_mutual else "#f39c12"
+        html += f'<td style="padding:6px 8px; text-align:center; color:{mutual_color}; font-size:0.85em;">{mutual_label}</td>'
+        html += '</tr>'
+
+    html += '</table></div>'
+
+    # --- Component decomposition: what drove each attendee→Jonas score? ---
+    if actual:
+        html += '<h4 style="color:#f0c040; margin:1.2rem 0 0.5rem;">O que compõe cada score → Jonas</h4>'
+        html += '<p style="color:#888; font-size:0.8em; margin-bottom:0.5rem;">Decomposição do pair score de cada atendente para Jonas. Queridômetro é o emoji diário; os demais são eventos acumulados.</p>'
+
+        html += '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">'
+        html += '<tr style="border-bottom:1px solid #555;">'
+        html += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Atendente</th>'
+        html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Emoji</th>'
+
+        # Collect all component keys across attendees
+        all_comp_keys = []
+        att_components = {}
+        for att in attendees:
+            comps = pairs_daily.get(att, {}).get(ACTUAL_TARGET, {}).get("components", {})
+            att_components[att] = comps
+            for k in comps:
+                if k not in all_comp_keys:
+                    all_comp_keys.append(k)
+
+        comp_labels = {"queridometro": "Queridômetro", "power_event": "Eventos de poder",
+                       "sincerao": "Sincerão", "vote": "Votos", "vip": "VIP/Xepa"}
+        for ck in all_comp_keys:
+            html += f'<th style="padding:6px 8px; text-align:center; color:#ccc;">{comp_labels.get(ck, ck)}</th>'
+        html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Total</th>'
+        html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Jonas→</th>'
+        html += '</tr>'
+
+        for att in attendees:
+            comps = att_components[att]
+            total = sum(comps.values())
+            em = actual["emojis"].get(att, "?")
+            mutual_info = actual.get("mutual_hostility", {}).get(att, {})
+            back_em = mutual_info.get("emoji", "?")
+            back_neg = mutual_info.get("is_negative", False)
+            back_color = "#e74c3c" if back_neg else "#2ecc71"
+
+            html += f'<tr style="border-bottom:1px solid #333;">'
+            html += f'<td style="padding:6px 8px; color:#eee;">{att}</td>'
+            html += f'<td style="padding:6px 8px; text-align:center;">{em}</td>'
+            for ck in all_comp_keys:
+                v = comps.get(ck, 0)
+                if v == 0:
+                    html += f'<td style="padding:6px 8px; text-align:center; color:#555;">—</td>'
+                else:
+                    c = "#e74c3c" if v < 0 else "#2ecc71"
+                    html += f'<td style="padding:6px 8px; text-align:center; color:{c}; font-weight:bold;">{v:+.2f}</td>'
+            html += f'<td style="padding:6px 8px; text-align:center; color:#e74c3c; font-weight:bold;">{total:+.2f}</td>'
+            html += f'<td style="padding:6px 8px; text-align:center;"><span style="color:{back_color};">{back_em}</span></td>'
+            html += '</tr>'
+
+        html += '</table>'
+
+        # Component totals
+        comp_totals = {ck: sum(att_components[att].get(ck, 0) for att in attendees) for ck in all_comp_keys}
+        total_all = sum(comp_totals.values())
+        html += '<div style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#111; border-radius:6px; font-size:0.85em; color:#aaa;">'
+        html += '<strong style="color:#ccc;">Soma dos 3:</strong> '
+        parts = []
+        for ck in all_comp_keys:
+            v = comp_totals[ck]
+            label = comp_labels.get(ck, ck)
+            c = "#e74c3c" if v < 0 else "#2ecc71"
+            parts.append(f'{label} <span style="color:{c}; font-weight:bold;">{v:+.2f}</span>')
+        html += ' + '.join(parts)
+        html += f' = <strong style="color:#e74c3c;">{total_all:+.2f}</strong>'
+
+        # Percentage breakdown
+        if total_all != 0:
+            html += '<br><strong style="color:#ccc;">Peso relativo:</strong> '
+            pct_parts = []
+            for ck in all_comp_keys:
+                v = comp_totals[ck]
+                pct = abs(v) / sum(abs(comp_totals[k]) for k in all_comp_keys) * 100
+                label = comp_labels.get(ck, ck)
+                pct_parts.append(f'{label} {pct:.0f}%')
+            html += ' · '.join(pct_parts)
+        html += '</div>'
+
+    # --- Compare: why Jonas and not the others? ---
+    html += '<h4 style="color:#f0c040; margin:1.2rem 0 0.5rem;">Por que Jonas e não os outros alvos?</h4>'
+    html += '<div style="color:#ccc; font-size:0.85em; line-height:1.7;">'
+
+    if rank_score == 1 and len(by_score) > 1:
+        gap = by_score[1]["combined_score"] - by_score[0]["combined_score"]
+        runner_up = by_score[1]["name"]
+
+        # What made Jonas different: check if all 3 had power_events against him
+        jonas_power = sum(
+            pairs_daily.get(att, {}).get(ACTUAL_TARGET, {}).get("components", {}).get("power_event", 0)
+            for att in attendees
+        )
+        jonas_querido = sum(
+            pairs_daily.get(att, {}).get(ACTUAL_TARGET, {}).get("components", {}).get("queridometro", 0)
+            for att in attendees
+        )
+
+        html += f'<p>Jonas liderava com <strong>{actual["combined_score"]:+.2f}</strong>, '
+        html += f'um gap de <strong>{gap:+.2f}</strong> para o 2º ({runner_up}).</p>'
+
+        html += '<p><strong style="color:#e74c3c;">Fator decisivo: eventos de poder acumulados.</strong> '
+        html += f'Jonas recebia {jonas_power:+.2f} de power_events dos 3 atendentes '
+        html += f'(vs {jonas_querido:+.2f} do queridômetro sozinho). '
+
+        # Compare with runner-up
+        ru_power = sum(
+            pairs_daily.get(att, {}).get(runner_up, {}).get("components", {}).get("power_event", 0)
+            for att in attendees
+        )
+        ru_querido = sum(
+            pairs_daily.get(att, {}).get(runner_up, {}).get("components", {}).get("queridometro", 0)
+            for att in attendees
+        )
+        html += f'Em contraste, {runner_up} recebia {ru_power:+.2f} de power_events e {ru_querido:+.2f} do queridômetro. '
+        html += 'Os eventos (Monstro recebido, indicações anteriores) amplificaram a rejeição que o queridômetro já mostrava.</p>'
+
+    # Blind spot analysis
+    if actual and not actual.get("is_fully_mutual"):
+        blind_atts = [att for att in attendees
+                      if not actual.get("mutual_hostility", {}).get(att, {}).get("is_negative", False)]
+        if blind_atts:
+            html += f'<p><strong style="color:#f39c12;">Ponto cego de Jonas:</strong> '
+            html += f'dava ❤️ para {", ".join(blind_atts)} — a hostilidade era unilateral. '
+            html += 'Jonas não sabia que era alvo deles, o que tipifica uma indicação-surpresa. '
+            html += 'Alvos mútuos (Brigido, Gabriela) tinham scores menores justamente porque a hostilidade recíproca '
+            html += 'pode inibir a ação — quando ambos se atacam, a tensão é conhecida. '
+            html += 'O ponto cego unilateral torna a ação mais fácil para os atores.</p>'
+
+    html += '</div>'
+
+    # --- Nota sobre consensus_pct ---
+    html += '<div style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#222; border:1px solid #444; border-radius:6px; font-size:0.82em; color:#888;">'
+    html += '<strong style="color:#aaa;">Nota sobre consensus %:</strong> '
+    html += 'Jonas era #3 por consensus_pct (54% vs 64% de Brigido/Gabriela). '
+    html += 'Essa métrica mede "qual % de hipotéticos 3ºs atendentes concordariam" — útil como análise de robustez, '
+    html += 'mas não como preditor quando os atores já são conhecidos. O combined score dos 3 atores reais é a métrica correta.'
+    html += '</div>'
+
+    # --- Final verdict ---
+    html += '<div style="background:#1a2a1a; border:1px solid #2ecc71; border-radius:8px; padding:0.8rem 1rem; margin-top:1rem;">'
+    html += '<strong style="color:#2ecc71;">Veredicto:</strong> '
+    if rank_score == 1:
+        html += '<span style="color:#ccc;">O scoring <strong>acertou</strong>. Jonas era o alvo #1 dos 3 atendentes por larga margem. '
+        html += 'A combinação de queridômetro negativo + eventos de poder acumulados capturou corretamente a intensidade da rejeição conjunta. '
+        html += '<strong>Nenhum ajuste de pesos necessário</strong> — o sistema funcionou como esperado para este caso.</span>'
+    elif rank_score and rank_score <= 2:
+        html += f'<span style="color:#ccc;">O scoring chegou perto (#{rank_score}). Considerar se o peso de power_events está calibrado.</span>'
+    else:
+        html += '<span style="color:#ccc;">O scoring errou. Revisar pesos dos componentes — especialmente a proporção entre queridômetro e eventos.</span>'
+    html += '</div>'
+
+    html += '</div>'
+    print(html)
+```
+
+## Retro: Votos vs Scoring (Paredões 1 & 2)
+
+<p class="text-muted">Para cada paredão passado, compara o voto real de cada participante com o alvo previsto pelo scoring (o alvo mais negativo elegível). Usa <code>pairs_daily</code> para ativos e <code>pairs_all</code> para eliminados/desistentes. <strong>Limitação:</strong> usa scores <em>atuais</em> (Jan 31), não congelados na data do paredão.</p>
+
+```{python}
+#| label: vote-prediction-retro
+#| echo: false
+#| output: asis
+
+# --- Retro: compare pairs_daily predicted votes vs actual votes ---
+paredoes_path = Path("data/paredoes.json")
+paredoes_file = json.loads(paredoes_path.read_text(encoding="utf-8")) if paredoes_path.exists() else {}
+
+pairs_d = relations.get("pairs_daily", {})
+pairs_all = relations.get("pairs_all", {})
+
+html_retro = ""
+
+retro_summary = []
+
+for par in paredoes_file.get("paredoes", []):
+    numero = par.get("numero")
+    votos_casa = par.get("votos_casa", {})
+    if not votos_casa:
+        continue
+
+    impedidos = set(par.get("impedidos_votar", []))
+    anulados = set(par.get("votos_anulados", []))
+    data_form = par.get("data_formacao", par.get("data", ""))
+
+    exact = 0
+    top3 = 0
+    total_voters = 0
+    rows_retro = []
+
+    for voter, actual_target in votos_casa.items():
+        if voter in impedidos or voter in anulados:
+            continue
+
+        # Get voter's pair scores — try pairs_daily first, fall back to pairs_all
+        voter_pairs = pairs_d.get(voter, {}) or pairs_all.get(voter, {})
+        if not voter_pairs:
+            rows_retro.append({
+                "Votante": voter,
+                "Voto real": actual_target,
+                "Previsto (#1)": "— <em>(sem scores)</em>",
+                "Score #1": "",
+                "Rank do real": "—",
+                "Score real": "—",
+                "#2": "",
+                "#3": "",
+                "Acerto": "⬜",
+            })
+            total_voters += 1
+            continue
+
+        # Build full target list: merge pairs_daily + pairs_all for this voter
+        # so eliminated targets (e.g. Paulo Augusto) appear in the ranking
+        merged_pairs = {}
+        for t, rec in pairs_all.get(voter, {}).items():
+            if t != voter:
+                merged_pairs[t] = rec
+        for t, rec in voter_pairs.items():
+            if t != voter:
+                merged_pairs[t] = rec  # pairs_daily overrides pairs_all
+
+        # Sort targets by score ascending (most negative first = predicted vote)
+        sorted_targets = sorted(merged_pairs.items(), key=lambda x: x[1].get("score", 0))
+
+        predicted_target = sorted_targets[0][0] if sorted_targets else "—"
+        predicted_score = sorted_targets[0][1].get("score", 0) if sorted_targets else 0
+
+        # Find rank of actual target
+        target_names = [t for t, _ in sorted_targets]
+        if actual_target in target_names:
+            actual_rank = target_names.index(actual_target) + 1
+            actual_score = next(rec.get("score", 0) for t, rec in sorted_targets if t == actual_target)
+        else:
+            actual_rank = "—"
+            actual_score = "—"
+
+        is_exact = (predicted_target == actual_target)
+        is_top3 = actual_rank != "—" and isinstance(actual_rank, int) and actual_rank <= 3
+
+        if is_exact:
+            exact += 1
+        if is_top3:
+            top3 += 1
+        total_voters += 1
+
+        choice2 = sorted_targets[1][0] if len(sorted_targets) > 1 else ""
+        choice3 = sorted_targets[2][0] if len(sorted_targets) > 2 else ""
+
+        acerto_icon = "✅" if is_exact else ("🟡" if is_top3 else "❌")
+
+        rows_retro.append({
+            "Votante": voter,
+            "Voto real": f"<strong>{actual_target}</strong>",
+            "Previsto (#1)": f"<strong>{predicted_target}</strong>",
+            "Score #1": fmt_score(predicted_score),
+            "Rank do real": actual_rank if actual_rank != "—" else "—",
+            "Score real": fmt_score(actual_score) if actual_score != "—" else "—",
+            "#2": choice2,
+            "#3": choice3,
+            "Acerto": acerto_icon,
+        })
+
+    if not rows_retro:
+        continue
+
+    exact_pct = exact / total_voters * 100 if total_voters else 0
+    top3_pct = top3 / total_voters * 100 if total_voters else 0
+
+    # Count voters targeting eliminated participants (no scores available)
+    no_score_voters = sum(1 for r in rows_retro if "sem scores" in str(r.get("Previsto (#1)", "")))
+    scorable_voters = total_voters - no_score_voters
+    exact_scorable_pct = exact / scorable_voters * 100 if scorable_voters else 0
+
+    retro_summary.append({
+        "paredao": numero,
+        "exact": exact,
+        "top3": top3,
+        "total": total_voters,
+        "exact_pct": exact_pct,
+        "top3_pct": top3_pct,
+        "scorable": scorable_voters,
+        "exact_scorable_pct": exact_scorable_pct,
+    })
+
+    # Render summary card
+    html_retro += f'<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+    html_retro += f'<h4 style="color:#f0c040; margin:0 0 0.8rem;">{numero}º Paredão ({data_form})</h4>'
+
+    # Accuracy badges
+    exact_color = "#2ecc71" if exact_pct >= 40 else ("#f39c12" if exact_pct >= 20 else "#e74c3c")
+    top3_color = "#2ecc71" if top3_pct >= 60 else ("#f39c12" if top3_pct >= 40 else "#e74c3c")
+    html_retro += '<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:0.8rem;">'
+    html_retro += f'<span style="background:{exact_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.9em;">Exato: {exact}/{total_voters} ({exact_pct:.0f}%)</span>'
+    html_retro += f'<span style="background:{top3_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.9em;">Top-3: {top3}/{total_voters} ({top3_pct:.0f}%)</span>'
+    if no_score_voters > 0:
+        html_retro += f'<span style="background:#555; color:#eee; padding:4px 12px; border-radius:6px; font-size:0.85em;">Excl. eliminados: {exact}/{scorable_voters} ({exact_scorable_pct:.0f}%)</span>'
+    html_retro += '</div>'
+
+    # Detail table
+    retro_df = pd.DataFrame(rows_retro)
+    html_retro += retro_df.to_html(index=False, classes="table table-sm table-dark", escape=False)
+    html_retro += '</div>'
+
+# Overall summary
+if retro_summary:
+    total_exact = sum(s["exact"] for s in retro_summary)
+    total_top3 = sum(s["top3"] for s in retro_summary)
+    total_all = sum(s["total"] for s in retro_summary)
+    total_scorable = sum(s["scorable"] for s in retro_summary)
+
+    html_retro += '<div style="background:#222; border:1px solid #555; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0;">'
+    html_retro += f'<strong style="color:#f0c040;">Resumo geral:</strong> '
+    html_retro += f'Exato {total_exact}/{total_all} ({total_exact/total_all*100:.0f}%) · '
+    html_retro += f'Top-3 {total_top3}/{total_all} ({total_top3/total_all*100:.0f}%) · '
+    html_retro += f'Apenas participantes com scores: {total_exact}/{total_scorable} ({total_exact/total_scorable*100:.0f}% exato)'
+    html_retro += '</div>'
+
+# Methodology box
+html_retro += '<div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; font-size:0.85em; color:#aaa;">'
+html_retro += '<strong style="color:#ccc;">Metodologia</strong><br>'
+html_retro += '<ul style="margin:0.3rem 0 0;">'
+html_retro += '<li><strong>Previsão:</strong> para cada votante, o alvo previsto é o participante elegível com o menor (mais negativo) score <code>pairs_daily</code> combinado.</li>'
+html_retro += '<li><strong>Componentes do score:</strong> queridômetro (emoji diário, 70% janela reativa 3d + 30% memória de sequência) + eventos acumulados (poder, votos, sincerão, VIP) sem decay.</li>'
+html_retro += '<li><strong>Fonte dos scores:</strong> usa <code>pairs_daily</code> para participantes ativos e <code>pairs_all</code> (com queridômetro do último snapshot pré-saída) para eliminados/desistentes.</li>'
+html_retro += '<li><strong>Limitações:</strong> scores atuais incluem eventos pós-paredão; não modela voto estratégico ou coordenação de alianças.</li>'
+html_retro += '<li><strong>Métricas:</strong> Exato = previsto == real; Top-3 = real estava entre os 3 alvos mais negativos do votante.</li>'
+html_retro += '</ul></div>'
+
+print(html_retro)
+```
+
+## Previsão: Votos do 3º Paredão
+
+<p class="text-muted">Formação em 1º de Fevereiro. Líder: <strong>Maxiane</strong> (não vota, não pode ser votada). Jonas Sulzbach já indicado (Big Fone consenso — pode votar). Anjo: <strong>Sarah Andrade</strong> (vota normalmente, <strong>pode ser votada</strong> — Anjo não é autoimune). Imunizado(a) pelo Anjo: a definir (ao vivo).</p>
+
+```{python}
+#| label: vote-prediction-3rd
+#| echo: false
+#| output: asis
+
+# --- 3rd Paredão prediction ---
+pairs_d = relations.get("pairs_daily", {})
+
+# Game state
+lider = "Maxiane"
+already_nominated = "Jonas Sulzbach"  # Big Fone consensus — can vote, already going to paredão
+anjo = "Sarah Andrade"  # Anjo is NOT auto-immune; can be voted for, votes normally
+
+active_participants = sorted(pairs_d.keys())
+
+# Voters: all active minus Líder (19 voters)
+voters = [p for p in active_participants if p != lider]
+
+# Targets: all active minus Líder, minus already_nominated (Jonas)
+# Anjo (Sarah) CAN be voted for — Anjo is not auto-immune
+# Immune from Anjo is TBD (decided live) — not excluded yet
+cant_be_voted = {lider, already_nominated}
+targets = [p for p in active_participants if p not in cant_be_voted]
+
+html_pred = ""
+html_pred += f'<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+html_pred += f'<h4 style="color:#f0c040; margin:0 0 0.5rem;">Estado do jogo</h4>'
+html_pred += '<div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:0.8rem; font-size:0.9em;">'
+html_pred += f'<span>👑 Líder: <strong>{lider}</strong> (não vota)</span>'
+html_pred += f'<span>📞 Big Fone: <strong>{already_nominated}</strong> (já emparedado, vota)</span>'
+html_pred += f'<span>😇 Anjo: <strong>{anjo}</strong> (vota, <strong>pode ser votada</strong>)</span>'
+html_pred += f'<span>🗳️ Votantes: <strong>{len(voters)}</strong></span>'
+html_pred += f'<span>🎯 Alvos elegíveis: <strong>{len(targets)}</strong></span>'
+html_pred += '</div>'
+html_pred += '<div style="color:#888; font-size:0.82em;">⚠️ O imunizado pelo Anjo (decisão ao vivo) não está excluído dos alvos — ajustar após a imunização.</div>'
+html_pred += '</div>'
+
+# --- Líder indication analysis ---
+html_pred += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+html_pred += '<h4 style="color:#f0c040; margin:0 0 0.5rem;">👑 Indicação do Líder (Maxiane)</h4>'
+html_pred += '<p style="color:#aaa; font-size:0.85em;">Top alvos da Maxiane por score mais negativo — possível indicação do Líder.</p>'
+
+maxiane_pairs = pairs_d.get(lider, {})
+max_sorted = sorted(
+    [(t, rec) for t, rec in maxiane_pairs.items() if t != lider],
+    key=lambda x: x[1].get("score", 0)
+)
+
+html_pred += '<table style="width:100%; border-collapse:collapse; font-size:0.85em; max-width:700px;">'
+html_pred += '<tr style="border-bottom:1px solid #555;">'
+html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">#</th>'
+html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Alvo</th>'
+html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Score</th>'
+html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Queridômetro</th>'
+html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Eventos</th>'
+html_pred += '</tr>'
+for i, (t, rec) in enumerate(max_sorted[:5]):
+    sc = rec.get("score", 0)
+    comps = rec.get("components", {})
+    q = comps.get("queridometro", 0)
+    ev = sc - q  # events = total minus queridometro
+    sc_color = "#e74c3c" if sc < 0 else "#2ecc71"
+    html_pred += f'<tr style="border-bottom:1px solid #333;">'
+    html_pred += f'<td style="padding:6px 8px; color:#888;">{i+1}</td>'
+    html_pred += f'<td style="padding:6px 8px; color:#eee;"><strong>{t}</strong></td>'
+    html_pred += f'<td style="padding:6px 8px; text-align:center; color:{sc_color}; font-weight:bold;">{sc:+.2f}</td>'
+    html_pred += f'<td style="padding:6px 8px; text-align:center;">{fmt_score(q)}</td>'
+    html_pred += f'<td style="padding:6px 8px; text-align:center;">{fmt_score(ev)}</td>'
+    html_pred += '</tr>'
+html_pred += '</table></div>'
+
+# --- Full voter table ---
+html_pred += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+html_pred += '<h4 style="color:#f0c040; margin:0 0 0.5rem;">🗳️ Previsão por votante</h4>'
+html_pred += '<p style="color:#aaa; font-size:0.85em;">Para cada votante, o alvo elegível com score mais negativo. Confiança = gap entre #1 e #2 (maior gap = mais provável).</p>'
+
+prediction_rows = []
+vote_totals = defaultdict(int)
+
+for voter in voters:
+    voter_pairs = pairs_d.get(voter, {})
+    # Sort eligible targets by score
+    eligible = [(t, voter_pairs.get(t, {}).get("score", 0)) for t in targets if t != voter]
+    eligible.sort(key=lambda x: x[1])
+
+    if not eligible:
+        prediction_rows.append({
+            "Votante": voter,
+            "Previsto": "—",
+            "Score": "",
+            "#2": "",
+            "#3": "",
+            "Confiança": "",
+        })
+        continue
+
+    pred1 = eligible[0]
+    pred2 = eligible[1] if len(eligible) > 1 else ("", 0)
+    pred3 = eligible[2] if len(eligible) > 2 else ("", 0)
+    gap = pred2[1] - pred1[1] if pred2[0] else 0
+
+    vote_totals[pred1[0]] += 1
+
+    gap_color = "#2ecc71" if gap >= 0.5 else ("#f39c12" if gap >= 0.2 else "#e74c3c")
+
+    prediction_rows.append({
+        "Votante": voter,
+        "Previsto": f"<strong>{pred1[0]}</strong>",
+        "Score": fmt_score(pred1[1]),
+        "#2": f"{pred2[0]} ({pred2[1]:+.2f})" if pred2[0] else "",
+        "#3": f"{pred3[0]} ({pred3[1]:+.2f})" if pred3[0] else "",
+        "Confiança": f"<span style='color:{gap_color}; font-weight:bold;'>{gap:+.2f}</span>",
+    })
+
+pred_df = pd.DataFrame(prediction_rows)
+html_pred += pred_df.to_html(index=False, classes="table table-sm table-dark", escape=False)
+html_pred += '</div>'
+
+# --- Vote concentration ---
+html_pred += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+html_pred += '<h4 style="color:#f0c040; margin:0 0 0.5rem;">📊 Concentração de votos previstos</h4>'
+html_pred += '<p style="color:#aaa; font-size:0.85em;">Total de votos previstos por alvo (os 2 mais votados vão ao paredão).</p>'
+
+sorted_totals = sorted(vote_totals.items(), key=lambda x: -x[1])
+total_votes = sum(v for _, v in sorted_totals)
+
+html_pred += '<table style="width:100%; border-collapse:collapse; font-size:0.85em; max-width:600px;">'
+html_pred += '<tr style="border-bottom:1px solid #555;">'
+html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">#</th>'
+html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Alvo</th>'
+html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Votos previstos</th>'
+html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Barra</th>'
+html_pred += '</tr>'
+
+max_votes = sorted_totals[0][1] if sorted_totals else 1
+for i, (target, votes) in enumerate(sorted_totals):
+    bar_width = int(votes / max_votes * 200)
+    bar_color = "#e74c3c" if i < 2 else "#555"
+    highlight = "border-left:3px solid #e74c3c;" if i < 2 else ""
+    label_extra = " 🎯" if i < 2 else ""
+    html_pred += f'<tr style="{highlight} border-bottom:1px solid #333;">'
+    html_pred += f'<td style="padding:6px 8px; color:#888;">{i+1}</td>'
+    html_pred += f'<td style="padding:6px 8px; color:#eee;"><strong>{target}</strong>{label_extra}</td>'
+    html_pred += f'<td style="padding:6px 8px; text-align:center; font-weight:bold;">{votes}</td>'
+    html_pred += f'<td style="padding:6px 8px;"><div style="background:{bar_color}; height:16px; width:{bar_width}px; border-radius:4px;"></div></td>'
+    html_pred += '</tr>'
+
+# Also show targets with 0 votes
+zero_targets = [t for t in targets if t not in vote_totals]
+for t in sorted(zero_targets):
+    html_pred += f'<tr style="border-bottom:1px solid #333;">'
+    html_pred += f'<td style="padding:6px 8px; color:#555;">—</td>'
+    html_pred += f'<td style="padding:6px 8px; color:#666;">{t}</td>'
+    html_pred += f'<td style="padding:6px 8px; text-align:center; color:#555;">0</td>'
+    html_pred += f'<td></td></tr>'
+
+html_pred += '</table>'
+html_pred += f'<div style="color:#888; font-size:0.82em; margin-top:0.5rem;">Total: {total_votes} votos previstos de {len(voters)} votantes</div>'
+html_pred += '</div>'
+
+# --- Top-2 analysis ---
+html_pred += '<div style="background:#1a2a1a; border:1px solid #2ecc71; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+html_pred += '<h4 style="color:#2ecc71; margin:0 0 0.5rem;">🔮 Análise Top-2 (quem vai ao paredão?)</h4>'
+
+if len(sorted_totals) >= 2:
+    t1_name, t1_votes = sorted_totals[0]
+    t2_name, t2_votes = sorted_totals[1]
+    t3_name, t3_votes = sorted_totals[2] if len(sorted_totals) > 2 else ("—", 0)
+
+    # Who votes for top-2
+    t1_voters = [r["Votante"] for r in prediction_rows if t1_name in r.get("Previsto", "")]
+    t2_voters = [r["Votante"] for r in prediction_rows if t2_name in r.get("Previsto", "")]
+
+    html_pred += '<div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:0.8rem;">'
+    html_pred += f'<div style="flex:1; min-width:250px; background:#111; border-radius:8px; padding:0.8rem;">'
+    html_pred += f'<div style="font-size:1.1em; font-weight:bold; color:#e74c3c;">🥇 {t1_name} — {t1_votes} votos</div>'
+    html_pred += f'<div style="color:#aaa; font-size:0.85em; margin-top:0.3rem;">Votantes: {", ".join(t1_voters)}</div></div>'
+    html_pred += f'<div style="flex:1; min-width:250px; background:#111; border-radius:8px; padding:0.8rem;">'
+    html_pred += f'<div style="font-size:1.1em; font-weight:bold; color:#f39c12;">🥈 {t2_name} — {t2_votes} votos</div>'
+    html_pred += f'<div style="color:#aaa; font-size:0.85em; margin-top:0.3rem;">Votantes: {", ".join(t2_voters)}</div></div>'
+    html_pred += '</div>'
+
+    gap12 = t1_votes - t2_votes
+    gap23 = t2_votes - t3_votes
+
+    html_pred += '<div style="color:#ccc; font-size:0.9em; line-height:1.7; margin-top:0.5rem;">'
+    if gap12 == 0:
+        html_pred += f'<p><strong>{t1_name}</strong> e <strong>{t2_name}</strong> empatam com {t1_votes} votos cada — disputa equilibrada.</p>'
+    else:
+        html_pred += f'<p><strong>{t1_name}</strong> lidera com {t1_votes} votos (gap de {gap12} para o 2º).'
+        html_pred += f' <strong>{t2_name}</strong> é o 2º com {t2_votes} votos.</p>'
+    if gap23 <= 1:
+        html_pred += f'<p style="color:#f39c12;">⚠️ Disputa apertada: {t2_name} ({t2_votes}) vs {t3_name} ({t3_votes}) — apenas {gap23} voto(s) de diferença para o 3º.</p>'
+    html_pred += '</div>'
+
+html_pred += '</div>'
+
+# --- Methodology ---
+html_pred += '<div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; font-size:0.85em; color:#aaa;">'
+html_pred += '<strong style="color:#ccc;">Metodologia da previsão</strong><br>'
+html_pred += '<ul style="margin:0.3rem 0 0;">'
+html_pred += '<li><strong>Método:</strong> para cada votante, o alvo previsto é o participante elegível com o menor (mais negativo) score <code>pairs_daily</code> combinado (queridômetro + eventos acumulados).</li>'
+html_pred += '<li><strong>Elegibilidade:</strong> exclui Líder (Maxiane) e já emparedado (Jonas). Anjo (Sarah) <strong>pode ser votada</strong> (não é autoimune). O imunizado pelo Anjo é desconhecido — ajustar após imunização.</li>'
+html_pred += '<li><strong>Confiança:</strong> diferença entre o score do 1º e 2º alvo mais negativo. Gap alto = predição mais robusta; gap baixo = segundo alvo quase tão provável.</li>'
+html_pred += '<li><strong>Limitações:</strong> não modela voto estratégico, coordenação de alianças, ou influência de conversas pré-paredão. Usa scores atuais (Jan 31).</li>'
+html_pred += '<li><strong>Validação:</strong> após os votos reais, re-rodar esta análise para computar acurácia e comparar com a retro dos paredões anteriores.</li>'
+html_pred += '</ul></div>'
+
+print(html_pred)
 ```

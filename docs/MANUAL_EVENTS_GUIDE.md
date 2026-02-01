@@ -54,22 +54,53 @@ Week-scoped dynamics (Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile,
 - Sempre crie **power_events**: `barrado_baile` (ator = líder, alvo = barrado).
 - Always include `week` (int) and `date` (`YYYY-MM-DD`).
 
+**Na Mira do Líder (descontinuado — semana 1 apenas):**
+- Dinâmica em que o líder escolhe **5 alvos** na sexta-feira; no domingo, indica **1 dos 5** ao paredão.
+- Registre cada alvo como **power_event** `mira_do_lider` (actor = líder, target = alvo, impacto negativo).
+- O indicado final recebe adicionalmente `indicacao` como power_event separado.
+- Descontinuada após semana 1 (liderança Alberto Cowboy) devido a backlash do público.
+- Peso relacional: −0.5 (actor → target), backlash 0.5, visibilidade pública.
+
 ### `special_events`
 One-off events not tied to a specific week.
 
 ### `power_events`
 Only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, veto, perdeu voto, bate-volta, ganha-ganha, barrado no baile).
 - Fields: `date`, `week`, `type`, `actor`, `target`, `detail`, `impacto`, `origem`, `fontes`.
-- Optional: `actors` (array) for **consensus** dynamics (ex.: duas pessoas indicam em consenso).
+- Optional: `actors` (array) for **consensus** dynamics — see [Consensus events](#consensus-events-multiple-actors) below.
 - `impacto` is **for the target** (positivo/negativo).
 - `origem`: `manual` (quando registrado no JSON) ou `api` (quando derivado automaticamente).
 - If `actor` is not a person, use standardized labels: `Big Fone`, `Prova do Líder`, `Prova do Anjo`, `Prova Bate e Volta`, `Caixas-Surpresa`.
 
-**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`, `veto_prova`.
+**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`, `veto_prova`, `mira_do_lider`.
 
 **Auto-detectados da API** (`scripts/build_derived_data.py`): Líder/Anjo/Monstro/Imune são derivados das mudanças de papéis nos snapshots diários e salvos em `data/derived/auto_events.json` com `origem: "api"`.
 - A detecção usa **1 snapshot por dia** (último do dia). Mudanças intra-dia podem não aparecer.
 - **Monstro**: o `actor` é o **Anjo da semana** (quando disponível), pois o Anjo escolhe quem recebe o Castigo do Monstro.
+
+### Consensus events (multiple actors)
+
+When multiple participants act together on a single event (e.g., Big Fone consensus indication):
+
+- Use a **single** `power_event` entry (NOT one entry per actor).
+- Set `"actor"` to the display string: `"A + B + C"` (joined with ` + `).
+- Set `"actors"` to an explicit array: `["A", "B", "C"]`.
+- The `actors` array is used by `normalize_actors()` for edge creation (one edge per actor→target).
+- The `actor` string is used for timeline display (one row, not N duplicates).
+
+```jsonc
+{
+  "date": "2026-01-31",
+  "type": "indicacao",
+  "actor": "Juliano Floss + Babu Santana + Marcelo",
+  "actors": ["Juliano Floss", "Babu Santana", "Marcelo"],
+  "target": "Jonas Sulzbach",
+  "source": "Big Fone (consenso)",
+  "detail": "Consenso Big Fone: indicaram Jonas ao Paredão"
+}
+```
+
+**Why not separate entries?** Separate entries produce duplicate timeline rows (3 identical "indicacao" entries). A single entry with `actors` array produces 1 timeline row + 3 correct relationship edges.
 
 ### Vote Visibility Events (in `weekly_events`)
 

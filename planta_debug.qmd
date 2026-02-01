@@ -1,5 +1,5 @@
 ---
-title: "🌱 Planta Index"
+title: "🌱 Planta Index — Debug"
 subtitle: "Tally completo dos sinais que formam o índice"
 ---
 
@@ -41,6 +41,8 @@ latest_scores = plant_index.get("latest", {}).get("scores", {})
 weights = plant_index.get("_metadata", {}).get("weights", {})
 rolling_window = plant_index.get("_metadata", {}).get("rolling_window", 3)
 emoji_cap = plant_index.get("_metadata", {}).get("emoji_cap", 0.30)
+heart_cap = plant_index.get("_metadata", {}).get("heart_cap", 0.85)
+sincerao_decay = plant_index.get("_metadata", {}).get("sincerao_decay", 0.7)
 bonus_plateia = plant_index.get("_metadata", {}).get("bonus_plateia", 15)
 
 avatars = {p["name"]: p.get("avatar", "") for p in participants_index.get("participants", []) if p.get("name")}
@@ -249,14 +251,17 @@ else:
         print(f"<p class='text-muted'>Semana {latest_week} não teve eventos; mostrando a última semana com sinais.</p>")
     print("<p>Score = soma dos componentes (0–100) + bônus de plateia (se existir), limitado entre 0 e 100.</p>")
     print(f"<p>Emoji 🌱 usa a <strong>média diária</strong> da semana e é limitado a {emoji_cap*100:.0f}% do peso total. Bônus plateia: +{bonus_plateia} pontos.</p>")
+    print(f"<p>Consenso ❤️ usa a média diária de (❤️ recebidos / total recebidos), cap em {heart_cap*100:.0f}%. <strong>Soft-gated</strong>: multiplicado por <code>low_power_events</code> — jogadores ativos → ~0 contribuição.</p>")
+    print(f"<p>Sincerão carry-forward: semanas sem Sincerão usam o valor anterior × {sincerao_decay} decay.</p>")
     print(df_w.to_html(index=False, classes="table table-dark table-sm", border=0))
 ```
 
 **Definições rápidas dos componentes**
-- **Invisibilidade**: posição relativa (percentil) do total de reações recebidas+dadas na semana (**peso 0 no score**).
-- **Baixa atividade de poder**: usa **pesos por tipo** (ganhar Líder/Anjo vale mais que eventos menores).
-- **Baixa exposição no Sincerão**: edges do Sincerão normalizados (quanto menor, mais “planta”).
-- **Emoji 🌱**: média diária da proporção de “Planta” recebida (cap em 30% do peso total).
+- **Invisibilidade** (10%): posição relativa (percentil) do total de reações recebidas+dadas na semana.
+- **Baixa atividade de poder** (35%): usa **pesos por tipo** (ganhar Líder/Anjo vale mais que eventos menores).
+- **Baixa exposição no Sincerão** (25%): edges do Sincerão normalizados (quanto menor, mais "planta"). Com carry-forward: semanas sem Sincerão usam valor anterior × 0.7.
+- **Emoji 🌱** (15%): média diária da proporção de "Planta" recebida (cap em 30%).
+- **Consenso ❤️** (15%): média diária de (❤️/total), cap em 85%. **Soft-gated** por `low_power_events` — jogadores ativos recebem ~0 contribuição mesmo com muitos ❤️.
 - **Plateia definiu planta**: bônus manual quando existir no Sincerão.
 - **Nota importante:** indicações/contragolpes **contam para quem indicou** e também **para quem recebeu** (peso menor).
 
@@ -495,6 +500,7 @@ for name, info in display_scores.items():
     plant_ratio = 0
     if raw.get("reactions_received"):
         plant_ratio = round((raw.get("plant_received", 0) / raw.get("reactions_received", 1)) * 100, 1)
+    heart_ratio_pct = round(raw.get("heart_ratio", 0) * 100, 1)
     rows.append({
         "Participante": name,
         "Score (rolling)": info.get("rolling", info.get("score", 0)),
@@ -503,6 +509,7 @@ for name, info in display_scores.items():
         "Baixa atividade": breakdown.get("Baixa atividade de poder", 0),
         "Baixa exposição Sincerão": breakdown.get("Baixa exposição no Sincerão", 0),
         "Emoji 🌱": breakdown.get("Emoji 🌱", 0),
+        "Consenso ❤️": breakdown.get("Consenso ❤️", 0),
         "Bônus plateia": breakdown.get("Plateia definiu planta", 0),
         "Atividade poder": raw.get("power_activity", 0),
         "Sincerão edges": raw.get("sincerao_edges", 0),
@@ -510,6 +517,7 @@ for name, info in display_scores.items():
         "Sincerão": "Sim" if raw.get("sincerao_participation") else "Não",
         "🌱 recebidos": raw.get("plant_received", 0),
         "🌱 %": plant_ratio,
+        "❤️ %": heart_ratio_pct,
     })
 
 if not rows:
@@ -519,6 +527,36 @@ else:
     print(df.to_html(index=False, classes="table table-dark table-sm", border=0))
 ```
 
+
+## Consenso ❤️ — Debug
+
+<p class="text-muted">Como o soft-gating funciona: jogadores ativos (low_power ~0) recebem ~0 contribuição mesmo com muitos ❤️.</p>
+
+```{python}
+#| label: heart-debug
+#| output: asis
+
+heart_rows = []
+for name, info in display_scores.items():
+    raw = info.get("raw", {})
+    comps = info.get("components", {})
+    heart_ratio_pct = round(raw.get("heart_ratio", 0) * 100, 1)
+    heart_rows.append({
+        "Participante": name,
+        "❤️ recebidos": raw.get("heart_received", 0),
+        "❤️ % (diária)": f"{heart_ratio_pct}%",
+        "Consenso (raw)": raw.get("heart_uniformity_raw", 0),
+        "Low Power": comps.get("low_power_events", 0),
+        "Consenso (efetivo)": raw.get("heart_uniformity_effective", 0),
+        "Pontos": round(comps.get("heart_uniformity", 0) * 15, 1),
+    })
+
+if not heart_rows:
+    print("<p class='text-muted'>Sem dados de Consenso ❤️.</p>")
+else:
+    df_heart = pd.DataFrame(heart_rows).sort_values("Consenso (efetivo)", ascending=False)
+    print(df_heart.to_html(index=False, classes="table table-dark table-sm", border=0))
+```
 
 ## Detalhes por participante (eventos e sinais)
 
@@ -556,7 +594,14 @@ else:
               f"Invisibilidade {comps.get('invisibility', 0)} · "
               f"Baixa atividade {comps.get('low_power_events', 0)} · "
               f"Baixa exposição Sincerão {comps.get('low_sincerao', 0)} · "
-              f"Emoji 🌱 {comps.get('plant_emoji', 0)}</div>")
+              f"Emoji 🌱 {comps.get('plant_emoji', 0)} · "
+              f"Consenso ❤️ {comps.get('heart_uniformity', 0)}</div>")
+        hr = raw.get("heart_ratio", 0)
+        hu_raw = raw.get("heart_uniformity_raw", 0)
+        hu_eff = raw.get("heart_uniformity_effective", 0)
+        lp = comps.get("low_power_events", 0)
+        print(f"<div style='margin-left:1rem; color:#aaa; font-size:0.85rem;'>"
+              f"Consenso ❤️: ratio={hr*100:.1f}%, raw={hu_raw:.3f}, efetivo={hu_eff:.3f} (gated by low_power={lp:.3f})</div>")
         print(f"<div><strong>Atividade de poder:</strong> {raw.get('power_activity', 0)} (eventos: {raw.get('power_events', 0)})</div>")
         if power_list:
             print("<div style='margin-left:1rem; color:#bbb;'>" + " · ".join(power_list) + "</div>")

@@ -40,6 +40,10 @@ setup_bbb_dark_theme()
 # Diretórios
 DATA_DIR = Path("data/snapshots")
 
+# Load precomputed paredão analysis
+_pa_path = Path("data/derived/paredao_analysis.json")
+PAREDAO_ANALYSIS = json.load(open(_pa_path, encoding="utf-8")) if _pa_path.exists() else {}
+
 MEMBER_OF = {}
 ```
 
@@ -891,7 +895,13 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             rel_type, rel_label, rel_color = classify_relationship(votante, alvo, matrix_p)
             rxn_to = matrix_p.get((votante, alvo), '')
             rxn_from = matrix_p.get((alvo, votante), '')
-            hist = analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, analysis_date)
+            # Prefer precomputed relationship history from JSON
+            _pa_rh = PAREDAO_ANALYSIS.get("by_paredao", {}).get(str(par_num), {}).get("relationship_history", {})
+            _rh_key = f"{votante}→{alvo}"
+            if _rh_key in _pa_rh:
+                hist = _pa_rh[_rh_key]
+            else:
+                hist = analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, analysis_date)
 
             entry = {
                 'votante': votante, 'alvo': alvo,

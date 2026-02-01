@@ -36,6 +36,7 @@ RELATION_POWER_WEIGHTS = {
     "perdeu_voto": -0.6,
     "voto_duplo": 0.0,
     "imunidade": 0.8,
+    "mira_do_lider": -0.5,
 }
 
 RELATION_SINC_WEIGHTS = {
@@ -78,15 +79,17 @@ RELATION_POWER_BACKLASH_FACTOR = {
     "veto_ganha_ganha": 0.5,
     "ganha_ganha_escolha": 0.5,
     "barrado_baile": 0.5,
+    "mira_do_lider": 0.5,
 }
 
 SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa", "Prova Bate e Volta"}
 
 PLANT_INDEX_WEIGHTS = {
-    "invisibility": {"weight": 0.0, "label": "Invisibilidade"},
-    "low_power_events": {"weight": 0.45, "label": "Baixa atividade de poder"},
-    "low_sincerao": {"weight": 0.35, "label": "Baixa exposição no Sincerão"},
-    "plant_emoji": {"weight": 0.20, "label": "Emoji 🌱"},
+    "invisibility": {"weight": 0.10, "label": "Invisibilidade"},
+    "low_power_events": {"weight": 0.35, "label": "Baixa atividade de poder"},
+    "low_sincerao": {"weight": 0.25, "label": "Baixa exposição no Sincerão"},
+    "plant_emoji": {"weight": 0.15, "label": "Emoji 🌱"},
+    "heart_uniformity": {"weight": 0.15, "label": "Consenso ❤️"},
 }
 
 PLANT_POWER_ACTIVITY_WEIGHTS = {
@@ -102,6 +105,7 @@ PLANT_POWER_ACTIVITY_WEIGHTS = {
     "veto_ganha_ganha": {"actor": 0.0, "target": 0.0},
     "ganha_ganha_escolha": {"actor": 0.0, "target": 0.0},
     "barrado_baile": {"actor": 0.0, "target": 0.3},
+    "mira_do_lider": {"actor": 0.0, "target": 0.5},
     "bate_volta": {"actor": 0.0, "target": 2.5},
     "emparedado": {"actor": 0.0, "target": 0.0},
     "volta_paredao": {"actor": 0.0, "target": 2.0},
@@ -122,6 +126,8 @@ PROVA_PLACEMENT_POINTS = {
 PROVA_PLACEMENT_DEFAULT = 0.5  # 9th and beyond
 PROVA_DQ_POINTS = 0
 PLANT_INDEX_EMOJI_CAP = 0.30
+PLANT_INDEX_HEART_CAP = 0.85
+PLANT_INDEX_SINCERAO_DECAY = 0.7
 PLANT_INDEX_ROLLING_WEEKS = 2
 PLANT_GANHA_GANHA_WEIGHT = 0.3
 
@@ -1222,11 +1228,22 @@ def build_daily_metrics(daily_snapshots):
                 r.get("amount", 0) for r in p.get("characteristics", {}).get("receivedReactions", [])
             )
 
+        # Precompute rank per day (ascending=False, method='min')
+        sorted_names = sorted(sentiment.keys(), key=lambda n: sentiment[n], reverse=True)
+        rank = {}
+        prev_score, prev_rank = None, 0
+        for i, name in enumerate(sorted_names):
+            if sentiment[name] != prev_score:
+                prev_rank = i + 1
+                prev_score = sentiment[name]
+            rank[name] = prev_rank
+
         daily.append({
             "date": snap["date"],
             "participant_count": len(snap["participants"]),
             "total_reactions": total_reactions,
             "sentiment": sentiment,
+            "rank": rank,
         })
 
     return daily
@@ -1591,6 +1608,8 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
 
     sinc_weeks = {w.get("week"): w for w in (sincerao_edges or {}).get("weeks", [])}
 
+    prev_sincerao_values = {}
+
     weeks_out = []
     for week in sorted(weekly.keys()):
         week_snaps = weekly[week]["snapshots"]
@@ -1604,6 +1623,9 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
         plant_ratio_sum = defaultdict(float)
         plant_ratio_days = defaultdict(int)
         given = defaultdict(int)
+        received_heart = defaultdict(int)
+        heart_ratio_sum = defaultdict(float)
+        heart_ratio_days = defaultdict(int)
 
         for snap in week_snaps:
             for p in snap["participants"]:
@@ -1613,6 +1635,7 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                 participants.add(name)
                 day_received = 0
                 day_planta = 0
+                day_heart = 0
                 for rxn in p.get("characteristics", {}).get("receivedReactions", []):
                     amount = rxn.get("amount", 0) or 0
                     received[name] += amount
@@ -1620,6 +1643,9 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                     if rxn.get("label") == "Planta":
                         received_planta[name] += amount
                         day_planta += amount
+                    if rxn.get("label") == "Coração":
+                        received_heart[name] += amount
+                        day_heart += amount
                     for giver in rxn.get("participants", []):
                         gname = giver.get("name")
                         if gname:
@@ -1627,6 +1653,8 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                 if day_received > 0:
                     plant_ratio_sum[name] += (day_planta / day_received)
                     plant_ratio_days[name] += 1
+                    heart_ratio_sum[name] += (day_heart / day_received)
+                    heart_ratio_days[name] += 1
 
         power_counts = defaultdict(int)
         power_activity = defaultdict(float)
@@ -1724,8 +1752,8 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                 else:
                     low_sincerao = 0.0
             else:
-                low_sincerao = 0.0
-            sinc_weight = PLANT_INDEX_WEIGHTS["low_sincerao"]["weight"] if has_sincerao else 0.0
+                low_sincerao = prev_sincerao_values.get(name, 0.0) * PLANT_INDEX_SINCERAO_DECAY
+            sinc_weight = PLANT_INDEX_WEIGHTS["low_sincerao"]["weight"]
 
             received_total = received.get(name, 0)
             if plant_ratio_days.get(name, 0) > 0:
@@ -1733,6 +1761,13 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
             else:
                 plant_ratio = 0.0
             plant_score = min(PLANT_INDEX_EMOJI_CAP, plant_ratio) / PLANT_INDEX_EMOJI_CAP if plant_ratio else 0.0
+
+            if heart_ratio_days.get(name, 0) > 0:
+                avg_heart_ratio = heart_ratio_sum[name] / heart_ratio_days[name]
+            else:
+                avg_heart_ratio = 0.0
+            heart_uniformity_raw = (min(PLANT_INDEX_HEART_CAP, avg_heart_ratio) / PLANT_INDEX_HEART_CAP) if avg_heart_ratio > 0 else 0.0
+            heart_uniformity_effective = heart_uniformity_raw * low_power_events
 
             bonus = PLANT_INDEX_BONUS_PLATEIA if planta_plateia_target == name else 0
 
@@ -1743,19 +1778,20 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                 "low_power_events": low_power_weight * low_power_events * 100,
                 "low_sincerao": sinc_weight * low_sincerao * 100,
                 "plant_emoji": PLANT_INDEX_WEIGHTS["plant_emoji"]["weight"] * plant_score * 100,
+                "heart_uniformity": PLANT_INDEX_WEIGHTS["heart_uniformity"]["weight"] * heart_uniformity_effective * 100,
                 "plateia_bonus": bonus,
             }
 
-            base = sum(points[k] for k in ["invisibility", "low_power_events", "low_sincerao", "plant_emoji"])
+            base = sum(points[k] for k in ["invisibility", "low_power_events", "low_sincerao", "plant_emoji", "heart_uniformity"])
             score = max(0.0, min(100.0, base + bonus))
 
             breakdown = [
                 {"label": PLANT_INDEX_WEIGHTS["invisibility"]["label"], "points": round(points["invisibility"], 1)},
                 {"label": PLANT_INDEX_WEIGHTS["low_power_events"]["label"], "points": round(points["low_power_events"], 1)},
+                {"label": PLANT_INDEX_WEIGHTS["low_sincerao"]["label"], "points": round(points["low_sincerao"], 1)},
+                {"label": PLANT_INDEX_WEIGHTS["plant_emoji"]["label"], "points": round(points["plant_emoji"], 1)},
+                {"label": PLANT_INDEX_WEIGHTS["heart_uniformity"]["label"], "points": round(points["heart_uniformity"], 1)},
             ]
-            if has_sincerao:
-                breakdown.append({"label": PLANT_INDEX_WEIGHTS["low_sincerao"]["label"], "points": round(points["low_sincerao"], 1)})
-            breakdown.append({"label": PLANT_INDEX_WEIGHTS["plant_emoji"]["label"], "points": round(points["plant_emoji"], 1)})
             if bonus:
                 breakdown.append({"label": "Plateia definiu planta", "points": bonus})
 
@@ -1766,6 +1802,7 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                     "low_power_events": round(low_power_events, 3),
                     "low_sincerao": round(low_sincerao, 3),
                     "plant_emoji": round(plant_score, 3),
+                    "heart_uniformity": round(heart_uniformity_effective, 3),
                     "plateia_bonus": 1 if bonus else 0,
                 },
                 "breakdown": breakdown,
@@ -1774,6 +1811,10 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                     "reactions_received": received_total,
                     "reactions_given": given.get(name, 0),
                     "plant_received": received_planta.get(name, 0),
+                    "heart_received": received_heart.get(name, 0),
+                    "heart_ratio": round(avg_heart_ratio, 3),
+                    "heart_uniformity_raw": round(heart_uniformity_raw, 3),
+                    "heart_uniformity_effective": round(heart_uniformity_effective, 3),
                     "power_events": power_count,
                     "power_activity": round(activity_score, 2),
                     "sincerao_edges": sinc_edges_count,
@@ -1782,6 +1823,7 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
                     "plateia_planta": planta_plateia_target == name,
                 },
             }
+            prev_sincerao_values[name] = low_sincerao
 
         weeks_out.append({
             "week": week,
@@ -1809,6 +1851,8 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
             "weights": {k: v["weight"] for k, v in PLANT_INDEX_WEIGHTS.items()},
             "rolling_window": PLANT_INDEX_ROLLING_WEEKS,
             "emoji_cap": PLANT_INDEX_EMOJI_CAP,
+            "heart_cap": PLANT_INDEX_HEART_CAP,
+            "sincerao_decay": PLANT_INDEX_SINCERAO_DECAY,
             "bonus_plateia": PLANT_INDEX_BONUS_PLATEIA,
         },
         "weeks": weeks_out,
@@ -2277,6 +2321,21 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
             if 'Paredão' in roles:
                 current_roles['Paredão'].append(name)
 
+    # Cumulative evolution: running totals per participant per week
+    cumulative_evolution = []
+    running_totals_evo = defaultdict(int)
+    for week in range(1, n_weeks + 1):
+        for participant in all_points:
+            if week in all_points[participant]:
+                week_pts = sum(pts for _, pts, _ in all_points[participant][week])
+                running_totals_evo[participant] += week_pts
+            if running_totals_evo[participant] != 0:
+                cumulative_evolution.append({
+                    "week": week,
+                    "name": participant,
+                    "cumulative_points": running_totals_evo[participant],
+                })
+
     return {
         "_metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -2285,6 +2344,7 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
         },
         "leaderboard": leaderboard,
         "weekly_points": weekly_points,
+        "cumulative_evolution": cumulative_evolution,
         "stats": {
             "n_with_points": len([p for p in leaderboard if p['total'] != 0]),
             "n_active": len([p for p in leaderboard if p['active']]),
@@ -2922,6 +2982,7 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
         "veto": "🚫", "big_fone": "📞", "voto_duplo": "✌️",
         "perdeu_voto": "🔇", "ganhou_veto": "🛡️", "ganha_ganha": "🎰",
         "barrado_baile": "🚫", "monstro": "👹",
+        "mira_do_lider": "🔭",
     }
     for ev in manual_events.get("power_events", []):
         t = ev.get("type", "poder")
@@ -2936,7 +2997,8 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
         elif actor:
             title_parts.append(actor)
         title_parts.append(t.replace("_", " ").capitalize())
-        participants = list({p for p in [actor, target] if p})
+        actors_list = normalize_actors(ev)
+        participants = list({p for p in actors_list + [target] if p})
         events.append({
             "date": date, "week": week, "category": t,
             "emoji": emoji, "title": " — ".join(title_parts),
@@ -3054,13 +3116,16 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
         })
 
     # --- 7. Scheduled (future) events ---
-    existing_keys = {(e["date"], e["category"], e["title"]) for e in events}
+    # Dedup by (date, category): if ANY real event exists for that date+category,
+    # the scheduled placeholder is dropped (titles often differ, e.g. "Prova do Anjo"
+    # vs "Sarah Andrade → Anjo").
+    existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
         date = se.get("date", "")
         week = se.get("week") or (get_week_number(date) if date else 0)
-        key = (date, se.get("category", ""), se.get("title", ""))
-        if key in existing_keys:
-            continue  # skip if a real event already covers this
+        key = (date, se.get("category", ""))
+        if key in existing_date_cat:
+            continue  # skip — a real event already covers this date+category
         events.append({
             "date": date, "week": week, "category": se.get("category", "dinamica"),
             "emoji": se.get("emoji", "🔮"), "title": se.get("title", ""),
@@ -3090,6 +3155,387 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
             unique.append(e)
 
     return unique
+
+
+def build_power_summary(manual_events, auto_events):
+    """Build per-participant power event impact summary.
+
+    Returns a dict with by_participant counts and sorted_by_saldo list.
+    """
+    all_events = manual_events.get("power_events", []) + auto_events
+    by_participant = defaultdict(lambda: {"positivo": 0, "negativo": 0, "neutro": 0})
+    for ev in all_events:
+        target = ev.get("target", "")
+        if not target:
+            continue
+        impacto = ev.get("impacto", "neutro")
+        if impacto in ("positivo", "negativo", "neutro"):
+            by_participant[target][impacto] += 1
+        else:
+            by_participant[target]["neutro"] += 1
+
+    result = {}
+    for name, counts in by_participant.items():
+        result[name] = {
+            "positivo": counts["positivo"],
+            "negativo": counts["negativo"],
+            "neutro": counts["neutro"],
+            "saldo": counts["positivo"] - counts["negativo"],
+        }
+
+    sorted_names = sorted(result.keys(), key=lambda n: result[n]["saldo"])
+
+    return {
+        "by_participant": result,
+        "sorted_by_saldo": sorted_names,
+    }
+
+
+def build_paredao_analysis(daily_snapshots, paredoes_data):
+    """Build quick insights and relationship history for each paredão.
+
+    Returns a dict keyed by paredão number with stats for each nominee
+    and relationship history for each voter→target pair.
+    """
+    by_paredao = {}
+    paredoes_list = paredoes_data.get("paredoes", []) if paredoes_data else []
+
+    # Build daily matrices once
+    daily_matrices = []
+    for snap in daily_snapshots:
+        active = [p for p in snap["participants"]
+                  if not p.get("characteristics", {}).get("eliminated")]
+        daily_matrices.append(build_reaction_matrix(active))
+
+    for par in paredoes_list:
+        numero = par.get("numero")
+        if not numero:
+            continue
+        data_formacao = par.get("data_formacao") or par.get("data", "")
+        status = par.get("status", "")
+        indicados = par.get("participantes", [])
+        if isinstance(indicados, list):
+            indicados = [p.get("nome", p) if isinstance(p, dict) else p for p in indicados]
+
+        is_finalizado = status == "finalizado"
+        analysis_date = data_formacao
+
+        # Find snapshot for analysis
+        snap_for_analysis = None
+        if is_finalizado:
+            for snap in reversed(daily_snapshots):
+                if snap["date"] <= analysis_date:
+                    snap_for_analysis = snap
+                    break
+            if snap_for_analysis is None and daily_snapshots:
+                snap_for_analysis = daily_snapshots[0]
+        else:
+            snap_for_analysis = daily_snapshots[-1] if daily_snapshots else None
+
+        if not snap_for_analysis:
+            continue
+
+        # Sentiment in analysis snapshot
+        sent_paredao = {}
+        neg_paredao = {}
+        for p in snap_for_analysis["participants"]:
+            if p.get("characteristics", {}).get("eliminated"):
+                continue
+            name = p["name"]
+            sent_paredao[name] = calc_sentiment(p)
+            neg_paredao[name] = sum(
+                r["amount"] for r in p.get("characteristics", {}).get("receivedReactions", [])
+                if r["label"] != "Coração"
+            )
+
+        # Ranking
+        ranking_paredao = sorted(sent_paredao.items(), key=lambda x: x[1], reverse=True)
+        rank_map = {name: i + 1 for i, (name, _) in enumerate(ranking_paredao)}
+
+        # Historical daily series (up to analysis_date for finalizado)
+        daily_sent = []  # list of (date, {name: sentiment})
+        for snap in daily_snapshots:
+            date = snap["date"]
+            if is_finalizado and date > analysis_date:
+                continue
+            day_scores = {}
+            for p in snap["participants"]:
+                if p.get("characteristics", {}).get("eliminated"):
+                    continue
+                day_scores[p["name"]] = calc_sentiment(p)
+            daily_sent.append((date, day_scores))
+
+        # Top5/Bottom5 counts
+        from collections import Counter
+        top5_counts = Counter()
+        bottom5_counts = Counter()
+        for _date, scores in daily_sent:
+            sorted_names = sorted(scores.keys(), key=lambda n: scores[n], reverse=True)
+            for n in sorted_names[:5]:
+                top5_counts[n] += 1
+            for n in sorted_names[-5:]:
+                bottom5_counts[n] += 1
+
+        # Trend 3-day
+        def _trend_3d(name):
+            series = [scores.get(name) for _, scores in daily_sent if name in scores]
+            if len(series) < 2:
+                return None
+            last = series[-1]
+            if len(series) >= 4:
+                prev = sum(series[-4:-1]) / 3
+            else:
+                prev = sum(series[:-1]) / (len(series) - 1)
+            return last - prev
+
+        # Build per-indicado stats
+        indicados_stats = []
+        for nome in indicados:
+            series = [scores.get(nome) for _, scores in daily_sent if nome in scores]
+            total_days = len(series)
+            neg_days = sum(1 for v in series if v is not None and v < 0)
+            pct_neg = (neg_days / total_days * 100) if total_days else 0
+
+            delta = _trend_3d(nome)
+            if delta is None:
+                delta_str = "—"
+            elif delta >= 0.8:
+                delta_str = f"▲ +{delta:.1f}"
+            elif delta <= -0.8:
+                delta_str = f"▼ {delta:.1f}"
+            else:
+                delta_str = f"≈ {delta:+.1f}"
+
+            indicados_stats.append({
+                "nome": nome,
+                "sentimento": round(sent_paredao.get(nome, 0), 1),
+                "rank": rank_map.get(nome, 0),
+                "delta_3d": delta_str,
+                "dias_top5": top5_counts.get(nome, 0),
+                "dias_bottom5": bottom5_counts.get(nome, 0),
+                "dias_negativos": f"{neg_days}/{total_days} ({pct_neg:.0f}%)",
+                "negs_recebidas": neg_paredao.get(nome, 0),
+            })
+
+        # Historical series for indicados
+        historical_series = []
+        for date, scores in daily_sent:
+            for nome in indicados:
+                if nome in scores:
+                    historical_series.append({
+                        "date": date,
+                        "name": nome,
+                        "sentiment": round(scores[nome], 2),
+                    })
+
+        # Relationship history for each voter→target pair
+        votos = par.get("votos_casa", {}) or {}
+        relationship_history = {}
+        for votante, alvo in votos.items():
+            if not votante or not alvo:
+                continue
+            key = f"{votante}→{alvo}"
+            history = []
+            days_positive = 0
+            days_negative = 0
+            days_mutual_positive = 0
+            change_date = None
+            prev_was_positive = None
+
+            for i, mat in enumerate(daily_matrices):
+                snap_date = daily_snapshots[i]["date"]
+                if is_finalizado and snap_date > analysis_date:
+                    break
+                rxn_v = mat.get((votante, alvo), "")
+                if not rxn_v:
+                    continue
+                rxn_a = mat.get((alvo, votante), "")
+                v_pos = rxn_v in POSITIVE
+                v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
+                history.append((snap_date, rxn_v, rxn_a))
+                if v_pos:
+                    days_positive += 1
+                    if prev_was_positive is False:
+                        change_date = snap_date
+                elif v_neg:
+                    days_negative += 1
+                    if prev_was_positive is True:
+                        change_date = snap_date
+                if v_pos and rxn_a in POSITIVE:
+                    days_mutual_positive += 1
+                prev_was_positive = v_pos
+
+            total_hist_days = len(history)
+            if total_hist_days == 0:
+                rh = {"pattern": "sem_dados", "days_as_friends": 0, "days_as_enemies": 0,
+                      "days_mutual_friends": 0, "change_date": None,
+                      "narrative": "Sem dados", "total_days": 0}
+            else:
+                current_positive = history[-1][1] in POSITIVE
+                if days_positive == total_hist_days:
+                    pattern, narrative = "sempre_amigos", f"Sempre deu ❤️ ({days_positive} dias)."
+                elif days_negative == total_hist_days:
+                    pattern, narrative = "sempre_inimigos", f"Inimigos desde o início ({days_negative} dias)."
+                elif days_positive > 0 and not current_positive and change_date:
+                    days_since = sum(1 for d, _, _ in history if d >= change_date)
+                    if days_since <= 2:
+                        pattern, narrative = "recem_inimigos", f"Eram amigos por {days_positive} dias, mudou há {days_since} dia(s)!"
+                    else:
+                        pattern, narrative = "ex_amigos", f"Foram amigos por {days_positive} dias, romperam em {change_date}."
+                elif days_negative > 0 and current_positive and change_date:
+                    pattern, narrative = "reconciliados", f"Reconciliaram em {change_date}."
+                else:
+                    pattern, narrative = "instavel", f"Instável: {days_positive}d ❤️, {days_negative}d negativo."
+
+                rh = {"pattern": pattern, "days_as_friends": days_positive,
+                      "days_as_enemies": days_negative,
+                      "days_mutual_friends": days_mutual_positive,
+                      "change_date": change_date,
+                      "narrative": narrative, "total_days": total_hist_days}
+
+            relationship_history[key] = rh
+
+        by_paredao[str(numero)] = {
+            "numero": numero,
+            "status": status,
+            "data_formacao": data_formacao,
+            "indicados": indicados,
+            "quick_insights": {
+                "analysis_date": analysis_date,
+                "indicados_stats": indicados_stats,
+                "historical_series": historical_series,
+                "negs_recebidas": {nome: neg_paredao.get(nome, 0) for nome in indicados},
+            },
+            "relationship_history": relationship_history,
+        }
+
+    return {"by_paredao": by_paredao}
+
+
+def build_paredao_badges(daily_snapshots, paredoes_data):
+    """Build badge-vs-reality analysis for each paredão.
+
+    Computes per-participant vulnerability, impact, and vote counts
+    at each paredão formation date.
+    """
+    paredoes_list = paredoes_data.get("paredoes", []) if paredoes_data else []
+    relations_file = DERIVED_DIR / "relations_scores.json"
+    relations_data = {}
+    if relations_file.exists():
+        with open(relations_file, encoding="utf-8") as f:
+            relations_data = json.load(f)
+    received_impact = relations_data.get("received_impact", {})
+
+    # Precompute votes received by week
+    votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    for par in paredoes_list:
+        votos = par.get("votos_casa", {}) or {}
+        if not votos:
+            continue
+        week = par.get("semana")
+        for voter, target in votos.items():
+            votes_received_by_week[week][target][voter] += 1
+
+    by_paredao = {}
+    for par in paredoes_list:
+        data_form = par.get("data_formacao") or par.get("data")
+        week = par.get("semana")
+        numero = par.get("numero")
+        if not data_form or not week or not numero:
+            continue
+
+        # Find snapshot on or before formation date
+        snap_found = None
+        for snap in reversed(daily_snapshots):
+            if snap["date"] <= data_form:
+                snap_found = snap
+                break
+        if not snap_found:
+            continue
+
+        active = [p for p in snap_found["participants"]
+                  if not p.get("characteristics", {}).get("eliminated")]
+        active_names = [p["name"] for p in active]
+        matrix = build_reaction_matrix(active)
+
+        # Ineligible from paredão formation
+        ineligible = set()
+        indicacoes = defaultdict(int)
+        form = par.get("formacao", {}) if isinstance(par.get("formacao"), dict) else {}
+        indicado_lider = form.get("indicado_lider")
+        if indicado_lider:
+            ineligible.add(indicado_lider)
+            indicacoes[indicado_lider] += 1
+        bf = form.get("big_fone") or {}
+        if isinstance(bf, dict) and bf.get("indicou"):
+            ineligible.add(bf.get("indicou"))
+            indicacoes[bf.get("indicou")] += 1
+        cg = form.get("contragolpe") or {}
+        if isinstance(cg, dict) and cg.get("para"):
+            ineligible.add(cg.get("para"))
+            indicacoes[cg.get("para")] += 1
+        din = form.get("dinamica") or {}
+        alvo = din.get("indicado")
+        if alvo:
+            ineligible.add(alvo)
+            indicacoes[alvo] += 1
+        im = form.get("imunizado") or {}
+        if isinstance(im, dict) and im.get("quem"):
+            ineligible.add(im.get("quem"))
+
+        badges = []
+        for p in active:
+            name = p["name"]
+            # False friends (vulnerability)
+            ff = 0
+            for b in active_names:
+                if b == name:
+                    continue
+                my = matrix.get((name, b))
+                their = matrix.get((b, name))
+                if my in POSITIVE and their and their not in POSITIVE:
+                    ff += 1
+            if ff >= 5:
+                vuln = "🔴 MUITO VULNERÁVEL"
+            elif ff >= 3:
+                vuln = "🟠 VULNERÁVEL"
+            elif ff >= 1:
+                vuln = "🟡 ATENÇÃO"
+            else:
+                vuln = "🟢 PROTEGIDO"
+
+            votes_count = sum(votes_received_by_week.get(week, {}).get(name, {}).values())
+            indic_count = indicacoes.get(name, 0)
+
+            impact = received_impact.get(name, {})
+            external_score = impact.get("negative", 0)
+            if external_score <= -10:
+                external_level = "🔴 ALTO"
+            elif external_score <= -5:
+                external_level = "🟠 MÉDIO"
+            elif external_score < 0:
+                external_level = "🟡 BAIXO"
+            else:
+                external_level = "🟢 NENHUM"
+
+            badges.append({
+                "participante": name,
+                "votos_casa": votes_count,
+                "indicacoes": indic_count,
+                "elegivel_voto": name not in ineligible,
+                "vulnerabilidade": vuln,
+                "impacto_negativo": external_level,
+                "impact_score": round(external_score, 2),
+                "falsos_amigos": ff,
+            })
+
+        by_paredao[str(numero)] = {
+            "numero": numero,
+            "data_formacao": data_form,
+            "badges": badges,
+        }
+
+    return {"by_paredao": by_paredao}
 
 
 def write_json(path, payload):
@@ -3159,9 +3605,11 @@ def build_derived_data():
         "daily": daily_roles,
     })
 
+    power_summary = build_power_summary(manual_events, auto_events)
     write_json(DERIVED_DIR / "auto_events.json", {
         "_metadata": {"generated_at": now, "source": "roles_daily"},
         "events": auto_events,
+        "power_summary": power_summary,
     })
 
     impact_history = build_impact_history(relations_scores)
@@ -3199,6 +3647,19 @@ def build_derived_data():
     clusters_data = build_clusters_data(relations_scores, participants_index, paredoes)
     if clusters_data:
         write_json(DERIVED_DIR / "clusters_data.json", clusters_data)
+
+    # Build paredão analysis + badges
+    paredao_analysis = build_paredao_analysis(daily_snapshots, paredoes)
+    write_json(DERIVED_DIR / "paredao_analysis.json", {
+        "_metadata": {"generated_at": now, "source": "snapshots+paredoes+manual_events"},
+        **paredao_analysis,
+    })
+
+    paredao_badges = build_paredao_badges(daily_snapshots, paredoes)
+    write_json(DERIVED_DIR / "paredao_badges.json", {
+        "_metadata": {"generated_at": now, "source": "snapshots+paredoes+relations"},
+        **paredao_badges,
+    })
 
     write_json(DERIVED_DIR / "validation.json", {
         "_metadata": {"generated_at": now, "source": "manual_events"},

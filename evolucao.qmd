@@ -31,7 +31,7 @@ from data_utils import (
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
-    POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
+    POWER_EVENT_EMOJI, POWER_EVENT_LABELS, render_cronologia_html,
 )
 
 require_clean_manual_events()
@@ -231,97 +231,10 @@ Linha do tempo completa dos eventos da temporada — eventos mais recentes prime
 timeline_path = Path("data/derived/game_timeline.json")
 if timeline_path.exists():
     with open(timeline_path, encoding="utf-8") as f:
-        timeline_data = json.load(f)
-    timeline_events = timeline_data.get("events", [])
+        timeline_events = json.load(f).get("events", [])
+    print(render_cronologia_html(timeline_events))
 else:
-    timeline_events = []
-
-if timeline_events:
-    cat_colors = {
-        "entrada": "#28a745", "saida": "#dc3545", "lider": "#ffc107",
-        "anjo": "#87ceeb", "monstro": "#9b59b6", "imune": "#17a2b8",
-        "big_fone": "#ff6b35", "paredao_formacao": "#e74c3c",
-        "paredao_resultado": "#c0392b", "indicacao": "#e67e22",
-        "contragolpe": "#d35400", "bate_volta": "#f39c12",
-        "sincerao": "#1abc9c", "ganha_ganha": "#2ecc71",
-        "barrado_baile": "#95a5a6", "dinamica": "#8e44ad",
-        "veto": "#7f8c8d", "poder": "#e74c3c",
-        "imunidade": "#17a2b8", "perdeu_voto": "#95a5a6",
-        "voto_anulado": "#7f8c8d", "voto_duplo": "#e67e22",
-        "veto_ganha_ganha": "#7f8c8d", "ganha_ganha_escolha": "#2ecc71",
-        "veto_prova": "#7f8c8d",
-    }
-    cat_labels = {
-        "entrada": "Entrada", "saida": "Saída", "lider": "Líder",
-        "anjo": "Anjo", "monstro": "Monstro", "imune": "Imune",
-        "big_fone": "Big Fone", "paredao_formacao": "Paredão",
-        "paredao_resultado": "Resultado", "indicacao": "Indicação",
-        "contragolpe": "Contragolpe", "bate_volta": "Bate-Volta",
-        "sincerao": "Sincerão", "ganha_ganha": "Ganha-Ganha",
-        "barrado_baile": "Barrado", "dinamica": "Dinâmica",
-        "veto": "Veto", "poder": "Poder",
-        "imunidade": "Imune", "perdeu_voto": "Perdeu Voto",
-        "voto_anulado": "Voto Anulado", "voto_duplo": "Voto Duplo",
-        "veto_ganha_ganha": "Veto GG", "ganha_ganha_escolha": "Escolha GG",
-        "veto_prova": "Veto Prova",
-    }
-
-    # Group by week, then reverse: latest week first, latest events first
-    weeks = {}
-    for ev in timeline_events:
-        w = ev.get("week", 0)
-        weeks.setdefault(w, []).append(ev)
-
-    sorted_weeks = sorted(weeks.items(), key=lambda x: x[0], reverse=True)
-
-    html = '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
-    html += '<table style="width:100%; border-collapse:collapse; font-size:0.9em;">'
-    html += '<thead style="position:sticky; top:0; z-index:1;">'
-    html += '<tr style="background:#1a1a2e; color:#eee;">'
-    html += '<th style="padding:8px; text-align:left;">Data</th>'
-    html += '<th style="padding:8px; text-align:center; min-width:130px;">Tipo</th>'
-    html += '<th style="padding:8px; text-align:left;">Evento</th>'
-    html += '<th style="padding:8px; text-align:left;">Detalhe</th>'
-    html += '</tr></thead><tbody>'
-
-    for week_num, week_events in sorted_weeks:
-        html += f'<tr style="background:#16213e;"><td colspan="4" style="padding:6px 8px; font-weight:bold; color:#ffc107;">Semana {week_num}</td></tr>'
-        for ev in reversed(week_events):
-            cat = ev.get("category", "")
-            color = cat_colors.get(cat, "#666")
-            label = cat_labels.get(cat, cat.replace("_", " ").capitalize())
-            emoji = ev.get("emoji", "")
-            title = ev.get("title", "")
-            detail = ev.get("detail", "")
-            date = ev.get("date", "")
-            is_scheduled = ev.get("status") == "scheduled"
-            time_info = ev.get("time", "")
-
-            if is_scheduled:
-                badge = f'<span style="background:transparent; color:{color}; border:1px dashed {color}; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
-                time_badge = f'<br><span style="background:#ffc107; color:#000; padding:1px 5px; border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>' if time_info else ''
-                row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
-                title_cell = f'{emoji} {title}{time_badge}'
-                date_cell = f'{date}'
-                detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
-            else:
-                badge = f'<span style="background:{color}; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
-                row_style = 'border-bottom:1px solid #333;'
-                title_cell = f'{emoji} {title}'
-                date_cell = date
-                detail_text = detail
-
-            html += f'<tr style="{row_style}">'
-            html += f'<td style="padding:6px 8px; color:#aaa; white-space:nowrap;">{date_cell}</td>'
-            html += f'<td style="padding:6px 8px; text-align:center;">{badge}</td>'
-            html += f'<td style="padding:6px 8px;">{title_cell}</td>'
-            html += f'<td style="padding:6px 8px; color:#999; font-size:0.85em;">{detail_text}</td>'
-            html += '</tr>'
-
-    html += '</tbody></table></div>'
-    print(html)
-else:
-    print("<p class='text-muted'>Nenhum evento na cronologia. Execute <code>python scripts/build_derived_data.py</code>.</p>")
+    print("<p class='text-muted'>Nenhum evento na cronologia.</p>")
 ```
 
 ```{python}
@@ -611,12 +524,14 @@ timeline_data = []
 if daily_metrics_map:
     for date_str in sorted(daily_metrics_map.keys()):
         entry = daily_metrics_map[date_str]
+        rank_map = entry.get('rank', {})
         for name, score in entry.get('sentiment', {}).items():
             timeline_data.append({
                 'Data': pd.to_datetime(date_str),
                 'Participante': name,
                 'Sentimento': score,
-                'Grupo': MEMBER_OF.get(name, '?')
+                'Grupo': MEMBER_OF.get(name, '?'),
+                'Rank': rank_map.get(name, 0),
             })
 else:
     for snap in daily_snapshots:
@@ -627,12 +542,13 @@ else:
                 'Data': pd.to_datetime(snap['date']),
                 'Participante': p['name'],
                 'Sentimento': calc_sentiment(p),
-                'Grupo': p.get('characteristics', {}).get('memberOf', '?')
+                'Grupo': p.get('characteristics', {}).get('memberOf', '?'),
+                'Rank': 0,
             })
 
 df_timeline = pd.DataFrame(timeline_data)
 
-if not df_timeline.empty:
+if not df_timeline.empty and (df_timeline['Rank'] == 0).all():
     df_timeline['Rank'] = df_timeline.groupby('Data')['Sentimento'].rank(ascending=False, method='min').astype(int)
 
 all_participants = sorted(df_timeline['Participante'].unique()) if not df_timeline.empty else []
@@ -1359,8 +1275,13 @@ else:
     df_show = df_power.sort_values('Data')[['date', 'Dinâmica', 'Tipo', 'actor', 'target', 'detail', 'impacto']]
 
     def render_person_cell(value, border):
+        # Handle lists or " + "-separated actor strings (consensus events)
+        items = None
         if isinstance(value, list):
             items = [v for v in value if v]
+        elif isinstance(value, str) and " + " in value:
+            items = [v.strip() for v in value.split(" + ") if v.strip()]
+        if items:
             if not items: return '—'
             avatar_htmls = []
             for name in items:
@@ -1424,17 +1345,18 @@ else:
 #| label: power-impact
 #| output: asis
 
-if not power_events:
+power_summary = auto_payload.get("power_summary", {}) if 'auto_payload' in dir() and isinstance(auto_payload, dict) else {}
+ps_by_part = power_summary.get("by_participant", {})
+ps_sorted = power_summary.get("sorted_by_saldo", [])
+
+if not ps_by_part:
     print("*Nenhum poder registrado ainda.*")
 else:
-    df_power = pd.DataFrame(power_events).copy()
-    df_power['impacto'] = df_power.get('impacto', 'neutro')
-    counts = df_power.pivot_table(index='target', columns='impacto', values='type', aggfunc='count', fill_value=0)
-    pos = counts.get('positivo', pd.Series(dtype=int))
-    neg = counts.get('negativo', pd.Series(dtype=int))
-    impact = pd.DataFrame({'positivo': pos, 'negativo': neg}).fillna(0)
-    impact['saldo'] = impact['positivo'] - impact['negativo']
-    impact = impact.sort_values('saldo')
+    impact = pd.DataFrame([
+        {"name": name, "positivo": ps_by_part[name]["positivo"],
+         "negativo": ps_by_part[name]["negativo"], "saldo": ps_by_part[name]["saldo"]}
+        for name in ps_sorted
+    ]).set_index("name")
 
     fig = go.Figure()
     fig.add_trace(go.Bar(y=impact.index, x=[-v for v in impact['negativo']],

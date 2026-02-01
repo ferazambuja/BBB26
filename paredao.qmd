@@ -879,121 +879,46 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 # and reflects data as it was at voting time.
 # ══════════════════════════════════════════════════════════════════════════════
 
+paredao_analysis_data = {}
+_pa_path = Path("data/derived/paredao_analysis.json")
+if _pa_path.exists():
+    with open(_pa_path) as f:
+        paredao_analysis_data = json.load(f)
+
 if ultimo and ultimo.get('participantes'):
     indicados = [p['nome'] for p in ultimo['participantes']]
-    analysis_date = ultimo.get('data_formacao') or ultimo.get('data') or latest['date']
+    par_numero = str(ultimo.get('numero', ''))
     is_finalizado = ultimo.get('status') == 'finalizado'
+    analysis_date = ultimo.get('data_formacao') or ultimo.get('data') or latest['date']
 
-    # ── Determine which snapshot to use for "today" analysis ──
-    # For finalizado: use paredão-date snapshot (frozen historical view)
-    # For em_andamento: use latest snapshot (live current view)
+    # Load precomputed quick insights
+    pa_entry = paredao_analysis_data.get("by_paredao", {}).get(par_numero, {})
+    qi = pa_entry.get("quick_insights", {})
+    indicados_stats = qi.get("indicados_stats", [])
+    negs_recebidas = qi.get("negs_recebidas", {})
+
     if is_finalizado:
-        # Find the snapshot closest to paredão date
-        snap_for_analysis = None
-        for snap in reversed(snapshots):
-            if snap['date'] <= analysis_date:
-                snap_for_analysis = snap
-                break
-        if snap_for_analysis is None:
-            snap_for_analysis = snapshots[0]
-        analysis_date_label = f"📅 Dados de **{snap_for_analysis['date']}** (dia da formação)"
+        analysis_date_label = f"📅 Dados de **{qi.get('analysis_date', analysis_date)}** (dia da formação)"
     else:
-        snap_for_analysis = latest
         analysis_date_label = f"📅 Dados de **{latest['label']}** (atual)"
 
-    # Sentimento e negativas no snapshot de análise
-    sent_paredao = {}
-    neg_paredao = {}
-    for p in snap_for_analysis['participants']:
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        sent_paredao[name] = calc_sentiment(p)
-        neg_paredao[name] = sum(
-            r['amount'] for r in p.get('characteristics', {}).get('receivedReactions', [])
-            if r['label'] != 'Coração'
-        )
-
-    # Ranking no snapshot de análise
-    ranking_paredao = sorted(sent_paredao.items(), key=lambda x: x[1], reverse=True)
-    rank_map = {name: i + 1 for i, (name, _) in enumerate(ranking_paredao)}
-
-    # ── Série histórica (diária) — filtered to paredão date for finalizado ──
-    rows = []
-    for snap in daily_snapshots:
-        date = snap['date']
-        # For finalizado paredões, don't include data AFTER the paredão
-        if is_finalizado and date > analysis_date:
-            continue
-        for p in snap['participants']:
-            if p.get('characteristics', {}).get('eliminated'):
-                continue
-            rows.append({
-                'date': date,
-                'name': p['name'],
-                'sentiment': calc_sentiment(p),
-            })
-
-    df_daily = pd.DataFrame(rows)
-
-    # Top/bottom 5 por dia
-    top5_counts = Counter()
-    bottom5_counts = Counter()
-    for date, g in df_daily.groupby('date'):
-        g_sorted = g.sort_values('sentiment', ascending=False)
-        top = g_sorted.head(5)['name']
-        bottom = g_sorted.tail(5)['name']
-        for n in top:
-            top5_counts[n] += 1
-        for n in bottom:
-            bottom5_counts[n] += 1
-
-    # Funções auxiliares
-    def trend_3d(name):
-        series = df_daily[df_daily['name'] == name].sort_values('date')['sentiment'].tolist()
-        if len(series) < 2:
-            return None
-        last = series[-1]
-        if len(series) >= 4:
-            prev = sum(series[-4:-1]) / 3
-        else:
-            prev = sum(series[:-1]) / (len(series) - 1)
-        return last - prev
-
-    # Construir tabela resumida
+    # Build table_rows from precomputed stats
     table_rows = []
-    for nome in indicados:
-        series = df_daily[df_daily['name'] == nome].sort_values('date')['sentiment'].tolist()
-        total_days = len(series)
-        neg_days = sum(1 for v in series if v < 0)
-        pct_neg = (neg_days / total_days * 100) if total_days else 0
-
-        delta = trend_3d(nome)
-        if delta is None:
-            delta_str = "—"
-        elif delta >= 0.8:
-            delta_str = f"▲ +{delta:.1f}"
-        elif delta <= -0.8:
-            delta_str = f"▼ {delta:.1f}"
-        else:
-            delta_str = f"≈ {delta:+.1f}"
-
+    for stat in indicados_stats:
+        nome = stat["nome"]
         table_rows.append({
             'Indicado': nome,
             'Grupo': MEMBER_OF.get(nome, '?'),
-            'Sentimento': f"{sent_paredao.get(nome, 0):+.1f}",
-            'Rank': rank_map.get(nome, '—'),
-            'Δ 3 dias': delta_str,
-            'Dias no Top 5': top5_counts.get(nome, 0),
-            'Dias no Bottom 5': bottom5_counts.get(nome, 0),
-            'Dias negativos': f"{neg_days}/{total_days} ({pct_neg:.0f}%)",
+            'Sentimento': f"{stat['sentimento']:+.1f}",
+            'Rank': stat.get('rank', '—'),
+            'Δ 3 dias': stat.get('delta_3d', '—'),
+            'Dias no Top 5': stat.get('dias_top5', 0),
+            'Dias no Bottom 5': stat.get('dias_bottom5', 0),
+            'Dias negativos': stat.get('dias_negativos', '—'),
         })
-
-    df_table = pd.DataFrame(table_rows)
 
     print("## 🔍 Leitura Rápida dos Indicados\n")
 
-    # Show data source indicator
     if is_finalizado:
         print(f'<div class="alert alert-secondary" style="font-size: 0.9rem;">')
         print(f'{analysis_date_label} — análise histórica congelada no momento da formação.')
@@ -1033,24 +958,32 @@ if ultimo and ultimo.get('participantes'):
     # Destaques dos indicados
     if table_rows:
         worst_paredao = min(table_rows, key=lambda x: float(x['Sentimento'].replace('+', '')))
-        most_neg = max(table_rows, key=lambda x: neg_paredao.get(x['Indicado'], 0))
+        most_neg = max(table_rows, key=lambda x: negs_recebidas.get(x['Indicado'], 0))
         most_bottom = max(table_rows, key=lambda x: x['Dias no Bottom 5'])
         most_top = max(table_rows, key=lambda x: x['Dias no Top 5'])
 
-        deltas = {r['Indicado']: trend_3d(r['Indicado']) for r in table_rows}
-        deltas = {k: v for k, v in deltas.items() if v is not None}
+        # Parse deltas from precomputed strings
+        deltas = {}
+        for r in table_rows:
+            d = r['Δ 3 dias']
+            if d == '—':
+                continue
+            try:
+                val = float(d.replace('▲', '').replace('▼', '').replace('≈', '').strip())
+                deltas[r['Indicado']] = val
+            except ValueError:
+                pass
 
         print("\n### 📊 Destaques\n")
 
-        # Adapt labels based on whether this is historical or current
         rejected_label = "Mais rejeitado (paredão)" if is_finalizado else "Mais rejeitado hoje"
-        negativas_label = "Mais negativas recebidas" if is_finalizado else "Mais negativas recebidas"
+        negativas_label = "Mais negativas recebidas"
 
         print('<table class="table" style="max-width: 750px; font-size: 1.05rem;">')
         print('<thead><tr><th>Métrica</th><th>Participante</th><th style="text-align:center;">Valor</th></tr></thead>')
         print('<tbody>')
         print(f'<tr><td>🔴 <strong>{rejected_label}</strong></td><td>{avatar_html(worst_paredao["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{worst_paredao["Sentimento"]} sentimento</td></tr>')
-        print(f'<tr><td>👎 <strong>{negativas_label}</strong></td><td>{avatar_html(most_neg["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{neg_paredao.get(most_neg["Indicado"], 0)} reações</td></tr>')
+        print(f'<tr><td>👎 <strong>{negativas_label}</strong></td><td>{avatar_html(most_neg["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{negs_recebidas.get(most_neg["Indicado"], 0)} reações</td></tr>')
         if deltas:
             biggest_drop = min(deltas.items(), key=lambda x: x[1])
             biggest_rise = max(deltas.items(), key=lambda x: x[1])
