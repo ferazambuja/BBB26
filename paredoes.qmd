@@ -92,15 +92,12 @@ for snap in snapshots:
 
 # Build daily snapshots (one per date, last capture of the day)
 daily_snapshots = []
-daily_matrices = []
 seen_dates = set()
-for snap, mat in zip(reversed(snapshots), reversed(all_matrices)):
+for snap in reversed(snapshots):
     if snap['date'] not in seen_dates:
         seen_dates.add(snap['date'])
         daily_snapshots.append(snap)
-        daily_matrices.append(mat)
 daily_snapshots.reverse()
-daily_matrices.reverse()
 n_daily = len(daily_snapshots)
 
 def avatar_html(name, size=24):
@@ -132,63 +129,6 @@ def classify_relationship(votante, alvo, matrix):
     if v_neg:
         return 'hostilidade_leve', '🌱 Hostilidade Leve', '#FF9800'
     return 'neutro', '❓ Neutro', '#999'
-
-def analyze_relationship_history(votante, alvo, daily_mats, daily_snaps, analysis_date):
-    """Analisa a evolução do relacionamento entre votante e alvo ao longo do tempo."""
-    history = []
-    days_positive = 0
-    days_negative = 0
-    days_mutual_positive = 0
-    change_date = None
-    prev_was_positive = None
-
-    for i, mat in enumerate(daily_mats):
-        snap_date = daily_snaps[i]['date']
-        if snap_date > analysis_date:
-            break
-        rxn_v = mat.get((votante, alvo), '')
-        if not rxn_v:
-            continue
-        rxn_a = mat.get((alvo, votante), '')
-        v_pos = rxn_v in POSITIVE
-        v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
-        history.append((snap_date, rxn_v, rxn_a))
-        if v_pos:
-            days_positive += 1
-            if prev_was_positive == False:
-                change_date = snap_date
-        elif v_neg:
-            days_negative += 1
-            if prev_was_positive == True:
-                change_date = snap_date
-        if v_pos and rxn_a in POSITIVE:
-            days_mutual_positive += 1
-        prev_was_positive = v_pos
-
-    total_days = len(history)
-    if total_days == 0:
-        return {'pattern': 'sem_dados', 'days_as_friends': 0, 'days_as_enemies': 0,
-                'days_mutual_friends': 0, 'change_date': None, 'narrative': 'Sem dados', 'total_days': 0}
-
-    current_positive = history[-1][1] in POSITIVE
-    if days_positive == total_days:
-        pattern, narrative = 'sempre_amigos', f"Sempre deu ❤️ ({days_positive} dias)."
-    elif days_negative == total_days:
-        pattern, narrative = 'sempre_inimigos', f"Inimigos desde o início ({days_negative} dias)."
-    elif days_positive > 0 and not current_positive and change_date:
-        days_since = sum(1 for d, _, _ in history if d >= change_date)
-        if days_since <= 2:
-            pattern, narrative = 'recem_inimigos', f"Eram amigos por {days_positive} dias, mudou há {days_since} dia(s)!"
-        else:
-            pattern, narrative = 'ex_amigos', f"Foram amigos por {days_positive} dias, romperam em {change_date}."
-    elif days_negative > 0 and current_positive and change_date:
-        pattern, narrative = 'reconciliados', f"Reconciliaram em {change_date}."
-    else:
-        pattern, narrative = 'instavel', f"Instável: {days_positive}d ❤️, {days_negative}d negativo."
-
-    return {'pattern': pattern, 'days_as_friends': days_positive, 'days_as_enemies': days_negative,
-            'days_mutual_friends': days_mutual_positive, 'change_date': change_date,
-            'narrative': narrative, 'total_days': total_days}
 
 def genero(nome):
     nome_lower = nome.lower().split()[0]
@@ -880,57 +820,27 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     # ══════════════════════════════════════════════════════════════
 
     votos = paredao.get('votos_casa', {})
-    if votos and matrix_p:
-        analysis_date = paredao.get('data_formacao') or par_date
+    # Load precomputed vote analysis from paredao_analysis.json
+    _pa_entry = PAREDAO_ANALYSIS.get("by_paredao", {}).get(str(par_num), {})
+    _precomputed_va = _pa_entry.get("vote_analysis", [])
+    _precomputed_agg = _pa_entry.get("vote_aggregates", {})
 
-        # Classify each vote
-        vote_analysis = []
-        relationship_counts = Counter()
-        betrayals = []
-        blind_spots = []
-
-        REACTION_EMOJI_LOCAL = dict(REACTION_EMOJI)
-
-        for votante, alvo in votos.items():
-            rel_type, rel_label, rel_color = classify_relationship(votante, alvo, matrix_p)
-            rxn_to = matrix_p.get((votante, alvo), '')
-            rxn_from = matrix_p.get((alvo, votante), '')
-            # Prefer precomputed relationship history from JSON
-            _pa_rh = PAREDAO_ANALYSIS.get("by_paredao", {}).get(str(par_num), {}).get("relationship_history", {})
-            _rh_key = f"{votante}→{alvo}"
-            if _rh_key in _pa_rh:
-                hist = _pa_rh[_rh_key]
-            else:
-                hist = analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, analysis_date)
-
-            entry = {
-                'votante': votante, 'alvo': alvo,
-                'tipo': rel_type, 'label': rel_label, 'cor': rel_color,
-                'emoji_dado': REACTION_EMOJI_LOCAL.get(rxn_to, '?'),
-                'emoji_recebido': REACTION_EMOJI_LOCAL.get(rxn_from, '?'),
-                'hist_pattern': hist['pattern'],
-                'hist_narrative': hist['narrative'],
-                'days_as_friends': hist['days_as_friends'],
-                'days_as_enemies': hist['days_as_enemies'],
-                'days_mutual_friends': hist['days_mutual_friends'],
-                'total_days': hist['total_days'],
-            }
-            vote_analysis.append(entry)
-            relationship_counts[rel_type] += 1
-            if rel_type in ('falso_amigo', 'aliados_mutuos'):
-                betrayals.append(entry)
-            elif rel_type == 'ponto_cego':
-                blind_spots.append(entry)
-
-        total_votes = len(votos)
-        n_traicoes = len(betrayals)
-        n_pontos_cegos = len(blind_spots)
-        vote_counts = Counter(votos.values())
-        mais_votado, n_votos_mais = vote_counts.most_common(1)[0]
+    if votos and _precomputed_va:
+        # Use fully precomputed data
+        vote_analysis = _precomputed_va
+        relationship_counts = Counter(_precomputed_agg.get("relationship_counts", {}))
+        betrayals = [e for e in vote_analysis if e["tipo"] in ("falso_amigo", "aliados_mutuos")]
+        blind_spots = [e for e in vote_analysis if e["tipo"] == "ponto_cego"]
+        total_votes = _precomputed_agg.get("total_votes", len(votos))
+        n_traicoes = _precomputed_agg.get("n_traicoes", len(betrayals))
+        n_pontos_cegos = _precomputed_agg.get("n_pontos_cegos", len(blind_spots))
+        vote_counts = Counter(_precomputed_agg.get("vote_counts", {}))
+        mais_votado = _precomputed_agg.get("mais_votado", "")
+        n_votos_mais = _precomputed_agg.get("n_votos_mais", 0)
+        n_esperados = _precomputed_agg.get("n_esperados", 0)
 
         # ── Narrative ──
         print(f"### 📖 A História do {par_num}º Paredão\n")
-        n_esperados = sum(relationship_counts.get(t, 0) for t in ('inimigos_declarados', 'hostilidade_forte', 'hostilidade_leve'))
         if n_traicoes >= 3:
             print(f"Este paredão foi marcado por **traições**. Nada menos que **{n_traicoes} votos** "
                   f"vieram de pessoas que davam ❤️ ao alvo no queridômetro.\n")
@@ -1095,8 +1005,8 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             rxn_lider = matrix_p.get((lider, indicado), '')
             rxn_indicado = matrix_p.get((indicado, lider), '')
             rel_type_l, rel_label_l, _ = classify_relationship(lider, indicado, matrix_p)
-            emoji_lider = REACTION_EMOJI_LOCAL.get(rxn_lider, '?')
-            emoji_indicado = REACTION_EMOJI_LOCAL.get(rxn_indicado, '?')
+            emoji_lider = REACTION_EMOJI.get(rxn_lider, '?')
+            emoji_indicado = REACTION_EMOJI.get(rxn_indicado, '?')
 
             print(f"#### 👑 Indicação do Líder\n")
             print(f"**{lider}** indicou **{indicado}** ao paredão.\n")

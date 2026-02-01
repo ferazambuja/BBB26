@@ -27,7 +27,7 @@ from datetime import datetime
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix,
+    load_snapshot, get_all_snapshots, parse_roles,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
@@ -121,8 +121,6 @@ for fp, date_str in all_snapshot_files:
         'participants': participants, 'metadata': metadata,
     })
 
-all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
-
 for snap in snapshots:
     for p in snap['participants']:
         name = p['name']
@@ -149,7 +147,6 @@ for snap in snapshots[1:]:
 
 n_snapshots = len(snapshots)
 latest = snapshots[-1]
-latest_matrix = all_matrices[-1]
 
 # Daily snapshots (one per date)
 _by_date = {}
@@ -157,7 +154,6 @@ for i, snap in enumerate(snapshots):
     _by_date[snap['date']] = i
 _daily_indices = sorted(_by_date.values())
 daily_snapshots = [snapshots[i] for i in _daily_indices]
-daily_matrices = [all_matrices[i] for i in _daily_indices]
 n_daily = len(daily_snapshots)
 ```
 
@@ -262,85 +258,72 @@ if streak_breaks:
 #| label: winners-losers
 #| output: asis
 
-if n_daily >= 2:
-    prev_snap = daily_snapshots[-2]
-    curr_snap = daily_snapshots[-1]
-    prev_matrix = daily_matrices[-2]
-    curr_matrix = daily_matrices[-1]
-    prev_date = prev_snap['date']
-    curr_date = curr_snap['date']
+# Load precomputed pair changes from daily_metrics.json
+_latest_dc = daily_changes[-1] if daily_changes else None
+if _latest_dc and _latest_dc.get("pair_changes"):
+    prev_date = daily_snapshots[-2]['date'] if n_daily >= 2 else ""
+    curr_date = _latest_dc["date"]
 
-    prev_names = set(p['name'] for p in prev_snap['participants']
-                     if not p.get('characteristics', {}).get('eliminated'))
-    curr_names = set(p['name'] for p in curr_snap['participants']
-                     if not p.get('characteristics', {}).get('eliminated'))
-    common_names = prev_names & curr_names
-
+    # Rebuild changes_list from precomputed pair_changes (used by subsequent tabs)
     changes_list = []
-    for giver in sorted(common_names):
-        for receiver in sorted(common_names):
-            if giver == receiver:
-                continue
-            prev_rxn = prev_matrix.get((giver, receiver), '')
-            curr_rxn = curr_matrix.get((giver, receiver), '')
-            if prev_rxn != curr_rxn:
-                prev_w = SENTIMENT_WEIGHTS.get(prev_rxn, 0)
-                curr_w = SENTIMENT_WEIGHTS.get(curr_rxn, 0)
-                delta = curr_w - prev_w
-                changes_list.append({
-                    'Emissor': giver, 'Receptor': receiver,
-                    'Antes': REACTION_EMOJI.get(prev_rxn, '?'),
-                    'Depois': REACTION_EMOJI.get(curr_rxn, '?'),
-                    'prev_rxn': prev_rxn, 'curr_rxn': curr_rxn,
-                    'Tipo': 'Melhora' if delta > 0 else ('Piora' if delta < 0 else 'Lateral'),
-                    'Delta': delta,
-                    'Color': '#1a9850' if delta > 0 else ('#d73027' if delta < 0 else '#888'),
-                    'emissor_grupo': MEMBER_OF.get(giver, '?'),
-                    'receptor_grupo': MEMBER_OF.get(receiver, '?'),
-                })
+    common_names = set()
+    for pc in _latest_dc["pair_changes"]:
+        common_names.add(pc["giver"])
+        common_names.add(pc["receiver"])
+        changes_list.append({
+            'Emissor': pc["giver"], 'Receptor': pc["receiver"],
+            'Antes': REACTION_EMOJI.get(pc["prev_rxn"], '?'),
+            'Depois': REACTION_EMOJI.get(pc["curr_rxn"], '?'),
+            'prev_rxn': pc["prev_rxn"], 'curr_rxn': pc["curr_rxn"],
+            'Tipo': pc["tipo"],
+            'Delta': pc["delta"],
+            'Color': '#1a9850' if pc["delta"] > 0 else ('#d73027' if pc["delta"] < 0 else '#888'),
+            'emissor_grupo': MEMBER_OF.get(pc["giver"], '?'),
+            'receptor_grupo': MEMBER_OF.get(pc["receiver"], '?'),
+        })
 
-    if changes_list:
-        receiver_delta = defaultdict(float)
-        for c in changes_list:
-            receiver_delta[c['Receptor']] += c['Delta']
+    # Use precomputed receiver deltas
+    receiver_delta = _latest_dc.get("receiver_deltas", {})
+    receiver_data = [
+        {'name': name, 'delta': delta, 'group': MEMBER_OF.get(name, '?'),
+         'color': '#1a9850' if delta > 0 else '#d73027'}
+        for name, delta in receiver_delta.items() if delta != 0
+    ]
+    receiver_data.sort(key=lambda x: x['delta'])
 
-        receiver_data = [
-            {'name': name, 'delta': delta, 'group': MEMBER_OF.get(name, '?'),
-             'color': '#1a9850' if delta > 0 else '#d73027'}
-            for name, delta in receiver_delta.items() if delta != 0
-        ]
-        receiver_data.sort(key=lambda x: x['delta'])
+    if receiver_data:
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            y=[d['name'] for d in receiver_data],
+            x=[d['delta'] for d in receiver_data],
+            orientation='h',
+            marker_color=[d['color'] for d in receiver_data],
+            text=[f"{d['delta']:+.1f}" for d in receiver_data],
+            textposition='outside',
+            hovertemplate='%{y}: %{x:+.1f} pontos<extra></extra>',
+        ))
+        fig.add_vline(x=0, line_width=2, line_color='white')
+        fig.update_layout(
+            title="Impacto Líquido: Quem Ganhou/Perdeu Pontos de Sentimento",
+            xaxis_title="Δ Sentimento (soma das mudanças recebidas)",
+            height=max(400, len(receiver_data) * 28),
+            margin=dict(l=150), showlegend=False,
+        )
+        fig.show()
 
-        if receiver_data:
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                y=[d['name'] for d in receiver_data],
-                x=[d['delta'] for d in receiver_data],
-                orientation='h',
-                marker_color=[d['color'] for d in receiver_data],
-                text=[f"{d['delta']:+.1f}" for d in receiver_data],
-                textposition='outside',
-                hovertemplate='%{y}: %{x:+.1f} pontos<extra></extra>',
-            ))
-            fig.add_vline(x=0, line_width=2, line_color='white')
-            fig.update_layout(
-                title="Impacto Líquido: Quem Ganhou/Perdeu Pontos de Sentimento",
-                xaxis_title="Δ Sentimento (soma das mudanças recebidas)",
-                height=max(400, len(receiver_data) * 28),
-                margin=dict(l=150), showlegend=False,
-            )
-            fig.show()
-
-            benefited = sorted([(k, v) for k, v in receiver_delta.items() if v > 0], key=lambda x: -x[1])
-            suffered = sorted([(k, v) for k, v in receiver_delta.items() if v < 0], key=lambda x: x[1])
-            if benefited:
-                print(f"**Ganhadores do dia:** {', '.join(f'{n} (+{v:.1f})' for n, v in benefited[:3])}")
-            if suffered:
-                print(f"\n**Perdedores do dia:** {', '.join(f'{n} ({v:.1f})' for n, v in suffered[:3])}")
+        benefited = sorted([(k, v) for k, v in receiver_delta.items() if v > 0], key=lambda x: -x[1])
+        suffered = sorted([(k, v) for k, v in receiver_delta.items() if v < 0], key=lambda x: x[1])
+        if benefited:
+            print(f"**Ganhadores do dia:** {', '.join(f'{n} (+{v:.1f})' for n, v in benefited[:3])}")
+        if suffered:
+            print(f"\n**Perdedores do dia:** {', '.join(f'{n} ({v:.1f})' for n, v in suffered[:3])}")
     else:
         print("*Nenhuma mudança detectada.*")
 else:
     changes_list = []
+    common_names = set()
+    prev_date = ""
+    curr_date = ""
     print("*Dados insuficientes — são necessárias pelo menos 2 coletas diárias.*")
 ```
 
@@ -350,20 +333,13 @@ else:
 #| label: volatility-chart
 #| output: asis
 
-if n_daily >= 2 and changes_list:
-    giver_changes = Counter(c['Emissor'] for c in changes_list)
-    giver_volatility = giver_changes.most_common()
-
-    giver_data = []
-    for name, count in giver_volatility:
-        given_melhora = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Melhora')
-        given_piora = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Piora')
-        given_lateral = sum(1 for c in changes_list if c['Emissor'] == name and c['Tipo'] == 'Lateral')
-        giver_data.append({
-            'name': name, 'total': count,
-            'melhora': given_melhora, 'piora': given_piora,
-            'lateral': given_lateral, 'group': MEMBER_OF.get(name, '?')
-        })
+_giver_vol = _latest_dc.get("giver_volatility", {}) if _latest_dc else {}
+if _giver_vol:
+    giver_data = [
+        {'name': name, 'total': v['total'], 'melhora': v['melhora'],
+         'piora': v['piora'], 'lateral': v['lateral'], 'group': MEMBER_OF.get(name, '?')}
+        for name, v in _giver_vol.items()
+    ]
     giver_data.sort(key=lambda x: x['total'], reverse=True)
 
     if giver_data:
@@ -400,10 +376,14 @@ if n_daily >= 2 and changes_list:
 #| label: sankey-reactions
 #| output: asis
 
-if n_daily >= 2 and changes_list:
-    transition_counts = Counter()
-    for c in changes_list:
-        transition_counts[(c['prev_rxn'], c['curr_rxn'])] += 1
+_trans_raw = _latest_dc.get("transition_counts", {}) if _latest_dc else {}
+# Convert "A→B" keys to (A, B) tuples
+transition_counts = Counter()
+for key, count in _trans_raw.items():
+    parts = key.split("→")
+    if len(parts) == 2:
+        transition_counts[(parts[0], parts[1])] = count
+if transition_counts:
 
     all_reactions = ['Coração', 'Planta', 'Mala', 'Biscoito', 'Cobra', 'Alvo', 'Vômito', 'Mentiroso', 'Coração partido']
     reaction_colors = {

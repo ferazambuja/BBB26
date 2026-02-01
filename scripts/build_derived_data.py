@@ -11,7 +11,7 @@ from collections import defaultdict
 
 from data_utils import (
     SENTIMENT_WEIGHTS, calc_sentiment, get_week_number,
-    CARTOLA_POINTS,
+    CARTOLA_POINTS, REACTION_EMOJI,
     build_reaction_matrix,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
 )
@@ -1322,6 +1322,53 @@ def build_daily_changes_summary(daily_snapshots):
             top_g = max(giver_changes.items(), key=lambda x: x[1])
             top_volatile_giver = {"name": top_g[0], "changes": top_g[1]}
 
+        # Per-pair change details (for Pulso Diário visualizations)
+        pair_changes = []
+        transition_counts = defaultdict(int)
+        giver_volatility = {}
+        giver_melhora = defaultdict(int)
+        giver_piora = defaultdict(int)
+        giver_lateral = defaultdict(int)
+
+        for giver in common:
+            for receiver in common:
+                if giver == receiver:
+                    continue
+                prev_rxn = prev_matrix.get((giver, receiver), "")
+                curr_rxn = curr_matrix.get((giver, receiver), "")
+                if prev_rxn == curr_rxn:
+                    continue
+                prev_w = SENTIMENT_WEIGHTS.get(prev_rxn, 0)
+                curr_w = SENTIMENT_WEIGHTS.get(curr_rxn, 0)
+                delta = curr_w - prev_w
+                tipo = "Melhora" if delta > 0 else ("Piora" if delta < 0 else "Lateral")
+                pair_changes.append({
+                    "giver": giver,
+                    "receiver": receiver,
+                    "prev_rxn": prev_rxn,
+                    "curr_rxn": curr_rxn,
+                    "delta": round(delta, 2),
+                    "tipo": tipo,
+                })
+                transition_counts[f"{prev_rxn}→{curr_rxn}"] += 1
+                if tipo == "Melhora":
+                    giver_melhora[giver] += 1
+                elif tipo == "Piora":
+                    giver_piora[giver] += 1
+                else:
+                    giver_lateral[giver] += 1
+
+        for g in giver_changes:
+            giver_volatility[g] = {
+                "total": giver_changes[g],
+                "melhora": giver_melhora.get(g, 0),
+                "piora": giver_piora.get(g, 0),
+                "lateral": giver_lateral.get(g, 0),
+            }
+
+        # Receiver deltas (full, not just top/bottom)
+        receiver_deltas = {k: round(v, 2) for k, v in receiver_delta.items() if v != 0}
+
         results.append({
             "date": curr_snap["date"],
             "total_changes": total_changes,
@@ -1335,6 +1382,10 @@ def build_daily_changes_summary(daily_snapshots):
             "top_receiver": top_receiver,
             "top_loser": top_loser,
             "top_volatile_giver": top_volatile_giver,
+            "pair_changes": pair_changes,
+            "transition_counts": dict(transition_counts),
+            "giver_volatility": giver_volatility,
+            "receiver_deltas": receiver_deltas,
         })
 
     return results
@@ -3395,6 +3446,70 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
 
             relationship_history[key] = rh
 
+        # ── Vote classification (relationship type for each vote) ──
+        # Find the matrix at the analysis date
+        matrix_p = None
+        for idx_snap in range(len(daily_snapshots) - 1, -1, -1):
+            if daily_snapshots[idx_snap]["date"] <= analysis_date:
+                matrix_p = daily_matrices[idx_snap]
+                break
+        if matrix_p is None and daily_matrices:
+            matrix_p = daily_matrices[0]
+
+        vote_analysis = []
+        relationship_counts = Counter()
+        for votante, alvo in votos.items():
+            if not votante or not alvo or matrix_p is None:
+                continue
+            rxn_v = matrix_p.get((votante, alvo), "")
+            rxn_a = matrix_p.get((alvo, votante), "")
+            v_pos = rxn_v in POSITIVE
+            a_pos = rxn_a in POSITIVE
+            v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
+            a_neg = rxn_a in (MILD_NEGATIVE | STRONG_NEGATIVE)
+            v_strong = rxn_v in STRONG_NEGATIVE
+
+            if v_pos and a_pos:
+                rel_type, rel_label, rel_color = "aliados_mutuos", "💔 Traição de Aliado", "#9b59b6"
+            elif v_pos and not a_pos:
+                rel_type, rel_label, rel_color = "falso_amigo", "🎭 Falso Amigo", "#E6194B"
+            elif v_neg and a_neg:
+                rel_type, rel_label, rel_color = "inimigos_declarados", "⚔️ Hostilidade Mútua", "#3CB44B"
+            elif v_neg and a_pos:
+                rel_type, rel_label, rel_color = "ponto_cego", "🎯 Ponto Cego do Alvo", "#f39c12"
+            elif v_strong:
+                rel_type, rel_label, rel_color = "hostilidade_forte", "🐍 Hostilidade Forte", "#3CB44B"
+            elif v_neg:
+                rel_type, rel_label, rel_color = "hostilidade_leve", "🌱 Hostilidade Leve", "#FF9800"
+            else:
+                rel_type, rel_label, rel_color = "neutro", "❓ Neutro", "#999"
+
+            rh_key = f"{votante}→{alvo}"
+            hist = relationship_history.get(rh_key, {})
+            vote_analysis.append({
+                "votante": votante,
+                "alvo": alvo,
+                "tipo": rel_type,
+                "label": rel_label,
+                "cor": rel_color,
+                "emoji_dado": REACTION_EMOJI.get(rxn_v, "?"),
+                "emoji_recebido": REACTION_EMOJI.get(rxn_a, "?"),
+                "hist_pattern": hist.get("pattern", "sem_dados"),
+                "hist_narrative": hist.get("narrative", "Sem dados"),
+                "days_as_friends": hist.get("days_as_friends", 0),
+                "days_as_enemies": hist.get("days_as_enemies", 0),
+                "days_mutual_friends": hist.get("days_mutual_friends", 0),
+                "total_days": hist.get("total_days", 0),
+            })
+            relationship_counts[rel_type] += 1
+
+        # Aggregate stats
+        vote_counts_agg = Counter(votos.values())
+        mais_votado, n_votos_mais = vote_counts_agg.most_common(1)[0] if vote_counts_agg else ("", 0)
+        n_traicoes = sum(1 for v in vote_analysis if v["tipo"] in ("falso_amigo", "aliados_mutuos"))
+        n_pontos_cegos = sum(1 for v in vote_analysis if v["tipo"] == "ponto_cego")
+        n_esperados = sum(relationship_counts.get(t, 0) for t in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve"))
+
         by_paredao[str(numero)] = {
             "numero": numero,
             "status": status,
@@ -3407,6 +3522,17 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
                 "negs_recebidas": {nome: neg_paredao.get(nome, 0) for nome in indicados},
             },
             "relationship_history": relationship_history,
+            "vote_analysis": vote_analysis,
+            "vote_aggregates": {
+                "relationship_counts": dict(relationship_counts),
+                "vote_counts": dict(vote_counts_agg),
+                "mais_votado": mais_votado,
+                "n_votos_mais": n_votos_mais,
+                "n_traicoes": n_traicoes,
+                "n_pontos_cegos": n_pontos_cegos,
+                "n_esperados": n_esperados,
+                "total_votes": len(votos),
+            },
         }
 
     return {"by_paredao": by_paredao}
