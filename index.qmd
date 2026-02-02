@@ -947,6 +947,7 @@ Para ver o **histórico de paredões anteriores**, acesse: **[Arquivo de Paredõ
 # Rankings {#ranking-sentimento}
 
 ```{python}
+#| label: composite-score-desc
 #| output: asis
 print(ANALYSIS_DESCRIPTIONS["composite_score_chart"])
 ```
@@ -1305,6 +1306,7 @@ print(make_reaction_summary_html(summary_data, collapsed_rows=5))
 # Perfis Individuais {#perfis}
 
 ```{python}
+#| label: profiles-intro-desc
 #| output: asis
 print(ANALYSIS_DESCRIPTIONS["profiles_intro"])
 ```
@@ -1318,6 +1320,7 @@ print(ANALYSIS_DESCRIPTIONS["profiles_intro"])
 **🎯 Vulnerabilidade a Votos Surpresa**
 
 ```{python}
+#| label: vulnerability-desc
 #| output: asis
 print(ANALYSIS_DESCRIPTIONS["vulnerability_long"])
 ```
@@ -1349,6 +1352,7 @@ Faixas: 🟢 **NENHUMA** (0), 🟡 **BAIXA** (< 0), 🟠 **MÉDIA** (≤ -4), �
 - **🗡️ Alvos Ocultos** — Seu score é negativo (hostil), mas eles confiam em você. Eles não sabem que são seus alvos.
 
 ```{python}
+#| label: profiles-footer-desc
 #| output: asis
 print(ANALYSIS_DESCRIPTIONS["profiles_footer"])
 ```

@@ -61,6 +61,8 @@ POWER_EVENT_EMOJI = {
     'veto_ganha_ganha': '🚫', 'ganha_ganha_escolha': '🎁',
     'barrado_baile': '🚫',
     'mira_do_lider': '🔭',
+    'punicao_gravissima': '🚨',
+    'punicao_coletiva': '🚨',
 }
 
 POWER_EVENT_LABELS = {
@@ -71,6 +73,8 @@ POWER_EVENT_LABELS = {
     'veto_ganha_ganha': 'Veto (Ganha-Ganha)', 'ganha_ganha_escolha': 'Escolha (Ganha-Ganha)',
     'barrado_baile': 'Barrado no Baile',
     'mira_do_lider': 'Na Mira do Líder',
+    'punicao_gravissima': 'Punição Gravíssima',
+    'punicao_coletiva': 'Punição Coletiva',
 }
 
 # ══════════════════════════════════════════════════════════════
@@ -457,6 +461,7 @@ TIMELINE_CAT_COLORS = {
     "voto_anulado": "#7f8c8d", "voto_duplo": "#e67e22",
     "veto_ganha_ganha": "#7f8c8d", "ganha_ganha_escolha": "#2ecc71",
     "veto_prova": "#7f8c8d",
+    "ta_com_nada": "#ff4444",
 }
 
 TIMELINE_CAT_LABELS = {
@@ -472,6 +477,7 @@ TIMELINE_CAT_LABELS = {
     "voto_anulado": "Voto Anulado", "voto_duplo": "Voto Duplo",
     "veto_ganha_ganha": "Veto GG", "ganha_ganha_escolha": "Escolha GG",
     "veto_prova": "Veto Prova",
+    "ta_com_nada": "Tá Com Nada",
 }
 
 

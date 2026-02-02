@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-02-01",
+  "_last_updated": "2026-02-02",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -67,11 +67,18 @@
       "quarto_secreto": null,
       "anjo": {
         "vencedor": "Jonas Sulzbach",
-        "duo": ["Jonas Sulzbach", "Sarah Andrade"],
+        "duo": [
+          "Jonas Sulzbach",
+          "Sarah Andrade"
+        ],
         "prova_date": "2026-01-17",
         "tipo": "normal",
         "almoco_date": "2026-01-18",
-        "almoco_convidados": ["Alberto Cowboy", "Aline Campos", "Sarah Andrade"],
+        "almoco_convidados": [
+          "Alberto Cowboy",
+          "Aline Campos",
+          "Sarah Andrade"
+        ],
         "escolha": "video_familia",
         "imunizou": "Sarah Andrade",
         "extra_poder": "imunidade_extra",
@@ -709,10 +716,21 @@
       },
       "ganha_ganha": {
         "date": "2026-01-20",
-        "sorteados": ["Chaiany", "Maxiane", "Marcelo"],
+        "sorteados": [
+          "Chaiany",
+          "Maxiane",
+          "Marcelo"
+        ],
         "cartas": "Chaiany e Maxiane ganharam R$ 10 mil + informação privilegiada. Marcelo recebeu o poder de veto.",
-        "veto": {"por": "Marcelo", "quem": "Chaiany"},
-        "decisao": {"quem": "Maxiane", "escolha": "informação privilegiada", "perdeu": "R$ 20 mil"},
+        "veto": {
+          "por": "Marcelo",
+          "quem": "Chaiany"
+        },
+        "decisao": {
+          "quem": "Maxiane",
+          "escolha": "informação privilegiada",
+          "perdeu": "R$ 20 mil"
+        },
         "informacao": "Não haverá Prova Bate e Volta após a votação do domingo."
       },
       "barrado_baile": [
@@ -724,11 +742,18 @@
       ],
       "anjo": {
         "vencedor": "Jonas Sulzbach",
-        "duo": ["Jonas Sulzbach", "Sarah Andrade"],
+        "duo": [
+          "Jonas Sulzbach",
+          "Sarah Andrade"
+        ],
         "prova_date": "2026-01-23",
         "tipo": "autoimune",
         "almoco_date": "2026-01-25",
-        "almoco_convidados": ["Sarah Andrade", "Maxiane", "Marciele"],
+        "almoco_convidados": [
+          "Sarah Andrade",
+          "Maxiane",
+          "Marciele"
+        ],
         "escolha": "video_familia",
         "imunizou": null,
         "extra_poder": "imunidade_extra",
@@ -895,7 +920,11 @@
           "date": "2026-01-31",
           "consequencia": "Atendeu o Big Fone azul (escolhido por votação popular com +3 milhões de votos). Em consenso com Babu Santana e Marcelo, indicaram Jonas Sulzbach ao Paredão.",
           "consenso": {
-            "participantes": ["Babu Santana", "Marcelo", "Juliano Floss"],
+            "participantes": [
+              "Babu Santana",
+              "Marcelo",
+              "Juliano Floss"
+            ],
             "indicado": "Jonas Sulzbach"
           },
           "fontes": [
@@ -906,10 +935,21 @@
       "quarto_secreto": null,
       "ganha_ganha": {
         "date": "2026-01-27",
-        "sorteados": ["Chaiany", "Alberto Cowboy", "Breno"],
+        "sorteados": [
+          "Chaiany",
+          "Alberto Cowboy",
+          "Breno"
+        ],
         "cartas": "Breno e Chaiany ganharam R$ 10 mil + informação privilegiada. Alberto ficou com o poder de veto.",
-        "veto": {"por": "Alberto Cowboy", "quem": "Breno"},
-        "decisao": {"quem": "Chaiany", "escolha": "R$ 20 mil", "abriu_mao": "informação privilegiada"},
+        "veto": {
+          "por": "Alberto Cowboy",
+          "quem": "Breno"
+        },
+        "decisao": {
+          "quem": "Chaiany",
+          "escolha": "R$ 20 mil",
+          "abriu_mao": "informação privilegiada"
+        },
         "informacao": "Saber os votos de duas pessoas no último paredão."
       },
       "barrado_baile": [
@@ -925,7 +965,11 @@
         "prova_date": "2026-01-31",
         "tipo": "normal",
         "almoco_date": "2026-02-01",
-        "almoco_convidados": ["Jonas Sulzbach", "Sol Vega", "Brigido"],
+        "almoco_convidados": [
+          "Jonas Sulzbach",
+          "Sol Vega",
+          "Brigido"
+        ],
         "escolha": "video_familia",
         "imunizou": "Sol Vega",
         "extra_poder": "imunidade_extra",
@@ -936,7 +980,35 @@
           "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/castigo-do-monstro-do-bbb-26-e-o-domino-ana-paula-renault-foi-escolhida-por-sarah-andrade-1.3738872"
         ]
       },
-      "notes": "Semana 3 começa após a eliminação do 2º paredão. Paulo Augusto desclassificado dia 30 (agressão). Sarah Andrade é o Anjo (venceu duelos). Presente do Anjo: escolheu vídeo da família. Imunizou Sol Vega. Maxiane (líder) indicou Ana Paula Renault. Jonas escapou na Bate e Volta contra Leandro. 3º Paredão: Ana Paula Renault, Leandro, Brigido.",
+      "ta_com_nada": {
+        "date": "2026-02-02",
+        "instigadores": [
+          "Ana Paula Renault",
+          "Milena"
+        ],
+        "motivos": {
+          "Ana Paula Renault": "Não fez o Raio-X (punição gravíssima)",
+          "Milena": "Comeu comida do VIP sendo da Xepa (punição gravíssima)"
+        },
+        "vip_afetados": [
+          "Breno",
+          "Jordana",
+          "Marcelo",
+          "Marciele",
+          "Maxiane",
+          "Samira",
+          "Sarah Andrade",
+          "Solange Couto"
+        ],
+        "consequencia": "Todos os mantimentos confiscados. Casa inteira ficou apenas com itens básicos de sobrevivência. VIP e Xepa eliminados — todos no mesmo nível.",
+        "notas": "Ana Paula fez de propósito como protesto/provocação (não fez o Raio-X). Milena seguiu comendo comida do VIP. Ação deliberada e rara — forte sinal anti-planta.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+        ]
+      },
+      "notes": "Semana 3 começa após a eliminação do 2º paredão. Paulo Augusto desclassificado dia 30 (agressão). Sarah Andrade é o Anjo (venceu duelos). Presente do Anjo: escolheu vídeo da família. Imunizou Sol Vega. Maxiane (líder) indicou Ana Paula Renault. Jonas escapou na Bate e Volta contra Leandro. 3º Paredão: Ana Paula Renault, Leandro, Brigido. Dia 02/02: Ana Paula e Milena recebem punição gravíssima → casa inteira vai para o Tá Com Nada.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/chaiany-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/gabriela-e-escolhida-para-o-barrado-no-baile-pelo-lider-babu-santana-e-enfrenta-desafio.ghtml",
@@ -1350,7 +1422,11 @@
       "week": 3,
       "type": "indicacao",
       "actor": "Juliano Floss + Babu Santana + Marcelo",
-      "actors": ["Juliano Floss", "Babu Santana", "Marcelo"],
+      "actors": [
+        "Juliano Floss",
+        "Babu Santana",
+        "Marcelo"
+      ],
       "target": "Jonas Sulzbach",
       "source": "Big Fone (consenso)",
       "detail": "Consenso Big Fone: Juliano Floss, Babu Santana e Marcelo indicaram Jonas ao Paredão",
@@ -1409,10 +1485,419 @@
       "origem": "manual",
       "visibility": "public",
       "awareness": "known"
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Breno",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Punição gravíssima de Ana Paula (não fez Raio-X) e Milena (comeu comida do VIP) resultou no Tá Com Nada para toda a casa. Breno estava no VIP e perdeu todos os benefícios.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Jordana",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Jordana estava no VIP e perdeu todos os benefícios.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Marcelo",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Marcelo estava no VIP e perdeu todos os benefícios.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Marciele",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Marciele estava no VIP e perdeu todos os benefícios.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Maxiane",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Maxiane é Líder e perdeu todos os benefícios do VIP e da liderança.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Samira",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Samira estava no VIP e perdeu todos os benefícios.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Sarah Andrade",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Sarah Andrade estava no VIP e perdeu todos os benefícios.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_gravissima",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Solange Couto",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Solange Couto estava no VIP e perdeu todos os benefícios.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Alberto Cowboy",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: toda a casa ficou sem benefícios. Alberto Cowboy estava na Xepa mas perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Babu Santana",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Babu Santana estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Brigido",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Brigido estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Chaiany",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Chaiany estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Edilson",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Edilson estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Gabriela",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Gabriela estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Jonas Sulzbach",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Jonas Sulzbach estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Juliano Floss",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Juliano Floss estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Leandro",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Leandro estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "type": "punicao_coletiva",
+      "actor": "Ana Paula Renault + Milena",
+      "actors": [
+        "Ana Paula Renault",
+        "Milena"
+      ],
+      "target": "Sol Vega",
+      "source": "Punição Gravíssima → Tá Com Nada",
+      "detail": "Tá Com Nada: Sol Vega estava na Xepa e perdeu mantimentos restantes.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-recebe-punicao-gravissima-no-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-recebe-punicao-gravissima-no-bbb-26-apos-comer-comida-do-vip.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/casa-do-bbb-26-entra-no-ta-com-nada-apos-punicoes-de-milena-e-ana-paula-renault.ghtml"
+      ]
     }
   ],
   "cartola_points_log": [],
   "scheduled_events": [
+    {
+      "date": "2026-02-02",
+      "week": 3,
+      "category": "sincerao",
+      "emoji": "🗣️",
+      "title": "Sincerão",
+      "detail": "Sincerão ao vivo — formato a definir",
+      "time": "Ao Vivo",
+      "participants": [],
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"
+      ]
+    },
     {
       "date": "2026-02-03",
       "week": 3,
@@ -1422,7 +1907,9 @@
       "detail": "Uma pessoa deixa o programa",
       "time": "Ao Vivo",
       "participants": [],
-      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"
+      ]
     }
   ]
 }

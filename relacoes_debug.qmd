@@ -1266,217 +1266,230 @@ html_retro += '</ul></div>'
 print(html_retro)
 ```
 
-## Previsão: Votos do 3º Paredão
+## Previsão de Votos — Modelo Aprimorado
 
-<p class="text-muted">Formação em 1º de Fevereiro. Líder: <strong>Maxiane</strong> (não vota, não pode ser votada). Jonas Sulzbach já indicado (Big Fone consenso — pode votar). Anjo: <strong>Sarah Andrade</strong> (vota normalmente, <strong>pode ser votada</strong> — Anjo não é autoimune). Imunizado(a) pelo Anjo: a definir (ao vivo).</p>
+<p class="text-muted">Previsão de votos da casa usando modelo de sentimento aprimorado com consenso de cluster, histórico de blocos e proteção intra-cluster. Dados pré-computados em <code>vote_prediction.json</code>.</p>
 
 ```{python}
-#| label: vote-prediction-3rd
+#| label: vote-prediction-enhanced
 #| echo: false
 #| output: asis
 
-# --- 3rd Paredão prediction ---
-pairs_d = relations.get("pairs_daily", {})
+from collections import Counter
 
-# Game state
-lider = "Maxiane"
-already_nominated = "Jonas Sulzbach"  # Big Fone consensus — can vote, already going to paredão
-anjo = "Sarah Andrade"  # Anjo is NOT auto-immune; can be voted for, votes normally
+VOTE_PRED_FILE = Path("data/derived/vote_prediction.json")
+vote_pred = json.loads(VOTE_PRED_FILE.read_text(encoding="utf-8")) if VOTE_PRED_FILE.exists() else {}
+vp_meta = vote_pred.get("_metadata", {})
+vp_by_paredao = vote_pred.get("by_paredao", {})
+vp_cumulative = vote_pred.get("cumulative", {})
 
-active_participants = sorted(pairs_d.keys())
+html_vp = ""
 
-# Voters: all active minus Líder (19 voters)
-voters = [p for p in active_participants if p != lider]
+if not vp_by_paredao:
+    html_vp += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+    html_vp += '<p style="color:#888;">Arquivo <code>vote_prediction.json</code> não encontrado. Execute <code>python scripts/build_derived_data.py</code>.</p>'
+    html_vp += '</div>'
+    print(html_vp)
 
-# Targets: all active minus Líder, minus already_nominated (Jonas)
-# Anjo (Sarah) CAN be voted for — Anjo is not auto-immune
-# Immune from Anjo is TBD (decided live) — not excluded yet
-cant_be_voted = {lider, already_nominated}
-targets = [p for p in active_participants if p not in cant_be_voted]
+else:
+    # ══════════════════════════════════════════════════════════════
+    # CUMULATIVE ACCURACY CARD
+    # ══════════════════════════════════════════════════════════════
+    enh = vp_cumulative.get("enhanced", {})
+    base = vp_cumulative.get("baseline", {})
+    if enh.get("total"):
+        enh_pct = enh["pct"]
+        base_pct = base["pct"]
+        diff = enh_pct - base_pct
+        diff_str = f"+{diff:.1f}pp" if diff > 0 else f"{diff:.1f}pp" if diff < 0 else "=0"
+        diff_color = "#2ecc71" if diff > 0 else ("#e74c3c" if diff < 0 else "#888")
 
-html_pred = ""
-html_pred += f'<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
-html_pred += f'<h4 style="color:#f0c040; margin:0 0 0.5rem;">Estado do jogo</h4>'
-html_pred += '<div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:0.8rem; font-size:0.9em;">'
-html_pred += f'<span>👑 Líder: <strong>{lider}</strong> (não vota)</span>'
-html_pred += f'<span>📞 Big Fone: <strong>{already_nominated}</strong> (já emparedado, vota)</span>'
-html_pred += f'<span>😇 Anjo: <strong>{anjo}</strong> (vota, <strong>pode ser votada</strong>)</span>'
-html_pred += f'<span>🗳️ Votantes: <strong>{len(voters)}</strong></span>'
-html_pred += f'<span>🎯 Alvos elegíveis: <strong>{len(targets)}</strong></span>'
-html_pred += '</div>'
-html_pred += '<div style="color:#888; font-size:0.82em;">⚠️ O imunizado pelo Anjo (decisão ao vivo) não está excluído dos alvos — ajustar após a imunização.</div>'
-html_pred += '</div>'
+        html_vp += '<div style="background:#1a2a1a; border:1px solid #2ecc71; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
+        html_vp += '<h4 style="color:#2ecc71; margin:0 0 0.8rem;">📊 Acurácia acumulada (todos os paredões com votos)</h4>'
+        html_vp += '<div style="display:flex; gap:16px; flex-wrap:wrap;">'
+        html_vp += f'<div style="background:#222; padding:12px 20px; border-radius:8px; text-align:center;"><div style="color:#aaa; font-size:0.8em;">Modelo Aprimorado</div><div style="color:#2ecc71; font-size:1.8em; font-weight:bold;">{enh_pct:.1f}%</div><div style="color:#888; font-size:0.85em;">{enh["correct"]}/{enh["total"]}</div></div>'
+        html_vp += f'<div style="background:#222; padding:12px 20px; border-radius:8px; text-align:center;"><div style="color:#aaa; font-size:0.8em;">Baseline (sentimento)</div><div style="color:#f39c12; font-size:1.8em; font-weight:bold;">{base_pct:.1f}%</div><div style="color:#888; font-size:0.85em;">{base["correct"]}/{base["total"]}</div></div>'
+        html_vp += f'<div style="background:#222; padding:12px 20px; border-radius:8px; text-align:center;"><div style="color:#aaa; font-size:0.8em;">Diferença</div><div style="color:{diff_color}; font-size:1.8em; font-weight:bold;">{diff_str}</div><div style="color:#888; font-size:0.85em;">aprimorado vs baseline</div></div>'
+        html_vp += '</div></div>'
 
-# --- Líder indication analysis ---
-html_pred += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
-html_pred += '<h4 style="color:#f0c040; margin:0 0 0.5rem;">👑 Indicação do Líder (Maxiane)</h4>'
-html_pred += '<p style="color:#aaa; font-size:0.85em;">Top alvos da Maxiane por score mais negativo — possível indicação do Líder.</p>'
+    # ══════════════════════════════════════════════════════════════
+    # PER-PAREDÃO SECTIONS
+    # ══════════════════════════════════════════════════════════════
+    with open("data/paredoes.json") as f:
+        paredoes_data = json.load(f)
+    paredoes_list = paredoes_data.get("paredoes", [])
 
-maxiane_pairs = pairs_d.get(lider, {})
-max_sorted = sorted(
-    [(t, rec) for t, rec in maxiane_pairs.items() if t != lider],
-    key=lambda x: x[1].get("score", 0)
-)
+    for num_str in sorted(vp_by_paredao.keys(), key=int, reverse=True):
+        par_pred = vp_by_paredao[num_str]
+        par_status = par_pred["status"]
+        formation_date = par_pred["formation_date"]
+        elig = par_pred["eligibility"]
+        predictions = par_pred["predictions"]
+        aggregate = par_pred["aggregate"]
+        retro = par_pred.get("retrospective")
+        lider_pred = par_pred.get("lider_prediction")
 
-html_pred += '<table style="width:100%; border-collapse:collapse; font-size:0.85em; max-width:700px;">'
-html_pred += '<tr style="border-bottom:1px solid #555;">'
-html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">#</th>'
-html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Alvo</th>'
-html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Score</th>'
-html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Queridômetro</th>'
-html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Eventos</th>'
-html_pred += '</tr>'
-for i, (t, rec) in enumerate(max_sorted[:5]):
-    sc = rec.get("score", 0)
-    comps = rec.get("components", {})
-    q = comps.get("queridometro", 0)
-    ev = sc - q  # events = total minus queridometro
-    sc_color = "#e74c3c" if sc < 0 else "#2ecc71"
-    html_pred += f'<tr style="border-bottom:1px solid #333;">'
-    html_pred += f'<td style="padding:6px 8px; color:#888;">{i+1}</td>'
-    html_pred += f'<td style="padding:6px 8px; color:#eee;"><strong>{t}</strong></td>'
-    html_pred += f'<td style="padding:6px 8px; text-align:center; color:{sc_color}; font-weight:bold;">{sc:+.2f}</td>'
-    html_pred += f'<td style="padding:6px 8px; text-align:center;">{fmt_score(q)}</td>'
-    html_pred += f'<td style="padding:6px 8px; text-align:center;">{fmt_score(ev)}</td>'
-    html_pred += '</tr>'
-html_pred += '</table></div>'
+        # Find real votes
+        par_idx = int(num_str) - 1
+        real_votes = paredoes_list[par_idx].get("votos_casa", {}) if par_idx < len(paredoes_list) else {}
+        status_label = "Em andamento" if par_status == "em_andamento" else "Finalizado"
+        status_icon = "🔴" if par_status == "em_andamento" else "✅"
 
-# --- Full voter table ---
-html_pred += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
-html_pred += '<h4 style="color:#f0c040; margin:0 0 0.5rem;">🗳️ Previsão por votante</h4>'
-html_pred += '<p style="color:#aaa; font-size:0.85em;">Para cada votante, o alvo elegível com score mais negativo. Confiança = gap entre #1 e #2 (maior gap = mais provável).</p>'
+        html_vp += f'<div style="background:#1a1a2e; border:1px solid #555; border-radius:12px; padding:1.2rem; margin:1.5rem 0;">'
+        html_vp += f'<h4 style="color:#f0c040; margin:0 0 0.8rem;">{status_icon} {num_str}º Paredão — {formation_date} ({status_label})</h4>'
 
-prediction_rows = []
-vote_totals = defaultdict(int)
+        # Game state
+        html_vp += '<div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.85em; margin-bottom:0.8rem;">'
+        for reason_name, reason_text in elig["ineligible_reasons"].items():
+            icon_map = {"Líder": "👑", "Indicado do Líder": "👑→", "Imunizado": "🛡️", "Dinâmica": "📞", "Contragolpe": "⚔️", "Anjo (autoimune)": "😇"}
+            icon = icon_map.get(reason_text, "🚫")
+            html_vp += f'<span>{icon} {reason_name}: <strong>{reason_text}</strong></span>'
+        html_vp += f'<span>🗳️ Votantes: <strong>{len(elig["voters"])}</strong></span>'
+        html_vp += '</div>'
 
-for voter in voters:
-    voter_pairs = pairs_d.get(voter, {})
-    # Sort eligible targets by score
-    eligible = [(t, voter_pairs.get(t, {}).get("score", 0)) for t in targets if t != voter]
-    eligible.sort(key=lambda x: x[1])
+        # Líder indication
+        if lider_pred:
+            lider_mark = "✅" if lider_pred.get("correct") else "❌"
+            lider_actual = lider_pred.get("actual", "?")
+            html_vp += f'<div style="font-size:0.9em; margin-bottom:0.5rem; color:#ccc;">{lider_mark} Indicação do Líder: previu <strong>{lider_pred["predicted"]}</strong> ({lider_pred["score"]:+.2f}), real: <strong>{lider_actual}</strong></div>'
 
-    if not eligible:
-        prediction_rows.append({
-            "Votante": voter,
-            "Previsto": "—",
-            "Score": "",
-            "#2": "",
-            "#3": "",
-            "Confiança": "",
-        })
-        continue
+        # Retrospective accuracy badges
+        if retro:
+            ind = retro["individual"]
+            hc = retro["high_confidence"]
+            top2 = retro["top2_match"]
+            baseline_acc = retro["baseline_accuracy"]
 
-    pred1 = eligible[0]
-    pred2 = eligible[1] if len(eligible) > 1 else ("", 0)
-    pred3 = eligible[2] if len(eligible) > 2 else ("", 0)
-    gap = pred2[1] - pred1[1] if pred2[0] else 0
+            acc_color = "#2ecc71" if ind["pct"] >= 60 else ("#f39c12" if ind["pct"] >= 40 else "#e74c3c")
+            hc_color = "#2ecc71" if hc["pct"] >= 70 else ("#f39c12" if hc["pct"] >= 50 else "#e74c3c")
+            top2_color = "#2ecc71" if top2 else "#e74c3c"
 
-    vote_totals[pred1[0]] += 1
+            html_vp += '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:0.8rem;">'
+            html_vp += f'<span style="background:{acc_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.85em;">Voto a voto: {ind["correct"]}/{ind["total"]} ({ind["pct"]:.0f}%)</span>'
+            html_vp += f'<span style="background:{hc_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.85em;">Alta confiança: {hc["correct"]}/{hc["total"]} ({hc["pct"]:.0f}%)</span>'
+            html_vp += f'<span style="background:{top2_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.85em;">Top-2: {"✅" if top2 else "❌"}</span>'
+            html_vp += f'<span style="background:#555; color:#eee; padding:4px 12px; border-radius:6px; font-size:0.85em;">Baseline: {baseline_acc:.0f}%</span>'
+            html_vp += '</div>'
 
-    gap_color = "#2ecc71" if gap >= 0.5 else ("#f39c12" if gap >= 0.2 else "#e74c3c")
+        # Vote concentration (predicted vs real)
+        conc = aggregate["vote_concentration"]
+        sorted_conc = sorted(conc.items(), key=lambda x: -x[1])
 
-    prediction_rows.append({
-        "Votante": voter,
-        "Previsto": f"<strong>{pred1[0]}</strong>",
-        "Score": fmt_score(pred1[1]),
-        "#2": f"{pred2[0]} ({pred2[1]:+.2f})" if pred2[0] else "",
-        "#3": f"{pred3[0]} ({pred3[1]:+.2f})" if pred3[0] else "",
-        "Confiança": f"<span style='color:{gap_color}; font-weight:bold;'>{gap:+.2f}</span>",
-    })
+        html_vp += '<div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:0.8rem;">'
 
-pred_df = pd.DataFrame(prediction_rows)
-html_pred += pred_df.to_html(index=False, classes="table table-sm table-dark", escape=False)
-html_pred += '</div>'
+        # Predicted concentration
+        html_vp += '<div style="flex:1; min-width:250px;">'
+        html_vp += '<h5 style="color:#aaa; margin:0 0 0.3rem; font-size:0.85em;">Previsão</h5>'
+        max_v = sorted_conc[0][1] if sorted_conc else 1
+        for i, (target, votes) in enumerate(sorted_conc[:5]):
+            bar_w = int(votes / max_v * 120)
+            bar_c = "#e74c3c" if i < 2 else "#555"
+            html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span style="min-width:20px; text-align:center; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
+        html_vp += '</div>'
 
-# --- Vote concentration ---
-html_pred += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
-html_pred += '<h4 style="color:#f0c040; margin:0 0 0.5rem;">📊 Concentração de votos previstos</h4>'
-html_pred += '<p style="color:#aaa; font-size:0.85em;">Total de votos previstos por alvo (os 2 mais votados vão ao paredão).</p>'
+        # Real concentration
+        if real_votes:
+            real_count = Counter(real_votes.values())
+            real_ranking = real_count.most_common()
+            html_vp += '<div style="flex:1; min-width:250px;">'
+            html_vp += '<h5 style="color:#aaa; margin:0 0 0.3rem; font-size:0.85em;">Real</h5>'
+            max_r = real_ranking[0][1] if real_ranking else 1
+            for i, (target, votes) in enumerate(real_ranking):
+                bar_w = int(votes / max_r * 120)
+                bar_c = "#2ecc71" if i < 2 else "#555"
+                html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span style="min-width:20px; text-align:center; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
+            html_vp += '</div>'
 
-sorted_totals = sorted(vote_totals.items(), key=lambda x: -x[1])
-total_votes = sum(v for _, v in sorted_totals)
+        html_vp += '</div>'
 
-html_pred += '<table style="width:100%; border-collapse:collapse; font-size:0.85em; max-width:600px;">'
-html_pred += '<tr style="border-bottom:1px solid #555;">'
-html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">#</th>'
-html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Alvo</th>'
-html_pred += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Votos previstos</th>'
-html_pred += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Barra</th>'
-html_pred += '</tr>'
+        # Detailed vote table
+        if real_votes:
+            html_vp += '<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#f0c040; font-size:0.9em;">🗳️ Detalhe voto a voto</summary>'
+            html_vp += '<div style="overflow-x:auto; margin-top:0.5rem;">'
 
-max_votes = sorted_totals[0][1] if sorted_totals else 1
-for i, (target, votes) in enumerate(sorted_totals):
-    bar_width = int(votes / max_votes * 200)
-    bar_color = "#e74c3c" if i < 2 else "#555"
-    highlight = "border-left:3px solid #e74c3c;" if i < 2 else ""
-    label_extra = " 🎯" if i < 2 else ""
-    html_pred += f'<tr style="{highlight} border-bottom:1px solid #333;">'
-    html_pred += f'<td style="padding:6px 8px; color:#888;">{i+1}</td>'
-    html_pred += f'<td style="padding:6px 8px; color:#eee;"><strong>{target}</strong>{label_extra}</td>'
-    html_pred += f'<td style="padding:6px 8px; text-align:center; font-weight:bold;">{votes}</td>'
-    html_pred += f'<td style="padding:6px 8px;"><div style="background:{bar_color}; height:16px; width:{bar_width}px; border-radius:4px;"></div></td>'
-    html_pred += '</tr>'
+            vote_rows = []
+            for voter in sorted(predictions.keys()):
+                pred = predictions[voter]
+                real = real_votes.get(voter)
+                if not real:
+                    continue
+                match = pred["predicted"] == real
+                conf = pred["confidence"]
+                conf_color = "#2ecc71" if conf == "Alta" else ("#f39c12" if conf == "Média" else "#e74c3c")
+                gap = pred["gap"]
 
-# Also show targets with 0 votes
-zero_targets = [t for t in targets if t not in vote_totals]
-for t in sorted(zero_targets):
-    html_pred += f'<tr style="border-bottom:1px solid #333;">'
-    html_pred += f'<td style="padding:6px 8px; color:#555;">—</td>'
-    html_pred += f'<td style="padding:6px 8px; color:#666;">{t}</td>'
-    html_pred += f'<td style="padding:6px 8px; text-align:center; color:#555;">0</td>'
-    html_pred += f'<td></td></tr>'
+                # Show cluster adjustments if any
+                top1 = pred["top3"][0] if pred["top3"] else {}
+                adj_parts = []
+                comps = top1.get("components", {})
+                if comps.get("cluster_consensus", 0) != 0:
+                    adj_parts.append(f"cluster: {comps['cluster_consensus']:+.2f}")
+                if comps.get("bloc_history", 0) != 0:
+                    adj_parts.append(f"bloco: {comps['bloc_history']:+.2f}")
+                if comps.get("cluster_protection", 0) != 0:
+                    adj_parts.append(f"prot: {comps['cluster_protection']:+.2f}")
+                adj_str = f" ({', '.join(adj_parts)})" if adj_parts else ""
 
-html_pred += '</table>'
-html_pred += f'<div style="color:#888; font-size:0.82em; margin-top:0.5rem;">Total: {total_votes} votos previstos de {len(voters)} votantes</div>'
-html_pred += '</div>'
+                vote_rows.append({
+                    "": "✅" if match else "❌",
+                    "Votante": voter,
+                    "Previsto": f"<strong>{pred['predicted']}</strong>",
+                    "Real": f"<strong>{real}</strong>",
+                    "Score": fmt_score(pred["score"]),
+                    "Confiança": f"<span style='color:{conf_color};'>{conf} ({gap:+.2f})</span>",
+                    "Ajustes": adj_str,
+                })
 
-# --- Top-2 analysis ---
-html_pred += '<div style="background:#1a2a1a; border:1px solid #2ecc71; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
-html_pred += '<h4 style="color:#2ecc71; margin:0 0 0.5rem;">🔮 Análise Top-2 (quem vai ao paredão?)</h4>'
+            if vote_rows:
+                vote_df = pd.DataFrame(vote_rows)
+                html_vp += vote_df.to_html(index=False, classes="table table-sm table-dark", escape=False)
+            html_vp += '</div></details>'
 
-if len(sorted_totals) >= 2:
-    t1_name, t1_votes = sorted_totals[0]
-    t2_name, t2_votes = sorted_totals[1]
-    t3_name, t3_votes = sorted_totals[2] if len(sorted_totals) > 2 else ("—", 0)
+        # Error analysis
+        if retro and retro.get("errors"):
+            errors = retro["errors"]
+            html_vp += f'<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#e74c3c; font-size:0.9em;">💡 Análise dos {len(errors)} erros</summary>'
+            html_vp += '<div style="color:#ccc; font-size:0.9em; line-height:1.8; margin-top:0.5rem;">'
+            for err in errors:
+                icon = "🎲" if err["analysis"] == "gap mínimo (coin flip)" else "🤝"
+                html_vp += f'<p style="margin:0.3rem 0;">{icon} <strong>{err["voter"]}</strong>: previu <span style="color:#e74c3c;">{err["predicted"]}</span> → votou <strong style="color:#2ecc71;">{err["actual"]}</strong> ({err["confidence"]}) — {err["analysis"]}</p>'
+            html_vp += '</div></details>'
 
-    # Who votes for top-2
-    t1_voters = [r["Votante"] for r in prediction_rows if t1_name in r.get("Previsto", "")]
-    t2_voters = [r["Votante"] for r in prediction_rows if t2_name in r.get("Previsto", "")]
+        # Model adjustments breakdown
+        has_adjustments = any(
+            any(t.get("components", {}).get(k, 0) != 0
+                for t in pred.get("top3", [])
+                for k in ["cluster_consensus", "bloc_history", "cluster_protection"])
+            for pred in predictions.values()
+        )
+        if has_adjustments:
+            html_vp += '<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#aaa; font-size:0.9em;">🔧 Ajustes do modelo aprimorado</summary>'
+            html_vp += '<div style="font-size:0.85em; margin-top:0.5rem; color:#ccc;">'
+            for voter in sorted(predictions.keys()):
+                pred = predictions[voter]
+                for t in pred.get("top3", []):
+                    expl = t.get("explanation")
+                    if expl:
+                        html_vp += f'<div style="padding:2px 0;">{voter} → {t["target"]}: {expl}</div>'
+            html_vp += '</div></details>'
 
-    html_pred += '<div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:0.8rem;">'
-    html_pred += f'<div style="flex:1; min-width:250px; background:#111; border-radius:8px; padding:0.8rem;">'
-    html_pred += f'<div style="font-size:1.1em; font-weight:bold; color:#e74c3c;">🥇 {t1_name} — {t1_votes} votos</div>'
-    html_pred += f'<div style="color:#aaa; font-size:0.85em; margin-top:0.3rem;">Votantes: {", ".join(t1_voters)}</div></div>'
-    html_pred += f'<div style="flex:1; min-width:250px; background:#111; border-radius:8px; padding:0.8rem;">'
-    html_pred += f'<div style="font-size:1.1em; font-weight:bold; color:#f39c12;">🥈 {t2_name} — {t2_votes} votos</div>'
-    html_pred += f'<div style="color:#aaa; font-size:0.85em; margin-top:0.3rem;">Votantes: {", ".join(t2_voters)}</div></div>'
-    html_pred += '</div>'
+        html_vp += '</div>'
 
-    gap12 = t1_votes - t2_votes
-    gap23 = t2_votes - t3_votes
+    # ══════════════════════════════════════════════════════════════
+    # METHODOLOGY
+    # ══════════════════════════════════════════════════════════════
+    config = vp_meta.get("config", {})
+    html_vp += '<div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; font-size:0.85em; color:#aaa;">'
+    html_vp += '<strong style="color:#ccc;">Metodologia — Modelo Aprimorado (v1)</strong><br>'
+    html_vp += '<ul style="margin:0.3rem 0 0;">'
+    html_vp += '<li><strong>Pass 1 (base):</strong> para cada votante, o alvo previsto é o participante elegível com o menor score <code>pairs_daily</code> combinado (queridômetro + eventos acumulados).</li>'
+    html_vp += f'<li><strong>Pass 2 (consenso de cluster):</strong> se ≥{config.get("cluster_consensus_threshold", 0.5)*100:.0f}% dos membros do cluster preveem o mesmo alvo e o alvo está no top-3 do votante, aplica boost de até {config.get("cluster_consensus_max_boost", -0.8)}.</li>'
+    html_vp += f'<li><strong>Histórico de blocos:</strong> se ≥{config.get("bloc_overlap_min", 3)} peers de blocos anteriores preveem o mesmo alvo (top-3), aplica boost de {config.get("bloc_overlap_boost", -0.3)}.</li>'
+    html_vp += f'<li><strong>Proteção intra-cluster:</strong> alvos do mesmo cluster recebem penalidade de +{config.get("same_cluster_penalty", 0.05)} (votos intra-cluster são raros: 11-26%).</li>'
+    html_vp += '<li><strong>Confiança:</strong> gap entre o score do 1º e 2º alvo. Alta ≥0.5, Média ≥0.2, Baixa &lt;0.2.</li>'
+    html_vp += '<li><strong>Fonte dos scores:</strong> usa <code>pairs_daily</code> para participantes ativos e <code>pairs_all</code> para eliminados/desistentes.</li>'
+    html_vp += '<li><strong>Nota:</strong> para paredões antigos, a acurácia é limitada pois os scores atuais refletem a evolução do jogo (não os sentimentos na época).</li>'
+    html_vp += '</ul></div>'
 
-    html_pred += '<div style="color:#ccc; font-size:0.9em; line-height:1.7; margin-top:0.5rem;">'
-    if gap12 == 0:
-        html_pred += f'<p><strong>{t1_name}</strong> e <strong>{t2_name}</strong> empatam com {t1_votes} votos cada — disputa equilibrada.</p>'
-    else:
-        html_pred += f'<p><strong>{t1_name}</strong> lidera com {t1_votes} votos (gap de {gap12} para o 2º).'
-        html_pred += f' <strong>{t2_name}</strong> é o 2º com {t2_votes} votos.</p>'
-    if gap23 <= 1:
-        html_pred += f'<p style="color:#f39c12;">⚠️ Disputa apertada: {t2_name} ({t2_votes}) vs {t3_name} ({t3_votes}) — apenas {gap23} voto(s) de diferença para o 3º.</p>'
-    html_pred += '</div>'
-
-html_pred += '</div>'
-
-# --- Methodology ---
-html_pred += '<div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; font-size:0.85em; color:#aaa;">'
-html_pred += '<strong style="color:#ccc;">Metodologia da previsão</strong><br>'
-html_pred += '<ul style="margin:0.3rem 0 0;">'
-html_pred += '<li><strong>Método:</strong> para cada votante, o alvo previsto é o participante elegível com o menor (mais negativo) score <code>pairs_daily</code> combinado (queridômetro + eventos acumulados).</li>'
-html_pred += '<li><strong>Elegibilidade:</strong> exclui Líder (Maxiane) e já emparedado (Jonas). Anjo (Sarah) <strong>pode ser votada</strong> (não é autoimune). O imunizado pelo Anjo é desconhecido — ajustar após imunização.</li>'
-html_pred += '<li><strong>Confiança:</strong> diferença entre o score do 1º e 2º alvo mais negativo. Gap alto = predição mais robusta; gap baixo = segundo alvo quase tão provável.</li>'
-html_pred += '<li><strong>Limitações:</strong> não modela voto estratégico, coordenação de alianças, ou influência de conversas pré-paredão. Usa scores atuais (Jan 31).</li>'
-html_pred += '<li><strong>Validação:</strong> após os votos reais, re-rodar esta análise para computar acurácia e comparar com a retro dos paredões anteriores.</li>'
-html_pred += '</ul></div>'
-
-print(html_pred)
+    print(html_vp)
 ```

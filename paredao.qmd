@@ -491,15 +491,13 @@ if ultimo:
             print(f"\n### 🗳️ Votação da Casa\n")
             print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
 
-            print('<table class="table table-striped" style="max-width: 800px; font-size: 1.05rem;">')
-            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Principais votantes</th></tr></thead>')
+            print('<table class="table table-striped" style="font-size: 1.05rem;">')
+            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Votantes</th></tr></thead>')
             print('<tbody>')
             for alvo, n in ranking:
                 votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, 28) for v in votantes[:6]])
-                if len(votantes) > 6:
-                    votantes_html += f' <span style="color:#888; font-size:0.9em;">+{len(votantes) - 6}</span>'
-                print(f'<tr><td>{avatar_html(alvo, 32)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+                votantes_html = ' '.join([avatar_img(v, 42) for v in votantes])
+                print(f'<tr><td>{avatar_html(alvo, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
             print('</tbody></table>\n')
         elif n_indicados >= esperado_indicados:
             print(f"\n### 🗳️ Votação da Casa\n")
@@ -852,15 +850,13 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             print(f"\n### 🗳️ Votação da Casa\n")
             print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
 
-            print('<table class="table table-striped" style="max-width: 800px; font-size: 1.05rem;">')
-            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Principais votantes</th></tr></thead>')
+            print('<table class="table table-striped" style="font-size: 1.05rem;">')
+            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Votantes</th></tr></thead>')
             print('<tbody>')
             for alvo, n in ranking:
                 votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, 28) for v in votantes[:6]])
-                if len(votantes) > 6:
-                    votantes_html += f' <span style="color:#888; font-size:0.9em;">+{len(votantes) - 6}</span>'
-                print(f'<tr><td>{avatar_html(alvo, 32)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+                votantes_html = ' '.join([avatar_img(v, 42) for v in votantes])
+                print(f'<tr><td>{avatar_html(alvo, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
             print('</tbody></table>\n')
 
 ```

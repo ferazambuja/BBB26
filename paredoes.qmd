@@ -106,6 +106,12 @@ def avatar_html(name, size=24):
         return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; vertical-align:middle; margin-right:6px;" alt="{name}">{name}'
     return name
 
+def avatar_img(name, size=24):
+    url = AVATARS.get(name, '')
+    if url:
+        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%;" alt="{name}" title="{name}">'
+    return ''
+
 def classify_relationship(votante, alvo, matrix):
     """Classifica o relacionamento entre votante e alvo no queridômetro."""
     rxn_v = matrix.get((votante, alvo), '')
@@ -750,10 +756,14 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         print(f"### Votação da Casa\n")
         print(f"**Mais votado:** {ranking[0][0]} ({ranking[0][1]} votos)\n")
 
-        for alvo, n in ranking[:5]:  # Top 5 only
+        print('<table class="table table-striped" style="font-size: 1.05rem;">')
+        print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Votantes</th></tr></thead>')
+        print('<tbody>')
+        for alvo, n in ranking:
             votantes = sorted([v for v, a in votos.items() if a == alvo])
-            print(f"- **{alvo}** ({n}): {', '.join(votantes[:4])}" + (f" +{len(votantes)-4}" if len(votantes) > 4 else ""))
-        print("")
+            votantes_html = ' '.join([avatar_img(v, 42) for v in votantes])
+            print(f'<tr><td>{avatar_html(alvo, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+        print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════
     # VOTO VS REAÇÃO (compact summary)
