@@ -322,6 +322,39 @@ def build_reaction_matrix(participants):
     return matrix
 
 
+def patch_missing_raio_x(matrix, participants, prev_matrix):
+    """Carry forward reactions for participants who missed the Raio-X.
+
+    A participant missed the Raio-X when they are present in the snapshot
+    (not eliminated) but have 0 outgoing reactions in the matrix.
+
+    Args:
+        matrix: current reaction matrix {(giver, target): label}
+        participants: list of participant dicts from the current snapshot
+        prev_matrix: reaction matrix from the previous day (or empty dict)
+
+    Returns:
+        (patched_matrix, list_of_carried_forward_names)
+    """
+    if not prev_matrix:
+        return matrix, []
+
+    active_names = {p.get("name", "").strip() for p in participants if p.get("name", "").strip()}
+    givers_in_matrix = {actor for (actor, _target) in matrix}
+
+    carried = []
+    for name in sorted(active_names):
+        if name in givers_in_matrix:
+            continue
+        # This participant has 0 outgoing reactions — carry forward from prev
+        prev_entries = {k: v for k, v in prev_matrix.items() if k[0] == name}
+        if prev_entries:
+            matrix.update(prev_entries)
+            carried.append(name)
+
+    return matrix, carried
+
+
 def load_votalhada_polls(filepath=None):
     """Load Votalhada poll aggregation data.
 

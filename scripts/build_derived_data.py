@@ -12,7 +12,7 @@ from collections import defaultdict
 from data_utils import (
     SENTIMENT_WEIGHTS, calc_sentiment, get_week_number,
     CARTOLA_POINTS, REACTION_EMOJI,
-    build_reaction_matrix,
+    build_reaction_matrix, patch_missing_raio_x,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
 )
 
@@ -227,14 +227,20 @@ def compute_streak_data(daily_snapshots, eliminated_last_seen=None):
 
     # Build per-pair emoji history in chronological order
     pair_history = defaultdict(list)  # (actor, target) → [(date, label), ...]
+    missing_raio_x_log = []
+    prev_matrix = {}
     for snap in daily_snapshots:
         date = snap["date"]
         matrix = build_reaction_matrix(snap["participants"])
+        matrix, carried = patch_missing_raio_x(matrix, snap["participants"], prev_matrix)
+        if carried:
+            missing_raio_x_log.append({"date": date, "participants": carried})
         seen_pairs = set()
         for (actor, target), label in matrix.items():
             if label:
                 pair_history[(actor, target)].append((date, label))
                 seen_pairs.add((actor, target))
+        prev_matrix = matrix
 
     streak_info = defaultdict(dict)
     streak_breaks = []
@@ -324,7 +330,7 @@ def compute_streak_data(daily_snapshots, eliminated_last_seen=None):
     # Sort breaks by severity (strong first) then by previous streak length (longest first)
     streak_breaks.sort(key=lambda x: (0 if x["severity"] == "strong" else 1, -x["previous_streak"]))
 
-    return dict(streak_info), streak_breaks
+    return dict(streak_info), streak_breaks, missing_raio_x_log
 
 
 def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles, participants_index=None):
@@ -354,7 +360,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 eliminated_last_seen[p["name"]] = p.get("last_seen")
 
     # Compute streak data for all pairs (streak length, break detection)
-    streak_info, streak_breaks = compute_streak_data(daily_snapshots, eliminated_last_seen)
+    streak_info, streak_breaks, missing_raio_x_log = compute_streak_data(daily_snapshots, eliminated_last_seen)
 
     reaction_matrix_latest = build_reaction_matrix(participants)
 
@@ -530,6 +536,13 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 total_w = sum(weights)
                 weights = [w / total_w for w in weights]
                 matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+                # Patch missing Raio-X: carry forward from predecessor
+                # For the first matrix, look back one more in candidates
+                fallback_idx = len(candidates) - len(selected) - 1
+                prev_mat = build_reaction_matrix(candidates[fallback_idx]["participants"]) if fallback_idx >= 0 else {}
+                for i in range(len(matrices)):
+                    matrices[i], _ = patch_missing_raio_x(matrices[i], selected[i]["participants"], prev_mat)
+                    prev_mat = matrices[i]
                 for actor in name_list:
                     if actor in base:
                         continue
@@ -567,6 +580,12 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             total_w = sum(weights)
             weights = [w / total_w for w in weights]
             matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+            # Patch missing Raio-X for eliminated participants' window
+            fb_idx = len(elim_candidates) - len(selected) - 1
+            prev_mat = build_reaction_matrix(elim_candidates[fb_idx]["participants"]) if fb_idx >= 0 else {}
+            for mi in range(len(matrices)):
+                matrices[mi], _ = patch_missing_raio_x(matrices[mi], selected[mi]["participants"], prev_mat)
+                prev_mat = matrices[mi]
 
             base[elim_name] = {}
             for target in all_names:
@@ -760,7 +779,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             )
 
         # Duo Anjo: mutual edge between duo partners
-        duo = anjo_data.get("duo", [])
+        duo = anjo_data.get("duo") or []
         prova_date = anjo_data.get("prova_date")
         if len(duo) == 2:
             a, b = duo
@@ -1032,6 +1051,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
         "received_impact": received_impact,
         "voting_blocs": voting_blocs,
         "streak_breaks": streak_breaks,
+        "missing_raio_x": missing_raio_x_log,
     }
 
 
@@ -1260,6 +1280,8 @@ def build_daily_changes_summary(daily_snapshots):
         curr_snap = daily_snapshots[i]
         prev_matrix = build_reaction_matrix(prev_snap["participants"])
         curr_matrix = build_reaction_matrix(curr_snap["participants"])
+        # Carry forward reactions for participants who missed Raio-X
+        curr_matrix, _ = patch_missing_raio_x(curr_matrix, curr_snap["participants"], prev_matrix)
 
         prev_names = {p["name"] for p in prev_snap["participants"] if p.get("name")}
         curr_names = {p["name"] for p in curr_snap["participants"] if p.get("name")}
@@ -3189,10 +3211,10 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
 
     # --- Sort by date, then by category priority ---
     cat_order = {
-        "entrada": 0, "saida": 1, "lider": 2, "anjo": 3, "monstro": 4, "imune": 5,
-        "big_fone": 6, "paredao_formacao": 7, "indicacao": 8, "contragolpe": 9,
-        "bate_volta": 10, "veto": 11, "sincerao": 12, "ganha_ganha": 13,
-        "barrado_baile": 14, "dinamica": 15, "paredao_resultado": 16,
+        "entrada": 0, "saida": 1, "lider": 2, "anjo": 3, "monstro": 4, "imune": 5, "imunidade": 6,
+        "big_fone": 7, "paredao_formacao": 8, "indicacao": 9, "contragolpe": 10,
+        "bate_volta": 11, "veto": 12, "sincerao": 13, "ganha_ganha": 14,
+        "barrado_baile": 15, "dinamica": 16, "paredao_resultado": 17,
     }
     events.sort(key=lambda e: (e.get("date", ""), cat_order.get(e.get("category", ""), 99)))
 
