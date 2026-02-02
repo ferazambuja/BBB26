@@ -700,11 +700,11 @@ else:
                     g_color = "#e74c3c" if new_e == "❤️" else "#666"
                     r_color = "#27ae60" if new_e == "❤️" else "#e74c3c"
                 pairs_html += (
-                    f'<div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.05);'
-                    f'padding:4px 8px;border-radius:8px;" title="{g} → {r}">'
-                    f'{av(g, 40, g_color)}'
+                    f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
+                    f'padding:5px 8px;border-radius:8px;" title="{g} → {r}">'
+                    f'{av(g, 42, g_color)}'
                     f'<span style="font-size:0.8rem;color:#ccc;">{label}</span>'
-                    f'{av(r, 40, r_color)}'
+                    f'{av(r, 42, r_color)}'
                     f'</div>'
                 )
             extra = total - 4
@@ -730,12 +730,12 @@ else:
                 emoji = it.get("emoji", "?")
                 rows_html += (
                     f'<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);padding:5px 8px;border-radius:8px;">'
-                    f'{av(ator, 38, "#e67e22")}'
+                    f'{av(ator, 42, "#e67e22")}'
                     f'<span style="font-size:0.8rem;color:#ccc;">{ator.split()[0]}</span>'
                     f'<span style="font-size:0.7rem;color:#888;">disse <b style="color:#e67e22;">{tipo}</b> mas dá</span>'
                     f'<span style="font-size:1.1rem;">{emoji}</span>'
                     f'<span style="font-size:0.7rem;color:#888;">para</span>'
-                    f'{av(alvo, 38, "#27ae60")}'
+                    f'{av(alvo, 42, "#27ae60")}'
                     f'<span style="font-size:0.8rem;color:#ccc;">{alvo.split()[0]}</span>'
                     f'</div>'
                 )
@@ -776,7 +776,7 @@ else:
                 bar_pct = min(100, abs(neg) / worst_neg * 100)
                 rows_html += (
                     f'<div style="display:flex;align-items:center;gap:8px;">'
-                    f'{av(name, 44, "#c0392b")}'
+                    f'{av(name, 42, "#c0392b")}'
                     f'<div style="flex:1;min-width:0;">'
                     f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
                     f'<span style="font-size:0.8rem;font-weight:600;color:#fff;">{name.split()[0]}</span>'
@@ -808,11 +808,11 @@ else:
                 enemies = it.get("enemies", [])
                 level_color = "#e74c3c" if level == "critical" else "#f39c12"
                 level_label = "MUITO VULNERÁVEL" if level == "critical" else "VULNERÁVEL"
-                enemy_avatars = ''.join(av(e, 30, level_color) for e in enemies[:4])
+                enemy_avatars = ''.join(av(e, 34, level_color) for e in enemies[:4])
                 extra_enemies = len(enemies) - 4
                 rows_html += (
                     f'<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:8px;">'
-                    f'{av(name, 48, level_color)}'
+                    f'{av(name, 42, level_color)}'
                     f'<div style="flex:1;min-width:0;">'
                     f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
                     f'<span style="font-size:0.85rem;font-weight:600;color:#fff;">{name.split()[0]}</span>'
@@ -852,12 +852,12 @@ else:
                 rows_html += (
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
                     f'padding:5px 8px;border-radius:8px;border-left:3px solid {sev_border};">'
-                    f'{av(g, 38, sev_border)}'
+                    f'{av(g, 42, sev_border)}'
                     f'<div style="display:flex;flex-direction:column;align-items:center;">'
                     f'<span style="font-size:0.7rem;color:#aaa;">{streak}d ❤️</span>'
                     f'<span style="font-size:0.9rem;">→ {new_e}</span>'
                     f'</div>'
-                    f'{av(r, 38, sev_border)}'
+                    f'{av(r, 42, sev_border)}'
                     f'{"<span style=&quot;font-size:0.7rem;color:#e74c3c;font-weight:700;&quot;>🚨</span>" if sev == "strong" else ""}'
                     f'</div>'
                 )
@@ -880,7 +880,7 @@ else:
                 medals = ["🥇", "🥈", "🥉"]
                 strat_html += (
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:8px;">'
-                    f'{av(p["name"], 44, "#9b59b6")}'
+                    f'{av(p["name"], 42, "#9b59b6")}'
                     f'<span style="font-size:0.8rem;color:#ccc;">{medals[i]} {p["name"].split()[0]}</span>'
                     f'<span style="font-size:0.8rem;color:#9b59b6;font-weight:700;">{p["score"]:+.2f}</span>'
                     f'</div>'

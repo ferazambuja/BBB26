@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-01-30",
+  "_last_updated": "2026-02-01",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -919,13 +919,31 @@
           "alvo": "Gabriela"
         }
       ],
-      "notes": "Semana 3 começa após a eliminação do 2º paredão.",
+      "anjo": {
+        "vencedor": "Sarah Andrade",
+        "duo": null,
+        "prova_date": "2026-01-31",
+        "tipo": "normal",
+        "almoco_date": "2026-02-01",
+        "almoco_convidados": ["Jonas Sulzbach", "Sol Vega", "Brigido"],
+        "escolha": "video_familia",
+        "imunizou": null,
+        "extra_poder": "imunidade_extra",
+        "usou_extra_poder": false,
+        "notas": "Sarah venceu em duelos individuais (Barris Amstel). Escolheu vídeo da família ao invés de segunda imunidade: 'Quero o Amor! Quero ver a minha família!'. Escolheu Ana Paula Renault para o Castigo do Monstro. Imunização será definida na formação do paredão.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/no-presente-do-anjo-sarah-andrade-escolhe-assistir-a-um-video-da-familia-e-abre-mao-de-segunda-imunidade.ghtml",
+          "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/castigo-do-monstro-do-bbb-26-e-o-domino-ana-paula-renault-foi-escolhida-por-sarah-andrade-1.3738872"
+        ]
+      },
+      "notes": "Semana 3 começa após a eliminação do 2º paredão. Paulo Augusto desclassificado dia 30 (agressão). Sarah Andrade é o Anjo (venceu duelos). Presente do Anjo: escolheu vídeo da família.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/chaiany-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/gabriela-e-escolhida-para-o-barrado-no-baile-pelo-lider-babu-santana-e-enfrenta-desafio.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-breno-veta-brigido-de-tres-provas-da-semana.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-atendeu-ao-big-fone-marcelo-ouve-mensagem-sobre-pulseira-dourada.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/jonas-sulzbach-esta-no-paredao-apos-voto-em-consenso-do-big-fone.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/jonas-sulzbach-esta-no-paredao-apos-voto-em-consenso-do-big-fone.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/no-presente-do-anjo-sarah-andrade-escolhe-assistir-a-um-video-da-familia-e-abre-mao-de-segunda-imunidade.ghtml"
       ]
     }
   ],
@@ -1348,26 +1366,15 @@
   "cartola_points_log": [],
   "scheduled_events": [
     {
-      "date": "2026-01-31",
-      "week": 3,
-      "category": "big_fone",
-      "emoji": "📞",
-      "title": "Big Fone — votação do público",
-      "detail": "Público vota para decidir qual será um dos três telefones. Ao vivo, os 3 atendentes do Big Fone escolhem em consenso 1 pessoa para o Paredão.",
-      "time": "Ao Vivo",
-      "participants": [],
-      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
-    },
-    {
       "date": "2026-02-01",
       "week": 3,
-      "category": "anjo",
-      "emoji": "🕊️",
-      "title": "Presente do Anjo",
-      "detail": "Poderá ganhar +1 imunidade em troca de abrir mão do vídeo da família",
+      "category": "imunidade",
+      "emoji": "🛡️",
+      "title": "Imunidade do Anjo",
+      "detail": "Sarah Andrade escolhe quem imunizar no 3º Paredão (abriu mão da segunda imunidade pelo vídeo da família).",
       "time": "Ao Vivo",
       "participants": [],
-      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
+      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/no-presente-do-anjo-sarah-andrade-escolhe-assistir-a-um-video-da-familia-e-abre-mao-de-segunda-imunidade.ghtml"]
     },
     {
       "date": "2026-02-01",
@@ -1375,7 +1382,7 @@
       "category": "paredao_formacao",
       "emoji": "🗳️",
       "title": "3º Paredão — Formação (triplo)",
-      "detail": "Imunidades: 1 pelo Anjo (+1 extra se ganhar). Emparedados: 1 consenso Big Fone + 1 indicação Líder + 2 mais votados pela casa. Prova Bate e Volta.",
+      "detail": "Imunidades: 1 pelo Anjo (Sarah abriu mão da extra). Emparedados: 1 consenso Big Fone (Jonas) + 1 indicação Líder (Maxiane) + 2 mais votados pela casa. Prova Bate e Volta.",
       "time": "Ao Vivo",
       "participants": [],
       "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]

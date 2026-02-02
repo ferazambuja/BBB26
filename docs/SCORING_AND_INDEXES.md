@@ -81,6 +81,31 @@ Q_final(A→B)    = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
 - A **memória de sequência** considera todo o histórico do par.
 - Se faltar snapshot no período, cai para o **snapshot mais recente**.
 
+### Raio-X Ausente (Carry-Forward)
+
+Quando um participante não faz o Raio-X (queridômetro matinal), a API retorna 0 reações para ele naquele dia. Sem tratamento, isso corrompe:
+- Continuidade de streaks (gap no `pair_history`)
+- Média ponderada de 3 dias (dia mais recente sem dados)
+- Pulso diário (mostra perda de todas as reações)
+
+**Detecção** (automática, via `patch_missing_raio_x()` em `data_utils.py`):
+- Participante presente no snapshot (não eliminado)
+- Zero reações de saída na `build_reaction_matrix()`
+
+**Tratamento**: copia as reações do dia anterior (carry-forward). Aplicado em:
+- `compute_streak_data()` — loop principal de histórico de pares
+- `compute_base_weights()` / `compute_base_weights_all()` — janela de 3 dias
+- `build_daily_changes_summary()` — comparação dia-a-dia
+
+**Não aplicado** em páginas QMD (display) — estas mostram os dados reais da API.
+
+**Metadata**: `relations_scores.json` → campo `missing_raio_x`:
+```json
+[{"date": "2026-02-01", "participants": ["Juliano Floss"]}]
+```
+
+A detecção é puramente baseada nos dados — nenhum nome ou data é hardcoded.
+
 ### Detecção de Rupturas de Aliança (Streak Breaks)
 
 Uma ruptura é detectada quando:

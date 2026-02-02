@@ -147,6 +147,10 @@ setup_bbb_dark_theme()
 
 The API returns the **current state** of all reactions, not a history. Participants **change** their reactions to others daily. **Every snapshot is a unique complete game state** and must be kept.
 
+### Missing Raio-X Safeguard
+
+When a participant misses the morning Raio-X, the API returns them with 0 outgoing reactions. The scoring pipeline (`build_derived_data.py`) automatically detects this (0 outgoing reactions for an active participant) and carries forward their previous day's reactions via `patch_missing_raio_x()` from `data_utils.py`. Detection is data-driven (no hardcoded names). Metadata logged in `relations_scores.json` → `missing_raio_x`. QMD display pages are NOT patched — they show raw API data. See `docs/SCORING_AND_INDEXES.md` for full details.
+
 ### Snapshot Format
 - New format wraps data: `{ "_metadata": {...}, "participants": [...] }`; old format is just the raw array.
 - `scripts/fetch_data.py` handles both formats and saves only when data hash changes.
