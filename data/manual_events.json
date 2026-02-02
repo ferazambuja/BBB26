@@ -927,16 +927,16 @@
         "almoco_date": "2026-02-01",
         "almoco_convidados": ["Jonas Sulzbach", "Sol Vega", "Brigido"],
         "escolha": "video_familia",
-        "imunizou": null,
+        "imunizou": "Sol Vega",
         "extra_poder": "imunidade_extra",
         "usou_extra_poder": false,
-        "notas": "Sarah venceu em duelos individuais (Barris Amstel). Escolheu vídeo da família ao invés de segunda imunidade: 'Quero o Amor! Quero ver a minha família!'. Escolheu Ana Paula Renault para o Castigo do Monstro. Imunização será definida na formação do paredão.",
+        "notas": "Sarah venceu em duelos individuais (Barris Amstel). Escolheu vídeo da família ao invés de segunda imunidade: 'Quero o Amor! Quero ver a minha família!'. Escolheu Ana Paula Renault para o Castigo do Monstro. Imunizou Sol Vega na formação do paredão.",
         "fontes": [
           "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/no-presente-do-anjo-sarah-andrade-escolhe-assistir-a-um-video-da-familia-e-abre-mao-de-segunda-imunidade.ghtml",
           "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/castigo-do-monstro-do-bbb-26-e-o-domino-ana-paula-renault-foi-escolhida-por-sarah-andrade-1.3738872"
         ]
       },
-      "notes": "Semana 3 começa após a eliminação do 2º paredão. Paulo Augusto desclassificado dia 30 (agressão). Sarah Andrade é o Anjo (venceu duelos). Presente do Anjo: escolheu vídeo da família.",
+      "notes": "Semana 3 começa após a eliminação do 2º paredão. Paulo Augusto desclassificado dia 30 (agressão). Sarah Andrade é o Anjo (venceu duelos). Presente do Anjo: escolheu vídeo da família. Imunizou Sol Vega. Maxiane (líder) indicou Ana Paula Renault. Jonas escapou na Bate e Volta contra Leandro. 3º Paredão: Ana Paula Renault, Leandro, Brigido.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/chaiany-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/gabriela-e-escolhida-para-o-barrado-no-baile-pelo-lider-babu-santana-e-enfrenta-desafio.ghtml",
@@ -1361,32 +1361,58 @@
       "origem": "manual",
       "visibility": "public",
       "awareness": "known"
+    },
+    {
+      "date": "2026-02-01",
+      "week": 3,
+      "type": "imunidade",
+      "actor": "Sarah Andrade",
+      "target": "Sol Vega",
+      "source": "Anjo",
+      "detail": "Anjo imuniza Sol Vega no 3º Paredão",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/sol-vega-e-imunizada-por-sarah-andrade-veja-quanto-a-sister-pontuou-no-cartola-bbb.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-02-01",
+      "week": 3,
+      "type": "indicacao",
+      "actor": "Maxiane",
+      "target": "Ana Paula Renault",
+      "source": "Líder",
+      "detail": "Indicação do líder ao paredão",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/jonas-se-livra-do-paredao-na-prova-bate-e-volta-do-bbb-26.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-02-01",
+      "week": 3,
+      "type": "bate_volta",
+      "actor": "Prova Bate e Volta",
+      "target": "Jonas Sulzbach",
+      "source": "Bate e Volta",
+      "detail": "Venceu a Prova Bate e Volta contra Leandro e escapou do paredão",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/jonas-se-livra-do-paredao-na-prova-bate-e-volta-do-bbb-26.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
     }
   ],
   "cartola_points_log": [],
   "scheduled_events": [
-    {
-      "date": "2026-02-01",
-      "week": 3,
-      "category": "imunidade",
-      "emoji": "🛡️",
-      "title": "Imunidade do Anjo",
-      "detail": "Sarah Andrade escolhe quem imunizar no 3º Paredão (abriu mão da segunda imunidade pelo vídeo da família).",
-      "time": "Ao Vivo",
-      "participants": [],
-      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/no-presente-do-anjo-sarah-andrade-escolhe-assistir-a-um-video-da-familia-e-abre-mao-de-segunda-imunidade.ghtml"]
-    },
-    {
-      "date": "2026-02-01",
-      "week": 3,
-      "category": "paredao_formacao",
-      "emoji": "🗳️",
-      "title": "3º Paredão — Formação (triplo)",
-      "detail": "Imunidades: 1 pelo Anjo (Sarah abriu mão da extra). Emparedados: 1 consenso Big Fone (Jonas) + 1 indicação Líder (Maxiane) + 2 mais votados pela casa. Prova Bate e Volta.",
-      "time": "Ao Vivo",
-      "participants": [],
-      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"]
-    },
     {
       "date": "2026-02-03",
       "week": 3,
