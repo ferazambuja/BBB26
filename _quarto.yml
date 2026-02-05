@@ -63,6 +63,8 @@ format:
       - assets/plotly-fullscreen.css
       - assets/toc-offcanvas.css
       - assets/accessibility.css
+    include-before-body:
+      - file: assets/disclaimer.html
     include-after-body:
       - text: |
           <script src="assets/plotly-fullscreen.js"></script>
