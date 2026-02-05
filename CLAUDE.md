@@ -56,6 +56,7 @@ quarto preview
 - `scripts/build_derived_data.py` — **after any manual edits** in `data/manual_events.json` or `data/paredoes.json`.
   - Também gera `data/derived/index_data.json` (tabelas leves para `index.qmd`) e `data/derived/cartola_data.json` (pontuação Cartola).
 - `scripts/update_programa_doc.py` — **after weekly manual updates** (keeps `docs/PROGRAMA_BBB26.md` table in sync).
+- `scripts/analyze_capture_timing.py` — **weekly** (checks if 12:00 BRT cron catches Raio-X data on time).
 - `scripts/audit_snapshots.py` / `scripts/analyze_snapshots.py` / `scripts/compare_sameday.py` — **one-off audits**.
 
 **Scheduled events (upcoming week dynamics):**
@@ -516,6 +517,7 @@ All project documentation and their purposes:
 |------|---------|
 | **`CLAUDE.md`** | Master project guide — architecture, data flows, conventions (this file) |
 | **`IMPLEMENTATION_PLAN.md`** | Deployment guide — pipeline, GitHub Actions, Pages setup |
+| **`docs/OPERATIONS_GUIDE.md`** | Daily operations — manual data workflow, git sync, timing analysis |
 | **`docs/SCORING_AND_INDEXES.md`** | Full scoring formulas, weights, and index specs |
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema, fill rules, and update procedures for `manual_events.json` |
 | **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics (non-analytical) |
