@@ -158,7 +158,31 @@ git push
 
 ## Capture Timing Analysis
 
-The 12:00 BRT capture is supposed to catch post-Raio-X data, but the Raio-X timing can vary. To check if the cron schedule is optimal:
+### When does the queridômetro actually update?
+
+The Raio-X has **no fixed time** — it depends on when production wakes the participants. But GShow publishes the queridômetro article early:
+
+| Source | Observation | Time (BRT) |
+|--------|-------------|------------|
+| **GShow article** | Feb 5 (Wed, post-elimination) — published | ~09:00 |
+| **Raio-X wake-up** | Normal days | 09h-10h |
+| **Raio-X wake-up** | Post-party days | 10h-13h |
+| **API data ready** | Normal days (estimated) | ~09h-11h |
+| **API data ready** | Post-party days (estimated) | ~12h-15h |
+
+**Key finding (Feb 5 data point)**: GShow published the queridômetro article around 09:00 BRT, which means the API data was already available by then. The 12:00 BRT cron capture should catch it on normal days with margin to spare.
+
+**Current cron schedule assessment**:
+- **06:00 BRT**: Pre-Raio-X baseline (data from yesterday, useful for comparison).
+- **12:00 BRT**: Primary capture. Catches normal days with ~2-3h margin. May miss very late post-party days.
+- **18:00 BRT**: Safety net — catches anything the 12:00 run missed.
+- Both 12:00 + 18:00 together cover all scenarios.
+
+Sources: [TVH News](https://tvhnews.com.br/como-funciona-o-raio-x-do-bbb-26-saiba-para-que-serve-a-dinamica/), [DCI](https://www.dci.com.br/dci-mais/bbb-21/bbb-21-que-horas-e-o-raio-x-veja-como-funciona/94397/), [GShow Feb 5](https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/queridometro-do-bbb-26-reflete-tensao-pos-festa-e-brothers-recebem-emojis-negativos.ghtml)
+
+### Tracking with data
+
+To check empirically if the 12:00 BRT capture is catching reaction updates:
 
 ```bash
 python scripts/analyze_capture_timing.py
@@ -175,6 +199,8 @@ This analyzes all snapshots with metadata and reports:
 - If most reaction changes are caught at 12:00 → timing is correct
 - If caught at 18:00 instead → Raio-X is happening later, consider shifting to 14:00 or 15:00
 - If caught at 06:00 → reactions updated overnight (unusual, investigate)
+
+**When to check**: Run the script weekly after a full week of cron captures. The first meaningful analysis will be around Feb 12 (7 days of 4×/day data).
 
 ---
 
