@@ -437,6 +437,39 @@ if len(finalized_polls) >= 1:
         )
         fig_lines.show()
 
+        # ── Grouped Bar Chart: Platform Error by Paredão ──
+        fig_grouped = go.Figure()
+        paredao_colors = px.colors.qualitative.Set2
+        platforms_order = ['sites', 'youtube', 'twitter', 'instagram']
+
+        for i, poll in enumerate(finalized_polls):
+            par_num = poll['numero']
+            par_label = f"{par_num}º Paredão"
+            # Get errors for each platform for this paredão
+            errs = []
+            for plat in platforms_order:
+                err_data = next((e for e in platform_errors.get(plat, []) if e['paredao'] == par_num), None)
+                errs.append(err_data['erro'] if err_data else 0)
+
+            fig_grouped.add_trace(go.Bar(
+                name=par_label,
+                x=[platform_names.get(p, p) for p in platforms_order],
+                y=errs,
+                marker_color=paredao_colors[i % len(paredao_colors)],
+                text=[f"{e:.1f}" for e in errs],
+                textposition='outside',
+                hovertemplate=f'{par_label}: ' + '%{y:.1f} p.p.<extra></extra>',
+            ))
+
+        fig_grouped.update_layout(
+            title="Erro por Plataforma × Paredão",
+            xaxis_title="Plataforma", yaxis_title="Erro (p.p.)",
+            barmode='group',
+            height=400,
+            legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        )
+        fig_grouped.show()
+
     # Pattern observation
     underest = np.mean([r['enquete'] - r['voto_total'] for r in poll_vs_votes])
     pattern = "subestimam" if underest < 0 else "superestimam"

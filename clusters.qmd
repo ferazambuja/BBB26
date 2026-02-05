@@ -155,6 +155,27 @@ print("</ul></div>")
 # ══════════════════════════════════════════════════════════════════════════════
 
 overall_cohesion = np.mean([c["cohesion"] for c in communities])
+silhouette_val = meta.get("silhouette_coefficient")
+silhouette_display = f"{silhouette_val:.2f}" if silhouette_val else "—"
+resolution_val = meta.get("resolution_used", 1.0)
+
+# Silhouette quality interpretation
+if silhouette_val is not None:
+    if silhouette_val > 0.5:
+        sil_quality = "Excelente"
+        sil_color_start, sil_color_end = "#27ae60", "#1e8449"
+    elif silhouette_val > 0.3:
+        sil_quality = "Boa"
+        sil_color_start, sil_color_end = "#2ecc71", "#27ae60"
+    elif silhouette_val > 0.1:
+        sil_quality = "Moderada"
+        sil_color_start, sil_color_end = "#f39c12", "#d68910"
+    else:
+        sil_quality = "Fraca"
+        sil_color_start, sil_color_end = "#e74c3c", "#c0392b"
+else:
+    sil_quality = "N/D"
+    sil_color_start, sil_color_end = "#7f8c8d", "#5d6d7e"
 
 print(f'''
 <div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
@@ -169,6 +190,11 @@ print(f'''
 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Coesão Média</div>
 </div>
 
+<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, {sil_color_start} 0%, {sil_color_end} 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+<div style="font-size: 2rem; font-weight: bold; color: #fff;">{silhouette_display}</div>
+<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Silhouette ({sil_quality})</div>
+</div>
+
 <div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
 <div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_tensions}</div>
 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Tensões</div>
@@ -181,7 +207,7 @@ print(f'''
 
 </div>
 
-<p class="text-muted small" style="margin-top: 0.3rem;">Baseado em scores compostos (queridômetro + votos + eventos de poder + Sincerão + VIP). Referência: {ref_date}.</p>
+<p class="text-muted small" style="margin-top: 0.3rem;">Baseado em scores compostos (queridômetro + votos + eventos de poder + Sincerão + VIP). Referência: {ref_date}. Resolução Louvain: {resolution_val}.</p>
 ''')
 ```
 
@@ -766,12 +792,162 @@ for entry in top3:
 print('</div>')
 ```
 
+# Evolução dos Clusters
+
+Acompanhamento de como a estrutura de comunidades mudou ao longo das semanas.
+
+```{python}
+#| label: cluster-evolution
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLUSTER EVOLUTION — temporal tracking of community changes
+# ══════════════════════════════════════════════════════════════════════════════
+
+import plotly.graph_objects as go
+from pathlib import Path
+
+evolution_path = Path("data/derived/cluster_evolution.json")
+if evolution_path.exists():
+    with open(evolution_path) as f:
+        evolution = json.load(f)
+
+    timeline = evolution.get("timeline", [])
+    all_transitions = evolution.get("all_transitions", [])
+    most_mobile = evolution.get("most_mobile", [])
+
+    if len(timeline) >= 2:
+        # ── KPI: Evolution summary ──
+        n_weeks = len(timeline)
+        total_trans = evolution.get("_metadata", {}).get("total_transitions", len(all_transitions))
+        avg_clusters = np.mean([e["n_clusters"] for e in timeline])
+        silhouettes = [e["silhouette"] for e in timeline if e.get("silhouette") is not None]
+        avg_sil = np.mean(silhouettes) if silhouettes else None
+
+        print(f'''
+<div style="background: #2a2a2a; border-left: 4px solid #9b59b6; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
+<div style="font-weight: 700; margin-bottom: 0.5rem;">Resumo da Evolução ({n_weeks} semanas)</div>
+<div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+<div><strong>{total_trans}</strong> transições detectadas</div>
+<div><strong>{avg_clusters:.1f}</strong> clusters em média</div>
+{"<div><strong>" + f"{avg_sil:.2f}" + "</strong> silhouette médio</div>" if avg_sil else ""}
+</div>
+</div>
+''')
+
+        # ── Chart 1: Cluster count + silhouette over time ──
+        weeks = [e["week"] for e in timeline]
+        clusters_per_week = [e["n_clusters"] for e in timeline]
+        silhouettes = [e.get("silhouette") for e in timeline]
+
+        fig_evo = go.Figure()
+        fig_evo.add_trace(go.Scatter(
+            x=weeks, y=clusters_per_week, mode='lines+markers',
+            name='Nº Clusters', line=dict(width=3, color='#3498db'),
+            marker=dict(size=10),
+            yaxis='y',
+        ))
+        if any(s is not None for s in silhouettes):
+            fig_evo.add_trace(go.Scatter(
+                x=weeks, y=silhouettes, mode='lines+markers',
+                name='Silhouette', line=dict(width=2, color='#2ecc71', dash='dash'),
+                marker=dict(size=8, symbol='diamond'),
+                yaxis='y2',
+            ))
+
+        fig_evo.update_layout(
+            title="Evolução da Estrutura de Clusters",
+            xaxis_title="Semana",
+            yaxis=dict(title="Número de Clusters", title_font=dict(color='#3498db'), tickfont=dict(color='#3498db')),
+            yaxis2=dict(title="Silhouette", title_font=dict(color='#2ecc71'), tickfont=dict(color='#2ecc71'),
+                        overlaying='y', side='right', range=[0, 1]),
+            height=350,
+            legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        )
+        fig_evo.show()
+
+        # ── Chart 2: Cluster sizes stacked area ──
+        def hex_to_rgba(h, alpha=0.6):
+            h = h.lstrip('#')
+            return f'rgba({int(h[0:2],16)},{int(h[2:4],16)},{int(h[4:6],16)},{alpha})'
+
+        # Build series for each cluster label across time
+        all_labels = set()
+        for e in timeline:
+            for c in e.get("communities", []):
+                all_labels.add(c["label"])
+        all_labels = sorted(all_labels)
+
+        fig_area = go.Figure()
+        for label in all_labels:
+            sizes = []
+            for e in timeline:
+                comm = next((c for c in e.get("communities", []) if c["label"] == label), None)
+                sizes.append(comm["size"] if comm else 0)
+            color = next((c["color"] for e in timeline for c in e.get("communities", []) if c["label"] == label), '#888')
+            fig_area.add_trace(go.Scatter(
+                x=weeks, y=sizes, mode='lines',
+                name=f'Cluster {label}', stackgroup='one',
+                line=dict(width=0.5, color=color),
+                fillcolor=hex_to_rgba(color) if color.startswith('#') else color,
+            ))
+
+        fig_area.update_layout(
+            title="Tamanho dos Clusters ao Longo do Tempo",
+            xaxis_title="Semana", yaxis_title="Participantes",
+            height=350, hovermode='x unified',
+        )
+        fig_area.show()
+
+        # ── Most mobile participants ──
+        if most_mobile:
+            print("\n### 🔄 Participantes Mais Móveis\n")
+            print("Quem mudou de cluster com mais frequência:\n")
+            print('<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">')
+            for item in most_mobile:
+                name = item["name"]
+                moves = item["moves"]
+                avatar_url = AVATARS.get(name, "")
+                if avatar_url:
+                    print(f'<div style="background:#2a2a2a;padding:8px 12px;border-radius:8px;display:flex;align-items:center;gap:8px;">')
+                    print(f'<img src="{avatar_url}" style="width:32px;height:32px;border-radius:50%;">')
+                    print(f'<span><strong>{name.split()[0]}</strong> ({moves}×)</span></div>')
+                else:
+                    print(f'<span style="background:#2a2a2a;padding:4px 10px;border-radius:6px;margin:2px;"><strong>{name.split()[0]}</strong> ({moves}×)</span>')
+            print('</div>\n')
+
+        # ── Transitions table ──
+        if all_transitions:
+            print("\n### 📋 Registro de Transições\n")
+            print('<table class="table table-sm" style="max-width: 600px; font-size: 0.9rem;">')
+            print('<thead><tr><th>Semana</th><th>Participante</th><th>De</th><th>Para</th></tr></thead>')
+            print('<tbody>')
+            for t in sorted(all_transitions, key=lambda x: (x.get("week", 0), x.get("name", "")))[:15]:
+                print(f'<tr><td>Sem {t.get("week", "?")}</td>')
+                print(f'<td>{t.get("name", "?").split()[0]}</td>')
+                print(f'<td style="text-align:center;">Cl {t.get("from_cluster", "?")}</td>')
+                print(f'<td style="text-align:center;">Cl {t.get("to_cluster", "?")}</td></tr>')
+            print('</tbody></table>')
+            if len(all_transitions) > 15:
+                print(f'<p class="text-muted small">Mostrando 15 de {len(all_transitions)} transições.</p>')
+    else:
+        print('<p class="text-muted">Dados de evolução insuficientes (mínimo 2 semanas).</p>')
+else:
+    print('<p class="text-muted">Dados de evolução de clusters ainda não gerados. Execute <code>python scripts/build_derived_data.py</code>.</p>')
+```
+
 # Metodologia
 
 ::: {.callout-tip collapse="true"}
 ## Como funciona esta análise
 
 **Detecção de comunidades:** Algoritmo de Louvain aplicado sobre o grafo de afinidades compostas. Apenas arestas positivas (sentimento mútuo > 0) definem comunidades — a ausência de conexão positiva já indica separação.
+
+**Resolução otimizada via Silhouette:** O algoritmo testa múltiplos valores de resolução Louvain (0.5 a 1.5) e escolhe aquele que maximiza o coeficiente de silhueta — uma métrica de qualidade que mede quão bem separados estão os clusters. Valores de silhouette:
+- **> 0.5**: Excelente — clusters bem definidos
+- **0.3–0.5**: Boa — estrutura razoável
+- **0.1–0.3**: Moderada — clusters sobrepostos
+- **< 0.1**: Fraca — estrutura pouco clara
 
 **Score composto (A → B):** Combinação de 6 sinais:
 

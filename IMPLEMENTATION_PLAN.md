@@ -2,7 +2,7 @@
 
 > **Status**: Local development complete. GitHub Actions workflow ready. GitHub Pages deployment pending.
 >
-> **Last updated**: 2026-02-04
+> **Last updated**: 2026-02-05
 
 ---
 
@@ -208,12 +208,12 @@ Ideas extracted from planning docs and AI reviews, evaluated against the current
 
 | # | Idea | Page | Description | Status |
 |---|------|------|-------------|--------|
-| 1 | **Votalhada Accuracy Leaderboard** | `paredoes.qmd` | Which platform predicts best across paredões? | **Exists** — "Precisão por Plataforma" table with per-paredão error + rank. Enhance: add trend chart showing per-platform error evolution as more paredões accumulate |
-| 2 | **Votalhada Time Series** | `paredao.qmd` | Visualize how poll percentages evolve in the 24-48h before elimination | **Not implemented** — data exists in `serie_temporal` field of `polls.json` but is not visualized. Add a line chart showing poll evolution with final result as reference line |
-| 3 | **Platform Trends** | `paredoes.qmd` | Cross-paredão per-platform accuracy — is Twitter consistently closer than YouTube? | **Exists** — basic table in "Precisão das Enquetes" section. Enhance: add grouped bar chart or line chart for visual trend comparison |
-| 4 | **Participant Line Selector** | `evolucao.qmd` | Toggle specific participants on/off in sentiment evolution chart (19+ lines is cluttered) | **Not implemented** — requires Plotly `updatemenus` or `buttons` for interactive filtering. Could use dropdown/checkboxes to show/hide lines |
-| 5 | **Dynamic Cluster k** | `clusters.qmd` | Auto-select optimal cluster count via silhouette score instead of hardcoded k | **Not implemented** — currently uses fixed k. Add silhouette analysis to `build_derived_data.py`, store optimal k in `clusters_data.json` |
-| 6 | **Temporal Cluster Tracking** | `clusters.qmd` | How cluster membership evolves over snapshots — who switches allegiances? | **Not implemented** — only current-day clustering exists. Would need to run clustering per snapshot and track membership changes. High value for detecting shifting alliances |
+| 1 | **Votalhada Accuracy Leaderboard** | `paredoes.qmd` | Which platform predicts best across paredões? | **Done** — trend chart showing per-platform error evolution across paredões |
+| 2 | **Votalhada Time Series** | `paredao.qmd` | Visualize how poll percentages evolve in the 24-48h before elimination | **Done** — line chart with poll evolution + final result reference line |
+| 3 | **Platform Trends** | `paredoes.qmd` | Cross-paredão per-platform accuracy — is Twitter consistently closer than YouTube? | **Done** — grouped bar chart for visual trend comparison |
+| 4 | **Participant Line Selector** | `evolucao.qmd` | Toggle specific participants on/off in sentiment evolution chart (19+ lines is cluttered) | **Done** — Plotly `updatemenus` buttons for interactive participant filtering |
+| 5 | **Dynamic Cluster k** | `clusters.qmd` | Auto-select optimal cluster count via silhouette score instead of hardcoded k | **Done** — silhouette analysis in `build_derived_data.py`, optimal k stored in `clusters_data.json` |
+| 6 | **Temporal Cluster Tracking** | `clusters.qmd` | How cluster membership evolves over snapshots — who switches allegiances? | **Done** — per-snapshot clustering with membership tracking in `cluster_evolution.json`, evolution charts + mobility stats |
 
 ### Maybe Later (lower priority or high effort)
 
@@ -241,6 +241,12 @@ These ideas appeared in old planning docs and have since been implemented:
 - Cross-paredão accuracy summary → `paredoes.qmd` poll accuracy section
 - Votalhada accuracy leaderboard (basic) → `paredoes.qmd` "Precisão por Plataforma"
 - Enquetes vs vote type comparison → `paredoes.qmd` "Enquetes vs Tipos de Voto"
+- Votalhada accuracy trend chart → `paredoes.qmd` per-platform error evolution
+- Votalhada time series chart → `paredao.qmd` poll evolution with result reference line
+- Platform trends grouped bar chart → `paredoes.qmd` visual trend comparison
+- Participant line selector → `evolucao.qmd` interactive Plotly buttons
+- Dynamic cluster k (silhouette) → `build_derived_data.py` + `clusters.qmd`
+- Temporal cluster tracking → `build_derived_data.py` + `clusters.qmd` evolution section
 
 ---
 
@@ -259,3 +265,4 @@ These ideas appeared in old planning docs and have since been implemented:
 | Feb 1 | AI reviews (14 reviews from 4 models), accessibility features |
 | Feb 3 | 3rd paredão (Brigido eliminated), Sincerão week 3, Votalhada integration |
 | Feb 4 | Documentation cleanup, GitHub-readiness preparation |
+| Feb 5 | All 6 feature ideas implemented: Votalhada enhancements, participant selector, dynamic clusters, temporal tracking |

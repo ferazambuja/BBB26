@@ -2777,8 +2777,14 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
                 vote_align[i][j] = vote_cooccur[i][j] / vote_participated[i][j]
 
     # -------------------------------------------------------------------
-    # Louvain community detection
+    # Louvain community detection with silhouette-based resolution tuning
     # -------------------------------------------------------------------
+    try:
+        from sklearn.metrics import silhouette_score
+        has_sklearn = True
+    except ImportError:
+        has_sklearn = False
+
     G = nx.Graph()
     for name in active_names:
         G.add_node(name, group=participant_info.get(name, {}).get("grupo", "?"))
@@ -2791,8 +2797,49 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
             if w > 0:
                 G.add_edge(a, b, weight=w)
 
-    communities_sets = louvain_communities(G, weight='weight', resolution=1.0, seed=42)
-    communities_sets = sorted(communities_sets, key=lambda c: -len(c))
+    # Convert sym_mat to numpy for silhouette computation
+    sym_arr = np.array(sym_mat)
+
+    # Silhouette sweep to find optimal resolution
+    resolutions = [0.5, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5]
+    best_resolution = 1.0
+    best_silhouette = -1.0
+    best_communities = None
+
+    if has_sklearn and n_active >= 4:
+        for res in resolutions:
+            try:
+                comms = list(louvain_communities(G, weight='weight', resolution=res, seed=42))
+                # Skip if too few clusters or singleton clusters dominate
+                if len(comms) < 2:
+                    continue
+                if min(len(c) for c in comms) < 2:
+                    continue
+
+                # Build label array for silhouette
+                name_to_label = {}
+                for label_idx, comm in enumerate(comms):
+                    for name in comm:
+                        name_to_label[name] = label_idx
+                labels = [name_to_label[n] for n in active_names]
+
+                # Use symmetric matrix as distance-like features
+                # silhouette expects samples × features; use each row as feature vector
+                sil = silhouette_score(sym_arr, labels, metric='euclidean')
+                if sil > best_silhouette:
+                    best_silhouette = sil
+                    best_resolution = res
+                    best_communities = comms
+            except Exception:
+                continue
+
+    # Fallback to default resolution if sweep didn't produce valid clusters
+    if best_communities is None:
+        best_communities = list(louvain_communities(G, weight='weight', resolution=1.0, seed=42))
+        best_silhouette = -1.0
+        best_resolution = 1.0
+
+    communities_sets = sorted(best_communities, key=lambda c: -len(c))
 
     cluster_of = {}
     cluster_members = {}
@@ -2803,6 +2850,8 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
             cluster_of[name] = label
 
     n_clusters = len(communities_sets)
+    silhouette_coefficient = round(best_silhouette, 4) if best_silhouette > -1 else None
+    resolution_used = best_resolution
 
     # -------------------------------------------------------------------
     # Auto-naming
@@ -2993,6 +3042,8 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
             "n_paredoes": n_paredoes,
             "n_contradictions": len(contradictions_list),
             "n_tensions": n_tensions,
+            "silhouette_coefficient": silhouette_coefficient,
+            "resolution_used": resolution_used,
             "best_cohesion": {"label": int(best_label), "name": cluster_names[best_label], "score": round(cluster_internal_avg[best_label], 4)},
             "worst_rivalry": {
                 "key": worst_pair_key,
@@ -3007,6 +3058,200 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
         "polarization": polarization,
         "score_matrix_ordered": sym_ordered,
         "vote_matrix_ordered": vote_ordered,
+    }
+
+
+def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
+    """Track cluster membership changes across weekly snapshots.
+
+    Computes Louvain communities for one snapshot per week, tracks:
+    - Cluster sizes over time
+    - Silhouette quality per date
+    - Member transitions (who moved between clusters)
+
+    Returns dict with timeline and transition data, or None if insufficient data.
+    """
+    import numpy as np
+    from datetime import datetime
+
+    try:
+        import networkx as nx
+        from networkx.algorithms.community import louvain_communities
+        from sklearn.metrics import silhouette_score
+    except ImportError:
+        print("networkx or sklearn not available — skipping cluster evolution")
+        return None
+
+    if len(daily_snapshots) < 7:
+        return None
+
+    # Active participants (current)
+    pi_list = participants_index if isinstance(participants_index, list) else participants_index.get("participants", participants_index)
+    active_names_current = set(p["name"] for p in pi_list if p.get("active", True))
+    participant_info = {p["name"]: {"grupo": p.get("grupo", "?"), "avatar": p.get("avatar", "")} for p in pi_list}
+
+    # Sample one snapshot per week (use last snapshot of each week)
+    snapshots_by_week = {}
+    for snap in daily_snapshots:
+        week = get_week_number(snap["date"])
+        snapshots_by_week[week] = snap
+
+    sampled_weeks = sorted(snapshots_by_week.keys())
+    if len(sampled_weeks) < 2:
+        return None
+
+    CLUSTER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22']
+
+    timeline = []
+    prev_membership = {}
+
+    for week in sampled_weeks:
+        snap = snapshots_by_week[week]
+        date_str = snap["date"]
+        participants = snap["participants"]
+
+        # Get active participants for this snapshot
+        active_names = sorted([
+            p["name"] for p in participants
+            if not p.get("characteristics", {}).get("eliminated")
+        ])
+        n_active = len(active_names)
+        if n_active < 4:
+            continue
+
+        name_to_idx = {name: i for i, name in enumerate(active_names)}
+
+        # Build reaction matrix for this snapshot
+        matrix = build_reaction_matrix(participants)
+
+        # Build score matrix from reactions (simplified: use sentiment weights)
+        score_mat = [[0.0] * n_active for _ in range(n_active)]
+        for p in participants:
+            giver = p["name"]
+            if giver not in name_to_idx:
+                continue
+            i = name_to_idx[giver]
+            reactions = p.get("receivedReactions", {})
+            for rxn_label, senders in reactions.items():
+                weight = SENTIMENT_WEIGHTS.get(rxn_label, 0)
+                for sender_dict in senders:
+                    receiver = sender_dict.get("name", "")
+                    if receiver in name_to_idx:
+                        j = name_to_idx[receiver]
+                        score_mat[i][j] = weight
+
+        # Symmetric matrix
+        sym_mat = [[0.0] * n_active for _ in range(n_active)]
+        for i in range(n_active):
+            for j in range(n_active):
+                sym_mat[i][j] = (score_mat[i][j] + score_mat[j][i]) / 2
+
+        sym_arr = np.array(sym_mat)
+
+        # Build graph
+        G = nx.Graph()
+        for name in active_names:
+            G.add_node(name)
+        for i, a in enumerate(active_names):
+            for j, b in enumerate(active_names):
+                if i >= j:
+                    continue
+                w = sym_mat[i][j]
+                if w > 0:
+                    G.add_edge(a, b, weight=w)
+
+        # Run Louvain with fixed resolution for comparability
+        try:
+            comms = list(louvain_communities(G, weight='weight', resolution=1.0, seed=42))
+        except Exception:
+            continue
+
+        comms = sorted(comms, key=lambda c: -len(c))
+
+        # Build membership map
+        membership = {}
+        communities_out = []
+        for idx, comm in enumerate(comms):
+            label = idx + 1
+            members = sorted(comm)
+            for name in members:
+                membership[name] = label
+
+            # Compute cohesion
+            indices = [name_to_idx[m] for m in members]
+            internal_scores = [sym_mat[a][b] for a in indices for b in indices if a != b]
+            cohesion = sum(internal_scores) / len(internal_scores) if internal_scores else 0
+
+            communities_out.append({
+                "label": label,
+                "members": members,
+                "size": len(members),
+                "cohesion": round(cohesion, 4),
+                "color": CLUSTER_COLORS[(label - 1) % len(CLUSTER_COLORS)],
+            })
+
+        # Compute silhouette
+        silhouette = None
+        if len(comms) >= 2 and min(len(c) for c in comms) >= 2:
+            try:
+                labels = [membership[n] for n in active_names]
+                silhouette = silhouette_score(sym_arr, labels, metric='euclidean')
+                silhouette = round(silhouette, 4)
+            except Exception:
+                pass
+
+        # Detect transitions from previous week
+        transitions = []
+        if prev_membership:
+            for name in active_names:
+                curr_cl = membership.get(name)
+                prev_cl = prev_membership.get(name)
+                if prev_cl is not None and curr_cl != prev_cl:
+                    transitions.append({
+                        "name": name,
+                        "from_cluster": prev_cl,
+                        "to_cluster": curr_cl,
+                    })
+
+        timeline.append({
+            "date": date_str,
+            "week": week,
+            "n_active": n_active,
+            "n_clusters": len(comms),
+            "silhouette": silhouette,
+            "communities": communities_out,
+            "transitions": transitions,
+        })
+
+        prev_membership = membership
+
+    if len(timeline) < 2:
+        return None
+
+    # Aggregate transitions across all weeks
+    all_transitions = []
+    for entry in timeline:
+        for t in entry.get("transitions", []):
+            all_transitions.append({
+                **t,
+                "week": entry["week"],
+                "date": entry["date"],
+            })
+
+    # Find participants who moved the most
+    from collections import Counter
+    move_counts = Counter(t["name"] for t in all_transitions)
+    most_mobile = move_counts.most_common(5)
+
+    return {
+        "_metadata": {
+            "generated_at": datetime.now().isoformat(),
+            "n_weeks": len(timeline),
+            "total_transitions": len(all_transitions),
+        },
+        "timeline": timeline,
+        "all_transitions": all_transitions,
+        "most_mobile": [{"name": n, "moves": c} for n, c in most_mobile],
     }
 
 
@@ -4526,6 +4771,11 @@ def build_derived_data():
     clusters_data = build_clusters_data(relations_scores, participants_index, paredoes)
     if clusters_data:
         write_json(DERIVED_DIR / "clusters_data.json", clusters_data)
+
+    # Build cluster evolution (temporal tracking)
+    cluster_evolution = build_cluster_evolution(daily_snapshots, participants_index, paredoes)
+    if cluster_evolution:
+        write_json(DERIVED_DIR / "cluster_evolution.json", cluster_evolution)
 
     # Build vote predictions (after clusters_data is available)
     vote_prediction = build_vote_prediction(

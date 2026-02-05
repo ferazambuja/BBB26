@@ -544,26 +544,48 @@ if not df_timeline.empty:
 else:
     highlight = set()
 
-# ── Helper: visibility selector buttons ──
+# ── Helper: visibility selector buttons with individual dropdown ──
 def make_visibility_buttons(trace_names, highlight_set):
-    """Build updatemenus buttons for participant line charts."""
+    """Build updatemenus with group buttons + individual participant dropdown."""
     pipoca = {n for n in trace_names if MEMBER_OF.get(n) == 'Pipoca'}
     famosos = {n for n in trace_names if MEMBER_OF.get(n) in ('Camarote', 'Veterano')}
 
     def vis(active_set):
         return [True if n in active_set else 'legendonly' for n in trace_names]
 
-    return [dict(
-        type='buttons', direction='right',
-        x=0.0, y=1.12, xanchor='left', yanchor='top',
-        bgcolor='rgba(50,50,50,0.8)', font=dict(color='#ccc', size=10),
-        buttons=[
-            dict(label='Destaques', method='update', args=[{'visible': vis(highlight_set)}]),
-            dict(label='Pipoca', method='update', args=[{'visible': vis(pipoca)}]),
-            dict(label='Famosos', method='update', args=[{'visible': vis(famosos)}]),
-            dict(label='Todos', method='update', args=[{'visible': [True] * len(trace_names)}]),
-        ],
-    )]
+    # Group filter buttons
+    group_buttons = [
+        dict(label='Destaques', method='update', args=[{'visible': vis(highlight_set)}]),
+        dict(label='Pipoca', method='update', args=[{'visible': vis(pipoca)}]),
+        dict(label='Famosos', method='update', args=[{'visible': vis(famosos)}]),
+        dict(label='Todos', method='update', args=[{'visible': [True] * len(trace_names)}]),
+    ]
+
+    # Individual participant dropdown (sorted alphabetically by first name)
+    sorted_names = sorted(trace_names, key=lambda n: n.split()[0].lower())
+    individual_buttons = [
+        dict(label=n.split()[0], method='update', args=[{'visible': vis({n})}])
+        for n in sorted_names
+    ]
+
+    return [
+        # Row 1: Group filter buttons
+        dict(
+            type='buttons', direction='right',
+            x=0.0, y=1.15, xanchor='left', yanchor='top',
+            bgcolor='rgba(50,50,50,0.8)', font=dict(color='#ccc', size=10),
+            buttons=group_buttons,
+        ),
+        # Row 2: Individual participant dropdown
+        dict(
+            type='dropdown', direction='down',
+            x=0.55, y=1.15, xanchor='left', yanchor='top',
+            bgcolor='rgba(50,50,50,0.9)', font=dict(color='#ccc', size=9),
+            buttons=individual_buttons,
+            showactive=True,
+            pad=dict(l=5, r=5),
+        ),
+    ]
 ```
 
 ```{python}
