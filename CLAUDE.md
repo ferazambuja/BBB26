@@ -218,7 +218,7 @@ Sentiment weights: positive = +1, mild_negative = -0.5, strong_negative = -1
 
 | Data Type | Update Time (BRT) | Stability |
 |-----------|-------------------|-----------|
-| **Reactions (Queridômetro)** | ~10h-12h daily | Stable after morning Raio-X |
+| **Reactions (Queridômetro)** | ~14h daily | API updates around 14:00 BRT (GShow article earlier ~09h) |
 | **Balance (Estalecas)** | Any time | Changes with purchases, rewards, punishments |
 | **Roles** | During/after episodes | Líder, Anjo, Monstro, Paredão ceremonies |
 

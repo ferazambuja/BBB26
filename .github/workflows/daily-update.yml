@@ -2,39 +2,28 @@ name: BBB26 Daily Update
 
 # Capture timing strategy (all times UTC, BRT = UTC-3):
 #
-# PERMANENT captures:
 # | UTC  | BRT   | Purpose |
 # |------|-------|---------|
 # | 09:00| 06:00 | Pre-Raio-X baseline (yesterday's reactions still active) |
-# | 15:00| 12:00 | Post-Raio-X — captures TODAY's reactions (primary capture) |
-# | 21:00| 18:00 | Evening — catches afternoon balance/role changes |
+# | 18:00| 15:00 | Post-Raio-X — primary capture (data updates ~14:00 BRT) |
+# | 21:00| 18:00 | Evening — catches balance/role changes |
 # | 03:00| 00:00 | Night — catches post-episode changes (Sun Líder/Anjo, Tue elimination) |
 #
-# TEMPORARY PROBES (remove after ~1 week, around Feb 12):
-# Hourly checks 08:00-11:00 BRT to detect exactly when reactions update.
-# Run: python scripts/analyze_capture_timing.py → then consolidate schedule.
-# | 11:00| 08:00 | Morning probe 1 |
-# | 12:00| 09:00 | Morning probe 2 |
-# | 13:00| 10:00 | Morning probe 3 |
-# | 14:00| 11:00 | Morning probe 4 |
+# Queridômetro timing: GShow publishes ~09:00 BRT, but API data observed
+# updating around ~14:00 BRT (Feb 5 observation). Primary capture at 15:00 BRT
+# gives 1h margin. Post-party days may be later — 18:00 BRT is the safety net.
 #
 # The fetch script saves ONLY if data actually changed (hash comparison).
 # Multiple snapshots per day are fine — they track different game states.
 # For reaction analysis, the dashboard uses the LAST snapshot of each day.
-# Budget: ~11 runs/day × 3 min = ~1000 min/month (under 2000 free tier).
+# Timing monitor: python scripts/analyze_capture_timing.py
 
 on:
   schedule:
-    # -- Permanent captures --
-    - cron: '0 9 * * *'   # 06:00 BRT - Pre-Raio-X
-    - cron: '0 15 * * *'  # 12:00 BRT - Post-Raio-X (primary)
+    - cron: '0 9 * * *'   # 06:00 BRT - Pre-Raio-X baseline
+    - cron: '0 18 * * *'  # 15:00 BRT - Post-Raio-X (primary)
     - cron: '0 21 * * *'  # 18:00 BRT - Evening
     - cron: '0 3 * * *'   # 00:00 BRT - Night (post-episode)
-    # -- Temporary morning probes (remove after Feb 12) --
-    - cron: '0 11 * * *'  # 08:00 BRT - probe
-    - cron: '0 12 * * *'  # 09:00 BRT - probe
-    - cron: '0 13 * * *'  # 10:00 BRT - probe
-    - cron: '0 14 * * *'  # 11:00 BRT - probe
   workflow_dispatch:  # Allow manual trigger
 
 permissions:

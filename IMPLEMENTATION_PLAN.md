@@ -45,7 +45,7 @@ _site/ (11 HTML pages)
 | UTC | BRT | Purpose |
 |-----|-----|---------|
 | 09:00 | 06:00 | Pre-Raio-X baseline |
-| 15:00 | 12:00 | Post-Raio-X — primary capture |
+| 18:00 | 15:00 | Post-Raio-X — primary capture (data updates ~14:00 BRT) |
 | 21:00 | 18:00 | Evening — balance/role changes |
 | 03:00 | 00:00 | Night — post-episode changes |
 

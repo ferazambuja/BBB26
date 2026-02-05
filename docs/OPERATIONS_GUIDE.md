@@ -22,7 +22,7 @@ git push
 # Deploy immediately (instead of waiting for next cron)
 gh workflow run daily-update.yml
 
-# Or wait — cron runs at 06:00, 12:00, 18:00, 00:00 BRT
+# Or wait — cron runs at 06:00, 15:00, 18:00, 00:00 BRT
 ```
 
 **Key rule**: The bot only touches `data/` files. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
@@ -33,7 +33,7 @@ gh workflow run daily-update.yml
 
 | Dia | Horário (BRT) | O que acontece | Ação necessária |
 |-----|---------------|----------------|-----------------|
-| **Diário** | ~10h-12h | Raio-X (reações atualizam) | Automático (12:00 BRT capture) |
+| **Diário** | ~14h | Queridômetro atualiza na API | Automático (15:00 BRT capture) |
 | **Segunda** | ~22h | Dinâmica / Big Fone | Atualizar `manual_events.json` |
 | **Terça** | ~21h | Votalhada "Consolidados" | Coletar + atualizar `votalhada/polls.json` |
 | **Terça** | ~23h | Eliminação ao vivo | Atualizar `paredoes.json` (resultado) + `votalhada` (resultado_real) |
@@ -160,29 +160,28 @@ git push
 
 ### When does the queridômetro actually update?
 
-The Raio-X has **no fixed time** — it depends on when production wakes the participants. But GShow publishes the queridômetro article early:
+The Raio-X has **no fixed time** — it depends on when production wakes the participants:
 
 | Source | Observation | Time (BRT) |
 |--------|-------------|------------|
-| **GShow article** | Feb 5 (Wed, post-elimination) — published | ~09:00 |
+| **API data observed** | Feb 5 (Wed) — data already updated | ~14:00 |
+| **GShow article** | Feb 5 (Wed) — article published | ~09:00 |
 | **Raio-X wake-up** | Normal days | 09h-10h |
 | **Raio-X wake-up** | Post-party days | 10h-13h |
-| **API data ready** | Normal days (estimated) | ~09h-11h |
-| **API data ready** | Post-party days (estimated) | ~12h-15h |
 
-**Key finding (Feb 5 data point)**: GShow published the queridômetro article around 09:00 BRT, which means the API data was already available by then. The 12:00 BRT cron capture should catch it on normal days with margin to spare.
+**Key finding**: GShow publishes the queridômetro article early (~09:00 BRT), but the API data was observed updating around **~14:00 BRT** (Feb 5). There may be a delay between GShow editorial and the API endpoint.
 
-**Current cron schedule assessment**:
-- **06:00 BRT**: Pre-Raio-X baseline (data from yesterday, useful for comparison).
-- **12:00 BRT**: Primary capture. Catches normal days with ~2-3h margin. May miss very late post-party days.
-- **18:00 BRT**: Safety net — catches anything the 12:00 run missed.
-- Both 12:00 + 18:00 together cover all scenarios.
+**Current cron schedule** (adjusted for ~14:00 update):
+- **06:00 BRT**: Pre-Raio-X baseline (yesterday's data).
+- **15:00 BRT**: Primary capture — 1h margin after the ~14:00 API update.
+- **18:00 BRT**: Safety net — catches post-party delays or afternoon role/balance changes.
+- **00:00 BRT**: Night — catches post-episode changes (Sun/Tue).
 
 Sources: [TVH News](https://tvhnews.com.br/como-funciona-o-raio-x-do-bbb-26-saiba-para-que-serve-a-dinamica/), [DCI](https://www.dci.com.br/dci-mais/bbb-21/bbb-21-que-horas-e-o-raio-x-veja-como-funciona/94397/), [GShow Feb 5](https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/queridometro-do-bbb-26-reflete-tensao-pos-festa-e-brothers-recebem-emojis-negativos.ghtml)
 
 ### Tracking with data
 
-To check empirically if the 12:00 BRT capture is catching reaction updates:
+To monitor if the 15:00 BRT capture is catching reaction updates:
 
 ```bash
 python scripts/analyze_capture_timing.py
@@ -190,17 +189,15 @@ python scripts/analyze_capture_timing.py
 
 This analyzes all snapshots with metadata and reports:
 - When reaction changes were detected (by BRT hour)
-- Whether the 12:00 BRT window is catching them
+- Whether the 15:00 BRT window is catching them
 - Suggested adjustments if the data shows a consistent pattern
 
-**How it works**: Each snapshot has `_metadata.reactions_hash`. The script compares consecutive snapshots — when the hash changes, that capture caught a reaction update. By tracking *which capture slot* (06:00, 12:00, 18:00, 00:00) detected the change, we can see if 12:00 is right or needs shifting.
+**How it works**: Each snapshot has `_metadata.reactions_hash`. The script compares consecutive snapshots — when the hash changes, that capture caught a reaction update.
 
 **Interpreting results**:
-- If most reaction changes are caught at 12:00 → timing is correct
-- If caught at 18:00 instead → Raio-X is happening later, consider shifting to 14:00 or 15:00
+- If most reaction changes are caught at 15:00 → timing is correct
+- If caught at 18:00 instead → data is updating later, consider shifting to 16:00 or 17:00
 - If caught at 06:00 → reactions updated overnight (unusual, investigate)
-
-**When to check**: Run the script weekly after a full week of cron captures. The first meaningful analysis will be around Feb 12 (7 days of 4×/day data).
 
 ---
 
