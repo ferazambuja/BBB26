@@ -1480,15 +1480,14 @@ else:
     # ══════════════════════════════════════════════════════════════
     config = vp_meta.get("config", {})
     html_vp += '<div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; font-size:0.85em; color:#aaa;">'
-    html_vp += '<strong style="color:#ccc;">Metodologia — Modelo Aprimorado (v1)</strong><br>'
+    html_vp += '<strong style="color:#ccc;">Metodologia — Modelo Aprimorado (v2)</strong><br>'
     html_vp += '<ul style="margin:0.3rem 0 0;">'
-    html_vp += '<li><strong>Pass 1 (base):</strong> para cada votante, o alvo previsto é o participante elegível com o menor score <code>pairs_daily</code> combinado (queridômetro + eventos acumulados).</li>'
+    html_vp += '<li><strong>Pass 1 (base):</strong> para cada votante, o alvo previsto é o participante elegível com o menor score combinado, usando a <strong>matriz de reações da data de formação</strong> (não a data atual). O score combina: reação do votante→alvo (50%) + consistência histórica negativa (30%) + reciprocidade (20%) + eventos acumulados.</li>'
     html_vp += f'<li><strong>Pass 2 (consenso de cluster):</strong> se ≥{config.get("cluster_consensus_threshold", 0.5)*100:.0f}% dos membros do cluster preveem o mesmo alvo e o alvo está no top-3 do votante, aplica boost de até {config.get("cluster_consensus_max_boost", -0.8)}.</li>'
     html_vp += f'<li><strong>Histórico de blocos:</strong> se ≥{config.get("bloc_overlap_min", 3)} peers de blocos anteriores preveem o mesmo alvo (top-3), aplica boost de {config.get("bloc_overlap_boost", -0.3)}.</li>'
     html_vp += f'<li><strong>Proteção intra-cluster:</strong> alvos do mesmo cluster recebem penalidade de +{config.get("same_cluster_penalty", 0.05)} (votos intra-cluster são raros: 11-26%).</li>'
     html_vp += '<li><strong>Confiança:</strong> gap entre o score do 1º e 2º alvo. Alta ≥0.5, Média ≥0.2, Baixa &lt;0.2.</li>'
-    html_vp += '<li><strong>Fonte dos scores:</strong> usa <code>pairs_daily</code> para participantes ativos e <code>pairs_all</code> para eliminados/desistentes.</li>'
-    html_vp += '<li><strong>Nota:</strong> para paredões antigos, a acurácia é limitada pois os scores atuais refletem a evolução do jogo (não os sentimentos na época).</li>'
+    html_vp += '<li><strong>Ancoragem temporal:</strong> cada paredão usa o snapshot de reações da sua <strong>data de formação</strong>, não a data atual. Eventos (<code>power_event</code>, <code>sincerao</code>, <code>vote</code>) são somados como acumulado histórico.</li>'
     html_vp += '</ul></div>'
 
     print(html_vp)

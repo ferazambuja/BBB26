@@ -88,6 +88,8 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Timeline rendering: `render_cronologia_html()`, `TIMELINE_CAT_COLORS`, `TIMELINE_CAT_LABELS`
 - Votalhada helpers: `MONTH_MAP_PT`, `parse_votalhada_hora()`, `make_poll_timeseries()`
 - Avatar HTML helpers: `avatar_html()`, `avatar_img()`
+- Gender helpers: `genero()`, `artigo()`
+- Nominee helpers: `get_nominee_badge()`
 - Audit: `require_clean_manual_events()`
 
 **QMD setup pattern** (every `.qmd` file follows this):

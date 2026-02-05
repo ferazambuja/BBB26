@@ -3302,12 +3302,16 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
     by_paredao = {}
     paredoes_list = paredoes_data.get("paredoes", []) if paredoes_data else []
 
-    # Build daily matrices once
+    # Build daily matrices once (with missing Raio-X patching)
     daily_matrices = []
+    prev_matrix = {}
     for snap in daily_snapshots:
         active = [p for p in snap["participants"]
                   if not p.get("characteristics", {}).get("eliminated")]
-        daily_matrices.append(build_reaction_matrix(active))
+        matrix = build_reaction_matrix(active)
+        matrix, _carried = patch_missing_raio_x(matrix, snap["participants"], prev_matrix)
+        daily_matrices.append(matrix)
+        prev_matrix = matrix
 
     for par in paredoes_list:
         numero = par.get("numero")
@@ -3550,6 +3554,7 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
                 "days_as_friends": hist.get("days_as_friends", 0),
                 "days_as_enemies": hist.get("days_as_enemies", 0),
                 "days_mutual_friends": hist.get("days_mutual_friends", 0),
+                "change_date": hist.get("change_date"),
                 "total_days": hist.get("total_days", 0),
             })
             relationship_counts[rel_type] += 1
@@ -3560,6 +3565,181 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
         n_traicoes = sum(1 for v in vote_analysis if v["tipo"] in ("falso_amigo", "aliados_mutuos"))
         n_pontos_cegos = sum(1 for v in vote_analysis if v["tipo"] == "ponto_cego")
         n_esperados = sum(relationship_counts.get(t, 0) for t in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve"))
+
+        # ── Per-nominee aggregates (vote breakdown per target) ──
+        per_nominee = {}
+        for nome in indicados:
+            votes_for = [v for v in vote_analysis if v["alvo"] == nome]
+            per_nominee[nome] = {
+                "n_votes": len(votes_for),
+                "from_enemies": sum(1 for v in votes_for if v["tipo"] in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve")),
+                "from_traitors": sum(1 for v in votes_for if v["tipo"] in ("falso_amigo", "aliados_mutuos")),
+                "from_blind": sum(1 for v in votes_for if v["tipo"] == "ponto_cego"),
+                "from_neutral": sum(1 for v in votes_for if v["tipo"] == "neutro"),
+                "voters": [v["votante"] for v in votes_for],
+            }
+
+        # ── Indicator relationship pairs (Líder→indicado, Contragolpe, Dinâmica actors) ──
+        formacao = par.get("formacao", {})
+        indicator_pairs = []
+
+        lider = formacao.get("lider")
+        indicado_lider = formacao.get("indicado_lider")
+        if lider and indicado_lider:
+            indicator_pairs.append({"actor": lider, "target": indicado_lider, "type": "lider"})
+
+        contragolpe = formacao.get("contragolpe")
+        if contragolpe and contragolpe.get("de") and contragolpe.get("indicou"):
+            indicator_pairs.append({"actor": contragolpe["de"], "target": contragolpe["indicou"], "type": "contragolpe"})
+
+        big_fone = formacao.get("big_fone")
+        if big_fone and big_fone.get("atendeu") and big_fone.get("indicou"):
+            indicator_pairs.append({"actor": big_fone["atendeu"], "target": big_fone["indicou"], "type": "big_fone"})
+
+        dinamica = formacao.get("dinamica")
+        if dinamica and dinamica.get("indicaram") and dinamica.get("indicado"):
+            for actor in dinamica["indicaram"]:
+                indicator_pairs.append({"actor": actor, "target": dinamica["indicado"], "type": "dinamica"})
+
+        # Build relationship history for indicator pairs not already in votos_casa
+        for pair in indicator_pairs:
+            actor, target = pair["actor"], pair["target"]
+            key = f"{actor}→{target}"
+            if key not in relationship_history and matrix_p:
+                # Compute for this pair
+                history = []
+                days_positive = 0
+                days_negative = 0
+                days_mutual_positive = 0
+                change_date_ip = None
+                prev_was_positive_ip = None
+
+                for idx_m, mat in enumerate(daily_matrices):
+                    snap_date = daily_snapshots[idx_m]["date"]
+                    if is_finalizado and snap_date > analysis_date:
+                        break
+                    rxn_v = mat.get((actor, target), "")
+                    if not rxn_v:
+                        continue
+                    rxn_a = mat.get((target, actor), "")
+                    v_pos = rxn_v in POSITIVE
+                    v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
+                    history.append((snap_date, rxn_v, rxn_a))
+                    if v_pos:
+                        days_positive += 1
+                        if prev_was_positive_ip is False:
+                            change_date_ip = snap_date
+                    elif v_neg:
+                        days_negative += 1
+                        if prev_was_positive_ip is True:
+                            change_date_ip = snap_date
+                    if v_pos and rxn_a in POSITIVE:
+                        days_mutual_positive += 1
+                    prev_was_positive_ip = v_pos
+
+                total_hist = len(history)
+                if total_hist == 0:
+                    rh_ip = {"pattern": "sem_dados", "days_as_friends": 0, "days_as_enemies": 0,
+                             "days_mutual_friends": 0, "change_date": None,
+                             "narrative": "Sem dados", "total_days": 0}
+                else:
+                    cur_pos = history[-1][1] in POSITIVE
+                    if days_positive == total_hist:
+                        pat, narr = "sempre_amigos", f"Sempre deu ❤️ ({days_positive} dias)."
+                    elif days_negative == total_hist:
+                        pat, narr = "sempre_inimigos", f"Inimigos desde o início ({days_negative} dias)."
+                    elif days_positive > 0 and not cur_pos and change_date_ip:
+                        ds = sum(1 for d, _, _ in history if d >= change_date_ip)
+                        if ds <= 2:
+                            pat, narr = "recem_inimigos", f"Eram amigos por {days_positive} dias, mudou há {ds} dia(s)!"
+                        else:
+                            pat, narr = "ex_amigos", f"Foram amigos por {days_positive} dias, romperam em {change_date_ip}."
+                    elif days_negative > 0 and cur_pos and change_date_ip:
+                        pat, narr = "reconciliados", f"Reconciliaram em {change_date_ip}."
+                    else:
+                        pat, narr = "instavel", f"Instável: {days_positive}d ❤️, {days_negative}d negativo."
+                    rh_ip = {"pattern": pat, "days_as_friends": days_positive,
+                             "days_as_enemies": days_negative,
+                             "days_mutual_friends": days_mutual_positive,
+                             "change_date": change_date_ip,
+                             "narrative": narr, "total_days": total_hist}
+                relationship_history[key] = rh_ip
+
+            # Also add reverse direction (target→actor)
+            rev_key = f"{target}→{actor}"
+            if rev_key not in relationship_history and matrix_p:
+                history_r = []
+                dp_r, dn_r, dmp_r = 0, 0, 0
+                cd_r, pwp_r = None, None
+                for idx_m, mat in enumerate(daily_matrices):
+                    snap_date = daily_snapshots[idx_m]["date"]
+                    if is_finalizado and snap_date > analysis_date:
+                        break
+                    rxn_v = mat.get((target, actor), "")
+                    if not rxn_v:
+                        continue
+                    rxn_a = mat.get((actor, target), "")
+                    v_pos = rxn_v in POSITIVE
+                    v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
+                    history_r.append((snap_date, rxn_v, rxn_a))
+                    if v_pos:
+                        dp_r += 1
+                        if pwp_r is False:
+                            cd_r = snap_date
+                    elif v_neg:
+                        dn_r += 1
+                        if pwp_r is True:
+                            cd_r = snap_date
+                    if v_pos and rxn_a in POSITIVE:
+                        dmp_r += 1
+                    pwp_r = v_pos
+
+                total_r = len(history_r)
+                if total_r == 0:
+                    rh_r = {"pattern": "sem_dados", "days_as_friends": 0, "days_as_enemies": 0,
+                            "days_mutual_friends": 0, "change_date": None,
+                            "narrative": "Sem dados", "total_days": 0}
+                else:
+                    cur_pos_r = history_r[-1][1] in POSITIVE
+                    if dp_r == total_r:
+                        pat_r, narr_r = "sempre_amigos", f"Sempre deu ❤️ ({dp_r} dias)."
+                    elif dn_r == total_r:
+                        pat_r, narr_r = "sempre_inimigos", f"Inimigos desde o início ({dn_r} dias)."
+                    elif dp_r > 0 and not cur_pos_r and cd_r:
+                        ds_r = sum(1 for d, _, _ in history_r if d >= cd_r)
+                        if ds_r <= 2:
+                            pat_r, narr_r = "recem_inimigos", f"Eram amigos por {dp_r} dias, mudou há {ds_r} dia(s)!"
+                        else:
+                            pat_r, narr_r = "ex_amigos", f"Foram amigos por {dp_r} dias, romperam em {cd_r}."
+                    elif dn_r > 0 and cur_pos_r and cd_r:
+                        pat_r, narr_r = "reconciliados", f"Reconciliaram em {cd_r}."
+                    else:
+                        pat_r, narr_r = "instavel", f"Instável: {dp_r}d ❤️, {dn_r}d negativo."
+                    rh_r = {"pattern": pat_r, "days_as_friends": dp_r,
+                            "days_as_enemies": dn_r,
+                            "days_mutual_friends": dmp_r,
+                            "change_date": cd_r,
+                            "narrative": narr_r, "total_days": total_r}
+                relationship_history[rev_key] = rh_r
+
+        # Add indicator reaction snapshots at analysis date
+        indicator_reactions = []
+        for pair in indicator_pairs:
+            actor, target = pair["actor"], pair["target"]
+            if matrix_p:
+                rxn_at = matrix_p.get((actor, target), "")
+                rxn_ta = matrix_p.get((target, actor), "")
+            else:
+                rxn_at, rxn_ta = "", ""
+            indicator_reactions.append({
+                "actor": actor,
+                "target": target,
+                "type": pair["type"],
+                "actor_to_target": REACTION_EMOJI.get(rxn_at, "?"),
+                "target_to_actor": REACTION_EMOJI.get(rxn_ta, "?"),
+                "actor_to_target_raw": rxn_at,
+                "target_to_actor_raw": rxn_ta,
+            })
 
         by_paredao[str(numero)] = {
             "numero": numero,
@@ -3584,6 +3764,9 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
                 "n_esperados": n_esperados,
                 "total_votes": len(votos),
             },
+            "per_nominee": per_nominee,
+            "indicator_pairs": indicator_pairs,
+            "indicator_reactions": indicator_reactions,
         }
 
     return {"by_paredao": by_paredao}
@@ -3808,16 +3991,114 @@ def extract_paredao_eligibility(paredao_entry):
     }
 
 
+def _compute_formation_pair_scores(daily_matrices, daily_dates, formation_date, pairs_daily, pairs_all):
+    """Compute pairwise sentiment scores anchored to a specific formation date.
+
+    Uses the reaction matrix at the formation date for the queridômetro component,
+    combined with historical reaction consistency. Falls back to events from
+    pairs_daily/pairs_all for the non-queridômetro signal.
+
+    Returns dict: {voter: {target: score, ...}, ...}
+    """
+    all_neg = MILD_NEGATIVE | STRONG_NEGATIVE
+
+    # Find the matrix index at or before formation_date
+    mat_idx = None
+    for i in range(len(daily_dates) - 1, -1, -1):
+        if daily_dates[i] <= formation_date:
+            mat_idx = i
+            break
+    if mat_idx is None:
+        mat_idx = 0
+
+    matrix_at_date = daily_matrices[mat_idx]
+
+    # Build historical reaction counts up to formation date
+    # pair_history[(a,b)] = [rxn_label, rxn_label, ...]
+    pair_neg_days = defaultdict(int)
+    pair_total_days = defaultdict(int)
+    for i in range(mat_idx + 1):
+        mat = daily_matrices[i]
+        seen_givers = set()
+        for (a, b), rxn in mat.items():
+            if rxn:
+                pair_total_days[(a, b)] += 1
+                if rxn in all_neg:
+                    pair_neg_days[(a, b)] += 1
+                seen_givers.add(a)
+
+    # Compute scores
+    scores = defaultdict(dict)
+    all_participants = set()
+    for (a, b) in matrix_at_date:
+        all_participants.add(a)
+        all_participants.add(b)
+
+    for voter in all_participants:
+        for target in all_participants:
+            if voter == target:
+                continue
+
+            # --- Queridômetro at formation date ---
+            rxn_v2t = matrix_at_date.get((voter, target), "")
+            rxn_t2v = matrix_at_date.get((target, voter), "")
+            v2t_weight = SENTIMENT_WEIGHTS.get(rxn_v2t, 0.0)
+            t2v_weight = SENTIMENT_WEIGHTS.get(rxn_t2v, 0.0)
+
+            # Historical negative ratio (how consistently negative)
+            total_d = pair_total_days.get((voter, target), 0)
+            neg_d = pair_neg_days.get((voter, target), 0)
+            neg_ratio = neg_d / total_d if total_d > 0 else 0.0
+
+            # Queridômetro component: current reaction + history + reciprocity
+            qm_score = (
+                v2t_weight * 0.5          # voter's current reaction to target
+                + neg_ratio * (-1.0) * 0.3  # historical negative consistency
+                + t2v_weight * 0.2          # reciprocity (target's reaction to voter)
+            )
+
+            # --- Events component from precomputed pairs ---
+            # Use events from pairs_daily/pairs_all (these are all-time accumulated,
+            # slight overcounting for historical paredões but better than nothing)
+            entry = pairs_daily.get(voter, {}).get(target, {})
+            if not entry:
+                entry = pairs_all.get(voter, {}).get(target, {})
+            comps = entry.get("components", {})
+            events_score = sum(
+                v for k, v in comps.items() if k != "queridometro"
+            )
+
+            scores[voter][target] = round(qm_score + events_score, 4)
+
+    return scores
+
+
 def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_scores):
     """Build vote predictions for all paredões using enhanced two-pass model.
 
-    Pass 1: Base prediction (lowest pairs_daily score among eligible targets).
+    Pass 1: Base prediction using formation-date reaction matrix + event history.
     Pass 2: Cluster consensus boost + bloc history + same-cluster protection.
     """
     cfg = VOTE_PREDICTION_CONFIG
     paredoes_list = paredoes.get("paredoes", []) if paredoes else []
     if not paredoes_list:
-        return {"_metadata": {"model_version": "enhanced_v1"}, "by_paredao": {}}
+        return {"_metadata": {"model_version": "enhanced_v2"}, "by_paredao": {}}
+
+    # Build patched daily matrices (with missing Raio-X carry-forward)
+    daily_matrices = []
+    daily_dates = []
+    prev_matrix = {}
+    for snap in daily_snapshots:
+        active = [p for p in snap["participants"]
+                  if not p.get("characteristics", {}).get("eliminated")]
+        matrix = build_reaction_matrix(active)
+        matrix, _carried = patch_missing_raio_x(matrix, snap["participants"], prev_matrix)
+        daily_matrices.append(matrix)
+        daily_dates.append(snap["date"])
+        prev_matrix = matrix
+
+    pairs_d = relations_scores.get("pairs_daily", {})
+    pairs_all = relations_scores.get("pairs_all", {})
 
     # Build cluster map from clusters_data
     cluster_map = {}  # participant -> cluster_id
@@ -3862,25 +4143,20 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
         voters = [p for p in active_at_formation if p not in cant_vote]
         eligible_targets = [p for p in active_at_formation if p not in cant_be_voted]
 
-        # Use pairs_daily from relations_scores for predictions.
-        # For active participants, pairs_daily has current scores.
-        # For eliminated/exited participants, pairs_all preserves their last scores.
-        pairs_d = relations_scores.get("pairs_daily", {})
-        pairs_all = relations_scores.get("pairs_all", {})
+        # Compute formation-date-specific pairwise scores
+        pair_scores = _compute_formation_pair_scores(
+            daily_matrices, daily_dates, formation_date, pairs_d, pairs_all,
+        )
 
         # --- PASS 1: Base predictions ---
         base_predictions = {}
         for voter in voters:
-            # Use pairs_daily for active participants, pairs_all for eliminated
-            vp = pairs_d.get(voter, {})
-            if not vp:
-                vp = pairs_all.get(voter, {})
+            vp = pair_scores.get(voter, {})
             scored = []
             for t in eligible_targets:
                 if t == voter:
                     continue
-                entry = vp.get(t, {})
-                score = entry.get("score", 0.0)
+                score = vp.get(t, 0.0)
                 scored.append((t, score))
             scored.sort(key=lambda x: x[1])
             if scored:
@@ -4082,10 +4358,10 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
 
         # --- Líder indication check ---
         lider_prediction = None
-        if lider and pairs_d.get(lider):
-            lider_pairs = pairs_d[lider]
+        lider_pairs = pair_scores.get(lider, {})
+        if lider and lider_pairs:
             lider_sorted = sorted(
-                [(t, rec.get("score", 0)) for t, rec in lider_pairs.items() if t != lider],
+                [(t, s) for t, s in lider_pairs.items() if t != lider],
                 key=lambda x: x[1]
             )
             if lider_sorted:

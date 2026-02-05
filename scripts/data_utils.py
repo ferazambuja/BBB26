@@ -649,3 +649,59 @@ def avatar_img(name, avatars, size=24):
     if url:
         return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%;" alt="{name}" title="{name}">'
     return ''
+
+
+# ── Gender & nominee helpers ─────────────────────────────────────────────────
+
+_FEMALE_NAMES = frozenset({
+    'maxiane', 'marciele', 'milena', 'gabriela', 'jordana', 'samira',
+    'chaiany', 'solange', 'sarah', 'sol', 'aline', 'ana',
+})
+
+
+def genero(nome):
+    """Return 'f' for female, 'm' for male based on first name."""
+    first = nome.lower().split()[0]
+    if first in _FEMALE_NAMES:
+        return 'f'
+    if first.endswith('a') and not first.endswith('ba'):  # Babu exception
+        return 'f'
+    return 'm'
+
+
+def artigo(nome, definido=True):
+    """Return Portuguese definite/indefinite article based on gender."""
+    if genero(nome) == 'f':
+        return 'a' if definido else 'uma'
+    return 'o' if definido else 'um'
+
+
+def get_nominee_badge(nome, paredao_entry, bate_volta_survivors=None):
+    """Return (badge_text, badge_color, badge_emoji) for a nominee.
+
+    Args:
+        nome: Participant name.
+        paredao_entry: Paredão dict (from load_paredoes or raw paredoes.json).
+        bate_volta_survivors: Optional set of names who escaped Bate e Volta.
+
+    Returns:
+        Tuple of (badge_text, badge_color, badge_emoji).
+    """
+    if bate_volta_survivors and nome in bate_volta_survivors:
+        sufixo = 'A' if genero(nome) == 'f' else 'O'
+        return (f'ESCAPOU DO BATE-VOLTA', '#3498db', '🔵')
+
+    resultado = paredao_entry.get('resultado', {})
+    eliminado = resultado.get('eliminado', '')
+
+    if nome == eliminado:
+        sufixo = 'A' if genero(nome) == 'f' else 'O'
+        return (f'ELIMINAD{sufixo}', '#e74c3c', '🔴')
+
+    status = paredao_entry.get('status', '')
+    if status == 'finalizado':
+        sufixo = 'A' if genero(nome) == 'f' else 'O'
+        return (f'SALV{sufixo}', '#00bc8c', '🟢')
+
+    # em_andamento — no result yet
+    return ('EM VOTAÇÃO', '#f39c12', '🟡')

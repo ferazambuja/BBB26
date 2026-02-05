@@ -32,6 +32,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    genero, artigo, get_nominee_badge,
     MONTH_MAP_PT, parse_votalhada_hora, make_poll_timeseries,
     avatar_html, avatar_img,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
@@ -161,6 +162,10 @@ def load_paredoes():
         im = p.get('formacao', {}).get('imunizado')
         if im:
             entry['imunizado'] = im
+
+        # Include resultado for badge logic
+        if p.get('resultado'):
+            entry['resultado'] = p['resultado']
 
         # Handle participantes based on status
         if p['status'] == 'finalizado' and p.get('resultado'):
@@ -864,15 +869,14 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 ---
 
 ```{python}
-#| label: paredao-quick-insights
+#| label: paredao-per-nominee
 #| output: asis
 
 # ══════════════════════════════════════════════════════════════════════════════
-# LEITURA RÁPIDA — QUERIDÔMETRO DOS INDICADOS (PAREDÃO DATE + HISTÓRICO)
+# PER-NOMINEE ANALYSIS — Structured storytelling per nominee
 # ══════════════════════════════════════════════════════════════════════════════
-# CRITICAL: For finalizado paredões, we MUST use the paredão-date snapshot,
-# not the latest snapshot. This ensures historical analysis is consistent
-# and reflects data as it was at voting time.
+# Uses precomputed data from paredao_analysis.json (built by build_derived_data.py).
+# Each nominee gets their own section with context, votes, betrayals, blind spots.
 # ══════════════════════════════════════════════════════════════════════════════
 
 paredao_analysis_data = {}
@@ -881,1238 +885,482 @@ if _pa_path.exists():
     with open(_pa_path) as f:
         paredao_analysis_data = json.load(f)
 
+# Load vote prediction data
+_vp_path = Path("data/derived/vote_prediction.json")
+vote_pred = json.loads(_vp_path.read_text(encoding="utf-8")) if _vp_path.exists() else {}
+
 if ultimo and ultimo.get('participantes'):
-    indicados = [p['nome'] for p in ultimo['participantes']]
+    indicados_list = [p['nome'] for p in ultimo['participantes']]
     par_numero = str(ultimo.get('numero', ''))
     is_finalizado = ultimo.get('status') == 'finalizado'
     analysis_date = ultimo.get('data_formacao') or ultimo.get('data') or latest['date']
 
-    # Load precomputed quick insights
+    # Load precomputed analysis
     pa_entry = paredao_analysis_data.get("by_paredao", {}).get(par_numero, {})
     qi = pa_entry.get("quick_insights", {})
+    va = pa_entry.get("vote_analysis", [])
+    vagg = pa_entry.get("vote_aggregates", {})
+    per_nominee_data = pa_entry.get("per_nominee", {})
+    indicator_reactions = pa_entry.get("indicator_reactions", [])
+    rh = pa_entry.get("relationship_history", {})
     indicados_stats = qi.get("indicados_stats", [])
-    negs_recebidas = qi.get("negs_recebidas", {})
+
+    # Vote prediction data
+    vp_entry = vote_pred.get("by_paredao", {}).get(par_numero, {})
+    vp_predictions = vp_entry.get("predictions", {})
+    vp_aggregate = vp_entry.get("aggregate", {})
+    vp_retro = vp_entry.get("retrospective", {})
+
+    votos = ultimo.get('votos_casa', {}) or {}
+
+    # Classify votes into lists
+    betrayals = [v for v in va if v["tipo"] in ("falso_amigo", "aliados_mutuos")]
+    blind_spots = [v for v in va if v["tipo"] == "ponto_cego"]
+
+    n_traicoes = vagg.get("n_traicoes", 0)
+    n_pontos_cegos = vagg.get("n_pontos_cegos", 0)
+    n_esperados = vagg.get("n_esperados", 0)
+    total_votes = vagg.get("total_votes", 0)
+    rel_counts = vagg.get("relationship_counts", {})
 
     if is_finalizado:
         analysis_date_label = f"📅 Dados de **{qi.get('analysis_date', analysis_date)}** (dia da formação)"
     else:
         analysis_date_label = f"📅 Dados de **{latest['label']}** (atual)"
 
-    # Build table_rows from precomputed stats
-    table_rows = []
-    for stat in indicados_stats:
-        nome = stat["nome"]
-        table_rows.append({
-            'Indicado': nome,
-            'Grupo': MEMBER_OF.get(nome, '?'),
-            'Sentimento': f"{stat['sentimento']:+.1f}",
-            'Rank': stat.get('rank', '—'),
-            'Δ 3 dias': stat.get('delta_3d', '—'),
-            'Dias no Top 5': stat.get('dias_top5', 0),
-            'Dias no Bottom 5': stat.get('dias_bottom5', 0),
-            'Dias negativos': stat.get('dias_negativos', '—'),
-        })
-
-    print("## 🔍 Leitura Rápida dos Indicados\n")
+    # ══════════════════════════════════════════════════════════════════════
+    # SECTION 1: A História do Nº Paredão (global brief narrative)
+    # ══════════════════════════════════════════════════════════════════════
+    print(f"## 📖 A História do {ultimo['numero']}º Paredão\n")
 
     if is_finalizado:
         print(f'<div class="alert alert-secondary" style="font-size: 0.9rem;">')
         print(f'{analysis_date_label} — análise histórica congelada no momento da formação.')
         print(f'</div>\n')
-    else:
-        print(f"Como os emparedados estavam no **queridômetro** ({analysis_date_label.replace('📅 ', '')}).\n")
-
-    # HTML table with avatars
-    print('<table class="table table-striped table-hover" style="max-width: 100%; font-size: 1.05rem;">')
-    print('<thead><tr>')
-    print('<th>Indicado</th><th>Grupo</th><th style="text-align:center;">Sentimento</th>')
-    print('<th style="text-align:center;">Rank</th><th style="text-align:center;">Δ 3 dias</th>')
-    print('<th style="text-align:center;">Top 5</th><th style="text-align:center;">Bottom 5</th>')
-    print('<th style="text-align:center;">Dias neg.</th>')
-    print('</tr></thead><tbody>')
-    for row in table_rows:
-        nome = row['Indicado']
-        grupo = row['Grupo']
-        grupo_color = GROUP_COLORS.get(grupo, '#888')
-        sent = row['Sentimento']
-        sent_val = float(sent.replace('+', ''))
-        sent_color = '#4CAF50' if sent_val >= 0 else '#E6194B'
-        delta = row['Δ 3 dias']
-        delta_color = '#4CAF50' if '▲' in delta or '+' in delta else ('#E6194B' if '▼' in delta else '#888')
-        print(f'<tr>')
-        print(f'<td>{avatar_html(nome, AVATARS, 32)}</td>')
-        print(f'<td><span style="color:{grupo_color}; font-weight:500;">{grupo}</span></td>')
-        print(f'<td style="text-align:center; color:{sent_color}; font-weight:bold; font-size:1.1em;">{sent}</td>')
-        print(f'<td style="text-align:center;">{row["Rank"]}</td>')
-        print(f'<td style="text-align:center; color:{delta_color}; font-weight:500;">{delta}</td>')
-        print(f'<td style="text-align:center;">{row["Dias no Top 5"]}</td>')
-        print(f'<td style="text-align:center;">{row["Dias no Bottom 5"]}</td>')
-        print(f'<td style="text-align:center;">{row["Dias negativos"]}</td>')
-        print(f'</tr>')
-    print('</tbody></table>\n')
-
-    # Destaques dos indicados
-    if table_rows:
-        worst_paredao = min(table_rows, key=lambda x: float(x['Sentimento'].replace('+', '')))
-        most_neg = max(table_rows, key=lambda x: negs_recebidas.get(x['Indicado'], 0))
-        most_bottom = max(table_rows, key=lambda x: x['Dias no Bottom 5'])
-        most_top = max(table_rows, key=lambda x: x['Dias no Top 5'])
-
-        # Parse deltas from precomputed strings
-        deltas = {}
-        for r in table_rows:
-            d = r['Δ 3 dias']
-            if d == '—':
-                continue
-            try:
-                val = float(d.replace('▲', '').replace('▼', '').replace('≈', '').strip())
-                deltas[r['Indicado']] = val
-            except ValueError:
-                pass
-
-        print("\n### 📊 Destaques\n")
-
-        rejected_label = "Mais rejeitado (paredão)" if is_finalizado else "Mais rejeitado hoje"
-        negativas_label = "Mais negativas recebidas"
-
-        print('<table class="table" style="max-width: 750px; font-size: 1.05rem;">')
-        print('<thead><tr><th>Métrica</th><th>Participante</th><th style="text-align:center;">Valor</th></tr></thead>')
-        print('<tbody>')
-        print(f'<tr><td>🔴 <strong>{rejected_label}</strong></td><td>{avatar_html(worst_paredao["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{worst_paredao["Sentimento"]} sentimento</td></tr>')
-        print(f'<tr><td>👎 <strong>{negativas_label}</strong></td><td>{avatar_html(most_neg["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{negs_recebidas.get(most_neg["Indicado"], 0)} reações</td></tr>')
-        if deltas:
-            biggest_drop = min(deltas.items(), key=lambda x: x[1])
-            biggest_rise = max(deltas.items(), key=lambda x: x[1])
-            print(f'<tr><td>📉 <strong>Maior queda (3 dias)</strong></td><td>{avatar_html(biggest_drop[0], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold; color:#E6194B;">{biggest_drop[1]:+.1f}</td></tr>')
-            print(f'<tr><td>📈 <strong>Maior recuperação (3 dias)</strong></td><td>{avatar_html(biggest_rise[0], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold; color:#4CAF50;">{biggest_rise[1]:+.1f}</td></tr>')
-        print(f'<tr><td>⬇️ <strong>Mais dias no Bottom 5</strong></td><td>{avatar_html(most_bottom["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{most_bottom["Dias no Bottom 5"]} dias</td></tr>')
-        if most_top['Dias no Top 5'] > 0:
-            print(f'<tr><td>⬆️ <strong>Mais dias no Top 5</strong></td><td>{avatar_html(most_top["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{most_top["Dias no Top 5"]} dias</td></tr>')
-        print('</tbody></table>')
-```
-
-```{python}
-#| label: relationship-analysis
-#| output: asis
-
-# ══════════════════════════════════════════════════════════════════════════════
-# ANÁLISE ESTRATÉGICA DE VOTOS — Baseada em Categorias de Relacionamento
-#
-# Classifica cada voto de acordo com o tipo de relacionamento entre votante e alvo:
-#
-# CATEGORIAS DE RELACIONAMENTO (votante → alvo):
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. INIMIGOS DECLARADOS (mútuo) — Ambos se dão reações negativas
-#    → Voto esperado. Ambos se dão reações negativas (mesmo sem saber).
-#
-# 2. FALSOS AMIGOS — Votante deu ❤️ ao alvo publicamente, mas votou contra
-#    → Traição. O alvo achava que tinha um amigo, mas foi apunhalado.
-#
-# 3. PONTO CEGO — Alvo dá ❤️ ao votante, mas votante dá negativo ao alvo
-#    → O votante ataca alguém que o considera amigo. Alvo nem percebe o perigo.
-#
-# 4. ALIADOS MÚTUOS — Ambos se dão ❤️
-#    → Proteção esperada. Se votou contra, é traição grave.
-#
-# 5. HOSTILIDADE UNILATERAL — Votante dá negativo, alvo também (mas não mútuo)
-#    → Voto coerente com a reação dada no queridômetro.
-# ══════════════════════════════════════════════════════════════════════════════
-
-ultimo_paredao = paredoes[-1] if paredoes else None
-tem_votos = ultimo_paredao and ultimo_paredao.get('votos_casa')
-
-if tem_votos and all_matrices:
-    paredao = ultimo_paredao
-    votos = paredao['votos_casa']
-    analysis_date = paredao.get('data_formacao') or paredao.get('data')
-
-    # Encontrar snapshot mais próximo à data do paredão
-    closest_idx = 0
-    for i, snap in enumerate(snapshots):
-        if snap['date'] <= analysis_date:
-            closest_idx = i
-    matrix = all_matrices[closest_idx]
-    snap_participants = snapshots[closest_idx]['participants']
-
-    # Lista de indicações/contragolpes/dinâmicas (ator -> alvo)
-    indicacoes = []
-    if paredao.get('lider') and paredao.get('indicado_lider'):
-        indicacoes.append(('Líder', paredao.get('lider'), paredao.get('indicado_lider')))
-    if paredao.get('big_fone'):
-        bf = paredao.get('big_fone')
-        if bf.get('atendeu') and bf.get('indicou'):
-            indicacoes.append(('Big Fone', bf.get('atendeu'), bf.get('indicou')))
-    if paredao.get('contragolpe'):
-        cg = paredao.get('contragolpe')
-        if cg.get('de') and cg.get('para'):
-            indicacoes.append(('Contragolpe', cg.get('de'), cg.get('para')))
-    if paredao.get('dinamica'):
-        din = paredao.get('dinamica')
-        indicados = din.get('indicaram') or []
-        alvo = din.get('indicado')
-        for ator in indicados:
-            indicacoes.append((din.get('nome', 'Dinâmica'), ator, alvo))
-
-    # Calcular sentimento e negatividade por participante
-    sent_by_name = {}
-    neg_count_by_name = {}
-    for p in snap_participants:
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        sent_by_name[name] = calc_sentiment(p)
-        neg_count_by_name[name] = sum(
-            r['amount'] for r in p.get('characteristics', {}).get('receivedReactions', [])
-            if r['label'] != 'Coração'
-        )
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CLASSIFICAR CADA VOTO POR TIPO DE RELACIONAMENTO
-    # ══════════════════════════════════════════════════════════════════════════
-
-    def classify_relationship(votante, alvo, matrix):
-        """Classifica o relacionamento entre votante e alvo."""
-        rxn_votante_to_alvo = matrix.get((votante, alvo), '')
-        rxn_alvo_to_votante = matrix.get((alvo, votante), '')
-
-        votante_positive = rxn_votante_to_alvo in POSITIVE
-        alvo_positive = rxn_alvo_to_votante in POSITIVE
-        votante_negative = rxn_votante_to_alvo in (MILD_NEGATIVE | STRONG_NEGATIVE)
-        alvo_negative = rxn_alvo_to_votante in (MILD_NEGATIVE | STRONG_NEGATIVE)
-        votante_strong_neg = rxn_votante_to_alvo in STRONG_NEGATIVE
-
-        # Mutual hearts = Aliados
-        if votante_positive and alvo_positive:
-            return 'aliados_mutuos', '💔 Traição de Aliado', '#9b59b6'
-
-        # Votante gave heart but voted against = Falso Amigo
-        if votante_positive and not alvo_positive:
-            return 'falso_amigo', '🎭 Falso Amigo', '#E6194B'
-
-        # Mutual negativity = Declared enemies
-        if votante_negative and alvo_negative:
-            return 'inimigos_declarados', '⚔️ Hostilidade Mútua', '#3CB44B'
-
-        # Alvo gave heart but votante gave negative = Blind spot for alvo
-        if votante_negative and alvo_positive:
-            return 'ponto_cego', '🎯 Ponto Cego do Alvo', '#f39c12'
-
-        # One-sided hostility (votante hostile, alvo neutral/mild)
-        if votante_strong_neg:
-            return 'hostilidade_forte', '🐍 Hostilidade Forte', '#3CB44B'
-
-        if votante_negative:
-            return 'hostilidade_leve', '🌱 Hostilidade Leve', '#FF9800'
-
-        return 'neutro', '❓ Neutro', '#999'
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # ANÁLISE TEMPORAL — COMO OS RELACIONAMENTOS EVOLUÍRAM AO LONGO DO TEMPO
-    # ══════════════════════════════════════════════════════════════════════════
-
-    def analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, analysis_date):
-        """
-        Analisa a evolução do relacionamento entre votante e alvo ao longo do tempo.
-
-        Retorna um dict com:
-        - history: lista de (date, rxn_votante_to_alvo, rxn_alvo_to_votante)
-        - pattern: 'sempre_amigos', 'sempre_inimigos', 'ex_amigos', 'recém_inimigos', 'instável'
-        - days_as_friends: quantos dias foram amigos mútuos
-        - days_as_enemies: quantos dias foram inimigos
-        - change_date: data da última mudança significativa (se houver)
-        - narrative: texto descritivo da evolução
-        """
-        history = []
-        days_positive = 0
-        days_negative = 0
-        days_mutual_positive = 0
-        last_positive_date = None
-        first_negative_date = None
-        change_date = None
-        prev_was_positive = None
-
-        for i, mat in enumerate(daily_matrices):
-            snap_date = daily_snapshots[i]['date']
-            if snap_date > analysis_date:
-                break  # Don't look past paredão date
-
-            rxn_v = mat.get((votante, alvo), '')
-            rxn_a = mat.get((alvo, votante), '')
-
-            if not rxn_v:  # Participant might not exist yet
-                continue
-
-            v_pos = rxn_v in POSITIVE
-            a_pos = rxn_a in POSITIVE
-            v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
-
-            history.append((snap_date, rxn_v, rxn_a))
-
-            if v_pos:
-                days_positive += 1
-                last_positive_date = snap_date
-                if prev_was_positive == False:  # Changed from negative to positive
-                    change_date = snap_date
-            elif v_neg:
-                days_negative += 1
-                if first_negative_date is None:
-                    first_negative_date = snap_date
-                if prev_was_positive == True:  # Changed from positive to negative
-                    change_date = snap_date
-
-            if v_pos and a_pos:
-                days_mutual_positive += 1
-
-            prev_was_positive = v_pos
-
-        # Determine pattern
-        total_days = len(history)
-        if total_days == 0:
-            return {
-                'history': [], 'pattern': 'sem_dados', 'days_as_friends': 0,
-                'days_as_enemies': 0, 'days_mutual_friends': 0,
-                'change_date': None, 'narrative': 'Sem dados históricos'
-            }
-
-        # Current state (last entry)
-        current_positive = history[-1][1] in POSITIVE if history else False
-
-        # Classify the pattern
-        if days_positive == total_days:
-            pattern = 'sempre_amigos'
-            narrative = f"Sempre deu ❤️ ({days_positive} dias). Amizade consistente."
-        elif days_negative == total_days:
-            pattern = 'sempre_inimigos'
-            narrative = f"Inimigos desde o início ({days_negative} dias)."
-        elif days_positive > 0 and not current_positive and change_date:
-            # Was positive but changed to negative
-            days_since_change = sum(1 for d, _, _ in history if d >= change_date)
-            if days_since_change <= 2:
-                pattern = 'recem_inimigos'
-                narrative = f"Eram amigos por {days_positive} dias, mudou há {days_since_change} dia(s)!"
-            else:
-                pattern = 'ex_amigos'
-                narrative = f"Foram amigos por {days_positive} dias, romperam em {change_date}."
-        elif days_negative > 0 and current_positive and change_date:
-            pattern = 'reconciliados'
-            narrative = f"Foram inimigos, reconciliaram em {change_date}."
-        else:
-            pattern = 'instavel'
-            narrative = f"Relacionamento instável: {days_positive}d ❤️, {days_negative}d negativo."
-
-        return {
-            'history': history,
-            'pattern': pattern,
-            'days_as_friends': days_positive,
-            'days_as_enemies': days_negative,
-            'days_mutual_friends': days_mutual_positive,
-            'change_date': change_date,
-            'last_positive_date': last_positive_date,
-            'first_negative_date': first_negative_date,
-            'narrative': narrative,
-            'total_days': total_days
-        }
-
-    # Analyze each vote
-    vote_analysis = []
-    relationship_counts = Counter()
-    betrayals = []
-    blind_spots = []
-    expected_votes = []
-    temporal_insights = []  # For temporal analysis
-
-    for votante, alvo in votos.items():
-        rel_type, rel_label, rel_color = classify_relationship(votante, alvo, matrix)
-        rxn_to_alvo = matrix.get((votante, alvo), '')
-        rxn_from_alvo = matrix.get((alvo, votante), '')
-
-        # Add temporal analysis
-        hist = analyze_relationship_history(votante, alvo, daily_matrices, daily_snapshots, analysis_date)
-
-        entry = {
-            'votante': votante,
-            'alvo': alvo,
-            'tipo': rel_type,
-            'label': rel_label,
-            'cor': rel_color,
-            'emoji_dado': REACTION_EMOJI.get(rxn_to_alvo, '?'),
-            'emoji_recebido': REACTION_EMOJI.get(rxn_from_alvo, '?'),
-            'grupo_votante': MEMBER_OF.get(votante, '?'),
-            'grupo_alvo': MEMBER_OF.get(alvo, '?'),
-            # Temporal data
-            'hist_pattern': hist['pattern'],
-            'hist_narrative': hist['narrative'],
-            'days_as_friends': hist['days_as_friends'],
-            'days_as_enemies': hist['days_as_enemies'],
-            'days_mutual_friends': hist['days_mutual_friends'],
-            'change_date': hist['change_date'],
-            'total_days': hist['total_days'],
-        }
-        vote_analysis.append(entry)
-        relationship_counts[rel_type] += 1
-
-        # Track notable temporal patterns
-        if hist['pattern'] in ('ex_amigos', 'recem_inimigos'):
-            temporal_insights.append({
-                'votante': votante,
-                'alvo': alvo,
-                'pattern': hist['pattern'],
-                'narrative': hist['narrative'],
-                'days_as_friends': hist['days_as_friends'],
-                'change_date': hist['change_date'],
-            })
-
-        # Track notable votes
-        if rel_type in ('falso_amigo', 'aliados_mutuos'):
-            betrayals.append(entry)
-        elif rel_type == 'ponto_cego':
-            blind_spots.append(entry)
-        elif rel_type == 'inimigos_declarados':
-            expected_votes.append(entry)
-
-    total_votes = len(votos)
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # NARRATIVA PRINCIPAL — O QUE ACONTECEU NESTE PAREDÃO
-    # ══════════════════════════════════════════════════════════════════════════
-
-    print(f"## 📖 A História do {paredao['numero']}º Paredão\n")
-
-    # Count key statistics
-    n_traicoes = len(betrayals)
-    n_pontos_cegos = len(blind_spots)
-    n_esperados = len(expected_votes)
-    vote_counts = Counter(votos.values())
-    mais_votado, n_votos_mais = vote_counts.most_common(1)[0]
 
     # Opening narrative
-    if n_traicoes >= 3:
-        print(f"Este paredão foi marcado por **traições**. Nada menos que **{n_traicoes} votos** "
-              f"vieram de pessoas que davam ❤️ ao alvo no queridômetro.\n")
-    elif n_pontos_cegos >= 3:
-        print(f"Este paredão revelou **pontos cegos** perigosos. **{n_pontos_cegos} participantes** "
-              f"foram votados por pessoas que consideravam amigas.\n")
-    elif n_esperados >= total_votes * 0.5:
-        print(f"Este paredão seguiu a lógica das **hostilidades mútuas**. "
-              f"A maioria dos votos ({n_esperados}/{total_votes}) veio de quem já dava reações negativas ao alvo.\n")
-    else:
-        print(f"Este paredão foi **estratégico**. Os votos não seguiram simplesmente as emoções do queridômetro.\n")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PAREDÃO: COERÊNCIA SOCIAL (votos + indicações vs queridômetro)
-    # ══════════════════════════════════════════════════════════════════════════
-
-    def alignment_from_reaction(label):
-        if label in (MILD_NEGATIVE | STRONG_NEGATIVE):
-            return "alinhado"
-        if label in POSITIVE:
-            return "contraditorio"
-        return "neutro"
-
-    vote_align = Counter()
-    vote_examples = {"contraditorio": [], "alinhado": []}
-    for votante, alvo in votos.items():
-        label = matrix.get((votante, alvo), '')
-        status = alignment_from_reaction(label)
-        vote_align[status] += 1
-        if status in vote_examples and len(vote_examples[status]) < 4:
-            vote_examples[status].append((votante, alvo, label))
-
-    ind_align = Counter()
-    ind_examples = {"contraditorio": [], "alinhado": []}
-    for origem, ator, alvo in indicacoes:
-        label = matrix.get((ator, alvo), '')
-        status = alignment_from_reaction(label)
-        ind_align[status] += 1
-        if status in ind_examples and len(ind_examples[status]) < 3:
-            ind_examples[status].append((origem, ator, alvo, label))
-
-    total_votes = max(1, len(votos))
-    aligned_pct = vote_align["alinhado"] / total_votes * 100
-    contrad_pct = vote_align["contraditorio"] / total_votes * 100
-
-    print("### 🧭 Paredão: Coerência Social\n")
-    print(f'<p style="font-size: 1.05rem;">Usando o queridômetro do <strong>dia da formação</strong> ({analysis_date}), '
-          f'os votos ficaram <strong>{aligned_pct:.0f}% alinhados</strong> e <strong>{contrad_pct:.0f}% contraditórios</strong>. '
-          f'Isso indica se o paredão foi mais emocional (alinhado) ou estratégico (contraditório).</p>\n')
-
-    if indicacoes:
-        total_ind = len(indicacoes)
-        ind_aligned = ind_align["alinhado"]
-        ind_contra = ind_align["contraditorio"]
-        print(f'<p style="font-size: 1.05rem;">Nas indicações públicas, '
-              f'{ind_aligned}/{total_ind} foram coerentes com reações negativas, '
-              f'e {ind_contra}/{total_ind} contrariaram o queridômetro.</p>\n')
-
-    if vote_examples["contraditorio"]:
-        print("<p style='font-size:1.05rem;'><strong>Contradições de voto (❤️ no queridômetro):</strong></p>")
-        print("<ul>")
-        for votante, alvo, label in vote_examples["contraditorio"]:
-            print(f"<li>{avatar_html(votante, AVATARS, 24)} votou em {avatar_html(alvo, AVATARS, 24)} apesar de dar ❤️.</li>")
-        print("</ul>\n")
-
-    if ind_examples["alinhado"]:
-        print("<p style='font-size:1.05rem;'><strong>Indicações coerentes:</strong></p>")
-        print("<ul>")
-        for origem, ator, alvo, label in ind_examples["alinhado"]:
-            print(f"<li>{origem}: {avatar_html(ator, AVATARS, 24)} já dava negativa para {avatar_html(alvo, AVATARS, 24)}.</li>")
-        print("</ul>\n")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # GRÁFICO: DISTRIBUIÇÃO DOS VOTOS POR TIPO DE RELACIONAMENTO
-    # ══════════════════════════════════════════════════════════════════════════
-
-    print("### Anatomia dos Votos\n")
-    print("Como os votos se distribuem por tipo de relacionamento?\n")
-
-    rel_order = ['inimigos_declarados', 'hostilidade_forte', 'hostilidade_leve', 'ponto_cego', 'falso_amigo', 'aliados_mutuos', 'neutro']
-    rel_labels = {
-        'inimigos_declarados': '⚔️ Hostilidade Mútua',
-        'hostilidade_forte': '🐍 Hostilidade Forte',
-        'hostilidade_leve': '🌱 Hostilidade Leve',
-        'ponto_cego': '🎯 Ponto Cego',
-        'falso_amigo': '🎭 Falso Amigo',
-        'aliados_mutuos': '💔 Traição de Aliado',
-        'neutro': '❓ Neutro'
-    }
-    rel_colors = {
-        'inimigos_declarados': '#3CB44B',
-        'hostilidade_forte': '#3CB44B',
-        'hostilidade_leve': '#FF9800',
-        'ponto_cego': '#f39c12',
-        'falso_amigo': '#E6194B',
-        'aliados_mutuos': '#9b59b6',
-        'neutro': '#999'
-    }
-    rel_descriptions = {
-        'inimigos_declarados': 'Ambos se dão reações negativas. Voto coerente.',
-        'hostilidade_forte': 'Votante deu reação muito negativa (🐍🎯🤮🤥). Voto coerente.',
-        'hostilidade_leve': 'Votante deu reação negativa leve (🌱💼🍪💔). Voto coerente.',
-        'ponto_cego': 'Alvo deu ❤️ ao votante, mas votante o detesta. Alvo não viu o perigo.',
-        'falso_amigo': 'Votante deu ❤️ ao alvo, mas votou contra. Traição.',
-        'aliados_mutuos': 'Ambos trocavam ❤️. Traição grave.',
-        'neutro': 'Sem reação clara entre os dois.'
-    }
-
-    fig = go.Figure()
-
-    for rel in rel_order:
-        count = relationship_counts.get(rel, 0)
-        if count > 0:
-            pct = count / total_votes * 100
-            fig.add_trace(go.Bar(
-                y=[rel_labels.get(rel, rel)],
-                x=[count],
-                orientation='h',
-                marker_color=rel_colors.get(rel, '#999'),
-                text=f"{count} ({pct:.0f}%)",
-                textposition='auto',
-                hovertemplate=f'{rel_labels.get(rel, rel)}: {count} votos<br>{rel_descriptions.get(rel, "")}<extra></extra>',
-                showlegend=False
-            ))
-
-    fig.update_layout(
-        title=f"Distribuição dos Votos por Tipo de Relacionamento<br><sup>{paredao['numero']}º Paredão — Total: {total_votes} votos</sup>",
-        height=350,
-        xaxis_title="Número de votos",
-        yaxis_title="",
-        margin=dict(l=200, r=30, t=80, b=50),
-    )
-
-    fig.show()
-
-    # Interpretation
-    coerentes = relationship_counts.get('inimigos_declarados', 0) + relationship_counts.get('hostilidade_forte', 0) + relationship_counts.get('hostilidade_leve', 0)
-    incoerentes = relationship_counts.get('falso_amigo', 0) + relationship_counts.get('aliados_mutuos', 0)
-    pct_coerente = coerentes / total_votes * 100 if total_votes else 0
-    pct_incoerente = incoerentes / total_votes * 100 if total_votes else 0
-
-    print(f"\n**Resumo:**\n")
-    print(f"✅ **{coerentes} votos coerentes** ({pct_coerente:.0f}%)<br>")
-    print(f"Votaram em quem davam reação negativa no queridômetro\n")
-    print(f"❌ **{incoerentes} votos incoerentes** ({pct_incoerente:.0f}%)<br>")
-    print(f"Votaram em quem davam ❤️ publicamente\n")
-    print(f"🎯 **{n_pontos_cegos} pontos cegos**<br>")
-    print(f"Alvos que confiavam no votante (davam ❤️) mas eram odiados por ele\n")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # AS TRAIÇÕES — FALSOS AMIGOS E ALIADOS QUE TRAÍRAM
-    # ══════════════════════════════════════════════════════════════════════════
-
-    # Helper function for Portuguese gender agreement
-    def genero(nome):
-        """Retorna 'f' para feminino, 'm' para masculino baseado no nome."""
-        nome_lower = nome.lower().split()[0]  # First name
-
-        # Explicit female names
-        female_names = {'maxiane', 'marciele', 'milena', 'gabriela', 'jordana', 'samira',
-                       'chaiany', 'solange', 'sarah', 'sol'}
-        if nome_lower in female_names:
-            return 'f'
-
-        # Common female name endings in Portuguese
-        if nome_lower.endswith('a') and not nome_lower.endswith('ba'):  # Babu exception
-            return 'f'
-
-        return 'm'
-
-    def artigo(nome, definido=True):
-        """Retorna artigo definido/indefinido baseado no gênero."""
-        if genero(nome) == 'f':
-            return 'a' if definido else 'uma'
-        return 'o' if definido else 'um'
-
-    if betrayals:
-        print("### 🎭 As Traições\n")
-        print(f"**{len(betrayals)} voto(s)** de pessoas que davam ❤️ ao alvo — contradição entre reação e voto.\n")
-
-        betrayal_targets = Counter([b['alvo'] for b in betrayals])
-        if betrayal_targets:
-            top_target, top_count = betrayal_targets.most_common(1)[0]
-            gen = genero(top_target)
-            traido = "traída" if gen == 'f' else "traído"
-            art = "a" if gen == 'f' else "o"
-            print(f"**Principal alvo:** {top_target} ({top_count} voto[s]) — {art} mais {traido}\n")
-
-        print('<table class="table table-striped" style="font-size: 1.05rem;">')
-        print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">O votante dava</th><th>O alvo retribuía?</th></tr></thead>')
-        print('<tbody>')
-        for b in betrayals:
-            reciproca = f"Sim, {b['emoji_recebido']}" if b['tipo'] == 'aliados_mutuos' else "Não"
-            print(f'<tr><td>{avatar_html(b["votante"], AVATARS, 32)}</td><td>{avatar_html(b["alvo"], AVATARS, 32)}</td><td style="text-align:center; font-size:1.2em;">{b["emoji_dado"]}</td><td>{reciproca}</td></tr>')
-        print('</tbody></table>\n')
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # OS PONTOS CEGOS — QUEM NÃO PERCEBEU O PERIGO
-    # ══════════════════════════════════════════════════════════════════════════
-
-    if blind_spots:
-        print("### 🎯 Os Pontos Cegos\n")
-        print(f"**{len(blind_spots)} voto(s)** de inimigos disfarçados — a vítima dava ❤️ sem saber que era odiada.\n")
-
-        blind_spot_victims = Counter([bs['alvo'] for bs in blind_spots])
-        if blind_spot_victims:
-            top_victim, top_count = blind_spot_victims.most_common(1)[0]
-            gen_v = genero(top_victim)
-            ele_ela = "ela" if gen_v == 'f' else "ele"
-            amigas_os = "amigas" if gen_v == 'f' else "amigos"
-            print(f"**Maior risco:** {top_victim} — {top_count} pessoas que {ele_ela} achava {amigas_os} votaram contra\n")
-
-        print('<table class="table table-striped" style="font-size: 1.05rem;">')
-        print('<thead><tr><th>Vítima</th><th>Votante</th><th style="text-align:center;">A vítima dava</th><th style="text-align:center;">O votante dava</th></tr></thead>')
-        print('<tbody>')
-        for bs in blind_spots:
-            print(f'<tr><td>{avatar_html(bs["alvo"], AVATARS, 32)}</td><td>{avatar_html(bs["votante"], AVATARS, 32)}</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_recebido"]} (confiava)</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_dado"]} (hostil)</td></tr>')
-        print('</tbody></table>\n')
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # EVOLUÇÃO TEMPORAL — COMO OS RELACIONAMENTOS MUDARAM
-    # ══════════════════════════════════════════════════════════════════════════
-
-    # Count temporal patterns
-    ex_amigos = [v for v in vote_analysis if v['hist_pattern'] == 'ex_amigos']
-    recem_inimigos = [v for v in vote_analysis if v['hist_pattern'] == 'recem_inimigos']
-    sempre_amigos = [v for v in vote_analysis if v['hist_pattern'] == 'sempre_amigos']
-    sempre_inimigos = [v for v in vote_analysis if v['hist_pattern'] == 'sempre_inimigos']
-    amigos_longa_data = [v for v in vote_analysis if v['days_mutual_friends'] >= 5]
-
-    has_temporal_insights = len(ex_amigos) > 0 or len(recem_inimigos) > 0 or len(sempre_amigos) > 0
-
-    if has_temporal_insights and n_daily >= 3:
-        print("### ⏳ Evolução dos Relacionamentos\n")
-        print(f"Analisando o **histórico de {n_daily} dias** para entender se os votos seguem padrões antigos ou mudanças recentes.\n")
-
-        # Recent enemies (suspicious timing!)
-        if recem_inimigos:
-            print("#### 🚨 Mudança de Última Hora\n")
-            print(f"**{len(recem_inimigos)} voto(s)** de quem mudou de opinião nos últimos 2 dias — timing suspeito!\n")
-            print('<table class="table table-striped" style="font-size: 1.05rem;">')
-            print('<thead><tr><th>Votante</th><th>Alvo</th><th>Situação</th></tr></thead>')
-            print('<tbody>')
-            for v in recem_inimigos:
-                print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td>{v["hist_narrative"]}</td></tr>')
-            print('</tbody></table>\n')
-
-        # Ex-friends who became enemies
-        if ex_amigos:
-            print("#### 💔 Ex-Amigos\n")
-            print(f"**{len(ex_amigos)} voto(s)** de quem já deu ❤️ no passado mas depois se afastou:\n")
-            print('<table class="table table-striped" style="font-size: 1.05rem;">')
-            print('<thead><tr><th>Votante</th><th>Alvo</th><th>Situação</th></tr></thead>')
-            print('<tbody>')
-            for v in ex_amigos:
-                print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td>{v["hist_narrative"]}</td></tr>')
-            print('</tbody></table>\n')
-
-        # Voted against consistent friends (big betrayal)
-        always_friends_voted = [v for v in sempre_amigos if v['tipo'] in ('falso_amigo', 'aliados_mutuos')]
-        if always_friends_voted:
-            print("#### 🗡️ Traição de Amizade de Longa Data\n")
-            print(f"**{len(always_friends_voted)} voto(s)** contra quem sempre recebeu ❤️ — traição grave:\n")
-            print('<table class="table table-striped" style="font-size: 1.05rem;">')
-            print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">Dias de amizade</th></tr></thead>')
-            print('<tbody>')
-            for v in always_friends_voted:
-                print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_friends"]} dias de ❤️</td></tr>')
-            print('</tbody></table>\n')
-
-        # Long-time enemies (expected votes)
-        if sempre_inimigos:
-            long_enemies = [v for v in sempre_inimigos if v['days_as_enemies'] >= 5]
-            if long_enemies:
-                print("#### ⚔️ Inimigos de Longa Data\n")
-                print(f"**{len(long_enemies)} voto(s)** de rivalidades que já duram ≥5 dias — votos esperados:\n")
-                print('<table class="table table-striped" style="font-size: 1.05rem;">')
-                print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">Tempo de rivalidade</th></tr></thead>')
-                print('<tbody>')
-                for v in long_enemies[:8]:
-                    print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_enemies"]} dias</td></tr>')
-                print('</tbody></table>\n')
-
-        # Summary statistics
-        pattern_counts = Counter([v['hist_pattern'] for v in vote_analysis])
-
-        print("\n#### 📊 Resumo Temporal\n")
-        print("Classifica cada voto pelo **histórico do relacionamento** entre votante e alvo:\n")
-        print("| Padrão | Votos | O que significa |")
-        print("|--------|-------|-----------------|")
-        if pattern_counts.get('sempre_amigos', 0):
-            print(f"| 💚 **Sempre amigos** | {pattern_counts['sempre_amigos']} | Votante sempre deu ❤️ ao alvo — voto inesperado |")
-        if pattern_counts.get('sempre_inimigos', 0):
-            print(f"| 💀 **Sempre inimigos** | {pattern_counts['sempre_inimigos']} | Votante nunca deu ❤️ ao alvo — voto esperado |")
-        if pattern_counts.get('ex_amigos', 0):
-            print(f"| 💔 **Ex-amigos** | {pattern_counts['ex_amigos']} | Davam ❤️ no passado, hoje não mais |")
-        if pattern_counts.get('recem_inimigos', 0):
-            print(f"| ⚡ **Mudança recente** | {pattern_counts['recem_inimigos']} | Mudou de opinião nos últimos 2 dias |")
-        if pattern_counts.get('instavel', 0):
-            print(f"| 🎭 **Instáveis** | {pattern_counts['instavel']} | Relação oscilou muito ao longo do jogo |")
-        print("")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # O MAIS VOTADO — ANÁLISE APROFUNDADA
-    # ══════════════════════════════════════════════════════════════════════════
-
-    print(f"### 📊 O Caso {mais_votado}\n")
-
-    mv_votos_detalhes = [v for v in vote_analysis if v['alvo'] == mais_votado]
-    mv_sentiment = sent_by_name.get(mais_votado, 0)
-    mv_neg = neg_count_by_name.get(mais_votado, 0)
-
-    # Classify the votes received
-    mv_from_enemies = len([v for v in mv_votos_detalhes if v['tipo'] in ('inimigos_declarados', 'hostilidade_forte', 'hostilidade_leve')])
-    mv_from_traitors = len([v for v in mv_votos_detalhes if v['tipo'] in ('falso_amigo', 'aliados_mutuos')])
-    mv_from_blind = len([v for v in mv_votos_detalhes if v['tipo'] == 'ponto_cego'])
-
-    gen_mv = genero(mais_votado)
-    votado_a = "votada" if gen_mv == 'f' else "votado"
-    print(f"**{mais_votado}** foi {artigo(mais_votado)} mais {votado_a} pela casa com **{n_votos_mais} votos**.\n")
-    print(f"| Métrica | Valor |")
-    print(f"|---------|-------|")
-    print(f"| Sentimento total recebido | {mv_sentiment:+.1f} |")
-    print(f"| Reações negativas recebidas | {mv_neg} |")
-    print(f"| Votos de quem dava negativo | {mv_from_enemies} |")
-    print(f"| Votos de \"amigos\" (traição) | {mv_from_traitors} |")
-    print(f"| Pontos cegos (votantes hostis) | {mv_from_blind} |\n")
-
-    if mv_from_traitors > n_votos_mais / 2:
-        apunhalado_a = "apunhalada" if gen_mv == 'f' else "apunhalado"
-        print(f"> 💔 **{mais_votado} foi {apunhalado_a} pelas costas.** "
-              f"Mais da metade dos votos ({mv_from_traitors}/{n_votos_mais}) veio de pessoas "
-              f"que lhe davam ❤️ no queridômetro.\n")
-    elif mv_from_enemies == n_votos_mais:
-        print(f"> ⚔️ **{mais_votado} era um alvo óbvio.** "
-              f"Todos os {n_votos_mais} votos vieram de quem já dava reação negativa.\n")
-    elif mv_from_blind >= 2:
-        print(f"> 🎯 **{mais_votado} não percebia seus inimigos.** "
-              f"Dava ❤️ para {mv_from_blind} pessoas que {'a' if gen_mv == 'f' else 'o'} detestavam e votaram contra {'ela' if gen_mv == 'f' else 'ele'}.\n")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # INDICAÇÃO DO LÍDER
-    # ══════════════════════════════════════════════════════════════════════════
-
-    # Handle both old format (formacao as string) and new format (formacao as dict)
-    formacao = paredao.get('formacao', {})
-    if isinstance(formacao, dict):
-        lider = formacao.get('lider')
-        indicado = formacao.get('indicado_lider')
-    else:
-        # Old format - try top-level fields
-        lider = paredao.get('lider')
-        indicado = paredao.get('indicado_lider')
-
-    if lider and indicado:
-        rxn_lider = matrix.get((lider, indicado), '')
-        rxn_indicado = matrix.get((indicado, lider), '')
-
-        print(f"### 👑 Indicação do Líder\n")
-        print(f"**{lider}** indicou **{indicado}** ao paredão.\n")
-
-        rel_type, rel_label, _ = classify_relationship(lider, indicado, matrix)
-        emoji_lider = REACTION_EMOJI.get(rxn_lider, '?')
-        emoji_indicado = REACTION_EMOJI.get(rxn_indicado, '?')
-
-        print('<table class="table" style="max-width: 500px; font-size: 1.05rem;">')
-        print('<thead><tr><th>De</th><th>Para</th><th style="text-align:center;">Reação</th></tr></thead>')
-        print('<tbody>')
-        print(f'<tr><td>{avatar_html(lider, AVATARS, 32)}</td><td>{avatar_html(indicado, AVATARS, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_lider}</td></tr>')
-        print(f'<tr><td>{avatar_html(indicado, AVATARS, 32)}</td><td>{avatar_html(lider, AVATARS, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_indicado}</td></tr>')
-        print('</tbody></table>\n')
-
-        if rel_type == 'aliados_mutuos':
-            print(f"> 💔 **Indicação surpreendente!** {lider} e {indicado} trocavam ❤️ mútuos. "
-                  f"A indicação foi uma traição de aliança.\n")
-        elif rel_type == 'falso_amigo':
-            print(f"> 🎭 **Indicação contraditória.** {lider} dava ❤️ para {indicado} no queridômetro. "
-                  f"A indicação contradiz a reação dada no queridômetro.\n")
-        elif rel_type == 'inimigos_declarados':
-            print(f"> ⚔️ **Indicação coerente.** {lider} e {indicado} têm hostilidade mútua no queridômetro. "
-                  f"O voto está alinhado com a reação.\n")
-        elif rel_type == 'ponto_cego':
-            print(f"> 🎯 **{indicado} não viu a indicação chegando.** "
-                  f"Dava ❤️ para {lider}, mas {lider} já mostrava hostilidade.\n")
+    if total_votes > 0:
+        if n_traicoes >= 3:
+            print(f"Um paredão marcado por **{n_traicoes} traições** — votos de quem dava ❤️ ao alvo no queridômetro. ")
+            print(f"A dissimulação dominou a votação da casa.\n")
+        elif n_pontos_cegos >= 3:
+            print(f"Um paredão de **pontos cegos** — {n_pontos_cegos} votos de pessoas que o alvo considerava aliadas, ")
+            print(f"mas que secretamente davam reações negativas.\n")
+        elif n_esperados >= total_votes * 0.5:
+            print(f"Uma votação **previsível**: {n_esperados} de {total_votes} votos ({n_esperados*100//total_votes}%) ")
+            print(f"vieram de quem já dava reações negativas no queridômetro.\n")
         else:
-            print(f"> O relacionamento entre {lider} e {indicado} era {rel_label.lower()}.\n")
+            print(f"Uma votação **estratégica** — a mistura de traições ({n_traicoes}), pontos cegos ({n_pontos_cegos}) ")
+            print(f"e votos esperados ({n_esperados}) revela um jogo complexo.\n")
 
-        # Historical analysis of leader's relationship with nominee
-        if n_daily >= 2:
-            hist_indicado = analyze_relationship_history(lider, indicado, daily_matrices, daily_snapshots, analysis_date)
+        # Coherence one-liner
+        n_aligned = sum(1 for v in va if v["tipo"] in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve"))
+        pct_aligned = (n_aligned / total_votes * 100) if total_votes else 0
+        print(f"**Coerência social:** {n_aligned}/{total_votes} votos ({pct_aligned:.0f}%) estavam alinhados com o queridômetro.\n")
 
-            # Only show history section if we have data
-            if hist_indicado['pattern'] != 'sem_dados':
-                print(f"#### 📅 Histórico: {lider} → {indicado}\n")
+        # Model accuracy summary
+        if vp_retro and is_finalizado:
+            vp_ind = vp_retro.get("individual", {})
+            vp_hc = vp_retro.get("high_confidence", {})
+            if vp_ind.get("total", 0) > 0:
+                print(f"🤖 **Previsão do modelo:** acertou {vp_ind['correct']}/{vp_ind['total']} votos ({vp_ind['pct']:.1f}%)", end="")
+                if vp_hc.get("total", 0) > 0:
+                    print(f" · Alta confiança: {vp_hc['correct']}/{vp_hc['total']} ({vp_hc['pct']:.1f}%)")
+                else:
+                    print()
+                print()
 
-                if hist_indicado['pattern'] == 'sempre_inimigos':
-                    print(f"**{lider}** nunca deu ❤️ para {indicado} — inimizade desde o início ({hist_indicado['days_as_enemies']} dias).\n")
-                elif hist_indicado['pattern'] == 'sempre_amigos':
-                    print(f"**{lider}** sempre deu ❤️ para {indicado} ({hist_indicado['days_as_friends']} dias). "
-                          f"A indicação contradiz o histórico!\n")
-                elif hist_indicado['pattern'] == 'ex_amigos':
-                    print(f"**{lider}** deu ❤️ por {hist_indicado['days_as_friends']} dias, "
-                          f"mas mudou em **{hist_indicado['change_date']}**. "
-                          f"Desde então, são {hist_indicado['days_as_enemies']} dias de hostilidade.\n")
-                elif hist_indicado['pattern'] == 'recem_inimigos':
-                    print(f"⚠️ **Mudança recente!** {lider} dava ❤️ por {hist_indicado['days_as_friends']} dias, "
-                          f"mas virou inimigo há poucos dias (em {hist_indicado['change_date']}).\n")
-                elif hist_indicado['pattern'] == 'instavel':
-                    print(f"Relacionamento instável: {hist_indicado['days_as_friends']} dias de ❤️ "
-                          f"vs {hist_indicado['days_as_enemies']} dias de hostilidade.\n")
-            else:
-                # No reaction data for this leader
-                print(f"> ℹ️ **{lider}** não tem histórico de reações no queridômetro — análise indisponível.\n")
+                # Side-by-side predicted vs actual vote concentration (compact HTML bars)
+                vote_concentration = vp_aggregate.get("vote_concentration", {})
+                actual_votes = Counter(votos.values()) if votos else {}
+                all_targets = sorted(set(list(vote_concentration.keys()) + list(actual_votes.keys())),
+                                     key=lambda n: -(vote_concentration.get(n, 0) + actual_votes.get(n, 0)))
+                if all_targets and actual_votes:
+                    max_count = max(max(vote_concentration.values(), default=1), max(actual_votes.values(), default=1))
+                    print('<div style="display:flex; gap:2rem; flex-wrap:wrap; margin-bottom:1rem;">')
+                    # Predicted
+                    print('<div style="flex:1; min-width:250px;">')
+                    print('<div style="font-size:0.85em; color:#888; margin-bottom:4px;">📊 Previsão do modelo</div>')
+                    for tgt in all_targets[:6]:
+                        cnt = vote_concentration.get(tgt, 0)
+                        pct_bar = (cnt / max_count * 100) if max_count else 0
+                        print(f'<div style="display:flex; align-items:center; gap:6px; margin:2px 0;">')
+                        print(f'<span style="width:80px; font-size:0.8em; text-align:right;">{tgt.split()[0]}</span>')
+                        print(f'<div style="flex:1; background:#333; border-radius:3px; height:14px;">')
+                        print(f'<div style="width:{pct_bar}%; background:#9b59b6; height:100%; border-radius:3px;"></div></div>')
+                        print(f'<span style="font-size:0.8em; width:20px;">{cnt}</span></div>')
+                    print('</div>')
+                    # Actual
+                    print('<div style="flex:1; min-width:250px;">')
+                    print('<div style="font-size:0.85em; color:#888; margin-bottom:4px;">🗳️ Votação real</div>')
+                    for tgt in all_targets[:6]:
+                        cnt = actual_votes.get(tgt, 0)
+                        pct_bar = (cnt / max_count * 100) if max_count else 0
+                        print(f'<div style="display:flex; align-items:center; gap:6px; margin:2px 0;">')
+                        print(f'<span style="width:80px; font-size:0.8em; text-align:right;">{tgt.split()[0]}</span>')
+                        print(f'<div style="flex:1; background:#333; border-radius:3px; height:14px;">')
+                        print(f'<div style="width:{pct_bar}%; background:#3498db; height:100%; border-radius:3px;"></div></div>')
+                        print(f'<span style="font-size:0.8em; width:20px;">{cnt}</span></div>')
+                    print('</div>')
+                    print('</div>\n')
+        # Scatter insight as narrative
+        if pct_aligned >= 60:
+            print(f"Os votos **seguiram** as reações — a maioria votou conforme o queridômetro sugeria.\n")
+        elif pct_aligned <= 30:
+            print(f"Os votos **não seguiram** as reações — muita divergência entre queridômetro e urna.\n")
+        else:
+            print(f"Resultado misto: parte dos votos seguiu o queridômetro, parte foi por estratégia.\n")
+    else:
+        print("Aguardando votação da casa para análise completa.\n")
 
-        # Check if leader nominated their worst-rated person
-        worst_for_leader = None
-        worst_w = float('inf')
-        second_worst = None
-        second_worst_w = float('inf')
-        for other in neg_count_by_name:
-            if other == lider:
-                continue
-            w = SENTIMENT_WEIGHTS.get(matrix.get((lider, other), ''), 0)
-            if w < worst_w:
-                second_worst = worst_for_leader
-                second_worst_w = worst_w
-                worst_w = w
-                worst_for_leader = other
-            elif w < second_worst_w:
-                second_worst_w = w
-                second_worst = other
+        # em_andamento: show predictions even before house votes
+        if vp_predictions and not is_finalizado:
+            vote_concentration = vp_aggregate.get("vote_concentration", {})
+            if vote_concentration:
+                top_predicted = max(vote_concentration, key=vote_concentration.get)
+                print(f"🤖 **Previsão do modelo:** {vote_concentration[top_predicted]} votos previstos para {top_predicted}.\n")
 
-        # Compare with alternative target (usually the worst enemy)
-        # Only show comparison if leader has reaction data
-        if worst_for_leader and worst_for_leader != indicado and worst_w < 0:
-            emoji_worst = REACTION_EMOJI.get(matrix.get((lider, worst_for_leader), ''), '?')
-            emoji_worst_back = REACTION_EMOJI.get(matrix.get((worst_for_leader, lider), ''), '?')
+    # ── Anatomia dos Votos chart (keep) ──
+    if total_votes > 0 and rel_counts:
+        print("### Anatomia dos Votos\n")
+        rel_order = [
+            ('aliados_mutuos', '💔 Traição de Aliado', '#9b59b6'),
+            ('falso_amigo', '🎭 Falso Amigo', '#E6194B'),
+            ('ponto_cego', '🎯 Ponto Cego', '#f39c12'),
+            ('inimigos_declarados', '⚔️ Hostilidade Mútua', '#3CB44B'),
+            ('hostilidade_forte', '🐍 Hostilidade Forte', '#3CB44B'),
+            ('hostilidade_leve', '🌱 Hostilidade Leve', '#FF9800'),
+            ('neutro', '❓ Neutro', '#999'),
+        ]
+        labels_chart = []
+        values_chart = []
+        colors_chart = []
+        for tipo, label, cor in rel_order:
+            count = rel_counts.get(tipo, 0)
+            if count > 0:
+                labels_chart.append(label)
+                values_chart.append(count)
+                colors_chart.append(cor)
 
-            print(f"#### 🔄 Por que não {worst_for_leader}?\n")
-            print(f"A pessoa que **{lider}** mais detesta é **{worst_for_leader}** ({emoji_worst}), não {indicado}.\n")
+        if labels_chart:
+            fig_anat = go.Figure(go.Bar(
+                y=labels_chart[::-1], x=values_chart[::-1],
+                orientation='h',
+                marker_color=colors_chart[::-1],
+                text=[str(v) for v in values_chart[::-1]],
+                textposition='auto',
+                textfont=dict(size=14, color='white'),
+            ))
+            fig_anat.update_layout(
+                title="Distribuição dos Votos por Tipo de Relacionamento",
+                xaxis_title="Número de Votos", yaxis_title="",
+                height=max(250, 60 * len(labels_chart)),
+                margin=dict(l=200),
+                showlegend=False,
+            )
+            fig_anat.show()
+            print()
 
-            # Compare history with the alternative
-            if n_daily >= 2 and hist_indicado['pattern'] != 'sem_dados':
-                hist_worst = analyze_relationship_history(lider, worst_for_leader, daily_matrices, daily_snapshots, analysis_date)
+    # ══════════════════════════════════════════════════════════════════════
+    # SECTION 2: Per-Nominee Loop
+    # ══════════════════════════════════════════════════════════════════════
 
-                print('<table class="table" style="max-width: 600px; font-size: 1.05rem;">')
-                print(f'<thead><tr><th>Comparação</th><th style="text-align:center;">{avatar_html(indicado, AVATARS, 28)}</th><th style="text-align:center;">{avatar_html(worst_for_leader, AVATARS, 28)}</th></tr></thead>')
-                print('<tbody>')
-                print(f'<tr><td>Reação do líder</td><td style="text-align:center; font-size:1.2em;">{emoji_lider}</td><td style="text-align:center; font-size:1.2em;">{emoji_worst}</td></tr>')
-                print(f'<tr><td>Reação de volta</td><td style="text-align:center; font-size:1.2em;">{emoji_indicado}</td><td style="text-align:center; font-size:1.2em;">{emoji_worst_back}</td></tr>')
-                print(f'<tr><td>Dias de ❤️</td><td style="text-align:center; font-weight:bold;">{hist_indicado["days_as_friends"]}</td><td style="text-align:center; font-weight:bold;">{hist_worst["days_as_friends"]}</td></tr>')
-                print(f'<tr><td>Dias de hostilidade</td><td style="text-align:center; font-weight:bold;">{hist_indicado["days_as_enemies"]}</td><td style="text-align:center; font-weight:bold;">{hist_worst["days_as_enemies"]}</td></tr>')
-                print('</tbody></table>\n')
-
-                # Strategic interpretation
-                if hist_worst['days_as_enemies'] > hist_indicado['days_as_enemies']:
-                    print(f"> 🧠 **Escolha estratégica.** {worst_for_leader} é inimigo há mais tempo ({hist_worst['days_as_enemies']} dias), "
-                          f"mas {lider} escolheu {indicado}.\n")
-                elif hist_indicado['pattern'] == 'recem_inimigos':
-                    print(f"> ⚡ **Timing suspeito.** {lider} mudou de opinião sobre {indicado} recentemente.\n")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # TABELA COMPLETA DE VOTOS
-    # ══════════════════════════════════════════════════════════════════════════
-
-    print("### 📋 Tabela Completa de Votos\n")
-
-    # Pattern emoji mapping
-    pattern_emoji = {
-        'sempre_amigos': '💚',      # Always friends
-        'sempre_inimigos': '💀',    # Always enemies
-        'ex_amigos': '💔',          # Ex-friends
-        'recem_inimigos': '⚡',     # Recent change
-        'reconciliados': '🤝',      # Reconciled
-        'instavel': '🎭',           # Unstable
-        'sem_dados': '❓',          # No data
-    }
-
-    # HTML table with avatars
-    print('<table class="table table-striped" style="font-size: 1.05rem;">')
-    print('<thead><tr>')
-    print('<th>Votante</th><th>Votou em</th><th style="text-align:center;">Deu</th><th style="text-align:center;">Recebeu</th><th>Tipo</th><th>Histórico</th>')
-    print('</tr></thead>')
-    print('<tbody>')
-    for v in vote_analysis:
-        hist = f"{pattern_emoji.get(v['hist_pattern'], '?')} {v['days_as_friends']}d❤️"
-        print(f'<tr>')
-        print(f'<td>{avatar_html(v["votante"], AVATARS, 32)}</td>')
-        print(f'<td>{avatar_html(v["alvo"], AVATARS, 32)}</td>')
-        print(f'<td style="text-align:center; font-size:1.2em;">{v["emoji_dado"]}</td>')
-        print(f'<td style="text-align:center; font-size:1.2em;">{v["emoji_recebido"]}</td>')
-        print(f'<td>{v["label"]}</td>')
-        print(f'<td>{hist}</td>')
-        print(f'</tr>')
-    print('</tbody></table>')
-
-    print("\n**Legenda histórico:** 💚 Sempre amigos | 💀 Sempre inimigos | 💔 Ex-amigos | ⚡ Mudança recente | 🎭 Instável\n")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # SCATTER PLOT: NEGATIVIDADE VS VOTOS RECEBIDOS
-    # ══════════════════════════════════════════════════════════════════════════
-
-    print("\n### 📈 Reações Negativas vs Votos Recebidos\n")
-
-    print("""<p style="font-size: 1.1rem; line-height: 1.6;"><strong>O que este gráfico mostra?</strong></p>
-
-<p style="font-size: 1.05rem; line-height: 1.6;">
-Cada ponto representa um participante. A posição horizontal mostra quantas reações negativas
-(🐍🎯🤮🤥💔🌱💼🍪) essa pessoa <strong>recebeu</strong> dos colegas. A posição vertical mostra quantos
-<strong>votos</strong> essa pessoa recebeu na votação da casa.
-</p>
-
-<p style="font-size: 1.05rem; line-height: 1.6;">
-Se os participantes votassem de acordo com o que registraram no queridômetro, veríamos os pontos
-seguindo uma linha diagonal: quanto mais reações negativas recebeu, mais votos receberia.
-</p>
-
-<p style="font-size: 1.05rem; line-height: 1.6;">
-A <strong>correlação (r)</strong> mede essa relação:<br>
-• <strong>r próximo de 1</strong>: forte relação (quem recebe mais negatividade recebe mais votos)<br>
-• <strong>r próximo de 0</strong>: sem relação (votos são estratégicos, não seguem o queridômetro)<br>
-• <strong>r negativo</strong>: relação inversa (quem é mais odiado recebe menos votos — raro)
-</p>
-
-""")
-
-    vote_counts_all = Counter(votos.values())
-    scatter_data = []
-    for name in set(list(vote_counts_all.keys()) + list(neg_count_by_name.keys())):
-        if name in neg_count_by_name:
-            scatter_data.append({
-                'nome': name,
-                'neg_recebidas': neg_count_by_name.get(name, 0),
-                'votos_recebidos': vote_counts_all.get(name, 0),
-                'grupo': MEMBER_OF.get(name, '?'),
+    # Build the complete nominees list including BV survivors
+    all_nominees = list(ultimo.get('participantes', []))
+    bv = ultimo.get('bate_volta') or {}
+    bv_survivors = set()
+    if bv and bv.get('vencedor'):
+        bv_survivors.add(bv['vencedor'])
+        existing_names = {p['nome'] for p in all_nominees}
+        if bv['vencedor'] not in existing_names:
+            all_nominees.append({
+                'nome': bv['vencedor'],
+                'grupo': MEMBER_OF.get(bv['vencedor'], '?'),
+                'como': 'Bate e Volta (escapou)',
+                '_bv_escapee': True,
             })
 
-    df_scatter = pd.DataFrame(scatter_data)
+    # Sort: eliminado first → by house votes desc → BV survivors last
+    resultado = ultimo.get('resultado', {}) if is_finalizado else {}
+    eliminado_nome = resultado.get('eliminado', '') if resultado else ''
 
-    if len(df_scatter) > 2:
-        corr_val = df_scatter['neg_recebidas'].corr(df_scatter['votos_recebidos'])
+    def _nominee_sort_key(p):
+        nome = p['nome']
+        if nome == eliminado_nome:
+            return (0, 0, nome)
+        if p.get('_bv_escapee'):
+            return (2, 0, nome)
+        pn = per_nominee_data.get(nome, {})
+        return (1, -pn.get('n_votes', 0), nome)
 
-        fig = px.scatter(
-            df_scatter, x='neg_recebidas', y='votos_recebidos',
-            text='nome', color='grupo', color_discrete_map=GROUP_COLORS,
-            title=f"Quem é mais detestado recebe mais votos? (r = {corr_val:.2f})",
-            labels={'neg_recebidas': 'Reações negativas recebidas', 'votos_recebidos': 'Votos na casa'}
-        )
-        fig.update_traces(textposition='top center', textfont_size=10, marker_size=14)
-        fig.update_layout(height=500, font=dict(size=13))
+    all_nominees.sort(key=_nominee_sort_key)
 
-        if df_scatter['neg_recebidas'].std() > 0:
-            z = np.polyfit(df_scatter['neg_recebidas'], df_scatter['votos_recebidos'], 1)
-            x_line = np.linspace(df_scatter['neg_recebidas'].min(), df_scatter['neg_recebidas'].max(), 50)
-            fig.add_trace(go.Scatter(x=x_line, y=np.polyval(z, x_line), mode='lines',
-                                     line=dict(dash='dash', color='gray'), name='Tendência'))
+    for nominee in all_nominees:
+        nome = nominee['nome']
+        grupo = nominee.get('grupo', MEMBER_OF.get(nome, '?'))
+        como = nominee.get('como', '')
+        is_bv_escapee = nominee.get('_bv_escapee', False)
+        pn = per_nominee_data.get(nome, {})
 
-        fig.show()
+        # ── A. Header + Context ──
+        badge_text, badge_color, badge_emoji = get_nominee_badge(nome, ultimo, bv_survivors)
+        grupo_color = GROUP_COLORS.get(grupo, '#888')
 
-        # ══════════════════════════════════════════════════════════════════════════
-        # BUILD LIST OF PEOPLE WHO COULDN'T RECEIVE HOUSE VOTES
-        # (In the flattened paredão structure: lider, anjo, imunizado are at top level)
-        # ══════════════════════════════════════════════════════════════════════════
-        nao_votaveis = set()
+        print(f"\n### {badge_emoji} O Caso {nome}\n")
+        print(f'<div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">')
+        print(f'{avatar_img(nome, AVATARS, 64)}')
+        print(f'<div>')
+        print(f'<span style="background:{badge_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.95em;">{badge_text}</span>')
+        print(f' <span style="color:{grupo_color}; font-weight:500; margin-left:8px;">{grupo}</span>')
+        print(f'</div></div>\n')
 
-        # Líder can't be voted
-        if ultimo.get('lider'):
-            nao_votaveis.add(ultimo['lider'])
+        # How they got there
+        if como:
+            print(f"**Como chegou ao paredão:** {como}\n")
 
-        # Imunizado can't be voted
-        if ultimo.get('imunizado') and isinstance(ultimo['imunizado'], dict):
-            nao_votaveis.add(ultimo['imunizado'].get('quem', ''))
+        # Vote percentages (if finalized)
+        if is_finalizado and not is_bv_escapee:
+            votos_part = resultado.get('votos', {}).get(nome, {})
+            if votos_part:
+                vu = votos_part.get('voto_unico', 0)
+                vt = votos_part.get('voto_torcida', 0)
+                vtotal = votos_part.get('voto_total', 0)
+                print(f"**Resultado:** Voto Único {vu:.2f}% · Torcida {vt:.2f}% · **Média Final {vtotal:.2f}%**\n")
 
-        # Anjo autoimune can't be voted
-        if ultimo.get('anjo_autoimune') and ultimo.get('anjo'):
-            nao_votaveis.add(ultimo['anjo'])
+        # ── B. Indicação Analysis (only for power-indicated nominees) ──
+        # Detect indicator type from 'como' field
+        nominee_indicators = [ir for ir in indicator_reactions if ir['target'] == nome]
 
-        # People already indicated to paredão can't receive house votes
-        # (they're already nominated via Líder, Dinâmica, Big Fone, etc.)
-        for p in ultimo.get('participantes', []):
-            if p.get('como') and p['como'] != 'Casa':  # Casa = nominated by house vote
-                nao_votaveis.add(p['nome'])
+        if nominee_indicators:
+            for ir in nominee_indicators:
+                actor = ir['actor']
+                ind_type = ir['type']
+                type_labels = {'lider': '👑 Indicação do Líder', 'contragolpe': '🌀 Contragolpe',
+                               'big_fone': '📞 Big Fone', 'dinamica': '🎲 Dinâmica'}
+                type_label = type_labels.get(ind_type, ind_type.replace('_', ' ').title())
 
-        # Find examples that align and don't align
-        df_sorted = df_scatter.sort_values('neg_recebidas', ascending=False)
-        most_hated = df_sorted.iloc[0] if len(df_sorted) > 0 else None
-        most_voted_name = vote_counts_all.most_common(1)[0][0] if vote_counts_all else None
+                print(f"#### {type_label}\n")
+                print(f"**{actor}** indicou **{nome}**.\n")
 
-        # Filter out people who couldn't be voted for "não alinhado" analysis
-        df_votaveis = df_scatter[~df_scatter['nome'].isin(nao_votaveis)]
+                # Bidirectional reaction table
+                a2t = ir.get('actor_to_target', '?')
+                t2a = ir.get('target_to_actor', '?')
+                print('<table class="table" style="max-width:500px; font-size:1.05rem;">')
+                print(f'<thead><tr><th>Direção</th><th style="text-align:center;">Reação</th></tr></thead>')
+                print(f'<tbody>')
+                print(f'<tr><td>{avatar_html(actor, AVATARS, 28)} → {nome}</td><td style="text-align:center; font-size:1.3em;">{a2t}</td></tr>')
+                print(f'<tr><td>{avatar_html(nome, AVATARS, 28)} → {actor}</td><td style="text-align:center; font-size:1.3em;">{t2a}</td></tr>')
+                print(f'</tbody></table>\n')
 
-        # Find someone with high negativity but low votes (doesn't align) - ONLY among voteable people
-        high_neg_low_votes = df_votaveis[(df_votaveis['neg_recebidas'] > df_votaveis['neg_recebidas'].median()) &
-                                          (df_votaveis['votos_recebidos'] <= 1)]
+                # Relationship classification
+                a2t_raw = ir.get('actor_to_target_raw', '')
+                t2a_raw = ir.get('target_to_actor_raw', '')
+                a_pos = a2t_raw in POSITIVE
+                t_pos = t2a_raw in POSITIVE
+                a_neg = a2t_raw in (MILD_NEGATIVE | STRONG_NEGATIVE)
+                t_neg = t2a_raw in (MILD_NEGATIVE | STRONG_NEGATIVE)
 
-        # Find someone with low negativity but high votes (doesn't align)
-        low_neg_high_votes = df_votaveis[(df_votaveis['neg_recebidas'] <= df_votaveis['neg_recebidas'].median()) &
-                                          (df_votaveis['votos_recebidos'] >= 3)]
+                if a_pos and t_pos:
+                    print(f"💔 **Aliados mútuos** — ambos davam ❤️. Indicação surpreendente.\n")
+                elif a_neg and t_neg:
+                    print(f"⚔️ **Hostilidade mútua** — ambos davam negativo. Indicação esperada.\n")
+                elif a_neg and t_pos:
+                    print(f"🎯 **Ponto cego** — {nome} dava ❤️ a {actor}, que secretamente dava negativo. {nome} não via vir.\n")
+                elif a_pos and t_neg:
+                    print(f"🎭 **Falso amigo** — {actor} dava ❤️ a {nome} mas indicou mesmo assim. Traição.\n")
+                elif a_neg:
+                    print(f"🐍 **Hostilidade unilateral** — {actor} dava negativo. Indicação coerente com o queridômetro.\n")
+                else:
+                    print(f"❓ Relação neutra ou sem dados claros no queridômetro.\n")
 
-        print("\n#### O que os dados mostram?\n")
+                # Historical pattern
+                key_fwd = f"{actor}→{nome}"
+                hist = rh.get(key_fwd, {})
+                if hist.get('pattern') and hist['pattern'] != 'sem_dados':
+                    print(f"**Histórico:** {hist.get('narrative', '')}\n")
 
-        if abs(corr_val) < 0.3:
-            print(f'<p style="font-size: 1.05rem;"><strong>Correlação fraca (r = {corr_val:.2f})</strong> — Os votos <strong>não seguem</strong> as reações do queridômetro.</p>')
-            print('<p style="font-size: 1.05rem;">Isso significa que os participantes estão votando de forma <strong>estratégica</strong>, não de acordo com suas reações. '
-                  'Alguém pode receber muitas reações negativas no queridômetro mas poucos votos (está sendo protegido ou é útil como aliado), '
-                  'enquanto alguém com poucas negativas pode receber muitos votos (é visto como ameaça no jogo).</p>\n')
-        elif corr_val > 0.5:
-            print(f'<p style="font-size: 1.05rem;"><strong>Correlação forte (r = {corr_val:.2f})</strong> — Os votos <strong>seguem</strong> o queridômetro.</p>')
-            print('<p style="font-size: 1.05rem;">Os participantes estão votando de acordo com o que registraram no queridômetro. '
-                  'Quem recebe mais reações negativas tende a receber mais votos. '
-                  'Isso indica que as relações pessoais estão pesando mais que a estratégia de jogo.</p>\n')
+        # ── C. Queridômetro Snapshot ──
+        stat = next((s for s in indicados_stats if s['nome'] == nome), None)
+        if stat:
+            print(f"#### 📊 Queridômetro\n")
+            sent_val = stat['sentimento']
+            sent_color = '#4CAF50' if sent_val >= 0 else '#E6194B'
+            delta = stat.get('delta_3d', '—')
+            delta_color = '#4CAF50' if '▲' in str(delta) or '+' in str(delta) else ('#E6194B' if '▼' in str(delta) else '#888')
+
+            print('<table class="table" style="max-width:600px; font-size:1.0rem;">')
+            print('<thead><tr><th>Sentimento</th><th>Rank</th><th>Δ 3 dias</th><th>Top 5</th><th>Bottom 5</th><th>Dias neg.</th></tr></thead>')
+            print(f'<tbody><tr>')
+            print(f'<td style="color:{sent_color}; font-weight:bold; font-size:1.1em;">{sent_val:+.1f}</td>')
+            print(f'<td>{stat.get("rank", "—")}</td>')
+            print(f'<td style="color:{delta_color}; font-weight:500;">{delta}</td>')
+            print(f'<td>{stat.get("dias_top5", 0)}</td>')
+            print(f'<td>{stat.get("dias_bottom5", 0)}</td>')
+            print(f'<td>{stat.get("dias_negativos", "—")}</td>')
+            print(f'</tr></tbody></table>\n')
+
+        # ── D. Quem Votou em [Name]? ──
+        votes_for_nominee = [v for v in va if v['alvo'] == nome]
+        n_votes = pn.get('n_votes', len(votes_for_nominee))
+        n_enemies = pn.get('from_enemies', 0)
+        n_traitors = pn.get('from_traitors', 0)
+        n_blind = pn.get('from_blind', 0)
+
+        # Pre-compute prediction metrics (used in summary + conclusion)
+        vp_predicted_votes_for = vp_aggregate.get("vote_concentration", {}).get(nome, 0) if vp_predictions else 0
+        vp_correct_for_nominee = sum(
+            1 for v in votes_for_nominee
+            if vp_predictions.get(v['votante'], {}).get('predicted') == nome
+        ) if vp_predictions else 0
+        vp_surprise_votes = n_votes - vp_correct_for_nominee
+
+        if n_votes > 0:
+
+            print(f"#### 🗳️ Quem Votou em {nome}?\n")
+            print(f"**{n_votes} votos** recebidos", end="")
+            parts = []
+            if n_enemies:
+                parts.append(f"{n_enemies} de inimigos")
+            if n_traitors:
+                parts.append(f"{n_traitors} traições")
+            if n_blind:
+                parts.append(f"{n_blind} pontos cegos")
+            if parts:
+                print(f" — {', '.join(parts)}.", end="")
+            print("\n")
+
+            # Per-nominee prediction summary
+            if vp_predictions and is_finalizado and (vp_predicted_votes_for > 0 or vp_correct_for_nominee > 0):
+                if vp_predicted_votes_for == n_votes:
+                    print(f"O modelo previa {vp_predicted_votes_for} votos para {nome} (real: {n_votes}) — acertou {vp_correct_for_nominee} dos {n_votes} votantes.\n")
+                elif vp_predicted_votes_for > n_votes:
+                    print(f"O modelo previa {vp_predicted_votes_for} votos para {nome} (real: {n_votes}) — superestimou a rejeição.\n")
+                else:
+                    if vp_surprise_votes > 0:
+                        print(f"O modelo previa {vp_predicted_votes_for} votos para {nome} (real: {n_votes}) — {vp_surprise_votes} voto(s) surpresa.\n")
+                    else:
+                        print(f"O modelo previa {vp_predicted_votes_for} votos para {nome} (real: {n_votes}).\n")
+
+            # Voter table
+            has_vp = bool(vp_predictions)
+            print('<table class="table table-striped" style="max-width:850px; font-size:1.0rem;">')
+            print('<thead><tr><th>Votante</th><th style="text-align:center;">Deu</th><th style="text-align:center;">Recebeu</th><th>Tipo</th><th>Histórico</th>', end="")
+            if has_vp:
+                print('<th style="text-align:center;">Prev.</th>', end="")
+            print('</tr></thead>')
+            print('<tbody>')
+
+            pattern_emoji = {
+                'sempre_amigos': '💚', 'sempre_inimigos': '💀', 'ex_amigos': '💔',
+                'recem_inimigos': '⚡', 'reconciliados': '🕊️', 'instavel': '🔄', 'sem_dados': '—',
+            }
+
+            for v in votes_for_nominee:
+                votante = v['votante']
+                emoji_dado = v.get('emoji_dado', '?')
+                emoji_recebido = v.get('emoji_recebido', '?')
+                tipo_label = v.get('label', '?')
+                hist_pat = v.get('hist_pattern', 'sem_dados')
+                hist_emoji = pattern_emoji.get(hist_pat, '—')
+                hist_narr = v.get('hist_narrative', '')
+                print(f'<tr>')
+                print(f'<td>{avatar_html(votante, AVATARS, 28)}</td>')
+                print(f'<td style="text-align:center; font-size:1.2em;">{emoji_dado}</td>')
+                print(f'<td style="text-align:center; font-size:1.2em;">{emoji_recebido}</td>')
+                print(f'<td style="font-size:0.9em;">{tipo_label}</td>')
+                print(f'<td style="font-size:0.85em;" title="{hist_narr}">{hist_emoji} {hist_narr}</td>')
+                if has_vp:
+                    pred = vp_predictions.get(votante, {})
+                    if not pred:
+                        print(f'<td style="text-align:center; color:#666;">—</td>')
+                    elif pred.get('predicted') == nome:
+                        conf = pred.get('confidence', '')
+                        print(f'<td style="text-align:center; color:#3CB44B; font-size:0.85em;">✅ {conf}</td>')
+                    else:
+                        pred_target = pred.get('predicted', '?')
+                        short_name = pred_target.split()[0]
+                        print(f'<td style="text-align:center; color:#E6194B; font-size:0.85em;">❌→{short_name}</td>')
+                print(f'</tr>')
+            print('</tbody></table>\n')
+        elif not is_bv_escapee:
+            print(f"*{nome} não recebeu votos da casa — chegou ao paredão por indicação direta.*\n")
+
+        # ── E. Destaques (conditional) ──
+        nominee_betrayals = [v for v in betrayals if v['alvo'] == nome]
+        nominee_blind = [v for v in blind_spots if v['alvo'] == nome]
+        # Temporal insights: ex-amigos/recem-inimigos NOT already in betrayals/blind_spots
+        betrayal_voters = {v['votante'] for v in nominee_betrayals}
+        blind_voters = {v['votante'] for v in nominee_blind}
+        nominee_temporal = [v for v in votes_for_nominee
+                           if v.get('hist_pattern') in ('ex_amigos', 'recem_inimigos')
+                           and v['votante'] not in betrayal_voters
+                           and v['votante'] not in blind_voters]
+
+        has_highlights = nominee_betrayals or nominee_blind or nominee_temporal
+        if has_highlights:
+            print(f"#### Destaques\n")
+            for b in nominee_betrayals:
+                pat = b.get('hist_pattern', '')
+                votante = b['votante']
+                cd = b.get('change_date') or ''
+                if pat == 'sempre_amigos':
+                    print(f"- 🗡️ **Traição de longa data:** {votante} dava ❤️ por {b.get('days_as_friends', '?')} dias e mesmo assim votou contra")
+                elif pat == 'ex_amigos' and cd:
+                    print(f"- 💔 **Ex-amigos:** {votante} e {nome} eram aliados, romperam em {cd}")
+                else:
+                    print(f"- 💔 **Traição:** {votante} dava ❤️ a {nome} mas votou contra")
+            for bs in nominee_blind:
+                print(f"- 🎯 **Ponto cego:** {nome} dava ❤️ a {bs['votante']}, que secretamente dava {bs.get('emoji_dado', '?')}")
+            # Temporal: summarize if many (>3), list individually if few
+            if len(nominee_temporal) > 3:
+                ex_names = [t['votante'] for t in nominee_temporal if t.get('hist_pattern') == 'ex_amigos']
+                rec_names = [t['votante'] for t in nominee_temporal if t.get('hist_pattern') == 'recem_inimigos']
+                if ex_names:
+                    print(f"- 💔 **{len(ex_names)} ex-amigos** votaram contra: {', '.join(ex_names)}")
+                if rec_names:
+                    print(f"- ⚡ **{len(rec_names)} mudanças recentes**: {', '.join(rec_names)}")
+            else:
+                for t in nominee_temporal:
+                    cd = t.get('change_date') or ''
+                    if t.get('hist_pattern') == 'recem_inimigos':
+                        print(f"- ⚡ **Mudança recente:** {t['votante']} mudou de ❤️ para negativo há pouco tempo")
+                    elif t.get('hist_pattern') == 'ex_amigos' and cd:
+                        print(f"- 💔 **Ex-amigos:** {t['votante']} rompeu com {nome} em {cd}")
+                    elif t.get('hist_pattern') == 'ex_amigos':
+                        print(f"- 💔 **Ex-amigos:** {t['votante']} e {nome} se afastaram")
+            print()
+
+        # ── F. Narrative Conclusion ──
+        if n_votes > 0:
+            if n_traitors >= n_votes * 0.5 and n_traitors >= 2:
+                sufixo = 'a' if genero(nome) == 'f' else 'o'
+                print(f"**Conclusão:** {nome} foi **apunhalad{sufixo} pelas costas** — mais da metade dos votos veio de quem dava ❤️ no queridômetro.\n")
+            elif n_blind >= 2:
+                print(f"**Conclusão:** {nome} **não viu seus inimigos chegando** — {n_blind} votos de pessoas que {artigo(nome)} considerava aliadas.\n")
+            elif n_enemies >= n_votes * 0.7:
+                print(f"**Conclusão:** {nome} foi **alvo previsível** — a maioria dos votos veio de quem já dava negativo no queridômetro.\n")
+            else:
+                print(f"**Conclusão:** Votação mista para {nome} — combinação de inimizades, estratégia e contradições.\n")
+
+            # Prediction context in conclusion
+            if vp_predictions and is_finalizado:
+                if vp_correct_for_nominee >= n_votes * 0.8:
+                    print(f"*🤖 O modelo previu com precisão a maioria dos votos — resultado coerente com o queridômetro.*\n")
+                elif vp_surprise_votes >= 3:
+                    print(f"*🤖 {vp_surprise_votes} votos não previstos pelo modelo sugerem coordenação estratégica ou alianças não capturadas pelo queridômetro.*\n")
+                elif vp_predicted_votes_for > n_votes + 2:
+                    over = vp_predicted_votes_for - n_votes
+                    print(f"*🤖 O modelo superestimou a rejeição — {over} votantes que pareciam inimigos pelo queridômetro votaram em outro alvo.*\n")
+        elif is_bv_escapee:
+            sufixo = 'a' if genero(nome) == 'f' else 'o'
+            print(f"**Conclusão:** {nome} **escapou pelo Bate e Volta** — foi indicad{sufixo} mas venceu a prova e saiu do paredão.\n")
         else:
-            print(f'<p style="font-size: 1.05rem;"><strong>Correlação moderada (r = {corr_val:.2f})</strong> — Mistura de queridômetro e estratégia.</p>')
-            print('<p style="font-size: 1.05rem;">Existe alguma relação entre negatividade no queridômetro e votos recebidos, mas não é perfeita. '
-                  'Alguns votos seguem as reações negativas, outros seguem estratégia de jogo.</p>\n')
-
-        # ══════════════════════════════════════════════════════════════════════════
-        # POUPADOS SUSPEITOS (High negativity, low votes, but COULD be voted)
-        # ══════════════════════════════════════════════════════════════════════════
-        poupados = high_neg_low_votes.sort_values('neg_recebidas', ascending=False).head(5)
-
-        if len(poupados) > 0:
-            print("\n#### 🛡️ Poupados Suspeitos\n")
-            print('<p style="font-size: 1.05rem;">Participantes com muitas reações negativas no queridômetro mas que receberam poucos ou nenhum voto. '
-                  'Podem estar sendo <strong>protegidos estrategicamente</strong> pela casa.</p>\n')
-
-            print('<table style="font-size: 1.05rem; width: 100%;">')
-            print('<thead><tr><th>Participante</th><th style="text-align:center;">Negativas</th><th style="text-align:center;">Votos</th><th>Observação</th></tr></thead>')
-            print('<tbody>')
-            for _, row in poupados.iterrows():
-                obs = "Recebeu muita negatividade mas nenhum voto" if row['votos_recebidos'] == 0 else f"Só {int(row['votos_recebidos'])} voto apesar da negatividade"
-                print(f'<tr>')
-                print(f'<td>{avatar_html(row["nome"], AVATARS, 28)}</td>')
-                print(f'<td style="text-align:center; font-size:1.2em;">{int(row["neg_recebidas"])}</td>')
-                print(f'<td style="text-align:center; font-size:1.2em;">{int(row["votos_recebidos"])}</td>')
-                print(f'<td>{obs}</td>')
-                print(f'</tr>')
-            print('</tbody></table>\n')
-
-        # ══════════════════════════════════════════════════════════════════════════
-        # ALVOS SURPREENDENTES (Low negativity, high votes)
-        # ══════════════════════════════════════════════════════════════════════════
-        alvos = low_neg_high_votes.sort_values('votos_recebidos', ascending=False).head(5)
-
-        if len(alvos) > 0:
-            print("\n#### ⚠️ Alvos Surpreendentes\n")
-            print('<p style="font-size: 1.05rem;">Participantes com poucas reações negativas no queridômetro mas que receberam muitos votos. '
-                  'Estão sendo <strong>votados por estratégia</strong>, não por antipatia declarada.</p>\n')
-
-            print('<table style="font-size: 1.05rem; width: 100%;">')
-            print('<thead><tr><th>Participante</th><th style="text-align:center;">Negativas</th><th style="text-align:center;">Votos</th><th>Observação</th></tr></thead>')
-            print('<tbody>')
-            for _, row in alvos.iterrows():
-                obs = f"Recebeu {int(row['votos_recebidos'])} votos mas só {int(row['neg_recebidas'])} negativas — alvo estratégico"
-                print(f'<tr>')
-                print(f'<td>{avatar_html(row["nome"], AVATARS, 28)}</td>')
-                print(f'<td style="text-align:center; font-size:1.2em;">{int(row["neg_recebidas"])}</td>')
-                print(f'<td style="text-align:center; font-size:1.2em;">{int(row["votos_recebidos"])}</td>')
-                print(f'<td>{obs}</td>')
-                print(f'</tr>')
-            print('</tbody></table>\n')
-
-        # ══════════════════════════════════════════════════════════════════════════
-        # EXEMPLOS CONCRETOS
-        # ══════════════════════════════════════════════════════════════════════════
-        print("\n#### Exemplos concretos\n")
-
-        # Example that aligns
-        if most_hated is not None and most_voted_name:
-            if most_hated['nome'] == most_voted_name:
-                print(f'<p style="font-size: 1.05rem;">✅ <strong>Alinhado:</strong> {avatar_html(most_hated["nome"], AVATARS, 28)} é quem recebeu mais reações negativas '
-                      f'({int(most_hated["neg_recebidas"])}) e também mais votos '
-                      f'({int(most_hated["votos_recebidos"])}). Os votos seguiram o queridômetro.</p>\n')
-            else:
-                most_voted_data = df_scatter[df_scatter['nome'] == most_voted_name].iloc[0] if most_voted_name in df_scatter['nome'].values else None
-                if most_voted_data is not None:
-                    print(f'<p style="font-size: 1.05rem;">⚠️ <strong>Parcialmente alinhado:</strong> O mais votado foi {avatar_html(most_voted_name, AVATARS, 28)} '
-                          f'({int(most_voted_data["votos_recebidos"])} votos, {int(most_voted_data["neg_recebidas"])} negativas), '
-                          f'mas quem recebeu mais negatividade no queridômetro é {avatar_html(most_hated["nome"], AVATARS, 28)} '
-                          f'({int(most_hated["neg_recebidas"])} negativas, {int(most_hated["votos_recebidos"])} votos).</p>\n')
-
-        # Show who couldn't be voted (for context)
-        if nao_votaveis:
-            nao_votaveis_list = [n for n in nao_votaveis if n]
-            if nao_votaveis_list:
-                # Separate by reason
-                indicados_nomes = [p['nome'] for p in ultimo.get('participantes', []) if p.get('como') and p['como'] != 'Casa']
-                outros_nomes = [n for n in nao_votaveis_list if n not in indicados_nomes]
-
-                print('<p style="font-size: 1.05rem; color: #aaa;">')
-                if indicados_nomes:
-                    indicados_str = ", ".join([f'{avatar_html(n, AVATARS, 24)}' for n in indicados_nomes])
-                    print(f'<em>Nota: {indicados_str} já estava(m) indicado(s) ao paredão (por Líder ou Dinâmica), então não podia(m) receber votos da casa.</em>')
-                if outros_nomes:
-                    outros_str = ", ".join([f'{avatar_html(n, AVATARS, 24)}' for n in outros_nomes])
-                    print(f'<br><em>{outros_str} não podia(m) receber votos (líder, imunizado ou anjo autoimune).</em>')
-                print('</p>\n')
-
-        # Compare with previous paredão if available
-        if len(paredoes) > 1:
-            prev_paredao = paredoes[-2]
-            if prev_paredao.get('votos_casa'):
-                print("\n#### Comparação com o paredão anterior\n")
-                print(f'<p style="font-size: 1.05rem;">No <strong>{prev_paredao.get("titulo", "paredão anterior")}</strong>, a dinâmica pode ter sido diferente. ')
-                if abs(corr_val) < 0.3:
-                    print('Neste paredão, a correlação é <strong>fraca</strong> — os participantes estão votando mais estrategicamente.</p>\n')
-                else:
-                    print('Neste paredão, a correlação é mais forte — os votos estão mais alinhados com o queridômetro.</p>\n')
-
-        # ══════════════════════════════════════════════════════════════════════════
-        # ANÁLISE DA DINÂMICA (if there was one)
-        # ══════════════════════════════════════════════════════════════════════════
-        dinamica = ultimo.get('dinamica')
-        if dinamica and dinamica.get('indicaram') and dinamica.get('indicado'):
-            indicaram = dinamica['indicaram']
-            indicado = dinamica['indicado']
-
-            print(f"\n#### 🎲 A Decisão da Dinâmica: {dinamica.get('nome', 'Dinâmica')}\n")
-
-            print(f'<p style="font-size: 1.05rem;">')
-            print(f'{", ".join([avatar_html(n, AVATARS, 28) for n in indicaram])} escolheram indicar {avatar_html(indicado, AVATARS, 28)} ao paredão.')
-            print(f'</p>\n')
-
-            print(f'<p style="font-size: 1.05rem;"><strong>O que o queridômetro diz sobre essa escolha?</strong></p>\n')
-
-            # Helper function to analyze historical relationship
-            def get_hist_summary(giver, receiver):
-                """Analyze historical relationship between giver and receiver."""
-                days_positive = 0
-                days_negative = 0
-                last_change = None
-                prev_positive = None
-
-                for i, mat in enumerate(daily_matrices):
-                    rxn = mat.get((giver, receiver), '')
-                    is_positive = rxn in POSITIVE
-                    is_negative = rxn in (STRONG_NEGATIVE | MILD_NEGATIVE)
-
-                    if is_positive:
-                        days_positive += 1
-                    elif is_negative:
-                        days_negative += 1
-
-                    if prev_positive is not None and prev_positive != is_positive:
-                        last_change = daily_snapshots[i]['date']
-                    prev_positive = is_positive
-
-                total = days_positive + days_negative
-                if total == 0:
-                    return {'pattern': 'sem_dados', 'days_pos': 0, 'days_neg': 0, 'change': None}
-
-                if days_positive == total:
-                    pattern = 'sempre_amigos'
-                elif days_negative == total:
-                    pattern = 'sempre_inimigos'
-                elif days_positive > 0 and days_negative > 0 and last_change:
-                    # Check if recent change (last 2 days)
-                    if days_negative <= 2:
-                        pattern = 'recem_inimigos'
-                    else:
-                        pattern = 'ex_amigos'
-                else:
-                    pattern = 'instavel'
-
-                return {'pattern': pattern, 'days_pos': days_positive, 'days_neg': days_negative, 'change': last_change}
-
-            pattern_emoji = {'sempre_amigos': '💚', 'sempre_inimigos': '💀', 'ex_amigos': '💔', 'recem_inimigos': '⚡', 'instavel': '🎭', 'sem_dados': '—'}
-
-            # Build analysis table with historical data
-            print('<table style="font-size: 1.05rem; width: 100%;">')
-            print('<thead><tr><th>Quem decidiu</th><th style="text-align:center;">Deu</th><th style="text-align:center;">Recebeu</th><th>Histórico</th><th>Interpretação</th></tr></thead>')
-            print('<tbody>')
-
-            for decisor in indicaram:
-                # What did decisor give to indicado?
-                dado = matrix.get((decisor, indicado), '')
-                emoji_dado = REACTION_EMOJI.get(dado, '—')
-
-                # What did indicado give to decisor?
-                recebido = matrix.get((indicado, decisor), '')
-                emoji_recebido = REACTION_EMOJI.get(recebido, '—')
-
-                # Get historical relationship data
-                hist = get_hist_summary(decisor, indicado)
-                hist_str = f"{pattern_emoji.get(hist['pattern'], '?')} {hist['days_pos']}d❤️ / {hist['days_neg']}d👎"
-
-                # Interpretation based on current + historical
-                if dado in (STRONG_NEGATIVE | MILD_NEGATIVE):
-                    if hist['pattern'] == 'sempre_inimigos':
-                        interp = f"Inimigos desde o início ({hist['days_neg']} dias)"
-                    elif hist['pattern'] == 'ex_amigos':
-                        interp = f"Ex-amigos — virou inimigo em {hist['change']}"
-                    elif hist['pattern'] == 'recem_inimigos':
-                        interp = f"⚠️ Mudança recente! Era amigo até {hist['change']}"
-                    else:
-                        interp = "Não gostava do indicado"
-                elif dado == 'Coração':
-                    if hist['pattern'] == 'sempre_amigos':
-                        interp = f"Sempre foram amigos ({hist['days_pos']} dias) — surpreendente!"
-                    else:
-                        interp = "Gostava do indicado — escolha inesperada"
-                else:
-                    interp = "—"
-
-                print(f'<tr>')
-                print(f'<td>{avatar_html(decisor, AVATARS, 28)}</td>')
-                print(f'<td style="text-align:center; font-size:1.3em;">{emoji_dado}</td>')
-                print(f'<td style="text-align:center; font-size:1.3em;">{emoji_recebido}</td>')
-                print(f'<td>{hist_str}</td>')
-                print(f'<td>{interp}</td>')
-                print(f'</tr>')
-
-            print('</tbody></table>\n')
-            print('<p style="font-size: 1.05rem; color: #aaa;"><em>Legenda histórico: 💚 Sempre amigos | 💀 Sempre inimigos | 💔 Ex-amigos | ⚡ Mudança recente | 🎭 Instável</em></p>\n')
-
-            # Summary
-            all_gave_negative = all(
-                matrix.get((d, indicado), '') in (STRONG_NEGATIVE | MILD_NEGATIVE)
-                for d in indicaram
-            )
-            if all_gave_negative:
-                print(f'<p style="font-size: 1.05rem;">✅ <strong>Escolha coerente:</strong> Quem decidiu já dava reações negativas para {avatar_html(indicado, AVATARS, 28)} no queridômetro.</p>\n')
-            else:
-                print(f'<p style="font-size: 1.05rem;">⚠️ <strong>Escolha estratégica:</strong> A indicação não seguiu necessariamente as reações do queridômetro — pode ter sido por estratégia de jogo.</p>\n')
+            sufixo = 'a' if genero(nome) == 'f' else 'o'
+            print(f"**Conclusão:** {nome} chegou ao paredão **apenas por indicação direta** — sem votos da casa.\n")
 
 else:
-    print("*Aguardando votação da casa para análise estratégica.*")
+    print("*Aguardando dados do paredão para análise.*")
+
 ```
 
 ---
