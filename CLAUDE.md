@@ -515,7 +515,7 @@ All project documentation and their purposes:
 | File | Purpose |
 |------|---------|
 | **`CLAUDE.md`** | Master project guide — architecture, data flows, conventions (this file) |
-| **`IMPLEMENTATION_PLAN.md`** | Automation plan, deployment checklist, feature ideas |
+| **`IMPLEMENTATION_PLAN.md`** | Deployment guide — pipeline, GitHub Actions, Pages setup |
 | **`docs/SCORING_AND_INDEXES.md`** | Full scoring formulas, weights, and index specs |
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema, fill rules, and update procedures for `manual_events.json` |
 | **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics (non-analytical) |
