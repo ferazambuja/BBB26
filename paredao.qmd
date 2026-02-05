@@ -32,6 +32,8 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    MONTH_MAP_PT, parse_votalhada_hora, make_poll_timeseries,
+    avatar_html, avatar_img,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
 )
@@ -79,20 +81,6 @@ for snap in snapshots:
             MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
         if name not in AVATARS and p.get('avatar'):
             AVATARS[name] = p['avatar']
-
-def avatar_html(name, size=24):
-    """Generate HTML for participant avatar + name."""
-    url = AVATARS.get(name, '')
-    if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; vertical-align:middle; margin-right:6px;" alt="{name}">{name}'
-    return name
-
-def avatar_img(name, size=24):
-    """Generate just the avatar image HTML."""
-    url = AVATARS.get(name, '')
-    if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%;" alt="{name}" title="{name}">'
-    return ''
 
 # Enriquecer cada snapshot com label legível e flag de sintético
 for snap in snapshots:
@@ -394,7 +382,7 @@ if ultimo:
             print('<table class="table table-striped" style="max-width: 100%; font-size: 1rem;">')
             print('<thead><tr><th>Plataforma</th>')
             for nome in participantes_poll:
-                avatar = avatar_img(nome, 28)
+                avatar = avatar_img(nome, AVATARS, 28)
                 print(f'<th style="text-align:center;">{avatar}</th>')
             print('<th style="text-align:center; color:#888;">Votos</th>')
             print('</tr></thead><tbody>')
@@ -429,6 +417,12 @@ if ultimo:
             print('</tr>')
 
             print('</tbody></table>\n')
+
+            # Time series chart (em_andamento)
+            if poll.get('serie_temporal'):
+                fig_ts = make_poll_timeseries(poll)
+                if fig_ts:
+                    fig_ts.show()
 
         # Resumo da formação (formato compacto)
         print("\n### 🧩 Resumo da Formação\n")
@@ -496,8 +490,8 @@ if ultimo:
             print('<tbody>')
             for alvo, n in ranking:
                 votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, 42) for v in votantes])
-                print(f'<tr><td>{avatar_html(alvo, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+                votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
+                print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
             print('</tbody></table>\n')
         elif n_indicados >= esperado_indicados:
             print(f"\n### 🗳️ Votação da Casa\n")
@@ -640,12 +634,18 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             )
             fig_poll.show()
 
+            # Time series chart (finalizado)
+            if poll.get('serie_temporal'):
+                fig_ts = make_poll_timeseries(poll, resultado_real=resultado)
+                if fig_ts:
+                    fig_ts.show()
+
             # Platform breakdown table
             print("\n### 📱 Por Plataforma\n")
             print('<table class="table table-striped table-hover" style="max-width: 100%; font-size: 1rem;">')
             print('<thead><tr><th>Plataforma</th>')
             for nome in participantes_poll:
-                avatar = avatar_img(nome, 28)
+                avatar = avatar_img(nome, AVATARS, 28)
                 print(f'<th style="text-align:center;">{avatar}</th>')
             print('<th style="text-align:center; color:#888;">Votos</th>')
             print('</tr></thead><tbody>')
@@ -855,8 +855,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             print('<tbody>')
             for alvo, n in ranking:
                 votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, 42) for v in votantes])
-                print(f'<tr><td>{avatar_html(alvo, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+                votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
+                print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
             print('</tbody></table>\n')
 
 ```
@@ -940,7 +940,7 @@ if ultimo and ultimo.get('participantes'):
         delta = row['Δ 3 dias']
         delta_color = '#4CAF50' if '▲' in delta or '+' in delta else ('#E6194B' if '▼' in delta else '#888')
         print(f'<tr>')
-        print(f'<td>{avatar_html(nome, 32)}</td>')
+        print(f'<td>{avatar_html(nome, AVATARS, 32)}</td>')
         print(f'<td><span style="color:{grupo_color}; font-weight:500;">{grupo}</span></td>')
         print(f'<td style="text-align:center; color:{sent_color}; font-weight:bold; font-size:1.1em;">{sent}</td>')
         print(f'<td style="text-align:center;">{row["Rank"]}</td>')
@@ -978,16 +978,16 @@ if ultimo and ultimo.get('participantes'):
         print('<table class="table" style="max-width: 750px; font-size: 1.05rem;">')
         print('<thead><tr><th>Métrica</th><th>Participante</th><th style="text-align:center;">Valor</th></tr></thead>')
         print('<tbody>')
-        print(f'<tr><td>🔴 <strong>{rejected_label}</strong></td><td>{avatar_html(worst_paredao["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{worst_paredao["Sentimento"]} sentimento</td></tr>')
-        print(f'<tr><td>👎 <strong>{negativas_label}</strong></td><td>{avatar_html(most_neg["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{negs_recebidas.get(most_neg["Indicado"], 0)} reações</td></tr>')
+        print(f'<tr><td>🔴 <strong>{rejected_label}</strong></td><td>{avatar_html(worst_paredao["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{worst_paredao["Sentimento"]} sentimento</td></tr>')
+        print(f'<tr><td>👎 <strong>{negativas_label}</strong></td><td>{avatar_html(most_neg["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{negs_recebidas.get(most_neg["Indicado"], 0)} reações</td></tr>')
         if deltas:
             biggest_drop = min(deltas.items(), key=lambda x: x[1])
             biggest_rise = max(deltas.items(), key=lambda x: x[1])
-            print(f'<tr><td>📉 <strong>Maior queda (3 dias)</strong></td><td>{avatar_html(biggest_drop[0], 28)}</td><td style="text-align:center; font-weight:bold; color:#E6194B;">{biggest_drop[1]:+.1f}</td></tr>')
-            print(f'<tr><td>📈 <strong>Maior recuperação (3 dias)</strong></td><td>{avatar_html(biggest_rise[0], 28)}</td><td style="text-align:center; font-weight:bold; color:#4CAF50;">{biggest_rise[1]:+.1f}</td></tr>')
-        print(f'<tr><td>⬇️ <strong>Mais dias no Bottom 5</strong></td><td>{avatar_html(most_bottom["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{most_bottom["Dias no Bottom 5"]} dias</td></tr>')
+            print(f'<tr><td>📉 <strong>Maior queda (3 dias)</strong></td><td>{avatar_html(biggest_drop[0], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold; color:#E6194B;">{biggest_drop[1]:+.1f}</td></tr>')
+            print(f'<tr><td>📈 <strong>Maior recuperação (3 dias)</strong></td><td>{avatar_html(biggest_rise[0], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold; color:#4CAF50;">{biggest_rise[1]:+.1f}</td></tr>')
+        print(f'<tr><td>⬇️ <strong>Mais dias no Bottom 5</strong></td><td>{avatar_html(most_bottom["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{most_bottom["Dias no Bottom 5"]} dias</td></tr>')
         if most_top['Dias no Top 5'] > 0:
-            print(f'<tr><td>⬆️ <strong>Mais dias no Top 5</strong></td><td>{avatar_html(most_top["Indicado"], 28)}</td><td style="text-align:center; font-weight:bold;">{most_top["Dias no Top 5"]} dias</td></tr>')
+            print(f'<tr><td>⬆️ <strong>Mais dias no Top 5</strong></td><td>{avatar_html(most_top["Indicado"], AVATARS, 28)}</td><td style="text-align:center; font-weight:bold;">{most_top["Dias no Top 5"]} dias</td></tr>')
         print('</tbody></table>')
 ```
 
@@ -1348,14 +1348,14 @@ if tem_votos and all_matrices:
         print("<p style='font-size:1.05rem;'><strong>Contradições de voto (❤️ no queridômetro):</strong></p>")
         print("<ul>")
         for votante, alvo, label in vote_examples["contraditorio"]:
-            print(f"<li>{avatar_html(votante, 24)} votou em {avatar_html(alvo, 24)} apesar de dar ❤️.</li>")
+            print(f"<li>{avatar_html(votante, AVATARS, 24)} votou em {avatar_html(alvo, AVATARS, 24)} apesar de dar ❤️.</li>")
         print("</ul>\n")
 
     if ind_examples["alinhado"]:
         print("<p style='font-size:1.05rem;'><strong>Indicações coerentes:</strong></p>")
         print("<ul>")
         for origem, ator, alvo, label in ind_examples["alinhado"]:
-            print(f"<li>{origem}: {avatar_html(ator, 24)} já dava negativa para {avatar_html(alvo, 24)}.</li>")
+            print(f"<li>{origem}: {avatar_html(ator, AVATARS, 24)} já dava negativa para {avatar_html(alvo, AVATARS, 24)}.</li>")
         print("</ul>\n")
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -1479,7 +1479,7 @@ if tem_votos and all_matrices:
         print('<tbody>')
         for b in betrayals:
             reciproca = f"Sim, {b['emoji_recebido']}" if b['tipo'] == 'aliados_mutuos' else "Não"
-            print(f'<tr><td>{avatar_html(b["votante"], 32)}</td><td>{avatar_html(b["alvo"], 32)}</td><td style="text-align:center; font-size:1.2em;">{b["emoji_dado"]}</td><td>{reciproca}</td></tr>')
+            print(f'<tr><td>{avatar_html(b["votante"], AVATARS, 32)}</td><td>{avatar_html(b["alvo"], AVATARS, 32)}</td><td style="text-align:center; font-size:1.2em;">{b["emoji_dado"]}</td><td>{reciproca}</td></tr>')
         print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -1502,7 +1502,7 @@ if tem_votos and all_matrices:
         print('<thead><tr><th>Vítima</th><th>Votante</th><th style="text-align:center;">A vítima dava</th><th style="text-align:center;">O votante dava</th></tr></thead>')
         print('<tbody>')
         for bs in blind_spots:
-            print(f'<tr><td>{avatar_html(bs["alvo"], 32)}</td><td>{avatar_html(bs["votante"], 32)}</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_recebido"]} (confiava)</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_dado"]} (hostil)</td></tr>')
+            print(f'<tr><td>{avatar_html(bs["alvo"], AVATARS, 32)}</td><td>{avatar_html(bs["votante"], AVATARS, 32)}</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_recebido"]} (confiava)</td><td style="text-align:center; font-size:1.1em;">{bs["emoji_dado"]} (hostil)</td></tr>')
         print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -1530,7 +1530,7 @@ if tem_votos and all_matrices:
             print('<thead><tr><th>Votante</th><th>Alvo</th><th>Situação</th></tr></thead>')
             print('<tbody>')
             for v in recem_inimigos:
-                print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td>{v["hist_narrative"]}</td></tr>')
+                print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td>{v["hist_narrative"]}</td></tr>')
             print('</tbody></table>\n')
 
         # Ex-friends who became enemies
@@ -1541,7 +1541,7 @@ if tem_votos and all_matrices:
             print('<thead><tr><th>Votante</th><th>Alvo</th><th>Situação</th></tr></thead>')
             print('<tbody>')
             for v in ex_amigos:
-                print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td>{v["hist_narrative"]}</td></tr>')
+                print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td>{v["hist_narrative"]}</td></tr>')
             print('</tbody></table>\n')
 
         # Voted against consistent friends (big betrayal)
@@ -1553,7 +1553,7 @@ if tem_votos and all_matrices:
             print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">Dias de amizade</th></tr></thead>')
             print('<tbody>')
             for v in always_friends_voted:
-                print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_friends"]} dias de ❤️</td></tr>')
+                print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_friends"]} dias de ❤️</td></tr>')
             print('</tbody></table>\n')
 
         # Long-time enemies (expected votes)
@@ -1566,7 +1566,7 @@ if tem_votos and all_matrices:
                 print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">Tempo de rivalidade</th></tr></thead>')
                 print('<tbody>')
                 for v in long_enemies[:8]:
-                    print(f'<tr><td>{avatar_html(v["votante"], 32)}</td><td>{avatar_html(v["alvo"], 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_enemies"]} dias</td></tr>')
+                    print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 32)}</td><td>{avatar_html(v["alvo"], AVATARS, 32)}</td><td style="text-align:center; font-weight:bold;">{v["days_as_enemies"]} dias</td></tr>')
                 print('</tbody></table>\n')
 
         # Summary statistics
@@ -1654,8 +1654,8 @@ if tem_votos and all_matrices:
         print('<table class="table" style="max-width: 500px; font-size: 1.05rem;">')
         print('<thead><tr><th>De</th><th>Para</th><th style="text-align:center;">Reação</th></tr></thead>')
         print('<tbody>')
-        print(f'<tr><td>{avatar_html(lider, 32)}</td><td>{avatar_html(indicado, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_lider}</td></tr>')
-        print(f'<tr><td>{avatar_html(indicado, 32)}</td><td>{avatar_html(lider, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_indicado}</td></tr>')
+        print(f'<tr><td>{avatar_html(lider, AVATARS, 32)}</td><td>{avatar_html(indicado, AVATARS, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_lider}</td></tr>')
+        print(f'<tr><td>{avatar_html(indicado, AVATARS, 32)}</td><td>{avatar_html(lider, AVATARS, 32)}</td><td style="text-align:center; font-size:1.3em;">{emoji_indicado}</td></tr>')
         print('</tbody></table>\n')
 
         if rel_type == 'aliados_mutuos':
@@ -1732,7 +1732,7 @@ if tem_votos and all_matrices:
                 hist_worst = analyze_relationship_history(lider, worst_for_leader, daily_matrices, daily_snapshots, analysis_date)
 
                 print('<table class="table" style="max-width: 600px; font-size: 1.05rem;">')
-                print(f'<thead><tr><th>Comparação</th><th style="text-align:center;">{avatar_html(indicado, 28)}</th><th style="text-align:center;">{avatar_html(worst_for_leader, 28)}</th></tr></thead>')
+                print(f'<thead><tr><th>Comparação</th><th style="text-align:center;">{avatar_html(indicado, AVATARS, 28)}</th><th style="text-align:center;">{avatar_html(worst_for_leader, AVATARS, 28)}</th></tr></thead>')
                 print('<tbody>')
                 print(f'<tr><td>Reação do líder</td><td style="text-align:center; font-size:1.2em;">{emoji_lider}</td><td style="text-align:center; font-size:1.2em;">{emoji_worst}</td></tr>')
                 print(f'<tr><td>Reação de volta</td><td style="text-align:center; font-size:1.2em;">{emoji_indicado}</td><td style="text-align:center; font-size:1.2em;">{emoji_worst_back}</td></tr>')
@@ -1773,8 +1773,8 @@ if tem_votos and all_matrices:
     for v in vote_analysis:
         hist = f"{pattern_emoji.get(v['hist_pattern'], '?')} {v['days_as_friends']}d❤️"
         print(f'<tr>')
-        print(f'<td>{avatar_html(v["votante"], 32)}</td>')
-        print(f'<td>{avatar_html(v["alvo"], 32)}</td>')
+        print(f'<td>{avatar_html(v["votante"], AVATARS, 32)}</td>')
+        print(f'<td>{avatar_html(v["alvo"], AVATARS, 32)}</td>')
         print(f'<td style="text-align:center; font-size:1.2em;">{v["emoji_dado"]}</td>')
         print(f'<td style="text-align:center; font-size:1.2em;">{v["emoji_recebido"]}</td>')
         print(f'<td>{v["label"]}</td>')
@@ -1918,7 +1918,7 @@ A <strong>correlação (r)</strong> mede essa relação:<br>
             for _, row in poupados.iterrows():
                 obs = "Recebeu muita negatividade mas nenhum voto" if row['votos_recebidos'] == 0 else f"Só {int(row['votos_recebidos'])} voto apesar da negatividade"
                 print(f'<tr>')
-                print(f'<td>{avatar_html(row["nome"], 28)}</td>')
+                print(f'<td>{avatar_html(row["nome"], AVATARS, 28)}</td>')
                 print(f'<td style="text-align:center; font-size:1.2em;">{int(row["neg_recebidas"])}</td>')
                 print(f'<td style="text-align:center; font-size:1.2em;">{int(row["votos_recebidos"])}</td>')
                 print(f'<td>{obs}</td>')
@@ -1941,7 +1941,7 @@ A <strong>correlação (r)</strong> mede essa relação:<br>
             for _, row in alvos.iterrows():
                 obs = f"Recebeu {int(row['votos_recebidos'])} votos mas só {int(row['neg_recebidas'])} negativas — alvo estratégico"
                 print(f'<tr>')
-                print(f'<td>{avatar_html(row["nome"], 28)}</td>')
+                print(f'<td>{avatar_html(row["nome"], AVATARS, 28)}</td>')
                 print(f'<td style="text-align:center; font-size:1.2em;">{int(row["neg_recebidas"])}</td>')
                 print(f'<td style="text-align:center; font-size:1.2em;">{int(row["votos_recebidos"])}</td>')
                 print(f'<td>{obs}</td>')
@@ -1956,15 +1956,15 @@ A <strong>correlação (r)</strong> mede essa relação:<br>
         # Example that aligns
         if most_hated is not None and most_voted_name:
             if most_hated['nome'] == most_voted_name:
-                print(f'<p style="font-size: 1.05rem;">✅ <strong>Alinhado:</strong> {avatar_html(most_hated["nome"], 28)} é quem recebeu mais reações negativas '
+                print(f'<p style="font-size: 1.05rem;">✅ <strong>Alinhado:</strong> {avatar_html(most_hated["nome"], AVATARS, 28)} é quem recebeu mais reações negativas '
                       f'({int(most_hated["neg_recebidas"])}) e também mais votos '
                       f'({int(most_hated["votos_recebidos"])}). Os votos seguiram o queridômetro.</p>\n')
             else:
                 most_voted_data = df_scatter[df_scatter['nome'] == most_voted_name].iloc[0] if most_voted_name in df_scatter['nome'].values else None
                 if most_voted_data is not None:
-                    print(f'<p style="font-size: 1.05rem;">⚠️ <strong>Parcialmente alinhado:</strong> O mais votado foi {avatar_html(most_voted_name, 28)} '
+                    print(f'<p style="font-size: 1.05rem;">⚠️ <strong>Parcialmente alinhado:</strong> O mais votado foi {avatar_html(most_voted_name, AVATARS, 28)} '
                           f'({int(most_voted_data["votos_recebidos"])} votos, {int(most_voted_data["neg_recebidas"])} negativas), '
-                          f'mas quem recebeu mais negatividade no queridômetro é {avatar_html(most_hated["nome"], 28)} '
+                          f'mas quem recebeu mais negatividade no queridômetro é {avatar_html(most_hated["nome"], AVATARS, 28)} '
                           f'({int(most_hated["neg_recebidas"])} negativas, {int(most_hated["votos_recebidos"])} votos).</p>\n')
 
         # Show who couldn't be voted (for context)
@@ -1977,10 +1977,10 @@ A <strong>correlação (r)</strong> mede essa relação:<br>
 
                 print('<p style="font-size: 1.05rem; color: #aaa;">')
                 if indicados_nomes:
-                    indicados_str = ", ".join([f'{avatar_html(n, 24)}' for n in indicados_nomes])
+                    indicados_str = ", ".join([f'{avatar_html(n, AVATARS, 24)}' for n in indicados_nomes])
                     print(f'<em>Nota: {indicados_str} já estava(m) indicado(s) ao paredão (por Líder ou Dinâmica), então não podia(m) receber votos da casa.</em>')
                 if outros_nomes:
-                    outros_str = ", ".join([f'{avatar_html(n, 24)}' for n in outros_nomes])
+                    outros_str = ", ".join([f'{avatar_html(n, AVATARS, 24)}' for n in outros_nomes])
                     print(f'<br><em>{outros_str} não podia(m) receber votos (líder, imunizado ou anjo autoimune).</em>')
                 print('</p>\n')
 
@@ -2006,7 +2006,7 @@ A <strong>correlação (r)</strong> mede essa relação:<br>
             print(f"\n#### 🎲 A Decisão da Dinâmica: {dinamica.get('nome', 'Dinâmica')}\n")
 
             print(f'<p style="font-size: 1.05rem;">')
-            print(f'{", ".join([avatar_html(n, 28) for n in indicaram])} escolheram indicar {avatar_html(indicado, 28)} ao paredão.')
+            print(f'{", ".join([avatar_html(n, AVATARS, 28) for n in indicaram])} escolheram indicar {avatar_html(indicado, AVATARS, 28)} ao paredão.')
             print(f'</p>\n')
 
             print(f'<p style="font-size: 1.05rem;"><strong>O que o queridômetro diz sobre essa escolha?</strong></p>\n')
@@ -2091,7 +2091,7 @@ A <strong>correlação (r)</strong> mede essa relação:<br>
                     interp = "—"
 
                 print(f'<tr>')
-                print(f'<td>{avatar_html(decisor, 28)}</td>')
+                print(f'<td>{avatar_html(decisor, AVATARS, 28)}</td>')
                 print(f'<td style="text-align:center; font-size:1.3em;">{emoji_dado}</td>')
                 print(f'<td style="text-align:center; font-size:1.3em;">{emoji_recebido}</td>')
                 print(f'<td>{hist_str}</td>')
@@ -2107,7 +2107,7 @@ A <strong>correlação (r)</strong> mede essa relação:<br>
                 for d in indicaram
             )
             if all_gave_negative:
-                print(f'<p style="font-size: 1.05rem;">✅ <strong>Escolha coerente:</strong> Quem decidiu já dava reações negativas para {avatar_html(indicado, 28)} no queridômetro.</p>\n')
+                print(f'<p style="font-size: 1.05rem;">✅ <strong>Escolha coerente:</strong> Quem decidiu já dava reações negativas para {avatar_html(indicado, AVATARS, 28)} no queridômetro.</p>\n')
             else:
                 print(f'<p style="font-size: 1.05rem;">⚠️ <strong>Escolha estratégica:</strong> A indicação não seguiu necessariamente as reações do queridômetro — pode ter sido por estratégia de jogo.</p>\n')
 

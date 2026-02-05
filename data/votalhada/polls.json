@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-01-27",
+  "_last_updated": "2026-02-03",
 
   "paredoes": [
     {
@@ -158,6 +158,85 @@
       "fontes": [
         "https://votalhada.blogspot.com/2026/01/pesquisa2-25.html",
         "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-matheus-e-o-segundo-eliminado-do-reality.ghtml"
+      ]
+    },
+    {
+      "numero": 3,
+      "data_paredao": "2026-02-03",
+      "data_coleta": "2026-02-03T21:00:00-03:00",
+      "participantes": ["Ana Paula Renault", "Brigido", "Leandro"],
+
+      "consolidado": {
+        "Ana Paula Renault": 21.03,
+        "Brigido": 52.83,
+        "Leandro": 26.14,
+        "total_votos": 6470239,
+        "predicao_eliminado": "Brigido"
+      },
+
+      "plataformas": {
+        "sites": {
+          "Ana Paula Renault": 28.29,
+          "Brigido": 40.35,
+          "Leandro": 31.36,
+          "votos": 3631113,
+          "fontes_count": 14
+        },
+        "youtube": {
+          "Ana Paula Renault": 18.00,
+          "Brigido": 58.40,
+          "Leandro": 23.60,
+          "votos": 890300,
+          "fontes_count": 25
+        },
+        "twitter": {
+          "Ana Paula Renault": 4.27,
+          "Brigido": 74.55,
+          "Leandro": 21.19,
+          "votos": 475992,
+          "fontes_count": 22
+        },
+        "instagram": {
+          "Ana Paula Renault": 10.40,
+          "Brigido": 73.20,
+          "Leandro": 16.40,
+          "votos": 1472834,
+          "fontes_count": 15
+        }
+      },
+
+      "serie_temporal": [
+        {"hora": "02/fev 01:00", "Ana Paula Renault": 12.25, "Brigido": 65.57, "Leandro": 22.18, "votos": 1223129},
+        {"hora": "02/fev 08:00", "Ana Paula Renault": 15.95, "Brigido": 57.98, "Leandro": 26.06, "votos": 2626490},
+        {"hora": "02/fev 12:00", "Ana Paula Renault": 16.68, "Brigido": 59.51, "Leandro": 23.81, "votos": 3224338},
+        {"hora": "02/fev 15:00", "Ana Paula Renault": 18.18, "Brigido": 59.29, "Leandro": 22.53, "votos": 3764875},
+        {"hora": "02/fev 18:00", "Ana Paula Renault": 18.40, "Brigido": 56.43, "Leandro": 25.16, "votos": 4313566},
+        {"hora": "02/fev 21:00", "Ana Paula Renault": 18.49, "Brigido": 55.89, "Leandro": 25.62, "votos": 4540204},
+        {"hora": "03/fev 08:00", "Ana Paula Renault": 20.65, "Brigido": 53.12, "Leandro": 26.24, "votos": 5758999},
+        {"hora": "03/fev 12:00", "Ana Paula Renault": 20.84, "Brigido": 53.23, "Leandro": 25.93, "votos": 5941925},
+        {"hora": "03/fev 15:00", "Ana Paula Renault": 21.04, "Brigido": 53.31, "Leandro": 25.46, "votos": 6176848},
+        {"hora": "03/fev 18:00", "Ana Paula Renault": 21.16, "Brigido": 53.38, "Leandro": 25.46, "votos": 6313368},
+        {"hora": "03/fev 21:00", "Ana Paula Renault": 21.03, "Brigido": 52.83, "Leandro": 26.14, "votos": 6470239}
+      ],
+
+      "resultado_real": {
+        "Ana Paula Renault": 10.08,
+        "Brigido": 77.88,
+        "Leandro": 12.04,
+        "eliminado": "Brigido",
+        "predicao_correta": true
+      },
+
+      "imagens": [
+        "data/votalhada/2026_02_03/2026-02-03_194834.png",
+        "data/votalhada/2026_02_03/2026-02-03_194902.png",
+        "data/votalhada/2026_02_03/2026-02-03_194931.png",
+        "data/votalhada/2026_02_03/2026-02-03_194957.png",
+        "data/votalhada/2026_02_03/2026-02-03_195024.png"
+      ],
+
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-brigido-e-o-terceiro-eliminado-do-reality.ghtml"
       ]
     }
   ]

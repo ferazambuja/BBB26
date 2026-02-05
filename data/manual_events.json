@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-02-02",
+  "_last_updated": "2026-02-04",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -43,6 +43,14 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/paulo-augusto-esta-fora-do-bbb-26.ghtml",
         "https://www.omelete.com.br/series-tv/bbb-26-paulo-augusto-e-expulso-apos-empurrar-jonas",
         "https://exame.com/pop/bbb-26-paulo-augusto-e-expulso-do-programa-por-agredir-brother/"
+      ]
+    },
+    "Brigido": {
+      "status": "eliminado",
+      "exit_date": "2026-02-03",
+      "paredao_numero": 3,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-brigido-e-o-terceiro-eliminado-do-reality.ghtml"
       ]
     }
   },
@@ -1094,6 +1102,40 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/jonas-sulzbach-esta-no-paredao-apos-voto-em-consenso-do-big-fone.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/no-presente-do-anjo-sarah-andrade-escolhe-assistir-a-um-video-da-familia-e-abre-mao-de-segunda-imunidade.ghtml"
       ]
+    },
+    {
+      "week": 4,
+      "start_date": "2026-02-03",
+      "end_date": "2026-02-09",
+      "big_fone": [],
+      "quarto_secreto": null,
+      "ganha_ganha": {
+        "date": "2026-02-03",
+        "sorteados": [
+          "Alberto Cowboy",
+          "Sarah Andrade",
+          "Solange Couto"
+        ],
+        "veto": {
+          "por": "Sarah Andrade",
+          "quem": "Solange Couto",
+          "motivo": "Solange é muito próxima do Babu Santana (oponente de Sarah). Sarah temia que Solange repassasse informação privilegiada ao Babu."
+        },
+        "decisao": {
+          "quem": "Alberto Cowboy",
+          "escolha": "informação privilegiada",
+          "abriu_mao": "R$ 10 mil"
+        },
+        "informacao": "Descobriu os votos de Solange Couto (votou em Gabriela) e Sol Vega (votou em Leandro) no 3º Paredão. Nenhuma das duas votou contra Alberto.",
+        "cartas": "Alberto trocou R$ 10 mil pela informação privilegiada. Sarah competiu contra Alberto e ganhou a carta restante.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/sarah-andrade-se-explica-para-solange-couto-apos-veto-no-ganha-ganha-muito-proxima-do-babu.ghtml"
+        ]
+      },
+      "notes": "Semana 4 começa após eliminação de Brigido (3º Paredão). Ganha-Ganha: Sarah vetou Solange (próxima do Babu). Alberto escolheu informação privilegiada sobre R$ 10 mil.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/sarah-andrade-se-explica-para-solange-couto-apos-veto-no-ganha-ganha-muito-proxima-do-babu.ghtml"
+      ]
     }
   ],
   "special_events": [
@@ -1285,6 +1327,38 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/gabriela-e-escolhida-para-o-barrado-no-baile-pelo-lider-babu-santana-e-enfrenta-desafio.ghtml"
       ],
       "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-02-03",
+      "week": 4,
+      "type": "veto_ganha_ganha",
+      "actor": "Sarah Andrade",
+      "target": "Solange Couto",
+      "source": "Ganha-Ganha",
+      "detail": "Vetou Solange Couto por ser próxima de Babu Santana (oponente de Sarah). Temia que repassasse informação privilegiada.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/sarah-andrade-se-explica-para-solange-couto-apos-veto-no-ganha-ganha-muito-proxima-do-babu.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known"
+    },
+    {
+      "date": "2026-02-03",
+      "week": 4,
+      "type": "ganha_ganha_escolha",
+      "actor": "Sarah Andrade",
+      "target": "Alberto Cowboy",
+      "source": "Ganha-Ganha",
+      "detail": "Ao vetar Solange, Sarah competiu com Alberto. Alberto escolheu informação privilegiada (votos de Solange Couto e Sol Vega no 3º Paredão) trocando R$ 10 mil.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/sarah-andrade-se-explica-para-solange-couto-apos-veto-no-ganha-ganha-muito-proxima-do-babu.ghtml"
+      ],
+      "impacto": "positivo",
       "origem": "manual",
       "visibility": "public",
       "awareness": "known"
@@ -1961,19 +2035,5 @@
     }
   ],
   "cartola_points_log": [],
-  "scheduled_events": [
-    {
-      "date": "2026-02-03",
-      "week": 3,
-      "category": "paredao_resultado",
-      "emoji": "🏁",
-      "title": "3º Paredão — Eliminação",
-      "detail": "Uma pessoa deixa o programa",
-      "time": "Ao Vivo",
-      "participants": [],
-      "fontes": [
-        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-quatro-ligacoes-do-big-fone-confira.ghtml"
-      ]
-    }
-  ]
+  "scheduled_events": []
 }

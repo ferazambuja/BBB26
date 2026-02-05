@@ -1,8 +1,15 @@
 # BBB26 Data Changelog
 
-This document tracks when the API data actually changed, based on audit of all historical snapshots.
+This document tracks the initial data audit and key findings about the API data model.
 
-## Audit Summary (2026-01-24)
+## Current Status (2026-02-04)
+
+- **Total snapshots**: 32 (Jan 13 – Feb 4, 2026)
+- **Active participants**: 19
+- **Exited participants**: 5 (Henri, Pedro, Aline Campos, Matheus, Brigido)
+- **Paredões completed**: 3
+
+## Initial Audit Summary (2026-01-24)
 
 - **Total files analyzed**: 41
 - **Unique data states**: 14 (12 from audit + 1 intraday capture + 1 synthetic)

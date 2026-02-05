@@ -1,4 +1,8 @@
-# BBB26 Dashboard Review Handout
+# BBB26 Dashboard Review Handout (Jan 2026)
+
+> **Note**: This handout was created Jan 25-26, 2026 to generate AI reviews (see `docs/reviews/`).
+> Page references below use the names from that date — some were later renamed/restructured.
+> Current page architecture: see `CLAUDE.md` → "Page Architecture".
 
 ## TL;DR — Quick Context
 

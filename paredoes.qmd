@@ -30,6 +30,8 @@ from data_utils import (
     load_snapshot, get_all_snapshots, build_reaction_matrix,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    MONTH_MAP_PT, parse_votalhada_hora, make_poll_timeseries,
+    avatar_html, avatar_img,
     REACTION_EMOJI, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
 )
@@ -99,18 +101,6 @@ for snap in reversed(snapshots):
         daily_snapshots.append(snap)
 daily_snapshots.reverse()
 n_daily = len(daily_snapshots)
-
-def avatar_html(name, size=24):
-    url = AVATARS.get(name, '')
-    if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; vertical-align:middle; margin-right:6px;" alt="{name}">{name}'
-    return name
-
-def avatar_img(name, size=24):
-    url = AVATARS.get(name, '')
-    if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%;" alt="{name}" title="{name}">'
-    return ''
 
 def classify_relationship(votante, alvo, matrix):
     """Classifica o relacionamento entre votante e alvo no queridômetro."""
@@ -406,6 +396,69 @@ if len(finalized_polls) >= 1:
 
     print('</tbody></table>')
     print('<p class="text-muted small">Erro = diferença em pontos percentuais entre previsão e resultado real (Média Final)</p>\n')
+
+    # ── Platform Average Error Bar Chart ──
+    platform_colors = {'sites': '#3498db', 'youtube': '#e74c3c', 'twitter': '#1da1f2', 'instagram': '#e1306c'}
+    sorted_plats = sorted(platform_avg.items(), key=lambda x: x[1])  # best first
+    plat_labels = [platform_names.get(p, p) for p, _ in sorted_plats]
+    plat_errs = [e for _, e in sorted_plats]
+    plat_colors = [platform_colors.get(p, '#999') for p, _ in sorted_plats]
+
+    fig_bar = go.Figure()
+    fig_bar.add_trace(go.Bar(
+        y=plat_labels, x=plat_errs, orientation='h',
+        marker_color=plat_colors,
+        text=[f"{e:.1f} p.p." for e in plat_errs],
+        textposition='outside',
+        hovertemplate='%{y}: %{x:.1f} p.p.<extra></extra>',
+    ))
+    fig_bar.add_vline(x=avg_consol, line_dash='dash', line_width=2, line_color='#9b59b6',
+                      annotation_text=f"Consolidado: {avg_consol:.1f}",
+                      annotation_position='top right',
+                      annotation_font=dict(size=10, color='#9b59b6'))
+    fig_bar.update_layout(
+        title="Erro Médio por Plataforma (p.p.)",
+        xaxis_title="Erro médio (pontos percentuais)",
+        height=280, margin=dict(l=120, t=60, b=40),
+        showlegend=False,
+    )
+    fig_bar.show()
+
+    # ── Per-Paredão Error Line Chart (only if ≥2 finalized) ──
+    if len(finalized_polls) >= 2:
+        fig_lines = go.Figure()
+        paredao_labels = [f"{p['numero']}º" for p in finalized_polls]
+
+        for plat in ['sites', 'youtube', 'twitter', 'instagram']:
+            if plat not in platform_errors or not platform_errors[plat]:
+                continue
+            errs_by_par = {e['paredao']: e['erro'] for e in platform_errors[plat]}
+            y_vals = [errs_by_par.get(p['numero'], None) for p in finalized_polls]
+            fig_lines.add_trace(go.Scatter(
+                x=paredao_labels, y=y_vals, mode='lines+markers',
+                name=platform_names.get(plat, plat),
+                line=dict(width=2.5, color=platform_colors.get(plat, '#999')),
+                marker=dict(size=8),
+                hovertemplate=f'{platform_names.get(plat, plat)}: ' + '%{y:.1f} p.p.<extra></extra>',
+                connectgaps=True,
+            ))
+
+        # Add consolidado line
+        fig_lines.add_trace(go.Scatter(
+            x=paredao_labels, y=consolidado_errs, mode='lines+markers',
+            name='📊 Consolidado',
+            line=dict(width=2.5, color='#9b59b6', dash='dash'),
+            marker=dict(size=8, symbol='diamond'),
+            hovertemplate='Consolidado: %{y:.1f} p.p.<extra></extra>',
+        ))
+
+        fig_lines.update_layout(
+            title="Evolução do Erro por Plataforma",
+            xaxis_title="Paredão", yaxis_title="Erro (p.p.)",
+            height=350, hovermode='x unified',
+            legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        )
+        fig_lines.show()
 
     # Pattern observation
     underest = np.mean([r['enquete'] - r['voto_total'] for r in poll_vs_votes])
@@ -733,6 +786,12 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         print('</tr>')
         print('</tbody></table>\n')
 
+        # Time series chart (archive)
+        if poll.get('serie_temporal'):
+            fig_ts = make_poll_timeseries(poll, resultado_real=resultado, compact=True)
+            if fig_ts:
+                fig_ts.show()
+
     # ══════════════════════════════════════════════════════════════
     # FORMAÇÃO
     # ══════════════════════════════════════════════════════════════
@@ -761,8 +820,8 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         print('<tbody>')
         for alvo, n in ranking:
             votantes = sorted([v for v, a in votos.items() if a == alvo])
-            votantes_html = ' '.join([avatar_img(v, 42) for v in votantes])
-            print(f'<tr><td>{avatar_html(alvo, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+            votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
+            print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
         print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════
@@ -906,7 +965,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             print('<thead><tr><th>Votante</th><th>Alvo</th><th style="text-align:center;">Deu</th><th>Mútuo?</th></tr></thead><tbody>')
             for b in betrayals:
                 reciproca = f"Sim, {b['emoji_recebido']}" if b['tipo'] == 'aliados_mutuos' else "Não"
-                print(f'<tr><td>{avatar_html(b["votante"], 28)}</td><td>{avatar_html(b["alvo"], 28)}</td>'
+                print(f'<tr><td>{avatar_html(b["votante"], AVATARS, 28)}</td><td>{avatar_html(b["alvo"], AVATARS, 28)}</td>'
                       f'<td style="text-align:center; font-size:1.1em;">{b["emoji_dado"]}</td><td>{reciproca}</td></tr>')
             print('</tbody></table>\n')
 
@@ -917,7 +976,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             print('<table class="table table-striped" style="font-size: 0.95rem;">')
             print('<thead><tr><th>Vítima</th><th>Votante</th><th style="text-align:center;">Vítima dava</th><th style="text-align:center;">Votante dava</th></tr></thead><tbody>')
             for bs in blind_spots:
-                print(f'<tr><td>{avatar_html(bs["alvo"], 28)}</td><td>{avatar_html(bs["votante"], 28)}</td>'
+                print(f'<tr><td>{avatar_html(bs["alvo"], AVATARS, 28)}</td><td>{avatar_html(bs["votante"], AVATARS, 28)}</td>'
                       f'<td style="text-align:center; font-size:1.1em;">{bs["emoji_recebido"]}</td>'
                       f'<td style="text-align:center; font-size:1.1em;">{bs["emoji_dado"]}</td></tr>')
             print('</tbody></table>\n')
@@ -935,20 +994,20 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             if recem_inimigos_v:
                 print(f"**🚨 Mudança de última hora** — {len(recem_inimigos_v)} voto(s) de quem mudou nos últimos 2 dias:\n")
                 for v in recem_inimigos_v:
-                    print(f"- {avatar_html(v['votante'], 22)} → {avatar_html(v['alvo'], 22)}: {v['hist_narrative']}")
+                    print(f"- {avatar_html(v['votante'], AVATARS, 22)} → {avatar_html(v['alvo'], AVATARS, 22)}: {v['hist_narrative']}")
                 print()
 
             if ex_amigos_v:
                 print(f"**💔 Ex-amigos** — {len(ex_amigos_v)} voto(s) de quem já deu ❤️:\n")
                 for v in ex_amigos_v:
-                    print(f"- {avatar_html(v['votante'], 22)} → {avatar_html(v['alvo'], 22)}: {v['hist_narrative']}")
+                    print(f"- {avatar_html(v['votante'], AVATARS, 22)} → {avatar_html(v['alvo'], AVATARS, 22)}: {v['hist_narrative']}")
                 print()
 
             always_friends_voted = [v for v in sempre_amigos_v if v['tipo'] in ('falso_amigo', 'aliados_mutuos')]
             if always_friends_voted:
                 print(f"**🗡️ Traição de longa data** — {len(always_friends_voted)} voto(s) contra quem sempre recebeu ❤️:\n")
                 for v in always_friends_voted:
-                    print(f"- {avatar_html(v['votante'], 22)} → {avatar_html(v['alvo'], 22)}: {v['days_as_friends']} dias de ❤️")
+                    print(f"- {avatar_html(v['votante'], AVATARS, 22)} → {avatar_html(v['alvo'], AVATARS, 22)}: {v['days_as_friends']} dias de ❤️")
                 print()
 
             # Temporal summary table
@@ -1023,8 +1082,8 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
             print('<table class="table" style="max-width: 500px; font-size: 0.95rem;">')
             print('<thead><tr><th>De</th><th>Para</th><th style="text-align:center;">Reação</th></tr></thead><tbody>')
-            print(f'<tr><td>{avatar_html(lider, 28)}</td><td>{avatar_html(indicado, 28)}</td><td style="text-align:center; font-size:1.2em;">{emoji_lider}</td></tr>')
-            print(f'<tr><td>{avatar_html(indicado, 28)}</td><td>{avatar_html(lider, 28)}</td><td style="text-align:center; font-size:1.2em;">{emoji_indicado}</td></tr>')
+            print(f'<tr><td>{avatar_html(lider, AVATARS, 28)}</td><td>{avatar_html(indicado, AVATARS, 28)}</td><td style="text-align:center; font-size:1.2em;">{emoji_lider}</td></tr>')
+            print(f'<tr><td>{avatar_html(indicado, AVATARS, 28)}</td><td>{avatar_html(lider, AVATARS, 28)}</td><td style="text-align:center; font-size:1.2em;">{emoji_indicado}</td></tr>')
             print('</tbody></table>\n')
 
             if rel_type_l == 'aliados_mutuos':
@@ -1047,7 +1106,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
               '<th style="text-align:center;">Recebeu</th><th>Tipo</th><th>Histórico</th></tr></thead><tbody>')
         for v in vote_analysis:
             hist_str = f"{pattern_emoji.get(v['hist_pattern'], '?')} {v['days_as_friends']}d❤️"
-            print(f'<tr><td>{avatar_html(v["votante"], 28)}</td><td>{avatar_html(v["alvo"], 28)}</td>'
+            print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 28)}</td><td>{avatar_html(v["alvo"], AVATARS, 28)}</td>'
                   f'<td style="text-align:center; font-size:1.1em;">{v["emoji_dado"]}</td>'
                   f'<td style="text-align:center; font-size:1.1em;">{v["emoji_recebido"]}</td>'
                   f'<td>{v["label"]}</td><td>{hist_str}</td></tr>')

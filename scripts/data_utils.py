@@ -548,3 +548,104 @@ def render_cronologia_html(timeline_events):
 
     html += '</tbody></table></div>'
     return html
+
+
+# ── Votalhada helpers ──────────────────────────────────────────────────────────
+
+MONTH_MAP_PT = {'jan': 1, 'fev': 2, 'mar': 3, 'abr': 4, 'mai': 5, 'jun': 6,
+                'jul': 7, 'ago': 8, 'set': 9, 'out': 10, 'nov': 11, 'dez': 12}
+
+def parse_votalhada_hora(hora_str, year=2026):
+    """Parse Votalhada timestamp '19/jan 01:00' → datetime."""
+    parts = hora_str.split()
+    day_month = parts[0].split('/')
+    day = int(day_month[0])
+    month = MONTH_MAP_PT[day_month[1]]
+    hour, minute = map(int, parts[1].split(':'))
+    return datetime(year, month, day, hour, minute)
+
+def make_poll_timeseries(poll, resultado_real=None, compact=False):
+    """Build a Plotly figure for Votalhada poll time series.
+
+    Args:
+        poll: Poll dict with 'serie_temporal' and 'participantes'.
+        resultado_real: Optional result dict with real vote percentages.
+        compact: If True, use smaller markers/lines and shorter height (for archive tabs).
+    """
+    import plotly.graph_objects as go
+
+    serie = poll.get('serie_temporal', [])
+    if not serie:
+        return None
+    participantes = poll.get('participantes', [])
+    if not participantes:
+        return None
+
+    times = [parse_votalhada_hora(pt['hora']) for pt in serie]
+    first_t = times[0].strftime('%d/%m %Hh')
+    last_t = times[-1].strftime('%d/%m %Hh')
+    eliminado = None
+    if resultado_real:
+        eliminado = resultado_real.get('eliminado')
+
+    nominee_colors = {}
+    base_colors = ['#9b59b6', '#3498db', '#e67e22', '#2ecc71', '#e74c3c']
+    for idx, nome in enumerate(participantes):
+        if nome == eliminado:
+            nominee_colors[nome] = '#E6194B'
+        else:
+            nominee_colors[nome] = base_colors[idx % len(base_colors)]
+
+    fig = go.Figure()
+    for nome in participantes:
+        values = [pt.get(nome, 0) for pt in serie]
+        fig.add_trace(go.Scatter(
+            x=times, y=values, mode='lines+markers',
+            name=nome.split()[0],
+            line=dict(width=2 if compact else 3, color=nominee_colors[nome]),
+            marker=dict(size=4 if compact else 6),
+            hovertemplate=f'{nome}: ' + '%{y:.1f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
+        ))
+
+    if resultado_real:
+        for nome in participantes:
+            real_val = resultado_real.get(nome, 0)
+            if real_val > 0:
+                fig.add_hline(
+                    y=real_val, line_dash='dash', line_width=1,
+                    line_color=nominee_colors.get(nome, '#888'),
+                    annotation_text=f"Real: {real_val:.1f}%",
+                    annotation_position='right',
+                    annotation_font=dict(size=9, color=nominee_colors.get(nome, '#888')),
+                )
+
+    subtitle = f"{first_t} → {last_t}" if compact else f"Janela: {first_t} → {last_t}"
+    fig.update_layout(
+        title=dict(
+            text=f"Evolução das Enquetes<br><sup>{subtitle}</sup>",
+            y=0.95, x=0.5, xanchor='center',
+        ),
+        xaxis_title="", yaxis_title="Votos (%)",
+        height=350 if compact else 380,
+        margin=dict(t=80, b=50, r=80),
+        legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        hovermode='x unified',
+    )
+    return fig
+
+
+# ── Avatar HTML helpers ────────────────────────────────────────────────────────
+
+def avatar_html(name, avatars, size=24):
+    """Generate HTML for participant avatar + name."""
+    url = avatars.get(name, '')
+    if url:
+        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; vertical-align:middle; margin-right:6px;" alt="{name}">{name}'
+    return name
+
+def avatar_img(name, avatars, size=24):
+    """Generate just the avatar image HTML (no name text)."""
+    url = avatars.get(name, '')
+    if url:
+        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%;" alt="{name}" title="{name}">'
+    return ''

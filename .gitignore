@@ -1,9 +1,10 @@
 # Legacy/backup folder (old code and assets)
 _legacy/
 
-# Quarto build output
+# Quarto build output & cache
 _site/
 .quarto/
+**/*.quarto_ipynb
 
 # Python
 __pycache__/
@@ -27,5 +28,8 @@ Thumbs.db
 *.png
 *.csv
 
+# Temporary files
+stderr
+temp_*.md
+
 /.quarto/
-**/*.quarto_ipynb

@@ -68,7 +68,7 @@ quarto preview
 **Votalhada polls (manual):**
 - Update `data/votalhada/polls.json` **Tuesday ~21:00 BRT** (before elimination).
 - After elimination, fill `resultado_real`.
-- See `docs/HANDOFF_VOTALHADA.md` and `data/votalhada/README.md`.
+- See `data/votalhada/README.md` for screenshot workflow.
 
 ## Code Architecture Rules
 
@@ -86,6 +86,8 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
 - Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
 - Timeline rendering: `render_cronologia_html()`, `TIMELINE_CAT_COLORS`, `TIMELINE_CAT_LABELS`
+- Votalhada helpers: `MONTH_MAP_PT`, `parse_votalhada_hora()`, `make_poll_timeseries()`
+- Avatar HTML helpers: `avatar_html()`, `avatar_img()`
 - Audit: `require_clean_manual_events()`
 
 **QMD setup pattern** (every `.qmd` file follows this):
@@ -164,9 +166,9 @@ When a participant misses the morning Raio-X, the API returns them with 0 outgoi
 
 **Manual (human-maintained):**
 - `data/manual_events.json` — power events + weekly events not in API. See `docs/MANUAL_EVENTS_GUIDE.md`.
-- `data/paredoes.json` — paredão formation + votos da casa + resultado + % público. See `docs/HANDOFF_PAREDAO.md`.
+- `data/paredoes.json` — paredão formation + votos da casa + resultado + % público.
 - `data/provas.json` — competition results and placements for all BBB26 provas (Líder, Anjo, Bate e Volta).
-- `data/votalhada/polls.json` — poll aggregation from Votalhada. See `docs/HANDOFF_VOTALHADA.md`.
+- `data/votalhada/polls.json` — poll aggregation from Votalhada.
 
 **Derived** (`data/derived/`, built by `scripts/build_derived_data.py`):
 - `roles_daily.json` — roles + VIP per day
@@ -309,18 +311,14 @@ BBB26/
 │   └── update_programa_doc.py # Update program guide timeline
 ├── docs/
 │   ├── SCORING_AND_INDEXES.md    # Full scoring formulas and index specs
-│   ├── HANDOFF_PAREDAO.md        # Paredão workflow, schemas, display logic
 │   ├── MANUAL_EVENTS_GUIDE.md    # Manual events schema and fill rules
-│   ├── HANDOFF_VOTALHADA.md      # Votalhada poll collection workflow
-│   ├── HANDOFF_CODE_CENTRALIZATION.md # Code dedup refactoring log
 │   ├── RELATIONS_REVIEW.md       # Relations scoring system audit
-│   ├── AI_REVIEW_HANDOUT.md      # Context handout for AI dashboard reviews
+│   ├── AI_REVIEW_HANDOUT.md      # Context handout for AI dashboard reviews (Jan 2026)
 │   ├── MANUAL_EVENTS_AUDIT.md    # Auto-generated audit of manual events
 │   ├── PROGRAMA_BBB26.md         # TV show rules, format, dynamics
 │   └── reviews/                  # AI model reviews (14 reviews + consolidation)
 ├── requirements.txt         # Python dependencies
-├── IMPLEMENTATION_PLAN.md   # GitHub Actions + Quarto + Pages plan
-└── REORGANIZATION_PLAN.md   # Dashboard restructuring log (2026-01)
+└── IMPLEMENTATION_PLAN.md   # GitHub Actions + Quarto + Pages plan
 ```
 
 ## Page Architecture
@@ -342,28 +340,70 @@ BBB26/
 
 **Data source tags**: 📸 Dado do dia (latest snapshot) | 📅 Comparação dia-a-dia | 📈 Dado acumulado | 🗳️ Paredão-anchored
 
-## Data Freshness and Paredão Archival
+## Paredão Workflow
 
-**Principle**: Live pages use `latest`/`snapshots[-1]`. Finalized paredão analysis uses **paredão-date snapshot ONLY** (historical archive must be frozen).
+### Status System & Timing
 
-**Why**: When analyzing "did reactions predict votes?", we MUST use data from before/during voting, not after. Using Wednesday's data to analyze Tuesday's votes is **invalid**.
+**Status**: `em_andamento` (Sunday night → Tuesday night) | `finalizado` (after result).
 
-**Common mistake**: Using `latest` or `snapshots[-1]` in paredão analysis. Always use `get_snapshot_for_date(paredao_date)` for finalized paredões.
-
-For implementation details (code patterns, archival process, snapshot timing): see **`docs/HANDOFF_PAREDAO.md`**.
-
-## Paredão Workflow (quick reference)
-
-Full step-by-step workflow, data schemas, and display logic are in **`docs/HANDOFF_PAREDAO.md`**.
-
-**Status system**: `em_andamento` (Sunday night → Tuesday night) | `finalizado` (after result).
+**Voting system (BBB 26)**: Voto Único (CPF, 70%) + Voto da Torcida (unlimited, 30%) = Média Final.
 
 **Update timing**:
 - **Mid-week**: Dinâmica nominates someone → create partial entry in `data/paredoes.json`
 - **Sunday ~22h45**: Full formation → update entry with all nominees + `votos_casa`
-- **Tuesday ~23h**: Result announced → set `finalizado`, add vote percentages
+- **Tuesday ~21h**: Collect Votalhada poll data → update `data/votalhada/polls.json`
+- **Tuesday ~23h**: Result announced → set `finalizado`, add vote percentages + `resultado_real` in polls
 
-**Voting system (BBB 26)**: Voto Único (CPF, 70%) + Voto da Torcida (unlimited, 30%) = Média Final.
+### Data Schema (data/paredoes.json)
+
+Each entry in the `paredoes` array:
+```python
+{
+    'numero': N,
+    'status': 'em_andamento' | 'finalizado',
+    'data': 'YYYY-MM-DD',                      # Elimination date (or expected)
+    'data_formacao': 'YYYY-MM-DD',              # Formation date (for analysis anchoring)
+    'titulo': 'Nº Paredão — DD de Mês de YYYY',
+    'total_esperado': 3,                        # Expected nominees (for placeholder cards)
+    'formacao': 'Description of formation...',
+    'lider': 'Leader Name',
+    'indicado_lider': 'Who the leader nominated',
+    'imunizado': {'por': 'Who gave immunity', 'quem': 'Who received'},
+    'indicados_finais': [                       # NOTE: use indicados_finais, NOT participantes
+        {'nome': 'Name', 'grupo': 'Pipoca', 'como': 'Líder'},
+    ],
+    'votos_casa': {'Voter Name': 'Target Name'},
+    'resultado': {
+        'eliminado': 'Name',
+        'votos': {
+            'Name1': {'voto_unico': XX.XX, 'voto_torcida': XX.XX, 'voto_total': XX.XX},
+            'Name2': {'voto_unico': XX.XX, 'voto_torcida': XX.XX, 'voto_total': XX.XX},
+        }
+    },
+    'fontes': ['https://source1.com'],
+}
+```
+
+The dashboard auto-adapts: partial formation shows placeholder cards, full formation shows "EM VOTAÇÃO", finalized shows results.
+
+### Data Freshness & Archival
+
+**Principle**: Live pages use `latest`/`snapshots[-1]`. Finalized paredão analysis uses **paredão-date snapshot ONLY** (historical archive must be frozen).
+
+**Why**: When analyzing "did reactions predict votes?", we MUST use data from before/during voting, not after.
+
+**Common mistake**: Using `latest` or `snapshots[-1]` in paredão analysis. Always use `get_snapshot_for_date(paredao_date)` for finalized paredões.
+
+**Ideal snapshot timing**: Fetch data on the paredão date (afternoon, before the live show) and again the day after to capture post-elimination state.
+
+### Where to Find Paredão Data
+
+| Data | Search Terms |
+|------|-------------|
+| Vote percentages | `BBB 26 Nº paredão porcentagem resultado` |
+| Voto Único / Torcida | `BBB 26 paredão voto único voto torcida` |
+| House votes | `BBB 26 quem votou em quem Nº paredão` |
+| Formation details | `BBB 26 como foi formado paredão` |
 
 ## Critical: Name Matching Between Manual Data and API
 
@@ -414,14 +454,56 @@ for p in participants:
 "
 ```
 
-## Votalhada Poll Data (summary)
+## Votalhada Poll Data
 
-Votalhada aggregates poll results from multiple platforms during paredões.
-Full schema, workflow, and dashboard integration: see **`docs/HANDOFF_VOTALHADA.md`** and **`data/votalhada/README.md`**.
-
-**Quick workflow**: Screenshot Consolidados → save to `data/` → tell Claude to process it → updates `data/votalhada/polls.json`.
+[Votalhada](https://votalhada.blogspot.com/) aggregates polls from 70+ sources across 4 platforms (Sites, YouTube, Twitter, Instagram) before each elimination.
 
 **Loader functions**: `load_votalhada_polls()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()` from `data_utils`.
+
+### Collection Workflow
+
+1. **Tuesday ~21:00 BRT**: Screenshot Votalhada "Consolidados" → save to `data/` folder
+2. Tell Claude: "Process Votalhada image for paredão N" → extracts data, updates `data/votalhada/polls.json`, organizes images into `data/votalhada/YYYY_MM_DD/`
+3. **After elimination**: Add `resultado_real` to the poll entry
+
+### Schema (data/votalhada/polls.json)
+
+```json
+{
+  "paredoes": [{
+    "numero": N,
+    "data_paredao": "YYYY-MM-DD",
+    "data_coleta": "YYYY-MM-DDT21:00:00-03:00",
+    "participantes": ["Name1", "Name2", "Name3"],
+    "consolidado": {"Name1": XX.XX, "Name2": XX.XX, "total_votos": N, "predicao_eliminado": "NameX"},
+    "plataformas": {"sites": {...}, "youtube": {...}, "twitter": {...}, "instagram": {...}},
+    "serie_temporal": [{"hora": "DD/mon HH:MM", "Name1": XX.XX, ...}],
+    "resultado_real": {"Name1": XX.XX, "eliminado": "NameX", "predicao_correta": true}
+  }]
+}
+```
+
+**Updating preliminary data**: `consolidado`/`plataformas`/`data_coleta` → OVERWRITE with latest. `serie_temporal` → APPEND new time points.
+
+### Name Matching
+
+Votalhada often uses short names. Always match to API names:
+
+| Votalhada Shows | Use in polls.json |
+|-----------------|-------------------|
+| "Aline" | "Aline Campos" |
+| "Ana Paula" | "Ana Paula Renault" |
+| "Cowboy" | "Alberto Cowboy" |
+| "Sol" | "Sol Vega" |
+| "Floss" | "Juliano Floss" |
+
+### Dashboard Display
+
+- **paredao.qmd** (`em_andamento`): "📊 Previsão das Enquetes" — predictions + platform table
+- **paredao.qmd** (`finalizado`): "📊 Enquetes vs Resultado" — comparison chart + accuracy
+- **paredoes.qmd**: Per-paredão "Enquetes vs Resultado" in archive tabs
+
+See also `data/votalhada/README.md` for detailed screenshot-to-data workflow.
 
 ## Future Plans
 
@@ -434,17 +516,13 @@ All project documentation and their purposes:
 | File | Purpose |
 |------|---------|
 | **`CLAUDE.md`** | Master project guide — architecture, data flows, conventions (this file) |
-| **`docs/SCORING_AND_INDEXES.md`** | Full scoring formulas, weights, and index specs (Sentiment, Planta, Cartola, Provas) |
+| **`IMPLEMENTATION_PLAN.md`** | Automation plan, deployment checklist, feature ideas |
+| **`docs/SCORING_AND_INDEXES.md`** | Full scoring formulas, weights, and index specs |
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema, fill rules, and update procedures for `manual_events.json` |
-| **`docs/HANDOFF_PAREDAO.md`** | Paredão workflow, data schemas, snapshot timing, display logic |
-| **`docs/HANDOFF_VOTALHADA.md`** | Votalhada poll integration workflow and loader functions |
-| **`docs/HANDOFF_CODE_CENTRALIZATION.md`** | Log of code deduplication refactoring (~700 lines consolidated) |
 | **`docs/RELATIONS_REVIEW.md`** | Audit of A→B relationship scoring system and build process |
-| **`docs/AI_REVIEW_HANDOUT.md`** | Context handout for AI models reviewing the dashboard |
-| **`docs/MANUAL_EVENTS_AUDIT.md`** | Auto-generated validation report for manual events (built by `build_derived_data.py`) |
-| **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, selection, dynamics (non-analytical) |
+| **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics (non-analytical) |
+| **`docs/MANUAL_EVENTS_AUDIT.md`** | Auto-generated validation report (built by `build_derived_data.py`) |
+| **`docs/AI_REVIEW_HANDOUT.md`** | Context handout for AI reviews (historical, Jan 2026) |
 | **`docs/reviews/`** | 14 AI model reviews + `CONSOLIDATION.md` + `PROMPTS.md` |
-| **`data/CHANGELOG.md`** | API data change audit — snapshot dedup analysis and timeline |
-| **`data/votalhada/README.md`** | Votalhada data structure and screenshot-to-data workflow |
-| **`IMPLEMENTATION_PLAN.md`** | GitHub Actions + Quarto + Pages automation plan |
-| **`REORGANIZATION_PLAN.md`** | Dashboard restructuring log (index.qmd split into multiple pages) |
+| **`data/CHANGELOG.md`** | API data audit — snapshot dedup analysis and timeline |
+| **`data/votalhada/README.md`** | Votalhada screenshot-to-data workflow |

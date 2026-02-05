@@ -3315,7 +3315,7 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
             continue
         data_formacao = par.get("data_formacao") or par.get("data", "")
         status = par.get("status", "")
-        indicados = par.get("participantes", [])
+        indicados = par.get("indicados_finais", par.get("participantes", []))
         if isinstance(indicados, list):
             indicados = [p.get("nome", p) if isinstance(p, dict) else p for p in indicados]
 
