@@ -314,11 +314,8 @@ BBB26/
 ├── docs/
 │   ├── SCORING_AND_INDEXES.md    # Full scoring formulas and index specs
 │   ├── MANUAL_EVENTS_GUIDE.md    # Manual events schema and fill rules
-│   ├── RELATIONS_REVIEW.md       # Relations scoring system audit
-│   ├── AI_REVIEW_HANDOUT.md      # Context handout for AI dashboard reviews (Jan 2026)
 │   ├── MANUAL_EVENTS_AUDIT.md    # Auto-generated audit of manual events
-│   ├── PROGRAMA_BBB26.md         # TV show rules, format, dynamics
-│   └── reviews/                  # AI model reviews (14 reviews + consolidation)
+│   └── PROGRAMA_BBB26.md         # TV show rules, format, dynamics
 ├── requirements.txt         # Python dependencies
 └── IMPLEMENTATION_PLAN.md   # GitHub Actions + Quarto + Pages plan
 ```
@@ -521,10 +518,7 @@ All project documentation and their purposes:
 | **`IMPLEMENTATION_PLAN.md`** | Automation plan, deployment checklist, feature ideas |
 | **`docs/SCORING_AND_INDEXES.md`** | Full scoring formulas, weights, and index specs |
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema, fill rules, and update procedures for `manual_events.json` |
-| **`docs/RELATIONS_REVIEW.md`** | Audit of A→B relationship scoring system and build process |
 | **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics (non-analytical) |
 | **`docs/MANUAL_EVENTS_AUDIT.md`** | Auto-generated validation report (built by `build_derived_data.py`) |
-| **`docs/AI_REVIEW_HANDOUT.md`** | Context handout for AI reviews (historical, Jan 2026) |
-| **`docs/reviews/`** | 14 AI model reviews + `CONSOLIDATION.md` + `PROMPTS.md` |
 | **`data/CHANGELOG.md`** | API data audit — snapshot dedup analysis and timeline |
 | **`data/votalhada/README.md`** | Votalhada screenshot-to-data workflow |
