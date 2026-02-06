@@ -544,10 +544,21 @@ if not hl_cards:
     print(f'''<div style="background:#2a2a2a;border-radius:12px;padding:1.5rem;margin:1rem 0;text-align:center;color:#aaa;">
 📅 Primeiro dia de dados — sem comparações disponíveis ainda.</div>''')
 else:
-    # Section header
+    # Extract context card data for the header
+    ctx = next((c for c in hl_cards if c.get("type") == "context"), {})
+    ctx_week = ctx.get("week", "?")
+    ctx_days = ctx.get("days", 0)
+    ctx_active = ctx.get("active", 0)
+
+    # Section header with context stats
     print(f'''<div style="margin:1.5rem 0 1rem 0;">
 <h2 style="margin:0 0 0.2rem 0;font-size:1.3rem;color:#fff;">📋 Destaques do Dia <span style="color:#888;font-weight:400;font-size:0.85rem;">({date_display_pt})</span></h2>
-<div style="height:3px;background:linear-gradient(90deg,#f1c40f,#e74c3c,#3498db,#2ecc71);border-radius:2px;"></div>
+<div style="height:3px;background:linear-gradient(90deg,#f1c40f,#e74c3c,#3498db,#2ecc71);border-radius:2px;margin-bottom:0.4rem;"></div>
+<div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:0.85rem;color:#999;">
+<span>📅 <b style="color:#ccc;">Semana {ctx_week}</b></span>
+<span>{ctx_days} dias de dados</span>
+<span>{ctx_active} participantes ativos</span>
+</div>
 </div>''')
 
     print('<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:0.8rem;margin-bottom:1.5rem;">')
@@ -891,16 +902,9 @@ else:
 {strat_html}
 </div>''')
 
-        # ── 📅 Context ──
+        # ── 📅 Context — rendered in the header, not as a card ──
         elif ctype == "context":
-            week = card.get("week", "?")
-            days = card.get("days", 0)
-            active = card.get("active", 0)
-            print(f'''<div style="grid-column:1/-1;background:linear-gradient(90deg,rgba(46,204,113,0.1),rgba(52,152,219,0.1));border-radius:12px;padding:0.7rem 1rem;display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;align-items:center;">
-<span style="font-size:0.85rem;color:#ccc;"><b style="color:#fff;">📅 Semana {week}</b></span>
-<span style="font-size:0.85rem;color:#ccc;">{days} dias de dados</span>
-<span style="font-size:0.85rem;color:#ccc;">{active} participantes ativos</span>
-</div>''')
+            pass  # handled above in section header
 
     print('</div>')  # close grid
 ```
@@ -915,12 +919,12 @@ if paredao_names:
     status_color = "#e74c3c"
     status_icon = "🗳️"
     names_display = ", ".join(sorted(paredao_names))
-    emparedados_html = f'<div style="color: #ccc; font-size: 0.95rem;">Emparedados: <strong>{names_display}</strong></div>'
+    detail_html = f'<div style="color: #ccc; font-size: 0.95rem;">Emparedados: <strong>{names_display}</strong></div>'
 else:
     status_text = "Aguardando formação"
     status_color = "#6c757d"
     status_icon = "⏳"
-    emparedados_html = '<div style="color: #888; font-size: 0.9rem;">Nenhum paredão ativo no momento</div>'
+    detail_html = '<div style="color: #888; font-size: 0.9rem;">Nenhum paredão ativo no momento</div>'
 
 print(f'''
 <div style="background: #2a2a2a; border-radius: 12px; padding: 1rem 1.2rem; margin: 1rem 0 1.5rem 0; border-left: 4px solid {status_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -928,7 +932,10 @@ print(f'''
 <div style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 0.3rem;">
 {status_icon} Paredão: <span style="color: {status_color};">{status_text}</span>
 </div>
-{emparedados_html}
+{detail_html}
+<div style="font-size: 0.85rem; color: #999; margin-top: 0.4rem;">
+<a href="paredao.html" style="color:#3498db;">Paredão atual</a> · <a href="paredoes.html" style="color:#3498db;">Arquivo de paredões</a>
+</div>
 </div>
 <a href="paredao.html" style="background: {status_color}; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.9rem; white-space: nowrap;">
 Ver análise →
@@ -936,13 +943,6 @@ Ver análise →
 </div>
 ''')
 ```
-
-::: {.callout-warning title="🗳️ Paredão"}
-Para acompanhar o **paredão atual** (formação, votação da casa, análise de coerência entre reações e votos), acesse a página dedicada: **[Paredão](paredao.html)**
-
-Para ver o **histórico de paredões anteriores**, acesse: **[Arquivo de Paredões](paredoes.html)**
-:::
-
 
 # Rankings {#ranking-sentimento}
 
