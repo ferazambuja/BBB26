@@ -26,6 +26,7 @@ RELATIONS_FILE = DERIVED_DIR / "relations_scores.json"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
 CARTOLA_FILE = DERIVED_DIR / "cartola_data.json"
 PROVA_FILE = DERIVED_DIR / "prova_rankings.json"
+PROVAS_RAW_FILE = Path(__file__).parent.parent / "data" / "provas.json"
 
 ROLE_TYPES = {
     "Líder": "lider",
@@ -312,6 +313,7 @@ def build_index_data():
     paredoes = load_json(PAREDOES_FILE, {"paredoes": []})
     cartola_data = load_json(CARTOLA_FILE, {})
     prova_data = load_json(PROVA_FILE, {})
+    provas_raw = load_json(PROVAS_RAW_FILE, {"provas": []})
 
     if isinstance(relations_data, dict):
         relations_pairs = relations_data.get("pairs_daily") or relations_data.get("pairs", {})
@@ -1290,6 +1292,44 @@ def build_index_data():
                 if par.get("status") == "finalizado" and nome != eliminado:
                     survived_paredao.add(nome)
 
+    # Bate e Volta escapes: winner escaped the paredão, match BV to paredão via losers + date
+    bv_escapes = defaultdict(list)  # name -> [{numero, data}]
+    provas_list = provas_raw.get("provas", [])
+    for prova in provas_list:
+        if prova.get("tipo") != "bate_volta":
+            continue
+        vencedor = prova.get("vencedor")
+        if not vencedor:
+            continue
+        prova_date = prova.get("date", "")
+        # Find which paredão this BV belongs to: loser must be in indicados_finais,
+        # and paredão date must be closest to (and after) the BV date
+        bv_participants = set()
+        for fase in prova.get("fases", []):
+            for entry in fase.get("classificacao", []):
+                if "nome" in entry:
+                    bv_participants.add(entry["nome"])
+        bv_losers = bv_participants - {vencedor}
+        matched_par = None
+        best_gap = 999
+        for par in paredoes.get("paredoes", []):
+            par_names = {
+                (ind.get("nome", "") if isinstance(ind, dict) else ind)
+                for ind in par.get("indicados_finais", [])
+            }
+            if bv_losers & par_names:
+                par_date = par.get("data", "")
+                gap = abs((datetime.strptime(par_date, "%Y-%m-%d") - datetime.strptime(prova_date, "%Y-%m-%d")).days) if par_date and prova_date else 999
+                if gap < best_gap:
+                    best_gap = gap
+                    matched_par = par
+        if matched_par:
+            bv_escapes[vencedor].append({
+                "numero": matched_par.get("numero"),
+                "data": matched_par.get("data"),
+            })
+            ever_nominated.add(vencedor)
+
     # Breaks given/received counts
     breaks_given_count = Counter(b["giver"] for b in streak_breaks_data)
     breaks_received_count = Counter(b["receiver"] for b in streak_breaks_data)
@@ -1709,6 +1749,16 @@ def build_index_data():
                     "resultado": "Eliminado" if eliminado == name else "Sobreviveu" if par.get("status") == "finalizado" else "Em andamento",
                     "voto_total": my_votes.get("voto_total") if my_votes else None,
                 })
+        # Add Bate e Volta escapes (nominated but escaped before final paredão)
+        for bv in bv_escapes.get(name, []):
+            paredao_history.append({
+                "numero": bv["numero"],
+                "data": bv["data"],
+                "como": "Indicado → Bate e Volta",
+                "resultado": "Escapou",
+                "voto_total": None,
+            })
+        paredao_history.sort(key=lambda x: x.get("numero", 0))
 
         house_votes_detail = []
         for par in paredoes.get("paredoes", []):

@@ -1849,7 +1849,7 @@ for p in profiles:
     paredao_detail_rows = ""
     for ph in gs.get("paredao_history", []):
         res = ph.get("resultado", "?")
-        res_color = "#e74c3c" if res == "Eliminado" else "#2ecc71" if res == "Sobreviveu" else "#f1c40f"
+        res_color = "#e74c3c" if res == "Eliminado" else "#2ecc71" if res == "Sobreviveu" else "#3498db" if res == "Escapou" else "#f1c40f"
         vt = ph.get("voto_total")
         vt_str = f" — {vt:.2f}%" if vt is not None else ""
         paredao_detail_rows += (
