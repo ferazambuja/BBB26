@@ -1690,6 +1690,36 @@ def build_index_data():
         curiosities.sort(key=lambda x: x.get("priority", 0), reverse=True)
         curiosities = curiosities[:8]
 
+        # ── Game stats for stat chips ──
+        paredao_history = []
+        for par in paredoes.get("paredoes", []):
+            for ind in par.get("indicados_finais", []):
+                nome = ind.get("nome", "") if isinstance(ind, dict) else ind
+                if nome != name:
+                    continue
+                como = ind.get("como", "?") if isinstance(ind, dict) else "?"
+                resultado = par.get("resultado", {})
+                eliminado = resultado.get("eliminado", "") if resultado else ""
+                votos = resultado.get("votos", {}) if resultado else {}
+                my_votes = votos.get(name, {})
+                paredao_history.append({
+                    "numero": par.get("numero"),
+                    "data": par.get("data"),
+                    "como": como,
+                    "resultado": "Eliminado" if eliminado == name else "Sobreviveu" if par.get("status") == "finalizado" else "Em andamento",
+                    "voto_total": my_votes.get("voto_total") if my_votes else None,
+                })
+
+        house_votes_detail = []
+        for par in paredoes.get("paredoes", []):
+            voters_for_me = [voter for voter, target in (par.get("votos_casa") or {}).items() if target.strip() == name]
+            if voters_for_me:
+                house_votes_detail.append({
+                    "numero": par.get("numero"),
+                    "data": par.get("data"),
+                    "voters": sorted(voters_for_me),
+                })
+
         profiles.append({
             "name": name,
             "member_of": p.get("characteristics", {}).get("memberOf", "?"),
@@ -1743,6 +1773,15 @@ def build_index_data():
                 "animosity_breakdown": {k: round(v, 2) for k, v in sorted(animosity_breakdown.items(), key=lambda x: x[1])},
             },
             "plant_index": plant_info,
+            "game_stats": {
+                "total_house_votes": total_house_votes.get(name, 0),
+                "house_votes_detail": house_votes_detail,
+                "paredao_count": len(paredao_history),
+                "paredao_history": paredao_history,
+                "cartola_total": cartola_by_name.get(name, {}).get("total", 0),
+                "cartola_rank": cartola_by_name.get(name, {}).get("rank"),
+                "prova_wins": prova_by_name.get(name, {}).get("wins", 0),
+            },
             "curiosities": curiosities,
         })
 

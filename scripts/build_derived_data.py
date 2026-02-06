@@ -2540,6 +2540,31 @@ def build_prova_rankings(provas_data, participants_index):
                         final_pos = pos + n_phase2
                         positions[name] = final_pos
                     # else: unknown position, leave as None
+        elif len(fases) >= 3:
+            # Bracket-style multi-phase (3+ phases): positions in each phase
+            # are global (include all participants). Walk from last phase backward,
+            # assigning positions without offset for already-eliminated participants.
+            assigned_names = set()
+            for phase_idx in range(len(fases) - 1, -1, -1):
+                fase = fases[phase_idx]
+                for entry in fase.get("classificacao", []):
+                    names_in_entry = []
+                    if "nome" in entry:
+                        names_in_entry = [entry["nome"]]
+                    elif "dupla" in entry:
+                        names_in_entry = list(entry["dupla"])
+                    elif "membros" in entry:
+                        names_in_entry = list(entry["membros"])
+                    for name in names_in_entry:
+                        if name in assigned_names or name in excluded_names:
+                            continue
+                        if entry.get("dq") or entry.get("eliminados"):
+                            positions[name] = "dq"
+                        else:
+                            pos = entry.get("pos")
+                            if pos is not None:
+                                positions[name] = pos
+                        assigned_names.add(name)
 
         # Mark excluded as None (not 0)
         for name in excluded_names:

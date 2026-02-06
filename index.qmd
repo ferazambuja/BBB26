@@ -1402,7 +1402,9 @@ print("""
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+    position: relative;
     margin-top: 0.4rem;
+    align-items: center;
 }
 
 /* Status strip */
@@ -1465,6 +1467,17 @@ print("""
 }
 
 .rxn-detail summary::-webkit-details-marker { display: none; }
+.stat-row details { position: relative; display: inline; margin: 0; padding: 0; }
+.stat-row details > summary.rxn-chip {
+    list-style: none;
+    margin: 0;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+.stat-row details > summary.rxn-chip::-webkit-details-marker { display: none; }
+.stat-row details > summary.rxn-chip::marker { display: none; content: ""; }
+.stat-row .rxn-chip { line-height: 1.4; font-size: 0.8rem; }
 .rxn-detail[open] summary .rxn-hint { display: none; }
 
 /* Relations grid */
@@ -1561,8 +1574,8 @@ def render_actor_avatars(actors, border_color="#666", color_lookup=None, size=24
             color = color_lookup[a]
         if a in AVATARS and AVATARS[a]:
             parts.append(
-                f'<img src="{AVATARS[a]}" style="width: {size}px; height: {size}px; border-radius: 50%; '
-                f'border: 2px solid {color}; object-fit: cover; margin-right: -4px;">'
+                f'<img src="{AVATARS[a]}" style="width:{size}px;height:{size}px;border-radius:50%;'
+                f'border:1.5px solid {color};object-fit:cover;margin-right:-3px;">'
             )
         else:
             icon = None
@@ -1594,15 +1607,15 @@ def make_event_chips(events, border_color, color_lookup=None):
             actors,
             chip_border,
             color_lookup=color_lookup,
-            size=32,
+            size=20,
             skip_icons={emoji} if emoji else None,
         )
         actor_label = " + ".join(actors) if actors else ""
         title = f"{label} — {actor_label}" if actor_label else label
         chips.append(
-            f"<span style='display:inline-flex; align-items:center; gap:0.35rem; background:#2f2f2f; "
-            f"border:1px solid {chip_border}; color:#ddd; border-radius:12px; padding:0.25rem 0.6rem; "
-            f"font-size:0.8rem; margin:0.15rem; min-height: 36px; line-height: 1;' title='{title}'>"
+            f"<span style='display:inline-flex; align-items:center; gap:0.25rem; background:#2f2f2f; "
+            f"border:1px solid {chip_border}; color:#ddd; border-radius:8px; padding:0.2rem 0.5rem; "
+            f"font-size:0.8rem; margin:0.1rem; line-height:1.4;' title='{title}'>"
             f"{count_prefix}{emoji} {label} {actor_html}</span>"
         )
     return ' '.join(chips)
@@ -1799,6 +1812,83 @@ for p in profiles:
     group_label = "VIP" if current_group.lower() == "vip" else "Xepa"
     group_chip_color = "#f1c40f" if current_group.lower() == "vip" else "#888"
 
+    # ── Game stats from precomputed data ──
+    gs = p.get("game_stats", {})
+    n_votes = gs.get("total_house_votes", 0)
+    n_paredoes = gs.get("paredao_count", 0)
+    cartola_pts = gs.get("cartola_total", 0)
+    cartola_rank = gs.get("cartola_rank")
+    prova_wins = gs.get("prova_wins", 0)
+
+    # Votos chip (expandable if has detail)
+    votes_detail_rows = ""
+    for vd in gs.get("house_votes_detail", []):
+        voters_str = ", ".join(vd.get("voters", []))
+        votes_detail_rows += (
+            f"<div style='margin-bottom:0.3rem;'>"
+            f"<b>{vd.get('numero', '?')}º Paredão</b> ({vd.get('data', '')})<br>"
+            f"<span style='color:#aaa;'>Votaram: {voters_str}</span></div>"
+        )
+    if votes_detail_rows:
+        votos_chip = (
+            f'<details style="display:inline;">'
+            f'<summary class="rxn-chip" style="border:1px solid #e74c3c;cursor:pointer;list-style:none;">'
+            f'🗳️ <b>{n_votes}</b> {"voto" if n_votes == 1 else "votos"}</summary>'
+            f'<div style="position:absolute;z-index:10;background:#1a1a2e;border:1px solid #444;'
+            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:200px;font-size:0.78rem;'
+            f'color:#ddd;box-shadow:0 4px 12px rgba(0,0,0,0.5);">'
+            f'{votes_detail_rows}</div></details>'
+        )
+    else:
+        votos_chip = (
+            f'<span class="rxn-chip" style="border:1px solid #555;">'
+            f'🗳️ <b>{n_votes}</b> votos</span>'
+        )
+
+    # Paredões chip (expandable if has history)
+    paredao_detail_rows = ""
+    for ph in gs.get("paredao_history", []):
+        res = ph.get("resultado", "?")
+        res_color = "#e74c3c" if res == "Eliminado" else "#2ecc71" if res == "Sobreviveu" else "#f1c40f"
+        vt = ph.get("voto_total")
+        vt_str = f" — {vt:.2f}%" if vt is not None else ""
+        paredao_detail_rows += (
+            f"<div style='margin-bottom:0.3rem;'>"
+            f"<b>{ph.get('numero', '?')}º Paredão</b> ({ph.get('data', '')})<br>"
+            f"<span style='color:#aaa;'>Como: {ph.get('como', '?')}</span> · "
+            f"<span style='color:{res_color};'>{res}{vt_str}</span></div>"
+        )
+    if n_paredoes > 0 and paredao_detail_rows:
+        paredoes_chip = (
+            f'<details style="display:inline;">'
+            f'<summary class="rxn-chip" style="border:1px solid #e67e22;cursor:pointer;list-style:none;">'
+            f'🏛️ <b>{n_paredoes}</b> {"paredão" if n_paredoes == 1 else "paredões"}</summary>'
+            f'<div style="position:absolute;z-index:10;background:#1a1a2e;border:1px solid #444;'
+            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:220px;font-size:0.78rem;'
+            f'color:#ddd;box-shadow:0 4px 12px rgba(0,0,0,0.5);">'
+            f'{paredao_detail_rows}</div></details>'
+        )
+    else:
+        paredoes_chip = (
+            f'<span class="rxn-chip" style="border:1px solid #555;">'
+            f'🏛️ Nunca indicado</span>'
+        )
+
+    # Cartola chip
+    rank_str = f" ({cartola_rank}º)" if cartola_rank else ""
+    cartola_chip = (
+        f'<span class="rxn-chip" style="border:1px solid #9b59b6;">'
+        f'🏆 <b>{cartola_pts}</b> pts{rank_str}</span>'
+    )
+
+    # Prova chip (only if wins > 0)
+    prova_chip = ""
+    if prova_wins > 0:
+        prova_chip = (
+            f'<span class="rxn-chip" style="border:1px solid #2ecc71;">'
+            f'🥇 <b>{prova_wins}</b> {"vitória" if prova_wins == 1 else "vitórias"}</span>'
+        )
+
     stat_chips = (
         f'<div class="stat-row">'
         f'<span class="rxn-chip" style="border:1px solid {score_color};">'
@@ -1808,6 +1898,7 @@ for p in profiles:
         f'<span class="rxn-chip" style="border:1px solid {group_chip_color};">'
         f'<span style="font-weight:700;color:{group_chip_color};">{group_label}</span>'
         f' VIP {vip_w}× · Xepa {xepa_w}×</span>'
+        f'{votos_chip}{paredoes_chip}{cartola_chip}{prova_chip}'
         f'</div>'
     )
 
