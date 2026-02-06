@@ -65,6 +65,10 @@ format:
       - assets/accessibility.css
     include-before-body:
       - file: assets/disclaimer.html
+    include-in-header:
+      - text: |
+          <script data-goatcounter="https://bbb.goatcounter.com/count"
+                  async src="//gc.zgo.at/count.js"></script>
     include-after-body:
       - text: |
           <script src="assets/plotly-fullscreen.js"></script>
