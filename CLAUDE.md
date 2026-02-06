@@ -264,6 +264,8 @@ All scoring formulas, weights, and detailed specifications are in **`docs/SCORIN
 - **Prova Rankings**: competition performance ranking with type multipliers (Líder 1.5×, Anjo 1.0×, Bate-Volta 0.75×) and placement points (1st=10 to 9th+=0.5). Precomputed in `data/derived/prova_rankings.json`.
 - **VIP/Xepa Tracking**: VIP week = participant in VIP during a leader period. Counted at leader transitions only (from `roles_daily.json` Líder changes). `leader_periods` in `index_data.json` stores full composition per leader. See `docs/SCORING_AND_INDEXES.md` for details.
 
+- **Líder Nomination Prediction**: ranks all participants by Líder → target score from `pairs_daily` (most negative = most likely nomination). Shows on `paredao.qmd` between paredões and during incomplete formation. Includes component breakdown, reciprocity analysis, expandable edge/queridômetro detail rows, VIP/immunity flags. Auto-hides when formation is complete. See `docs/SCORING_AND_INDEXES.md` for full spec.
+
 Power events are **modifiers** (rare, one-to-one), not the base — queridômetro drives ongoing sentiment.
 
 ## Manual Events (quick reference)
@@ -287,7 +289,7 @@ BBB26/
 ├── index.qmd               # Main dashboard — overview, rankings, heatmap, profiles
 ├── evolucao.qmd            # Temporal evolution — rankings, sentiment, impact, daily pulse, balance
 ├── relacoes.qmd            # Social fabric — alliances, rivalries, streak breaks, contradictions, network
-├── paredao.qmd             # Current paredão status + vote analysis
+├── paredao.qmd             # Current paredão status + vote analysis + Líder nomination prediction
 ├── paredoes.qmd            # Paredão archive — historical analysis per paredão
 ├── cartola.qmd             # Cartola BBB points leaderboard
 ├── planta_debug.qmd        # Planta Index debug breakdown
@@ -330,11 +332,11 @@ BBB26/
 | **Painel** | `index.qmd` | Main dashboard: overview, ranking, heatmap, profiles |
 | **Evolução** | `evolucao.qmd` | Temporal: rankings, sentiment evolution, impact, daily pulse, balance, powers |
 | **Relações** | `relacoes.qmd` | Social fabric: alliances, rivalries, streak breaks, contradictions, hostility map, network graph |
-| **Paredão** | `paredao.qmd` | Current paredão: formation, votes, vote-reaction analysis |
+| **Paredão** | `paredao.qmd` | Current paredão: formation, votes, vote-reaction analysis, Líder nomination prediction |
 | **Arquivo** | `paredoes.qmd` | Paredão archive: historical analysis per elimination |
 | **Provas** | `provas.qmd` | Competition performance rankings and bracket results |
 
-**Additional pages:** `cartola.qmd` (Cartola points), `planta_debug.qmd` (Planta Index debug), `datas.qmd` (Date View), `clusters.qmd` (affinity clusters), `relacoes_debug.qmd` (relations debug).
+**Additional pages:** `cartola.qmd` (Cartola points), `planta_debug.qmd` (Planta Index debug), `datas.qmd` (Date View), `clusters.qmd` (affinity clusters), `relacoes_debug.qmd` (relations debug + Líder nomination prediction).
 
 **Design decisions**: Each `.qmd` renders independently (no shared Python state). Dark theme (`darkly`) with custom `bbb_dark` Plotly template. Full-width layout with TOC sidebar.
 
@@ -504,6 +506,61 @@ Votalhada often uses short names. Always match to API names:
 - **paredoes.qmd**: Per-paredão "Enquetes vs Resultado" in archive tabs
 
 See also `data/votalhada/README.md` for detailed screenshot-to-data workflow.
+
+## Líder Nomination Prediction
+
+### Overview
+
+`paredao.qmd` includes a **forward-looking prediction section** ("🎯 Previsão — Indicação do Líder") that ranks all participants by how likely the current Líder is to nominate them. Also present on `relacoes_debug.qmd` for debugging.
+
+### When It Shows (auto-gated)
+
+| State | `ultimo.status` | Formation complete? | Prediction visible? |
+|-------|-----------------|--------------------|--------------------|
+| Between paredões | `finalizado` | N/A | **Yes** |
+| Early formation | `em_andamento` | No (< expected nominees) | **Yes** |
+| Full formation / voting | `em_andamento` | Yes (≥ expected nominees) | **No** — vote analysis takes over |
+
+### Data Sources
+
+| Data | Source | Purpose |
+|------|--------|---------|
+| `relations_scores.json` → `pairs_daily` | Precomputed | Líder → target scores + components |
+| `relations_scores.json` → `edges` | Precomputed | Per-pair event history (power, Sincerão, votes) |
+| `roles_daily.json` → latest entry | Precomputed | Current Líder, Anjo, VIP list |
+| `participants_index.json` | Precomputed | Active participants + avatars |
+| Queridômetro matrices (daily snapshots) | Loaded at runtime | Daily reaction history per pair |
+
+### What It Renders
+
+1. **Summary box**: Líder identity + avatar, top 3 most likely targets with score cards, Anjo/immunity status
+2. **Full ranking table**: All eligible participants ranked by score ascending (most negative = most likely), with columns:
+   - Score + colored bar (red < -2, orange < 0, green ≥ 0)
+   - Component chips: queridômetro, power_event, sincerao, vote, vip, anjo
+   - Reciprocity label: ⚔️ Mútua | 🔍 Alvo cego | ⚠️ Risco oculto | 💚 Aliados (+ reverse score)
+   - Streak length + break indicator
+   - VIP badge (Líder chose them → unlikely target)
+3. **Expandable detail rows** (per participant): collapsible `<details>` with:
+   - All edges between Líder ↔ target (both directions): date, type, direction, weight, event_type, backlash flag
+   - Last 14 days of queridômetro reactions (emoji timeline, color-coded by sentiment)
+4. **Methodology note**: explains this is score-based, not a dedicated prediction model
+
+### Scoring Logic
+
+Uses the existing **Sentiment Index** (`pairs_daily` from `relations_scores.json`):
+- `score` = queridômetro (streak-aware) + power_events + Sincerão + votes + VIP + Anjo (all accumulated, no decay)
+- Target ranked by score ascending: most negative = most likely nomination
+- VIP members are flagged as unlikely (Líder chose them as allies)
+- Immune participants are flagged with IMUNE badge
+
+### Reciprocity Categories
+
+| Líder → Target | Target → Líder | Label | Meaning |
+|---------------|---------------|-------|---------|
+| Negative | Negative | ⚔️ Mútua | Both secretly hostile |
+| Negative | Positive | 🔍 Alvo cego | Target doesn't see it coming |
+| Positive | Negative | ⚠️ Risco oculto | Líder unaware of target's hostility |
+| Positive | Positive | 💚 Aliados | Mutual alliance |
 
 ## Future Plans
 

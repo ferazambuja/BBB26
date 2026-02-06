@@ -680,6 +680,70 @@ Events are deduped by `(date, category, title)`. Scheduled events are processed 
 
 ---
 
+## Líder Nomination Prediction
+
+**Location**: `paredao.qmd` (primary) + `relacoes_debug.qmd` (debug copy)
+
+**Purpose**: Forward-looking section that predicts who the current Líder is most likely to nominate, based on accumulated relationship scores.
+
+### Visibility Conditions
+
+Auto-gated: shows between paredões (`ultimo.status == 'finalizado'`) or during incomplete formation (`em_andamento` with fewer than expected nominees). Hides once formation is complete (vote analysis takes over).
+
+### Algorithm
+
+1. **Detect Líder** from `roles_daily.json` → `daily[-1].roles.Líder[0]`
+2. **Load Líder → all scores** from `relations_scores.json` → `pairs_daily[lider_name]`
+3. **Filter** to active participants only (from `participants_index.json`), excluding the Líder
+4. **Sort ascending** by `score` — most negative = most likely nomination target
+5. **Flag VIP members** as unlikely targets (Líder chose them)
+6. **Flag immune** participants from active paredão entry
+
+### Score Decomposition
+
+Each pair entry in `pairs_daily` contains:
+```python
+{
+    "score": float,          # Total composite score
+    "components": {
+        "queridometro": float,  # Streak-aware: 70% reactive + 30% memory + break penalty
+        "power_event": float,   # Monstro, indicação, contragolpe, etc. (accumulated)
+        "sincerao": float,      # Sincerão direct + backlash edges (accumulated)
+        "vote": float,          # House votes (accumulated)
+        "vip": float,           # VIP alliance signal
+        "anjo": float,          # Anjo protection signal
+    },
+    "streak_len": int,       # Days of current reaction streak
+    "break": bool,           # True if a long positive streak recently broke negative
+}
+```
+
+### Reciprocity Analysis
+
+For each target, the reverse score (`target → Líder`) is loaded to classify the relationship:
+
+| Líder → Target | Target → Líder | Label | Color |
+|---------------|---------------|-------|-------|
+| < 0 | < 0 | ⚔️ Mútua | Red |
+| < 0 | ≥ 0 | 🔍 Alvo cego | Orange |
+| ≥ 0 | < 0 | ⚠️ Risco oculto | Orange |
+| ≥ 0 | ≥ 0 | 💚 Aliados | Green |
+
+### Expandable Detail Rows
+
+Each participant row has a collapsible `<details>` section showing:
+- **Edges**: All historical events between Líder ↔ target (both directions), with date, type, weight, direction, event_type, backlash flag
+- **Queridômetro timeline**: Last 14 days of daily reactions (Líder→target and target→Líder), color-coded by sentiment weight
+
+### Data Dependencies
+
+- `data/derived/relations_scores.json` — `pairs_daily` + `edges`
+- `data/derived/roles_daily.json` — current Líder, Anjo, VIP
+- `data/derived/participants_index.json` — active status + avatars
+- Daily snapshot matrices (already loaded in `paredao.qmd` setup)
+
+---
+
 ## Consolidation History
 
 **Implemented (2026-01-26)**:
