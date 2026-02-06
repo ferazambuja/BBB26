@@ -8,7 +8,7 @@
 
 ## Git Workflow (sync local ↔ GitHub)
 
-The GitHub Actions bot auto-commits `data/` files up to 4× daily. Always pull before working.
+The GitHub Actions bot auto-commits `data/` files up to 12× daily (probes + permanent slots). Always pull before working.
 
 ```bash
 # Before any local work
@@ -22,10 +22,46 @@ git push
 # Deploy immediately (instead of waiting for next cron)
 gh workflow run daily-update.yml
 
-# Or wait — cron runs at 06:00, 15:00, 18:00, 00:00 BRT
+# Or wait — permanent cron runs at 06:00, 15:00, 18:00, 00:00 BRT
+# Plus hourly probes 10:00–16:00 BRT (temporary, see Capture Timing section)
 ```
 
 **Key rule**: The bot only touches `data/` files. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
+
+### Handling Extraordinary Events (mid-day manual updates)
+
+When something unexpected happens (e.g., surprise disqualification, mid-week dynamic):
+
+```bash
+# 1. Always sync first
+git pull
+
+# 2. Make your edits
+#    - data/manual_events.json (power events, exits)
+#    - data/paredoes.json (formation, votes)
+#    - data/provas.json (competition results)
+
+# 3. Rebuild + commit + push
+python scripts/build_derived_data.py
+git add data/ && git commit -m "data: <what happened>"
+git push
+
+# 4. Deploy immediately
+gh workflow run daily-update.yml
+```
+
+**If push fails** (bot committed while you were editing):
+```bash
+git pull --rebase
+# If conflicts in data/derived/ (always safe to regenerate):
+git checkout --theirs data/derived/
+git add data/derived/ && git rebase --continue
+python scripts/build_derived_data.py
+git add data/ && git commit -m "data: rebuild derived after merge"
+git push
+```
+
+**Timing tip**: The bot runs most frequently between 10:00–16:00 BRT (hourly probes). If you're editing during that window, work quickly: `pull → edit → build → push` in one go to minimize the chance of a concurrent bot commit.
 
 ---
 
@@ -165,23 +201,49 @@ The Raio-X has **no fixed time** — it depends on when production wakes the par
 | Source | Observation | Time (BRT) |
 |--------|-------------|------------|
 | **API data observed** | Feb 5 (Wed) — data already updated | ~14:00 |
+| **API first auto capture** | Feb 6 (Thu) — change detected at 15:46 BRT | between 06:37–15:46 |
 | **GShow article** | Feb 5 (Wed) — article published | ~09:00 |
 | **Raio-X wake-up** | Normal days | 09h-10h |
 | **Raio-X wake-up** | Post-party days | 10h-13h |
 
-**Key finding**: GShow publishes the queridômetro article early (~09:00 BRT), but the API data was observed updating around **~14:00 BRT** (Feb 5). There may be a delay between GShow editorial and the API endpoint.
+**Key finding**: GShow publishes the queridômetro article early (~09:00 BRT), but the API data was observed updating around **~14:00 BRT** (Feb 5). First automated day (Feb 6) confirmed: data stale at 06:37 BRT, fresh at 15:46 BRT.
 
-**Current cron schedule** (adjusted for ~14:00 update):
-- **06:00 BRT**: Pre-Raio-X baseline (yesterday's data).
-- **15:00 BRT**: Primary capture — 1h margin after the ~14:00 API update.
-- **18:00 BRT**: Safety net — catches post-party delays or afternoon role/balance changes.
-- **00:00 BRT**: Night — catches post-episode changes (Sun/Tue).
+### Current cron schedule
+
+**Permanent slots** (4×/day):
+
+| UTC | BRT | Purpose |
+|-----|-----|---------|
+| 03:00 | 00:00 | Night — post-episode changes (Sun Líder/Anjo, Tue elimination) |
+| 09:00 | 06:00 | Pre-Raio-X baseline — balance/estalecas (punishments, etc.) |
+| 18:00 | 15:00 | Post-Raio-X — **primary capture** |
+| 21:00 | 18:00 | Evening — balance/role changes |
+
+**Temporary observation probes** (added 2026-02-06, hourly 10–16 BRT):
+
+| UTC | BRT | Purpose |
+|-----|-----|---------|
+| 13:00 | 10:00 | Earliest possible Raio-X update |
+| 14:00 | 11:00 | Probe |
+| 15:00 | 12:00 | Probe |
+| 16:00 | 13:00 | Probe |
+| 17:00 | 14:00 | Expected API update window |
+| 19:00 | 16:00 | Late update safety net |
+
+**Saturday extras** (Anjo challenge + Monstro usually Saturday afternoon):
+
+| UTC | BRT | Purpose |
+|-----|-----|---------|
+| 20:00 | 17:00 | Post-Anjo challenge (runs ~14h–17h) |
+| 23:00 | 20:00 | Post-Monstro pick (Anjo chooses after win) |
+
+**Total**: ~12 runs/day (weekdays), ~14 runs/day (Saturday). Probes are temporary — remove once timing is pinpointed.
 
 Sources: [TVH News](https://tvhnews.com.br/como-funciona-o-raio-x-do-bbb-26-saiba-para-que-serve-a-dinamica/), [DCI](https://www.dci.com.br/dci-mais/bbb-21/bbb-21-que-horas-e-o-raio-x-veja-como-funciona/94397/), [GShow Feb 5](https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/queridometro-do-bbb-26-reflete-tensao-pos-festa-e-brothers-recebem-emojis-negativos.ghtml)
 
 ### Tracking with data
 
-To monitor if the 15:00 BRT capture is catching reaction updates:
+To monitor when reaction changes happen and if the timing is right:
 
 ```bash
 python scripts/analyze_capture_timing.py
@@ -189,15 +251,19 @@ python scripts/analyze_capture_timing.py
 
 This analyzes all snapshots with metadata and reports:
 - When reaction changes were detected (by BRT hour)
-- Whether the 15:00 BRT window is catching them
+- Hour-by-hour histogram showing capture distribution
+- Whether the probes are catching changes earlier than 15:00 BRT
 - Suggested adjustments if the data shows a consistent pattern
 
 **How it works**: Each snapshot has `_metadata.reactions_hash`. The script compares consecutive snapshots — when the hash changes, that capture caught a reaction update.
 
-**Interpreting results**:
-- If most reaction changes are caught at 15:00 → timing is correct
-- If caught at 18:00 instead → data is updating later, consider shifting to 16:00 or 17:00
+**Interpreting results** (after ~7 days of probes):
+- If probes catch changes at 12:00–13:00 → shift primary capture earlier
+- If 15:00 BRT consistently catches changes → probes confirmed the timing, remove them
+- If caught at 18:00 instead → data is updating later, keep probes and shift primary
 - If caught at 06:00 → reactions updated overnight (unusual, investigate)
+
+**Action after observation period**: Run `analyze_capture_timing.py`, check the hour histogram, remove the temporary probes from `.github/workflows/daily-update.yml`, keep only the permanent slots (adjusted if needed).
 
 ---
 

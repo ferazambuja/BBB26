@@ -132,8 +132,10 @@ def analyze():
         pct = count / total * 100 if total else 0
         bar = "█" * int(pct / 100 * bar_width)
         indicator = ""
-        if name == "06:00-12:00 (manhã)":
-            indicator = "  ← 12:00 BRT capture slot"
+        if name == "12:00-18:00 (tarde)":
+            indicator = "  ← 15:00 BRT primary capture"
+        elif name == "06:00-12:00 (manhã)":
+            indicator = "  ← hourly probes 10-12 BRT"
         print(f"  {name:<28} {count:>3} ({pct:5.1f}%) {bar}{indicator}")
     print()
 
@@ -145,18 +147,23 @@ def analyze():
 
     print("Reaction changes by hour (BRT):")
     print()
+    # BRT hours where cron runs (permanent + probes)
+    permanent_hours = {0, 6, 15, 18}
+    probe_hours = {10, 11, 12, 13, 14, 16}  # temporary probes
     for h in range(24):
         count = hour_counts.get(h, 0)
         bar = "█" * (count * 3)
         cron_marker = ""
-        if h in (0, 6, 12, 18):
+        if h in permanent_hours:
             cron_marker = " ◄ cron"
+        elif h in probe_hours:
+            cron_marker = " ◄ probe"
         print(f"  {h:02d}:00  {count:>2}  {bar}{cron_marker}")
     print()
 
     # --- Section 6: Data quality caveat ---
-    # Count how many captures came from the 4 cron slots (±30min tolerance)
-    cron_hours = {0, 6, 12, 18}
+    # Count how many captures came from cron slots (permanent + probes, ±1h tolerance)
+    cron_hours = {0, 6, 10, 11, 12, 13, 14, 15, 16, 18}  # permanent + probe hours
     cron_captures = sum(1 for s in snapshots
                         if s["captured_brt"].hour in cron_hours
                         or (s["captured_brt"].hour - 1) in cron_hours)
@@ -165,7 +172,7 @@ def analyze():
 
     if is_mostly_manual:
         print("─" * 70)
-        print("  ⓘ  CAVEAT: Most captures above were manual (not from 4×/day cron).")
+        print("  ⓘ  CAVEAT: Most captures above were manual (not from scheduled cron).")
         print("     Detection times reflect when YOU ran fetch_data.py, not when")
         print("     the Raio-X actually updated. The Raio-X may have been ready")
         print("     hours earlier — we just didn't check until the afternoon.")
@@ -196,38 +203,47 @@ def analyze():
 
     if is_mostly_manual:
         print("  ~ Insufficient cron data — cannot assess timing yet.")
-        print("    Current 12:00 BRT schedule is a reasonable default.")
-        print("    The cron is now running — check back in a week:")
+        print("    Current 15:00 BRT primary + hourly probes are running.")
+        print("    Check back in a week:")
         print()
         print("      python scripts/analyze_capture_timing.py")
         print()
-        print("    If the 12:00 cron consistently catches reaction changes,")
-        print("    the timing is good. If 18:00 catches them instead, shift later.")
+        print("    Once probes pinpoint the API update hour, remove them from")
+        print("    .github/workflows/daily-update.yml (keep only permanent slots).")
     else:
         # With real cron data, we can make recommendations
         caught_by_noon = morning
         caught_later = afternoon + night + dawn
 
         if caught_by_noon >= caught_later:
-            print("  ✓ The 12:00 BRT capture is working well.")
-            print(f"    {caught_by_noon}/{total} reaction changes detected by noon.")
-            print("    No schedule change needed.")
-        elif afternoon > morning:
-            print("  ⚠ The 12:00 BRT capture may be too early.")
-            print(f"    {afternoon}/{total} changes detected 12:00-18:00 (missed by noon capture).")
-            print(f"    Only {morning}/{total} detected before noon.")
-            print()
-            suggested = min(median_hour + 1, 17)
+            print(f"  ✓ Reactions update before noon — most caught by morning probes.")
+            print(f"    {caught_by_noon}/{total} reaction changes detected before 12:00.")
+            suggested = min(median_hour + 1, 14)
             suggested_utc = suggested + 3
-            print(f"  → Suggestion: Move primary capture from 12:00 to {suggested:02d}:00 BRT")
-            print(f"    (change cron from '0 15 * * *' to '0 {suggested_utc} * * *' UTC)")
+            print(f"  → Suggestion: Move primary capture to {suggested:02d}:00 BRT")
+            print(f"    (cron: '0 {suggested_utc} * * *' UTC)")
+            print("    Remove hourly probes — timing is established.")
+        elif afternoon > morning:
+            print(f"  ✓ The 15:00 BRT primary capture is well-positioned.")
+            print(f"    {afternoon}/{total} changes detected 12:00-18:00.")
+            print(f"    Only {morning}/{total} detected before noon (probes confirm data not ready).")
+            print()
+            if median_hour <= 14:
+                print(f"  → Median detection at {median_hour:02d}:00 — 15:00 BRT gives good margin.")
+                print("    Remove hourly probes — timing confirmed.")
+            else:
+                suggested = min(median_hour + 1, 17)
+                suggested_utc = suggested + 3
+                print(f"  → Median detection at {median_hour:02d}:00 — consider shifting primary")
+                print(f"    from 15:00 to {suggested:02d}:00 BRT (cron: '0 {suggested_utc} * * *' UTC)")
         elif night > morning + afternoon:
             print("  ⚠ Most changes detected in the evening — unusual.")
             print("    Raio-X timing may have shifted or data updates are delayed.")
-            print("    Monitor for another week before adjusting.")
+            print("    Keep probes running for another week.")
         else:
             print("  ~ Changes are spread across slots — current schedule is reasonable.")
             print(f"    Morning: {morning}, Afternoon: {afternoon}, Night: {night}, Dawn: {dawn}")
+            print("    Keep probes running for more data.")
 
     print()
 
