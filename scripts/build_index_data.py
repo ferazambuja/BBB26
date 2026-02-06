@@ -1749,14 +1749,12 @@ def build_index_data():
                     "resultado": "Eliminado" if eliminado == name else "Sobreviveu" if par.get("status") == "finalizado" else "Em andamento",
                     "voto_total": my_votes.get("voto_total") if my_votes else None,
                 })
-        # Add Bate e Volta escapes (nominated but escaped before final paredão)
+        # Bate e Volta escapes (separate from paredão history)
+        bv_escape_list = []
         for bv in bv_escapes.get(name, []):
-            paredao_history.append({
+            bv_escape_list.append({
                 "numero": bv["numero"],
                 "data": bv["data"],
-                "como": "Indicado → Bate e Volta",
-                "resultado": "Escapou",
-                "voto_total": None,
             })
         paredao_history.sort(key=lambda x: x.get("numero", 0))
 
@@ -1828,6 +1826,8 @@ def build_index_data():
                 "house_votes_detail": house_votes_detail,
                 "paredao_count": len(paredao_history),
                 "paredao_history": paredao_history,
+                "bv_escapes": len(bv_escape_list),
+                "bv_escape_detail": bv_escape_list,
                 "cartola_total": cartola_by_name.get(name, {}).get("total", 0),
                 "cartola_rank": cartola_by_name.get(name, {}).get("rank"),
                 "prova_wins": prova_by_name.get(name, {}).get("wins", 0),
