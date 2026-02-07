@@ -148,6 +148,7 @@ def load_paredoes():
             'anjo': p.get('formacao', {}).get('anjo'),
             'anjo_autoimune': p.get('formacao', {}).get('anjo_autoimune'),
             'formacao': p.get('formacao', {}).get('resumo', ''),
+            'formacao_raw': p.get('formacao', {}),
             'dinamica': p.get('formacao', {}).get('dinamica'),
             'big_fone': p.get('formacao', {}).get('big_fone'),
             'contragolpe': p.get('formacao', {}).get('contragolpe'),
@@ -368,6 +369,86 @@ if ultimo:
                 print('</div>')
 
             print('</div>')
+
+        # ── Duelo de Risco (Sincerinho) ──
+        _formacao_raw = ultimo.get('formacao_raw', {})
+        _duelo = _formacao_raw.get('duelo_de_risco') if isinstance(_formacao_raw, dict) else None
+        if _duelo and _duelo.get('escolhas'):
+            _escolhas = _duelo['escolhas']
+            _alvos = _duelo.get('alvos_mais_citados', [])
+            _nao_citados = _duelo.get('nao_citados', [])
+
+            print("\n## ⚔️ Sincerinho — Duelo de Risco\n")
+            print(f'<p style="color:#aaa; font-size:0.9em;">Cada participante escolheu quem quer enfrentar no Paredão. Amanhã, um nome será sorteado para o Duelo de Risco.</p>\n')
+
+            # ── Most targeted summary ──
+            if _alvos:
+                print('<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; margin: 1.2rem 0;">')
+                for _a in _alvos:
+                    _nome = _a['nome']
+                    _vezes = _a['vezes']
+                    _av = AVATARS.get(_nome, '')
+                    _cor = '#e74c3c' if _vezes >= 3 else '#f39c12' if _vezes >= 2 else '#888'
+                    print(f'<div style="background: rgba(255,255,255,0.05); border: 1px solid {_cor}; border-radius: 10px; padding: 0.6rem 1rem; text-align: center; min-width: 100px;">')
+                    if _av:
+                        print(f'<img src="{_av}" style="width:36px; height:36px; border-radius:50%; border:2px solid {_cor}; margin-bottom:0.3rem;" alt="{_nome}">')
+                    print(f'<div style="color:#fff; font-size:0.9em; font-weight:bold;">{_nome}</div>')
+                    print(f'<div style="color:{_cor}; font-size:1.2em; font-weight:bold;">🎯 {_vezes}×</div>')
+                    _por = ', '.join(_a.get('por', []))
+                    print(f'<div style="color:#888; font-size:0.7em;">{_por}</div>')
+                    print('</div>')
+                print('</div>\n')
+
+            # ── Full table ──
+            print('<table class="table table-striped" style="max-width:100%; font-size:0.9rem;">')
+            print('<thead><tr><th>Participante</th><th>Quer enfrentar</th><th>Adjetivo</th></tr></thead>')
+            print('<tbody>')
+            # Sort by target popularity (most targeted first), then alphabetically
+            _target_count = {}
+            for _v in _escolhas.values():
+                _t = _v['alvo']
+                _target_count[_t] = _target_count.get(_t, 0) + 1
+            _sorted_escolhas = sorted(_escolhas.items(), key=lambda x: (-_target_count.get(x[1]['alvo'], 0), x[0]))
+            for _nome, _info in _sorted_escolhas:
+                _alvo = _info['alvo']
+                _adj = _info['adjetivo']
+                _cnt = _target_count.get(_alvo, 0)
+                _badge = f' <span style="background:#e74c3c; color:#fff; padding:0.1rem 0.4rem; border-radius:8px; font-size:0.75em;">{_cnt}×</span>' if _cnt >= 2 else ''
+                _av_actor = AVATARS.get(_nome, '')
+                _av_target = AVATARS.get(_alvo, '')
+                _av_html_a = f'<img src="{_av_actor}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_actor else ''
+                _av_html_t = f'<img src="{_av_target}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_target else ''
+                print(f'<tr><td>{_av_html_a}{_nome}</td><td>{_av_html_t}{_alvo}{_badge}</td><td style="color:#e74c3c; font-style:italic;">{_adj}</td></tr>')
+            print('</tbody></table>\n')
+
+            # ── Mutual hostility pairs ──
+            _mutuals = []
+            for _n1, _i1 in _escolhas.items():
+                _t1 = _i1['alvo']
+                if _t1 in _escolhas and _escolhas[_t1]['alvo'] == _n1 and _n1 < _t1:
+                    _mutuals.append((_n1, _i1['adjetivo'], _t1, _escolhas[_t1]['adjetivo']))
+            if _mutuals:
+                print('<div style="background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 8px; padding: 1rem; margin: 1rem 0;">')
+                print('<h4 style="color:#e74c3c; margin-top:0;">⚔️ Hostilidade mútua — ambos se escolheram</h4>')
+                for _m in _mutuals:
+                    _av1 = AVATARS.get(_m[0], '')
+                    _av2 = AVATARS.get(_m[2], '')
+                    _img1 = f'<img src="{_av1}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av1 else ''
+                    _img2 = f'<img src="{_av2}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av2 else ''
+                    print(f'<div style="margin:0.4rem 0; font-size:0.95em;">{_img1}<strong>{_m[0]}</strong> <span style="color:#e74c3c;">"{_m[1]}"</span> ↔ {_img2}<strong>{_m[2]}</strong> <span style="color:#e74c3c;">"{_m[3]}"</span></div>')
+                print('</div>\n')
+
+            # ── Not targeted ──
+            if _nao_citados:
+                print(f'<div style="background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); border-radius: 8px; padding: 0.8rem; margin: 1rem 0;">')
+                print(f'<h4 style="color:#2ecc71; margin-top:0;">💚 Ninguém escolheu enfrentar ({len(_nao_citados)})</h4>')
+                _names_html = []
+                for _nc in _nao_citados:
+                    _av_nc = AVATARS.get(_nc, '')
+                    _img_nc = f'<img src="{_av_nc}" style="width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:2px;">' if _av_nc else ''
+                    _names_html.append(f'{_img_nc}{_nc}')
+                print(f'<div style="color:#ccc; font-size:0.9em;">{" · ".join(_names_html)}</div>')
+                print('</div>\n')
 
         # ── Enquetes do Votalhada (em andamento) ──
         poll = get_poll_for_paredao(polls_data, ultimo['numero'])

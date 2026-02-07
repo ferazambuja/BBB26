@@ -39,6 +39,7 @@ RELATION_POWER_WEIGHTS = {
     "mira_do_lider": -0.5,
     "punicao_gravissima": -0.8,
     "punicao_coletiva": -0.4,
+    "duelo_de_risco": -0.5,
 }
 
 RELATION_SINC_WEIGHTS = {
@@ -84,6 +85,7 @@ RELATION_POWER_BACKLASH_FACTOR = {
     "mira_do_lider": 0.5,
     "punicao_gravissima": 0.5,
     "punicao_coletiva": 0.3,
+    "duelo_de_risco": 0.3,
 }
 
 SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa", "Prova Bate e Volta"}

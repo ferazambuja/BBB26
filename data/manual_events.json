@@ -1008,7 +1008,14 @@
           "Sarah Andrade": "Anjo da semana",
           "Maxiane": "Líder da semana"
         },
-        "papeis": ["Bola Murcha", "Juiz", "Técnico", "Gandula", "Goleiro Frangueiro", "Arquibancada"],
+        "papeis": [
+          "Bola Murcha",
+          "Juiz",
+          "Técnico",
+          "Gandula",
+          "Goleiro Frangueiro",
+          "Arquibancada"
+        ],
         "planta": {
           "target": "Edilson",
           "source": "plateia",
@@ -1026,42 +1033,222 @@
         ],
         "notes": "Formato futebol: cada protagonista monta o 'pior time do mundo' com 6 papéis negativos. Babu foi escolhido pelo público com 40,69% dos votos. Plateia elegeu Edilson como Arquibancada (planta). Leandro e Brigido participaram por serem emparedados.",
         "edges": [
-          {"actor": "Babu Santana", "target": "Jonas Sulzbach", "type": "bomba", "tema": "Bola Murcha"},
-          {"actor": "Babu Santana", "target": "Alberto Cowboy", "type": "bomba", "tema": "Juiz"},
-          {"actor": "Babu Santana", "target": "Brigido", "type": "bomba", "tema": "Técnico"},
-          {"actor": "Babu Santana", "target": "Sol Vega", "type": "bomba", "tema": "Gandula"},
-          {"actor": "Babu Santana", "target": "Jordana", "type": "bomba", "tema": "Goleiro Frangueiro"},
-          {"actor": "Babu Santana", "target": "Gabriela", "type": "bomba", "tema": "Arquibancada"},
-          {"actor": "Leandro", "target": "Edilson", "type": "bomba", "tema": "Bola Murcha"},
-          {"actor": "Leandro", "target": "Alberto Cowboy", "type": "bomba", "tema": "Juiz"},
-          {"actor": "Leandro", "target": "Brigido", "type": "bomba", "tema": "Técnico"},
-          {"actor": "Leandro", "target": "Gabriela", "type": "bomba", "tema": "Gandula"},
-          {"actor": "Leandro", "target": "Jonas Sulzbach", "type": "bomba", "tema": "Goleiro Frangueiro"},
-          {"actor": "Leandro", "target": "Sarah Andrade", "type": "bomba", "tema": "Arquibancada"},
-          {"actor": "Brigido", "target": "Juliano Floss", "type": "bomba", "tema": "Bola Murcha"},
-          {"actor": "Brigido", "target": "Babu Santana", "type": "bomba", "tema": "Juiz"},
-          {"actor": "Brigido", "target": "Ana Paula Renault", "type": "bomba", "tema": "Técnico"},
-          {"actor": "Brigido", "target": "Milena", "type": "bomba", "tema": "Gandula"},
-          {"actor": "Brigido", "target": "Breno", "type": "bomba", "tema": "Goleiro Frangueiro"},
-          {"actor": "Brigido", "target": "Chaiany", "type": "bomba", "tema": "Arquibancada"},
-          {"actor": "Ana Paula Renault", "target": "Sarah Andrade", "type": "bomba", "tema": "Bola Murcha"},
-          {"actor": "Ana Paula Renault", "target": "Brigido", "type": "bomba", "tema": "Juiz"},
-          {"actor": "Ana Paula Renault", "target": "Alberto Cowboy", "type": "bomba", "tema": "Técnico"},
-          {"actor": "Ana Paula Renault", "target": "Jordana", "type": "bomba", "tema": "Gandula"},
-          {"actor": "Ana Paula Renault", "target": "Jonas Sulzbach", "type": "bomba", "tema": "Goleiro Frangueiro"},
-          {"actor": "Ana Paula Renault", "target": "Gabriela", "type": "bomba", "tema": "Arquibancada"},
-          {"actor": "Sarah Andrade", "target": "Juliano Floss", "type": "bomba", "tema": "Bola Murcha"},
-          {"actor": "Sarah Andrade", "target": "Babu Santana", "type": "bomba", "tema": "Juiz"},
-          {"actor": "Sarah Andrade", "target": "Ana Paula Renault", "type": "bomba", "tema": "Técnico"},
-          {"actor": "Sarah Andrade", "target": "Milena", "type": "bomba", "tema": "Gandula"},
-          {"actor": "Sarah Andrade", "target": "Leandro", "type": "bomba", "tema": "Goleiro Frangueiro"},
-          {"actor": "Sarah Andrade", "target": "Chaiany", "type": "bomba", "tema": "Arquibancada"},
-          {"actor": "Maxiane", "target": "Milena", "type": "bomba", "tema": "Bola Murcha"},
-          {"actor": "Maxiane", "target": "Ana Paula Renault", "type": "bomba", "tema": "Juiz"},
-          {"actor": "Maxiane", "target": "Babu Santana", "type": "bomba", "tema": "Técnico"},
-          {"actor": "Maxiane", "target": "Gabriela", "type": "bomba", "tema": "Gandula"},
-          {"actor": "Maxiane", "target": "Juliano Floss", "type": "bomba", "tema": "Goleiro Frangueiro"},
-          {"actor": "Maxiane", "target": "Solange Couto", "type": "bomba", "tema": "Arquibancada"}
+          {
+            "actor": "Babu Santana",
+            "target": "Jonas Sulzbach",
+            "type": "bomba",
+            "tema": "Bola Murcha"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Alberto Cowboy",
+            "type": "bomba",
+            "tema": "Juiz"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Brigido",
+            "type": "bomba",
+            "tema": "Técnico"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Sol Vega",
+            "type": "bomba",
+            "tema": "Gandula"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Jordana",
+            "type": "bomba",
+            "tema": "Goleiro Frangueiro"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Gabriela",
+            "type": "bomba",
+            "tema": "Arquibancada"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Edilson",
+            "type": "bomba",
+            "tema": "Bola Murcha"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Alberto Cowboy",
+            "type": "bomba",
+            "tema": "Juiz"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Brigido",
+            "type": "bomba",
+            "tema": "Técnico"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Gabriela",
+            "type": "bomba",
+            "tema": "Gandula"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Jonas Sulzbach",
+            "type": "bomba",
+            "tema": "Goleiro Frangueiro"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Sarah Andrade",
+            "type": "bomba",
+            "tema": "Arquibancada"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Juliano Floss",
+            "type": "bomba",
+            "tema": "Bola Murcha"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Babu Santana",
+            "type": "bomba",
+            "tema": "Juiz"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Ana Paula Renault",
+            "type": "bomba",
+            "tema": "Técnico"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Milena",
+            "type": "bomba",
+            "tema": "Gandula"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Breno",
+            "type": "bomba",
+            "tema": "Goleiro Frangueiro"
+          },
+          {
+            "actor": "Brigido",
+            "target": "Chaiany",
+            "type": "bomba",
+            "tema": "Arquibancada"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Sarah Andrade",
+            "type": "bomba",
+            "tema": "Bola Murcha"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Brigido",
+            "type": "bomba",
+            "tema": "Juiz"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Alberto Cowboy",
+            "type": "bomba",
+            "tema": "Técnico"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Jordana",
+            "type": "bomba",
+            "tema": "Gandula"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Jonas Sulzbach",
+            "type": "bomba",
+            "tema": "Goleiro Frangueiro"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Gabriela",
+            "type": "bomba",
+            "tema": "Arquibancada"
+          },
+          {
+            "actor": "Sarah Andrade",
+            "target": "Juliano Floss",
+            "type": "bomba",
+            "tema": "Bola Murcha"
+          },
+          {
+            "actor": "Sarah Andrade",
+            "target": "Babu Santana",
+            "type": "bomba",
+            "tema": "Juiz"
+          },
+          {
+            "actor": "Sarah Andrade",
+            "target": "Ana Paula Renault",
+            "type": "bomba",
+            "tema": "Técnico"
+          },
+          {
+            "actor": "Sarah Andrade",
+            "target": "Milena",
+            "type": "bomba",
+            "tema": "Gandula"
+          },
+          {
+            "actor": "Sarah Andrade",
+            "target": "Leandro",
+            "type": "bomba",
+            "tema": "Goleiro Frangueiro"
+          },
+          {
+            "actor": "Sarah Andrade",
+            "target": "Chaiany",
+            "type": "bomba",
+            "tema": "Arquibancada"
+          },
+          {
+            "actor": "Maxiane",
+            "target": "Milena",
+            "type": "bomba",
+            "tema": "Bola Murcha"
+          },
+          {
+            "actor": "Maxiane",
+            "target": "Ana Paula Renault",
+            "type": "bomba",
+            "tema": "Juiz"
+          },
+          {
+            "actor": "Maxiane",
+            "target": "Babu Santana",
+            "type": "bomba",
+            "tema": "Técnico"
+          },
+          {
+            "actor": "Maxiane",
+            "target": "Gabriela",
+            "type": "bomba",
+            "tema": "Gandula"
+          },
+          {
+            "actor": "Maxiane",
+            "target": "Juliano Floss",
+            "type": "bomba",
+            "tema": "Goleiro Frangueiro"
+          },
+          {
+            "actor": "Maxiane",
+            "target": "Solange Couto",
+            "type": "bomba",
+            "tema": "Arquibancada"
+          }
         ],
         "edges_notes": "Baseado nas escalações do 3º Sincerão (GShow). Cada protagonista escolheu 6 pessoas para papéis negativos do futebol. Todos os edges são tipo 'bomba' (negativo)."
       },
@@ -2055,6 +2242,258 @@
       "origem": "manual",
       "visibility": "public",
       "awareness": "known"
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Leandro",
+      "target": "Alberto Cowboy",
+      "detail": "manipulador",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Ana Paula Renault",
+      "target": "Sarah Andrade",
+      "detail": "incoerente",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Milena",
+      "target": "Edilson",
+      "detail": "fraco",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Chaiany",
+      "target": "Jordana",
+      "detail": "falsidade",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Samira",
+      "target": "Jordana",
+      "detail": "falsa",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Maxiane",
+      "target": "Gabriela",
+      "detail": "incoerente",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Sol Vega",
+      "target": "Juliano Floss",
+      "detail": "compra briga dos outros",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Sarah Andrade",
+      "target": "Babu Santana",
+      "detail": "prepotente",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Solange Couto",
+      "target": "Gabriela",
+      "detail": "chata",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Alberto Cowboy",
+      "target": "Leandro",
+      "detail": "perdido",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Juliano Floss",
+      "target": "Alberto Cowboy",
+      "detail": "falso e manipulador",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Gabriela",
+      "target": "Marciele",
+      "detail": "planta",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Marciele",
+      "target": "Juliano Floss",
+      "detail": "folgado",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Breno",
+      "target": "Edilson",
+      "detail": "planta",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Marcelo",
+      "target": "Gabriela",
+      "detail": "chata",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Edilson",
+      "target": "Milena",
+      "detail": "chata",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Jordana",
+      "target": "Samira",
+      "detail": "falsa, hipócrita",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-06",
+      "week": 4,
+      "type": "duelo_de_risco",
+      "actor": "Babu Santana",
+      "target": "Sarah Andrade",
+      "detail": "inútil",
+      "visibility": "public",
+      "impacto": "negativo",
+      "origem": "manual",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
     }
   ],
   "cartola_points_log": [],

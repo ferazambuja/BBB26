@@ -1,6 +1,6 @@
 {
   "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
-  "_last_updated": "2026-02-05",
+  "_last_updated": "2026-02-06",
 
   "paredoes": [
     {
@@ -243,13 +243,51 @@
       "total_esperado": 3,
 
       "formacao": {
-        "resumo": "Semana do Líder Jonas Sulzbach. Dinâmica inédita: Duelo de Risco (sáb) pode empardar 1–2 participantes. Prova do Anjo no sábado. Formação completa no domingo.",
+        "resumo": "Semana do Líder Jonas Sulzbach. Sincerinho (sex): cada participante escolheu quem quer enfrentar no Paredão — Gabriela foi a mais citada (3×). Duelo de Risco (sáb): sorteio + duelo com consequências. Prova do Anjo no sábado. Formação completa no domingo.",
         "lider": "Jonas Sulzbach",
         "indicado_lider": null,
         "motivo_lider": null,
         "anjo": null,
         "imunizado": null,
-        "bate_volta": null
+        "bate_volta": null,
+        "duelo_de_risco": {
+          "data_previa": "2026-02-06",
+          "data_duelo": "2026-02-07",
+          "sorteado": null,
+          "resultado": null,
+          "escolhas": {
+            "Leandro": {"alvo": "Alberto Cowboy", "adjetivo": "manipulador"},
+            "Ana Paula Renault": {"alvo": "Sarah Andrade", "adjetivo": "incoerente"},
+            "Milena": {"alvo": "Edilson", "adjetivo": "fraco"},
+            "Chaiany": {"alvo": "Jordana", "adjetivo": "falsidade"},
+            "Samira": {"alvo": "Jordana", "adjetivo": "falsa"},
+            "Maxiane": {"alvo": "Gabriela", "adjetivo": "incoerente"},
+            "Sol Vega": {"alvo": "Juliano Floss", "adjetivo": "compra briga dos outros"},
+            "Sarah Andrade": {"alvo": "Babu Santana", "adjetivo": "prepotente"},
+            "Solange Couto": {"alvo": "Gabriela", "adjetivo": "chata"},
+            "Alberto Cowboy": {"alvo": "Leandro", "adjetivo": "perdido"},
+            "Juliano Floss": {"alvo": "Alberto Cowboy", "adjetivo": "falso e manipulador"},
+            "Gabriela": {"alvo": "Marciele", "adjetivo": "planta"},
+            "Marciele": {"alvo": "Juliano Floss", "adjetivo": "folgado"},
+            "Breno": {"alvo": "Edilson", "adjetivo": "planta"},
+            "Marcelo": {"alvo": "Gabriela", "adjetivo": "chata"},
+            "Edilson": {"alvo": "Milena", "adjetivo": "chata"},
+            "Jordana": {"alvo": "Samira", "adjetivo": "falsa, hipócrita"},
+            "Babu Santana": {"alvo": "Sarah Andrade", "adjetivo": "inútil"}
+          },
+          "alvos_mais_citados": [
+            {"nome": "Gabriela", "vezes": 3, "por": ["Maxiane", "Solange Couto", "Marcelo"]},
+            {"nome": "Alberto Cowboy", "vezes": 2, "por": ["Leandro", "Juliano Floss"]},
+            {"nome": "Jordana", "vezes": 2, "por": ["Chaiany", "Samira"]},
+            {"nome": "Sarah Andrade", "vezes": 2, "por": ["Ana Paula Renault", "Babu Santana"]},
+            {"nome": "Edilson", "vezes": 2, "por": ["Milena", "Breno"]},
+            {"nome": "Juliano Floss", "vezes": 2, "por": ["Sol Vega", "Marciele"]}
+          ],
+          "nao_citados": ["Jonas Sulzbach", "Sol Vega", "Ana Paula Renault", "Chaiany", "Maxiane", "Solange Couto", "Breno", "Marcelo"],
+          "fontes": [
+            "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+          ]
+        }
       },
 
       "indicados_finais": [],
@@ -259,7 +297,9 @@
       "impedidos_votar": [],
       "votos_anulados": [],
 
-      "fontes": []
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
+      ]
     }
   ]
 }
