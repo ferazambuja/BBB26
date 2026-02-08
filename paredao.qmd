@@ -588,27 +588,31 @@ if ultimo:
             print('</div></details></div>\n')
 
             # ── 2. Pre-Duel Score Table ───────────────────────────────────
-            print(f"### 📊 Opções pré-duelo — Score combinado\n")
-            print(f'<p style="color:#aaa; font-size:0.85em;">Ranking de todos os alvos elegíveis por score combinado ({_sorteado} + {_oponente}). Scores <strong>antes</strong> da indicação. Quanto mais negativo, mais provável como alvo.</p>\n')
+            print(f"### 📊 Opções pré-duelo — Viabilidade de consenso\n")
+            print(f'<p style="color:#aaa; font-size:0.85em;">Ranking por <strong>gargalo de consenso</strong>: o score do duelista <em>mais favorável</em> ao alvo (max). Para indicar juntos, ambos precisam aceitar — quem gosta mais do alvo é quem trava a decisão. Scores <strong>antes</strong> da indicação.</p>\n')
 
             # Build combined ranking
             _combined = []
             for t in _dr_eligible:
                 s_entry = _sol_pre.get(t, {"score": 0, "queridometro": 0})
                 j_entry = _jf_pre.get(t, {"score": 0, "queridometro": 0})
+                _s_score = s_entry["score"]
+                _j_score = j_entry["score"]
+                _bottleneck = max(_s_score, _j_score)  # who blocks consensus
                 _combined.append({
                     "name": t,
-                    "sol_score": s_entry["score"],
-                    "jf_score": j_entry["score"],
-                    "combined": s_entry["score"] + j_entry["score"],
+                    "sol_score": _s_score,
+                    "jf_score": _j_score,
+                    "bottleneck": _bottleneck,
                     "sol_q": s_entry["queridometro"],
                     "jf_q": j_entry["queridometro"],
                     "is_vip": t in _dr_vip,
+                    "both_neg": _s_score < 0 and _j_score < 0,
                 })
-            _combined.sort(key=lambda x: x["combined"])
+            _combined.sort(key=lambda x: x["bottleneck"])
 
             print('<table class="table table-striped" style="max-width:100%; font-size:0.9rem;">')
-            print(f'<thead><tr><th>#</th><th>Alvo</th><th style="text-align:center;">{_sorteado.split()[0]} Score</th><th style="text-align:center;">{_oponente.split()[0]} Score</th><th style="text-align:center;">Combinado</th><th style="text-align:center;">Q {_sorteado.split()[0]}</th><th style="text-align:center;">Q {_oponente.split()[0]}</th><th></th></tr></thead>')
+            print(f'<thead><tr><th>#</th><th>Alvo</th><th style="text-align:center;">{_sorteado.split()[0]}</th><th style="text-align:center;">{_oponente.split()[0]}</th><th style="text-align:center;">Gargalo</th><th style="text-align:center;">Q {_sorteado.split()[0]}</th><th style="text-align:center;">Q {_oponente.split()[0]}</th><th></th></tr></thead>')
             print('<tbody>')
             for _i, _c in enumerate(_combined):
                 _is_target = _c["name"] == _consenso_target
@@ -617,20 +621,26 @@ if ultimo:
                 _q_c = lambda v: f'<span style="color:{"#e74c3c" if v < 0 else "#2ecc71"};">{v:+.2f}</span>'
                 _vip_badge = ' <span style="background:#f39c12; color:#000; padding:0.1rem 0.3rem; border-radius:6px; font-size:0.7em;">VIP</span>' if _c["is_vip"] else ''
                 _target_badge = ' <span style="background:#e74c3c; color:#fff; padding:0.1rem 0.3rem; border-radius:6px; font-size:0.7em;">📌 ESCOLHIDA</span>' if _is_target else ''
+                _consensus_icon = '🔴' if _c["both_neg"] else '🟡'
                 _av_c = AVATARS.get(_c["name"], '')
                 _img_c = f'<img src="{_av_c}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_c else ''
-                print(f'<tr style="{_row_style}"><td style="color:#888;">{_i+1}</td><td>{_img_c}<strong>{_c["name"]}</strong>{_target_badge}</td><td style="text-align:center;">{_sc(_c["sol_score"])}</td><td style="text-align:center;">{_sc(_c["jf_score"])}</td><td style="text-align:center;">{_sc(_c["combined"])}</td><td style="text-align:center;">{_q_c(_c["sol_q"])}</td><td style="text-align:center;">{_q_c(_c["jf_q"])}</td><td>{_vip_badge}</td></tr>')
-            print('</tbody></table>\n')
+                print(f'<tr style="{_row_style}"><td style="color:#888;">{_i+1}</td><td>{_img_c}<strong>{_c["name"]}</strong>{_target_badge}</td><td style="text-align:center;">{_sc(_c["sol_score"])}</td><td style="text-align:center;">{_sc(_c["jf_score"])}</td><td style="text-align:center;">{_consensus_icon} {_sc(_c["bottleneck"])}</td><td style="text-align:center;">{_q_c(_c["sol_q"])}</td><td style="text-align:center;">{_q_c(_c["jf_q"])}</td><td>{_vip_badge}</td></tr>')
+            print('</tbody></table>')
+            print(f'<p style="color:#888; font-size:0.78em; margin-top:0.3rem;">🔴 = ambos negativos (consenso natural) · 🟡 = um positivo (alguém cede)</p>\n')
 
             # Position insight
             _target_pos = next((_i+1 for _i, _c in enumerate(_combined) if _c["name"] == _consenso_target), None)
             _target_entry = next((_c for _c in _combined if _c["name"] == _consenso_target), None)
             if _target_pos and _target_entry:
                 _insight_color = '#e74c3c' if _target_pos <= 3 else '#f39c12' if _target_pos <= 6 else '#2ecc71'
+                _n_both_neg = sum(1 for _c in _combined if _c["both_neg"])
                 print(f'<div style="background:rgba(155,89,182,0.1); border:1px solid rgba(155,89,182,0.3); border-radius:8px; padding:0.8rem; margin:0.5rem 0;">')
-                print(f'<strong style="color:#9b59b6;">💡 Posição:</strong> <span style="color:{_insight_color};">{_consenso_target} era o <strong>#{_target_pos}</strong> alvo mais provável</span> pelo score combinado ({_target_entry["combined"]:+.2f}).')
+                print(f'<strong style="color:#9b59b6;">💡 Posição:</strong> <span style="color:{_insight_color};">{_consenso_target} era o <strong>#{_target_pos}</strong> alvo por viabilidade de consenso</span> (gargalo: {_target_entry["bottleneck"]:+.2f}).')
+                if _n_both_neg > 0:
+                    _both_neg_names = [_c["name"] for _c in _combined if _c["both_neg"]]
+                    print(f' Havia {_n_both_neg} alvo(s) com ambos negativos ({", ".join(_both_neg_names)}), mas {_consenso_target} tinha o menor gargalo entre os demais.')
                 if _target_entry["sol_q"] >= 0 and _target_entry["jf_q"] < 0:
-                    print(f' O queridômetro de {_sorteado.split()[0]} era <span style="color:#2ecc71;">positivo ({_target_entry["sol_q"]:+.2f})</span> enquanto {_oponente.split()[0]} era <span style="color:#e74c3c;">negativo ({_target_entry["jf_q"]:+.2f})</span> — sugerindo que {_oponente.split()[0]} puxou a decisão.')
+                    print(f' O queridômetro de {_sorteado.split()[0]} era <span style="color:#2ecc71;">positivo ({_target_entry["sol_q"]:+.2f})</span> enquanto {_oponente.split()[0]} era <span style="color:#e74c3c;">negativo ({_target_entry["jf_q"]:+.2f})</span> — {_sorteado.split()[0]} cedeu para fechar o consenso.')
                 print('</div>\n')
 
             # ── 3. Overlap de Hostilidade ─────────────────────────────────
@@ -663,7 +673,7 @@ if ultimo:
                     _av_it = AVATARS.get(_it["name"], '')
                     _img_it = f'<img src="{_av_it}" style="width:28px; height:28px; border-radius:50%; vertical-align:middle; margin-right:3px; border:2px solid {color};">' if _av_it else ''
                     _mark = ' ⭐' if _it["name"] == _consenso_target else ''
-                    print(f'<span style="background:rgba(0,0,0,0.3); padding:0.3rem 0.6rem; border-radius:8px; font-size:0.85em;">{_img_it}<strong>{_it["name"]}</strong>{_mark} <span style="color:#888;">({_it["combined"]:+.2f})</span></span>')
+                    print(f'<span style="background:rgba(0,0,0,0.3); padding:0.3rem 0.6rem; border-radius:8px; font-size:0.85em;">{_img_it}<strong>{_it["name"]}</strong>{_mark} <span style="color:#888;">({_it["bottleneck"]:+.2f})</span></span>')
                 print('</div></div>')
 
             _render_overlap_box(f"Ambos negativos — consenso natural", "#e74c3c", "rgba(231,76,60,0.08)", _both_neg, "🔴")
