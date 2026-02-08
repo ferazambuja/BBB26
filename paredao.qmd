@@ -693,9 +693,9 @@ if ultimo:
             print(f"### 📅 Queridômetro — Últimos 14 dias\n")
             print(f'<p style="color:#aaa; font-size:0.85em;">Reações diárias entre os duelistas e {_consenso_target}. Cada emoji mostra o que o participante deu naquele dia.</p>\n')
 
-            # Get last 14 daily snapshots
-            _last14 = daily_snapshots[-14:] if len(daily_snapshots) >= 14 else daily_snapshots
-            _last14_mat = daily_matrices[-14:] if len(daily_matrices) >= 14 else daily_matrices
+            # Get 14 daily snapshots up to and including the duelo date
+            _dr_snaps = [(s, m) for s, m in zip(daily_snapshots, daily_matrices) if s["date"] <= _duelo_date]
+            _last14 = _dr_snaps[-14:] if len(_dr_snaps) >= 14 else _dr_snaps
 
             _q_pairs = [
                 (_sorteado, _consenso_target, f"{_sorteado.split()[0]} → {_consenso_target}"),
@@ -706,7 +706,7 @@ if ultimo:
 
             print('<table class="table" style="max-width:100%; font-size:0.85rem; white-space:nowrap;">')
             print('<thead><tr><th>Par</th>')
-            for _snap in _last14:
+            for _snap, _mat in _last14:
                 _d = _snap["date"]
                 _d_short = _d[5:]  # MM-DD
                 print(f'<th style="text-align:center; font-size:0.75em; color:#888; padding:0.2rem;">{_d_short}</th>')
@@ -716,8 +716,8 @@ if ultimo:
                 _av_a = AVATARS.get(_actor, '')
                 _img_a = f'<img src="{_av_a}" style="width:18px; height:18px; border-radius:50%; vertical-align:middle; margin-right:2px;">' if _av_a else ''
                 print(f'<tr><td style="white-space:nowrap;">{_img_a}{_label}</td>')
-                for _snap, _mat in zip(_last14, _last14_mat):
-                    _reaction = _mat.get(_actor, {}).get(_target_q, '')
+                for _snap, _mat in _last14:
+                    _reaction = _mat.get((_actor, _target_q), '')
                     if _reaction:
                         _emoji = REACTION_EMOJI.get(_reaction, _reaction)
                         _is_pos = _reaction in POSITIVE
@@ -730,10 +730,10 @@ if ultimo:
             print('</tbody></table>\n')
 
             # Highlight contradiction if Sol gave hearts but nominated
-            _sol_hearts_to_target = sum(1 for _snap, _mat in zip(_last14, _last14_mat)
-                                         if _mat.get(_sorteado, {}).get(_consenso_target, '') in POSITIVE)
-            _sol_total_days = sum(1 for _snap, _mat in zip(_last14, _last14_mat)
-                                  if _mat.get(_sorteado, {}).get(_consenso_target, ''))
+            _sol_hearts_to_target = sum(1 for _snap, _mat in _last14
+                                         if _mat.get((_sorteado, _consenso_target), '') in POSITIVE)
+            _sol_total_days = sum(1 for _snap, _mat in _last14
+                                  if _mat.get((_sorteado, _consenso_target), ''))
             if _sol_hearts_to_target > 0 and _sol_total_days > 0:
                 _pct_hearts = _sol_hearts_to_target / _sol_total_days * 100
                 if _pct_hearts >= 30:
