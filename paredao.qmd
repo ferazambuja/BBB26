@@ -450,6 +450,336 @@ if ultimo:
                 print(f'<div style="color:#ccc; font-size:0.9em;">{" · ".join(_names_html)}</div>')
                 print('</div>\n')
 
+        # ── Duelo de Risco — Consensus Analysis ──────────────────────────
+        if _duelo.get('indicado_consenso') and _duelo.get('resultado') == 'nos_indicamos':
+            _consenso_target = _duelo['indicado_consenso']
+            _sorteado = _duelo['sorteado']
+            _oponente = _duelo['oponente']
+            _duelo_date = _duelo.get('data_duelo', '')
+            _resultado_detail = _duelo.get('resultado_detail', '')
+
+            # Load relations scores for pre-duel analysis
+            _dr_rel_path = Path("data/derived/relations_scores.json")
+            _dr_relations = json.loads(_dr_rel_path.read_text(encoding="utf-8")) if _dr_rel_path.exists() else {}
+            _dr_pairs = _dr_relations.get("pairs_daily", {})
+            _dr_edges = _dr_relations.get("edges", [])
+
+            # Load roles for VIP list
+            _dr_rd = json.loads(Path("data/derived/roles_daily.json").read_text(encoding="utf-8"))
+            _dr_rd_daily = _dr_rd.get("daily", [])
+            _dr_rd_latest = _dr_rd_daily[-1] if _dr_rd_daily else {}
+            _dr_vip = _dr_rd_latest.get("vip", [])
+            _dr_lider = _dr_rd_latest.get("roles", {}).get("Líder", [])
+            _dr_lider_name = _dr_lider[0] if _dr_lider else None
+
+            # Active participants
+            _dr_pix = json.loads(Path("data/derived/participants_index.json").read_text(encoding="utf-8"))
+            _dr_pix_list = _dr_pix.get("participants", _dr_pix) if isinstance(_dr_pix, dict) else _dr_pix
+            _dr_active = {p["name"] for p in _dr_pix_list if p.get("active", True)}
+
+            # Find indicação edges to subtract (only for the consensus target on duelo date)
+            _dr_ind_weight = {}
+            for _e in _dr_edges:
+                if (_e.get('event_type') == 'indicacao' and _e.get('target') == _consenso_target
+                        and _e.get('date') == _duelo_date):
+                    _dr_ind_weight[_e['actor']] = _e.get('weight', 0)
+
+            # Build pre-duel scores for sorteado and oponente
+            def _get_pre_duel_scores(actor_name):
+                """Get scores toward all active targets, subtracting indicação edge if present."""
+                actor_scores = _dr_pairs.get(actor_name, {})
+                result = {}
+                for target, entry in actor_scores.items():
+                    if target not in _dr_active or target == actor_name:
+                        continue
+                    # Skip Líder and the two duelists as targets
+                    if target == _dr_lider_name or target == _sorteado or target == _oponente:
+                        continue
+                    score = entry.get("score", 0)
+                    comps = dict(entry.get("components", {}))
+                    q_score = comps.get("queridometro", 0)
+                    # Subtract indicação edge for consensus target
+                    if target == _consenso_target and actor_name in _dr_ind_weight:
+                        ind_w = _dr_ind_weight[actor_name]
+                        score -= ind_w
+                        pe = comps.get("power_event", 0) - ind_w
+                        if abs(pe) < 0.001:
+                            del comps["power_event"]
+                        else:
+                            comps["power_event"] = pe
+                    result[target] = {"score": score, "components": comps, "queridometro": q_score}
+                return result
+
+            _sol_pre = _get_pre_duel_scores(_sorteado)
+            _jf_pre = _get_pre_duel_scores(_oponente)
+
+            # All eligible targets (union of both sets)
+            _dr_eligible = sorted(set(_sol_pre.keys()) | set(_jf_pre.keys()))
+
+            print(f"\n## 🎲 Análise — Por que {_consenso_target}?\n")
+            print(f'<p style="color:#aaa; font-size:0.9em;">Análise dos dados que embasaram a decisão conjunta no Duelo de Risco. Scores pré-duelo (excluindo a indicação).</p>\n')
+
+            # ── 1. Result Card ────────────────────────────────────────────
+            _av_s = AVATARS.get(_sorteado, '')
+            _av_o = AVATARS.get(_oponente, '')
+            _av_t = AVATARS.get(_consenso_target, '')
+            print('<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:1.2rem; margin:1.5rem 0; padding:1.5rem; background:linear-gradient(145deg,#1a1a2e,#16213e); border-radius:16px; border:1px solid rgba(155,89,182,0.4);">')
+            # Sorteado
+            print(f'<div style="text-align:center;">')
+            if _av_s:
+                print(f'<img src="{_av_s}" style="width:72px; height:72px; border-radius:50%; border:3px solid #9b59b6;" alt="{_sorteado}">')
+            print(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{_sorteado}</div>')
+            print(f'<div style="background:#9b59b6; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">🎲 Sorteada</div>')
+            print('</div>')
+            # Arrow + decision
+            print(f'<div style="text-align:center; color:#9b59b6; font-size:1.5em; padding:0 0.5rem;">')
+            print(f'<div>🤝</div>')
+            print(f'<div style="font-size:0.5em; color:#ccc;">Nós indicamos</div>')
+            print(f'</div>')
+            # Oponente
+            print(f'<div style="text-align:center;">')
+            if _av_o:
+                print(f'<img src="{_av_o}" style="width:72px; height:72px; border-radius:50%; border:3px solid #e67e22;" alt="{_oponente}">')
+            print(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{_oponente}</div>')
+            print(f'<div style="background:#e67e22; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">⚔️ Oponente</div>')
+            print('</div>')
+            # Arrow to target
+            print(f'<div style="text-align:center; color:#e74c3c; font-size:1.5em; padding:0 0.5rem;">→</div>')
+            # Target
+            print(f'<div style="text-align:center;">')
+            if _av_t:
+                print(f'<img src="{_av_t}" style="width:72px; height:72px; border-radius:50%; border:3px solid #e74c3c;" alt="{_consenso_target}">')
+            print(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{_consenso_target}</div>')
+            print(f'<div style="background:#e74c3c; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">📌 Emparedada</div>')
+            print('</div>')
+            print('</div>')
+            if _resultado_detail:
+                print(f'<p style="text-align:center; color:#aaa; font-size:0.85em; margin-top:0.5rem;">{_resultado_detail}</p>\n')
+
+            # ── 1b. Game theory — possible outcomes ──────────────────────
+            _escolha_s = _duelo.get(f'escolha_{_sorteado.lower().replace(" ", "_")}', '')
+            _escolha_o = _duelo.get(f'escolha_{_oponente.lower().replace(" ", "_")}', '')
+
+            _outcome_map = {
+                ('nos_indicamos', 'nos_indicamos'): ('🤝 Consenso', 'Ambos indicam alguém em acordo', '#9b59b6'),
+                ('nos_indicamos', 'eu_encaro'): ('⚔️ Divergência', f'{_oponente.split()[0]} vai ao Paredão sozinho', '#e67e22'),
+                ('eu_encaro', 'nos_indicamos'): ('⚔️ Divergência', f'{_sorteado.split()[0]} vai ao Paredão sozinho', '#e67e22'),
+                ('eu_encaro', 'eu_encaro'): ('💥 Duelo direto', 'Ambos vão ao Paredão', '#e74c3c'),
+            }
+
+            print('<div style="margin:1rem 0;">')
+            print('<details style="background:rgba(255,255,255,0.03); border:1px solid #444; border-radius:10px; padding:0.8rem;">')
+            print('<summary style="cursor:pointer; color:#ccc; font-size:0.9em;">📐 <strong>Matriz de decisões possíveis</strong> — o que cada combinação de escolhas produzia</summary>')
+            print('<div style="padding:0.8rem 0;">')
+            print(f'<p style="color:#aaa; font-size:0.82em;">No Duelo de Risco, cada duelista escolhe secretamente: <strong>"Nós indicamos"</strong> (juntos indicam um terceiro) ou <strong>"Eu encaro"</strong> (vai ao Paredão sozinho). O resultado depende da combinação.</p>')
+            print('<table class="table" style="max-width:500px; font-size:0.85rem; margin:0.5rem auto;">')
+            print(f'<thead><tr><th></th><th style="text-align:center;">🟣 {_oponente.split()[0]}<br><span style="font-size:0.8em; color:#888;">"Nós indicamos"</span></th><th style="text-align:center;">🟠 {_oponente.split()[0]}<br><span style="font-size:0.8em; color:#888;">"Eu encaro"</span></th></tr></thead>')
+            print('<tbody>')
+            for s_choice, s_label in [('nos_indicamos', 'Nós indicamos'), ('eu_encaro', 'Eu encaro')]:
+                print(f'<tr><td style="vertical-align:middle;"><strong>🟣 {_sorteado.split()[0]}</strong><br><span style="font-size:0.8em; color:#888;">"{s_label}"</span></td>')
+                for o_choice in ['nos_indicamos', 'eu_encaro']:
+                    _title, _desc, _color = _outcome_map.get((s_choice, o_choice), ('?', '?', '#888'))
+                    _is_actual = (s_choice == _escolha_s and o_choice == _escolha_o)
+                    _border = f'border:2px solid {_color}; background:rgba(155,89,182,0.15);' if _is_actual else ''
+                    _check = ' ✅' if _is_actual else ''
+                    print(f'<td style="text-align:center; {_border} border-radius:6px; padding:0.5rem;"><span style="color:{_color}; font-weight:bold;">{_title}</span>{_check}<br><span style="font-size:0.8em; color:#aaa;">{_desc}</span></td>')
+                print('</tr>')
+            print('</tbody></table>')
+            print('</div></details></div>\n')
+
+            # ── 2. Pre-Duel Score Table ───────────────────────────────────
+            print(f"### 📊 Opções pré-duelo — Score combinado\n")
+            print(f'<p style="color:#aaa; font-size:0.85em;">Ranking de todos os alvos elegíveis por score combinado ({_sorteado} + {_oponente}). Scores <strong>antes</strong> da indicação. Quanto mais negativo, mais provável como alvo.</p>\n')
+
+            # Build combined ranking
+            _combined = []
+            for t in _dr_eligible:
+                s_entry = _sol_pre.get(t, {"score": 0, "queridometro": 0})
+                j_entry = _jf_pre.get(t, {"score": 0, "queridometro": 0})
+                _combined.append({
+                    "name": t,
+                    "sol_score": s_entry["score"],
+                    "jf_score": j_entry["score"],
+                    "combined": s_entry["score"] + j_entry["score"],
+                    "sol_q": s_entry["queridometro"],
+                    "jf_q": j_entry["queridometro"],
+                    "is_vip": t in _dr_vip,
+                })
+            _combined.sort(key=lambda x: x["combined"])
+
+            print('<table class="table table-striped" style="max-width:100%; font-size:0.9rem;">')
+            print(f'<thead><tr><th>#</th><th>Alvo</th><th style="text-align:center;">{_sorteado.split()[0]} Score</th><th style="text-align:center;">{_oponente.split()[0]} Score</th><th style="text-align:center;">Combinado</th><th style="text-align:center;">Q {_sorteado.split()[0]}</th><th style="text-align:center;">Q {_oponente.split()[0]}</th><th></th></tr></thead>')
+            print('<tbody>')
+            for _i, _c in enumerate(_combined):
+                _is_target = _c["name"] == _consenso_target
+                _row_style = 'background:rgba(231,76,60,0.15); border-left:3px solid #e74c3c;' if _is_target else ''
+                _sc = lambda v: f'<span style="color:{"#e74c3c" if v < -2 else "#e67e22" if v < 0 else "#2ecc71"}; font-weight:bold;">{v:+.2f}</span>'
+                _q_c = lambda v: f'<span style="color:{"#e74c3c" if v < 0 else "#2ecc71"};">{v:+.2f}</span>'
+                _vip_badge = ' <span style="background:#f39c12; color:#000; padding:0.1rem 0.3rem; border-radius:6px; font-size:0.7em;">VIP</span>' if _c["is_vip"] else ''
+                _target_badge = ' <span style="background:#e74c3c; color:#fff; padding:0.1rem 0.3rem; border-radius:6px; font-size:0.7em;">📌 ESCOLHIDA</span>' if _is_target else ''
+                _av_c = AVATARS.get(_c["name"], '')
+                _img_c = f'<img src="{_av_c}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_c else ''
+                print(f'<tr style="{_row_style}"><td style="color:#888;">{_i+1}</td><td>{_img_c}<strong>{_c["name"]}</strong>{_target_badge}</td><td style="text-align:center;">{_sc(_c["sol_score"])}</td><td style="text-align:center;">{_sc(_c["jf_score"])}</td><td style="text-align:center;">{_sc(_c["combined"])}</td><td style="text-align:center;">{_q_c(_c["sol_q"])}</td><td style="text-align:center;">{_q_c(_c["jf_q"])}</td><td>{_vip_badge}</td></tr>')
+            print('</tbody></table>\n')
+
+            # Position insight
+            _target_pos = next((_i+1 for _i, _c in enumerate(_combined) if _c["name"] == _consenso_target), None)
+            _target_entry = next((_c for _c in _combined if _c["name"] == _consenso_target), None)
+            if _target_pos and _target_entry:
+                _insight_color = '#e74c3c' if _target_pos <= 3 else '#f39c12' if _target_pos <= 6 else '#2ecc71'
+                print(f'<div style="background:rgba(155,89,182,0.1); border:1px solid rgba(155,89,182,0.3); border-radius:8px; padding:0.8rem; margin:0.5rem 0;">')
+                print(f'<strong style="color:#9b59b6;">💡 Posição:</strong> <span style="color:{_insight_color};">{_consenso_target} era o <strong>#{_target_pos}</strong> alvo mais provável</span> pelo score combinado ({_target_entry["combined"]:+.2f}).')
+                if _target_entry["sol_q"] >= 0 and _target_entry["jf_q"] < 0:
+                    print(f' O queridômetro de {_sorteado.split()[0]} era <span style="color:#2ecc71;">positivo ({_target_entry["sol_q"]:+.2f})</span> enquanto {_oponente.split()[0]} era <span style="color:#e74c3c;">negativo ({_target_entry["jf_q"]:+.2f})</span> — sugerindo que {_oponente.split()[0]} puxou a decisão.')
+                print('</div>\n')
+
+            # ── 3. Overlap de Hostilidade ─────────────────────────────────
+            print(f"### 🔀 Overlap de hostilidade\n")
+            print(f'<p style="color:#aaa; font-size:0.85em;">Classificação dos alvos por onde {_sorteado.split()[0]} e {_oponente.split()[0]} concordam/discordam (baseado no score pré-duelo).</p>\n')
+
+            _both_neg = []
+            _sol_only = []
+            _jf_only = []
+            _both_pos = []
+            for _c in _combined:
+                s_neg = _c["sol_score"] < 0
+                j_neg = _c["jf_score"] < 0
+                if s_neg and j_neg:
+                    _both_neg.append(_c)
+                elif s_neg and not j_neg:
+                    _sol_only.append(_c)
+                elif not s_neg and j_neg:
+                    _jf_only.append(_c)
+                else:
+                    _both_pos.append(_c)
+
+            def _render_overlap_box(title, color, rgba_bg, items, emoji):
+                if not items:
+                    return
+                print(f'<div style="background:{rgba_bg}; border:1px solid {color}; border-radius:10px; padding:0.8rem; margin:0.6rem 0;">')
+                print(f'<h5 style="color:{color}; margin-top:0;">{emoji} {title} ({len(items)})</h5>')
+                print('<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">')
+                for _it in items:
+                    _av_it = AVATARS.get(_it["name"], '')
+                    _img_it = f'<img src="{_av_it}" style="width:28px; height:28px; border-radius:50%; vertical-align:middle; margin-right:3px; border:2px solid {color};">' if _av_it else ''
+                    _mark = ' ⭐' if _it["name"] == _consenso_target else ''
+                    print(f'<span style="background:rgba(0,0,0,0.3); padding:0.3rem 0.6rem; border-radius:8px; font-size:0.85em;">{_img_it}<strong>{_it["name"]}</strong>{_mark} <span style="color:#888;">({_it["combined"]:+.2f})</span></span>')
+                print('</div></div>')
+
+            _render_overlap_box(f"Ambos negativos — consenso natural", "#e74c3c", "rgba(231,76,60,0.08)", _both_neg, "🔴")
+            _render_overlap_box(f"Só {_sorteado.split()[0]} negativ{artigo(_sorteado).replace('o','a') if artigo(_sorteado)=='a' else 'o'}", "#e67e22", "rgba(230,126,34,0.08)", _sol_only, "🟠")
+            _render_overlap_box(f"Só {_oponente.split()[0]} negativo", "#f1c40f", "rgba(241,196,15,0.08)", _jf_only, "🟡")
+            _render_overlap_box(f"Ambos positivos — seguro", "#2ecc71", "rgba(46,204,113,0.08)", _both_pos, "🟢")
+
+            # Highlight contradiction if target is not in both_neg
+            _target_in_both_neg = any(_c["name"] == _consenso_target for _c in _both_neg)
+            if not _target_in_both_neg:
+                _target_cat = "só negativo para " + _oponente.split()[0] if any(_c["name"] == _consenso_target for _c in _jf_only) else "só negativo para " + _sorteado.split()[0] if any(_c["name"] == _consenso_target for _c in _sol_only) else "positivo para ambos"
+                print(f'\n<div style="background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.3); border-radius:8px; padding:0.8rem; margin:0.8rem 0;">')
+                print(f'<strong style="color:#f1c40f;">⚠️ Nota:</strong> {_consenso_target} estava na categoria <em>"{_target_cat}"</em> pré-duelo — não era um alvo de consenso natural. Havia {len(_both_neg)} alvo(s) que ambos tinham score negativo.')
+                print(f'</div>\n')
+
+            # ── 4. Queridômetro últimos 14 dias ───────────────────────────
+            print(f"### 📅 Queridômetro — Últimos 14 dias\n")
+            print(f'<p style="color:#aaa; font-size:0.85em;">Reações diárias entre os duelistas e {_consenso_target}. Cada emoji mostra o que o participante deu naquele dia.</p>\n')
+
+            # Get last 14 daily snapshots
+            _last14 = daily_snapshots[-14:] if len(daily_snapshots) >= 14 else daily_snapshots
+            _last14_mat = daily_matrices[-14:] if len(daily_matrices) >= 14 else daily_matrices
+
+            _q_pairs = [
+                (_sorteado, _consenso_target, f"{_sorteado.split()[0]} → {_consenso_target}"),
+                (_oponente, _consenso_target, f"{_oponente.split()[0]} → {_consenso_target}"),
+                (_consenso_target, _sorteado, f"{_consenso_target} → {_sorteado.split()[0]}"),
+                (_consenso_target, _oponente, f"{_consenso_target} → {_oponente.split()[0]}"),
+            ]
+
+            print('<table class="table" style="max-width:100%; font-size:0.85rem; white-space:nowrap;">')
+            print('<thead><tr><th>Par</th>')
+            for _snap in _last14:
+                _d = _snap["date"]
+                _d_short = _d[5:]  # MM-DD
+                print(f'<th style="text-align:center; font-size:0.75em; color:#888; padding:0.2rem;">{_d_short}</th>')
+            print('</tr></thead><tbody>')
+
+            for _actor, _target_q, _label in _q_pairs:
+                _av_a = AVATARS.get(_actor, '')
+                _img_a = f'<img src="{_av_a}" style="width:18px; height:18px; border-radius:50%; vertical-align:middle; margin-right:2px;">' if _av_a else ''
+                print(f'<tr><td style="white-space:nowrap;">{_img_a}{_label}</td>')
+                for _snap, _mat in zip(_last14, _last14_mat):
+                    _reaction = _mat.get(_actor, {}).get(_target_q, '')
+                    if _reaction:
+                        _emoji = REACTION_EMOJI.get(_reaction, _reaction)
+                        _is_pos = _reaction in POSITIVE
+                        _is_strong_neg = _reaction in STRONG_NEGATIVE
+                        _bg = 'rgba(46,204,113,0.15)' if _is_pos else 'rgba(231,76,60,0.2)' if _is_strong_neg else 'rgba(241,196,15,0.1)'
+                        print(f'<td style="text-align:center; background:{_bg}; padding:0.2rem;" title="{_reaction}">{_emoji}</td>')
+                    else:
+                        print(f'<td style="text-align:center; color:#444; padding:0.2rem;">·</td>')
+                print('</tr>')
+            print('</tbody></table>\n')
+
+            # Highlight contradiction if Sol gave hearts but nominated
+            _sol_hearts_to_target = sum(1 for _snap, _mat in zip(_last14, _last14_mat)
+                                         if _mat.get(_sorteado, {}).get(_consenso_target, '') in POSITIVE)
+            _sol_total_days = sum(1 for _snap, _mat in zip(_last14, _last14_mat)
+                                  if _mat.get(_sorteado, {}).get(_consenso_target, ''))
+            if _sol_hearts_to_target > 0 and _sol_total_days > 0:
+                _pct_hearts = _sol_hearts_to_target / _sol_total_days * 100
+                if _pct_hearts >= 30:
+                    print(f'<div style="background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.3); border-radius:8px; padding:0.8rem; margin:0.5rem 0;">')
+                    print(f'<strong style="color:#f1c40f;">⚠️ Contradição:</strong> {_sorteado.split()[0]} deu ❤️ para {_consenso_target} em {_sol_hearts_to_target} de {_sol_total_days} dias ({_pct_hearts:.0f}%) nos últimos 14 dias, mas a indicou no Duelo de Risco.')
+                    print(f'</div>\n')
+
+            # ── 5. Perfil de rejeição (incoming scores) ──────────────────
+            print(f"### 🎯 Perfil de rejeição — Quem mais rejeita {_consenso_target}?\n")
+            print(f'<p style="color:#aaa; font-size:0.85em;">Scores de todos os participantes em direção a {_consenso_target} (pré-duelo). Contextualiza se {_consenso_target} era amplamente rejeitad{artigo(_consenso_target)} ou um alvo estratégico isolado.</p>\n')
+
+            # Gather all incoming scores toward the target
+            _incoming = []
+            for _actor_name in _dr_active:
+                if _actor_name == _consenso_target:
+                    continue
+                _a_entry = _dr_pairs.get(_actor_name, {}).get(_consenso_target, {})
+                if not _a_entry:
+                    continue
+                _a_score = _a_entry.get("score", 0)
+                # Subtract indicação edge if this actor has one
+                if _actor_name in _dr_ind_weight:
+                    _a_score -= _dr_ind_weight[_actor_name]
+                _incoming.append({"name": _actor_name, "score": _a_score})
+            _incoming.sort(key=lambda x: x["score"])
+
+            if _incoming:
+                _max_abs = max(abs(_inc["score"]) for _inc in _incoming) or 1
+                print('<div style="max-width:600px;">')
+                for _inc in _incoming:
+                    _bar_pct = abs(_inc["score"]) / _max_abs * 100
+                    _bar_color = '#e74c3c' if _inc["score"] < -2 else '#e67e22' if _inc["score"] < 0 else '#2ecc71'
+                    _is_duelist = _inc["name"] in (_sorteado, _oponente)
+                    _mark = ' ⚔️' if _is_duelist else ''
+                    _av_inc = AVATARS.get(_inc["name"], '')
+                    _img_inc = f'<img src="{_av_inc}" style="width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av_inc else ''
+                    print(f'<div style="display:flex; align-items:center; margin:0.25rem 0; font-size:0.85em;">')
+                    print(f'<span style="width:150px; text-align:right; padding-right:0.5rem; white-space:nowrap;">{_img_inc}{_inc["name"]}{_mark}</span>')
+                    if _inc["score"] < 0:
+                        print(f'<div style="width:{_bar_pct:.0f}%; height:16px; background:{_bar_color}; border-radius:3px; margin-right:0.3rem;"></div>')
+                    else:
+                        print(f'<div style="width:{_bar_pct:.0f}%; height:16px; background:{_bar_color}; border-radius:3px; margin-right:0.3rem;"></div>')
+                    print(f'<span style="color:{_bar_color}; font-weight:bold;">{_inc["score"]:+.2f}</span>')
+                    print(f'</div>')
+                print('</div>\n')
+
+                _n_neg = sum(1 for _inc in _incoming if _inc["score"] < 0)
+                _n_total = len(_incoming)
+                print(f'<div style="background:rgba(155,89,182,0.1); border:1px solid rgba(155,89,182,0.3); border-radius:8px; padding:0.8rem; margin:0.5rem 0;">')
+                print(f'<strong style="color:#9b59b6;">📊 Resumo:</strong> {_n_neg} de {_n_total} participantes tinham score negativo em direção a {_consenso_target} pré-duelo.')
+                if _n_neg <= 3:
+                    print(f' Rejeição concentrada em poucos — <strong>alvo mais estratégico que consensual</strong>.')
+                elif _n_neg >= _n_total * 0.5:
+                    print(f' Rejeição ampla — <strong>alvo de consenso natural</strong>.')
+                print(f'</div>\n')
+
         # ── Enquetes do Votalhada (em andamento) ──
         poll = get_poll_for_paredao(polls_data, ultimo['numero'])
         if poll:
@@ -1000,9 +1330,13 @@ if _show_prediction:
         # ── Líder's scores toward all participants ────────────────────
         _lider_scores = _pairs_daily.get(_lider_name, {})
 
-        # Eligible targets: active participants minus the Líder
+        # Eligible targets: active participants minus the Líder and already-nominated
+        _already_nominated = set()
+        if ultimo and ultimo.get('status') == 'em_andamento':
+            _already_nominated = {p['nome'] for p in ultimo.get('participantes', [])}
         _eligible = {name: entry for name, entry in _lider_scores.items()
-                     if name in _active_names and name != _lider_name}
+                     if name in _active_names and name != _lider_name
+                     and name not in _already_nominated}
 
         # Rank by score ascending (most negative = most likely target)
         _ranked = sorted(_eligible.items(), key=lambda x: x[1].get("score", 0))
