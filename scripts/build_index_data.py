@@ -2,9 +2,12 @@
 """Build derived index data for index.qmd (lightweight tables)."""
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections import defaultdict, Counter
+
+UTC = timezone.utc
+BRT = timezone(timedelta(hours=-3))
 
 from data_utils import (
     load_snapshot, build_reaction_matrix, parse_roles, calc_sentiment,
@@ -200,13 +203,29 @@ def build_big_fone_consensus(
     }
 
 
+def utc_to_game_date(utc_dt):
+    """Convert a UTC datetime to the BBB game date (BRT-based).
+
+    Captures between midnight and 06:00 BRT belong to the previous
+    game day (no Raio-X happens overnight).
+    """
+    brt_dt = utc_dt.astimezone(BRT)
+    if brt_dt.hour < 6:
+        brt_dt = brt_dt - timedelta(days=1)
+    return brt_dt.strftime("%Y-%m-%d")
+
+
 def get_all_snapshots():
     if not DATA_DIR.exists():
         return []
     snapshots = sorted(DATA_DIR.glob("*.json"))
     items = []
     for fp in snapshots:
-        date_str = fp.stem.split("_")[0]
+        try:
+            utc_dt = datetime.strptime(fp.stem, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=UTC)
+            date_str = utc_to_game_date(utc_dt)
+        except ValueError:
+            date_str = fp.stem.split("_")[0]
         participants, meta = load_snapshot(fp)
         items.append({
             "file": str(fp),

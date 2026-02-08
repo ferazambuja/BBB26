@@ -84,7 +84,7 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Analysis descriptions: `ANALYSIS_DESCRIPTIONS` — centralized explanation text for QMD pages (composite score, profiles intro/footer, vulnerability explanation). Single source of truth for scoring descriptions shown to users.
 - Theme colors: `PLOT_BG`, `PAPER_BG`, `GRID_COLOR`, `TEXT_COLOR`, `BBB_COLORWAY`
 - Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
-- Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
+- Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `utc_to_game_date()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
 - Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
 - Timeline rendering: `render_cronologia_html()`, `TIMELINE_CAT_COLORS`, `TIMELINE_CAT_LABELS`
 - Votalhada helpers: `MONTH_MAP_PT`, `parse_votalhada_hora()`, `make_poll_timeseries()`
@@ -160,6 +160,12 @@ When a participant misses the morning Raio-X, the API returns them with 0 outgoi
 - New format wraps data: `{ "_metadata": {...}, "participants": [...] }`; old format is just the raw array.
 - `scripts/fetch_data.py` handles both formats and saves only when data hash changes.
 - **Synthetic snapshots** have `_metadata.synthetic = true`.
+
+### Snapshot Timestamps (UTC)
+- **Filenames are always UTC**: `YYYY-MM-DD_HH-MM-SS.json` in UTC.
+- **`_metadata.captured_at`**: ISO 8601 with `+00:00` UTC timezone suffix.
+- **Game-date extraction**: `utc_to_game_date()` converts UTC→BRT and applies a 06:00 BRT cutoff. Captures before 06:00 BRT belong to the **previous** game day (no Raio-X happens overnight). This is used by `get_all_snapshots()` and `get_daily_snapshots()` in all scripts.
+- **`fetch_data.py`** uses `datetime.now(timezone.utc)` for both filenames and metadata.
 
 ### Data Sources (auto vs manual vs derived)
 

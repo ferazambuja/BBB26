@@ -28,6 +28,8 @@ gh workflow run daily-update.yml
 
 **Key rule**: The bot only touches `data/` files. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
 
+**Snapshot filenames are UTC**: Files in `data/snapshots/` use UTC timestamps. Game dates (for daily dedup) are derived by converting UTC→BRT with a 06:00 BRT cutoff (captures before 06:00 BRT → previous game day). See `utc_to_game_date()` in `data_utils.py`.
+
 ### Handling Extraordinary Events (mid-day manual updates)
 
 When something unexpected happens (e.g., surprise disqualification, mid-week dynamic):

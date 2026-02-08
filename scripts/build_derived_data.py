@@ -5,7 +5,7 @@ Outputs go to data/derived/ and are meant to be reused by QMD pages.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections import defaultdict
 
@@ -15,6 +15,9 @@ from data_utils import (
     build_reaction_matrix, patch_missing_raio_x,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
 )
+
+UTC = timezone.utc
+BRT = timezone(timedelta(hours=-3))
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
 MANUAL_EVENTS_FILE = Path(__file__).parent.parent / "data" / "manual_events.json"
@@ -147,13 +150,29 @@ def load_snapshot(filepath):
     return data, {}
 
 
+def utc_to_game_date(utc_dt):
+    """Convert a UTC datetime to the BBB game date (BRT-based).
+
+    Captures between midnight and 06:00 BRT belong to the previous
+    game day (no Raio-X happens overnight).
+    """
+    brt_dt = utc_dt.astimezone(BRT)
+    if brt_dt.hour < 6:
+        brt_dt = brt_dt - timedelta(days=1)
+    return brt_dt.strftime("%Y-%m-%d")
+
+
 def get_all_snapshots():
     if not DATA_DIR.exists():
         return []
     snapshots = sorted(DATA_DIR.glob("*.json"))
     items = []
     for fp in snapshots:
-        date_str = fp.stem.split("_")[0]
+        try:
+            utc_dt = datetime.strptime(fp.stem, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=UTC)
+            date_str = utc_to_game_date(utc_dt)
+        except ValueError:
+            date_str = fp.stem.split("_")[0]
         participants, meta = load_snapshot(fp)
         items.append({
             "file": str(fp),
@@ -3272,7 +3291,7 @@ def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
 
     return {
         "_metadata": {
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "n_weeks": len(timeline),
             "total_transitions": len(all_transitions),
         },

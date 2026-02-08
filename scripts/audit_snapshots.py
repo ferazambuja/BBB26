@@ -11,7 +11,7 @@ import json
 import hashlib
 from pathlib import Path
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def get_data_hash(filepath):
@@ -39,9 +39,9 @@ def extract_timestamp(filename):
 
 
 def parse_timestamp(ts_str):
-    """Parse timestamp string to datetime."""
+    """Parse timestamp string to datetime (UTC-aware)."""
     try:
-        return datetime.strptime(ts_str, "%Y-%m-%d_%H-%M-%S")
+        return datetime.strptime(ts_str, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=timezone.utc)
     except ValueError:
         return None
 

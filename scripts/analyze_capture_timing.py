@@ -44,8 +44,8 @@ def load_snapshots_with_metadata():
         try:
             dt = datetime.fromisoformat(captured)
             if dt.tzinfo is None:
-                # Assume local time (BRT) for timestamps without timezone
-                dt = dt.replace(tzinfo=BRT)
+                # Naive timestamps are UTC (from datetime.now(timezone.utc))
+                dt = dt.replace(tzinfo=timezone.utc)
         except ValueError:
             continue
         snapshots.append({

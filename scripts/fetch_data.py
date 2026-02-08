@@ -26,7 +26,7 @@ import argparse
 import requests
 import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 API_URL = "https://apis-globoplay.globo.com/mve-api/globo-play/realities/bbb/participants/"
@@ -145,13 +145,13 @@ def fetch_and_save():
         change_types = ["initial"]
 
     # Save new snapshot with timestamp
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
     snapshot_path = DATA_DIR / f"{timestamp}.json"
 
     # Include metadata in saved file
     save_data = {
         "_metadata": {
-            "captured_at": datetime.now().isoformat(),
+            "captured_at": datetime.now(timezone.utc).isoformat(),
             "api_url": API_URL,
             "data_hash": new_hash,
             "participant_count": len(new_data),

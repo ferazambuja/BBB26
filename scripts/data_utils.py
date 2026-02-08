@@ -12,8 +12,11 @@ This module is the SINGLE SOURCE OF TRUTH for:
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+UTC = timezone.utc
+BRT = timezone(timedelta(hours=-3))
 
 
 # ══════════════════════════════════════════════════════════════
@@ -285,14 +288,37 @@ def load_snapshot(filepath):
     return data, {}
 
 
+def utc_to_game_date(utc_dt):
+    """Convert a UTC datetime to the BBB game date (BRT-based).
+
+    The BBB game day runs roughly 06:00 BRT to 06:00 BRT next day.
+    Captures between midnight and 06:00 BRT belong to the previous
+    game day (no Raio-X happens overnight, so the data is still from
+    the prior day's cycle).
+    """
+    brt_dt = utc_dt.astimezone(BRT)
+    if brt_dt.hour < 6:
+        brt_dt = brt_dt - timedelta(days=1)
+    return brt_dt.strftime("%Y-%m-%d")
+
+
 def get_all_snapshots(data_dir=Path("data/snapshots")):
-    """Return list of (filepath, date_str) sorted by filename."""
+    """Return list of (filepath, date_str) sorted by filename.
+
+    Filenames are UTC timestamps. date_str is the BRT game date
+    (since BBB airs in Brazil and the game day follows BRT).
+    Captures between 00:00-06:00 BRT are attributed to the previous day.
+    """
     if not data_dir.exists():
         return []
     snapshots = sorted(data_dir.glob("*.json"))
     result = []
     for fp in snapshots:
-        date_str = fp.stem.split("_")[0]
+        try:
+            utc_dt = datetime.strptime(fp.stem, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=UTC)
+            date_str = utc_to_game_date(utc_dt)
+        except ValueError:
+            date_str = fp.stem.split("_")[0]
         result.append((fp, date_str))
     return result
 
