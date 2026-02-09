@@ -3880,8 +3880,8 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
             indicator_pairs.append({"actor": lider, "target": indicado_lider, "type": "lider"})
 
         contragolpe = formacao.get("contragolpe")
-        if contragolpe and contragolpe.get("de") and contragolpe.get("indicou"):
-            indicator_pairs.append({"actor": contragolpe["de"], "target": contragolpe["indicou"], "type": "contragolpe"})
+        if contragolpe and contragolpe.get("de") and contragolpe.get("para"):
+            indicator_pairs.append({"actor": contragolpe["de"], "target": contragolpe["para"], "type": "contragolpe"})
 
         big_fone = formacao.get("big_fone")
         if big_fone and big_fone.get("atendeu") and big_fone.get("indicou"):

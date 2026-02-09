@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-09T03:34:46.989464+00:00",
+    "generated_at": "2026-02-09T03:48:50.833154+00:00",
     "source": "snapshots+paredoes+manual_events"
   },
   "by_paredao": {
@@ -360,6 +360,24 @@
           "days_mutual_friends": 0,
           "change_date": "2026-01-16",
           "narrative": "Foram amigos por 1 dias, romperam em 2026-01-16.",
+          "total_days": 6
+        },
+        "Aline Campos→Ana Paula Renault": {
+          "pattern": "sempre_inimigos",
+          "days_as_friends": 0,
+          "days_as_enemies": 6,
+          "days_mutual_friends": 0,
+          "change_date": null,
+          "narrative": "Inimigos desde o início (6 dias).",
+          "total_days": 6
+        },
+        "Ana Paula Renault→Aline Campos": {
+          "pattern": "sempre_inimigos",
+          "days_as_friends": 0,
+          "days_as_enemies": 6,
+          "days_mutual_friends": 0,
+          "change_date": null,
+          "narrative": "Inimigos desde o início (6 dias).",
           "total_days": 6
         },
         "Marcelo→Aline Campos": {
@@ -791,6 +809,11 @@
           "type": "lider"
         },
         {
+          "actor": "Aline Campos",
+          "target": "Ana Paula Renault",
+          "type": "contragolpe"
+        },
+        {
           "actor": "Marcelo",
           "target": "Aline Campos",
           "type": "big_fone"
@@ -805,6 +828,15 @@
           "target_to_actor": "💼",
           "actor_to_target_raw": "Alvo",
           "target_to_actor_raw": "Mala"
+        },
+        {
+          "actor": "Aline Campos",
+          "target": "Ana Paula Renault",
+          "type": "contragolpe",
+          "actor_to_target": "🐍",
+          "target_to_actor": "🌱",
+          "actor_to_target_raw": "Cobra",
+          "target_to_actor_raw": "Planta"
         },
         {
           "actor": "Marcelo",
@@ -2646,7 +2678,10 @@
       "status": "em_andamento",
       "data_formacao": "2026-02-08",
       "indicados": [
-        "Samira"
+        "Samira",
+        "Babu Santana",
+        "Sarah Andrade",
+        "Sol Vega"
       ],
       "quick_insights": {
         "analysis_date": "2026-02-08",
@@ -2660,6 +2695,36 @@
             "dias_bottom5": 3,
             "dias_negativos": "1/27 (4%)",
             "negs_recebidas": 11
+          },
+          {
+            "nome": "Babu Santana",
+            "sentimento": 6.0,
+            "rank": 2,
+            "delta_3d": "≈ +0.2",
+            "dias_top5": 18,
+            "dias_bottom5": 0,
+            "dias_negativos": "0/27 (0%)",
+            "negs_recebidas": 7
+          },
+          {
+            "nome": "Sarah Andrade",
+            "sentimento": 2.5,
+            "rank": 10,
+            "delta_3d": "▲ +0.8",
+            "dias_top5": 1,
+            "dias_bottom5": 4,
+            "dias_negativos": "0/27 (0%)",
+            "negs_recebidas": 9
+          },
+          {
+            "nome": "Sol Vega",
+            "sentimento": 3.0,
+            "rank": 7,
+            "delta_3d": "≈ -0.3",
+            "dias_top5": 2,
+            "dias_bottom5": 8,
+            "dias_negativos": "0/27 (0%)",
+            "negs_recebidas": 9
           }
         ],
         "historical_series": [
@@ -2669,9 +2734,39 @@
             "sentiment": 14.5
           },
           {
+            "date": "2026-01-13",
+            "name": "Babu Santana",
+            "sentiment": 20.0
+          },
+          {
+            "date": "2026-01-13",
+            "name": "Sarah Andrade",
+            "sentiment": 16.5
+          },
+          {
+            "date": "2026-01-13",
+            "name": "Sol Vega",
+            "sentiment": 18.5
+          },
+          {
             "date": "2026-01-14",
             "name": "Samira",
             "sentiment": 14.5
+          },
+          {
+            "date": "2026-01-14",
+            "name": "Babu Santana",
+            "sentiment": 20.0
+          },
+          {
+            "date": "2026-01-14",
+            "name": "Sarah Andrade",
+            "sentiment": 16.5
+          },
+          {
+            "date": "2026-01-14",
+            "name": "Sol Vega",
+            "sentiment": 18.5
           },
           {
             "date": "2026-01-15",
@@ -2679,9 +2774,39 @@
             "sentiment": 17.5
           },
           {
+            "date": "2026-01-15",
+            "name": "Babu Santana",
+            "sentiment": 19.0
+          },
+          {
+            "date": "2026-01-15",
+            "name": "Sarah Andrade",
+            "sentiment": 12.5
+          },
+          {
+            "date": "2026-01-15",
+            "name": "Sol Vega",
+            "sentiment": 4.5
+          },
+          {
             "date": "2026-01-16",
             "name": "Samira",
             "sentiment": 13.0
+          },
+          {
+            "date": "2026-01-16",
+            "name": "Babu Santana",
+            "sentiment": 19.0
+          },
+          {
+            "date": "2026-01-16",
+            "name": "Sarah Andrade",
+            "sentiment": 16.0
+          },
+          {
+            "date": "2026-01-16",
+            "name": "Sol Vega",
+            "sentiment": 8.5
           },
           {
             "date": "2026-01-17",
@@ -2689,9 +2814,39 @@
             "sentiment": 14.0
           },
           {
+            "date": "2026-01-17",
+            "name": "Babu Santana",
+            "sentiment": 19.0
+          },
+          {
+            "date": "2026-01-17",
+            "name": "Sarah Andrade",
+            "sentiment": 14.5
+          },
+          {
+            "date": "2026-01-17",
+            "name": "Sol Vega",
+            "sentiment": 12.5
+          },
+          {
             "date": "2026-01-18",
             "name": "Samira",
             "sentiment": 15.0
+          },
+          {
+            "date": "2026-01-18",
+            "name": "Babu Santana",
+            "sentiment": 23.0
+          },
+          {
+            "date": "2026-01-18",
+            "name": "Sarah Andrade",
+            "sentiment": 18.5
+          },
+          {
+            "date": "2026-01-18",
+            "name": "Sol Vega",
+            "sentiment": 13.5
           },
           {
             "date": "2026-01-19",
@@ -2699,9 +2854,39 @@
             "sentiment": 14.5
           },
           {
+            "date": "2026-01-19",
+            "name": "Babu Santana",
+            "sentiment": 22.0
+          },
+          {
+            "date": "2026-01-19",
+            "name": "Sarah Andrade",
+            "sentiment": 14.5
+          },
+          {
+            "date": "2026-01-19",
+            "name": "Sol Vega",
+            "sentiment": 11.0
+          },
+          {
             "date": "2026-01-20",
             "name": "Samira",
             "sentiment": 14.5
+          },
+          {
+            "date": "2026-01-20",
+            "name": "Babu Santana",
+            "sentiment": 16.5
+          },
+          {
+            "date": "2026-01-20",
+            "name": "Sarah Andrade",
+            "sentiment": 13.5
+          },
+          {
+            "date": "2026-01-20",
+            "name": "Sol Vega",
+            "sentiment": 3.5
           },
           {
             "date": "2026-01-21",
@@ -2709,9 +2894,39 @@
             "sentiment": 19.5
           },
           {
+            "date": "2026-01-21",
+            "name": "Babu Santana",
+            "sentiment": 17.5
+          },
+          {
+            "date": "2026-01-21",
+            "name": "Sarah Andrade",
+            "sentiment": 13.0
+          },
+          {
+            "date": "2026-01-21",
+            "name": "Sol Vega",
+            "sentiment": 2.5
+          },
+          {
             "date": "2026-01-22",
             "name": "Samira",
             "sentiment": 19.0
+          },
+          {
+            "date": "2026-01-22",
+            "name": "Babu Santana",
+            "sentiment": 19.5
+          },
+          {
+            "date": "2026-01-22",
+            "name": "Sarah Andrade",
+            "sentiment": 14.0
+          },
+          {
+            "date": "2026-01-22",
+            "name": "Sol Vega",
+            "sentiment": 10.0
           },
           {
             "date": "2026-01-23",
@@ -2719,9 +2934,39 @@
             "sentiment": 18.0
           },
           {
+            "date": "2026-01-23",
+            "name": "Babu Santana",
+            "sentiment": 16.5
+          },
+          {
+            "date": "2026-01-23",
+            "name": "Sarah Andrade",
+            "sentiment": 14.0
+          },
+          {
+            "date": "2026-01-23",
+            "name": "Sol Vega",
+            "sentiment": 4.0
+          },
+          {
             "date": "2026-01-24",
             "name": "Samira",
             "sentiment": 15.0
+          },
+          {
+            "date": "2026-01-24",
+            "name": "Babu Santana",
+            "sentiment": 19.5
+          },
+          {
+            "date": "2026-01-24",
+            "name": "Sarah Andrade",
+            "sentiment": 12.0
+          },
+          {
+            "date": "2026-01-24",
+            "name": "Sol Vega",
+            "sentiment": 5.0
           },
           {
             "date": "2026-01-25",
@@ -2729,9 +2974,39 @@
             "sentiment": 16.5
           },
           {
+            "date": "2026-01-25",
+            "name": "Babu Santana",
+            "sentiment": 16.0
+          },
+          {
+            "date": "2026-01-25",
+            "name": "Sarah Andrade",
+            "sentiment": 12.5
+          },
+          {
+            "date": "2026-01-25",
+            "name": "Sol Vega",
+            "sentiment": 8.0
+          },
+          {
             "date": "2026-01-26",
             "name": "Samira",
             "sentiment": 13.0
+          },
+          {
+            "date": "2026-01-26",
+            "name": "Babu Santana",
+            "sentiment": 16.5
+          },
+          {
+            "date": "2026-01-26",
+            "name": "Sarah Andrade",
+            "sentiment": 12.5
+          },
+          {
+            "date": "2026-01-26",
+            "name": "Sol Vega",
+            "sentiment": 6.0
           },
           {
             "date": "2026-01-27",
@@ -2739,9 +3014,39 @@
             "sentiment": 12.5
           },
           {
+            "date": "2026-01-27",
+            "name": "Babu Santana",
+            "sentiment": 7.5
+          },
+          {
+            "date": "2026-01-27",
+            "name": "Sarah Andrade",
+            "sentiment": 8.0
+          },
+          {
+            "date": "2026-01-27",
+            "name": "Sol Vega",
+            "sentiment": 7.0
+          },
+          {
             "date": "2026-01-28",
             "name": "Samira",
             "sentiment": 9.0
+          },
+          {
+            "date": "2026-01-28",
+            "name": "Babu Santana",
+            "sentiment": 12.5
+          },
+          {
+            "date": "2026-01-28",
+            "name": "Sarah Andrade",
+            "sentiment": 7.0
+          },
+          {
+            "date": "2026-01-28",
+            "name": "Sol Vega",
+            "sentiment": 7.5
           },
           {
             "date": "2026-01-29",
@@ -2749,9 +3054,39 @@
             "sentiment": 8.5
           },
           {
+            "date": "2026-01-29",
+            "name": "Babu Santana",
+            "sentiment": 10.0
+          },
+          {
+            "date": "2026-01-29",
+            "name": "Sarah Andrade",
+            "sentiment": 6.5
+          },
+          {
+            "date": "2026-01-29",
+            "name": "Sol Vega",
+            "sentiment": 7.0
+          },
+          {
             "date": "2026-01-30",
             "name": "Samira",
             "sentiment": 8.5
+          },
+          {
+            "date": "2026-01-30",
+            "name": "Babu Santana",
+            "sentiment": 11.5
+          },
+          {
+            "date": "2026-01-30",
+            "name": "Sarah Andrade",
+            "sentiment": 10.5
+          },
+          {
+            "date": "2026-01-30",
+            "name": "Sol Vega",
+            "sentiment": 5.0
           },
           {
             "date": "2026-01-31",
@@ -2759,9 +3094,39 @@
             "sentiment": 12.0
           },
           {
+            "date": "2026-01-31",
+            "name": "Babu Santana",
+            "sentiment": 10.5
+          },
+          {
+            "date": "2026-01-31",
+            "name": "Sarah Andrade",
+            "sentiment": 7.5
+          },
+          {
+            "date": "2026-01-31",
+            "name": "Sol Vega",
+            "sentiment": 5.5
+          },
+          {
             "date": "2026-02-01",
             "name": "Samira",
             "sentiment": 11.0
+          },
+          {
+            "date": "2026-02-01",
+            "name": "Babu Santana",
+            "sentiment": 7.0
+          },
+          {
+            "date": "2026-02-01",
+            "name": "Sarah Andrade",
+            "sentiment": 6.5
+          },
+          {
+            "date": "2026-02-01",
+            "name": "Sol Vega",
+            "sentiment": 5.0
           },
           {
             "date": "2026-02-02",
@@ -2769,9 +3134,39 @@
             "sentiment": 4.5
           },
           {
+            "date": "2026-02-02",
+            "name": "Babu Santana",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-02-02",
+            "name": "Sarah Andrade",
+            "sentiment": 5.0
+          },
+          {
+            "date": "2026-02-02",
+            "name": "Sol Vega",
+            "sentiment": 1.0
+          },
+          {
             "date": "2026-02-03",
             "name": "Samira",
             "sentiment": 4.5
+          },
+          {
+            "date": "2026-02-03",
+            "name": "Babu Santana",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-02-03",
+            "name": "Sarah Andrade",
+            "sentiment": 5.0
+          },
+          {
+            "date": "2026-02-03",
+            "name": "Sol Vega",
+            "sentiment": 1.0
           },
           {
             "date": "2026-02-04",
@@ -2779,9 +3174,39 @@
             "sentiment": 5.5
           },
           {
+            "date": "2026-02-04",
+            "name": "Babu Santana",
+            "sentiment": 4.0
+          },
+          {
+            "date": "2026-02-04",
+            "name": "Sarah Andrade",
+            "sentiment": 0.5
+          },
+          {
+            "date": "2026-02-04",
+            "name": "Sol Vega",
+            "sentiment": 3.0
+          },
+          {
             "date": "2026-02-05",
             "name": "Samira",
             "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-05",
+            "name": "Babu Santana",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-02-05",
+            "name": "Sarah Andrade",
+            "sentiment": 1.0
+          },
+          {
+            "date": "2026-02-05",
+            "name": "Sol Vega",
+            "sentiment": 3.0
           },
           {
             "date": "2026-02-06",
@@ -2789,31 +3214,574 @@
             "sentiment": 4.5
           },
           {
+            "date": "2026-02-06",
+            "name": "Babu Santana",
+            "sentiment": 6.0
+          },
+          {
+            "date": "2026-02-06",
+            "name": "Sarah Andrade",
+            "sentiment": 1.0
+          },
+          {
+            "date": "2026-02-06",
+            "name": "Sol Vega",
+            "sentiment": 3.5
+          },
+          {
             "date": "2026-02-07",
             "name": "Samira",
             "sentiment": 5.5
           },
           {
+            "date": "2026-02-07",
+            "name": "Babu Santana",
+            "sentiment": 6.0
+          },
+          {
+            "date": "2026-02-07",
+            "name": "Sarah Andrade",
+            "sentiment": 3.0
+          },
+          {
+            "date": "2026-02-07",
+            "name": "Sol Vega",
+            "sentiment": 3.5
+          },
+          {
             "date": "2026-02-08",
             "name": "Samira",
             "sentiment": -1.5
+          },
+          {
+            "date": "2026-02-08",
+            "name": "Babu Santana",
+            "sentiment": 6.0
+          },
+          {
+            "date": "2026-02-08",
+            "name": "Sarah Andrade",
+            "sentiment": 2.5
+          },
+          {
+            "date": "2026-02-08",
+            "name": "Sol Vega",
+            "sentiment": 3.0
           }
         ],
         "negs_recebidas": {
-          "Samira": 11
+          "Samira": 11,
+          "Babu Santana": 7,
+          "Sarah Andrade": 9,
+          "Sol Vega": 9
         }
       },
-      "relationship_history": {},
-      "vote_analysis": [],
+      "relationship_history": {
+        "Milena→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 3,
+          "days_as_enemies": 24,
+          "days_mutual_friends": 1,
+          "change_date": "2026-01-20",
+          "narrative": "Foram amigos por 3 dias, romperam em 2026-01-20.",
+          "total_days": 27
+        },
+        "Samira→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 10,
+          "days_as_enemies": 17,
+          "days_mutual_friends": 9,
+          "change_date": "2026-01-27",
+          "narrative": "Foram amigos por 10 dias, romperam em 2026-01-27.",
+          "total_days": 27
+        },
+        "Ana Paula Renault→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 3,
+          "days_as_enemies": 24,
+          "days_mutual_friends": 3,
+          "change_date": "2026-01-18",
+          "narrative": "Foram amigos por 3 dias, romperam em 2026-01-18.",
+          "total_days": 27
+        },
+        "Breno→Sol Vega": {
+          "pattern": "reconciliados",
+          "days_as_friends": 26,
+          "days_as_enemies": 1,
+          "days_mutual_friends": 25,
+          "change_date": "2026-01-16",
+          "narrative": "Reconciliaram em 2026-01-16.",
+          "total_days": 27
+        },
+        "Solange Couto→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 4,
+          "days_as_enemies": 23,
+          "days_mutual_friends": 4,
+          "change_date": "2026-02-02",
+          "narrative": "Foram amigos por 4 dias, romperam em 2026-02-02.",
+          "total_days": 27
+        },
+        "Juliano Floss→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 4,
+          "days_as_enemies": 23,
+          "days_mutual_friends": 4,
+          "change_date": "2026-01-19",
+          "narrative": "Foram amigos por 4 dias, romperam em 2026-01-19.",
+          "total_days": 27
+        },
+        "Marcelo→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 3,
+          "days_as_enemies": 24,
+          "days_mutual_friends": 3,
+          "change_date": "2026-01-19",
+          "narrative": "Foram amigos por 3 dias, romperam em 2026-01-19.",
+          "total_days": 27
+        },
+        "Leandro→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 15,
+          "days_as_enemies": 7,
+          "days_mutual_friends": 12,
+          "change_date": "2026-02-02",
+          "narrative": "Foram amigos por 15 dias, romperam em 2026-02-02.",
+          "total_days": 22
+        },
+        "Babu Santana→Sol Vega": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 11,
+          "days_as_enemies": 16,
+          "days_mutual_friends": 7,
+          "change_date": "2026-01-30",
+          "narrative": "Foram amigos por 11 dias, romperam em 2026-01-30.",
+          "total_days": 27
+        },
+        "Chaiany→Sol Vega": {
+          "pattern": "recem_inimigos",
+          "days_as_friends": 19,
+          "days_as_enemies": 3,
+          "days_mutual_friends": 3,
+          "change_date": "2026-02-08",
+          "narrative": "Eram amigos por 19 dias, mudou há 1 dia(s)!",
+          "total_days": 22
+        },
+        "Alberto Cowboy→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 17,
+          "days_as_enemies": 10,
+          "days_mutual_friends": 11,
+          "change_date": "2026-01-31",
+          "narrative": "Foram amigos por 17 dias, romperam em 2026-01-31.",
+          "total_days": 27
+        },
+        "Marciele→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 19,
+          "days_as_enemies": 8,
+          "days_mutual_friends": 16,
+          "change_date": "2026-02-02",
+          "narrative": "Foram amigos por 19 dias, romperam em 2026-02-02.",
+          "total_days": 27
+        },
+        "Gabriela→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 19,
+          "days_as_enemies": 3,
+          "days_mutual_friends": 6,
+          "change_date": "2026-02-06",
+          "narrative": "Foram amigos por 19 dias, romperam em 2026-02-06.",
+          "total_days": 22
+        },
+        "Edilson→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 24,
+          "days_as_enemies": 3,
+          "days_mutual_friends": 16,
+          "change_date": "2026-02-06",
+          "narrative": "Foram amigos por 24 dias, romperam em 2026-02-06.",
+          "total_days": 27
+        },
+        "Sol Vega→Solange Couto": {
+          "pattern": "recem_inimigos",
+          "days_as_friends": 20,
+          "days_as_enemies": 7,
+          "days_mutual_friends": 4,
+          "change_date": "2026-02-08",
+          "narrative": "Eram amigos por 20 dias, mudou há 1 dia(s)!",
+          "total_days": 27
+        },
+        "Sarah Andrade→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 19,
+          "days_as_enemies": 8,
+          "days_mutual_friends": 12,
+          "change_date": "2026-02-06",
+          "narrative": "Foram amigos por 19 dias, romperam em 2026-02-06.",
+          "total_days": 27
+        },
+        "Jordana→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 15,
+          "days_as_enemies": 12,
+          "days_mutual_friends": 8,
+          "change_date": "2026-02-02",
+          "narrative": "Foram amigos por 15 dias, romperam em 2026-02-02.",
+          "total_days": 27
+        },
+        "Maxiane→Sol Vega": {
+          "pattern": "reconciliados",
+          "days_as_friends": 18,
+          "days_as_enemies": 9,
+          "days_mutual_friends": 15,
+          "change_date": "2026-02-04",
+          "narrative": "Reconciliaram em 2026-02-04.",
+          "total_days": 27
+        },
+        "Jonas Sulzbach→Babu Santana": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 18,
+          "days_as_enemies": 9,
+          "days_mutual_friends": 9,
+          "change_date": "2026-02-01",
+          "narrative": "Foram amigos por 18 dias, romperam em 2026-02-01.",
+          "total_days": 27
+        },
+        "Babu Santana→Jonas Sulzbach": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 9,
+          "days_as_enemies": 18,
+          "days_mutual_friends": 9,
+          "change_date": "2026-01-22",
+          "narrative": "Foram amigos por 9 dias, romperam em 2026-01-22.",
+          "total_days": 27
+        },
+        "Babu Santana→Sarah Andrade": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 14,
+          "days_as_enemies": 13,
+          "days_mutual_friends": 11,
+          "change_date": "2026-01-27",
+          "narrative": "Foram amigos por 14 dias, romperam em 2026-01-27.",
+          "total_days": 27
+        },
+        "Sarah Andrade→Babu Santana": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 11,
+          "days_as_enemies": 16,
+          "days_mutual_friends": 11,
+          "change_date": "2026-01-27",
+          "narrative": "Foram amigos por 11 dias, romperam em 2026-01-27.",
+          "total_days": 27
+        }
+      },
+      "vote_analysis": [
+        {
+          "votante": "Milena",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🐍",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 3 dias, romperam em 2026-01-20.",
+          "days_as_friends": 3,
+          "days_as_enemies": 24,
+          "days_mutual_friends": 1,
+          "change_date": "2026-01-20",
+          "total_days": 27
+        },
+        {
+          "votante": "Samira",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🎯",
+          "emoji_recebido": "🐍",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 10 dias, romperam em 2026-01-27.",
+          "days_as_friends": 10,
+          "days_as_enemies": 17,
+          "days_mutual_friends": 9,
+          "change_date": "2026-01-27",
+          "total_days": 27
+        },
+        {
+          "votante": "Ana Paula Renault",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🎯",
+          "emoji_recebido": "🐍",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 3 dias, romperam em 2026-01-18.",
+          "days_as_friends": 3,
+          "days_as_enemies": 24,
+          "days_mutual_friends": 3,
+          "change_date": "2026-01-18",
+          "total_days": 27
+        },
+        {
+          "votante": "Breno",
+          "alvo": "Sol Vega",
+          "tipo": "aliados_mutuos",
+          "label": "💔 Traição de Aliado",
+          "cor": "#9b59b6",
+          "emoji_dado": "❤️",
+          "emoji_recebido": "❤️",
+          "hist_pattern": "reconciliados",
+          "hist_narrative": "Reconciliaram em 2026-01-16.",
+          "days_as_friends": 26,
+          "days_as_enemies": 1,
+          "days_mutual_friends": 25,
+          "change_date": "2026-01-16",
+          "total_days": 27
+        },
+        {
+          "votante": "Solange Couto",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 4 dias, romperam em 2026-02-02.",
+          "days_as_friends": 4,
+          "days_as_enemies": 23,
+          "days_mutual_friends": 4,
+          "change_date": "2026-02-02",
+          "total_days": 27
+        },
+        {
+          "votante": "Juliano Floss",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🐍",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 4 dias, romperam em 2026-01-19.",
+          "days_as_friends": 4,
+          "days_as_enemies": 23,
+          "days_mutual_friends": 4,
+          "change_date": "2026-01-19",
+          "total_days": 27
+        },
+        {
+          "votante": "Marcelo",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 3 dias, romperam em 2026-01-19.",
+          "days_as_friends": 3,
+          "days_as_enemies": 24,
+          "days_mutual_friends": 3,
+          "change_date": "2026-01-19",
+          "total_days": 27
+        },
+        {
+          "votante": "Leandro",
+          "alvo": "Sol Vega",
+          "tipo": "ponto_cego",
+          "label": "🎯 Ponto Cego do Alvo",
+          "cor": "#f39c12",
+          "emoji_dado": "💔",
+          "emoji_recebido": "❤️",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 15 dias, romperam em 2026-02-02.",
+          "days_as_friends": 15,
+          "days_as_enemies": 7,
+          "days_mutual_friends": 12,
+          "change_date": "2026-02-02",
+          "total_days": 22
+        },
+        {
+          "votante": "Babu Santana",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🤮",
+          "emoji_recebido": "🐍",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 11 dias, romperam em 2026-01-30.",
+          "days_as_friends": 11,
+          "days_as_enemies": 16,
+          "days_mutual_friends": 7,
+          "change_date": "2026-01-30",
+          "total_days": 27
+        },
+        {
+          "votante": "Chaiany",
+          "alvo": "Sol Vega",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🐍",
+          "hist_pattern": "recem_inimigos",
+          "hist_narrative": "Eram amigos por 19 dias, mudou há 1 dia(s)!",
+          "days_as_friends": 19,
+          "days_as_enemies": 3,
+          "days_mutual_friends": 3,
+          "change_date": "2026-02-08",
+          "total_days": 22
+        },
+        {
+          "votante": "Alberto Cowboy",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 17 dias, romperam em 2026-01-31.",
+          "days_as_friends": 17,
+          "days_as_enemies": 10,
+          "days_mutual_friends": 11,
+          "change_date": "2026-01-31",
+          "total_days": 27
+        },
+        {
+          "votante": "Marciele",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 19 dias, romperam em 2026-02-02.",
+          "days_as_friends": 19,
+          "days_as_enemies": 8,
+          "days_mutual_friends": 16,
+          "change_date": "2026-02-02",
+          "total_days": 27
+        },
+        {
+          "votante": "Gabriela",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🐍",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 19 dias, romperam em 2026-02-06.",
+          "days_as_friends": 19,
+          "days_as_enemies": 3,
+          "days_mutual_friends": 6,
+          "change_date": "2026-02-06",
+          "total_days": 22
+        },
+        {
+          "votante": "Edilson",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "💔",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 24 dias, romperam em 2026-02-06.",
+          "days_as_friends": 24,
+          "days_as_enemies": 3,
+          "days_mutual_friends": 16,
+          "change_date": "2026-02-06",
+          "total_days": 27
+        },
+        {
+          "votante": "Sol Vega",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "recem_inimigos",
+          "hist_narrative": "Eram amigos por 20 dias, mudou há 1 dia(s)!",
+          "days_as_friends": 20,
+          "days_as_enemies": 7,
+          "days_mutual_friends": 4,
+          "change_date": "2026-02-08",
+          "total_days": 27
+        },
+        {
+          "votante": "Sarah Andrade",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 19 dias, romperam em 2026-02-06.",
+          "days_as_friends": 19,
+          "days_as_enemies": 8,
+          "days_mutual_friends": 12,
+          "change_date": "2026-02-06",
+          "total_days": 27
+        },
+        {
+          "votante": "Jordana",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 15 dias, romperam em 2026-02-02.",
+          "days_as_friends": 15,
+          "days_as_enemies": 12,
+          "days_mutual_friends": 8,
+          "change_date": "2026-02-02",
+          "total_days": 27
+        },
+        {
+          "votante": "Maxiane",
+          "alvo": "Sol Vega",
+          "tipo": "aliados_mutuos",
+          "label": "💔 Traição de Aliado",
+          "cor": "#9b59b6",
+          "emoji_dado": "❤️",
+          "emoji_recebido": "❤️",
+          "hist_pattern": "reconciliados",
+          "hist_narrative": "Reconciliaram em 2026-02-04.",
+          "days_as_friends": 18,
+          "days_as_enemies": 9,
+          "days_mutual_friends": 15,
+          "change_date": "2026-02-04",
+          "total_days": 27
+        }
+      ],
       "vote_aggregates": {
-        "relationship_counts": {},
-        "vote_counts": {},
-        "mais_votado": "",
-        "n_votos_mais": 0,
-        "n_traicoes": 0,
-        "n_pontos_cegos": 0,
-        "n_esperados": 0,
-        "total_votes": 0
+        "relationship_counts": {
+          "inimigos_declarados": 15,
+          "aliados_mutuos": 2,
+          "ponto_cego": 1
+        },
+        "vote_counts": {
+          "Sol Vega": 11,
+          "Solange Couto": 7
+        },
+        "mais_votado": "Sol Vega",
+        "n_votos_mais": 11,
+        "n_traicoes": 2,
+        "n_pontos_cegos": 1,
+        "n_esperados": 15,
+        "total_votes": 18
       },
       "per_nominee": {
         "Samira": {
@@ -2823,10 +3791,76 @@
           "from_blind": 0,
           "from_neutral": 0,
           "voters": []
+        },
+        "Babu Santana": {
+          "n_votes": 0,
+          "from_enemies": 0,
+          "from_traitors": 0,
+          "from_blind": 0,
+          "from_neutral": 0,
+          "voters": []
+        },
+        "Sarah Andrade": {
+          "n_votes": 0,
+          "from_enemies": 0,
+          "from_traitors": 0,
+          "from_blind": 0,
+          "from_neutral": 0,
+          "voters": []
+        },
+        "Sol Vega": {
+          "n_votes": 11,
+          "from_enemies": 8,
+          "from_traitors": 2,
+          "from_blind": 1,
+          "from_neutral": 0,
+          "voters": [
+            "Milena",
+            "Samira",
+            "Ana Paula Renault",
+            "Breno",
+            "Solange Couto",
+            "Juliano Floss",
+            "Marcelo",
+            "Leandro",
+            "Babu Santana",
+            "Chaiany",
+            "Maxiane"
+          ]
         }
       },
-      "indicator_pairs": [],
-      "indicator_reactions": []
+      "indicator_pairs": [
+        {
+          "actor": "Jonas Sulzbach",
+          "target": "Babu Santana",
+          "type": "lider"
+        },
+        {
+          "actor": "Babu Santana",
+          "target": "Sarah Andrade",
+          "type": "contragolpe"
+        }
+      ],
+      "indicator_reactions": [
+        {
+          "actor": "Jonas Sulzbach",
+          "target": "Babu Santana",
+          "type": "lider",
+          "actor_to_target": "🌱",
+          "target_to_actor": "🤮",
+          "actor_to_target_raw": "Planta",
+          "target_to_actor_raw": "Vômito"
+        },
+        {
+          "actor": "Babu Santana",
+          "target": "Sarah Andrade",
+          "type": "contragolpe",
+          "actor_to_target": "🤮",
+          "target_to_actor": "🤮",
+          "actor_to_target_raw": "Vômito",
+          "target_to_actor_raw": "Vômito"
+        }
+      ]
     }
   }
 }

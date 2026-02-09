@@ -243,13 +243,17 @@
       "total_esperado": 3,
 
       "formacao": {
-        "resumo": "Semana do Líder Jonas Sulzbach. Sincerinho (sex): cada participante escolheu quem quer enfrentar no Paredão — Gabriela foi a mais citada (3×). Duelo de Risco (sáb): Jonas sorteou Sol Vega, que havia escolhido Juliano Floss. Ambos escolheram 'Nós indicamos' e, em consenso, puxaram Samira ao Paredão. Prova do Anjo (sáb): Alberto Cowboy venceu (duo com Edilson). Escolheu Milena e Juliano Floss para Monstro Ligados. Presente do Anjo (dom): Alberto escolheu vídeo da família, imunizou Edilson. Formação completa no domingo.",
+        "resumo": "Semana do Líder Jonas Sulzbach. Sincerinho (sex): cada participante escolheu quem quer enfrentar no Paredão — Gabriela foi a mais citada (3×). Duelo de Risco (sáb): Jonas sorteou Sol Vega, que havia escolhido Juliano Floss. Ambos escolheram 'Nós indicamos' e, em consenso, puxaram Samira ao Paredão. Prova do Anjo (sáb): Alberto Cowboy venceu (duo com Edilson). Monstro Ligados: Milena + Juliano Floss. Presente do Anjo (dom): Alberto escolheu vídeo da família, imunizou Edilson. Líder Jonas indicou Babu Santana (desavenças + Big Fone). Babu contragolpeou Sarah Andrade. Casa votou: Sol Vega (11 votos) vs Solange Couto (7 votos). Bate e Volta: Samira venceu contra Sol e Sarah, escapando do Paredão. Paredão final: Babu, Sarah, Sol Vega.",
         "lider": "Jonas Sulzbach",
-        "indicado_lider": null,
-        "motivo_lider": null,
+        "indicado_lider": "Babu Santana",
+        "motivo_lider": "Citou dinâmica do Big Fone e desavenças com Babu",
         "anjo": "Alberto Cowboy",
         "imunizado": {"por": "Alberto Cowboy", "quem": "Edilson"},
-        "bate_volta": null,
+        "contragolpe": {"de": "Babu Santana", "para": "Sarah Andrade"},
+        "bate_volta": {
+          "participantes": ["Sol Vega", "Samira", "Sarah Andrade"],
+          "vencedor": "Samira"
+        },
         "duelo_de_risco": {
           "data_previa": "2026-02-06",
           "data_duelo": "2026-02-07",
@@ -296,17 +300,42 @@
       },
 
       "indicados_finais": [
-        {"nome": "Samira", "grupo": "Pipoca", "como": "Duelo de Risco (consenso Sol Vega + Juliano Floss)"}
+        {"nome": "Samira", "grupo": "Pipoca", "como": "Duelo de Risco (consenso Sol Vega + Juliano Floss) — escapou na Bate e Volta"},
+        {"nome": "Babu Santana", "grupo": "Veterano", "como": "Líder"},
+        {"nome": "Sarah Andrade", "grupo": "Veterano", "como": "Contragolpe (Babu Santana)"},
+        {"nome": "Sol Vega", "grupo": "Veterano", "como": "Mais votada pela casa (11 votos)"}
       ],
 
-      "votos_casa": {},
+      "votos_casa": {
+        "Milena": "Sol Vega",
+        "Samira": "Sol Vega",
+        "Ana Paula Renault": "Sol Vega",
+        "Breno": "Sol Vega",
+        "Solange Couto": "Sol Vega",
+        "Juliano Floss": "Sol Vega",
+        "Marcelo": "Sol Vega",
+        "Leandro": "Sol Vega",
+        "Babu Santana": "Sol Vega",
+        "Chaiany": "Sol Vega",
+        "Alberto Cowboy": "Solange Couto",
+        "Marciele": "Solange Couto",
+        "Gabriela": "Solange Couto",
+        "Edilson": "Solange Couto",
+        "Sol Vega": "Solange Couto",
+        "Sarah Andrade": "Solange Couto",
+        "Jordana": "Solange Couto",
+        "Maxiane": "Sol Vega"
+      },
 
-      "impedidos_votar": [],
+      "impedidos_votar": ["Jonas Sulzbach"],
       "votos_anulados": [],
 
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-dinamica-inedita-influencia-a-formacao-do-4o-paredao.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-dinamica-inedita-influencia-a-formacao-do-4o-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-jonas-sulzbach-indica-babu-santana-ao-quarto-paredao-do-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/edilson-e-imunizado-pelo-anjo-alberto-cowboy-veja-como-fica-a-pontuacao-da-brother-no-cartola-bbb.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/anjo-alberto-cowboy-imuniza-edilson-durante-a-formacao-do-4o-paredao-do-bbb-26.ghtml"
       ]
     }
   ]
