@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-02-03",
+  "_last_updated": "2026-02-09",
 
   "paredoes": [
     {
@@ -237,6 +237,67 @@
 
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-brigido-e-o-terceiro-eliminado-do-reality.ghtml"
+      ]
+    },
+    {
+      "numero": 4,
+      "data_paredao": "2026-02-10",
+      "data_coleta": "2026-02-09T01:00:00-03:00",
+      "participantes": ["Babu Santana", "Sarah Andrade", "Sol Vega"],
+
+      "consolidado": {
+        "Babu Santana": 28.58,
+        "Sarah Andrade": 64.65,
+        "Sol Vega": 6.77,
+        "total_votos": 2016050,
+        "predicao_eliminado": "Sarah Andrade"
+      },
+
+      "plataformas": {
+        "sites": {
+          "Babu Santana": 36.99,
+          "Sarah Andrade": 55.08,
+          "Sol Vega": 7.93,
+          "votos": 329633,
+          "fontes_count": 13
+        },
+        "youtube": {
+          "Babu Santana": 46.91,
+          "Sarah Andrade": 46.77,
+          "Sol Vega": 6.32,
+          "votos": 229194,
+          "fontes_count": 22
+        },
+        "twitter": {
+          "Babu Santana": 23.56,
+          "Sarah Andrade": 71.54,
+          "Sol Vega": 4.90,
+          "votos": 289688,
+          "fontes_count": 20
+        },
+        "instagram": {
+          "Babu Santana": 23.85,
+          "Sarah Andrade": 69.15,
+          "Sol Vega": 7.00,
+          "votos": 1167535,
+          "fontes_count": 13
+        }
+      },
+
+      "serie_temporal": [
+        {"hora": "09/fev 01:00", "Babu Santana": 28.58, "Sarah Andrade": 64.65, "Sol Vega": 6.77, "votos": 2016050}
+      ],
+
+      "imagens": [
+        "data/votalhada/2026_02_09/consolidados.png",
+        "data/votalhada/2026_02_09/sites.png",
+        "data/votalhada/2026_02_09/youtube.png",
+        "data/votalhada/2026_02_09/twitter.png",
+        "data/votalhada/2026_02_09/instagram.png"
+      ],
+
+      "fontes": [
+        "https://votalhada.blogspot.com/"
       ]
     }
   ]

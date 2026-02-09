@@ -370,88 +370,475 @@ if ultimo:
 
             print('</div>')
 
-        # ── Duelo de Risco (Sincerinho) ──
+        # ── Setup duelo data (used by Consensus Analysis and Sincerinho later) ──
         _formacao_raw = ultimo.get('formacao_raw', {})
         _duelo = _formacao_raw.get('duelo_de_risco') if isinstance(_formacao_raw, dict) else None
-        if _duelo and _duelo.get('escolhas'):
-            _escolhas = _duelo['escolhas']
-            _alvos = _duelo.get('alvos_mais_citados', [])
-            _nao_citados = _duelo.get('nao_citados', [])
 
-            print("\n## ⚔️ Sincerinho — Duelo de Risco\n")
-            print(f'<p style="color:#aaa; font-size:0.9em;">Cada participante escolheu quem quer enfrentar no Paredão. Amanhã, um nome será sorteado para o Duelo de Risco.</p>\n')
+        # Resumo da formação (formato compacto)
+        print("\n### 🧩 Resumo da Formação\n")
 
-            # ── Most targeted summary ──
-            if _alvos:
-                print('<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; margin: 1.2rem 0;">')
-                for _a in _alvos:
-                    _nome = _a['nome']
-                    _vezes = _a['vezes']
-                    _av = AVATARS.get(_nome, '')
-                    _cor = '#e74c3c' if _vezes >= 3 else '#f39c12' if _vezes >= 2 else '#888'
-                    print(f'<div style="background: rgba(255,255,255,0.05); border: 1px solid {_cor}; border-radius: 10px; padding: 0.6rem 1rem; text-align: center; min-width: 100px;">')
-                    if _av:
-                        print(f'<img src="{_av}" style="width:36px; height:36px; border-radius:50%; border:2px solid {_cor}; margin-bottom:0.3rem;" alt="{_nome}">')
-                    print(f'<div style="color:#fff; font-size:0.9em; font-weight:bold;">{_nome}</div>')
-                    print(f'<div style="color:{_cor}; font-size:1.2em; font-weight:bold;">🎯 {_vezes}×</div>')
-                    _por = ', '.join(_a.get('por', []))
-                    print(f'<div style="color:#888; font-size:0.7em;">{_por}</div>')
-                    print('</div>')
-                print('</div>\n')
+        if ultimo.get('formacao'):
+            prefixo = "Como foi formado" if n_indicados >= esperado_indicados else "Como está sendo formado"
+            print(f"- **{prefixo}:** {ultimo['formacao']}")
 
-            # ── Full table ──
-            print('<table class="table table-striped" style="max-width:100%; font-size:0.9rem;">')
-            print('<thead><tr><th>Participante</th><th>Quer enfrentar</th><th>Adjetivo</th></tr></thead>')
+        if ultimo.get('lider'):
+            print(f"- **Líder:** {ultimo['lider']}")
+            if ultimo.get('indicado_lider'):
+                print(f"- **Indicação do Líder:** {ultimo['indicado_lider']}")
+            elif n_indicados < esperado_indicados:
+                print(f"- **Indicação do Líder:** *Aguardando...*")
+
+        if ultimo.get('anjo'):
+            auto = " (autoimune)" if ultimo.get('anjo_autoimune') else ""
+            print(f"- **Anjo:** {ultimo['anjo']}{auto}")
+
+        if ultimo.get('imunizado'):
+            im = ultimo['imunizado']
+            print(f"- **Imunização:** {im['por']} imunizou {im['quem']}")
+
+        if ultimo.get('dinamica'):
+            dinamica = ultimo['dinamica']
+            print(f"- **Dinâmica:** {dinamica.get('nome', 'Dinâmica especial')}")
+            if dinamica.get('indicaram') and dinamica.get('indicado'):
+                ind_list = ', '.join(dinamica['indicaram'])
+                print(f"  - Indicaram: {ind_list} → **{dinamica['indicado']}**")
+            efeitos = dinamica.get('efeitos', {})
+            if efeitos:
+                for pessoa, efeito in efeitos.items():
+                    print(f"  - {pessoa}: {efeito}")
+
+        if ultimo.get('big_fone'):
+            bf = ultimo['big_fone']
+            print(f"- **Big Fone:** {bf.get('atendeu', '—')} indicou {bf.get('indicou', '—')}")
+
+        if ultimo.get('contragolpe'):
+            cg = ultimo['contragolpe']
+            print(f"- **Contragolpe:** {cg.get('de', '—')} → {cg.get('para', '—')}")
+
+        if ultimo.get('bate_volta') is None and n_indicados >= esperado_indicados:
+            print("- **Bate e Volta:** não haverá")
+        elif ultimo.get('bate_volta'):
+            bv = ultimo['bate_volta']
+            print(f"- **Bate e Volta:** {', '.join(bv.get('participantes', []))} — vencedor: {bv.get('vencedor', '—')}")
+
+        if ultimo.get('impedidos_votar'):
+            print(f"- **Impedidos de votar:** {', '.join(ultimo['impedidos_votar'])}")
+
+        if ultimo.get('votos_anulados'):
+            print(f"- **Votos anulados:** {', '.join(ultimo['votos_anulados'])}")
+
+        # Votação da casa (formato mais legível)
+        if tem_votos_casa:
+            votos = ultimo['votos_casa']
+            contagem = Counter(votos.values())
+            ranking = contagem.most_common()
+            print(f"\n### 🗳️ Votação da Casa\n")
+            print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
+
+            print('<table class="table table-striped" style="font-size: 1.05rem;">')
+            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Votantes</th></tr></thead>')
             print('<tbody>')
-            # Sort by target popularity (most targeted first), then alphabetically
-            _target_count = {}
-            for _v in _escolhas.values():
-                _t = _v['alvo']
-                _target_count[_t] = _target_count.get(_t, 0) + 1
-            _sorted_escolhas = sorted(_escolhas.items(), key=lambda x: (-_target_count.get(x[1]['alvo'], 0), x[0]))
-            for _nome, _info in _sorted_escolhas:
-                _alvo = _info['alvo']
-                _adj = _info['adjetivo']
-                _cnt = _target_count.get(_alvo, 0)
-                _badge = f' <span style="background:#e74c3c; color:#fff; padding:0.1rem 0.4rem; border-radius:8px; font-size:0.75em;">{_cnt}×</span>' if _cnt >= 2 else ''
-                _av_actor = AVATARS.get(_nome, '')
-                _av_target = AVATARS.get(_alvo, '')
-                _av_html_a = f'<img src="{_av_actor}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_actor else ''
-                _av_html_t = f'<img src="{_av_target}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_target else ''
-                print(f'<tr><td>{_av_html_a}{_nome}</td><td>{_av_html_t}{_alvo}{_badge}</td><td style="color:#e74c3c; font-style:italic;">{_adj}</td></tr>')
+            for alvo, n in ranking:
+                votantes = sorted([v for v, a in votos.items() if a == alvo])
+                votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
+                print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+            print('</tbody></table>\n')
+        elif n_indicados >= esperado_indicados:
+            print(f"\n### 🗳️ Votação da Casa\n")
+            print(f"*Aguardando divulgação da votação da casa...*")
+
+        # ══════════════════════════════════════════════════════════
+        # COERÊNCIA SOCIAL (votos + indicações vs queridômetro)
+        # ══════════════════════════════════════════════════════════
+        if tem_votos_casa:
+            # Get formation-date snapshot matrix
+            _formacao_date = ultimo.get('data_formacao') or ultimo.get('data') or latest['date']
+            _formacao_snap_idx = None
+            for _fi, _fs in enumerate(daily_snapshots):
+                if _fs['date'] <= _formacao_date:
+                    _formacao_snap_idx = _fi
+            if _formacao_snap_idx is not None:
+                matrix_p = daily_matrices[_formacao_snap_idx]
+                snap_participants_cs = daily_snapshots[_formacao_snap_idx]['participants']
+            else:
+                matrix_p = daily_matrices[-1]
+                snap_participants_cs = daily_snapshots[-1]['participants']
+
+            votos = ultimo['votos_casa']
+
+            def alignment_from_reaction(label):
+                if label in (MILD_NEGATIVE | STRONG_NEGATIVE):
+                    return "alinhado"
+                if label in POSITIVE:
+                    return "contraditorio"
+                return "neutro"
+
+            vote_align = Counter()
+            for votante, alvo in votos.items():
+                label = matrix_p.get((votante, alvo), '')
+                vote_align[alignment_from_reaction(label)] += 1
+
+            # Indication coherence
+            indicacoes_cs = []
+            if ultimo.get('lider') and ultimo.get('indicado_lider'):
+                indicacoes_cs.append(('Líder', ultimo.get('lider'), ultimo.get('indicado_lider')))
+            if ultimo.get('big_fone'):
+                bf = ultimo.get('big_fone')
+                if bf.get('atendeu') and bf.get('indicou'):
+                    indicacoes_cs.append(('Big Fone', bf.get('atendeu'), bf.get('indicou')))
+            if ultimo.get('contragolpe'):
+                cg = ultimo.get('contragolpe')
+                if cg.get('de') and cg.get('para'):
+                    indicacoes_cs.append(('Contragolpe', cg.get('de'), cg.get('para')))
+            if ultimo.get('dinamica'):
+                din = ultimo.get('dinamica')
+                indicados_din = din.get('indicaram') or []
+                alvo_din = din.get('indicado')
+                for ator in indicados_din:
+                    indicacoes_cs.append((din.get('nome', 'Dinâmica'), ator, alvo_din))
+
+            ind_align = Counter()
+            for origem, ator, alvo in indicacoes_cs:
+                label = matrix_p.get((ator, alvo), '')
+                ind_align[alignment_from_reaction(label)] += 1
+
+            total_votes_cs = max(1, len(votos))
+            aligned_pct = vote_align["alinhado"] / total_votes_cs * 100
+            contrad_pct = vote_align["contraditorio"] / total_votes_cs * 100
+
+            print("\n### 🧭 Coerência Social\n")
+            print(f'<p style="font-size:0.98rem;">Votos: <strong>{aligned_pct:.0f}% alinhados</strong> vs <strong>{contrad_pct:.0f}% contraditórios</strong> com o queridômetro da formação.</p>')
+            if indicacoes_cs:
+                total_ind = len(indicacoes_cs)
+                print(f'<p style="font-size:0.95rem;">Indicações públicas coerentes: {ind_align["alinhado"]}/{total_ind}.</p>')
+
+            # Badge vs realidade (contradições)
+            active_names_cs = [p['name'] for p in snap_participants_cs if not p.get('characteristics', {}).get('eliminated')]
+            false_friends = {}
+            for name in active_names_cs:
+                ff = 0
+                for other in active_names_cs:
+                    if other == name:
+                        continue
+                    my = matrix_p.get((name, other), '')
+                    their = matrix_p.get((other, name), '')
+                    if my in POSITIVE and their and their not in POSITIVE:
+                        ff += 1
+                false_friends[name] = ff
+
+            # Ineligible for house votes (already indicated)
+            ineligible_cs = set()
+            indicacoes_count = Counter()
+            if ultimo.get('indicado_lider'):
+                ineligible_cs.add(ultimo.get('indicado_lider'))
+                indicacoes_count[ultimo.get('indicado_lider')] += 1
+            if ultimo.get('big_fone'):
+                bf = ultimo.get('big_fone')
+                if bf.get('indicou'):
+                    ineligible_cs.add(bf.get('indicou'))
+                    indicacoes_count[bf.get('indicou')] += 1
+            if ultimo.get('contragolpe'):
+                cg = ultimo.get('contragolpe')
+                if cg.get('para'):
+                    ineligible_cs.add(cg.get('para'))
+                    indicacoes_count[cg.get('para')] += 1
+            if ultimo.get('dinamica'):
+                din = ultimo.get('dinamica')
+                alvo_din = din.get('indicado')
+                if alvo_din:
+                    ineligible_cs.add(alvo_din)
+                    indicacoes_count[alvo_din] += 1
+            if ultimo.get('imunizado'):
+                im = ultimo.get('imunizado')
+                if im.get('quem'):
+                    ineligible_cs.add(im.get('quem'))
+
+            vuln_no_votes = []
+            prot_with_votes = []
+            badge_details = {}  # name -> {ff_count, ff_names, voters}
+            for name in active_names_cs:
+                votes_count = sum(1 for v, a in votos.items() if a == name)
+                voters_for = [v for v, a in votos.items() if a == name]
+                ff = false_friends.get(name, 0)
+                # Find who the false friends are (give ❤️ but receive negative)
+                ff_names = []
+                for other in active_names_cs:
+                    if other == name:
+                        continue
+                    my = matrix_p.get((name, other), '')
+                    their = matrix_p.get((other, name), '')
+                    if my in POSITIVE and their and their not in POSITIVE:
+                        ff_names.append((other, REACTION_EMOJI.get(their, their)))
+                badge_details[name] = {'ff_count': ff, 'ff_names': ff_names, 'voters': voters_for}
+
+                if ff >= 5:
+                    vuln = '🔴 MUITO VULNERÁVEL'
+                elif ff >= 3:
+                    vuln = '🟠 VULNERÁVEL'
+                elif ff >= 1:
+                    vuln = '🟡 ATENÇÃO'
+                else:
+                    vuln = '🟢 PROTEGIDO'
+
+                eligible = name not in ineligible_cs
+                if votes_count == 0 and indicacoes_count.get(name, 0) == 0 and eligible and vuln in ['🟠 VULNERÁVEL', '🔴 MUITO VULNERÁVEL']:
+                    vuln_no_votes.append((name, vuln, votes_count))
+                if votes_count >= 3 and eligible and vuln in ['🟢 PROTEGIDO', '🟡 ATENÇÃO']:
+                    prot_with_votes.append((name, vuln, votes_count))
+
+            if vuln_no_votes or prot_with_votes:
+                print('<div style="margin-top:0.8rem; padding:0.8rem; border-radius:8px; background:rgba(255,255,255,0.03);">')
+                print('<p style="font-size:0.95rem; margin-bottom:0.6rem;"><strong>🔍 Contradições — Badge vs Realidade</strong></p>')
+                print('<p class="text-muted" style="font-size:0.82rem; margin-bottom:0.8rem;">O badge mede <em>quantas pessoas dão ❤️ a alguém que as rejeita</em> (\"amigos falsos\"). Vulnerável = muitos amigos falsos (alvos fáceis). Comparamos com os votos reais para ver se a previsão se confirmou.</p>')
+                if vuln_no_votes:
+                    print('<div style="margin-bottom:0.8rem; padding:0.6rem; border-left:3px solid #2ecc71; background:rgba(46,204,113,0.05); border-radius:0 6px 6px 0;">')
+                    print('<p style="font-size:0.9rem; margin-bottom:0.4rem;"><strong>✅ Vulneráveis que escaparam</strong> <span class="text-muted" style="font-size:0.8rem;">— tinham alvos nas costas, mas ninguém votou neles</span></p>')
+                    for name, vuln, votes_count in vuln_no_votes:
+                        det = badge_details[name]
+                        ff_list = det['ff_names']
+                        print(f'<div style="margin:0.4rem 0; padding:0.4rem 0.6rem; background:rgba(255,255,255,0.03); border-radius:6px;">')
+                        print(f'<p style="margin:0;">{avatar_html(name, AVATARS, size=28)} <strong>{name}</strong> — <span style="color:#e67e22;">{vuln}</span> · 0 votos</p>')
+                        if ff_list:
+                            ff_str = ', '.join(f'{avatar_img(n, AVATARS, size=20)} {n} {emoji}' for n, emoji in ff_list[:5])
+                            print(f'<p style="margin:0.2rem 0 0 0; font-size:0.82rem; color:#aaa;">Dá ❤️ a quem o rejeita: {ff_str}</p>')
+                        print(f'<p style="margin:0.2rem 0 0 0; font-size:0.82rem; color:#2ecc71;">→ Apesar de {det["ff_count"]} \"amigo(s) falso(s)\", ninguém escolheu {name.split()[0]} como alvo na votação.</p>')
+                        print('</div>')
+                    print('</div>')
+                if prot_with_votes:
+                    print('<div style="padding:0.6rem; border-left:3px solid #e74c3c; background:rgba(231,76,60,0.05); border-radius:0 6px 6px 0;">')
+                    print('<p style="font-size:0.9rem; margin-bottom:0.4rem;"><strong>⚠️ Protegidos que foram alvo</strong> <span class="text-muted" style="font-size:0.8rem;">— poucos inimigos no queridômetro, mas muitos votos (voto de bloco)</span></p>')
+                    for name, vuln, votes_count in prot_with_votes:
+                        det = badge_details[name]
+                        voters = det['voters']
+                        total_eligible = len(votos)
+                        pct = votes_count / total_eligible * 100 if total_eligible > 0 else 0
+                        print(f'<div style="margin:0.4rem 0; padding:0.4rem 0.6rem; background:rgba(255,255,255,0.03); border-radius:6px;">')
+                        print(f'<p style="margin:0;">{avatar_html(name, AVATARS, size=28)} <strong>{name}</strong> — <span style="color:#f1c40f;">{vuln}</span> · <strong>{votes_count} votos</strong> ({pct:.0f}%)</p>')
+                        if det['ff_count'] == 0:
+                            print(f'<p style="margin:0.2rem 0 0 0; font-size:0.82rem; color:#aaa;">Nenhum \"amigo falso\" no queridômetro — ninguém que dá ❤️ recebe negativo de volta.</p>')
+                        else:
+                            print(f'<p style="margin:0.2rem 0 0 0; font-size:0.82rem; color:#aaa;">Apenas {det["ff_count"]} \"amigo(s) falso(s)\" — baixa hostilidade no queridômetro.</p>')
+                        if voters:
+                            voter_str = ', '.join(f'{avatar_img(v, AVATARS, size=20)} {v}' for v in sorted(voters)[:8])
+                            print(f'<p style="margin:0.2rem 0 0 0; font-size:0.82rem; color:#aaa;">Votaram em {name.split()[0]}: {voter_str}</p>')
+                        print(f'<p style="margin:0.2rem 0 0 0; font-size:0.82rem; color:#e74c3c;">→ A votação contra {name.split()[0]} não veio do queridômetro — sugere <strong>articulação de grupo</strong> ou alvo estratégico.</p>')
+                        print('</div>')
+                    print('</div>')
+                print('</div>')
+
+        # ══════════════════════════════════════════════════════════
+        # BLOCOS DE VOTAÇÃO (visual)
+        # ══════════════════════════════════════════════════════════
+        if tem_votos_casa:
+            votos = ultimo['votos_casa']
+            contagem = Counter(votos.values())
+            ranking = contagem.most_common()
+
+            if len(ranking) >= 2:
+                print("\n### 🏛️ Blocos de Votação\n")
+
+                # Build bloc data
+                blocs = []
+                for alvo, n_votos in ranking:
+                    votantes = sorted([v for v, a in votos.items() if a == alvo])
+                    blocs.append({'alvo': alvo, 'n': n_votos, 'votantes': votantes})
+
+                # Narrative
+                if len(ranking) == 2:
+                    print(f'A casa se dividiu em dois blocos claros: **{blocs[0]["n"]}** votaram em **{blocs[0]["alvo"]}**, **{blocs[1]["n"]}** votaram em **{blocs[1]["alvo"]}**.\n')
+                else:
+                    parts_bloc = [f'{b["n"]} em {b["alvo"]}' for b in blocs]
+                    print(f'Divisão da casa: {", ".join(parts_bloc)}.\n')
+
+                # Side-by-side visual boxes
+                print('<div style="display:flex; flex-wrap:wrap; gap:1.5rem; justify-content:center; margin:1rem 0;">')
+                for bloc in blocs:
+                    alvo = bloc['alvo']
+                    n_bl = bloc['n']
+                    votantes = bloc['votantes']
+                    cor_alvo = GROUP_COLORS.get(MEMBER_OF.get(alvo, '?'), '#888')
+                    print(f'<div style="background:linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border:2px solid {cor_alvo}; border-radius:12px; padding:1rem; min-width:200px; flex:1; max-width:400px;">')
+                    print(f'<div style="text-align:center; margin-bottom:0.8rem;">')
+                    print(f'{avatar_img(alvo, AVATARS, 48)}')
+                    print(f'<div style="color:#fff; font-weight:bold; font-size:1.05em; margin-top:0.3rem;">{alvo}</div>')
+                    print(f'<div style="color:{cor_alvo}; font-size:1.3em; font-weight:bold;">{n_bl} votos</div>')
+                    print(f'</div>')
+                    # Voter avatars with group colors
+                    print(f'<div style="display:flex; flex-wrap:wrap; gap:0.4rem; justify-content:center;">')
+                    for vot in votantes:
+                        vot_grupo = MEMBER_OF.get(vot, '?')
+                        vot_cor = GROUP_COLORS.get(vot_grupo, '#888')
+                        print(f'<div style="text-align:center;">')
+                        av_url = AVATARS.get(vot, '')
+                        if av_url:
+                            print(f'<img src="{av_url}" style="width:36px; height:36px; border-radius:50%; border:2px solid {vot_cor};" alt="{vot}" title="{vot}">')
+                        else:
+                            print(f'<div style="width:36px; height:36px; border-radius:50%; background:{vot_cor}; display:flex; align-items:center; justify-content:center; font-size:0.7em; color:#fff;">{vot[:2]}</div>')
+                        print(f'<div style="font-size:0.6em; color:#aaa; max-width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{vot.split()[0]}</div>')
+                        print(f'</div>')
+                    print(f'</div>')
+                    print(f'</div>')
+                print('</div>')
+
+                # Sincerinho cross-reference
+                _formacao_raw_blocs = ultimo.get('formacao_raw', {})
+                _duelo_blocs = _formacao_raw_blocs.get('duelo_de_risco') if isinstance(_formacao_raw_blocs, dict) else None
+                if _duelo_blocs and _duelo_blocs.get('escolhas'):
+                    _escolhas_blocs = _duelo_blocs['escolhas']
+                    # Count how many voters in each bloc also targeted the same person in Sincerinho
+                    for bloc in blocs:
+                        alvo_bloc = bloc['alvo']
+                        votantes_bloc = bloc['votantes']
+                        sinc_match = sum(1 for v in votantes_bloc if v in _escolhas_blocs and _escolhas_blocs[v]['alvo'] == alvo_bloc)
+                        if sinc_match > 0:
+                            print(f'<p style="color:#aaa; font-size:0.88em; margin:0.5rem 0;">🔗 {sinc_match} dos {len(votantes_bloc)} votantes em {alvo_bloc} também o escolheram no Sincerinho.</p>')
+                    # Broader alignment: did voters target nominees from the SAME bloc?
+                    _sinc_vote_aligned = 0
+                    _sinc_total = 0
+                    for votante in votos:
+                        if votante in _escolhas_blocs:
+                            _sinc_total += 1
+                            sinc_target = _escolhas_blocs[votante]['alvo']
+                            vote_target = votos[votante]
+                            # Aligned = Sincerinho target is in the same "enemy" direction
+                            if sinc_target == vote_target:
+                                _sinc_vote_aligned += 1
+                    if _sinc_total > 0 and _sinc_vote_aligned > 0:
+                        print(f'<p style="color:#aaa; font-size:0.88em; margin:0.3rem 0;">📊 {_sinc_vote_aligned}/{_sinc_total} participantes votaram no mesmo nome que escolheram no Sincerinho.</p>')
+                    elif _sinc_total > 0 and _sinc_vote_aligned == 0:
+                        print(f'<p style="color:#aaa; font-size:0.88em; margin:0.3rem 0;">📊 Nenhum participante votou no mesmo nome que escolheu no Sincerinho — os alvos divergiram completamente.</p>')
+
+                print()
+
+        # ══════════════════════════════════════════════════════════
+        # RANKING DE SENTIMENTO (formação)
+        # ══════════════════════════════════════════════════════════
+        if True:  # Always show when data available
+            _formacao_date_sent = ultimo.get('data_formacao') or ultimo.get('data') or latest['date'] if ultimo else latest['date']
+            _snap_sent_idx = None
+            for _si, _ss in enumerate(daily_snapshots):
+                if _ss['date'] <= _formacao_date_sent:
+                    _snap_sent_idx = _si
+            if _snap_sent_idx is not None:
+                _snap_sent = daily_snapshots[_snap_sent_idx]
+                _snap_sent_participants = _snap_sent['participants']
+            else:
+                _snap_sent = daily_snapshots[-1]
+                _snap_sent_participants = _snap_sent['participants']
+
+            sentiment_data = []
+            nominee_names = {p['nome'] for p in ultimo.get('participantes', [])} if ultimo else set()
+            for p in _snap_sent_participants:
+                if p.get('characteristics', {}).get('eliminated'):
+                    continue
+                name = p['name']
+                score = calc_sentiment(p)
+                member_of = p.get('characteristics', {}).get('memberOf', '?')
+                sentiment_data.append({'name': name, 'score': score, 'memberOf': member_of, 'is_nominee': name in nominee_names})
+
+            if sentiment_data:
+                df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
+
+                print(f"\n### 📊 Ranking de Sentimento ({_snap_sent['date']})\n")
+
+                fig_sent = go.Figure()
+                fig_sent.add_trace(go.Bar(
+                    y=df_sent['name'],
+                    x=df_sent['score'],
+                    orientation='h',
+                    marker_color=[GROUP_COLORS.get(m, '#999') for m in df_sent['memberOf']],
+                    text=[f"<b>{s:+.1f}</b>" if is_n else f"{s:+.1f}" for s, is_n in zip(df_sent['score'], df_sent['is_nominee'])],
+                    textposition='outside',
+                    hovertemplate='%{y}: %{x:+.1f}<extra></extra>',
+                ))
+
+                # Highlight nominees on y-axis
+                fig_sent.update_layout(
+                    xaxis_title="Score",
+                    yaxis_title="",
+                    height=max(400, len(df_sent) * 22),
+                    margin=dict(l=120, t=30),
+                    shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
+                                 line=dict(color='red', dash='dash', width=1))],
+                )
+
+                # Bold nominee names on y-axis
+                tick_labels = []
+                for _, row in df_sent.iterrows():
+                    if row['is_nominee']:
+                        tick_labels.append(f"<b>⚠️ {row['name']}</b>")
+                    else:
+                        tick_labels.append(row['name'])
+                fig_sent.update_yaxes(
+                    ticktext=tick_labels,
+                    tickvals=list(df_sent['name']),
+                )
+
+                fig_sent.show()
+                print()
+
+        # ── Enquetes do Votalhada (em andamento) ──
+        poll = get_poll_for_paredao(polls_data, ultimo['numero'])
+        if poll:
+            participantes_poll = poll.get('participantes', [])
+            consolidado = poll.get('consolidado', {})
+            plataformas = poll.get('plataformas', {})
+
+            print("\n## 📊 Previsão das Enquetes\n")
+            print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]} {poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""}</p>\n')
+
+            print(f'<div class="alert alert-info" style="font-size:0.95rem;">')
+            print(f'🔮 <strong>Previsão atual:</strong> {consolidado.get("predicao_eliminado", "—")} com mais votos para sair ({consolidado.get(consolidado.get("predicao_eliminado", ""), 0):.1f}%)')
+            print(f'</div>\n')
+
+            # Platform breakdown table
+            print('<table class="table table-striped" style="max-width: 100%; font-size: 1rem;">')
+            print('<thead><tr><th>Plataforma</th>')
+            for nome in participantes_poll:
+                avatar = avatar_img(nome, AVATARS, 28)
+                print(f'<th style="text-align:center;">{avatar}</th>')
+            print('<th style="text-align:center; color:#888;">Votos</th>')
+            print('</tr></thead><tbody>')
+
+            platform_order = ['sites', 'youtube', 'twitter', 'instagram']
+            platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
+
+            for plat in platform_order:
+                if plat in plataformas:
+                    pdata = plataformas[plat]
+                    votos = pdata.get('votos', 0)
+                    votos_str = f"{votos:,.0f}".replace(',', '.')
+                    print(f'<tr><td>{platform_names.get(plat, plat)}</td>')
+                    for nome in participantes_poll:
+                        val = pdata.get(nome, 0)
+                        is_max = val == max(pdata.get(n, 0) for n in participantes_poll)
+                        style = 'font-weight:bold; color:#f39c12;' if is_max else ''
+                        print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
+                    print(f'<td style="text-align:center; color:#888; font-size:0.9em;">{votos_str}</td>')
+                    print('</tr>')
+
+            # Consolidado row
+            total_votos = consolidado.get('total_votos', 0)
+            total_str = f"{total_votos:,.0f}".replace(',', '.')
+            print(f'<tr style="background:rgba(155,89,182,0.2);"><td style="font-weight:bold;">📊 Consolidado</td>')
+            for nome in participantes_poll:
+                val = consolidado.get(nome, 0)
+                is_max = val == max(consolidado.get(n, 0) for n in participantes_poll)
+                style = 'font-weight:bold; color:#9b59b6;' if is_max else 'font-weight:bold;'
+                print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
+            print(f'<td style="text-align:center; color:#888; font-size:0.9em;">{total_str}</td>')
+            print('</tr>')
+
             print('</tbody></table>\n')
 
-            # ── Mutual hostility pairs ──
-            _mutuals = []
-            for _n1, _i1 in _escolhas.items():
-                _t1 = _i1['alvo']
-                if _t1 in _escolhas and _escolhas[_t1]['alvo'] == _n1 and _n1 < _t1:
-                    _mutuals.append((_n1, _i1['adjetivo'], _t1, _escolhas[_t1]['adjetivo']))
-            if _mutuals:
-                print('<div style="background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 8px; padding: 1rem; margin: 1rem 0;">')
-                print('<h4 style="color:#e74c3c; margin-top:0;">⚔️ Hostilidade mútua — ambos se escolheram</h4>')
-                for _m in _mutuals:
-                    _av1 = AVATARS.get(_m[0], '')
-                    _av2 = AVATARS.get(_m[2], '')
-                    _img1 = f'<img src="{_av1}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av1 else ''
-                    _img2 = f'<img src="{_av2}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av2 else ''
-                    print(f'<div style="margin:0.4rem 0; font-size:0.95em;">{_img1}<strong>{_m[0]}</strong> <span style="color:#e74c3c;">"{_m[1]}"</span> ↔ {_img2}<strong>{_m[2]}</strong> <span style="color:#e74c3c;">"{_m[3]}"</span></div>')
-                print('</div>\n')
-
-            # ── Not targeted ──
-            if _nao_citados:
-                print(f'<div style="background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); border-radius: 8px; padding: 0.8rem; margin: 1rem 0;">')
-                print(f'<h4 style="color:#2ecc71; margin-top:0;">💚 Ninguém escolheu enfrentar ({len(_nao_citados)})</h4>')
-                _names_html = []
-                for _nc in _nao_citados:
-                    _av_nc = AVATARS.get(_nc, '')
-                    _img_nc = f'<img src="{_av_nc}" style="width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:2px;">' if _av_nc else ''
-                    _names_html.append(f'{_img_nc}{_nc}')
-                print(f'<div style="color:#ccc; font-size:0.9em;">{" · ".join(_names_html)}</div>')
-                print('</div>\n')
+            # Time series chart (em_andamento)
+            if poll.get('serie_temporal'):
+                fig_ts = make_poll_timeseries(poll)
+                if fig_ts:
+                    fig_ts.show()
 
         # ── Duelo de Risco — Consensus Analysis ──────────────────────────
-        if _duelo.get('indicado_consenso') and _duelo.get('resultado') == 'nos_indicamos':
+        if _duelo and _duelo.get('indicado_consenso') and _duelo.get('resultado') == 'nos_indicamos':
             _consenso_target = _duelo['indicado_consenso']
             _sorteado = _duelo['sorteado']
             _oponente = _duelo['oponente']
@@ -790,138 +1177,82 @@ if ultimo:
                     print(f' Rejeição ampla — <strong>alvo de consenso natural</strong>.')
                 print(f'</div>\n')
 
-        # ── Enquetes do Votalhada (em andamento) ──
-        poll = get_poll_for_paredao(polls_data, ultimo['numero'])
-        if poll:
-            participantes_poll = poll.get('participantes', [])
-            consolidado = poll.get('consolidado', {})
-            plataformas = poll.get('plataformas', {})
+        # ── Sincerinho — Duelo de Risco (raw choices, reference table) ──
+        if _duelo and _duelo.get('escolhas'):
+            _escolhas = _duelo['escolhas']
+            _alvos = _duelo.get('alvos_mais_citados', [])
+            _nao_citados = _duelo.get('nao_citados', [])
 
-            print("\n## 📊 Previsão das Enquetes\n")
-            print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]} {poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""}</p>\n')
+            print("\n## ⚔️ Sincerinho — Duelo de Risco\n")
+            print(f'<p style="color:#aaa; font-size:0.9em;">Cada participante escolheu quem quer enfrentar no Paredão.</p>\n')
 
-            print(f'<div class="alert alert-info" style="font-size:0.95rem;">')
-            print(f'🔮 <strong>Previsão atual:</strong> {consolidado.get("predicao_eliminado", "—")} com mais votos para sair ({consolidado.get(consolidado.get("predicao_eliminado", ""), 0):.1f}%)')
-            print(f'</div>\n')
+            # ── Most targeted summary ──
+            if _alvos:
+                print('<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; margin: 1.2rem 0;">')
+                for _a in _alvos:
+                    _nome = _a['nome']
+                    _vezes = _a['vezes']
+                    _av = AVATARS.get(_nome, '')
+                    _cor = '#e74c3c' if _vezes >= 3 else '#f39c12' if _vezes >= 2 else '#888'
+                    print(f'<div style="background: rgba(255,255,255,0.05); border: 1px solid {_cor}; border-radius: 10px; padding: 0.6rem 1rem; text-align: center; min-width: 100px;">')
+                    if _av:
+                        print(f'<img src="{_av}" style="width:36px; height:36px; border-radius:50%; border:2px solid {_cor}; margin-bottom:0.3rem;" alt="{_nome}">')
+                    print(f'<div style="color:#fff; font-size:0.9em; font-weight:bold;">{_nome}</div>')
+                    print(f'<div style="color:{_cor}; font-size:1.2em; font-weight:bold;">🎯 {_vezes}×</div>')
+                    _por = ', '.join(_a.get('por', []))
+                    print(f'<div style="color:#888; font-size:0.7em;">{_por}</div>')
+                    print('</div>')
+                print('</div>\n')
 
-            # Platform breakdown table
-            print('<table class="table table-striped" style="max-width: 100%; font-size: 1rem;">')
-            print('<thead><tr><th>Plataforma</th>')
-            for nome in participantes_poll:
-                avatar = avatar_img(nome, AVATARS, 28)
-                print(f'<th style="text-align:center;">{avatar}</th>')
-            print('<th style="text-align:center; color:#888;">Votos</th>')
-            print('</tr></thead><tbody>')
-
-            platform_order = ['sites', 'youtube', 'twitter', 'instagram']
-            platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
-
-            for plat in platform_order:
-                if plat in plataformas:
-                    pdata = plataformas[plat]
-                    votos = pdata.get('votos', 0)
-                    votos_str = f"{votos:,.0f}".replace(',', '.')
-                    print(f'<tr><td>{platform_names.get(plat, plat)}</td>')
-                    for nome in participantes_poll:
-                        val = pdata.get(nome, 0)
-                        is_max = val == max(pdata.get(n, 0) for n in participantes_poll)
-                        style = 'font-weight:bold; color:#f39c12;' if is_max else ''
-                        print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
-                    print(f'<td style="text-align:center; color:#888; font-size:0.9em;">{votos_str}</td>')
-                    print('</tr>')
-
-            # Consolidado row
-            total_votos = consolidado.get('total_votos', 0)
-            total_str = f"{total_votos:,.0f}".replace(',', '.')
-            print(f'<tr style="background:rgba(155,89,182,0.2);"><td style="font-weight:bold;">📊 Consolidado</td>')
-            for nome in participantes_poll:
-                val = consolidado.get(nome, 0)
-                is_max = val == max(consolidado.get(n, 0) for n in participantes_poll)
-                style = 'font-weight:bold; color:#9b59b6;' if is_max else 'font-weight:bold;'
-                print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
-            print(f'<td style="text-align:center; color:#888; font-size:0.9em;">{total_str}</td>')
-            print('</tr>')
-
-            print('</tbody></table>\n')
-
-            # Time series chart (em_andamento)
-            if poll.get('serie_temporal'):
-                fig_ts = make_poll_timeseries(poll)
-                if fig_ts:
-                    fig_ts.show()
-
-        # Resumo da formação (formato compacto)
-        print("\n### 🧩 Resumo da Formação\n")
-
-        if ultimo.get('formacao'):
-            prefixo = "Como foi formado" if n_indicados >= esperado_indicados else "Como está sendo formado"
-            print(f"- **{prefixo}:** {ultimo['formacao']}")
-
-        if ultimo.get('lider'):
-            print(f"- **Líder:** {ultimo['lider']}")
-            if ultimo.get('indicado_lider'):
-                print(f"- **Indicação do Líder:** {ultimo['indicado_lider']}")
-            elif n_indicados < esperado_indicados:
-                print(f"- **Indicação do Líder:** *Aguardando...*")
-
-        if ultimo.get('anjo'):
-            auto = " (autoimune)" if ultimo.get('anjo_autoimune') else ""
-            print(f"- **Anjo:** {ultimo['anjo']}{auto}")
-
-        if ultimo.get('imunizado'):
-            im = ultimo['imunizado']
-            print(f"- **Imunização:** {im['por']} imunizou {im['quem']}")
-
-        if ultimo.get('dinamica'):
-            dinamica = ultimo['dinamica']
-            print(f"- **Dinâmica:** {dinamica.get('nome', 'Dinâmica especial')}")
-            if dinamica.get('indicaram') and dinamica.get('indicado'):
-                ind_list = ', '.join(dinamica['indicaram'])
-                print(f"  - Indicaram: {ind_list} → **{dinamica['indicado']}**")
-            efeitos = dinamica.get('efeitos', {})
-            if efeitos:
-                for pessoa, efeito in efeitos.items():
-                    print(f"  - {pessoa}: {efeito}")
-
-        if ultimo.get('big_fone'):
-            bf = ultimo['big_fone']
-            print(f"- **Big Fone:** {bf.get('atendeu', '—')} indicou {bf.get('indicou', '—')}")
-
-        if ultimo.get('contragolpe'):
-            cg = ultimo['contragolpe']
-            print(f"- **Contragolpe:** {cg.get('de', '—')} → {cg.get('para', '—')}")
-
-        if ultimo.get('bate_volta') is None and n_indicados >= esperado_indicados:
-            print("- **Bate e Volta:** não haverá")
-        elif ultimo.get('bate_volta'):
-            bv = ultimo['bate_volta']
-            print(f"- **Bate e Volta:** {', '.join(bv.get('participantes', []))} — vencedor: {bv.get('vencedor', '—')}")
-
-        if ultimo.get('impedidos_votar'):
-            print(f"- **Impedidos de votar:** {', '.join(ultimo['impedidos_votar'])}")
-
-        if ultimo.get('votos_anulados'):
-            print(f"- **Votos anulados:** {', '.join(ultimo['votos_anulados'])}")
-
-        # Votação da casa (formato mais legível)
-        if tem_votos_casa:
-            votos = ultimo['votos_casa']
-            contagem = Counter(votos.values())
-            ranking = contagem.most_common()
-            print(f"\n### 🗳️ Votação da Casa\n")
-            print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
-
-            print('<table class="table table-striped" style="font-size: 1.05rem;">')
-            print('<thead><tr><th>Alvo</th><th style="text-align:center;">Votos</th><th>Votantes</th></tr></thead>')
+            # ── Full table ──
+            print('<table class="table table-striped" style="max-width:100%; font-size:0.9rem;">')
+            print('<thead><tr><th>Participante</th><th>Quer enfrentar</th><th>Adjetivo</th></tr></thead>')
             print('<tbody>')
-            for alvo, n in ranking:
-                votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
-                print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td style="text-align:center; font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+            _target_count = {}
+            for _v in _escolhas.values():
+                _t = _v['alvo']
+                _target_count[_t] = _target_count.get(_t, 0) + 1
+            _sorted_escolhas = sorted(_escolhas.items(), key=lambda x: (-_target_count.get(x[1]['alvo'], 0), x[0]))
+            for _nome, _info in _sorted_escolhas:
+                _alvo = _info['alvo']
+                _adj = _info['adjetivo']
+                _cnt = _target_count.get(_alvo, 0)
+                _badge = f' <span style="background:#e74c3c; color:#fff; padding:0.1rem 0.4rem; border-radius:8px; font-size:0.75em;">{_cnt}×</span>' if _cnt >= 2 else ''
+                _av_actor = AVATARS.get(_nome, '')
+                _av_target = AVATARS.get(_alvo, '')
+                _av_html_a = f'<img src="{_av_actor}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_actor else ''
+                _av_html_t = f'<img src="{_av_target}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_target else ''
+                print(f'<tr><td>{_av_html_a}{_nome}</td><td>{_av_html_t}{_alvo}{_badge}</td><td style="color:#e74c3c; font-style:italic;">{_adj}</td></tr>')
             print('</tbody></table>\n')
-        elif n_indicados >= esperado_indicados:
-            print(f"\n### 🗳️ Votação da Casa\n")
-            print(f"*Aguardando divulgação da votação da casa...*")
+
+            # ── Mutual hostility pairs ──
+            _mutuals = []
+            for _n1, _i1 in _escolhas.items():
+                _t1 = _i1['alvo']
+                if _t1 in _escolhas and _escolhas[_t1]['alvo'] == _n1 and _n1 < _t1:
+                    _mutuals.append((_n1, _i1['adjetivo'], _t1, _escolhas[_t1]['adjetivo']))
+            if _mutuals:
+                print('<div style="background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 8px; padding: 1rem; margin: 1rem 0;">')
+                print('<h4 style="color:#e74c3c; margin-top:0;">⚔️ Hostilidade mútua — ambos se escolheram</h4>')
+                for _m in _mutuals:
+                    _av1 = AVATARS.get(_m[0], '')
+                    _av2 = AVATARS.get(_m[2], '')
+                    _img1 = f'<img src="{_av1}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av1 else ''
+                    _img2 = f'<img src="{_av2}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av2 else ''
+                    print(f'<div style="margin:0.4rem 0; font-size:0.95em;">{_img1}<strong>{_m[0]}</strong> <span style="color:#e74c3c;">"{_m[1]}"</span> ↔ {_img2}<strong>{_m[2]}</strong> <span style="color:#e74c3c;">"{_m[3]}"</span></div>')
+                print('</div>\n')
+
+            # ── Not targeted ──
+            if _nao_citados:
+                print(f'<div style="background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); border-radius: 8px; padding: 0.8rem; margin: 1rem 0;">')
+                print(f'<h4 style="color:#2ecc71; margin-top:0;">💚 Ninguém escolheu enfrentar ({len(_nao_citados)})</h4>')
+                _names_html = []
+                for _nc in _nao_citados:
+                    _av_nc = AVATARS.get(_nc, '')
+                    _img_nc = f'<img src="{_av_nc}" style="width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:2px;">' if _av_nc else ''
+                    _names_html.append(f'{_img_nc}{_nc}')
+                print(f'<div style="color:#ccc; font-size:0.9em;">{" · ".join(_names_html)}</div>')
+                print('</div>\n')
 
 # ══════════════════════════════════════════════════════════
 # PAREDÃO FINALIZADO — Exibir se tem resultado
@@ -1777,6 +2108,87 @@ if ultimo and ultimo.get('participantes'):
             if vote_concentration:
                 top_predicted = max(vote_concentration, key=vote_concentration.get)
                 print(f"🤖 **Previsão do modelo:** {vote_concentration[top_predicted]} votos previstos para {top_predicted}.\n")
+
+    # ── Fatos Interessantes (data-driven insights) ──
+    if total_votes > 0 and votos:
+        facts = []
+
+        # Get formation-date snapshot for queridômetro analysis
+        _fi_date = ultimo.get('data_formacao') or ultimo.get('data') or latest['date']
+        _fi_snap_idx = None
+        for _fii, _fis in enumerate(daily_snapshots):
+            if _fis['date'] <= _fi_date:
+                _fi_snap_idx = _fii
+        _fi_matrix = daily_matrices[_fi_snap_idx] if _fi_snap_idx is not None else daily_matrices[-1]
+
+        # Fact 1: Bloc coordination — check if voting bloc has >70% same group
+        contagem_fi = Counter(votos.values())
+        for alvo_fi, n_votos_fi in contagem_fi.most_common():
+            votantes_fi = [v for v, a in votos.items() if a == alvo_fi]
+            if len(votantes_fi) >= 3:
+                grupo_counts = Counter(MEMBER_OF.get(v, '?') for v in votantes_fi)
+                top_grupo, top_count = grupo_counts.most_common(1)[0]
+                if top_count / len(votantes_fi) > 0.7 and top_count >= 3:
+                    facts.append(f"📌 **Bloco coordenado:** {top_count} dos {len(votantes_fi)} votos em {alvo_fi} vieram do grupo **{top_grupo}**.")
+
+        # Fact 2: Sincerinho vs Vote alignment
+        _formacao_raw_fi = ultimo.get('formacao_raw', {})
+        _duelo_fi = _formacao_raw_fi.get('duelo_de_risco') if isinstance(_formacao_raw_fi, dict) else None
+        if _duelo_fi and _duelo_fi.get('escolhas'):
+            _esc_fi = _duelo_fi['escolhas']
+            sinc_vote_same = sum(1 for v in votos if v in _esc_fi and _esc_fi[v]['alvo'] == votos[v])
+            sinc_total_fi = sum(1 for v in votos if v in _esc_fi)
+            if sinc_total_fi > 0 and sinc_vote_same >= 2:
+                facts.append(f"🔗 **Sincerinho → Voto:** {sinc_vote_same} participantes votaram no mesmo adversário que já haviam escolhido no Sincerinho.")
+
+        # Fact 3: Longest betrayal — who gave ❤️ the longest before voting against
+        longest_betrayal = None
+        longest_days = 0
+        for v_item in va:
+            if v_item.get('tipo') in ('falso_amigo', 'aliados_mutuos') and v_item.get('days_as_friends', 0) > 5:
+                if v_item['days_as_friends'] > longest_days:
+                    longest_days = v_item['days_as_friends']
+                    longest_betrayal = v_item
+        if longest_betrayal:
+            facts.append(f"🗡️ **Maior traição:** {longest_betrayal['votante']} dava ❤️ por **{longest_days} dias consecutivos** antes de votar contra {longest_betrayal['alvo']}.")
+
+        # Fact 4: Contragolpe reaction analysis
+        if ultimo.get('contragolpe'):
+            cg_fi = ultimo['contragolpe']
+            cg_de = cg_fi.get('de', '')
+            cg_para = cg_fi.get('para', '')
+            if cg_de and cg_para:
+                r_fwd = _fi_matrix.get((cg_de, cg_para), '')
+                r_rev = _fi_matrix.get((cg_para, cg_de), '')
+                emoji_fwd = REACTION_EMOJI.get(r_fwd, '?') if r_fwd else '?'
+                emoji_rev = REACTION_EMOJI.get(r_rev, '?') if r_rev else '?'
+                if r_fwd and r_rev:
+                    both_neg = (r_fwd in (MILD_NEGATIVE | STRONG_NEGATIVE)) and (r_rev in (MILD_NEGATIVE | STRONG_NEGATIVE))
+                    both_pos = (r_fwd in POSITIVE) and (r_rev in POSITIVE)
+                    if both_neg:
+                        facts.append(f"🌀 **Contragolpe:** {cg_de} contragolpeou {cg_para} — ambos davam {emoji_fwd}/{emoji_rev} um ao outro (hostilidade mútua).")
+                    elif both_pos:
+                        facts.append(f"💔 **Contragolpe surpresa:** {cg_de} contragolpeou {cg_para} — ambos davam ❤️ um ao outro. Traição inesperada.")
+                    else:
+                        facts.append(f"🌀 **Contragolpe:** {cg_de} ({emoji_fwd}) contragolpeou {cg_para} ({emoji_rev}).")
+
+        # Fact 5: Bate e Volta irony
+        bv_fi = ultimo.get('bate_volta') or ultimo.get('formacao_raw', {}).get('bate_volta')
+        if bv_fi and bv_fi.get('vencedor'):
+            bv_winner = bv_fi['vencedor']
+            # Check if the BV winner was specifically targeted via dinâmica/duelo
+            _duelo_target = None
+            if _duelo_fi and _duelo_fi.get('indicado_consenso'):
+                _duelo_target = _duelo_fi['indicado_consenso']
+            if _duelo_target and bv_winner == _duelo_target:
+                facts.append(f"🏃 **Bate e Volta:** {bv_winner}, indicad{'a' if genero(bv_winner) == 'f' else 'o'} por consenso no Duelo de Risco, **escapou** na Bate e Volta — o duelo não funcionou como planejado.")
+
+        if facts:
+            print("\n### 💡 Fatos Interessantes\n")
+            print('<div style="background:linear-gradient(145deg, rgba(52,152,219,0.08), rgba(155,89,182,0.08)); border:1px solid rgba(52,152,219,0.3); border-radius:10px; padding:1rem; margin:1rem 0;">')
+            for fact in facts:
+                print(f'<p style="margin:0.5rem 0; font-size:0.95rem;">{fact}</p>')
+            print('</div>\n')
 
     # ── Anatomia dos Votos chart (keep) ──
     if total_votes > 0 and rel_counts:
