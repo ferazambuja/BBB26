@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-09T03:52:08.839941+00:00",
+    "generated_at": "2026-02-09T03:59:48.839031+00:00",
     "source": "snapshots+paredoes+manual_events"
   },
   "by_paredao": {
@@ -3430,13 +3430,13 @@
           "narrative": "Foram amigos por 15 dias, romperam em 2026-02-02.",
           "total_days": 27
         },
-        "Maxiane→Sol Vega": {
-          "pattern": "reconciliados",
-          "days_as_friends": 18,
-          "days_as_enemies": 9,
-          "days_mutual_friends": 15,
-          "change_date": "2026-02-04",
-          "narrative": "Reconciliaram em 2026-02-04.",
+        "Maxiane→Solange Couto": {
+          "pattern": "sempre_amigos",
+          "days_as_friends": 27,
+          "days_as_enemies": 0,
+          "days_mutual_friends": 20,
+          "change_date": null,
+          "narrative": "Sempre deu ❤️ (27 dias).",
           "total_days": 27
         },
         "Jonas Sulzbach→Babu Santana": {
@@ -3751,33 +3751,34 @@
         },
         {
           "votante": "Maxiane",
-          "alvo": "Sol Vega",
-          "tipo": "aliados_mutuos",
-          "label": "💔 Traição de Aliado",
-          "cor": "#9b59b6",
+          "alvo": "Solange Couto",
+          "tipo": "falso_amigo",
+          "label": "🎭 Falso Amigo",
+          "cor": "#E6194B",
           "emoji_dado": "❤️",
-          "emoji_recebido": "❤️",
-          "hist_pattern": "reconciliados",
-          "hist_narrative": "Reconciliaram em 2026-02-04.",
-          "days_as_friends": 18,
-          "days_as_enemies": 9,
-          "days_mutual_friends": 15,
-          "change_date": "2026-02-04",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "sempre_amigos",
+          "hist_narrative": "Sempre deu ❤️ (27 dias).",
+          "days_as_friends": 27,
+          "days_as_enemies": 0,
+          "days_mutual_friends": 20,
+          "change_date": null,
           "total_days": 27
         }
       ],
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 15,
-          "aliados_mutuos": 2,
-          "ponto_cego": 1
+          "aliados_mutuos": 1,
+          "ponto_cego": 1,
+          "falso_amigo": 1
         },
         "vote_counts": {
-          "Sol Vega": 11,
-          "Solange Couto": 7
+          "Sol Vega": 10,
+          "Solange Couto": 8
         },
         "mais_votado": "Sol Vega",
-        "n_votos_mais": 11,
+        "n_votos_mais": 10,
         "n_traicoes": 2,
         "n_pontos_cegos": 1,
         "n_esperados": 15,
@@ -3809,9 +3810,9 @@
           "voters": []
         },
         "Sol Vega": {
-          "n_votes": 11,
+          "n_votes": 10,
           "from_enemies": 8,
-          "from_traitors": 2,
+          "from_traitors": 1,
           "from_blind": 1,
           "from_neutral": 0,
           "voters": [
@@ -3824,8 +3825,7 @@
             "Marcelo",
             "Leandro",
             "Babu Santana",
-            "Chaiany",
-            "Maxiane"
+            "Chaiany"
           ]
         }
       },

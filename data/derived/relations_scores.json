@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-09T03:52:08.839855+00:00",
+    "generated_at": "2026-02-09T03:59:48.838930+00:00",
     "date": "2026-02-08",
     "week": 4,
     "effective_week_daily": 4,
@@ -5992,18 +5992,6 @@
     },
     {
       "type": "vote",
-      "actor": "Maxiane",
-      "target": "Sol Vega",
-      "week": 4,
-      "date": "2026-02-08",
-      "weight_raw": -2.0,
-      "revealed": false,
-      "vote_count": 1,
-      "vote_kind": "secret",
-      "weight": -2.0
-    },
-    {
-      "type": "vote",
       "actor": "Alberto Cowboy",
       "target": "Solange Couto",
       "week": 4,
@@ -6077,6 +6065,18 @@
     {
       "type": "vote",
       "actor": "Jordana",
+      "target": "Solange Couto",
+      "week": 4,
+      "date": "2026-02-08",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Maxiane",
       "target": "Solange Couto",
       "week": 4,
       "date": "2026-02-08",
@@ -8587,25 +8587,25 @@
         "vote_contradiction": false
       },
       "Sol Vega": {
-        "score": -1.15,
+        "score": 0.85,
         "components": {
-          "queridometro": 0.85,
-          "vote": -2.0
+          "queridometro": 0.85
         },
         "streak_len": 5,
         "break": false,
-        "vote_contradiction": true
+        "vote_contradiction": false
       },
       "Solange Couto": {
-        "score": 0.4,
+        "score": -1.6,
         "components": {
           "queridometro": 1.0,
           "sincerao": -0.8,
-          "vip": 0.2
+          "vip": 0.2,
+          "vote": -2.0
         },
         "streak_len": 27,
         "break": false,
-        "vote_contradiction": false
+        "vote_contradiction": true
       }
     },
     "Milena": {
@@ -11759,20 +11759,20 @@
         "break": false
       },
       "Sol Vega": {
-        "score": -1.15,
+        "score": 0.85,
         "components": {
-          "queridometro": 0.85,
-          "vote": -2.0
+          "queridometro": 0.85
         },
         "streak_len": 5,
         "break": false
       },
       "Solange Couto": {
-        "score": 0.4,
+        "score": -1.6,
         "components": {
           "queridometro": 1.0,
           "sincerao": -0.8,
-          "vip": 0.2
+          "vip": 0.2,
+          "vote": -2.0
         },
         "streak_len": 27,
         "break": false
@@ -16804,27 +16804,27 @@
         "vote_contradiction": false
       },
       "Sol Vega": {
-        "score": -1.15,
+        "score": 0.85,
         "components": {
-          "queridometro": 0.85,
-          "vote": -2.0
+          "queridometro": 0.85
         },
         "streak_len": 5,
         "break": false,
         "active_pair": true,
-        "vote_contradiction": true
+        "vote_contradiction": false
       },
       "Solange Couto": {
-        "score": 0.4,
+        "score": -1.6,
         "components": {
           "queridometro": 1.0,
           "sincerao": -0.8,
-          "vip": 0.2
+          "vip": 0.2,
+          "vote": -2.0
         },
         "streak_len": 27,
         "break": false,
         "active_pair": true,
-        "vote_contradiction": false
+        "vote_contradiction": true
       }
     },
     "Milena": {
@@ -18749,18 +18749,18 @@
         "date": "2026-02-08"
       },
       {
-        "actor": "Maxiane",
-        "target": "Sol Vega",
-        "queridometro": 0.85,
+        "actor": "Sol Vega",
+        "target": "Solange Couto",
+        "queridometro": 0.5,
         "vote_weight": -2.0,
         "vote_kind": "secret",
         "week": 4,
         "date": "2026-02-08"
       },
       {
-        "actor": "Sol Vega",
+        "actor": "Maxiane",
         "target": "Solange Couto",
-        "queridometro": 0.5,
+        "queridometro": 1.0,
         "vote_weight": -2.0,
         "vote_kind": "secret",
         "week": 4,
@@ -18909,15 +18909,15 @@
     },
     "Sol Vega": {
       "positive": 1.81,
-      "negative": -46.056,
-      "total": -44.246,
-      "count": 33
+      "negative": -44.056,
+      "total": -42.246,
+      "count": 32
     },
     "Solange Couto": {
       "positive": 1.2,
-      "negative": -17.68,
-      "total": -16.48,
-      "count": 17
+      "negative": -19.68,
+      "total": -18.48,
+      "count": 18
     }
   },
   "voting_blocs": [
@@ -19025,12 +19025,11 @@
         "Juliano Floss",
         "Leandro",
         "Marcelo",
-        "Maxiane",
         "Milena",
         "Samira",
         "Solange Couto"
       ],
-      "count": 11
+      "count": 10
     },
     {
       "week": 4,
@@ -19042,10 +19041,11 @@
         "Gabriela",
         "Jordana",
         "Marciele",
+        "Maxiane",
         "Sarah Andrade",
         "Sol Vega"
       ],
-      "count": 7
+      "count": 8
     }
   ],
   "streak_breaks": [
