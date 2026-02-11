@@ -3568,14 +3568,17 @@ def build_power_summary(manual_events, auto_events):
     all_events = manual_events.get("power_events", []) + auto_events
     by_participant = defaultdict(lambda: {"positivo": 0, "negativo": 0, "neutro": 0})
     for ev in all_events:
-        target = ev.get("target", "")
-        if not target:
+        ev_type = ev.get("type", "")
+        # Ganha-Ganha is stored as affected participant -> veto holder.
+        # For impact summaries, count the impact on the affected participant.
+        participant = ev.get("actor", "") if ev_type in {"veto_ganha_ganha", "ganha_ganha_escolha"} else ev.get("target", "")
+        if not participant:
             continue
         impacto = ev.get("impacto", "neutro")
         if impacto in ("positivo", "negativo", "neutro"):
-            by_participant[target][impacto] += 1
+            by_participant[participant][impacto] += 1
         else:
-            by_participant[target]["neutro"] += 1
+            by_participant[participant]["neutro"] += 1
 
     result = {}
     for name, counts in by_participant.items():

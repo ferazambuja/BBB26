@@ -46,8 +46,8 @@ Week-scoped dynamics (Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile,
 **Ganha‑Ganha (manual):**
 - Registre em `weekly_events[].ganha_ganha` com `date`, `sorteados`, `veto`, `decisao`, `informacao`.
 - Sempre crie **power_events** correspondentes:
-  - `veto_ganha_ganha` (ator → vetado, impacto negativo)
-  - `ganha_ganha_escolha` (ator → escolhido, impacto positivo leve)
+  - `veto_ganha_ganha` (**vetado → quem vetou**, impacto negativo)
+  - `ganha_ganha_escolha` (**quem decidiu → quem vetou**, impacto positivo leve)
 
 **Barrado no Baile (manual):**
 - Registre em `weekly_events[].barrado_baile` (lista) com `date`, `lider`, `alvo`.
