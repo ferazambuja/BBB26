@@ -1,47 +1,79 @@
 {
   "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
-  "_last_updated": "2026-02-06",
-
+  "_last_updated": "2026-02-11",
   "paredoes": [
     {
       "numero": 1,
-    "status": "finalizado",
-    "data": "2026-01-21",
-    "data_formacao": "2026-01-18",
-    "titulo": "1º Paredão — 21 de Janeiro de 2026",
+      "status": "finalizado",
+      "data": "2026-01-21",
+      "data_formacao": "2026-01-18",
+      "titulo": "1º Paredão — 21 de Janeiro de 2026",
       "semana": 1,
-
       "formacao": {
         "resumo": "Marcelo atendeu o Big Fone e indicou Aline Campos, que contra-atacou Ana Paula Renault. O Líder Alberto Cowboy indicou Milena. Paulo Augusto, mais votado pela casa (11 votos), escapou na Prova Bate e Volta (jogo de memória).",
         "lider": "Alberto Cowboy",
         "indicado_lider": "Milena",
         "motivo_lider": "Indicou Milena sem explicação estratégica clara",
         "anjo": "Jonas Sulzbach",
-        "imunizado": {"por": "Jonas Sulzbach", "quem": "Sarah Andrade"},
-        "big_fone": {"atendeu": "Marcelo", "indicou": "Aline Campos"},
-        "contragolpe": {"de": "Aline Campos", "para": "Ana Paula Renault"},
+        "imunizado": {
+          "por": "Jonas Sulzbach",
+          "quem": "Sarah Andrade"
+        },
+        "big_fone": {
+          "atendeu": "Marcelo",
+          "indicou": "Aline Campos"
+        },
+        "contragolpe": {
+          "de": "Aline Campos",
+          "para": "Ana Paula Renault"
+        },
         "bate_volta": {
-          "participantes": ["Paulo Augusto", "Aline Campos", "Ana Paula Renault"],
+          "participantes": [
+            "Paulo Augusto",
+            "Aline Campos",
+            "Ana Paula Renault"
+          ],
           "vencedor": "Paulo Augusto",
           "prova": "Jogo de memória"
         }
       },
-
       "indicados_finais": [
-        {"nome": "Aline Campos", "grupo": "Camarote", "como": "Big Fone (Marcelo)"},
-        {"nome": "Milena", "grupo": "Pipoca", "como": "Líder"},
-        {"nome": "Ana Paula Renault", "grupo": "Veterano", "como": "Contragolpe (Aline)"}
+        {
+          "nome": "Aline Campos",
+          "grupo": "Camarote",
+          "como": "Big Fone (Marcelo)"
+        },
+        {
+          "nome": "Milena",
+          "grupo": "Pipoca",
+          "como": "Líder"
+        },
+        {
+          "nome": "Ana Paula Renault",
+          "grupo": "Veterano",
+          "como": "Contragolpe (Aline)"
+        }
       ],
-
       "resultado": {
         "eliminado": "Aline Campos",
         "votos": {
-          "Aline Campos": {"voto_unico": 60.42, "voto_torcida": 64.50, "voto_total": 61.64},
-          "Milena": {"voto_unico": 33.02, "voto_torcida": 31.27, "voto_total": 32.50},
-          "Ana Paula Renault": {"voto_unico": 6.56, "voto_torcida": 4.23, "voto_total": 5.86}
+          "Aline Campos": {
+            "voto_unico": 60.42,
+            "voto_torcida": 64.5,
+            "voto_total": 61.64
+          },
+          "Milena": {
+            "voto_unico": 33.02,
+            "voto_torcida": 31.27,
+            "voto_total": 32.5
+          },
+          "Ana Paula Renault": {
+            "voto_unico": 6.56,
+            "voto_torcida": 4.23,
+            "voto_total": 5.86
+          }
         }
       },
-
       "votos_casa": {
         "Solange Couto": "Paulo Augusto",
         "Ana Paula Renault": "Paulo Augusto",
@@ -66,10 +98,8 @@
         "Leandro": "Jonas Sulzbach",
         "Chaiany": "Brigido"
       },
-
       "impedidos_votar": [],
       "votos_anulados": [],
-
       "fontes": [
         "https://portalaltadefinicao.com/bbb-26-voto-unico-e-voto-de-torcida-definem-eliminacao-de-aline-campos",
         "https://exame.com/pop/bbb-26-veja-quem-votou-em-quem-no-1o-paredao/",
@@ -79,15 +109,13 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/aline-campos-e-a-primeira-eliminada-do-bbb-26.ghtml"
       ]
     },
-
     {
       "numero": 2,
-    "status": "finalizado",
-    "data": "2026-01-27",
-    "data_formacao": "2026-01-25",
-    "titulo": "2º Paredão — 27 de Janeiro de 2026",
+      "status": "finalizado",
+      "data": "2026-01-27",
+      "data_formacao": "2026-01-25",
+      "titulo": "2º Paredão — 27 de Janeiro de 2026",
       "semana": 2,
-
       "formacao": {
         "resumo": "Dinâmica das Caixas-Surpresa (sexta): Alberto Cowboy e Brígido, em consenso, indicaram Leandro ao Paredão. Jonas perdeu o direito de votar após abrir uma das caixas. Sarah ganhou o poder de anular um voto (escolheu Ana Paula). Ana Paula teria direito a dois votos, mas foi anulada por Sarah. Não haverá Bate e Volta neste paredão.",
         "lider": "Babu Santana",
@@ -98,7 +126,10 @@
         "imunizado": null,
         "dinamica": {
           "nome": "Caixas-Surpresa",
-          "indicaram": ["Alberto Cowboy", "Brigido"],
+          "indicaram": [
+            "Alberto Cowboy",
+            "Brigido"
+          ],
           "indicado": "Leandro",
           "efeitos": {
             "Jonas Sulzbach": "Perdeu direito de votar",
@@ -108,22 +139,43 @@
         },
         "bate_volta": null
       },
-
       "indicados_finais": [
-        {"nome": "Leandro", "grupo": "Pipoca", "como": "Caixas-Surpresa"},
-        {"nome": "Matheus", "grupo": "Pipoca", "como": "Líder"},
-        {"nome": "Brigido", "grupo": "Pipoca", "como": "Casa (6 votos)"}
+        {
+          "nome": "Leandro",
+          "grupo": "Pipoca",
+          "como": "Caixas-Surpresa"
+        },
+        {
+          "nome": "Matheus",
+          "grupo": "Pipoca",
+          "como": "Líder"
+        },
+        {
+          "nome": "Brigido",
+          "grupo": "Pipoca",
+          "como": "Casa (6 votos)"
+        }
       ],
-
       "resultado": {
         "eliminado": "Matheus",
         "votos": {
-          "Matheus": {"voto_unico": 81.33, "voto_torcida": 75.16, "voto_total": 79.48},
-          "Leandro": {"voto_unico": 13.00, "voto_torcida": 21.51, "voto_total": 15.55},
-          "Brigido": {"voto_unico": 5.67, "voto_torcida": 3.33, "voto_total": 4.97}
+          "Matheus": {
+            "voto_unico": 81.33,
+            "voto_torcida": 75.16,
+            "voto_total": 79.48
+          },
+          "Leandro": {
+            "voto_unico": 13.0,
+            "voto_torcida": 21.51,
+            "voto_total": 15.55
+          },
+          "Brigido": {
+            "voto_unico": 5.67,
+            "voto_torcida": 3.33,
+            "voto_total": 4.97
+          }
         }
       },
-
       "votos_casa": {
         "Leandro": "Brigido",
         "Juliano Floss": "Brigido",
@@ -145,17 +197,18 @@
         "Gabriela": "Juliano Floss",
         "Solange Couto": "Milena"
       },
-
-      "impedidos_votar": ["Jonas Sulzbach"],
-      "votos_anulados": ["Ana Paula Renault"],
-
+      "impedidos_votar": [
+        "Jonas Sulzbach"
+      ],
+      "votos_anulados": [
+        "Ana Paula Renault"
+      ],
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.ghtml",
         "https://diariodonordeste.verdesmares.com.br/entretenimento/zoeira/veja-como-foi-a-formacao-do-segundo-paredao-do-bbb-26-1.3736727",
         "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-matheus-e-o-segundo-eliminado-do-reality.ghtml"
       ]
     },
-
     {
       "numero": 3,
       "status": "finalizado",
@@ -163,7 +216,6 @@
       "data_formacao": "2026-02-01",
       "titulo": "3º Paredão — 3 de Fevereiro de 2026",
       "semana": 3,
-
       "formacao": {
         "resumo": "Sarah Andrade (Anjo) imunizou Sol Vega. Maxiane (Líder) indicou Ana Paula Renault ao Paredão. Jonas Sulzbach já estava emparedado pelo consenso do Big Fone. Na votação da casa, Leandro foi o mais votado (10 votos) e Brigido o segundo (8 votos). Jonas disputou a Prova Bate e Volta contra Leandro e venceu, escapando do Paredão. Brigido não pôde disputar a Bate e Volta (vetado pelo Big Fone/Breno).",
         "lider": "Maxiane",
@@ -171,35 +223,68 @@
         "motivo_lider": null,
         "anjo": "Sarah Andrade",
         "anjo_autoimune": false,
-        "imunizado": {"por": "Sarah Andrade", "quem": "Sol Vega"},
+        "imunizado": {
+          "por": "Sarah Andrade",
+          "quem": "Sol Vega"
+        },
         "dinamica": {
           "nome": "Big Fone (Consenso)",
-          "indicaram": ["Juliano Floss", "Babu Santana", "Marcelo"],
+          "indicaram": [
+            "Juliano Floss",
+            "Babu Santana",
+            "Marcelo"
+          ],
           "indicado": "Jonas Sulzbach"
         },
         "bate_volta": {
-          "participantes": ["Jonas Sulzbach", "Leandro"],
+          "participantes": [
+            "Jonas Sulzbach",
+            "Leandro"
+          ],
           "vencedor": "Jonas Sulzbach",
           "prova": null,
-          "impedidos": ["Brigido"]
+          "impedidos": [
+            "Brigido"
+          ]
         }
       },
-
       "indicados_finais": [
-        {"nome": "Ana Paula Renault", "grupo": "Veterano", "como": "Líder"},
-        {"nome": "Leandro", "grupo": "Pipoca", "como": "Casa (10 votos)"},
-        {"nome": "Brigido", "grupo": "Pipoca", "como": "Casa (8 votos)"}
+        {
+          "nome": "Ana Paula Renault",
+          "grupo": "Veterano",
+          "como": "Líder"
+        },
+        {
+          "nome": "Leandro",
+          "grupo": "Pipoca",
+          "como": "Casa (10 votos)"
+        },
+        {
+          "nome": "Brigido",
+          "grupo": "Pipoca",
+          "como": "Casa (8 votos)"
+        }
       ],
-
       "resultado": {
         "eliminado": "Brigido",
         "votos": {
-          "Ana Paula Renault": {"voto_unico": 9.95, "voto_torcida": 10.37, "voto_total": 10.08},
-          "Brigido": {"voto_unico": 79.73, "voto_torcida": 73.58, "voto_total": 77.88},
-          "Leandro": {"voto_unico": 10.32, "voto_torcida": 16.05, "voto_total": 12.04}
+          "Ana Paula Renault": {
+            "voto_unico": 9.95,
+            "voto_torcida": 10.37,
+            "voto_total": 10.08
+          },
+          "Brigido": {
+            "voto_unico": 79.73,
+            "voto_torcida": 73.58,
+            "voto_total": 77.88
+          },
+          "Leandro": {
+            "voto_unico": 10.32,
+            "voto_torcida": 16.05,
+            "voto_total": 12.04
+          }
         }
       },
-
       "votos_casa": {
         "Jonas Sulzbach": "Leandro",
         "Milena": "Brigido",
@@ -221,10 +306,8 @@
         "Sarah Andrade": "Leandro",
         "Chaiany": "Brigido"
       },
-
       "impedidos_votar": [],
       "votos_anulados": [],
-
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/jonas-se-livra-do-paredao-na-prova-bate-e-volta-do-bbb-26.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/sol-vega-e-imunizada-por-sarah-andrade-veja-quanto-a-sister-pontuou-no-cartola-bbb.ghtml",
@@ -232,26 +315,34 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-brigido-e-o-terceiro-eliminado-do-reality.ghtml"
       ]
     },
-
     {
       "numero": 4,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-02-10",
       "data_formacao": "2026-02-08",
       "titulo": "4º Paredão — 10 de Fevereiro de 2026",
       "semana": 4,
       "total_esperado": 3,
-
       "formacao": {
         "resumo": "Semana do Líder Jonas Sulzbach. Sincerinho (sex): cada participante escolheu quem quer enfrentar no Paredão — Gabriela foi a mais citada (3×). Duelo de Risco (sáb): Jonas sorteou Sol Vega, que havia escolhido Juliano Floss. Ambos escolheram 'Nós indicamos' e, em consenso, puxaram Samira ao Paredão. Prova do Anjo (sáb): Alberto Cowboy venceu (duo com Edilson). Monstro Ligados: Milena + Juliano Floss. Presente do Anjo (dom): Alberto escolheu vídeo da família, imunizou Edilson. Líder Jonas indicou Babu Santana (desavenças + Big Fone). Babu contragolpeou Sarah Andrade. Casa votou: Sol Vega (10 votos) vs Solange Couto (8 votos). Bate e Volta: Samira venceu contra Sol e Sarah, escapando do Paredão. Paredão final: Babu, Sarah, Sol Vega.",
         "lider": "Jonas Sulzbach",
         "indicado_lider": "Babu Santana",
         "motivo_lider": "Citou dinâmica do Big Fone e desavenças com Babu",
         "anjo": "Alberto Cowboy",
-        "imunizado": {"por": "Alberto Cowboy", "quem": "Edilson"},
-        "contragolpe": {"de": "Babu Santana", "para": "Sarah Andrade"},
+        "imunizado": {
+          "por": "Alberto Cowboy",
+          "quem": "Edilson"
+        },
+        "contragolpe": {
+          "de": "Babu Santana",
+          "para": "Sarah Andrade"
+        },
         "bate_volta": {
-          "participantes": ["Sol Vega", "Samira", "Sarah Andrade"],
+          "participantes": [
+            "Sol Vega",
+            "Samira",
+            "Sarah Andrade"
+          ],
           "vencedor": "Samira"
         },
         "duelo_de_risco": {
@@ -265,47 +356,162 @@
           "escolha_juliano_floss": "nos_indicamos",
           "indicado_consenso": "Samira",
           "escolhas": {
-            "Leandro": {"alvo": "Alberto Cowboy", "adjetivo": "manipulador"},
-            "Ana Paula Renault": {"alvo": "Sarah Andrade", "adjetivo": "incoerente"},
-            "Milena": {"alvo": "Edilson", "adjetivo": "fraco"},
-            "Chaiany": {"alvo": "Jordana", "adjetivo": "falsidade"},
-            "Samira": {"alvo": "Jordana", "adjetivo": "falsa"},
-            "Maxiane": {"alvo": "Gabriela", "adjetivo": "incoerente"},
-            "Sol Vega": {"alvo": "Juliano Floss", "adjetivo": "compra briga dos outros"},
-            "Sarah Andrade": {"alvo": "Babu Santana", "adjetivo": "prepotente"},
-            "Solange Couto": {"alvo": "Gabriela", "adjetivo": "chata"},
-            "Alberto Cowboy": {"alvo": "Leandro", "adjetivo": "perdido"},
-            "Juliano Floss": {"alvo": "Alberto Cowboy", "adjetivo": "falso e manipulador"},
-            "Gabriela": {"alvo": "Marciele", "adjetivo": "planta"},
-            "Marciele": {"alvo": "Juliano Floss", "adjetivo": "folgado"},
-            "Breno": {"alvo": "Edilson", "adjetivo": "planta"},
-            "Marcelo": {"alvo": "Gabriela", "adjetivo": "chata"},
-            "Edilson": {"alvo": "Milena", "adjetivo": "chata"},
-            "Jordana": {"alvo": "Samira", "adjetivo": "falsa, hipócrita"},
-            "Babu Santana": {"alvo": "Sarah Andrade", "adjetivo": "inútil"}
+            "Leandro": {
+              "alvo": "Alberto Cowboy",
+              "adjetivo": "manipulador"
+            },
+            "Ana Paula Renault": {
+              "alvo": "Sarah Andrade",
+              "adjetivo": "incoerente"
+            },
+            "Milena": {
+              "alvo": "Edilson",
+              "adjetivo": "fraco"
+            },
+            "Chaiany": {
+              "alvo": "Jordana",
+              "adjetivo": "falsidade"
+            },
+            "Samira": {
+              "alvo": "Jordana",
+              "adjetivo": "falsa"
+            },
+            "Maxiane": {
+              "alvo": "Gabriela",
+              "adjetivo": "incoerente"
+            },
+            "Sol Vega": {
+              "alvo": "Juliano Floss",
+              "adjetivo": "compra briga dos outros"
+            },
+            "Sarah Andrade": {
+              "alvo": "Babu Santana",
+              "adjetivo": "prepotente"
+            },
+            "Solange Couto": {
+              "alvo": "Gabriela",
+              "adjetivo": "chata"
+            },
+            "Alberto Cowboy": {
+              "alvo": "Leandro",
+              "adjetivo": "perdido"
+            },
+            "Juliano Floss": {
+              "alvo": "Alberto Cowboy",
+              "adjetivo": "falso e manipulador"
+            },
+            "Gabriela": {
+              "alvo": "Marciele",
+              "adjetivo": "planta"
+            },
+            "Marciele": {
+              "alvo": "Juliano Floss",
+              "adjetivo": "folgado"
+            },
+            "Breno": {
+              "alvo": "Edilson",
+              "adjetivo": "planta"
+            },
+            "Marcelo": {
+              "alvo": "Gabriela",
+              "adjetivo": "chata"
+            },
+            "Edilson": {
+              "alvo": "Milena",
+              "adjetivo": "chata"
+            },
+            "Jordana": {
+              "alvo": "Samira",
+              "adjetivo": "falsa, hipócrita"
+            },
+            "Babu Santana": {
+              "alvo": "Sarah Andrade",
+              "adjetivo": "inútil"
+            }
           },
           "alvos_mais_citados": [
-            {"nome": "Gabriela", "vezes": 3, "por": ["Maxiane", "Solange Couto", "Marcelo"]},
-            {"nome": "Alberto Cowboy", "vezes": 2, "por": ["Leandro", "Juliano Floss"]},
-            {"nome": "Jordana", "vezes": 2, "por": ["Chaiany", "Samira"]},
-            {"nome": "Sarah Andrade", "vezes": 2, "por": ["Ana Paula Renault", "Babu Santana"]},
-            {"nome": "Edilson", "vezes": 2, "por": ["Milena", "Breno"]},
-            {"nome": "Juliano Floss", "vezes": 2, "por": ["Sol Vega", "Marciele"]}
+            {
+              "nome": "Gabriela",
+              "vezes": 3,
+              "por": [
+                "Maxiane",
+                "Solange Couto",
+                "Marcelo"
+              ]
+            },
+            {
+              "nome": "Alberto Cowboy",
+              "vezes": 2,
+              "por": [
+                "Leandro",
+                "Juliano Floss"
+              ]
+            },
+            {
+              "nome": "Jordana",
+              "vezes": 2,
+              "por": [
+                "Chaiany",
+                "Samira"
+              ]
+            },
+            {
+              "nome": "Sarah Andrade",
+              "vezes": 2,
+              "por": [
+                "Ana Paula Renault",
+                "Babu Santana"
+              ]
+            },
+            {
+              "nome": "Edilson",
+              "vezes": 2,
+              "por": [
+                "Milena",
+                "Breno"
+              ]
+            },
+            {
+              "nome": "Juliano Floss",
+              "vezes": 2,
+              "por": [
+                "Sol Vega",
+                "Marciele"
+              ]
+            }
           ],
-          "nao_citados": ["Jonas Sulzbach", "Sol Vega", "Ana Paula Renault", "Chaiany", "Maxiane", "Solange Couto", "Breno", "Marcelo"],
+          "nao_citados": [
+            "Jonas Sulzbach",
+            "Sol Vega",
+            "Ana Paula Renault",
+            "Chaiany",
+            "Maxiane",
+            "Solange Couto",
+            "Breno",
+            "Marcelo"
+          ],
           "fontes": [
             "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml"
           ]
         }
       },
-
       "indicados_finais": [
-        {"nome": "Samira", "grupo": "Pipoca", "como": "Duelo de Risco (consenso Sol Vega + Juliano Floss) — escapou na Bate e Volta"},
-        {"nome": "Babu Santana", "grupo": "Veterano", "como": "Líder"},
-        {"nome": "Sarah Andrade", "grupo": "Veterano", "como": "Contragolpe (Babu Santana)"},
-        {"nome": "Sol Vega", "grupo": "Veterano", "como": "Mais votada pela casa (10 votos)"}
+        {
+          "nome": "Babu Santana",
+          "grupo": "Veterano",
+          "como": "Líder"
+        },
+        {
+          "nome": "Sarah Andrade",
+          "grupo": "Veterano",
+          "como": "Contragolpe (Babu Santana)"
+        },
+        {
+          "nome": "Sol Vega",
+          "grupo": "Veterano",
+          "como": "Mais votada pela casa (10 votos)"
+        }
       ],
-
       "votos_casa": {
         "Milena": "Sol Vega",
         "Samira": "Sol Vega",
@@ -326,10 +532,10 @@
         "Jordana": "Solange Couto",
         "Maxiane": "Solange Couto"
       },
-
-      "impedidos_votar": ["Jonas Sulzbach"],
+      "impedidos_votar": [
+        "Jonas Sulzbach"
+      ],
       "votos_anulados": [],
-
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-dinamica-inedita-influencia-a-formacao-do-4o-paredao.ghtml",
@@ -338,8 +544,29 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/anjo-alberto-cowboy-imuniza-edilson-durante-a-formacao-do-4o-paredao-do-bbb-26.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-quarto-paredao-do-bbb-26-babu-santana-sarah-andrade-e-sol-vega-formam-a-berlinda.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-4o-paredao.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/samira-se-livra-do-paredao-na-prova-bate-e-volta-do-bbb-26.ghtml"
-      ]
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/samira-se-livra-do-paredao-na-prova-bate-e-volta-do-bbb-26.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-sarah-andrade-e-a-quarta-eliminada-do-reality.ghtml"
+      ],
+      "resultado": {
+        "eliminado": "Sarah Andrade",
+        "votos": {
+          "Babu Santana": {
+            "voto_unico": 23.34,
+            "voto_torcida": 40.52,
+            "voto_total": 28.49
+          },
+          "Sarah Andrade": {
+            "voto_unico": 73.53,
+            "voto_torcida": 58.86,
+            "voto_total": 69.13
+          },
+          "Sol Vega": {
+            "voto_unico": 3.13,
+            "voto_torcida": 0.62,
+            "voto_total": 2.38
+          }
+        }
+      }
     }
   ]
 }

@@ -477,6 +477,79 @@ if len(finalized_polls) >= 1:
     print(f'<strong>📉 Padrão observado:</strong> As enquetes consistentemente <strong>{pattern}</strong> o eliminado em <strong>{abs(underest):.1f} p.p.</strong> em média.')
     print(f'<br><span style="color:#888;">Isso ocorre porque enquetes online sobre-representam fãs engajados que votam estrategicamente.</span>')
     print(f'</div>\n')
+
+    # ══════════════════════════════════════════════════════════════
+    # IMPACTO DO PESO 70/30 VS CENÁRIO 50/50 (RETROATIVO)
+    # ══════════════════════════════════════════════════════════════
+    rows_5050 = []
+    n_changed = 0
+    poll_err_total = []
+    poll_err_5050 = []
+
+    for p in paredoes_finalizados:
+        parts = []
+        for part in p.get('participantes', []):
+            if part.get('voto_unico') is None or part.get('voto_torcida') is None:
+                continue
+            vu = float(part.get('voto_unico', 0))
+            vt = float(part.get('voto_torcida', 0))
+            v7030 = float(part.get('voto_total', 0))
+            v5050 = 0.5 * vu + 0.5 * vt
+            parts.append({
+                'nome': part.get('nome'),
+                'v7030': v7030,
+                'v5050': v5050,
+            })
+
+        if not parts:
+            continue
+
+        atual = max(parts, key=lambda x: x['v7030'])
+        hipot = max(parts, key=lambda x: x['v5050'])
+        mudou = atual['nome'] != hipot['nome']
+        if mudou:
+            n_changed += 1
+
+        rows_5050.append({
+            'Paredão': f"{p.get('numero')}º",
+            'Eliminado (70/30)': atual['nome'],
+            'Eliminado (50/50)': hipot['nome'],
+            'Mudaria?': '🔁 Sim' if mudou else '✅ Não',
+            'Voto 70/30 (elim.)': f"{atual['v7030']:.2f}%",
+            'Voto 50/50 (elim.)': f"{atual['v5050']:.2f}%",
+            'Δ p.p. (70/30 − 50/50)': f"{(atual['v7030'] - atual['v5050']):+.2f}",
+        })
+
+        poll = next((po for po in finalized_polls if po.get('numero') == p.get('numero')), None)
+        if poll and poll.get('consolidado'):
+            poll_val = poll['consolidado'].get(atual['nome'])
+            if poll_val is not None:
+                poll_err_total.append(abs(poll_val - atual['v7030']))
+                poll_err_5050.append(abs(poll_val - atual['v5050']))
+
+    if rows_5050:
+        avg_delta = np.mean([
+            abs(float(r['Δ p.p. (70/30 − 50/50)'].replace('+', '')))
+            for r in rows_5050
+        ]) if rows_5050 else 0.0
+
+        print('<h4 style="margin-top:1.8rem;">⚖️ Impacto do peso 70/30 vs cenário 50/50</h4>')
+        print('<p class="text-muted" style="margin-bottom:0.6rem;">')
+        print('Em 2026, o BBB passou a usar <strong>70% Voto Único + 30% Voto Torcida</strong>.')
+        print('A mudança foi apresentada após críticas de distorção por mutirões de torcida no modelo mais equilibrado.')
+        print('Abaixo, simulamos retroativamente como ficariam os paredões finalizados em um cenário <strong>50/50</strong> (metodologia antiga).')
+        print('</p>')
+
+        print(f'<div style="background:rgba(241,196,15,0.12); border-radius:10px; padding:0.9rem 1rem; margin:0.8rem 0 1rem 0;">')
+        print(f'<strong>Resumo retroativo:</strong> {n_changed}/{len(rows_5050)} paredões mudariam de eliminado com 50/50.')
+        print(f' Diferença média no percentual do eliminado: <strong>{avg_delta:.2f} p.p.</strong>.')
+        if poll_err_total and poll_err_5050:
+            print(f' Erro médio das enquetes vs eliminado: <strong>{np.mean(poll_err_total):.2f} p.p.</strong> (70/30) ')
+            print(f'vs <strong>{np.mean(poll_err_5050):.2f} p.p.</strong> (50/50 simulado).')
+        print('</div>')
+
+        df_5050 = pd.DataFrame(rows_5050)
+        print(df_5050.to_markdown(index=False))
 ```
 
 ---

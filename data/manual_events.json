@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-02-05",
+  "_last_updated": "2026-02-11",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -51,6 +51,14 @@
       "paredao_numero": 3,
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-brigido-e-o-terceiro-eliminado-do-reality.ghtml"
+      ]
+    },
+    "Sarah Andrade": {
+      "status": "eliminada",
+      "exit_date": "2026-02-10",
+      "paredao_numero": 4,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-sarah-andrade-e-a-quarta-eliminada-do-reality.ghtml"
       ]
     }
   },
@@ -1328,7 +1336,10 @@
       },
       "anjo": {
         "vencedor": "Alberto Cowboy",
-        "duo": ["Alberto Cowboy", "Edilson"],
+        "duo": [
+          "Alberto Cowboy",
+          "Edilson"
+        ],
         "prova_date": "2026-02-07",
         "tipo": "normal",
         "almoco_date": "2026-02-08",
@@ -1341,7 +1352,10 @@
         "imunizou": "Edilson",
         "extra_poder": "imunidade_extra",
         "usou_extra_poder": false,
-        "monstro_escolha": ["Milena", "Juliano Floss"],
+        "monstro_escolha": [
+          "Milena",
+          "Juliano Floss"
+        ],
         "monstro_tipo": "Ligados",
         "monstro_justificativa": "Alberto justificou escolha de Milena por atitude de colocar a casa toda no Tá Com Nada",
         "notas": "Alberto teve mal-estar antes da final (atendido no Confessionário). Escolheu Milena e Juliano Floss para Castigo do Monstro Ligados (dupla). No Presente do Anjo (dom), escolheu vídeo da esposa Priscilla Monroy ao invés de segunda imunidade: 'Saudade do seu cheiro'. Convidou Jonas, Sarah e Edilson. Imunizou Edilson ao vivo: 'Vou imunizar a pessoa que me ajudou na conquista dessa vitória'. Jonas criticou Milena por 'fazer corpo mole' na Prova do Anjo.",
@@ -1445,7 +1459,11 @@
       "type": "dinamica",
       "name": "Duelo de Risco — Fase 2",
       "resultado": "Jonas Sulzbach (Líder) sorteou Sol Vega. Sol havia escolhido Juliano Floss no Sincerinho. Na Sala Isolada e Confessionário, ambos escolheram 'Nós indicamos'. Em consenso, indicaram Samira ao Paredão.",
-      "participants_affected": ["Samira", "Sol Vega", "Juliano Floss"],
+      "participants_affected": [
+        "Samira",
+        "Sol Vega",
+        "Juliano Floss"
+      ],
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-dinamica-inedita-influencia-a-formacao-do-4o-paredao.ghtml"
       ]
@@ -2585,7 +2603,10 @@
       "week": 4,
       "type": "indicacao",
       "actor": "Sol Vega + Juliano Floss",
-      "actors": ["Sol Vega", "Juliano Floss"],
+      "actors": [
+        "Sol Vega",
+        "Juliano Floss"
+      ],
       "target": "Samira",
       "source": "Duelo de Risco (consenso)",
       "detail": "Ambos escolheram 'Nós indicamos' no Duelo de Risco. Em consenso, indicaram Samira ao Paredão.",
@@ -2643,15 +2664,5 @@
     }
   ],
   "cartola_points_log": [],
-  "scheduled_events": [
-    {
-      "date": "2026-02-10",
-      "week": 4,
-      "category": "eliminacao",
-      "emoji": "🚪",
-      "title": "4ª Eliminação",
-      "detail": "Uma pessoa deixa o programa.",
-      "time": "Ao Vivo"
-    }
-  ]
+  "scheduled_events": []
 }
