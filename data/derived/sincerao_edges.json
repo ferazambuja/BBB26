@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-10T21:37:00.345908+00:00",
+    "generated_at": "2026-02-11T01:17:40.061898+00:00",
     "weights": {
       "podio_mention": 0.25,
       "nao_ganha_mention": -0.5,
@@ -18,6 +18,7 @@
       "week": 1,
       "date": "2026-01-19",
       "format": "pódio + quem não ganha",
+      "scoring_mode": "full",
       "participacao": "todos os participantes",
       "protagonistas": [],
       "temas_publico": [],
@@ -35,6 +36,7 @@
       "week": 2,
       "date": "2026-01-26",
       "format": "bombas com temas do público + plateia define planta",
+      "scoring_mode": "full",
       "participacao": "protagonistas da semana + plateia",
       "protagonistas": [
         "Ana Paula Renault",
@@ -72,6 +74,7 @@
       "week": 3,
       "date": "2026-02-02",
       "format": "pior futebol do mundo — escalação com papéis do futebol",
+      "scoring_mode": "full",
       "participacao": "protagonistas da semana + plateia",
       "protagonistas": [
         "Babu Santana",
@@ -97,6 +100,41 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/ana-paula-renault-elege-pior-time-e-dispara-contra-jonas-sulzbach-de-dar-do.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sarah-andrade-monta-pior-time-e-alfineta-juliano-floss-bola-murcha-da-vez.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/maxiane-aponta-ana-paula-renault-no-sincerao-dona-da-razao-nao-quer-conversar-nao-quer-ouvir.ghtml"
+      ]
+    },
+    {
+      "week": 4,
+      "date": "2026-02-09",
+      "format": "Quem Sou Eu? (adivinhação com perguntas sim/não) + plateia define mais apagada",
+      "scoring_mode": "planta_only",
+      "participacao": [
+        "Jonas Sulzbach",
+        "Alberto Cowboy",
+        "Babu Santana",
+        "Sarah Andrade",
+        "Sol Vega",
+        "Juliano Floss",
+        "Marciele"
+      ],
+      "protagonistas": [
+        "Jonas Sulzbach",
+        "Alberto Cowboy",
+        "Babu Santana",
+        "Sarah Andrade",
+        "Sol Vega",
+        "Juliano Floss"
+      ],
+      "temas_publico": [],
+      "planta": {
+        "target": "Marciele",
+        "source": "plateia",
+        "label": "mais apagada",
+        "notes": "Plateia escolheu Marciele como a pessoa mais apagada da casa; por isso ela participou da dinâmica."
+      },
+      "notes": "Dinâmica mais lúdica e com baixo poder de leitura relacional: protagonistas perguntam a 4 colegas usando gabarito e tentam adivinhar quem está na testa. Erro gera punição no próprio jogador; acerto pune a pessoa da carta.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/bbb-26-participantes-sao-desafiados-em-quem-sou-eu-no-sincerao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/marciele-e-escolhida-a-mais-apagada-da-casa-e-entra-no-sincerao-do-bbb-26.ghtml"
       ]
     }
   ],
@@ -1246,6 +1284,22 @@
       },
       "reasons": {
         "Edilson": [
+          "🌿 planta"
+        ]
+      }
+    },
+    {
+      "week": 4,
+      "date": "2026-02-09",
+      "podio_mentions": {},
+      "nao_ganha_mentions": {},
+      "sem_podio": [],
+      "planta": "Marciele",
+      "scores": {
+        "Marciele": -0.3
+      },
+      "reasons": {
+        "Marciele": [
           "🌿 planta"
         ]
       }

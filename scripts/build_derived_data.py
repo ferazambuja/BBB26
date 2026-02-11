@@ -1811,8 +1811,17 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
             if edge.get("target"):
                 sinc_participacao.add(edge["target"])
 
-        has_sincerao = bool(sinc_week) or bool(sinc_edges)
-        planta_plateia_target = (sinc_week.get("planta") or {}).get("target")
+        sinc_scoring_mode = sinc_week.get("scoring_mode", "full") if isinstance(sinc_week, dict) else "full"
+        has_sincerao_raw = bool(sinc_week) or bool(sinc_edges)
+        if sinc_scoring_mode == "off":
+            has_sincerao = False
+            planta_plateia_target = None
+        elif sinc_scoring_mode == "planta_only":
+            has_sincerao = False
+            planta_plateia_target = (sinc_week.get("planta") or {}).get("target")
+        else:
+            has_sincerao = has_sincerao_raw
+            planta_plateia_target = (sinc_week.get("planta") or {}).get("target")
 
         totals = {}
         for name in participants:
@@ -1988,6 +1997,7 @@ def build_sincerao_edges(manual_events):
             "week": week,
             "date": date,
             "format": sinc.get("format"),
+            "scoring_mode": sinc.get("scoring_mode", "full"),
             "participacao": sinc.get("participacao"),
             "protagonistas": sinc.get("protagonistas", []),
             "temas_publico": sinc.get("temas_publico", []),

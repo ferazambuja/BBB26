@@ -32,6 +32,15 @@ def _fmt_date(d: str | None) -> str:
     return d or "—"
 
 
+def _fmt_value(v) -> str | None:
+    if v is None:
+        return None
+    if isinstance(v, list):
+        items = [str(i) for i in v if i]
+        return ", ".join(items) if items else None
+    return str(v)
+
+
 def summarize_value(key: str, value) -> str | None:
     if not value:
         return None
@@ -48,20 +57,11 @@ def summarize_value(key: str, value) -> str | None:
         date = value.get("date")
         if date:
             parts.append(date)
-        if "format" in value:
-            parts.append(value.get("format"))
-        if "participacao" in value:
-            parts.append(value.get("participacao"))
-        if "atendeu" in value:
-            parts.append(value.get("atendeu"))
-        if "resultado" in value:
-            parts.append(value.get("resultado"))
-        if "consequencia" in value:
-            parts.append(value.get("consequencia"))
-        if "detalhe" in value:
-            parts.append(value.get("detalhe"))
-        if "descricao" in value:
-            parts.append(value.get("descricao"))
+        for field in ("format", "participacao", "atendeu", "resultado", "consequencia", "detalhe", "descricao"):
+            if field in value:
+                txt = _fmt_value(value.get(field))
+                if txt:
+                    parts.append(txt)
         parts = [p for p in parts if p]
         if parts:
             return f"{label}: " + " — ".join(parts)
