@@ -257,6 +257,9 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 | Jan 21 | 22 | Aline Campos **eliminada** (1º Paredão) |
 | Jan 28 | 21 | Matheus **eliminado** (2º Paredão) |
 | Jan 30 | 20 | Paulo Augusto **desclassificado** (agressão durante Big Fone) |
+| Feb 3 | 19 | Brigido **eliminado** (3º Paredão) |
+| Feb 10 | 18 | Sarah Andrade **eliminada** (4º Paredão) |
+| Feb 11 | 17 | Sol Vega **desclassificada** (confronto com Ana Paula Renault) |
 
 ## Scoring & Indexes (summary)
 
@@ -417,7 +420,7 @@ The dashboard auto-adapts: partial formation shows placeholder cards, full forma
 
 The `votos_casa` dict and all manual data use participant names as keys. These **MUST match exactly** with the names in the API snapshots.
 
-**Official API Names (as of Jan 2026):**
+**Official API Names (as of Feb 2026):**
 
 | API Name | Group | Notes |
 |----------|-------|-------|
@@ -425,7 +428,6 @@ The `votos_casa` dict and all manual data use participant names as keys. These *
 | `Ana Paula Renault` | Veterano | Full name used |
 | `Babu Santana` | Veterano | Full name used |
 | `Breno` | Pipoca | First name only |
-| `Brigido` | Pipoca | First name only (not "Brígido") |
 | `Chaiany` | Pipoca | First name only (entered Jan 18) |
 | `Edilson` | Camarote | **NOT** "Edilson Capetinha" |
 | `Gabriela` | Pipoca | First name only (entered Jan 18) |
@@ -435,20 +437,20 @@ The `votos_casa` dict and all manual data use participant names as keys. These *
 | `Leandro` | Pipoca | First name only (entered Jan 18) |
 | `Marcelo` | Pipoca | First name only |
 | `Marciele` | Pipoca | First name only |
-| `Matheus` | Pipoca | First name only (entered Jan 18) |
 | `Maxiane` | Pipoca | First name only |
 | `Milena` | Pipoca | First name only |
 | `Samira` | Pipoca | First name only |
-| `Sarah Andrade` | Veterano | Full name used |
-| `Sol Vega` | Veterano | Full name used |
 | `Solange Couto` | Camarote | Full name used |
 
 **Eliminated/Exited (no longer in API):**
 - `Aline Campos` — Eliminada (1º Paredão, Jan 21)
+- `Brigido` — Eliminado (3º Paredão, Feb 3)
 - `Henri Castelli` — Desistente (Jan 15)
 - `Matheus` — Eliminado (2º Paredão, Jan 28)
 - `Paulo Augusto` — Desclassificado (agressão, Jan 30)
 - `Pedro` — Desistente (Jan 19)
+- `Sarah Andrade` — Eliminada (4º Paredão, Feb 10)
+- `Sol Vega` — Desclassificada (confronto, Feb 11)
 
 **Before adding manual data**, always verify names against the snapshot:
 ```python
