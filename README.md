@@ -25,7 +25,7 @@ Painel que acompanha diariamente o **queridômetro** (reações entre participan
 - **Python 3.10+** — coleta e processamento de dados
 - **Quarto** — renderização do site estático
 - **Plotly** — visualizações interativas (tema dark customizado)
-- **GitHub Actions** — atualização automática 4x/dia
+- **GitHub Actions** — atualização automática multi-captura (slots fixos + probes)
 - **GitHub Pages** — hospedagem
 
 ## Como funciona
@@ -42,7 +42,7 @@ API GloboPlay → fetch_data.py → data/snapshots/*.json
                                 _site/ → GitHub Pages
 ```
 
-O GitHub Actions roda automaticamente nos horários **06:00, 15:00, 18:00 e 00:00 BRT**, buscando dados novos, reconstruindo os índices e publicando o site.
+O GitHub Actions roda com slots permanentes em **00:00, 06:00, 15:00 e 18:00 BRT**, além de probes entre **10:00–16:00 BRT** e extras aos sábados (**17:00** e **20:00 BRT**) para capturar mudanças de dinâmica com mais precisão.
 
 ## Desenvolvimento local
 

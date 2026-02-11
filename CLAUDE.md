@@ -56,7 +56,7 @@ quarto preview
 - `scripts/build_derived_data.py` — **after any manual edits** in `data/manual_events.json` or `data/paredoes.json`.
   - Também gera `data/derived/index_data.json` (tabelas leves para `index.qmd`) e `data/derived/cartola_data.json` (pontuação Cartola).
 - `scripts/update_programa_doc.py` — **after weekly manual updates** (keeps `docs/PROGRAMA_BBB26.md` table in sync).
-- `scripts/analyze_capture_timing.py` — **weekly** (checks if 12:00 BRT cron catches Raio-X data on time).
+- `scripts/analyze_capture_timing.py` — **weekly** (checks whether probes are catching Raio-X updates and if the 15:00 BRT primary slot can be adjusted).
 - `scripts/audit_snapshots.py` / `scripts/analyze_snapshots.py` / `scripts/compare_sameday.py` — **one-off audits**.
 
 **Scheduled events (upcoming week dynamics):**
@@ -230,7 +230,7 @@ Sentiment weights: positive = +1, mild_negative = -0.5, strong_negative = -1
 
 ### Multi-Capture Strategy
 
-GitHub Actions runs **4x daily**: 06:00, 12:00 (primary), 18:00, 00:00 BRT.
+GitHub Actions runs permanent slots at **00:00, 06:00, 15:00, 18:00 BRT**, plus hourly probes **10:00–16:00 BRT** (currently enabled) and Saturday extras at **17:00** and **20:00 BRT**.
 `fetch_data.py` saves **only if data hash changed**. Multiple snapshots per day are normal.
 
 ### Two Data Views in Dashboard

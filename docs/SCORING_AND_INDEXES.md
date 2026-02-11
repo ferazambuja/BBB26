@@ -672,7 +672,8 @@ Unified chronological timeline merging **all** event sources into a single feed.
 ```
 
 ### Deduplication
-Events are deduped by `(date, category, title)`. Scheduled events are processed last, so a real event always takes priority.
+Scheduled placeholders are skipped when a real event already exists with the same `(date, category)`.
+Final timeline dedup keeps the first occurrence of exact `(date, category, title)` duplicates.
 
 ### Rendering
 - **Past events**: solid border, filled badge, plain detail text

@@ -2,7 +2,7 @@
 
 > **Status**: Ready to deploy. All features complete. GitHub Actions workflow on disk.
 >
-> **Last updated**: 2026-02-05
+> **Last updated**: 2026-02-11
 
 ---
 
@@ -30,7 +30,7 @@ _site/ (11 HTML pages)
 
 | Type | Files | Update Method |
 |------|-------|---------------|
-| **Auto (API)** | `data/snapshots/*.json`, `data/latest.json` | `fetch_data.py` (4×/day via CI) |
+| **Auto (API)** | `data/snapshots/*.json`, `data/latest.json` | `fetch_data.py` (scheduled CI multi-capture: permanent slots + probes) |
 | **Manual** | `manual_events.json`, `paredoes.json`, `provas.json`, `votalhada/polls.json` | Human-maintained after events |
 | **Derived** | `data/derived/*.json` (20+ files) | `build_derived_data.py` (auto or after manual edits) |
 
@@ -40,14 +40,34 @@ _site/ (11 HTML pages)
 
 **File**: `.github/workflows/daily-update.yml`
 
-**Schedule** (4× daily, all UTC → BRT):
+**Schedule** (current, all UTC → BRT):
+
+Permanent slots (daily):
 
 | UTC | BRT | Purpose |
 |-----|-----|---------|
+| 03:00 | 00:00 | Night — post-episode changes |
 | 09:00 | 06:00 | Pre-Raio-X baseline |
 | 18:00 | 15:00 | Post-Raio-X — primary capture (data updates ~14:00 BRT) |
 | 21:00 | 18:00 | Evening — balance/role changes |
-| 03:00 | 00:00 | Night — post-episode changes |
+
+Observation probes (currently enabled):
+
+| UTC | BRT | Purpose |
+|-----|-----|---------|
+| 13:00 | 10:00 | Probe — early Raio-X window |
+| 14:00 | 11:00 | Probe |
+| 15:00 | 12:00 | Probe |
+| 16:00 | 13:00 | Probe |
+| 17:00 | 14:00 | Probe — expected update window |
+| 19:00 | 16:00 | Probe — late safety net |
+
+Saturday extras:
+
+| UTC | BRT | Purpose |
+|-----|-----|---------|
+| 20:00 | 17:00 | Post-Anjo challenge |
+| 23:00 | 20:00 | Post-Monstro pick |
 
 **What the workflow does:**
 1. Checkout repo (full history)
@@ -80,17 +100,18 @@ When you edit `paredoes.json`, `manual_events.json`, `provas.json`, or `votalhad
 python scripts/build_derived_data.py   # rebuild derived data
 quarto render                          # optional: verify locally
 git add data/ && git commit -m "data: <description>"
-git push origin main                   # triggers workflow → redeploy
+git push origin main                   # push data updates
+gh workflow run daily-update.yml       # deploy now (workflow is cron + manual dispatch)
 ```
 
 ---
 
 ## Storage & Limits
 
-- ~300KB per snapshot × ~1-2/day = manageable in git
-- 33 snapshots so far = ~8.3MB (projected ~25-50MB for full season)
+- ~300KB per snapshot × multi-capture/day = manageable in git
+- 55 snapshots so far = ~14MB (projected ~25-60MB for full season)
 - GitHub Pages limit: 1GB site size (dashboard is ~50MB rendered — well within limits)
-- GitHub Actions: 2,000 min/month free tier (workflow runs ~3-5 min each × 4/day ≈ 400-600 min/month)
+- GitHub Actions: 2,000 min/month free tier (workflow runs ~3-5 min each, current cadence can reach ~1,100-1,800 min/month)
 
 ---
 

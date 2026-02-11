@@ -2,7 +2,7 @@
 
 > Guia prático para manutenção diária, atualização de dados manuais e sync com GitHub.
 >
-> **Última atualização**: 2026-02-05
+> **Última atualização**: 2026-02-11
 
 ---
 

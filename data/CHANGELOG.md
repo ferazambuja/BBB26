@@ -2,11 +2,11 @@
 
 This document tracks the initial data audit and key findings about the API data model.
 
-## Current Status (2026-02-04)
+## Current Status (2026-02-10)
 
-- **Total snapshots**: 32 (Jan 13 – Feb 4, 2026)
+- **Total snapshots**: 55 (Jan 13 – Feb 10, 2026)
 - **Active participants**: 19
-- **Exited participants**: 5 (Henri, Pedro, Aline Campos, Matheus, Brigido)
+- **Exited participants**: 6 (Henri, Pedro, Aline Campos, Matheus, Brigido, Paulo Augusto)
 - **Paredões completed**: 3
 
 ## Initial Audit Summary (2026-01-24)
