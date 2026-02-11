@@ -1,8 +1,8 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-11T03:15:04.736301+00:00",
+    "generated_at": "2026-02-11T03:17:16.318023+00:00",
     "n_weeks": 5,
-    "total_transitions": 42
+    "total_transitions": 44
   },
   "timeline": [
     {
@@ -1017,8 +1017,8 @@
     {
       "date": "2026-02-10",
       "week": 5,
-      "n_active": 19,
-      "n_clusters": 19,
+      "n_active": 18,
+      "n_clusters": 18,
       "silhouette": null,
       "communities": [
         {
@@ -1168,7 +1168,7 @@
         {
           "label": 17,
           "members": [
-            "Sarah Andrade"
+            "Sol Vega"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1177,23 +1177,25 @@
         {
           "label": 18,
           "members": [
-            "Sol Vega"
-          ],
-          "size": 1,
-          "cohesion": 0,
-          "color": "#f39c12"
-        },
-        {
-          "label": 19,
-          "members": [
             "Solange Couto"
           ],
           "size": 1,
           "cohesion": 0,
-          "color": "#9b59b6"
+          "color": "#f39c12"
         }
       ],
-      "transitions": []
+      "transitions": [
+        {
+          "name": "Sol Vega",
+          "from_cluster": 18,
+          "to_cluster": 17
+        },
+        {
+          "name": "Solange Couto",
+          "from_cluster": 19,
+          "to_cluster": 18
+        }
+      ]
     }
   ],
   "all_transitions": [
@@ -1490,9 +1492,31 @@
       "to_cluster": 19,
       "week": 4,
       "date": "2026-02-09"
+    },
+    {
+      "name": "Sol Vega",
+      "from_cluster": 18,
+      "to_cluster": 17,
+      "week": 5,
+      "date": "2026-02-10"
+    },
+    {
+      "name": "Solange Couto",
+      "from_cluster": 19,
+      "to_cluster": 18,
+      "week": 5,
+      "date": "2026-02-10"
     }
   ],
   "most_mobile": [
+    {
+      "name": "Sol Vega",
+      "moves": 4
+    },
+    {
+      "name": "Solange Couto",
+      "moves": 4
+    },
     {
       "name": "Maxiane",
       "moves": 3
@@ -1503,14 +1527,6 @@
     },
     {
       "name": "Samira",
-      "moves": 3
-    },
-    {
-      "name": "Sarah Andrade",
-      "moves": 3
-    },
-    {
-      "name": "Sol Vega",
       "moves": 3
     }
   ]
