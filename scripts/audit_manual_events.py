@@ -72,7 +72,12 @@ def run_audit():
         key = (ev.get("week"), ev.get("type"), ev.get("target"))
         auto_index[key].append(ev)
 
+    # Types where manual events intentionally complement auto-detection
+    # (e.g., imunidade: auto detects role, manual records who granted it)
+    manual_complement_types = {"imunidade"}
     for i, ev in enumerate(power_events):
+        if ev.get("type") in manual_complement_types:
+            continue
         key = (ev.get("week"), ev.get("type"), ev.get("target"))
         if key in auto_index:
             issues["manual_vs_auto"].append((i, ev, auto_index[key]))
