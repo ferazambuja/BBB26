@@ -623,15 +623,28 @@ for name in never_voted:
 print('</div>')
 print('</div>')
 
-# ── Vote target table (active participants only) ─────────────────────────────
-active_targets = {t: votes for t, votes in target_votes.items() if t in active_names}
+# ── Vote target table (all participants) ─────────────────────────────────────
+# Grayscale helpers for exited participants
+def avatar_html_bw(name, avatars, size, is_active):
+    url = avatars.get(name, '')
+    grayscale = '' if is_active else 'filter:grayscale(100%); opacity:0.7;'
+    if url:
+        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; vertical-align:middle; margin-right:6px; {grayscale}" alt="{name}" title="{name}">{name}'
+    return name
 
-if active_targets:
+def avatar_img_bw(name, avatars, size, is_active):
+    url = avatars.get(name, '')
+    grayscale = '' if is_active else 'filter:grayscale(100%); opacity:0.7;'
+    if url:
+        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; {grayscale}" alt="{name}" title="{name}">'
+    return ''
+
+if target_votes:
     # Sort by total votes descending
-    ranked = sorted(active_targets.items(), key=lambda x: sum(len(v) for v in x[1].values()), reverse=True)
+    ranked = sorted(target_votes.items(), key=lambda x: sum(len(v) for v in x[1].values()), reverse=True)
 
-    print('<h4 style="margin:1.5rem 0 0.8rem 0;">🗳️ Alvos ativos — Quem votou em quem</h4>')
-    print('<p style="color:#aaa; font-size:0.9em; margin-bottom:0.8rem;">Apenas participantes ativos. Votos de participantes que já saíram são contabilizados.</p>')
+    print('<h4 style="margin:1.5rem 0 0.8rem 0;">🗳️ Mapa de Votos — Quem votou em quem</h4>')
+    print('<p style="color:#aaa; font-size:0.9em; margin-bottom:0.8rem;">Todos os alvos de votos da casa. Participantes eliminados/desclassificados aparecem em preto e branco.</p>')
     print('<table class="table table-striped" style="font-size:0.95rem;">')
 
     # Header with paredão numbers
@@ -648,7 +661,9 @@ if active_targets:
         for vlist in by_paredao.values():
             all_voters_for_target.update(vlist)
 
-        print(f'<tr><td style="white-space:nowrap;">{avatar_html(target, AVATARS, 36)}</td>')
+        t_active = target in active_names
+        row_style = '' if t_active else 'opacity:0.85;'
+        print(f'<tr style="{row_style}"><td style="white-space:nowrap;">{avatar_html_bw(target, AVATARS, 36, t_active)}</td>')
         print(f'<td style="text-align:center; font-weight:bold; font-size:1.1em;">{total}</td>')
 
         for p in paredoes_finalizados:
@@ -661,7 +676,7 @@ if active_targets:
 
         # Voter avatars (unique, sorted)
         voters_sorted = sorted(all_voters_for_target)
-        voters_html = ' '.join([avatar_img(v, AVATARS, 30) for v in voters_sorted])
+        voters_html = ' '.join([avatar_img_bw(v, AVATARS, 30, v in active_names) for v in voters_sorted])
         print(f'<td>{voters_html}</td>')
         print('</tr>')
 
