@@ -552,6 +552,122 @@ if len(finalized_polls) >= 1:
         print(df_5050.to_markdown(index=False))
 ```
 
+## Raio-X: Votação da Casa
+
+```{python}
+#| label: vote-map
+#| output: asis
+
+# ── Aggregate house votes across all paredões ────────────────────────────────
+from collections import Counter, defaultdict
+
+# Load participants_index for active status
+_pi = json.loads(Path("data/derived/participants_index.json").read_text(encoding="utf-8"))
+active_names = {p["name"] for p in _pi["participants"] if p.get("active")}
+
+# Tally: target → {paredao_num: [list of voters]}
+target_votes = defaultdict(lambda: defaultdict(list))
+all_voters_set = set()
+
+for p in paredoes_finalizados:
+    num = p['numero']
+    for voter, target in p.get('votos_casa', {}).items():
+        target_votes[target][num].append(voter)
+        all_voters_set.add(voter)
+
+# ── "Intocáveis" card ────────────────────────────────────────────────────────
+never_voted = sorted(active_names - set(target_votes.keys()))
+
+# Build ineligibility map: name → [(paredao_num, reason)]
+# Reasons a participant can't receive house votes: Líder, already nominated, or immune
+_paredoes_raw = json.loads(Path("data/paredoes.json").read_text(encoding="utf-8")).get("paredoes", [])
+ineligible_map = defaultdict(list)
+for pr in _paredoes_raw:
+    if pr.get("status") != "finalizado":
+        continue
+    num = pr["numero"]
+    form = pr.get("formacao", {})
+    # Líder can't receive votes
+    if form.get("lider"):
+        ineligible_map[form["lider"]].append((num, "Líder"))
+    # Already nominated (indicados_finais)
+    for ind in pr.get("indicados_finais", []):
+        ineligible_map[ind["nome"]].append((num, "no Paredão"))
+    # Immune
+    im = form.get("imunizado")
+    if im and im.get("quem"):
+        ineligible_map[im["quem"]].append((num, "imune"))
+    # Anjo autoimune
+    if form.get("anjo_autoimune") and form.get("anjo"):
+        ineligible_map[form["anjo"]].append((num, "imune"))
+
+print('<div style="background:rgba(46,204,113,0.10); border:1px solid rgba(46,204,113,0.3); border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0 1.5rem 0;">')
+print(f'<h4 style="margin:0 0 0.8rem 0;">🛡️ Intocáveis — Nunca receberam votos da casa</h4>')
+print(f'<p style="margin:0 0 0.8rem 0; color:#aaa; font-size:0.9em;">{len(never_voted)} de {len(active_names)} participantes ativos passaram por {len(paredoes_finalizados)} paredões sem receber nenhum voto da casa.</p>')
+print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">')
+for name in never_voted:
+    url = AVATARS.get(name, '')
+    exemptions = ineligible_map.get(name, [])
+    n_eligible = len(paredoes_finalizados) - len(exemptions)
+    print(f'<div style="text-align:center; width:90px;">')
+    if url:
+        print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid #2ecc71;" alt="{name}" title="{name}">')
+    print(f'<div style="font-size:0.75em; margin-top:4px; line-height:1.2;">{name}</div>')
+    if exemptions:
+        notes = ', '.join([f'{r} no {n}º' for n, r in exemptions])
+        print(f'<div style="font-size:0.65em; color:#f39c12; margin-top:2px; line-height:1.1;">({notes})</div>')
+        print(f'<div style="font-size:0.65em; color:#888; margin-top:1px;">elegível {n_eligible}/{len(paredoes_finalizados)}</div>')
+    else:
+        print(f'<div style="font-size:0.65em; color:#2ecc71; margin-top:2px;">elegível {len(paredoes_finalizados)}/{len(paredoes_finalizados)} ✓</div>')
+    print('</div>')
+print('</div>')
+print('</div>')
+
+# ── Vote target table (active participants only) ─────────────────────────────
+active_targets = {t: votes for t, votes in target_votes.items() if t in active_names}
+
+if active_targets:
+    # Sort by total votes descending
+    ranked = sorted(active_targets.items(), key=lambda x: sum(len(v) for v in x[1].values()), reverse=True)
+
+    print('<h4 style="margin:1.5rem 0 0.8rem 0;">🗳️ Alvos ativos — Quem votou em quem</h4>')
+    print('<p style="color:#aaa; font-size:0.9em; margin-bottom:0.8rem;">Apenas participantes ativos. Votos de participantes que já saíram são contabilizados.</p>')
+    print('<table class="table table-striped" style="font-size:0.95rem;">')
+
+    # Header with paredão numbers
+    print('<thead><tr>')
+    print('<th>Alvo</th><th style="text-align:center;">Total</th>')
+    for p in paredoes_finalizados:
+        print(f'<th style="text-align:center;">{p["numero"]}º</th>')
+    print('<th>Votaram nele(a)</th>')
+    print('</tr></thead><tbody>')
+
+    for target, by_paredao in ranked:
+        total = sum(len(v) for v in by_paredao.values())
+        all_voters_for_target = set()
+        for vlist in by_paredao.values():
+            all_voters_for_target.update(vlist)
+
+        print(f'<tr><td style="white-space:nowrap;">{avatar_html(target, AVATARS, 36)}</td>')
+        print(f'<td style="text-align:center; font-weight:bold; font-size:1.1em;">{total}</td>')
+
+        for p in paredoes_finalizados:
+            n = len(by_paredao.get(p['numero'], []))
+            if n > 0:
+                color = '#e74c3c' if n >= 5 else '#f39c12' if n >= 3 else '#aaa'
+                print(f'<td style="text-align:center; font-weight:bold; color:{color};">{n}</td>')
+            else:
+                print('<td style="text-align:center; color:#555;">—</td>')
+
+        # Voter avatars (unique, sorted)
+        voters_sorted = sorted(all_voters_for_target)
+        voters_html = ' '.join([avatar_img(v, AVATARS, 30) for v in voters_sorted])
+        print(f'<td>{voters_html}</td>')
+        print('</tr>')
+
+    print('</tbody></table>')
+```
+
 ---
 
 ## Arquivo de Paredões
