@@ -137,6 +137,7 @@ Uma ruptura é detectada quando:
     `voto_anulado` −0.8, `perdeu_voto` −0.6, `imunidade` +0.8
   - `veto_ganha_ganha` −0.4, `ganha_ganha_escolha` +0.3 (baixo impacto)
   - `barrado_baile` −0.4 (baixo impacto, público)
+  - `troca_vip` +0.4 (promovido à VIP por dinâmica), `troca_xepa` −0.4 (rebaixado à Xepa por dinâmica, backlash 0.5)
   - `mira_do_lider` −0.5 (público, backlash 0.5; descontinuado após semana 1)
   - Ganha-Ganha é público: quem foi vetado tende a gerar **animosidade leve** contra quem vetou (backlash menor).
   - Sincerão negativo é público: gera **backlash leve** no alvo (bomba/“não ganha”).

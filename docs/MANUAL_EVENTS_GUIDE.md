@@ -54,6 +54,24 @@ Week-scoped dynamics (Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile,
 - Sempre crie **power_events**: `barrado_baile` (ator = líder, alvo = barrado).
 - Always include `week` (int) and `date` (`YYYY-MM-DD`).
 
+**Bloco do Paredão (semana 5):**
+Dinâmica com 4 consequências sorteadas via acessórios carnavalescos. Registre cada consequência separadamente:
+
+- **TROCA** (1 participante troca VIP↔Xepa):
+  - Crie **2 power_events**: `troca_vip` (actor→beneficiado, positivo) e `troca_xepa` (actor→prejudicado, negativo).
+  - Actor = quem pegou a Máscara Duas Caras; targets = quem foi promovido e quem foi rebaixado.
+  - VIP edge original do Líder NÃO é removido (a troca não foi decisão do Líder).
+
+- **VETO de voto** (1 participante veta o voto de outro no Paredão):
+  - Use `voto_anulado` (actor = quem vetou, target = quem perdeu o voto).
+
+- **IMUNIDADE em consenso** (2 participantes imunizam 1):
+  - Use `imunidade` com `actors` array. Source: `"Bloco do Paredão (consenso)"`.
+
+- **INDICAÇÃO em consenso** (3 participantes indicam 1 ao Paredão):
+  - **Com consenso**: use `indicacao` com `actors` array. Source: `"Bloco do Paredão (consenso)"`.
+  - **Sem consenso**: os 3 vão ao Paredão. Registre como `special_event` (tipo `bloco_paredao_sem_consenso`). Não crie power_events — emparedamento é auto-detectado pela API. Sem edges de relação (falha coletiva, sem actor→target claro).
+
 **Na Mira do Líder (descontinuado — semana 1 apenas):**
 - Dinâmica em que o líder escolhe **5 alvos** na sexta-feira; no domingo, indica **1 dos 5** ao paredão.
 - Registre cada alvo como **power_event** `mira_do_lider` (actor = líder, target = alvo, impacto negativo).
@@ -72,7 +90,7 @@ Only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, 
 - `origem`: `manual` (quando registrado no JSON) ou `api` (quando derivado automaticamente).
 - If `actor` is not a person, use standardized labels: `Big Fone`, `Prova do Líder`, `Prova do Anjo`, `Prova Bate e Volta`, `Caixas-Surpresa`.
 
-**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`, `veto_prova`, `mira_do_lider`.
+**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`, `veto_prova`, `mira_do_lider`, `troca_vip`, `troca_xepa`.
 
 **Auto-detectados da API** (`scripts/build_derived_data.py`): Líder/Anjo/Monstro/Imune são derivados das mudanças de papéis nos snapshots diários e salvos em `data/derived/auto_events.json` com `origem: "api"`.
 - A detecção usa **1 snapshot por dia** (último do dia). Mudanças intra-dia podem não aparecer.
