@@ -260,6 +260,7 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 | Feb 3 | 19 | Brigido **eliminado** (3º Paredão) |
 | Feb 10 | 18 | Sarah Andrade **eliminada** (4º Paredão) |
 | Feb 11 | 17 | Sol Vega **desclassificada** (confronto com Ana Paula Renault) |
+| Feb 14 | 16 | Edilson **desclassificado** (discussão com Leandro Boneco) |
 
 ## Scoring & Indexes (summary)
 
@@ -429,7 +430,6 @@ The `votos_casa` dict and all manual data use participant names as keys. These *
 | `Babu Santana` | Veterano | Full name used |
 | `Breno` | Pipoca | First name only |
 | `Chaiany` | Pipoca | First name only (entered Jan 18) |
-| `Edilson` | Camarote | **NOT** "Edilson Capetinha" |
 | `Gabriela` | Pipoca | First name only (entered Jan 18) |
 | `Jonas Sulzbach` | Veterano | Full name used |
 | `Jordana` | Pipoca | First name only |
@@ -451,6 +451,7 @@ The `votos_casa` dict and all manual data use participant names as keys. These *
 - `Pedro` — Desistente (Jan 19)
 - `Sarah Andrade` — Eliminada (4º Paredão, Feb 10)
 - `Sol Vega` — Desclassificada (confronto, Feb 11)
+- `Edilson` — Desclassificado (discussão com Leandro, Feb 14)
 
 **Before adding manual data**, always verify names against the snapshot:
 ```python
