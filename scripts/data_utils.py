@@ -78,6 +78,9 @@ POWER_EVENT_LABELS = {
     'mira_do_lider': 'Na Mira do Líder',
     'punicao_gravissima': 'Punição Gravíssima',
     'punicao_coletiva': 'Punição Coletiva',
+    'duelo_de_risco': 'Duelo de Risco',
+    'troca_vip': 'Troca VIP',
+    'troca_xepa': 'Troca Xepa',
 }
 
 # ══════════════════════════════════════════════════════════════
