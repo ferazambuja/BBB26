@@ -2244,14 +2244,15 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
         if not indicados:
             continue
 
-        # Salvo do paredão (Bate e Volta winner)
-        vencedor_bv = None
+        # Salvo do paredão (Bate e Volta winners — may be multiple)
         formacao = p.get('formacao', {})
+        bv_winners_set = set()
         if isinstance(formacao, dict):
             bv = formacao.get('bate_volta')
             if isinstance(bv, dict):
-                vencedor_bv = bv.get('vencedor')
-                if vencedor_bv:
+                bv_winners_list = bv.get('vencedores') or ([bv['vencedor']] if bv.get('vencedor') else [])
+                bv_winners_set = set(bv_winners_list)
+                for vencedor_bv in bv_winners_list:
                     if not has_event(vencedor_bv, week, 'imunizado'):
                         add_event_points(vencedor_bv, week, 'salvo_paredao',
                                          CARTOLA_POINTS['salvo_paredao'], paredao_date)
@@ -2297,7 +2298,7 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
             for nome in elegiveis:
                 if nome in indicados:
                     continue
-                if vencedor_bv and nome == vencedor_bv:
+                if nome in bv_winners_set:
                     continue
                 if has_event(nome, week, 'imunizado'):
                     continue
@@ -3481,8 +3482,9 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
             if cg.get("de"):
                 detail_parts.append(f"Contragolpe: {cg['de']} → {cg.get('para', '?')}")
             bv = formacao.get("bate_volta") or {}
-            if bv.get("vencedor"):
-                detail_parts.append(f"Bate-Volta: {bv['vencedor']} escapou")
+            bv_winners = bv.get("vencedores") or ([bv["vencedor"]] if bv.get("vencedor") else [])
+            if bv_winners:
+                detail_parts.append(f"Bate-Volta: {', '.join(bv_winners)} escaparam" if len(bv_winners) > 1 else f"Bate-Volta: {bv_winners[0]} escapou")
             events.append({
                 "date": data_form, "week": week, "category": "paredao_formacao",
                 "emoji": "🗳️", "title": f"{num}º Paredão — Formação",

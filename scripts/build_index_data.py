@@ -1317,8 +1317,8 @@ def build_index_data():
     for prova in provas_list:
         if prova.get("tipo") != "bate_volta":
             continue
-        vencedor = prova.get("vencedor")
-        if not vencedor:
+        winners = prova.get("vencedores") or ([prova["vencedor"]] if prova.get("vencedor") else [])
+        if not winners:
             continue
         prova_date = prova.get("date", "")
         # Find which paredão this BV belongs to: loser must be in indicados_finais,
@@ -1328,7 +1328,7 @@ def build_index_data():
             for entry in fase.get("classificacao", []):
                 if "nome" in entry:
                     bv_participants.add(entry["nome"])
-        bv_losers = bv_participants - {vencedor}
+        bv_losers = bv_participants - set(winners)
         matched_par = None
         best_gap = 999
         for par in paredoes.get("paredoes", []):
@@ -1343,11 +1343,12 @@ def build_index_data():
                     best_gap = gap
                     matched_par = par
         if matched_par:
-            bv_escapes[vencedor].append({
-                "numero": matched_par.get("numero"),
-                "data": matched_par.get("data"),
-            })
-            ever_nominated.add(vencedor)
+            for vencedor in winners:
+                bv_escapes[vencedor].append({
+                    "numero": matched_par.get("numero"),
+                    "data": matched_par.get("data"),
+                })
+                ever_nominated.add(vencedor)
 
     # Breaks given/received counts
     breaks_given_count = Counter(b["giver"] for b in streak_breaks_data)

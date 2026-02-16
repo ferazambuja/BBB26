@@ -419,7 +419,9 @@ if ultimo:
             print("- **Bate e Volta:** não haverá")
         elif ultimo.get('bate_volta'):
             bv = ultimo['bate_volta']
-            print(f"- **Bate e Volta:** {', '.join(bv.get('participantes', []))} — vencedor: {bv.get('vencedor', '—')}")
+            bv_w = bv.get('vencedores') or ([bv['vencedor']] if bv.get('vencedor') else [])
+            label = 'vencedores' if len(bv_w) > 1 else 'vencedor'
+            print(f"- **Bate e Volta:** {', '.join(bv.get('participantes', []))} — {label}: {', '.join(bv_w) if bv_w else '—'}")
 
         if ultimo.get('impedidos_votar'):
             print(f"- **Impedidos de votar:** {', '.join(ultimo['impedidos_votar'])}")
@@ -1597,7 +1599,9 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             print(f"- **Contragolpe:** {cg.get('de', '—')} → {cg.get('para', '—')}")
         if ultimo.get('bate_volta'):
             bv = ultimo['bate_volta']
-            print(f"- **Bate e Volta:** {', '.join(bv.get('participantes', []))} — vencedor: {bv.get('vencedor', '—')}")
+            bv_w = bv.get('vencedores') or ([bv['vencedor']] if bv.get('vencedor') else [])
+            label = 'vencedores' if len(bv_w) > 1 else 'vencedor'
+            print(f"- **Bate e Volta:** {', '.join(bv.get('participantes', []))} — {label}: {', '.join(bv_w) if bv_w else '—'}")
 
         # Votação da casa (finalizado)
         if ultimo.get('votos_casa'):
@@ -2239,16 +2243,18 @@ if ultimo and ultimo.get('participantes'):
     all_nominees = list(ultimo.get('participantes', []))
     bv = ultimo.get('bate_volta') or {}
     bv_survivors = set()
-    if bv and bv.get('vencedor'):
-        bv_survivors.add(bv['vencedor'])
+    bv_winners = bv.get('vencedores') or ([bv['vencedor']] if bv.get('vencedor') else [])
+    if bv_winners:
+        bv_survivors = set(bv_winners)
         existing_names = {p['nome'] for p in all_nominees}
-        if bv['vencedor'] not in existing_names:
-            all_nominees.append({
-                'nome': bv['vencedor'],
-                'grupo': MEMBER_OF.get(bv['vencedor'], '?'),
-                'como': 'Bate e Volta (escapou)',
-                '_bv_escapee': True,
-            })
+        for bv_name in bv_winners:
+            if bv_name not in existing_names:
+                all_nominees.append({
+                    'nome': bv_name,
+                    'grupo': MEMBER_OF.get(bv_name, '?'),
+                    'como': 'Bate e Volta (escapou)',
+                    '_bv_escapee': True,
+                })
 
     # Sort: eliminado first → by house votes desc → BV survivors last
     resultado = ultimo.get('resultado', {}) if is_finalizado else {}
