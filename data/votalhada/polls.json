@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-02-11",
+  "_last_updated": "2026-02-16",
   "paredoes": [
     {
       "numero": 1,
@@ -543,6 +543,100 @@
         "eliminado": "Sarah Andrade",
         "predicao_correta": true
       }
+    },
+    {
+      "numero": 5,
+      "data_paredao": "2026-02-17",
+      "data_coleta": "2026-02-16T18:00:00-03:00",
+      "participantes": [
+        "Marcelo",
+        "Samira",
+        "Solange Couto"
+      ],
+      "consolidado": {
+        "Marcelo": 64.48,
+        "Samira": 18.67,
+        "Solange Couto": 16.86,
+        "total_votos": 3295770,
+        "predicao_eliminado": "Marcelo"
+      },
+      "plataformas": {
+        "sites": {
+          "Marcelo": 52.64,
+          "Samira": 25.61,
+          "Solange Couto": 21.76,
+          "votos": 645721,
+          "fontes_count": 14
+        },
+        "youtube": {
+          "Marcelo": 65.27,
+          "Samira": 20.50,
+          "Solange Couto": 14.25,
+          "votos": 737700,
+          "fontes_count": 22
+        },
+        "twitter": {
+          "Marcelo": 78.22,
+          "Samira": 10.28,
+          "Solange Couto": 11.50,
+          "votos": 411454,
+          "fontes_count": 22
+        },
+        "instagram": {
+          "Marcelo": 65.42,
+          "Samira": 17.08,
+          "Solange Couto": 17.50,
+          "votos": 1500895,
+          "fontes_count": 12
+        }
+      },
+      "serie_temporal": [
+        {
+          "hora": "15/fev 22:00",
+          "Marcelo": 64.59,
+          "Samira": 18.21,
+          "Solange Couto": 17.20,
+          "votos": 1600929
+        },
+        {
+          "hora": "16/fev 08:00",
+          "Marcelo": 65.45,
+          "Samira": 17.75,
+          "Solange Couto": 16.80,
+          "votos": 2501057
+        },
+        {
+          "hora": "16/fev 12:00",
+          "Marcelo": 64.38,
+          "Samira": 18.45,
+          "Solange Couto": 17.18,
+          "votos": 2919711
+        },
+        {
+          "hora": "16/fev 15:00",
+          "Marcelo": 64.54,
+          "Samira": 18.68,
+          "Solange Couto": 16.79,
+          "votos": 3162670
+        },
+        {
+          "hora": "16/fev 18:00",
+          "Marcelo": 64.48,
+          "Samira": 18.67,
+          "Solange Couto": 16.86,
+          "votos": 3295770
+        }
+      ],
+      "imagens": [
+        "data/votalhada/2026_02_17/consolidados.png",
+        "data/votalhada/2026_02_17/sites.png",
+        "data/votalhada/2026_02_17/youtube.png",
+        "data/votalhada/2026_02_17/twitter.png",
+        "data/votalhada/2026_02_17/instagram.png"
+      ],
+      "fontes": [
+        "https://votalhada.blogspot.com/"
+      ]
     }
   ]
 }
