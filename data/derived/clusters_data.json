@@ -1,15 +1,15 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-16T21:23:03.369791+00:00",
+    "generated_at": "2026-02-16T22:15:02.877128+00:00",
     "date": "2026-02-16",
     "week": 5,
     "reference_date": "2026-02-16",
     "n_active": 16,
     "n_clusters": 2,
     "n_paredoes": 4,
-    "n_contradictions": 24,
+    "n_contradictions": 25,
     "n_tensions": 1,
-    "silhouette_coefficient": 0.3489,
+    "silhouette_coefficient": 0.3793,
     "resolution_used": 0.5,
     "best_cohesion": {
       "label": 2,
@@ -18,7 +18,7 @@
     },
     "worst_rivalry": {
       "key": "1<>2",
-      "score": -1.5177,
+      "score": -1.743,
       "text": "Grupo Misto vs Grupo Misto A"
     }
   },
@@ -84,12 +84,12 @@
       "best_external": {
         "label": 2,
         "name": "Grupo Misto A",
-        "score": -1.5177
+        "score": -1.743
       },
       "worst_external": {
         "label": 2,
         "name": "Grupo Misto A",
-        "score": -1.5177
+        "score": -1.743
       }
     },
     {
@@ -112,12 +112,12 @@
       "best_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -1.5177
+        "score": -1.743
       },
       "worst_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -1.5177
+        "score": -1.743
       }
     }
   ],
@@ -127,9 +127,9 @@
       "cluster_b": 2,
       "name_a": "Grupo Misto",
       "name_b": "Grupo Misto A",
-      "score_sym": -1.5177,
-      "score_a_to_b": -1.425,
-      "score_b_to_a": -1.6104,
+      "score_sym": -1.743,
+      "score_a_to_b": -1.7583,
+      "score_b_to_a": -1.7277,
       "vote_alignment": 0.1486
     }
   ],
@@ -212,8 +212,8 @@
       "name": "Babu Santana",
       "grupo": "Veterano",
       "cluster": 1,
-      "avg_received": -0.1401,
-      "std_received": 1.9653,
+      "avg_received": -0.2734,
+      "std_received": 2.1047,
       "contradictions": 0,
       "pos_received": 8.89,
       "top_love": [
@@ -237,7 +237,7 @@
         },
         {
           "name": "Gabriela",
-          "score": -1.33
+          "score": -3.33
         },
         {
           "name": "Jordana",
@@ -251,7 +251,7 @@
       "cluster": 1,
       "avg_received": 0.3207,
       "std_received": 1.0063,
-      "contradictions": 1,
+      "contradictions": 2,
       "pos_received": 9.45,
       "top_love": [
         {
@@ -286,14 +286,14 @@
       "name": "Chaiany",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": 0.2117,
-      "std_received": 1.1804,
+      "avg_received": 0.2757,
+      "std_received": 1.2711,
       "contradictions": 4,
-      "pos_received": 9.71,
+      "pos_received": 10.67,
       "top_love": [
         {
           "name": "Gabriela",
-          "score": 1.5
+          "score": 2.46
         },
         {
           "name": "Leandro",
@@ -397,10 +397,10 @@
       "name": "Jordana",
       "grupo": "Pipoca",
       "cluster": 2,
-      "avg_received": -0.4037,
-      "std_received": 1.1766,
-      "contradictions": 2,
-      "pos_received": 5.415,
+      "avg_received": -1.737,
+      "std_received": 2.049,
+      "contradictions": 3,
+      "pos_received": 5.2,
       "top_love": [
         {
           "name": "Maxiane",
@@ -418,15 +418,15 @@
       "top_hate": [
         {
           "name": "Ana Paula Renault",
-          "score": -2.76
+          "score": -4.76
         },
         {
           "name": "Milena",
-          "score": -1.38
+          "score": -3.38
         },
         {
           "name": "Babu Santana",
-          "score": -1.35
+          "score": -3.35
         }
       ]
     },
@@ -656,8 +656,8 @@
       "name": "Samira",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": -0.2643,
-      "std_received": 0.993,
+      "avg_received": -0.6643,
+      "std_received": 1.4394,
       "contradictions": 2,
       "pos_received": 4.07,
       "top_love": [
@@ -676,16 +676,16 @@
       ],
       "top_hate": [
         {
+          "name": "Jordana",
+          "score": -3.78
+        },
+        {
+          "name": "Marciele",
+          "score": -2.47
+        },
+        {
           "name": "Juliano Floss",
           "score": -2.42
-        },
-        {
-          "name": "Jordana",
-          "score": -1.78
-        },
-        {
-          "name": "Alberto Cowboy",
-          "score": -1.18
         }
       ]
     },
@@ -740,11 +740,11 @@
       0.94,
       0.688,
       -6.876,
-      -1.335,
+      -2.335,
       -0.51,
       -0.8625,
       -0.9425,
-      -1.9575
+      -2.9575
     ],
     [
       1.0,
@@ -758,11 +758,11 @@
       1.0,
       0.688,
       -1.27,
-      -1.0975,
+      -2.0975,
       -0.4775,
       -1.2325,
       -0.5225,
-      1.5
+      1.98
     ],
     [
       1.0,
@@ -776,7 +776,7 @@
       -0.6375,
       0.688,
       -3.335,
-      -2.59,
+      -3.59,
       -1.525,
       -8.638,
       -0.15,
@@ -794,7 +794,7 @@
       -1.763,
       0.688,
       -3.2755,
-      -0.6475,
+      -1.6475,
       -2.715,
       -1.79,
       -1.085,
@@ -812,7 +812,7 @@
       0.29,
       0.25,
       -0.63,
-      -1.925,
+      -2.925,
       -1.4575,
       -1.42,
       -2.0475,
@@ -830,7 +830,7 @@
       0.91,
       -1.31,
       -5.438,
-      -0.235,
+      -1.235,
       0.705,
       -0.57,
       1.4775,
@@ -848,7 +848,7 @@
       0.4,
       -1.645,
       0.47,
-      0.3225,
+      -0.6775,
       0.8,
       -0.945,
       0.65,
@@ -866,7 +866,7 @@
       0.425,
       1.5,
       -2.127,
-      -1.4275,
+      -2.4275,
       -1.245,
       -5.775,
       -2.055,
@@ -884,10 +884,10 @@
       0.0,
       0.82,
       -0.715,
-      -1.555,
-      -0.53,
+      -3.555,
+      -1.53,
       -1.3,
-      -0.4025,
+      -1.4025,
       -1.5075
     ],
     [
@@ -902,7 +902,7 @@
       0.82,
       0.0,
       -1.647,
-      -2.12,
+      -3.12,
       -1.47,
       -1.857,
       -5.298,
@@ -927,16 +927,16 @@
       1.1
     ],
     [
-      -1.335,
-      -1.0975,
-      -2.59,
-      -0.6475,
-      -1.925,
-      -0.235,
-      0.3225,
-      -1.4275,
-      -1.555,
-      -2.12,
+      -2.335,
+      -2.0975,
+      -3.59,
+      -1.6475,
+      -2.925,
+      -1.235,
+      -0.6775,
+      -2.4275,
+      -3.555,
+      -3.12,
       1.0,
       0.0,
       1.25,
@@ -953,7 +953,7 @@
       0.705,
       0.8,
       -1.245,
-      -0.53,
+      -1.53,
       -1.47,
       1.045,
       1.25,
@@ -989,7 +989,7 @@
       1.4775,
       0.65,
       -2.055,
-      -0.4025,
+      -1.4025,
       -5.298,
       1.175,
       1.1,
@@ -999,8 +999,8 @@
       -1.085
     ],
     [
-      -1.9575,
-      1.5,
+      -2.9575,
+      1.98,
       -2.96,
       -1.4625,
       -2.5,
