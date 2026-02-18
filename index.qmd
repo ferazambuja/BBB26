@@ -939,7 +939,7 @@ else:
             )
         saldo_rows += '</div>'
         print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid #f1c40f;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
-{card_header("💰", "Saldo de Estalecas", "#saldo", source_tag="📸 Dado do dia", subtitle="Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.")}
+{card_header("💰", "Saldo de Estalecas", "evolucao.html#saldo", source_tag="📸 Dado do dia", subtitle="Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.")}
 {saldo_rows}
 </div>''')
 
@@ -1338,88 +1338,6 @@ print("\n### Reações Recebidas por Participante\n")
 print("<p class='text-muted small'>Ordenado por score de sentimento. Células coloridas indicam valores altos.</p>")
 summary_data = index_data.get("reaction_summary", {})
 print(make_reaction_summary_html(summary_data, collapsed_rows=5))
-```
-
-# Saldo de Estalecas {#saldo}
-
-<p class="text-muted small">📸 <strong>Dado do dia</strong> — saldo atual de estalecas de cada participante.</p>
-
-```{python}
-#| label: saldo-table
-#| output: asis
-
-profiles = index_data.get("profiles", [])
-active_profiles = [p for p in profiles if p.get("active", True)]
-active_profiles.sort(key=lambda x: x.get("balance", 0), reverse=True)
-
-html = []
-html.append("""
-<div style="overflow-x: auto; max-width: 100%;">
-<style>
-.saldo-table {
-    border-collapse: separate;
-    border-spacing: 0;
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-    font-size: 0.95rem;
-}
-.saldo-table th, .saldo-table td {
-    padding: 8px 12px;
-    border-bottom: 1px solid #444;
-    vertical-align: middle;
-}
-.saldo-table thead th {
-    background: #222;
-    color: #aaa;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
-    border-bottom: 2px solid #555;
-}
-.saldo-table tbody tr:hover {
-    background: rgba(255,255,255,0.05);
-}
-.saldo-table .saldo-pos { color: #888; font-weight: 600; width: 30px; text-align: center; }
-.saldo-table .saldo-name { font-weight: 500; }
-.saldo-table .saldo-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
-</style>
-<table class="saldo-table">
-<thead><tr>
-<th style="text-align:center;">#</th>
-<th>Participante</th>
-<th style="text-align:right;">Estalecas</th>
-</tr></thead>
-<tbody>
-""")
-
-for i, p in enumerate(active_profiles, 1):
-    name = p["name"]
-    balance = p.get("balance", 0)
-    grupo = p.get("group", "")
-    cor = GROUP_COLORS.get(grupo, "#999")
-
-    # Color by balance value
-    if balance > 1000:
-        val_color = "#1a9850"
-    elif balance > 0:
-        val_color = "#66bd63"
-    elif balance == 0:
-        val_color = "#888"
-    else:
-        val_color = "#d73027"
-
-    avatar = av(name, size=36, border_color=cor)
-
-    html.append(f"""<tr>
-<td class="saldo-pos">{i}</td>
-<td class="saldo-name" style="display:flex;align-items:center;gap:10px;">{avatar} <span>{name}</span></td>
-<td class="saldo-val" style="color:{val_color};">{balance:,}</td>
-</tr>""")
-
-html.append("</tbody></table></div>")
-print("\n".join(html))
 ```
 
 # Perfis Individuais {#perfis}
