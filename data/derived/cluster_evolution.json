@@ -1,8 +1,8 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-18T00:46:54.044418+00:00",
+    "generated_at": "2026-02-18T01:42:47.475428+00:00",
     "n_weeks": 6,
-    "total_transitions": 53
+    "total_transitions": 58
   },
   "timeline": [
     {
@@ -1227,8 +1227,8 @@
     {
       "date": "2026-02-17",
       "week": 6,
-      "n_active": 16,
-      "n_clusters": 16,
+      "n_active": 15,
+      "n_clusters": 15,
       "silhouette": null,
       "communities": [
         {
@@ -1324,7 +1324,7 @@
         {
           "label": 11,
           "members": [
-            "Marcelo"
+            "Marciele"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1333,7 +1333,7 @@
         {
           "label": 12,
           "members": [
-            "Marciele"
+            "Maxiane"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1342,7 +1342,7 @@
         {
           "label": 13,
           "members": [
-            "Maxiane"
+            "Milena"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1351,7 +1351,7 @@
         {
           "label": 14,
           "members": [
-            "Milena"
+            "Samira"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1360,23 +1360,40 @@
         {
           "label": 15,
           "members": [
-            "Samira"
-          ],
-          "size": 1,
-          "cohesion": 0,
-          "color": "#e74c3c"
-        },
-        {
-          "label": 16,
-          "members": [
             "Solange Couto"
           ],
           "size": 1,
           "cohesion": 0,
-          "color": "#3498db"
+          "color": "#e74c3c"
         }
       ],
-      "transitions": []
+      "transitions": [
+        {
+          "name": "Marciele",
+          "from_cluster": 12,
+          "to_cluster": 11
+        },
+        {
+          "name": "Maxiane",
+          "from_cluster": 13,
+          "to_cluster": 12
+        },
+        {
+          "name": "Milena",
+          "from_cluster": 14,
+          "to_cluster": 13
+        },
+        {
+          "name": "Samira",
+          "from_cluster": 15,
+          "to_cluster": 14
+        },
+        {
+          "name": "Solange Couto",
+          "from_cluster": 16,
+          "to_cluster": 15
+        }
+      ]
     }
   ],
   "all_transitions": [
@@ -1750,28 +1767,63 @@
       "to_cluster": 16,
       "week": 5,
       "date": "2026-02-16"
+    },
+    {
+      "name": "Marciele",
+      "from_cluster": 12,
+      "to_cluster": 11,
+      "week": 6,
+      "date": "2026-02-17"
+    },
+    {
+      "name": "Maxiane",
+      "from_cluster": 13,
+      "to_cluster": 12,
+      "week": 6,
+      "date": "2026-02-17"
+    },
+    {
+      "name": "Milena",
+      "from_cluster": 14,
+      "to_cluster": 13,
+      "week": 6,
+      "date": "2026-02-17"
+    },
+    {
+      "name": "Samira",
+      "from_cluster": 15,
+      "to_cluster": 14,
+      "week": 6,
+      "date": "2026-02-17"
+    },
+    {
+      "name": "Solange Couto",
+      "from_cluster": 16,
+      "to_cluster": 15,
+      "week": 6,
+      "date": "2026-02-17"
     }
   ],
   "most_mobile": [
     {
       "name": "Maxiane",
-      "moves": 4
+      "moves": 5
     },
     {
       "name": "Milena",
-      "moves": 4
+      "moves": 5
     },
     {
       "name": "Samira",
-      "moves": 4
+      "moves": 5
     },
     {
       "name": "Solange Couto",
-      "moves": 4
+      "moves": 5
     },
     {
-      "name": "Gabriela",
-      "moves": 3
+      "name": "Marciele",
+      "moves": 4
     }
   ]
 }
