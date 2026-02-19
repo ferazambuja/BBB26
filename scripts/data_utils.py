@@ -663,21 +663,167 @@ def make_poll_timeseries(poll, resultado_real=None, compact=False):
     return fig
 
 
+# ── Shared snapshot helpers (for build scripts) ─────────────────────────────────
+
+def normalize_actors(ev):
+    """Extract actor list from an event dict, handling multi-actor formats.
+
+    Handles:
+    - 'actors' list (preferred)
+    - 'actor' string with " + " separator
+    - 'actor' string with " e " separator
+    - Single 'actor' string
+    """
+    actors = ev.get("actors")
+    if isinstance(actors, list) and actors:
+        return [a for a in actors if a]
+    actor = ev.get("actor")
+    if not actor or not isinstance(actor, str):
+        return []
+    if " + " in actor:
+        return [a.strip() for a in actor.split(" + ") if a.strip()]
+    if " e " in actor:
+        return [a.strip() for a in actor.split(" e ") if a.strip()]
+    return [actor.strip()]
+
+
+def get_daily_snapshots(snapshots):
+    """Filter snapshot list to one per date (last capture wins).
+
+    Args:
+        snapshots: list of dicts with 'date' key
+
+    Returns:
+        list of snapshot dicts, one per unique date, sorted chronologically
+    """
+    by_date = {}
+    for snap in snapshots:
+        by_date[snap["date"]] = snap
+    return [by_date[d] for d in sorted(by_date.keys())]
+
+
+def get_all_snapshots_with_data(data_dir=Path("data/snapshots")):
+    """Load all snapshots with participant data (for build scripts).
+
+    Returns list of dicts: [{"file": str, "date": str, "participants": list, "metadata": dict}]
+    """
+    raw = get_all_snapshots(data_dir)
+    items = []
+    for fp, date_str in raw:
+        participants, meta = load_snapshot(fp)
+        items.append({
+            "file": str(fp),
+            "date": date_str,
+            "participants": participants,
+            "metadata": meta,
+        })
+    return items
+
+
+def load_snapshots_full(data_dir=Path("data/snapshots")):
+    """Load all snapshots with metadata for QMD pages.
+
+    Returns:
+        snapshots: list of dicts with keys: filepath, date, timestamp, participants, metadata, label, synthetic
+        member_of: dict {name: group}
+        avatars: dict {name: avatar_url}
+        daily_snapshots: list (one per date, last capture wins)
+        late_entrants: dict {name: first_seen_date}
+    """
+    all_files = get_all_snapshots(data_dir)
+    snapshots = []
+    member_of = {}
+    avatars = {}
+
+    for fp, date_str in all_files:
+        participants, metadata = load_snapshot(fp)
+        snapshots.append({
+            'filepath': fp, 'date': date_str, 'timestamp': fp.stem,
+            'participants': participants, 'metadata': metadata,
+        })
+
+    for snap in snapshots:
+        for p in snap['participants']:
+            name = p['name']
+            if name not in member_of:
+                member_of[name] = p.get('characteristics', {}).get('memberOf', '?')
+            if name not in avatars and p.get('avatar'):
+                avatars[name] = p['avatar']
+
+    for snap in snapshots:
+        meta = snap.get('metadata') or {}
+        snap['label'] = snap['date'] + (' (sintético)' if meta.get('synthetic') else '')
+        snap['synthetic'] = meta.get('synthetic', False)
+
+    # Daily snapshots (one per date, last capture wins)
+    by_date = {}
+    for i, snap in enumerate(snapshots):
+        by_date[snap['date']] = i
+    daily_indices = sorted(by_date.values())
+    daily_snapshots = [snapshots[i] for i in daily_indices]
+
+    # Late entrants
+    late_entrants = {}
+    if snapshots:
+        first_names = set(p['name'] for p in snapshots[0]['participants'])
+        seen = set(first_names)
+        for snap in snapshots[1:]:
+            cur = set(p['name'] for p in snap['participants'])
+            for name in cur - seen:
+                if name not in late_entrants:
+                    late_entrants[name] = snap['date']
+            seen |= cur
+
+    return snapshots, member_of, avatars, daily_snapshots, late_entrants
+
+
 # ── Avatar HTML helpers ────────────────────────────────────────────────────────
 
-def avatar_html(name, avatars, size=24):
-    """Generate HTML for participant avatar + name."""
-    url = avatars.get(name, '')
-    if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; vertical-align:middle; margin-right:6px;" alt="{name}">{name}'
-    return name
+def avatar_html(name, avatars, size=24, show_name=True, link=None,
+                border_color=None, grayscale=False, fallback_initials=False):
+    """Unified avatar HTML helper.
 
-def avatar_img(name, avatars, size=24):
-    """Generate just the avatar image HTML (no name text)."""
+    Args:
+        name: Participant name
+        avatars: dict {name: url}
+        size: Image size in pixels
+        show_name: Include name text after image
+        link: Optional href for clickable avatar (e.g., '#perfil-slug')
+        border_color: Optional CSS border color (e.g., '#555')
+        grayscale: Apply grayscale filter (for eliminated participants)
+        fallback_initials: Show initials circle when no avatar URL
+    """
     url = avatars.get(name, '')
+    styles = ['border-radius:50%']
+    if border_color:
+        styles.append(f'border:2px solid {border_color}')
+    if grayscale:
+        styles.extend(['filter:grayscale(100%)', 'opacity:0.7'])
+
     if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%;" alt="{name}" title="{name}">'
-    return ''
+        style_str = ';'.join(styles)
+        img = f'<img src="{url}" width="{size}" height="{size}" style="{style_str}" alt="{name}" title="{name}">'
+    elif fallback_initials:
+        style_str = ';'.join(styles + [
+            'display:inline-flex', 'align-items:center', 'justify-content:center',
+            f'width:{size}px', f'height:{size}px', 'background:#444', 'color:#ccc',
+            f'font-size:{size//3}px',
+        ])
+        img = f'<span style="{style_str}">{name[:2]}</span>'
+    else:
+        return name if show_name else ''
+
+    if link:
+        img = f'<a href="{link}" style="text-decoration:none;flex-shrink:0;" title="{name}">{img}</a>'
+
+    if show_name:
+        return f'{img} {name}'
+    return img
+
+
+def avatar_img(name, avatars, size=24, **kwargs):
+    """Generate just the avatar image HTML (no name text). Convenience wrapper."""
+    return avatar_html(name, avatars, size=size, show_name=False, **kwargs)
 
 
 # ── Gender & nominee helpers ─────────────────────────────────────────────────

@@ -14,6 +14,8 @@ from data_utils import (
     CARTOLA_POINTS, REACTION_EMOJI,
     build_reaction_matrix, patch_missing_raio_x,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
+    load_snapshot, utc_to_game_date, parse_roles,
+    normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
 )
 
 UTC = timezone.utc
@@ -145,78 +147,9 @@ PLANT_INDEX_SINCERAO_DECAY = 0.7
 PLANT_INDEX_ROLLING_WEEKS = 2
 PLANT_GANHA_GANHA_WEIGHT = 0.3
 
-def load_snapshot(filepath):
-    with open(filepath, encoding="utf-8") as f:
-        data = json.load(f)
-    if isinstance(data, dict) and "participants" in data:
-        return data["participants"], data.get("_metadata", {})
-    return data, {}
-
-
-def utc_to_game_date(utc_dt):
-    """Convert a UTC datetime to the BBB game date (BRT-based).
-
-    Captures between midnight and 06:00 BRT belong to the previous
-    game day (no Raio-X happens overnight).
-    """
-    brt_dt = utc_dt.astimezone(BRT)
-    if brt_dt.hour < 6:
-        brt_dt = brt_dt - timedelta(days=1)
-    return brt_dt.strftime("%Y-%m-%d")
-
-
 def get_all_snapshots():
-    if not DATA_DIR.exists():
-        return []
-    snapshots = sorted(DATA_DIR.glob("*.json"))
-    items = []
-    for fp in snapshots:
-        try:
-            utc_dt = datetime.strptime(fp.stem, "%Y-%m-%d_%H-%M-%S").replace(tzinfo=UTC)
-            date_str = utc_to_game_date(utc_dt)
-        except ValueError:
-            date_str = fp.stem.split("_")[0]
-        participants, meta = load_snapshot(fp)
-        items.append({
-            "file": str(fp),
-            "date": date_str,
-            "participants": participants,
-            "metadata": meta,
-        })
-    return items
-
-
-def parse_roles(roles_data):
-    if not roles_data:
-        return []
-    labels = []
-    for r in roles_data:
-        if isinstance(r, dict):
-            labels.append(r.get("label", ""))
-        else:
-            labels.append(str(r))
-    return [l for l in labels if l]
-
-
-def normalize_actors(ev):
-    actors = ev.get("actors")
-    if isinstance(actors, list) and actors:
-        return [a for a in actors if a]
-    actor = ev.get("actor")
-    if not actor or not isinstance(actor, str):
-        return []
-    if " + " in actor:
-        return [a.strip() for a in actor.split(" + ") if a.strip()]
-    if " e " in actor:
-        return [a.strip() for a in actor.split(" e ") if a.strip()]
-    return [actor.strip()]
-
-
-def get_daily_snapshots(snapshots):
-    by_date = {}
-    for snap in snapshots:
-        by_date[snap["date"]] = snap
-    return [by_date[d] for d in sorted(by_date.keys())]
+    """Wrapper for backward-compatible call sites."""
+    return get_all_snapshots_with_data(DATA_DIR)
 
 
 def _classify_sentiment(label):
@@ -363,8 +296,13 @@ def compute_streak_data(daily_snapshots, eliminated_last_seen=None):
     return dict(streak_info), streak_breaks, missing_raio_x_log
 
 
-def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles, participants_index=None):
-    """Build pairwise sentiment scores (A -> B) combining queridômetro + events."""
+def _resolve_participant_sets(latest_snapshot, daily_snapshots, participants_index):
+    """Derive active/all name sets, eliminated tracking, streak data, and latest reaction matrix.
+
+    Returns dict with: latest_date, current_week, participants, active_names, active_set,
+    all_names, all_names_set, eliminated_last_seen, streak_info, streak_breaks,
+    missing_raio_x_log, reaction_matrix_latest.
+    """
     latest_date = latest_snapshot["date"]
     current_week = get_week_number(latest_date)
     participants = latest_snapshot["participants"]
@@ -394,6 +332,28 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
 
     reaction_matrix_latest = build_reaction_matrix(participants)
 
+    return {
+        "latest_date": latest_date,
+        "current_week": current_week,
+        "participants": participants,
+        "active_names": active_names,
+        "active_set": active_set,
+        "all_names": all_names,
+        "all_names_set": all_names_set,
+        "eliminated_last_seen": eliminated_last_seen,
+        "streak_info": streak_info,
+        "streak_breaks": streak_breaks,
+        "missing_raio_x_log": missing_raio_x_log,
+        "reaction_matrix_latest": reaction_matrix_latest,
+    }
+
+
+def _build_vote_data(paredoes, manual_events):
+    """Parse paredao votes, revealed votes, open vote weeks.
+
+    Returns dict with: votes_received_by_week, revealed_votes, vote_week_to_date,
+    vote_revelation_type, open_vote_weeks.
+    """
     # Votes (by week)
     votes_received_by_week = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     revealed_votes = defaultdict(set)
@@ -467,6 +427,28 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             if week:
                 open_vote_weeks.add(week)
 
+    return {
+        "votes_received_by_week": votes_received_by_week,
+        "revealed_votes": revealed_votes,
+        "vote_week_to_date": vote_week_to_date,
+        "vote_revelation_type": vote_revelation_type,
+        "open_vote_weeks": open_vote_weeks,
+    }
+
+
+def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
+                     daily_roles, all_names_set, current_week, latest_date, vote_data):
+    """Generate all relationship edges (power, Sincerao, VIP, Anjo, votes).
+
+    Returns dict with: edges_raw, effective_week_daily, effective_week_paredao,
+    reference_date_daily, reference_date_paredao, power_events.
+    """
+    votes_received_by_week = vote_data["votes_received_by_week"]
+    revealed_votes = vote_data["revealed_votes"]
+    vote_week_to_date = vote_data["vote_week_to_date"]
+    vote_revelation_type = vote_data["vote_revelation_type"]
+    open_vote_weeks = vote_data["open_vote_weeks"]
+
     # Power events (manual + auto)
     power_events = []
     power_events.extend(manual_events.get("power_events", []) if manual_events else [])
@@ -531,129 +513,6 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
             if all_forms:
                 reference_date_paredao = sorted(all_forms)[-1]
     reference_date_daily = latest_date
-
-    # Build base emoji weights using a short rolling window (3 days) + streak memory + break penalty
-    def _blend_streak(q_reactive, actor, target):
-        """Blend reactive score with streak memory and break penalty.
-
-        Q_final = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
-        """
-        streak = streak_info.get(actor, {}).get(target)
-        if not streak:
-            return q_reactive
-
-        s_len = streak.get("streak_len", 0)
-        s_sentiment = streak.get("streak_sentiment", 0.0)
-        consistency = min(s_len, 10) / 10.0
-        q_memory = consistency * s_sentiment
-
-        break_pen = 0.0
-        if streak.get("break_from_positive"):
-            prev_len = streak.get("previous_streak_len", 0)
-            break_pen = -0.15 * min(prev_len, 15) / 15.0
-
-        return 0.7 * q_reactive + 0.3 * q_memory + break_pen
-
-    def compute_base_weights(ref_date, name_list=None):
-        if name_list is None:
-            name_list = active_names
-        base = {}
-        if daily_snapshots:
-            candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
-            if candidates:
-                selected = candidates[-3:]
-                weights = [0.6, 0.3, 0.1][-len(selected):]
-                total_w = sum(weights)
-                weights = [w / total_w for w in weights]
-                matrices = [build_reaction_matrix(s["participants"]) for s in selected]
-                # Patch missing Raio-X: carry forward from predecessor
-                # For the first matrix, look back one more in candidates
-                fallback_idx = len(candidates) - len(selected) - 1
-                prev_mat = build_reaction_matrix(candidates[fallback_idx]["participants"]) if fallback_idx >= 0 else {}
-                for i in range(len(matrices)):
-                    matrices[i], _ = patch_missing_raio_x(matrices[i], selected[i]["participants"], prev_mat)
-                    prev_mat = matrices[i]
-                for actor in name_list:
-                    if actor in base:
-                        continue
-                    base[actor] = {}
-                    for target in name_list:
-                        if actor == target:
-                            continue
-                        weighted = 0.0
-                        used = 0.0
-                        for w, mat in zip(weights, matrices):
-                            label = mat.get((actor, target), "")
-                            if label:
-                                weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
-                                used += w
-                        if used == 0.0:
-                            label = reaction_matrix_latest.get((actor, target), "")
-                            weighted = SENTIMENT_WEIGHTS.get(label, 0.0)
-                        base[actor][target] = _blend_streak(weighted, actor, target)
-        return base
-
-    def compute_base_weights_all(ref_date):
-        """Compute base weights for all participants, using last_seen snapshots for eliminated ones."""
-        base = compute_base_weights(ref_date, active_names)
-
-        # For eliminated participants, compute Q_base from their last known snapshot
-        for elim_name, last_seen in eliminated_last_seen.items():
-            if not last_seen:
-                continue
-            elim_ref = last_seen
-            elim_candidates = [s for s in daily_snapshots if s.get("date") <= elim_ref]
-            if not elim_candidates:
-                continue
-            selected = elim_candidates[-3:]
-            weights = [0.6, 0.3, 0.1][-len(selected):]
-            total_w = sum(weights)
-            weights = [w / total_w for w in weights]
-            matrices = [build_reaction_matrix(s["participants"]) for s in selected]
-            # Patch missing Raio-X for eliminated participants' window
-            fb_idx = len(elim_candidates) - len(selected) - 1
-            prev_mat = build_reaction_matrix(elim_candidates[fb_idx]["participants"]) if fb_idx >= 0 else {}
-            for mi in range(len(matrices)):
-                matrices[mi], _ = patch_missing_raio_x(matrices[mi], selected[mi]["participants"], prev_mat)
-                prev_mat = matrices[mi]
-
-            base[elim_name] = {}
-            for target in all_names:
-                if elim_name == target:
-                    continue
-                weighted = 0.0
-                used = 0.0
-                for w, mat in zip(weights, matrices):
-                    label = mat.get((elim_name, target), "")
-                    if label:
-                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
-                        used += w
-                if used == 0.0:
-                    weighted = 0.0
-                base[elim_name][target] = _blend_streak(weighted, elim_name, target)
-
-            # Also compute what active participants gave the eliminated participant
-            for actor in all_names:
-                if actor == elim_name:
-                    continue
-                if actor not in base:
-                    base[actor] = {}
-                weighted = 0.0
-                used = 0.0
-                for w, mat in zip(weights, matrices):
-                    label = mat.get((actor, elim_name), "")
-                    if label:
-                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
-                        used += w
-                if used == 0.0:
-                    weighted = 0.0
-                base[actor][elim_name] = _blend_streak(weighted, actor, elim_name)
-
-        return base
-
-    base_weights_daily = compute_base_weights(reference_date_daily)
-    base_weights_paredao = compute_base_weights(reference_date_paredao)
-    base_weights_all = compute_base_weights_all(reference_date_daily)
 
     edges_raw = []
 
@@ -894,6 +753,146 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                         revealed=True,
                     )
 
+    return {
+        "edges_raw": edges_raw,
+        "effective_week_daily": effective_week_daily,
+        "effective_week_paredao": effective_week_paredao,
+        "reference_date_daily": reference_date_daily,
+        "reference_date_paredao": reference_date_paredao,
+        "power_events": power_events,
+    }
+
+
+def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, eliminated_last_seen,
+                         active_names, active_set, all_names, edges_raw,
+                         reference_date_daily, reference_date_paredao):
+    """Streak blending, base weights, pair assembly, contradiction detection.
+
+    Returns dict with: pairs_daily, pairs_paredao, pairs_all, contradictions, edges.
+    """
+    # Build base emoji weights using a short rolling window (3 days) + streak memory + break penalty
+    def _blend_streak(q_reactive, actor, target):
+        """Blend reactive score with streak memory and break penalty.
+
+        Q_final = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
+        """
+        streak = streak_info.get(actor, {}).get(target)
+        if not streak:
+            return q_reactive
+
+        s_len = streak.get("streak_len", 0)
+        s_sentiment = streak.get("streak_sentiment", 0.0)
+        consistency = min(s_len, 10) / 10.0
+        q_memory = consistency * s_sentiment
+
+        break_pen = 0.0
+        if streak.get("break_from_positive"):
+            prev_len = streak.get("previous_streak_len", 0)
+            break_pen = -0.15 * min(prev_len, 15) / 15.0
+
+        return 0.7 * q_reactive + 0.3 * q_memory + break_pen
+
+    def compute_base_weights(ref_date, name_list=None):
+        if name_list is None:
+            name_list = active_names
+        base = {}
+        if daily_snapshots:
+            candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
+            if candidates:
+                selected = candidates[-3:]
+                weights = [0.6, 0.3, 0.1][-len(selected):]
+                total_w = sum(weights)
+                weights = [w / total_w for w in weights]
+                matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+                # Patch missing Raio-X: carry forward from predecessor
+                # For the first matrix, look back one more in candidates
+                fallback_idx = len(candidates) - len(selected) - 1
+                prev_mat = build_reaction_matrix(candidates[fallback_idx]["participants"]) if fallback_idx >= 0 else {}
+                for i in range(len(matrices)):
+                    matrices[i], _ = patch_missing_raio_x(matrices[i], selected[i]["participants"], prev_mat)
+                    prev_mat = matrices[i]
+                for actor in name_list:
+                    if actor in base:
+                        continue
+                    base[actor] = {}
+                    for target in name_list:
+                        if actor == target:
+                            continue
+                        weighted = 0.0
+                        used = 0.0
+                        for w, mat in zip(weights, matrices):
+                            label = mat.get((actor, target), "")
+                            if label:
+                                weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                                used += w
+                        if used == 0.0:
+                            label = reaction_matrix_latest.get((actor, target), "")
+                            weighted = SENTIMENT_WEIGHTS.get(label, 0.0)
+                        base[actor][target] = _blend_streak(weighted, actor, target)
+        return base
+
+    def compute_base_weights_all(ref_date):
+        """Compute base weights for all participants, using last_seen snapshots for eliminated ones."""
+        base = compute_base_weights(ref_date, active_names)
+
+        # For eliminated participants, compute Q_base from their last known snapshot
+        for elim_name, last_seen in eliminated_last_seen.items():
+            if not last_seen:
+                continue
+            elim_ref = last_seen
+            elim_candidates = [s for s in daily_snapshots if s.get("date") <= elim_ref]
+            if not elim_candidates:
+                continue
+            selected = elim_candidates[-3:]
+            weights = [0.6, 0.3, 0.1][-len(selected):]
+            total_w = sum(weights)
+            weights = [w / total_w for w in weights]
+            matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+            # Patch missing Raio-X for eliminated participants' window
+            fb_idx = len(elim_candidates) - len(selected) - 1
+            prev_mat = build_reaction_matrix(elim_candidates[fb_idx]["participants"]) if fb_idx >= 0 else {}
+            for mi in range(len(matrices)):
+                matrices[mi], _ = patch_missing_raio_x(matrices[mi], selected[mi]["participants"], prev_mat)
+                prev_mat = matrices[mi]
+
+            base[elim_name] = {}
+            for target in all_names:
+                if elim_name == target:
+                    continue
+                weighted = 0.0
+                used = 0.0
+                for w, mat in zip(weights, matrices):
+                    label = mat.get((elim_name, target), "")
+                    if label:
+                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                        used += w
+                if used == 0.0:
+                    weighted = 0.0
+                base[elim_name][target] = _blend_streak(weighted, elim_name, target)
+
+            # Also compute what active participants gave the eliminated participant
+            for actor in all_names:
+                if actor == elim_name:
+                    continue
+                if actor not in base:
+                    base[actor] = {}
+                weighted = 0.0
+                used = 0.0
+                for w, mat in zip(weights, matrices):
+                    label = mat.get((actor, elim_name), "")
+                    if label:
+                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                        used += w
+                if used == 0.0:
+                    weighted = 0.0
+                base[actor][elim_name] = _blend_streak(weighted, actor, elim_name)
+
+        return base
+
+    base_weights_daily = compute_base_weights(reference_date_daily)
+    base_weights_paredao = compute_base_weights(reference_date_paredao)
+    base_weights_all = compute_base_weights_all(reference_date_daily)
+
     def apply_context_edges(edges_in):
         """Prepare context edges with accumulated weights (no decay).
 
@@ -1008,6 +1007,21 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 vote_val = comps.get("vote", 0.0)
                 rec["vote_contradiction"] = (q_val > 0 and vote_val < 0)
 
+    return {
+        "pairs_daily": pairs_daily,
+        "pairs_paredao": pairs_paredao,
+        "pairs_all": pairs_all,
+        "contradictions": contradictions,
+        "edges": edges,
+    }
+
+
+def _compute_derived_metrics(edges, paredoes, all_names,
+                             votes_received_by_week, vote_week_to_date):
+    """Received impact, voting blocs, Anjo autoimune.
+
+    Returns dict with: received_impact, voting_blocs, anjo_autoimune_events.
+    """
     # --- GAP 4: Anjo autoimune metadata ---
     anjo_autoimune_events = []
     for par in paredoes.get("paredoes", []) if paredoes else []:
@@ -1048,14 +1062,49 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
     voting_blocs = sorted(voting_blocs, key=lambda x: (x.get("week", 0), -x.get("count", 0)))
 
     return {
+        "anjo_autoimune_events": anjo_autoimune_events,
+        "received_impact": received_impact,
+        "voting_blocs": voting_blocs,
+    }
+
+
+def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles, participants_index=None):
+    """Build pairwise sentiment scores (A -> B) combining queridômetro + events."""
+    # 1. Resolve participant sets, streak data, reaction matrix
+    psets = _resolve_participant_sets(latest_snapshot, daily_snapshots, participants_index)
+
+    # 2. Parse vote data structures
+    vote_data = _build_vote_data(paredoes, manual_events)
+
+    # 3. Generate all relationship edges
+    edge_result = _build_raw_edges(
+        paredoes, manual_events, auto_events, sincerao_edges,
+        daily_roles, psets["all_names_set"], psets["current_week"], psets["latest_date"], vote_data,
+    )
+
+    # 4. Compute pair scores, contradictions
+    pair_result = _compute_pair_scores(
+        daily_snapshots, psets["reaction_matrix_latest"], psets["streak_info"],
+        psets["eliminated_last_seen"], psets["active_names"], psets["active_set"],
+        psets["all_names"], edge_result["edges_raw"],
+        edge_result["reference_date_daily"], edge_result["reference_date_paredao"],
+    )
+
+    # 5. Compute derived metrics (impact, blocs, anjo autoimune)
+    derived = _compute_derived_metrics(
+        pair_result["edges"], paredoes, psets["all_names"],
+        vote_data["votes_received_by_week"], vote_data["vote_week_to_date"],
+    )
+
+    return {
         "_metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "date": latest_date,
-            "week": current_week,
-            "effective_week_daily": effective_week_daily,
-            "effective_week_paredao": effective_week_paredao,
-            "reference_date_daily": reference_date_daily,
-            "reference_date_paredao": reference_date_paredao,
+            "date": psets["latest_date"],
+            "week": psets["current_week"],
+            "effective_week_daily": edge_result["effective_week_daily"],
+            "effective_week_paredao": edge_result["effective_week_paredao"],
+            "reference_date_daily": edge_result["reference_date_daily"],
+            "reference_date_paredao": edge_result["reference_date_paredao"],
             "weights": {
                 "queridometro": {
                     "weights": SENTIMENT_WEIGHTS,
@@ -1071,17 +1120,17 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
                 "visibility_factor": RELATION_VISIBILITY_FACTOR,
                 "decay": "none — all events accumulate at full weight; queridômetro uses 3-day reactive window (70%) + streak memory (30%) + break penalty",
             },
-            "anjo_autoimune_events": anjo_autoimune_events,
+            "anjo_autoimune_events": derived["anjo_autoimune_events"],
         },
-        "edges": edges,
-        "pairs_daily": pairs_daily,
-        "pairs_paredao": pairs_paredao,
-        "pairs_all": pairs_all,
-        "contradictions": contradictions,
-        "received_impact": received_impact,
-        "voting_blocs": voting_blocs,
-        "streak_breaks": streak_breaks,
-        "missing_raio_x": missing_raio_x_log,
+        "edges": pair_result["edges"],
+        "pairs_daily": pair_result["pairs_daily"],
+        "pairs_paredao": pair_result["pairs_paredao"],
+        "pairs_all": pair_result["pairs_all"],
+        "contradictions": pair_result["contradictions"],
+        "received_impact": derived["received_impact"],
+        "voting_blocs": derived["voting_blocs"],
+        "streak_breaks": psets["streak_breaks"],
+        "missing_raio_x": psets["missing_raio_x_log"],
     }
 
 

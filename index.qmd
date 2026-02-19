@@ -31,6 +31,7 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
+    avatar_html as _avatar_html,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
@@ -490,26 +491,10 @@ hl_cards = index_data.get("highlights", {}).get("cards", [])
 
 def av(name, size=48, border_color="#555"):
     """Avatar image tag, clickable to the participant's profile."""
-    url = AVATARS.get(name, "")
     slug = name.lower().replace(" ", "-")
-    href = f'#perfil-{slug}'
-    if url:
-        img = (f'<img src="{url}" alt="{name}" title="{name}" '
-               f'style="width:{size}px;height:{size}px;border-radius:50%;'
-               f'object-fit:cover;border:2px solid {border_color};flex-shrink:0;">')
-    else:
-        img = f'<span style="display:inline-flex;align-items:center;justify-content:center;width:{size}px;height:{size}px;border-radius:50%;background:#444;color:#ccc;font-size:{size//3}px;border:2px solid {border_color};flex-shrink:0;">{name[:2]}</span>'
-    return f'<a href="{href}" style="text-decoration:none;flex-shrink:0;" title="{name}">{img}</a>'
-
-def av_pair(giver, receiver, size=36, giver_color="#888", recv_color="#888"):
-    """Two avatars with arrow between them."""
-    return (
-        f'<span style="display:inline-flex;align-items:center;gap:4px;margin:3px 0;">'
-        f'{av(giver, size, giver_color)}'
-        f'<span style="color:#888;font-size:0.8em;">→</span>'
-        f'{av(receiver, size, recv_color)}'
-        f'</span>'
-    )
+    return _avatar_html(name, AVATARS, size=size, show_name=False,
+                        link=f'#perfil-{slug}', border_color=border_color,
+                        fallback_initials=True)
 
 def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
     """Card header with icon, title, optional link, badge, data source tag, and subtitle."""

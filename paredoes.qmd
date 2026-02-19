@@ -27,7 +27,7 @@ from IPython.display import display, HTML
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    load_snapshot, get_all_snapshots, build_reaction_matrix,
+    load_snapshots_full, build_reaction_matrix,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     genero, artigo, get_nominee_badge,
@@ -40,9 +40,6 @@ from data_utils import (
 require_clean_manual_events()
 setup_bbb_dark_theme()
 
-# Diretórios
-DATA_DIR = Path("data/snapshots")
-
 # Load precomputed paredão analysis
 _pa_path = Path("data/derived/paredao_analysis.json")
 PAREDAO_ANALYSIS = json.load(open(_pa_path, encoding="utf-8")) if _pa_path.exists() else {}
@@ -50,8 +47,6 @@ PAREDAO_ANALYSIS = json.load(open(_pa_path, encoding="utf-8")) if _pa_path.exist
 # Load vote prediction data
 _vp_path = Path("data/derived/vote_prediction.json")
 VOTE_PRED = json.loads(_vp_path.read_text(encoding="utf-8")) if _vp_path.exists() else {}
-
-MEMBER_OF = {}
 ```
 
 ```{python}
@@ -65,46 +60,8 @@ def get_snapshot_for_date(target_date, snapshots_list, matrices_list):
             closest_idx = i
     return snapshots_list[closest_idx], matrices_list[closest_idx], closest_idx
 
-all_snapshot_files = get_all_snapshots()
-snapshots = []
-for fp, date_str in all_snapshot_files:
-    participants, metadata = load_snapshot(fp)
-    snapshots.append({
-        'filepath': fp,
-        'date': date_str,
-        'timestamp': fp.stem,
-        'participants': participants,
-        'metadata': metadata
-    })
-
+snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
 all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
-
-AVATARS = {}
-for snap in snapshots:
-    for p in snap['participants']:
-        name = p['name']
-        if name not in MEMBER_OF:
-            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
-        if name not in AVATARS and p.get('avatar'):
-            AVATARS[name] = p['avatar']
-
-for snap in snapshots:
-    meta = snap.get('metadata') or {}
-    is_synthetic = meta.get('synthetic', False)
-    label = snap['date']
-    if is_synthetic:
-        label += ' (sintético)'
-    snap['label'] = label
-    snap['synthetic'] = is_synthetic
-
-# Build daily snapshots (one per date, last capture of the day)
-daily_snapshots = []
-seen_dates = set()
-for snap in reversed(snapshots):
-    if snap['date'] not in seen_dates:
-        seen_dates.add(snap['date'])
-        daily_snapshots.append(snap)
-daily_snapshots.reverse()
 n_daily = len(daily_snapshots)
 
 # classify_relationship and genero imported from data_utils
@@ -626,18 +583,10 @@ print('</div>')
 # ── Vote target table (all participants) ─────────────────────────────────────
 # Grayscale helpers for exited participants
 def avatar_html_bw(name, avatars, size, is_active):
-    url = avatars.get(name, '')
-    grayscale = '' if is_active else 'filter:grayscale(100%); opacity:0.7;'
-    if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; vertical-align:middle; margin-right:6px; {grayscale}" alt="{name}" title="{name}">{name}'
-    return name
+    return avatar_html(name, avatars, size=size, grayscale=not is_active)
 
 def avatar_img_bw(name, avatars, size, is_active):
-    url = avatars.get(name, '')
-    grayscale = '' if is_active else 'filter:grayscale(100%); opacity:0.7;'
-    if url:
-        return f'<img src="{url}" width="{size}" height="{size}" style="border-radius:50%; {grayscale}" alt="{name}" title="{name}">'
-    return ''
+    return avatar_img(name, avatars, size=size, grayscale=not is_active)
 
 if target_votes:
     # Sort by total votes descending

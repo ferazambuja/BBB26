@@ -28,17 +28,15 @@ import networkx as nx
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix,
+    load_snapshots_full, build_reaction_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    avatar_html, avatar_img,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
 )
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
-
-MEMBER_OF = {}
-AVATARS = {}
 ```
 
 ```{python}
@@ -96,29 +94,8 @@ if INDEX_FILE.exists():
         index_data = json.load(f)
 
 # ── Load snapshots for reaction matrices and network graph ──
-all_snapshot_files = get_all_snapshots()
-snapshots = []
-for fp, date_str in all_snapshot_files:
-    participants, metadata = load_snapshot(fp)
-    snapshots.append({
-        'filepath': fp, 'date': date_str, 'timestamp': fp.stem,
-        'participants': participants, 'metadata': metadata,
-    })
-
+snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
 all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
-
-for snap in snapshots:
-    for p in snap['participants']:
-        name = p['name']
-        if name not in MEMBER_OF:
-            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
-        if name not in AVATARS and p.get('avatar'):
-            AVATARS[name] = p['avatar']
-
-for snap in snapshots:
-    meta = snap.get('metadata') or {}
-    snap['label'] = snap['date'] + (' (sintético)' if meta.get('synthetic') else '')
-    snap['synthetic'] = meta.get('synthetic', False)
 
 latest = snapshots[-1]
 latest_matrix = all_matrices[-1]
@@ -127,7 +104,6 @@ _by_date = {}
 for i, snap in enumerate(snapshots):
     _by_date[snap['date']] = i
 _daily_indices = sorted(_by_date.values())
-daily_snapshots = [snapshots[i] for i in _daily_indices]
 daily_matrices = [all_matrices[i] for i in _daily_indices]
 n_daily = len(daily_snapshots)
 ```

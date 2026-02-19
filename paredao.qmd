@@ -30,7 +30,7 @@ from datetime import datetime
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    load_snapshot, get_all_snapshots, parse_roles, build_reaction_matrix,
+    load_snapshots_full, build_reaction_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     genero, artigo, get_nominee_badge,
     MONTH_MAP_PT, parse_votalhada_hora, make_poll_timeseries,
@@ -47,62 +47,23 @@ plt.rcParams['figure.figsize'] = (14, 8)
 plt.rcParams['font.size'] = 11
 sns.set_theme(style="whitegrid", palette="husl")
 
-# Diretórios
-DATA_DIR = Path("data/snapshots")
-LATEST_FILE = Path("data/latest.json")
-
-MEMBER_OF = {}  # preenchido ao carregar dados
 ```
 
 ```{python}
 #| label: load-data
 
-# Carregar todos os snapshots
-all_snapshot_files = get_all_snapshots()
-snapshots = []
-for fp, date_str in all_snapshot_files:
-    participants, metadata = load_snapshot(fp)
-    snapshots.append({
-        'filepath': fp,
-        'date': date_str,
-        'timestamp': fp.stem,
-        'participants': participants,
-        'metadata': metadata
-    })
-
-# Construir matrizes de reação para todos os snapshots
+snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
 all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
-
-# Preencher MEMBER_OF e AVATARS
-AVATARS = {}  # name -> avatar URL
-for snap in snapshots:
-    for p in snap['participants']:
-        name = p['name']
-        if name not in MEMBER_OF:
-            MEMBER_OF[name] = p.get('characteristics', {}).get('memberOf', '?')
-        if name not in AVATARS and p.get('avatar'):
-            AVATARS[name] = p['avatar']
-
-# Enriquecer cada snapshot com label legível e flag de sintético
-for snap in snapshots:
-    meta = snap.get('metadata') or {}
-    is_synthetic = meta.get('synthetic', False)
-    label = snap['date']
-    if is_synthetic:
-        label += ' (sintético)'
-    snap['label'] = label
-    snap['synthetic'] = is_synthetic
 
 n_snapshots = len(snapshots)
 latest = snapshots[-1]
 latest_matrix = all_matrices[-1]
 
-# Uma coleta por dia (última do dia) — usada para análises de reações
+# Daily matrices (matching daily_snapshots indices)
 _by_date = {}
 for i, snap in enumerate(snapshots):
-    _by_date[snap['date']] = i  # last one wins (sorted chronologically)
+    _by_date[snap['date']] = i
 _daily_indices = sorted(_by_date.values())
-daily_snapshots = [snapshots[i] for i in _daily_indices]
 daily_matrices = [all_matrices[i] for i in _daily_indices]
 n_daily = len(daily_snapshots)
 ```
