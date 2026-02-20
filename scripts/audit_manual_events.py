@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+Audit data/manual_events.json for consistency and correctness.
+
+Checks: missing fields, unknown actors/targets, self-flag issues,
+manual vs auto duplicates, Sincerão integrity, and elimination coverage.
+Writes docs/MANUAL_EVENTS_AUDIT.md and data/derived/manual_events_audit.json.
+"""
 import json
 from pathlib import Path
 from collections import defaultdict

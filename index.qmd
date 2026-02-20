@@ -17,14 +17,10 @@ execute:
 import json
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from pathlib import Path
-from collections import defaultdict, Counter
+from collections import OrderedDict
 from datetime import datetime
 
 import sys
@@ -41,16 +37,9 @@ from data_utils import (
 require_clean_manual_events()
 setup_bbb_dark_theme()
 
-# Configurações visuais
-plt.rcParams['figure.figsize'] = (14, 8)
-plt.rcParams['font.size'] = 11
-sns.set_theme(style="whitegrid", palette="husl")
-
 # Diretórios
 DERIVED_DIR = Path("data/derived")
 INDEX_DATA_FILE = DERIVED_DIR / "index_data.json"
-
-MEMBER_OF = {}  # preenchido ao carregar dados
 ```
 
 ```{python}
@@ -65,9 +54,6 @@ if not index_data:
     raise RuntimeError("index_data.json não encontrado. Execute scripts/build_derived_data.py")
 
 latest = index_data.get("latest", {})
-current_week = index_data.get("current_week")
-current_cycle_week = index_data.get("current_cycle_week")
-active_names = index_data.get("active_names", [])
 MEMBER_OF = index_data.get("member_of", {})
 AVATARS = index_data.get("avatars", {})
 ```
@@ -402,67 +388,6 @@ def make_reaction_summary_html(summary_data, collapsed_rows=5):
     return '\n'.join(html)
 
 
-def make_negative_givers_chart(participants, matrix, title_suffix=""):
-    """Retorna go.Figure com perfil de emissão de reações (❤️ vs negativos)."""
-    active_ns = sorted([p['name'] for p in participants
-                        if not p.get('characteristics', {}).get('eliminated')])
-
-    giver_data = []
-    for name in active_ns:
-        pos_given = 0
-        neg_given = 0
-        for receiver in active_ns:
-            if name == receiver:
-                continue
-            rxn = matrix.get((name, receiver), '')
-            if rxn in POSITIVE:
-                pos_given += 1
-            elif rxn:
-                neg_given += 1
-
-        total = pos_given + neg_given
-        neg_pct = (neg_given / total * 100) if total > 0 else 0
-
-        giver_data.append({
-            'Participante': name,
-            '❤️ dados': pos_given,
-            'Negativos dados': neg_given,
-            '% Negativo': round(neg_pct, 1),
-            'Grupo': MEMBER_OF.get(name, '?')
-        })
-
-    df_givers = pd.DataFrame(giver_data).sort_values('% Negativo', ascending=True)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=df_givers['Participante'],
-        x=df_givers['❤️ dados'],
-        name='❤️ dados',
-        orientation='h',
-        marker_color='#1a9850'
-    ))
-    fig.add_trace(go.Bar(
-        y=df_givers['Participante'],
-        x=df_givers['Negativos dados'],
-        name='Negativos dados',
-        orientation='h',
-        marker_color='#d73027'
-    ))
-
-    title = "Perfil de Emissão: Quem Dá Mais ❤️ vs Negatividade?"
-    if title_suffix:
-        title += f" — {title_suffix}"
-
-    fig.update_layout(
-        title=title,
-        xaxis_title="Quantidade de reações dadas",
-        yaxis_title="",
-        barmode='stack',
-                height=max(500, len(df_givers) * 25),
-        margin=dict(l=150)
-    )
-
-    return fig
 ```
 
 # Cronologia do Jogo {#cronologia-jogo}
@@ -871,13 +796,13 @@ else:
         elif ctype == "strategic":
             podium = card.get("podium", [])
             leader = card.get("leader", "?")
+            _medals3 = ["🥇", "🥈", "🥉"]
             strat_html = '<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">'
             for i, p in enumerate(podium[:3]):
-                medals = ["🥇", "🥈", "🥉"]
                 strat_html += (
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:8px;">'
                     f'{av(p["name"], 42, "#9b59b6")}'
-                    f'<span style="font-size:0.8rem;color:#ccc;">{medals[i]} {p["name"].split()[0]}</span>'
+                    f'<span style="font-size:0.8rem;color:#ccc;">{_medals3[i]} {p["name"].split()[0]}</span>'
                     f'<span style="font-size:0.8rem;color:#9b59b6;font-weight:700;">{p["score"]:+.2f}</span>'
                     f'</div>'
                 )
@@ -1702,6 +1627,15 @@ def render_avatar_row(items, border_color, max_show=999):
     return html
 
 
+COMP_LABELS = {
+    "power_event": "Eventos de poder",
+    "sincerao": "Sincerão",
+    "vote": "Votos",
+    "vip": "VIP",
+    "anjo": "Anjo",
+    "visibility": "Visibilidade",
+}
+
 for p in profiles:
     name = p.get('name')
     member_of = p.get('member_of', '?')
@@ -1709,9 +1643,6 @@ for p in profiles:
     balance = p.get('balance', 0)
     roles = p.get('roles', [])
     score = p.get('score', 0)
-
-    rxn_summary = " | ".join([f"{r['emoji']}×{r['count']}" for r in p.get('rxn_summary', [])])
-    given_summary = " | ".join([f"{r['emoji']}×{r['count']}" for r in p.get('given_summary', [])])
 
     rel = p.get("relations", {})
     allies = rel.get("allies", [])
@@ -1795,16 +1726,6 @@ for p in profiles:
     animosity_level = p.get("animosity_level")
     animosity_color = p.get("animosity_color")
     scores_data = p.get("scores", {})
-
-    # Component labels for breakdown
-    COMP_LABELS = {
-        "power_event": "Eventos de poder",
-        "sincerao": "Sincerão",
-        "vote": "Votos",
-        "vip": "VIP",
-        "anjo": "Anjo",
-        "visibility": "Visibilidade",
-    }
 
     avatar_url = AVATARS.get(name, '')
     cor_grupo = GROUP_COLORS.get(member_of, '#666')
@@ -2010,11 +1931,10 @@ for p in profiles:
     received_detail = p.get("received_detail", [])
     given_detail = p.get("given_detail", [])
 
-    def build_rxn_detail_html(detail_list, label_prefix):
+    def build_rxn_detail_html(detail_list):
         if not detail_list:
             return ""
         # Group by emoji
-        from collections import OrderedDict
         groups = OrderedDict()
         for d in detail_list:
             emoji = d.get("emoji", "?")
@@ -2037,8 +1957,8 @@ for p in profiles:
             )
         return "".join(rows)
 
-    received_detail_html = build_rxn_detail_html(received_detail, "De")
-    given_detail_html = build_rxn_detail_html(given_detail, "Para")
+    received_detail_html = build_rxn_detail_html(received_detail)
+    given_detail_html = build_rxn_detail_html(given_detail)
 
     # ═══ [4] RELATIONS GRID ═══
     relations_html = (
@@ -2236,8 +2156,7 @@ if eliminated:
         paredao_num = ex.get("paredao_numero")
 
         try:
-            from datetime import datetime as _dt
-            date_fmt = _dt.strptime(exit_date, "%Y-%m-%d").strftime("%d/%m")
+            date_fmt = datetime.strptime(exit_date, "%Y-%m-%d").strftime("%d/%m")
         except Exception:
             date_fmt = exit_date
 

@@ -21,19 +21,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
 from collections import defaultdict, Counter
-from datetime import datetime
-from IPython.display import display, HTML
-
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
-    genero, artigo, get_nominee_badge,
-    MONTH_MAP_PT, parse_votalhada_hora, make_poll_timeseries,
+    genero, get_nominee_badge,
+    make_poll_timeseries,
     avatar_html, avatar_img,
-    REACTION_EMOJI, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
 )
 
@@ -62,21 +58,17 @@ def get_snapshot_for_date(target_date, snapshots_list, matrices_list):
 
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
 all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
-n_daily = len(daily_snapshots)
-
-# classify_relationship and genero imported from data_utils
 ```
 
 ```{python}
 #| label: paredao-data
 #| include: false
 
-PAREDOES_FILE = Path("data/paredoes.json")
-
 def load_paredoes():
-    if not PAREDOES_FILE.exists():
+    paredoes_file = Path("data/paredoes.json")
+    if not paredoes_file.exists():
         return []
-    with open(PAREDOES_FILE, encoding="utf-8") as f:
+    with open(paredoes_file, encoding="utf-8") as f:
         data = json.load(f)
 
     paredoes = []
@@ -516,8 +508,6 @@ if len(finalized_polls) >= 1:
 #| output: asis
 
 # ── Aggregate house votes across all paredões ────────────────────────────────
-from collections import Counter, defaultdict
-
 # Load participants_index for active status
 _pi = json.loads(Path("data/derived/participants_index.json").read_text(encoding="utf-8"))
 active_names = {p["name"] for p in _pi["participants"] if p.get("active")}
@@ -815,11 +805,11 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         if paredao.get('votos_casa'):
             votos = paredao['votos_casa']
         # compute false friends + votes per participant
-        active_names = [p['name'] for p in snap_participants if not p.get('characteristics', {}).get('eliminated')]
+        snap_active_names = [p['name'] for p in snap_participants if not p.get('characteristics', {}).get('eliminated')]
         false_friends = {}
-        for name in active_names:
+        for name in snap_active_names:
             ff = 0
-            for other in active_names:
+            for other in snap_active_names:
                 if other == name:
                     continue
                 my = matrix_p.get((name, other), '')
@@ -830,26 +820,26 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
         # indicacoes publicas / elegibilidade
         ineligible = set()
-        indicacoes = Counter()
+        indicacoes_count = Counter()
         if paredao.get('indicado_lider'):
             ineligible.add(paredao.get('indicado_lider'))
-            indicacoes[paredao.get('indicado_lider')] += 1
+            indicacoes_count[paredao.get('indicado_lider')] += 1
         if paredao.get('big_fone'):
             bf = paredao.get('big_fone')
             if bf.get('indicou'):
                 ineligible.add(bf.get('indicou'))
-                indicacoes[bf.get('indicou')] += 1
+                indicacoes_count[bf.get('indicou')] += 1
         if paredao.get('contragolpe'):
             cg = paredao.get('contragolpe')
             if cg.get('para'):
                 ineligible.add(cg.get('para'))
-                indicacoes[cg.get('para')] += 1
+                indicacoes_count[cg.get('para')] += 1
         if paredao.get('dinamica'):
             din = paredao.get('dinamica')
             alvo = din.get('indicado')
             if alvo:
                 ineligible.add(alvo)
-                indicacoes[alvo] += 1
+                indicacoes_count[alvo] += 1
         if paredao.get('imunizado'):
             im = paredao.get('imunizado')
             if im.get('quem'):
@@ -857,7 +847,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
         vuln_no_votes = []
         prot_with_votes = []
-        for name in active_names:
+        for name in snap_active_names:
             votes_count = sum(1 for v, a in votos.items() if a == name)
             ff = false_friends.get(name, 0)
             if ff >= 5:
@@ -870,7 +860,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                 vuln = '🟢 PROTEGIDO'
 
             eligible = name not in ineligible
-            if votes_count == 0 and indicacoes.get(name, 0) == 0 and eligible and vuln in ['🟠 VULNERÁVEL', '🔴 MUITO VULNERÁVEL']:
+            if votes_count == 0 and indicacoes_count.get(name, 0) == 0 and eligible and vuln in ['🟠 VULNERÁVEL', '🔴 MUITO VULNERÁVEL']:
                 vuln_no_votes.append((name, vuln, votes_count))
             if votes_count >= 3 and eligible and vuln in ['🟢 PROTEGIDO', '🟡 ATENÇÃO']:
                 prot_with_votes.append((name, vuln, votes_count))

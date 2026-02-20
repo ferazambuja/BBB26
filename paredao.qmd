@@ -16,36 +16,25 @@ execute:
 
 import json
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import seaborn as sns
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from pathlib import Path
-from collections import defaultdict, Counter
-from datetime import datetime
+from collections import Counter
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     genero, artigo, get_nominee_badge,
-    MONTH_MAP_PT, parse_votalhada_hora, make_poll_timeseries,
+    make_poll_timeseries,
     avatar_html, avatar_img,
-    REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
+    REACTION_EMOJI, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
 )
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
-
-# Configurações visuais
-plt.rcParams['figure.figsize'] = (14, 8)
-plt.rcParams['font.size'] = 11
-sns.set_theme(style="whitegrid", palette="husl")
 
 ```
 
@@ -55,7 +44,6 @@ sns.set_theme(style="whitegrid", palette="husl")
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
 all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
 
-n_snapshots = len(snapshots)
 latest = snapshots[-1]
 latest_matrix = all_matrices[-1]
 
@@ -167,7 +155,6 @@ if missing_formacao:
     print("Preencha `data_formacao` em `data/paredoes.json`.")
     print(":::\n")
 # ── Carregar dados de enquetes do Votalhada ──
-from data_utils import load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy
 polls_data = load_votalhada_polls()
 
 # ── Detectar paredão em andamento da API ──

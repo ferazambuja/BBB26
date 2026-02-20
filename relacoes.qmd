@@ -16,23 +16,18 @@ execute:
 
 import json
 import pandas as pd
-import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from pathlib import Path
 from collections import defaultdict, Counter
-from datetime import datetime
 import networkx as nx
+from IPython.display import Markdown, display as ipy_display
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
-    avatar_html, avatar_img,
-    REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
-    POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
+    REACTION_EMOJI, POSITIVE, GROUP_COLORS,
 )
 
 require_clean_manual_events()
@@ -51,7 +46,6 @@ if REL_FILE.exists():
         relations_data = json.load(f)
 
 pairs_daily = relations_data.get("pairs_daily", [])
-pairs_all = relations_data.get("pairs_all", [])
 streak_breaks = relations_data.get("streak_breaks", [])
 received_impact = relations_data.get("received_impact", {})
 contradictions_data = relations_data.get("contradictions", {})
@@ -443,7 +437,6 @@ if not df_fav.empty:
     fig.show()
 
     avg_bias = df_fav['Viés'].mean()
-    from IPython.display import Markdown, display as ipy_display
     if avg_bias > 2:
         ipy_display(Markdown(f"Viés médio: **{avg_bias:+.1f} pp** a favor do próprio grupo."))
     elif avg_bias < -2:

@@ -2,10 +2,10 @@
 """Compare same-day snapshot pairs to find what changes between captures."""
 
 import json
-import os
 from collections import defaultdict
+from pathlib import Path
 
-SNAPSHOTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'snapshots')
+SNAPSHOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "snapshots"
 
 SAME_DAY_PAIRS = [
     ("2026-01-23_15-48-49.json", "2026-01-23_16-55-52.json"),
@@ -13,20 +13,22 @@ SAME_DAY_PAIRS = [
 ]
 
 def load_participants(filepath):
-    with open(filepath) as f:
+    with open(filepath, encoding="utf-8") as f:
         data = json.load(f)
     if isinstance(data, dict) and 'participants' in data:
         return data['participants']
     return data
+
 
 def get_reactions_key(participant):
     chars = participant.get('characteristics', {})
     reactions = chars.get('receivedReactions', [])
     return json.dumps(reactions, sort_keys=True, ensure_ascii=False)
 
+
 def compare_pair(file_a, file_b):
-    path_a = os.path.join(SNAPSHOTS_DIR, file_a)
-    path_b = os.path.join(SNAPSHOTS_DIR, file_b)
+    path_a = SNAPSHOTS_DIR / file_a
+    path_b = SNAPSHOTS_DIR / file_b
 
     participants_a = load_participants(path_a)
     participants_b = load_participants(path_b)
@@ -43,7 +45,7 @@ def compare_pair(file_a, file_b):
     print(f"{'='*80}")
 
     if names_a != names_b:
-        print(f"\n!! PARTICIPANT LISTS DIFFER !!")
+        print("\n!! PARTICIPANT LISTS DIFFER !!")
         print(f"   Only in A: {names_a - names_b}")
         print(f"   Only in B: {names_b - names_a}")
     else:
@@ -84,7 +86,7 @@ def compare_pair(file_a, file_b):
             if val_a != val_b:
                 field_diffs[key].append((name, val_a, val_b))
 
-    print(f"\n--- REACTIONS (receivedReactions) ---")
+    print("\n--- REACTIONS (receivedReactions) ---")
     if reactions_identical:
         print("   IDENTICAL across all participants.")
     else:
@@ -95,22 +97,22 @@ def compare_pair(file_a, file_b):
             ra = pa.get('characteristics', {}).get('receivedReactions', [])
             rb = pb.get('characteristics', {}).get('receivedReactions', [])
 
-            ra_by_type = {r['reactionType']: r for r in ra}
-            rb_by_type = {r['reactionType']: r for r in rb}
+            ra_by_type = {r['label']: r for r in ra}
+            rb_by_type = {r['label']: r for r in rb}
             all_types = sorted(set(list(ra_by_type.keys()) + list(rb_by_type.keys())))
 
             print(f"\n      [{name}]")
             for rtype in all_types:
                 r_a = ra_by_type.get(rtype)
                 r_b = rb_by_type.get(rtype)
-                if r_a is None:
+                if r_a is None and r_b is not None:
                     print(f"        {rtype}: only in B (amount={r_b.get('amount')})")
-                elif r_b is None:
+                elif r_b is None and r_a is not None:
                     print(f"        {rtype}: only in A (amount={r_a.get('amount')})")
-                else:
+                elif r_a is not None and r_b is not None:
                     amount_diff = r_a.get('amount') != r_b.get('amount')
-                    givers_a = sorted([g.get('name', g.get('slug', '')) for g in r_a.get('givers', [])])
-                    givers_b = sorted([g.get('name', g.get('slug', '')) for g in r_b.get('givers', [])])
+                    givers_a = sorted([g.get('name', '') for g in r_a.get('participants', [])])
+                    givers_b = sorted([g.get('name', '') for g in r_b.get('participants', [])])
                     givers_diff = givers_a != givers_b
 
                     if amount_diff or givers_diff:
@@ -124,7 +126,7 @@ def compare_pair(file_a, file_b):
                             if removed:
                                 print(f"          givers removed: {sorted(removed)}")
 
-    print(f"\n--- OTHER FIELDS ---")
+    print("\n--- OTHER FIELDS ---")
     other_fields = {k: v for k, v in field_diffs.items()
                     if k not in ('characteristics.receivedReactions',
                                  'characteristics.balance',
@@ -141,7 +143,7 @@ def compare_pair(file_a, file_b):
                 print(f"      {name}: {va_str}")
                 print(f"        -> {vb_str}")
 
-    print(f"\n--- BALANCE SUMMARY ---")
+    print("\n--- BALANCE SUMMARY ---")
     balance_changed = False
     for name in common_names:
         ba = by_name_a[name].get('characteristics', {}).get('balance')
@@ -153,7 +155,7 @@ def compare_pair(file_a, file_b):
     if not balance_changed:
         print("   Balance IDENTICAL for all participants.")
 
-    print(f"\n--- ROLES SUMMARY ---")
+    print("\n--- ROLES SUMMARY ---")
     roles_changed = False
     for name in common_names:
         ra = by_name_a[name].get('characteristics', {}).get('roles', [])
@@ -164,7 +166,7 @@ def compare_pair(file_a, file_b):
     if not roles_changed:
         print("   Roles IDENTICAL for all participants.")
 
-    print(f"\n--- GROUP SUMMARY ---")
+    print("\n--- GROUP SUMMARY ---")
     group_changed = False
     for name in common_names:
         ga = by_name_a[name].get('characteristics', {}).get('group')

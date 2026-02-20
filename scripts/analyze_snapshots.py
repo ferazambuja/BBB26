@@ -4,11 +4,10 @@ Comprehensive snapshot analysis for BBB26.
 Checks for discrepancies across all snapshot files.
 """
 
-import json
 from collections import defaultdict
 from pathlib import Path
 
-from data_utils import load_snapshot as _load_snapshot, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE
+from data_utils import load_snapshot as _data_utils_load_snapshot, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE
 
 SNAPSHOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "snapshots"
 
@@ -18,8 +17,9 @@ def load_snapshot(filepath):
 
     Wraps data_utils.load_snapshot which returns (participants, metadata).
     """
-    participants, metadata = _load_snapshot(filepath)
+    participants, metadata = _data_utils_load_snapshot(filepath)
     return metadata, participants
+
 
 def get_sorted_snapshots():
     """Return list of (filename, date_str, filepath) sorted by filename."""
@@ -30,6 +30,7 @@ def get_sorted_snapshots():
         date_str = stem[:10]
         results.append((f.name, date_str, f))
     return results
+
 
 def main():
     snapshots = get_sorted_snapshots()
@@ -172,7 +173,6 @@ def main():
     integrity_issues = False
     for snap in all_data:
         for p in snap["participants"]:
-            receiver_id = p["id"]
             receiver_name = p["name"]
             giver_reactions = defaultdict(set)
             

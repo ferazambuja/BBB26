@@ -589,7 +589,7 @@ def _build_highlights_and_cards(ctx):
                         )
 
         # -- Reaction changes summary --
-        common_pairs = set(today_mat.keys()) & set(yesterday_mat.keys())
+        common_pairs = today_mat.keys() & yesterday_mat.keys()
         changes = [(pair, yesterday_mat[pair], today_mat[pair])
                    for pair in common_pairs if yesterday_mat[pair] != today_mat[pair]]
         n_changes = len(changes)
@@ -1146,7 +1146,7 @@ def _build_ranking_tables(ctx):
             date_str = snap["date"]
             snap_parts = [p for p in snap["participants"]
                           if not p.get("characteristics", {}).get("eliminated")]
-            snap_names = set(p["name"] for p in snap_parts)
+            snap_names = {p["name"] for p in snap_parts}
             if len(snap_names) < 2:
                 continue
 
@@ -1765,22 +1765,20 @@ def _build_profile_entry(name, ctx, lookups):
     # 11. Biggest single-day sentiment swing (threshold raised to ±5)
     hist = sentiment_history.get(name, [])
     if len(hist) >= 2:
-        max_swing = 0
+        max_swing = 0.0
         swing_date = ""
-        swing_delta = 0.0
         for j in range(1, len(hist)):
             delta = hist[j][1] - hist[j - 1][1]
             if abs(delta) > abs(max_swing):
                 max_swing = delta
                 swing_date = hist[j][0]
-                swing_delta = delta
         if abs(max_swing) >= 5:
-            direction = "📈" if swing_delta > 0 else "📉"
+            direction = "📈" if max_swing > 0 else "📉"
             try:
                 d = datetime.strptime(swing_date, "%Y-%m-%d").strftime("%d/%m")
             except Exception:
                 d = swing_date
-            curiosities.append({"icon": direction, "text": f"Maior variação: {swing_delta:+.1f} em {d}", "priority": 5})
+            curiosities.append({"icon": direction, "text": f"Maior variação: {max_swing:+.1f} em {d}", "priority": 5})
 
     # 12. VIP favorite (selected 2+ times by leaders)
     n_vip_sel = vip_weeks_selected.get(name, 0)

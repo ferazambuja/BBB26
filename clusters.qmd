@@ -25,13 +25,13 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
-    GROUP_COLORS,
 )
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
 
 import networkx as nx
+from scipy.spatial import ConvexHull
 ```
 
 ```{python}
@@ -270,7 +270,6 @@ for edge_type, color, dash, legend_name in [
 
 # Convex hull shading per cluster
 hull_traces = []
-from scipy.spatial import ConvexHull
 
 for label, members in cluster_members.items():
     if len(members) < 3:
@@ -367,14 +366,14 @@ for comm in communities:
     comp_str = ", ".join(f"{cnt} {g}" for g, cnt in comp.items())
 
     # Member avatars
-    avatar_html = ""
+    members_html = ""
     for m in members:
         avatar_url = AVATARS.get(m, "")
         short = m.split()[0]
         if avatar_url:
-            avatar_html += f'<img src="{avatar_url}" title="{m}" style="width:36px;height:36px;border-radius:50%;margin:2px;border:2px solid {color};" />'
+            members_html += f'<img src="{avatar_url}" title="{m}" style="width:36px;height:36px;border-radius:50%;margin:2px;border:2px solid {color};" />'
         else:
-            avatar_html += f'<div style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#444;text-align:center;line-height:36px;margin:2px;border:2px solid {color};font-size:12px;">{short[0]}</div>'
+            members_html += f'<div style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#444;text-align:center;line-height:36px;margin:2px;border:2px solid {color};font-size:12px;">{short[0]}</div>'
 
     ext_alliance = f"{best_ext['name']} ({best_ext['score']:+.2f})" if best_ext else "—"
     ext_rivalry = f"{worst_ext['name']} ({worst_ext['score']:+.2f})" if worst_ext else "—"
@@ -385,7 +384,7 @@ for comm in communities:
     card_html += f' <div style="display:inline;font-size:0.85rem;color:#aaa;margin-left:0.5rem;">{len(members)} membros · {comp_str}</div>'
     card_html += f' <div style="display:inline;background:#333;padding:2px 8px;border-radius:12px;font-size:0.75rem;margin-left:auto;">Coesão: {cohesion:+.2f}</div>'
     card_html += '</div>'
-    card_html += f'<div style="margin:0.6rem 0;">{avatar_html}</div>'
+    card_html += f'<div style="margin:0.6rem 0;">{members_html}</div>'
     card_html += f'<div style="font-size:0.85rem;color:#ccc;">🤝 Aliança externa: <b>{ext_alliance}</b> &nbsp;·&nbsp; ⚔️ Rivalidade externa: <b>{ext_rivalry}</b></div>'
     card_html += '</div>'
     print(card_html)
@@ -777,10 +776,10 @@ for entry in top3:
     love_str = ", ".join(f'{e["name"].split()[0]} ({e["score"]:+.1f})' for e in entry["top_love"])
     hate_str = ", ".join(f'{e["name"].split()[0]} ({e["score"]:+.1f})' for e in entry["top_hate"])
 
-    avatar_html = f'<img src="{avatar}" style="width:48px;height:48px;border-radius:50%;border:2px solid {cluster_colors[cl]};" />' if avatar else ""
+    avatar_img_html = f'<img src="{avatar}" style="width:48px;height:48px;border-radius:50%;border:2px solid {cluster_colors[cl]};" />' if avatar else ""
 
     p_html = f'<div style="flex:1 1 250px;background:#2a2a2a;border-radius:8px;padding:1rem;border-top:3px solid {cluster_colors[cl]};">'
-    p_html += f'<div style="display:flex;gap:0.7rem;align-items:center;margin-bottom:0.5rem;">{avatar_html}<div><div style="font-weight:700;">{name}</div><div style="font-size:0.8rem;color:#aaa;">{entry["grupo"]} · {cluster_names[cl]}</div></div></div>'
+    p_html += f'<div style="display:flex;gap:0.7rem;align-items:center;margin-bottom:0.5rem;">{avatar_img_html}<div><div style="font-weight:700;">{name}</div><div style="font-size:0.8rem;color:#aaa;">{entry["grupo"]} · {cluster_names[cl]}</div></div></div>'
     p_html += f'<div style="font-size:0.85rem;">'
     p_html += f'<div style="color:#aaa;">Dispersão: <b>{entry["std_received"]:.2f}</b> · Média: <b>{entry["avg_received"]:+.2f}</b></div>'
     p_html += f'<div style="margin-top:0.3rem;">💚 Mais positivos: {love_str}</div>'
@@ -803,9 +802,6 @@ Acompanhamento de como a estrutura de comunidades mudou ao longo das semanas.
 # ══════════════════════════════════════════════════════════════════════════════
 # CLUSTER EVOLUTION — temporal tracking of community changes
 # ══════════════════════════════════════════════════════════════════════════════
-
-import plotly.graph_objects as go
-from pathlib import Path
 
 evolution_path = Path("data/derived/cluster_evolution.json")
 if evolution_path.exists():

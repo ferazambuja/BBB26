@@ -12,11 +12,10 @@ import json
 from pathlib import Path
 from collections import defaultdict
 import pandas as pd
-import plotly.express as px
 import sys
 
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import require_clean_manual_events, REACTION_EMOJI
+from data_utils import require_clean_manual_events, REACTION_EMOJI, POWER_EVENT_LABELS, POWER_EVENT_EMOJI
 
 require_clean_manual_events()
 
@@ -83,32 +82,11 @@ if plant_index.get("weeks"):
 if active_names and display_scores:
     display_scores = {k: v for k, v in display_scores.items() if k in active_names}
 
-POWER_EVENT_LABELS = {
-    "lider": "Líder",
-    "anjo": "Anjo",
-    "monstro": "Monstro",
-    "imunidade": "Imunidade",
-    "indicacao": "Indicação",
-    "contragolpe": "Contragolpe",
-    "voto_duplo": "Voto 2x",
-    "voto_anulado": "Voto anulado",
-    "perdeu_voto": "Perdeu voto",
-    "emparedado": "Emparedado",
-    "volta_paredao": "Voltou do paredão",
-}
-POWER_EVENT_EMOJI = {
-    "lider": "👑",
-    "anjo": "😇",
-    "monstro": "👹",
-    "imunidade": "🛡️",
-    "indicacao": "🎯",
-    "contragolpe": "🌀",
-    "voto_duplo": "🗳️",
-    "voto_anulado": "🚫",
-    "perdeu_voto": "⛔",
-    "emparedado": "📌",
-    "volta_paredao": "🔄",
-}
+# Extend imported dicts with planta_debug-specific event types not in data_utils
+_EXTRA_LABELS = {"emparedado": "Emparedado", "volta_paredao": "Voltou do paredão"}
+_EXTRA_EMOJI = {"emparedado": "📌", "volta_paredao": "🔄"}
+POWER_EVENT_LABELS = {**POWER_EVENT_LABELS, **_EXTRA_LABELS}
+POWER_EVENT_EMOJI = {**POWER_EVENT_EMOJI, **_EXTRA_EMOJI}
 
 POWER_ACTIVITY_WEIGHTS = {
     "lider": {"actor": 0.0, "target": 4.0},

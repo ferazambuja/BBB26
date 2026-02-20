@@ -117,9 +117,7 @@ def analyze():
     print()
 
     # --- Section 4: Slot distribution ---
-    slot_counts = {}
-    for name, _, _ in SLOTS:
-        slot_counts[name] = 0
+    slot_counts = {name: 0 for name, _, _ in SLOTS}
     for rc in reaction_changes:
         slot = classify_slot(rc["hour_brt"])
         slot_counts[slot] += 1

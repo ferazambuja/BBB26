@@ -96,7 +96,6 @@ def detect_change_type(old_participants, new_participants):
 
 def get_latest_snapshot():
     """Get the most recent snapshot file and its data."""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
     snapshots = sorted(DATA_DIR.glob("*.json"))
     if not snapshots:
         return None, None
@@ -145,18 +144,19 @@ def fetch_and_save():
         change_types = ["initial"]
 
     # Save new snapshot with timestamp
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+    now_utc = datetime.now(timezone.utc)
+    timestamp = now_utc.strftime("%Y-%m-%d_%H-%M-%S")
     snapshot_path = DATA_DIR / f"{timestamp}.json"
 
     # Include metadata in saved file
     save_data = {
         "_metadata": {
-            "captured_at": datetime.now(timezone.utc).isoformat(),
+            "captured_at": now_utc.isoformat(),
             "api_url": API_URL,
             "data_hash": new_hash,
             "participant_count": len(new_data),
             "total_reactions": total_reactions,
-            "change_types": change_types if latest_data else ["initial"],
+            "change_types": change_types,
             "reactions_hash": get_reactions_hash(new_data),
             "roles_hash": get_roles_hash(new_data),
         },

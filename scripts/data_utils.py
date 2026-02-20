@@ -266,10 +266,7 @@ def calc_sentiment(participant):
 
 def require_clean_manual_events(audit_path=None):
     """Raise if manual events audit reports inconsistencies."""
-    if audit_path is None:
-        audit_path = Path("data/derived/manual_events_audit.json")
-    else:
-        audit_path = Path(audit_path)
+    audit_path = Path(audit_path) if audit_path is not None else Path("data/derived/manual_events_audit.json")
 
     if not audit_path.exists():
         raise RuntimeError("manual_events_audit.json não encontrado. Execute scripts/build_derived_data.py")
@@ -330,13 +327,8 @@ def parse_roles(roles_data):
     """Extract role labels from roles array (strings or dicts)."""
     if not roles_data:
         return []
-    labels = []
-    for r in roles_data:
-        if isinstance(r, dict):
-            labels.append(r.get("label", ""))
-        else:
-            labels.append(str(r))
-    return [l for l in labels if l]
+    labels = [r.get("label", "") if isinstance(r, dict) else str(r) for r in roles_data]
+    return [label for label in labels if label]
 
 
 def build_reaction_matrix(participants):
@@ -373,7 +365,7 @@ def patch_missing_raio_x(matrix, participants, prev_matrix):
         return matrix, []
 
     active_names = {p.get("name", "").strip() for p in participants if p.get("name", "").strip()}
-    givers_in_matrix = {actor for (actor, _target) in matrix}
+    givers_in_matrix = {actor for (actor, _) in matrix}
 
     carried = []
     for name in sorted(active_names):
@@ -393,10 +385,7 @@ def load_votalhada_polls(filepath=None):
 
     Returns dict with 'paredoes' list, or empty structure if file missing.
     """
-    if filepath is None:
-        filepath = Path("data/votalhada/polls.json")
-    else:
-        filepath = Path(filepath)
+    filepath = Path(filepath) if filepath is not None else Path("data/votalhada/polls.json")
 
     if not filepath.exists():
         return {"paredoes": []}
@@ -407,10 +396,7 @@ def load_votalhada_polls(filepath=None):
 
 def load_sincerao_edges(filepath=None):
     """Load derived Sincerão edges/aggregates."""
-    if filepath is None:
-        filepath = Path("data/derived/sincerao_edges.json")
-    else:
-        filepath = Path(filepath)
+    filepath = Path(filepath) if filepath is not None else Path("data/derived/sincerao_edges.json")
 
     if not filepath.exists():
         return {"weeks": [], "edges": [], "aggregates": []}
@@ -454,22 +440,14 @@ def calculate_poll_accuracy(poll_data):
     # Check if prediction was correct
     predicao_correta = consolidado.get("predicao_eliminado") == resultado.get("eliminado")
 
-    # Calculate mean absolute error
-    errors = []
-    for nome in participantes:
-        pred = consolidado.get(nome, 0)
-        real = resultado.get(nome, 0)
-        errors.append(abs(pred - real))
-
-    erro_medio = sum(errors) / len(errors) if errors else 0
+    # Calculate mean absolute error and per-participant deltas
+    deltas = {nome: consolidado.get(nome, 0) - resultado.get(nome, 0) for nome in participantes}
+    erro_medio = sum(abs(d) for d in deltas.values()) / len(deltas) if deltas else 0
 
     return {
         "predicao_correta": predicao_correta,
         "erro_medio": round(erro_medio, 2),
-        "erros_por_participante": {
-            nome: round(consolidado.get(nome, 0) - resultado.get(nome, 0), 2)
-            for nome in participantes
-        }
+        "erros_por_participante": {nome: round(d, 2) for nome, d in deltas.items()},
     }
 
 
@@ -518,31 +496,34 @@ def render_cronologia_html(timeline_events):
     # Group by week, then reverse: latest week first, latest events first
     weeks = {}
     for ev in timeline_events:
-        w = ev.get("week", 0)
-        weeks.setdefault(w, []).append(ev)
-
+        weeks.setdefault(ev.get("week", 0), []).append(ev)
     sorted_weeks = sorted(weeks.items(), key=lambda x: x[0], reverse=True)
 
-    html = '<style>'
-    html += '@media (max-width: 640px) {'
-    html += '  .cronologia-table th:nth-child(4),'
-    html += '  .cronologia-table td:nth-child(4) { display: none; }'
-    html += '  .cronologia-table { font-size: 0.8em; }'
-    html += '  .cronologia-table td, .cronologia-table th { padding: 4px 6px; }'
-    html += '}'
-    html += '</style>'
-    html += '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
-    html += '<table class="cronologia-table" style="width:100%; border-collapse:collapse; font-size:0.9em;">'
-    html += '<thead style="position:sticky; top:0; z-index:1;">'
-    html += '<tr style="background:#1a1a2e; color:#eee;">'
-    html += '<th style="padding:8px; text-align:left;">Data</th>'
-    html += '<th style="padding:8px; text-align:center; min-width:130px;">Tipo</th>'
-    html += '<th style="padding:8px; text-align:left;">Evento</th>'
-    html += '<th style="padding:8px; text-align:left;">Detalhe</th>'
-    html += '</tr></thead><tbody>'
+    parts = [
+        '<style>'
+        '@media (max-width: 640px) {'
+        '  .cronologia-table th:nth-child(4),'
+        '  .cronologia-table td:nth-child(4) { display: none; }'
+        '  .cronologia-table { font-size: 0.8em; }'
+        '  .cronologia-table td, .cronologia-table th { padding: 4px 6px; }'
+        '}'
+        '</style>'
+        '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
+        '<table class="cronologia-table" style="width:100%; border-collapse:collapse; font-size:0.9em;">'
+        '<thead style="position:sticky; top:0; z-index:1;">'
+        '<tr style="background:#1a1a2e; color:#eee;">'
+        '<th style="padding:8px; text-align:left;">Data</th>'
+        '<th style="padding:8px; text-align:center; min-width:130px;">Tipo</th>'
+        '<th style="padding:8px; text-align:left;">Evento</th>'
+        '<th style="padding:8px; text-align:left;">Detalhe</th>'
+        '</tr></thead><tbody>',
+    ]
 
     for week_num, week_events in sorted_weeks:
-        html += f'<tr style="background:#16213e;"><td colspan="4" style="padding:6px 8px; font-weight:bold; color:#ffc107;">Semana {week_num}</td></tr>'
+        parts.append(
+            f'<tr style="background:#16213e;"><td colspan="4" style="padding:6px 8px;'
+            f' font-weight:bold; color:#ffc107;">Semana {week_num}</td></tr>'
+        )
         for ev in reversed(week_events):
             cat = ev.get("category", "")
             color = TIMELINE_CAT_COLORS.get(cat, "#666")
@@ -555,28 +536,40 @@ def render_cronologia_html(timeline_events):
             time_info = ev.get("time", "")
 
             if is_scheduled:
-                badge = f'<span style="background:transparent; color:{color}; border:1px dashed {color}; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
-                time_badge = f'<br><span style="background:#ffc107; color:#000; padding:1px 5px; border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>' if time_info else ''
+                badge = (
+                    f'<span style="background:transparent; color:{color}; border:1px dashed {color};'
+                    f' padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                )
+                time_badge = (
+                    f'<br><span style="background:#ffc107; color:#000; padding:1px 5px;'
+                    f' border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>'
+                    if time_info else ''
+                )
                 row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
                 title_cell = f'{emoji} {title}{time_badge}'
-                date_cell = f'{date}'
+                date_cell = date
                 detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
             else:
-                badge = f'<span style="background:{color}; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                badge = (
+                    f'<span style="background:{color}; color:#fff; padding:2px 6px;'
+                    f' border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                )
                 row_style = 'border-bottom:1px solid #333;'
                 title_cell = f'{emoji} {title}'
                 date_cell = date
                 detail_text = detail
 
-            html += f'<tr style="{row_style}">'
-            html += f'<td style="padding:6px 8px; color:#aaa; white-space:nowrap;">{date_cell}</td>'
-            html += f'<td style="padding:6px 8px; text-align:center;">{badge}</td>'
-            html += f'<td style="padding:6px 8px;">{title_cell}</td>'
-            html += f'<td style="padding:6px 8px; color:#999; font-size:0.85em;">{detail_text}</td>'
-            html += '</tr>'
+            parts.append(
+                f'<tr style="{row_style}">'
+                f'<td style="padding:6px 8px; color:#aaa; white-space:nowrap;">{date_cell}</td>'
+                f'<td style="padding:6px 8px; text-align:center;">{badge}</td>'
+                f'<td style="padding:6px 8px;">{title_cell}</td>'
+                f'<td style="padding:6px 8px; color:#999; font-size:0.85em;">{detail_text}</td>'
+                f'</tr>'
+            )
 
-    html += '</tbody></table></div>'
-    return html
+    parts.append('</tbody></table></div>')
+    return ''.join(parts)
 
 
 # ── Votalhada helpers ──────────────────────────────────────────────────────────
@@ -584,14 +577,14 @@ def render_cronologia_html(timeline_events):
 MONTH_MAP_PT = {'jan': 1, 'fev': 2, 'mar': 3, 'abr': 4, 'mai': 5, 'jun': 6,
                 'jul': 7, 'ago': 8, 'set': 9, 'out': 10, 'nov': 11, 'dez': 12}
 
+
 def parse_votalhada_hora(hora_str, year=2026):
     """Parse Votalhada timestamp '19/jan 01:00' → datetime."""
-    parts = hora_str.split()
-    day_month = parts[0].split('/')
-    day = int(day_month[0])
-    month = MONTH_MAP_PT[day_month[1]]
-    hour, minute = map(int, parts[1].split(':'))
-    return datetime(year, month, day, hour, minute)
+    tokens = hora_str.split()
+    day_str, month_str = tokens[0].split('/')
+    hour, minute = map(int, tokens[1].split(':'))
+    return datetime(year, MONTH_MAP_PT[month_str], int(day_str), hour, minute)
+
 
 def make_poll_timeseries(poll, resultado_real=None, compact=False):
     """Build a Plotly figure for Votalhada poll time series.
@@ -601,7 +594,7 @@ def make_poll_timeseries(poll, resultado_real=None, compact=False):
         resultado_real: Optional result dict with real vote percentages.
         compact: If True, use smaller markers/lines and shorter height (for archive tabs).
     """
-    import plotly.graph_objects as go
+    import plotly.graph_objects as go  # noqa: PLC0415 — optional dep, lazy import
 
     serie = poll.get('serie_temporal', [])
     if not serie:
@@ -765,10 +758,10 @@ def load_snapshots_full(data_dir=Path("data/snapshots")):
     # Late entrants
     late_entrants = {}
     if snapshots:
-        first_names = set(p['name'] for p in snapshots[0]['participants'])
+        first_names = {p['name'] for p in snapshots[0]['participants']}
         seen = set(first_names)
         for snap in snapshots[1:]:
-            cur = set(p['name'] for p in snap['participants'])
+            cur = {p['name'] for p in snap['participants']}
             for name in cur - seen:
                 if name not in late_entrants:
                     late_entrants[name] = snap['date']
@@ -863,8 +856,7 @@ def get_nominee_badge(nome, paredao_entry, bate_volta_survivors=None):
         Tuple of (badge_text, badge_color, badge_emoji).
     """
     if bate_volta_survivors and nome in bate_volta_survivors:
-        sufixo = 'A' if genero(nome) == 'f' else 'O'
-        return (f'ESCAPOU DO BATE-VOLTA', '#3498db', '🔵')
+        return ('ESCAPOU DO BATE-VOLTA', '#3498db', '🔵')
 
     resultado = paredao_entry.get('resultado', {})
     eliminado = resultado.get('eliminado', '')

@@ -19,20 +19,18 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from pathlib import Path
-from collections import defaultdict, Counter
-from datetime import datetime
+from collections import Counter
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    load_snapshots_full, build_reaction_matrix,
+    load_snapshots_full,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
-    avatar_html, avatar_img,
-    REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
-    POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
-    POWER_EVENT_EMOJI, POWER_EVENT_LABELS, render_cronologia_html,
+    avatar_img,
+    REACTION_EMOJI, SENTIMENT_WEIGHTS,
+    GROUP_COLORS,
+    render_cronologia_html,
 )
 
 require_clean_manual_events()
@@ -86,6 +84,7 @@ power_events_manual = manual_events.get("power_events", [])
 weekly_events = manual_events.get("weekly_events", [])
 
 AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
+auto_payload = {}
 power_events_auto = []
 if AUTO_EVENTS_FILE.exists():
     with open(AUTO_EVENTS_FILE, encoding="utf-8") as f:
@@ -111,9 +110,9 @@ if PAREDOES_FILE.exists():
 # ── Load snapshots for diff heatmap + balance charts ──
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
 
-n_snapshots = len(snapshots)
-latest = snapshots[-1]
 n_daily = len(daily_snapshots)
+
+leader_periods = index_data.get("leader_periods", [])
 ```
 
 # Manchete do Dia {#manchete}
@@ -731,13 +730,8 @@ else:
 #| output: asis
 
 if len(daily_snapshots) >= 3:
-    def _get_ranking(snap):
-        scores = [(p['name'], calc_sentiment(p)) for p in snap['participants']
-                  if not p.get('characteristics', {}).get('eliminated')]
-        return sorted(scores, key=lambda x: -x[1])
-
-    first_ranking = _get_ranking(daily_snapshots[0])
-    latest_ranking = _get_ranking(daily_snapshots[-1])
+    first_ranking = get_ranking(daily_snapshots[0])
+    latest_ranking = get_ranking(daily_snapshots[-1])
     first_rank_dict = {name: i+1 for i, (name, _) in enumerate(first_ranking)}
     latest_rank_dict = {name: i+1 for i, (name, _) in enumerate(latest_ranking)}
 
@@ -1106,8 +1100,6 @@ print("\n".join(html))
 #| label: vip-heatmap
 #| fig-cap: "VIP/Xepa por período de liderança"
 
-leader_periods = index_data.get("leader_periods", [])
-
 if not leader_periods:
     print("*Nenhum período de liderança registrado.*")
 else:
@@ -1179,8 +1171,6 @@ else:
 #| label: vip-bar
 #| fig-cap: "Contagem de vezes VIP vs Xepa por participante"
 
-leader_periods = index_data.get("leader_periods", [])
-
 if not leader_periods:
     print("*Nenhum período de liderança registrado.*")
 else:
@@ -1239,8 +1229,6 @@ else:
 ```{python}
 #| label: vip-detail
 #| output: asis
-
-leader_periods = index_data.get("leader_periods", [])
 
 if not leader_periods:
     print("*Nenhum período de liderança registrado.*")
@@ -1341,6 +1329,12 @@ else:
     df_power['Dinâmica'] = df_power.apply(resolve_context, axis=1)
     df_show = df_power.sort_values('Data')[['date', 'Dinâmica', 'Tipo', 'actor', 'target', 'detail', 'impacto']]
 
+    _DYNAMIC_ICON_MAP = {
+        'big fone': '📞', 'caixas-surpresa': '🎁', 'prova do líder': '👑',
+        'prova do anjo': '😇', 'prova bate e volta': '🛟', 'ganha-ganha': '🎁',
+        'barrado no baile': '🚫',
+    }
+
     def render_person_cell(value, border):
         # Handle lists or " + "-separated actor strings (consensus events)
         items = None
@@ -1349,7 +1343,6 @@ else:
         elif isinstance(value, str) and " + " in value:
             items = [v.strip() for v in value.split(" + ") if v.strip()]
         if items:
-            if not items: return '—'
             avatar_htmls = []
             for name in items:
                 if name in AVATARS and AVATARS[name]:
@@ -1362,16 +1355,12 @@ else:
             return (f'<div style="display: flex; align-items: center;">'
                     f'<img src="{AVATARS[label]}" style="width: 28px; height: 28px; border-radius: 50%; '
                     f'border: 2px solid {border}; object-fit: cover; margin-right: 0.4rem;">{label}</div>')
-        icon_map = {'big fone': '📞', 'caixas-surpresa': '🎁', 'prova do líder': '👑',
-                    'prova do anjo': '😇', 'prova bate e volta': '🛟', 'ganha-ganha': '🎁', 'barrado no baile': '🚫'}
-        icon = next((icon_map[k] for k in icon_map if k in label.lower()), '🎬')
+        icon = next((v for k, v in _DYNAMIC_ICON_MAP.items() if k in label.lower()), '🎬')
         return f'<div style="display: flex; align-items: center; gap: 0.4rem;"><span>{icon}</span>{label}</div>'
 
     def render_context_cell(value):
         if not value or value == '—': return '—'
-        icon_map = {'big fone': '📞', 'caixas-surpresa': '🎁', 'prova do líder': '👑',
-                    'prova do anjo': '😇', 'prova bate e volta': '🛟', 'ganha-ganha': '🎁', 'barrado no baile': '🚫'}
-        icon = next((icon_map[k] for k in icon_map if k in value.lower()), '🎬')
+        icon = next((v for k, v in _DYNAMIC_ICON_MAP.items() if k in value.lower()), '🎬')
         return f'<div style="display:flex; align-items:center; gap:0.4rem;"><span>{icon}</span>{value}</div>'
 
     print('<div style="overflow-x:auto; margin: 0.5rem 0 1rem 0;">')
@@ -1412,7 +1401,7 @@ else:
 #| label: power-impact
 #| output: asis
 
-power_summary = auto_payload.get("power_summary", {}) if 'auto_payload' in dir() and isinstance(auto_payload, dict) else {}
+power_summary = auto_payload.get("power_summary", {})
 ps_by_part = power_summary.get("by_participant", {})
 ps_sorted = power_summary.get("sorted_by_saldo", [])
 

@@ -10,7 +10,7 @@ subtitle: "Tally completo do score A→B (queridômetro + eventos)"
 
 import json
 from pathlib import Path
-from collections import defaultdict
+from collections import Counter
 import pandas as pd
 import sys
 
@@ -790,8 +790,6 @@ else:
 #| echo: false
 #| output: asis
 
-import pandas as pd
-
 # Load precomputed badge data
 _pb_path = Path("data/derived/paredao_badges.json")
 paredao_badges_data = json.load(open(_pb_path, encoding="utf-8")) if _pb_path.exists() else {}
@@ -857,18 +855,14 @@ O scoring previu corretamente? Os componentes fazem sentido?
 #| echo: false
 #| output: asis
 
-# Load consensus analysis + relations for component breakdown
+# Load consensus analysis (relations already loaded as `relations` in setup block)
 _idx_path = Path("data/derived/index_data.json")
-_rel_path = Path("data/derived/relations_scores.json")
 bfc = None
-rel_data = {}
 if _idx_path.exists():
     bfc = json.load(open(_idx_path, encoding="utf-8")).get("big_fone_consensus")
-if _rel_path.exists():
-    rel_data = json.load(open(_rel_path, encoding="utf-8"))
 
 ACTUAL_TARGET = "Jonas Sulzbach"
-pairs_daily = rel_data.get("pairs_daily", {})
+pairs_daily = relations_pairs_daily
 
 if not bfc or not bfc.get("attendees"):
     print("<p class='text-muted'>Dados do consenso não disponíveis.</p>")
@@ -1101,8 +1095,8 @@ else:
 #| output: asis
 
 # --- Retro: compare pairs_daily predicted votes vs actual votes ---
-paredoes_path = Path("data/paredoes.json")
-paredoes_file = json.loads(paredoes_path.read_text(encoding="utf-8")) if paredoes_path.exists() else {}
+# paredoes_data was already loaded in the badge-vs-reality block above
+paredoes_file = paredoes_data
 
 pairs_d = relations.get("pairs_daily", {})
 pairs_all = relations.get("pairs_all", {})
@@ -1276,8 +1270,6 @@ print(html_retro)
 #| echo: false
 #| output: asis
 
-from collections import Counter
-
 VOTE_PRED_FILE = Path("data/derived/vote_prediction.json")
 vote_pred = json.loads(VOTE_PRED_FILE.read_text(encoding="utf-8")) if VOTE_PRED_FILE.exists() else {}
 vp_meta = vote_pred.get("_metadata", {})
@@ -1316,8 +1308,7 @@ else:
     # ══════════════════════════════════════════════════════════════
     # PER-PAREDÃO SECTIONS
     # ══════════════════════════════════════════════════════════════
-    with open("data/paredoes.json") as f:
-        paredoes_data = json.load(f)
+    # paredoes_data already loaded in badge-vs-reality block above
     paredoes_list = paredoes_data.get("paredoes", [])
 
     for num_str in sorted(vp_by_paredao.keys(), key=int, reverse=True):

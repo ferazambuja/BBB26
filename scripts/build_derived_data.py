@@ -7,7 +7,7 @@ Outputs go to data/derived/ and are meant to be reused by QMD pages.
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from data_utils import (
     SENTIMENT_WEIGHTS, calc_sentiment, get_week_number,
@@ -147,6 +147,9 @@ PLANT_INDEX_SINCERAO_DECAY = 0.7
 PLANT_INDEX_ROLLING_WEEKS = 2
 PLANT_GANHA_GANHA_WEIGHT = 0.3
 
+CLUSTER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22']
+
+
 def get_all_snapshots():
     """Wrapper for backward-compatible call sites."""
     return get_all_snapshots_with_data(DATA_DIR)
@@ -210,7 +213,7 @@ def compute_streak_data(daily_snapshots, eliminated_last_seen=None):
     latest_date = daily_snapshots[-1]["date"] if daily_snapshots else None
 
     for (actor, target), history in pair_history.items():
-        if len(history) == 0:
+        if not history:
             continue
 
         # Determine the reference date: use last_seen for eliminated participants
@@ -1699,13 +1702,6 @@ def detect_eliminations(daily_snapshots):
 
 
 def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes=None):
-    def split_names(value):
-        if not value or not isinstance(value, str):
-            return []
-        if " + " in value:
-            return [v.strip() for v in value.split(" + ") if v.strip()]
-        return [value.strip()]
-
     weekly = defaultdict(lambda: {"dates": [], "snapshots": []})
     for snap in daily_snapshots:
         week = get_week_number(snap["date"])
@@ -2965,15 +2961,12 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
     # -------------------------------------------------------------------
     # Auto-naming
     # -------------------------------------------------------------------
-    CLUSTER_COLORS_LIST = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22']
-
     cluster_names = {}
     cluster_colors = {}
 
     for label, members in cluster_members.items():
         groups = [participant_info.get(m, {}).get("grupo", "?") for m in members]
-        from collections import Counter as _Counter
-        group_counts = _Counter(groups)
+        group_counts = Counter(groups)
         dominant_group, dominant_count = group_counts.most_common(1)[0]
         pct_dominant = dominant_count / len(members)
 
@@ -3004,7 +2997,7 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
                     break
 
         cluster_names[label] = name
-        cluster_colors[label] = CLUSTER_COLORS_LIST[(label - 1) % len(CLUSTER_COLORS_LIST)]
+        cluster_colors[label] = CLUSTER_COLORS[(label - 1) % len(CLUSTER_COLORS)]
 
     # -------------------------------------------------------------------
     # Cluster metrics
@@ -3075,8 +3068,7 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
     communities_out = []
     for label in sorted(cluster_members):
         members = cluster_members[label]
-        from collections import Counter as _Counter
-        groups = _Counter(participant_info.get(m, {}).get("grupo", "?") for m in members)
+        groups = Counter(participant_info.get(m, {}).get("grupo", "?") for m in members)
 
         # External best/worst
         best_ext = None
@@ -3181,7 +3173,6 @@ def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
     Returns dict with timeline and transition data, or None if insufficient data.
     """
     import numpy as np
-    from datetime import datetime
 
     try:
         import networkx as nx
@@ -3196,7 +3187,6 @@ def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
 
     # Active participants (current)
     pi_list = participants_index if isinstance(participants_index, list) else participants_index.get("participants", participants_index)
-    active_names_current = set(p["name"] for p in pi_list if p.get("active", True))
     participant_info = {p["name"]: {"grupo": p.get("grupo", "?"), "avatar": p.get("avatar", "")} for p in pi_list}
 
     # Sample one snapshot per week (use last snapshot of each week)
@@ -3208,8 +3198,6 @@ def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
     sampled_weeks = sorted(snapshots_by_week.keys())
     if len(sampled_weeks) < 2:
         return None
-
-    CLUSTER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22']
 
     timeline = []
     prev_membership = {}
@@ -3348,7 +3336,6 @@ def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
             })
 
     # Find participants who moved the most
-    from collections import Counter
     move_counts = Counter(t["name"] for t in all_transitions)
     most_mobile = move_counts.most_common(5)
 
@@ -3730,7 +3717,6 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
             daily_sent.append((date, day_scores))
 
         # Top5/Bottom5 counts
-        from collections import Counter
         top5_counts = Counter()
         bottom5_counts = Counter()
         for _date, scores in daily_sent:
@@ -4723,7 +4709,7 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
                 key=lambda x: x[1]
             )
             if lider_sorted:
-                actual_indicado = form.get("indicado_lider") if (form := par.get("formacao", {})) else None
+                actual_indicado = par.get("formacao", {}).get("indicado_lider")
                 lider_prediction = {
                     "predicted": lider_sorted[0][0],
                     "score": round(lider_sorted[0][1], 4),

@@ -13,6 +13,8 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime, timezone
 
+ROOT = Path(__file__).resolve().parent.parent
+
 
 def get_data_hash(filepath):
     """Generate hash of participant data (ignores formatting)."""
@@ -61,9 +63,9 @@ def get_summary_stats(participants):
 def main():
     # Collect all JSON files from all sources
     sources = [
-        ("data/snapshots", Path("data/snapshots")),
-        ("_legacy/archive_duplicates", Path("_legacy/archive_duplicates")),
-        ("_audit/git_recovered", Path("_audit/git_recovered")),
+        ("data/snapshots", ROOT / "data" / "snapshots"),
+        ("_legacy/archive_duplicates", ROOT / "_legacy" / "archive_duplicates"),
+        ("_audit/git_recovered", ROOT / "_audit" / "git_recovered"),
     ]
 
     all_files = []
@@ -72,9 +74,9 @@ def main():
             for f in src_path.glob("*.json"):
                 all_files.append((source_name, f))
 
-    print(f"=" * 70)
+    print("=" * 70)
     print("BBB26 SNAPSHOT AUDIT")
-    print(f"=" * 70)
+    print("=" * 70)
     print()
 
     # Count by source
@@ -103,9 +105,9 @@ def main():
             print(f"Error processing {filepath}: {e}")
 
     # Sort each group by timestamp and report
-    print(f"=" * 70)
+    print("=" * 70)
     print(f"UNIQUE DATA STATES: {len(by_hash)}")
-    print(f"=" * 70)
+    print("=" * 70)
     print()
 
     unique_states = []
@@ -133,9 +135,9 @@ def main():
         print()
 
     # Summary
-    print(f"=" * 70)
+    print("=" * 70)
     print("SUMMARY")
-    print(f"=" * 70)
+    print("=" * 70)
     print(f"Total files analyzed: {len(all_files)}")
     print(f"Unique data states: {len(by_hash)}")
     print(f"Duplicate files: {len(all_files) - len(by_hash)}")

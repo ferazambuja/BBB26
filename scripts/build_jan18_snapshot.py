@@ -359,7 +359,7 @@ data_hash = hashlib.md5(
 
 save_data = {
     "_metadata": {
-        "captured_at": "2026-01-18T12:00:00",
+        "captured_at": "2026-01-18T12:00:00+00:00",
         "api_url": "SYNTHETIC — built from GShow queridômetro article",
         "data_hash": data_hash,
         "participant_count": len(synthetic_participants),
