@@ -115,52 +115,6 @@ n_daily = len(daily_snapshots)
 leader_periods = index_data.get("leader_periods", [])
 ```
 
-# Manchete do Dia {#manchete}
-
-```{python}
-#| label: manchete
-#| output: asis
-
-# Auto-generate headline from: streak_breaks (strongest), daily_changes (biggest delta)
-headline_parts = []
-
-if streak_breaks:
-    sb = streak_breaks[0]
-    emoji = REACTION_EMOJI.get(sb.get("new_emoji", ""), "❓")
-    headline_parts.append(
-        f"💔 **{sb['giver']}** rompeu **{sb['previous_streak']} dias** de aliança com **{sb['receiver']}** → {emoji}"
-    )
-
-if daily_changes:
-    dc = daily_changes[-1]
-    n_ch = dc["total_changes"]
-    pct = dc["pct_changed"]
-    top_r = dc["top_receiver"]
-    top_l = dc["top_loser"]
-    headline_parts.append(
-        f"📊 **{n_ch} mudanças** ({pct:.0f}% das relações) — "
-        f"🟢 {dc['n_melhora']} melhorias | 🔴 {dc['n_piora']} pioras"
-    )
-    stats = []
-    if top_r["name"]:
-        stats.append(f"Ganhador: **{top_r['name']}** ({top_r['delta']:+.1f})")
-    if top_l["name"]:
-        stats.append(f"Perdedor: **{top_l['name']}** ({top_l['delta']:+.1f})")
-    if dc["hearts_lost"]:
-        stats.append(f"❤️ perdidos: {dc['hearts_lost']}")
-    if stats:
-        headline_parts.append(" | ".join(stats))
-
-if headline_parts:
-    print(f"""
-::: {{.callout-important title="Manchete do Dia" appearance="simple"}}
-{"<br>".join(headline_parts)}
-:::
-""")
-else:
-    print("")
-```
-
 ```{python}
 #| label: date-info
 #| output: asis
@@ -196,12 +150,16 @@ else:
 #| output: asis
 
 if streak_breaks:
-    print("\n### 💔 Rupturas de Aliança Recentes\n")
-    for sb in streak_breaks[:5]:
-        emoji = REACTION_EMOJI.get(sb.get("new_emoji", ""), "❓")
-        severity_icon = "🔴" if sb.get("severity") == "strong" else "🟡"
-        print(f"- {severity_icon} **{sb['giver']}** → **{sb['receiver']}**: "
-              f"{sb['previous_streak']} dias de ❤️ rompidos → {emoji} ({sb['date']})")
+    # Filter to active participants only (exclude eliminated/DQ)
+    _active_names = {p["name"] for p in daily_snapshots[-1]["participants"]} if daily_snapshots else set()
+    _active_breaks = [sb for sb in streak_breaks if sb.get("giver") in _active_names and sb.get("receiver") in _active_names]
+    if _active_breaks:
+        print("\n### 💔 Rupturas de Aliança Recentes\n")
+        for sb in _active_breaks[:5]:
+            emoji = REACTION_EMOJI.get(sb.get("new_emoji", ""), "❓")
+            severity_icon = "🔴" if sb.get("severity") == "strong" else "🟡"
+            print(f"- {severity_icon} **{sb['giver']}** → **{sb['receiver']}**: "
+                  f"{sb['previous_streak']} dias de ❤️ rompidos → {emoji} ({sb['date']})")
 ```
 
 # Pulso Diário {#pulso}
