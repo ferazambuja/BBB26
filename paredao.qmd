@@ -1614,29 +1614,27 @@ if _pp_data:
     _sorted_names = sorted(_received.keys(), key=lambda x: -_received[x])
     _max_count = max(_received.values()) if _received else 1
 
-    print('<h4 style="margin-top:1.2rem;">📊 Indicações Recebidas</h4>\n')
-    print('<div style="max-width:700px;">')
+    _html = '<h4 style="margin-top:1.2rem;">📊 Indicações Recebidas</h4>\n'
+    _html += '<div style="max-width:700px;">\n'
     for _name in _sorted_names:
         _count = _received[_name]
         _pct = (_count / _max_count) * 100
         _color = "#E6194B" if _count >= 6 else "#FF8C00" if _count >= 3 else "#3CB44B"
         _av = avatar_img(_name, AVATARS, 32)
-        print(f'<div style="display:flex; align-items:center; margin-bottom:4px;">')
-        print(f'  <div style="width:180px; display:flex; align-items:center; gap:6px;">{_av} <span style="font-size:0.85rem;">{_name}</span></div>')
-        print(f'  <div style="flex:1; background:#333; border-radius:4px; height:22px; position:relative;">')
-        print(f'    <div style="width:{_pct}%; background:{_color}; height:100%; border-radius:4px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px;">')
-        print(f'      <span style="color:#fff; font-weight:bold; font-size:0.8rem;">{_count}×</span>')
-        print(f'    </div>')
-        print(f'  </div>')
-        print(f'</div>')
+        _html += f'<div style="display:flex; align-items:center; margin-bottom:4px;">'
+        _html += f'<div style="width:180px; display:flex; align-items:center; gap:6px;">{_av} <span style="font-size:0.85rem;">{_name}</span></div>'
+        _html += f'<div style="flex:1; background:#333; border-radius:4px; height:22px; position:relative;">'
+        _html += f'<div style="width:{_pct}%; background:{_color}; height:100%; border-radius:4px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px;">'
+        _html += f'<span style="color:#fff; font-weight:bold; font-size:0.8rem;">{_count}×</span>'
+        _html += '</div></div></div>\n'
 
     # Not nominated
     if _not_nom:
         _not_html = " ".join([f'{avatar_img(n, AVATARS, 32)} {n}' for n in _not_nom])
-        print(f'<div style="margin-top:8px; padding:6px 10px; background:#1a3a1a; border:1px solid #3CB44B; border-radius:6px; font-size:0.85rem;">')
-        print(f'  🛡️ <strong>Não indicados por ninguém:</strong> {_not_html}')
-        print(f'</div>')
-    print('</div>\n')
+        _html += f'<div style="margin-top:8px; padding:6px 10px; background:#1a3a1a; border:1px solid #3CB44B; border-radius:6px; font-size:0.85rem;">'
+        _html += f'🛡️ <strong>Não indicados por ninguém:</strong> {_not_html}</div>\n'
+    _html += '</div>\n'
+    print(_html)
 
     # ── Who picked whom (expandable) ──
     print('<details style="margin-top:1rem;">')
@@ -1654,15 +1652,15 @@ if _pp_data:
 
     # ── Mutual nominations ──
     if _mutuals:
-        print('<h4 style="margin-top:1.2rem;">⚔️ Indicações Mútuas</h4>')
-        print(f'<p class="text-muted" style="font-size:0.82rem;">Pares que querem o outro no paredão — hostilidade recíproca declarada.</p>')
-        print('<div style="display:flex; flex-wrap:wrap; gap:8px;">')
+        _mhtml = '<h4 style="margin-top:1.2rem;">⚔️ Indicações Mútuas</h4>\n'
+        _mhtml += '<p class="text-muted" style="font-size:0.82rem;">Pares que querem o outro no paredão — hostilidade recíproca declarada.</p>\n'
+        _mhtml += '<div style="display:flex; flex-wrap:wrap; gap:8px;">'
         for _pair in _mutuals:
             _a, _b = _pair[0], _pair[1]
-            print(f'<div style="background:#2a1a1a; border:1px solid #E6194B; border-radius:8px; padding:4px 10px; font-size:0.82rem;">')
-            print(f'  {avatar_img(_a, AVATARS, 26)} ↔ {avatar_img(_b, AVATARS, 26)}')
-            print(f'</div>')
-        print('</div>\n')
+            _mhtml += f'<div style="background:#2a1a1a; border:1px solid #E6194B; border-radius:8px; padding:4px 10px; font-size:0.82rem;">'
+            _mhtml += f'{avatar_img(_a, AVATARS, 26)} ↔ {avatar_img(_b, AVATARS, 26)}</div>'
+        _mhtml += '</div>\n'
+        print(_mhtml)
 
     # ── Faction insight ──
     _jonas_nom = set(_received_from.get('Jonas Sulzbach', []))
@@ -1670,10 +1668,10 @@ if _pp_data:
     _both = _jonas_nom & _alberto_nom
     if len(_both) >= 5:
         _both_html = " ".join([avatar_img(n, AVATARS, 28) for n in sorted(_both)])
-        print('<div style="margin-top:1rem; padding:10px 14px; background:#1a1a2a; border:1px solid #4363d8; border-radius:8px;">')
-        print(f'  <strong>🏛️ Bloco Anti-Jonas/Alberto</strong> — {len(_both)} pessoas nomearam ambos:<br/>')
-        print(f'  <div style="margin-top:6px;">{_both_html}</div>')
-        print(f'</div>\n')
+        _fhtml = '<div style="margin-top:1rem; padding:10px 14px; background:#1a1a2a; border:1px solid #4363d8; border-radius:8px;">'
+        _fhtml += f'<strong>🏛️ Bloco Anti-Jonas/Alberto</strong> — {len(_both)} pessoas nomearam ambos:<br/>'
+        _fhtml += f'<div style="margin-top:6px;">{_both_html}</div></div>\n'
+        print(_fhtml)
 
     # ── Week-over-week comparison with previous Sincerinho ──
     _prev_picks = None
@@ -1717,7 +1715,7 @@ if _pp_data:
         _movers.sort(key=lambda x: -x[3])
 
         if _movers:
-            print('<div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">')
+            _mvhtml = '<div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">'
             for _name, _w4, _w6, _delta in _movers:
                 _av = avatar_img(_name, AVATARS, 36)
                 if _delta > 0:
@@ -1726,16 +1724,16 @@ if _pp_data:
                 else:
                     _badge_color = "#3CB44B"
                     _arrow = f"🔻 {_delta}"
-                print(f'<div style="background:#1a1a1a; border:1px solid {_badge_color}; border-radius:8px; padding:8px 12px; text-align:center; min-width:110px;">')
-                print(f'  {_av}<br/>')
-                print(f'  <span style="font-size:0.78rem; color:#aaa;">Sem 4: {_w4}×</span><br/>')
-                print(f'  <span style="font-size:0.78rem; color:#aaa;">Sem 6: {_w6}×</span><br/>')
-                print(f'  <span style="font-weight:bold; color:{_badge_color}; font-size:0.9rem;">{_arrow}</span>')
-                print(f'</div>')
-            print('</div>\n')
+                _mvhtml += f'<div style="background:#1a1a1a; border:1px solid {_badge_color}; border-radius:8px; padding:8px 12px; text-align:center; min-width:110px;">'
+                _mvhtml += f'{_av}<br/>'
+                _mvhtml += f'<span style="font-size:0.78rem; color:#aaa;">Sem 4: {_w4}×</span><br/>'
+                _mvhtml += f'<span style="font-size:0.78rem; color:#aaa;">Sem 6: {_w6}×</span><br/>'
+                _mvhtml += f'<span style="font-weight:bold; color:{_badge_color}; font-size:0.9rem;">{_arrow}</span></div>'
+            _mvhtml += '</div>\n'
+            print(_mvhtml)
 
         # Insight callouts
-        print('<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">')
+        _ihtml = '<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">'
 
         # Gabriela case
         _gab_w4 = _prev_received.get("Gabriela", 0)
@@ -1750,42 +1748,33 @@ if _pp_data:
             for _n in _still_here:
                 _new_t = ", ".join(_pp[_n])
                 _detail_parts.append(f"{_n} → {_new_t}")
-            print(f'<div style="padding:8px 12px; background:#1a2a1a; border:1px solid #3CB44B; border-radius:6px; font-size:0.82rem;">')
-            print(f'  🔍 <strong>Caso Gabriela:</strong> era a mais indicada na sem 4 ({_gab_w4}×), agora 0×. {"; ".join(_detail_parts)}.')
-            print(f'</div>')
+            _ihtml += f'<div style="padding:8px 12px; background:#1a2a1a; border:1px solid #3CB44B; border-radius:6px; font-size:0.82rem;">'
+            _ihtml += f'🔍 <strong>Caso Gabriela:</strong> era a mais indicada na sem 4 ({_gab_w4}×), agora 0×. {"; ".join(_detail_parts)}.</div>'
 
         # Jonas rise
         _jonas_w4 = _prev_received.get("Jonas Sulzbach", 0)
         _jonas_w6 = _received.get("Jonas Sulzbach", 0)
         if _jonas_w6 >= 5 and _jonas_w4 <= 1:
-            print(f'<div style="padding:8px 12px; background:#2a1a1a; border:1px solid #E6194B; border-radius:6px; font-size:0.82rem;">')
-            print(f'  🎯 <strong>Ascensão de Jonas:</strong> não participou do Sincerinho da sem 4 (era Líder). Agora é o alvo #1 com {_jonas_w6}× indicações — 3º título consecutivo de Líder o tornou alvo principal.')
-            print(f'</div>')
+            _ihtml += f'<div style="padding:8px 12px; background:#2a1a1a; border:1px solid #E6194B; border-radius:6px; font-size:0.82rem;">'
+            _ihtml += f'🎯 <strong>Ascensão de Jonas:</strong> não participou do Sincerinho da sem 4 (era Líder). Agora é o alvo #1 com {_jonas_w6}× indicações — 3º título consecutivo de Líder o tornou alvo principal.</div>'
 
         # Loyalty stat
         _loyalty_pct = round(len(_kept) / len(_common) * 100) if _common else 0
-        print(f'<div style="padding:8px 12px; background:#1a1a2a; border:1px solid #4363d8; border-radius:6px; font-size:0.82rem;">')
-        print(f'  📊 <strong>Fidelidade:</strong> {len(_kept)}/{len(_common)} ({_loyalty_pct}%) mantiveram o alvo da semana 4 nas suas 3 escolhas.')
-        print(f'</div>')
-
-        print('</div>\n')
+        _ihtml += f'<div style="padding:8px 12px; background:#1a1a2a; border:1px solid #4363d8; border-radius:6px; font-size:0.82rem;">'
+        _ihtml += f'📊 <strong>Fidelidade:</strong> {len(_kept)}/{len(_common)} ({_loyalty_pct}%) mantiveram o alvo da semana 4 nas suas 3 escolhas.</div>'
+        _ihtml += '</div>\n'
+        print(_ihtml)
 
         # Persistent rivalries (expandable)
-        _persistent = [(a, t) for a, t in _kept if t in _pp and a in _pp.get(t, [])]
-        _persistent_one_way = [(a, t) for a, t in _kept if t not in _pp or a not in _pp.get(t, [])]
-
         if _kept:
-            print('<details style="margin-top:0.5rem;">')
-            print('<summary style="cursor:pointer; font-weight:bold; font-size:0.95rem;">🎯 Rivalidades persistentes (sem 4 → sem 6)</summary>\n')
-            print('<table class="table table-striped" style="font-size:0.85rem; margin-top:0.5rem;">')
-            print('<thead><tr><th>Quem</th><th>Alvo (mantido)</th><th>Tipo</th></tr></thead>')
-            print('<tbody>')
+            _rhtml = '<details style="margin-top:0.5rem;">\n'
+            _rhtml += '<summary style="cursor:pointer; font-weight:bold; font-size:0.95rem;">🎯 Rivalidades persistentes (sem 4 → sem 6)</summary>\n\n'
+            _rhtml += '<table class="table table-striped" style="font-size:0.85rem; margin-top:0.5rem;">'
+            _rhtml += '<thead><tr><th>Quem</th><th>Alvo (mantido)</th><th>Tipo</th></tr></thead><tbody>'
             for _a, _t in _kept:
                 _av_a = avatar_img(_a, AVATARS, 28)
                 _av_t = avatar_img(_t, AVATARS, 28)
-                # Check if mutual now
                 _is_mutual = _a in _pp.get(_t, [])
-                # Check if was mutual in week 4
                 _was_mutual = _prev_picks.get(_t) == _a
                 if _is_mutual and _was_mutual:
                     _tipo = '⚔️ Mútua em ambas'
@@ -1795,14 +1784,14 @@ if _pp_data:
                     _tipo = '🔓 Era mútua, agora unilateral'
                 else:
                     _tipo = '→ Unilateral'
-                print(f'<tr><td>{_av_a} {_a}</td><td>{_av_t} {_t}</td><td>{_tipo}</td></tr>')
-            print('</tbody></table>')
-            print('</details>\n')
+                _rhtml += f'<tr><td>{_av_a} {_a}</td><td>{_av_t} {_t}</td><td>{_tipo}</td></tr>'
+            _rhtml += '</tbody></table></details>\n'
+            print(_rhtml)
 
         # Week 4 outcome lesson
-        print('<div style="margin-top:0.5rem; padding:8px 12px; background:#2a2a1a; border:1px solid #ffe119; border-radius:6px; font-size:0.82rem;">')
-        print('  ⚠️ <strong>Lição da semana 4:</strong> Sol Vega escolheu Juliano Floss, mas no Duelo de Risco ambos indicaram <em>Samira</em> em consenso — alguém que nenhum dos dois havia escolhido. A dinâmica pode mudar o alvo original.')
-        print('</div>')
+        print('<div style="margin-top:0.5rem; padding:8px 12px; background:#2a2a1a; border:1px solid #ffe119; border-radius:6px; font-size:0.82rem;">'
+              '⚠️ <strong>Lição da semana 4:</strong> Sol Vega escolheu Juliano Floss, mas no Duelo de Risco ambos indicaram <em>Samira</em> em consenso — alguém que nenhum dos dois havia escolhido. A dinâmica pode mudar o alvo original.'
+              '</div>')
 
 ```
 
