@@ -53,10 +53,12 @@ RELATION_SINC_WEIGHTS = {
     "podio": {1: 0.7, 2: 0.5, 3: 0.3},
     "nao_ganha": -1.0,
     "bomba": -0.8,
+    "paredao_perfeito": -0.3,
 }
 RELATION_SINC_BACKLASH_FACTOR = {
     "nao_ganha": 0.3,
     "bomba": 0.4,
+    "paredao_perfeito": 0.2,
 }
 
 RELATION_VOTE_WEIGHTS = {
@@ -2028,6 +2030,7 @@ def build_sincerao_edges(manual_events):
         "edge_podio_3": 0.2,
         "edge_nao_ganha": -0.8,
         "edge_bomba": -0.6,
+        "edge_paredao_perfeito": -0.3,
     }
 
     weeks = []

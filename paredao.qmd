@@ -1571,6 +1571,113 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 ```
 
 ```{python}
+#| label: paredao-perfeito
+#| output: asis
+
+# ══════════════════════════════════════════════════════════════════════
+# PAREDÃO PERFEITO (SINCERINHO)
+# Shown when week 6 sincerao has paredao_perfeito data.
+# Auto-hides when the data doesn't exist.
+# ══════════════════════════════════════════════════════════════════════
+
+_me_path = Path("data/manual_events.json")
+_pp_data = None
+if _me_path.exists():
+    _me = json.loads(_me_path.read_text(encoding="utf-8"))
+    for _we in _me.get("weekly_events", []):
+        _sinc = _we.get("sincerao")
+        if _sinc and isinstance(_sinc, dict) and "paredao_perfeito" in _sinc:
+            _pp_data = _sinc
+            _pp_week = _we.get("week", "?")
+            break
+
+if _pp_data:
+    _pp = _pp_data["paredao_perfeito"]
+    _stats = _pp_data.get("stats", {})
+    _most = _stats.get("most_nominated", [])
+    _not_nom = _stats.get("not_nominated", [])
+    _mutuals = _stats.get("mutual_nominations", [])
+
+    print("\n## 🗣️ Sincerinho — Paredão Perfeito\n")
+    print(f'<p class="text-muted" style="font-size:0.85rem;">Cada participante montou sua berlinda ideal com 3 nomes. Dados usados na dinâmica do Big Fone.</p>\n')
+
+    # ── Nomination ranking ──
+    from collections import Counter as _PPCounter, defaultdict as _PPDefaultdict
+    _received = _PPCounter()
+    _received_from = _PPDefaultdict(list)
+    for _actor, _targets in _pp.items():
+        for _t in _targets:
+            _received[_t] += 1
+            _received_from[_t].append(_actor)
+
+    # Bar chart
+    _sorted_names = sorted(_received.keys(), key=lambda x: -_received[x])
+    _max_count = max(_received.values()) if _received else 1
+
+    print('<h4 style="margin-top:1.2rem;">📊 Indicações Recebidas</h4>\n')
+    print('<div style="max-width:700px;">')
+    for _name in _sorted_names:
+        _count = _received[_name]
+        _pct = (_count / _max_count) * 100
+        _color = "#E6194B" if _count >= 6 else "#FF8C00" if _count >= 3 else "#3CB44B"
+        _av = avatar_img(_name, AVATARS, 32)
+        print(f'<div style="display:flex; align-items:center; margin-bottom:4px;">')
+        print(f'  <div style="width:180px; display:flex; align-items:center; gap:6px;">{_av} <span style="font-size:0.85rem;">{_name}</span></div>')
+        print(f'  <div style="flex:1; background:#333; border-radius:4px; height:22px; position:relative;">')
+        print(f'    <div style="width:{_pct}%; background:{_color}; height:100%; border-radius:4px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px;">')
+        print(f'      <span style="color:#fff; font-weight:bold; font-size:0.8rem;">{_count}×</span>')
+        print(f'    </div>')
+        print(f'  </div>')
+        print(f'</div>')
+
+    # Not nominated
+    if _not_nom:
+        _not_html = " ".join([f'{avatar_img(n, AVATARS, 32)} {n}' for n in _not_nom])
+        print(f'<div style="margin-top:8px; padding:6px 10px; background:#1a3a1a; border:1px solid #3CB44B; border-radius:6px; font-size:0.85rem;">')
+        print(f'  🛡️ <strong>Não indicados por ninguém:</strong> {_not_html}')
+        print(f'</div>')
+    print('</div>\n')
+
+    # ── Who picked whom (expandable) ──
+    print('<details style="margin-top:1rem;">')
+    print('<summary style="cursor:pointer; font-weight:bold; font-size:1rem;">🔍 Quem indicou quem (detalhes)</summary>\n')
+    print('<table class="table table-striped" style="font-size:0.9rem; margin-top:0.5rem;">')
+    print('<thead><tr><th>Participante</th><th>Paredão Perfeito (3 nomes)</th></tr></thead>')
+    print('<tbody>')
+    for _actor in sorted(_pp.keys()):
+        _targets = _pp[_actor]
+        _targets_html = " ".join([f'{avatar_img(t, AVATARS, 32)}' for t in _targets])
+        _av = avatar_img(_actor, AVATARS, 32)
+        print(f'<tr><td>{_av} {_actor}</td><td>{_targets_html} <span style="font-size:0.8rem; color:#aaa;">{", ".join(_targets)}</span></td></tr>')
+    print('</tbody></table>')
+    print('</details>\n')
+
+    # ── Mutual nominations ──
+    if _mutuals:
+        print('<h4 style="margin-top:1.2rem;">⚔️ Indicações Mútuas</h4>')
+        print(f'<p class="text-muted" style="font-size:0.82rem;">Pares que querem o outro no paredão — hostilidade recíproca declarada.</p>')
+        print('<div style="display:flex; flex-wrap:wrap; gap:8px;">')
+        for _pair in _mutuals:
+            _a, _b = _pair[0], _pair[1]
+            print(f'<div style="background:#2a1a1a; border:1px solid #E6194B; border-radius:8px; padding:4px 10px; font-size:0.82rem;">')
+            print(f'  {avatar_img(_a, AVATARS, 26)} ↔ {avatar_img(_b, AVATARS, 26)}')
+            print(f'</div>')
+        print('</div>\n')
+
+    # ── Faction insight ──
+    _jonas_nom = set(_received_from.get('Jonas Sulzbach', []))
+    _alberto_nom = set(_received_from.get('Alberto Cowboy', []))
+    _both = _jonas_nom & _alberto_nom
+    if len(_both) >= 5:
+        _both_html = " ".join([avatar_img(n, AVATARS, 28) for n in sorted(_both)])
+        print('<div style="margin-top:1rem; padding:10px 14px; background:#1a1a2a; border:1px solid #4363d8; border-radius:8px;">')
+        print(f'  <strong>🏛️ Bloco Anti-Jonas/Alberto</strong> — {len(_both)} pessoas nomearam ambos:<br/>')
+        print(f'  <div style="margin-top:6px;">{_both_html}</div>')
+        print(f'</div>\n')
+
+```
+
+```{python}
 #| label: paredao-prediction
 #| output: asis
 

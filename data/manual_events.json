@@ -1544,7 +1544,114 @@
           "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-troca-r-10-mil-por-informacao-privilegiada-no-bbb-26-entenda.ghtml"
         ]
       },
-      "notes": "Semana 6 começa após eliminação do 5º Paredão. Ganha-Ganha: Maxiane vetou Jonas, Jordana escolheu informação privilegiada + R$ 10 mil. Info: alguém poderá usar estalecas para comprar um poder nesta semana. Máquina do Poder (qua): Alberto Cowboy comprou o Colar do Poder (veto na Bate e Volta). Jonas (4 compras), Marciele (2), Leandro (2), Maxiane (1) — todos itens sem poder.",
+      "sincerao": {
+        "date": "2026-02-20",
+        "format": "Paredão Perfeito — cada participante indica 3 pessoas para a berlinda ideal",
+        "scoring_mode": "full",
+        "participacao": [
+          "Marciele", "Samira", "Jordana", "Milena", "Alberto Cowboy",
+          "Leandro", "Jonas Sulzbach", "Ana Paula Renault", "Maxiane",
+          "Chaiany", "Babu Santana", "Breno", "Juliano Floss", "Gabriela", "Solange Couto"
+        ],
+        "protagonistas": [],
+        "paredao_perfeito": {
+          "Marciele": ["Samira", "Juliano Floss", "Milena"],
+          "Samira": ["Jordana", "Marciele", "Maxiane"],
+          "Jordana": ["Milena", "Chaiany", "Samira"],
+          "Milena": ["Alberto Cowboy", "Jordana", "Jonas Sulzbach"],
+          "Alberto Cowboy": ["Leandro", "Milena", "Ana Paula Renault"],
+          "Jonas Sulzbach": ["Milena", "Ana Paula Renault", "Leandro"],
+          "Ana Paula Renault": ["Jonas Sulzbach", "Alberto Cowboy", "Maxiane"],
+          "Maxiane": ["Ana Paula Renault", "Milena", "Samira"],
+          "Chaiany": ["Marciele", "Maxiane", "Jordana"],
+          "Babu Santana": ["Jonas Sulzbach", "Alberto Cowboy", "Jordana"],
+          "Breno": ["Alberto Cowboy", "Jonas Sulzbach", "Jordana"],
+          "Juliano Floss": ["Marciele", "Alberto Cowboy", "Jonas Sulzbach"],
+          "Gabriela": ["Milena", "Babu Santana", "Solange Couto"],
+          "Solange Couto": ["Jonas Sulzbach", "Jordana", "Alberto Cowboy"],
+          "Leandro": ["Jonas Sulzbach", "Alberto Cowboy", "Jordana"]
+        },
+        "stats": {
+          "most_nominated": [
+            {"name": "Jonas Sulzbach", "count": 7},
+            {"name": "Alberto Cowboy", "count": 7},
+            {"name": "Jordana", "count": 7},
+            {"name": "Milena", "count": 6},
+            {"name": "Marciele", "count": 3},
+            {"name": "Samira", "count": 3},
+            {"name": "Maxiane", "count": 3},
+            {"name": "Ana Paula Renault", "count": 3}
+          ],
+          "not_nominated": ["Breno", "Gabriela"],
+          "mutual_nominations": [
+            ["Jonas Sulzbach", "Milena"],
+            ["Jonas Sulzbach", "Ana Paula Renault"],
+            ["Jonas Sulzbach", "Leandro"],
+            ["Alberto Cowboy", "Milena"],
+            ["Alberto Cowboy", "Leandro"],
+            ["Alberto Cowboy", "Ana Paula Renault"],
+            ["Jordana", "Milena"],
+            ["Jordana", "Samira"],
+            ["Jordana", "Chaiany"],
+            ["Marciele", "Samira"],
+            ["Marciele", "Juliano Floss"],
+            ["Maxiane", "Samira"]
+          ]
+        },
+        "edges": [
+          {"actor": "Marciele", "target": "Samira", "type": "paredao_perfeito"},
+          {"actor": "Marciele", "target": "Juliano Floss", "type": "paredao_perfeito"},
+          {"actor": "Marciele", "target": "Milena", "type": "paredao_perfeito"},
+          {"actor": "Samira", "target": "Jordana", "type": "paredao_perfeito"},
+          {"actor": "Samira", "target": "Marciele", "type": "paredao_perfeito"},
+          {"actor": "Samira", "target": "Maxiane", "type": "paredao_perfeito"},
+          {"actor": "Jordana", "target": "Milena", "type": "paredao_perfeito"},
+          {"actor": "Jordana", "target": "Chaiany", "type": "paredao_perfeito"},
+          {"actor": "Jordana", "target": "Samira", "type": "paredao_perfeito"},
+          {"actor": "Milena", "target": "Alberto Cowboy", "type": "paredao_perfeito"},
+          {"actor": "Milena", "target": "Jordana", "type": "paredao_perfeito"},
+          {"actor": "Milena", "target": "Jonas Sulzbach", "type": "paredao_perfeito"},
+          {"actor": "Alberto Cowboy", "target": "Leandro", "type": "paredao_perfeito"},
+          {"actor": "Alberto Cowboy", "target": "Milena", "type": "paredao_perfeito"},
+          {"actor": "Alberto Cowboy", "target": "Ana Paula Renault", "type": "paredao_perfeito"},
+          {"actor": "Leandro", "target": "Jonas Sulzbach", "type": "paredao_perfeito"},
+          {"actor": "Leandro", "target": "Alberto Cowboy", "type": "paredao_perfeito"},
+          {"actor": "Leandro", "target": "Jordana", "type": "paredao_perfeito"},
+          {"actor": "Jonas Sulzbach", "target": "Milena", "type": "paredao_perfeito"},
+          {"actor": "Jonas Sulzbach", "target": "Ana Paula Renault", "type": "paredao_perfeito"},
+          {"actor": "Jonas Sulzbach", "target": "Leandro", "type": "paredao_perfeito"},
+          {"actor": "Ana Paula Renault", "target": "Jonas Sulzbach", "type": "paredao_perfeito"},
+          {"actor": "Ana Paula Renault", "target": "Alberto Cowboy", "type": "paredao_perfeito"},
+          {"actor": "Ana Paula Renault", "target": "Maxiane", "type": "paredao_perfeito"},
+          {"actor": "Maxiane", "target": "Ana Paula Renault", "type": "paredao_perfeito"},
+          {"actor": "Maxiane", "target": "Milena", "type": "paredao_perfeito"},
+          {"actor": "Maxiane", "target": "Samira", "type": "paredao_perfeito"},
+          {"actor": "Chaiany", "target": "Marciele", "type": "paredao_perfeito"},
+          {"actor": "Chaiany", "target": "Maxiane", "type": "paredao_perfeito"},
+          {"actor": "Chaiany", "target": "Jordana", "type": "paredao_perfeito"},
+          {"actor": "Babu Santana", "target": "Jonas Sulzbach", "type": "paredao_perfeito"},
+          {"actor": "Babu Santana", "target": "Alberto Cowboy", "type": "paredao_perfeito"},
+          {"actor": "Babu Santana", "target": "Jordana", "type": "paredao_perfeito"},
+          {"actor": "Breno", "target": "Alberto Cowboy", "type": "paredao_perfeito"},
+          {"actor": "Breno", "target": "Jonas Sulzbach", "type": "paredao_perfeito"},
+          {"actor": "Breno", "target": "Jordana", "type": "paredao_perfeito"},
+          {"actor": "Juliano Floss", "target": "Marciele", "type": "paredao_perfeito"},
+          {"actor": "Juliano Floss", "target": "Alberto Cowboy", "type": "paredao_perfeito"},
+          {"actor": "Juliano Floss", "target": "Jonas Sulzbach", "type": "paredao_perfeito"},
+          {"actor": "Gabriela", "target": "Milena", "type": "paredao_perfeito"},
+          {"actor": "Gabriela", "target": "Babu Santana", "type": "paredao_perfeito"},
+          {"actor": "Gabriela", "target": "Solange Couto", "type": "paredao_perfeito"},
+          {"actor": "Solange Couto", "target": "Jonas Sulzbach", "type": "paredao_perfeito"},
+          {"actor": "Solange Couto", "target": "Jordana", "type": "paredao_perfeito"},
+          {"actor": "Solange Couto", "target": "Alberto Cowboy", "type": "paredao_perfeito"}
+        ],
+        "edges_notes": "Cada participante indicou 3 pessoas para seu 'Paredão Perfeito'. Cada indicação gera 1 edge negativo (paredao_perfeito, peso -0.3). Jonas, Alberto e Jordana lideram com 7 indicações cada. Breno e Gabriela não foram citados.",
+        "notes": "Paredão Perfeito (Sincerinho) ao vivo na sexta-feira. Todos os 15 participantes ativos montaram seu paredão ideal de 3 pessoas. Resultados usados na dinâmica do Big Fone (sábado): quem atender escolhe do seu Paredão Perfeito para o Duelo de Risco. Jonas/Alberto/Jordana formam a 'tríplice coroa' com 7 indicações cada — e os 7 indicadores dos dois primeiros são exatamente as mesmas pessoas.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-sincerinho-paredao-perfeito.ghtml"
+        ]
+      },
+      "notes": "Semana 6 começa após eliminação do 5º Paredão. Ganha-Ganha: Maxiane vetou Jonas, Jordana escolheu informação privilegiada + R$ 10 mil. Info: alguém poderá usar estalecas para comprar um poder nesta semana. Máquina do Poder (qua): Alberto Cowboy comprou o Colar do Poder (veto na Bate e Volta). Jonas (4 compras), Marciele (2), Leandro (2), Maxiane (1) — todos itens sem poder. Sincerinho/Paredão Perfeito (sex): cada um escolheu 3 para a berlinda ideal. Jonas, Alberto Cowboy e Jordana: 7 indicações cada (tríplice coroa). Breno e Gabriela: 0 indicações.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-troca-r-10-mil-por-informacao-privilegiada-no-bbb-26-entenda.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/participantes-do-bbb-26-se-surpreendem-com-maquina-do-poder-no-gramado.ghtml",
@@ -1659,6 +1766,20 @@
       ],
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bloco-do-paredao-bbb-26-confira-as-consequencias-da-dinamica.ghtml"
+      ]
+    },
+    {
+      "date": "2026-02-20",
+      "type": "dinamica",
+      "name": "Sincerinho — Paredão Perfeito (Duelo de Risco — Fase 1)",
+      "resultado": "Cada participante montou ao vivo seu 'Paredão Perfeito' com 3 nomes. Mais indicados: Jonas Sulzbach (7×), Alberto Cowboy (7×), Jordana (7×), Milena (6×). Não indicados: Breno e Gabriela (0×). 12 pares de indicação mútua. Os 7 indicadores de Jonas e Alberto são exatamente as mesmas pessoas (Milena, Leandro, Ana Paula, Babu, Breno, Juliano, Solange). Resultados usados na dinâmica do Big Fone (sáb).",
+      "participants_affected": [
+        "Jonas Sulzbach", "Alberto Cowboy", "Jordana", "Milena",
+        "Marciele", "Samira", "Maxiane", "Ana Paula Renault",
+        "Leandro", "Juliano Floss", "Chaiany", "Babu Santana", "Solange Couto"
+      ],
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-sincerinho-paredao-perfeito.ghtml"
       ]
     },
     {
