@@ -1,6 +1,6 @@
 {
   "_description": "Competition results and placements for all BBB26 provas.",
-  "_last_updated": "2026-02-20",
+  "_last_updated": "2026-02-21",
   "provas": [
     {
       "numero": 1,
@@ -1358,7 +1358,39 @@
         {
           "fase": 1,
           "tipo": "eliminacao_circulo",
-          "nota": "Participantes em círculo de mãos dadas. Jonas sorteava um nome da urna. O sorteado escolhia alguém para eliminar, e o eliminado levava consigo um vizinho (esquerdo ou direito). Imagens dos eliminados eram incineradas. Repetiu até restarem 4.",
+          "nota": "Participantes em círculo de mãos dadas. Jonas sorteava um nome da urna. O sorteado escolhia alguém para eliminar, e o eliminado levava consigo um vizinho (esquerdo ou direito). Imagens dos eliminados eram incineradas. 5 rodadas até restarem 4.",
+          "rodadas": [
+            {
+              "rodada": 1,
+              "sorteado": "Juliano Floss",
+              "eliminou": "Alberto Cowboy",
+              "levou_vizinho": "Gabriela"
+            },
+            {
+              "rodada": 2,
+              "sorteado": "Leandro",
+              "eliminou": "Maxiane",
+              "levou_vizinho": "Jordana"
+            },
+            {
+              "rodada": 3,
+              "sorteado": "Chaiany",
+              "eliminou": "Marciele",
+              "levou_vizinho": "Leandro"
+            },
+            {
+              "rodada": 4,
+              "sorteado": "Babu Santana",
+              "eliminou": "Ana Paula Renault",
+              "levou_vizinho": "Juliano Floss"
+            },
+            {
+              "rodada": 5,
+              "sorteado": "Breno",
+              "eliminou": "Babu Santana",
+              "levou_vizinho": "Solange Couto"
+            }
+          ],
           "classificacao": [
             {
               "pos": 1,
@@ -1379,13 +1411,63 @@
               "pos": 4,
               "nome": "Samira",
               "nota": "Avançou à final"
+            },
+            {
+              "pos": 5,
+              "nome": "Babu Santana",
+              "nota": "Eliminado rd 5 (por Breno)"
+            },
+            {
+              "pos": 5,
+              "nome": "Solange Couto",
+              "nota": "Vizinha de Babu, levada junto rd 5"
+            },
+            {
+              "pos": 7,
+              "nome": "Ana Paula Renault",
+              "nota": "Eliminada rd 4 (por Babu)"
+            },
+            {
+              "pos": 7,
+              "nome": "Juliano Floss",
+              "nota": "Vizinho de Ana Paula, levado junto rd 4"
+            },
+            {
+              "pos": 9,
+              "nome": "Marciele",
+              "nota": "Eliminada rd 3 (por Chaiany)"
+            },
+            {
+              "pos": 9,
+              "nome": "Leandro",
+              "nota": "Vizinho de Marciele, levado junto rd 3"
+            },
+            {
+              "pos": 11,
+              "nome": "Maxiane",
+              "nota": "Eliminada rd 2 (por Leandro)"
+            },
+            {
+              "pos": 11,
+              "nome": "Jordana",
+              "nota": "Vizinha de Maxiane, levada junto rd 2"
+            },
+            {
+              "pos": 13,
+              "nome": "Alberto Cowboy",
+              "nota": "Eliminado rd 1 (por Juliano)"
+            },
+            {
+              "pos": 13,
+              "nome": "Gabriela",
+              "nota": "Vizinha de Cowboy, levada junto rd 1"
             }
           ]
         },
         {
           "fase": 2,
           "tipo": "quiz",
-          "nota": "Quiz com 8 perguntas sobre os participantes. Cada voto = 1 ponto para o votado. Não podia votar em si. Menor pontuação vence (menos votado = menos alvo). Chaiany fez menos pontos.",
+          "nota": "Quiz com 8 perguntas sobre os participantes. Cada voto = 1 ponto para o votado. Não pode votar em si. Menor pontuação vence (menos votado = menos alvo).",
           "perguntas": [
             "Quem vai mais longe no BBB?",
             "Quem te incomoda mais?",
@@ -1400,7 +1482,23 @@
             {
               "pos": 1,
               "nome": "Chaiany",
+              "pontos": 4,
               "nota": "Menor pontuação — Anjo da semana"
+            },
+            {
+              "pos": 2,
+              "nome": "Samira",
+              "pontos": 6
+            },
+            {
+              "pos": 3,
+              "nome": "Breno",
+              "pontos": 10
+            },
+            {
+              "pos": 4,
+              "nome": "Milena",
+              "pontos": 12
             }
           ]
         }
