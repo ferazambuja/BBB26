@@ -677,7 +677,7 @@
       "semana": 6,
       "total_esperado": 3,
       "formacao": {
-        "resumo": "Quinta (20/02): Sincerinho — Paredão Perfeito (cada participante indicou 3 nomes). Mais indicados: Jonas (7×), Alberto Cowboy (7×), Jordana (7×), Milena (6×). Sábado (21/02): Prova do Anjo — Chaiany venceu (eliminação em círculo + quiz, menor pontuação). Pode imunizar 1 + possível 2ª imunidade. Big Fone + Duelo de Risco (quem atende escolhe 1 de seus 3 alvos do Sincerinho — 1 sai emparedado, 1 sai imune). Domingo: Presente do Anjo + Líder (Jonas) indica + casa vota + contragolpe do emparedado pelo Duelo. Alberto Cowboy usa Colar do Poder para vetar 1 da Bate e Volta. Paredão Triplo.",
+        "resumo": "Quinta (20/02): Sincerinho — Paredão Perfeito (3 nomes cada). Mais indicados: Jonas (7×), Alberto Cowboy (7×), Jordana (7×), Milena (6×). Sábado (21/02): Prova do Anjo — Chaiany venceu. Jordana levou Monstro. Big Fone azul (51,56%): Chaiany atendeu, escolheu Jordana para Duelo de Risco. Duelo de Risco: Chaiany emparedada, Jordana imune. Domingo: Presente do Anjo (Chaiany imuniza aliado mesmo estando no Paredão) + Líder Jonas indica + casa vota + contragolpe de Chaiany. Alberto Cowboy usa Colar do Poder (veta 1 da Bate e Volta). Paredão Triplo.",
         "lider": "Jonas Sulzbach",
         "indicado_lider": null,
         "anjo": "Chaiany",
@@ -685,13 +685,27 @@
         "contragolpe": null,
         "bate_volta": null,
         "anjo_autoimune": false,
-        "anjo_escolha": "Pode imunizar 1 aliado + possível 2ª imunidade (abrindo mão do vídeo da família)"
+        "anjo_escolha": "Pode imunizar 1 aliado + possível 2ª imunidade (abrindo mão do vídeo da família)",
+        "duelo_de_risco": {
+          "big_fone_atendeu": "Chaiany",
+          "big_fone_tipo": "azul (51,56% votação gshow)",
+          "escolhida": "Jordana",
+          "emparedado": "Chaiany",
+          "imune": "Jordana"
+        }
       },
-      "indicados_finais": [],
+      "indicados_finais": [
+        {
+          "nome": "Chaiany",
+          "grupo": "Pipoca",
+          "como": "Duelo de Risco (atendeu Big Fone, escolheu Jordana, ficou com Paredão)"
+        }
+      ],
       "votos_casa": {},
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-jonas-sulzbach-vence-a-6a-disputa.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-chaiany-vence-a-sexta-prova.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-chaiany-vence-a-sexta-prova.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/duelo-de-risco-bbb-26-dinamica-influencia-a-formacao-do-6o-paredao.ghtml"
       ]
     }
   ]
