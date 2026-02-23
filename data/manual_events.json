@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-02-11",
+  "_last_updated": "2026-02-22",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -1996,7 +1996,7 @@
           "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/duelo-de-risco-bbb-26-sincerinho-paredao-perfeito.ghtml"
         ]
       },
-      "notes": "Semana 6 começa após eliminação do 5º Paredão. Ganha-Ganha: Maxiane vetou Jonas, Jordana escolheu informação privilegiada + R$ 10 mil. Máquina do Poder (qua): Alberto Cowboy comprou o Colar do Poder (veto na Bate e Volta). Sincerinho/Paredão Perfeito (sex): cada um escolheu 3 para a berlinda ideal. Jonas, Alberto Cowboy e Jordana: 7 indicações cada. Breno e Gabriela: 0. Prova do Anjo (sáb): Chaiany venceu (quiz, menor pontuação). Jordana levou Monstro. Big Fone (sáb): azul venceu (51,56%), Chaiany atendeu. Escolheu Jordana para Duelo de Risco. Duelo de Risco: Chaiany emparedada, Jordana imune. Anjo no Paredão — situação inédita.",
+      "notes": "Semana 6. Ganha-Ganha: Maxiane vetou Jonas, Jordana escolheu informação privilegiada + R$ 10 mil. Máquina do Poder (qua): Alberto comprou Colar do Poder. Sincerinho/Paredão Perfeito (sex): Jonas, Alberto e Jordana 7× cada. Prova do Anjo (sáb): Chaiany venceu. Big Fone azul (51,56%): Chaiany atendeu, escolheu Jordana → Duelo de Risco: Chaiany emparedada, Jordana imune. Formação (dom): Presente do Anjo → Chaiany imunizou Gabriela. Líder Jonas indicou Milena. Casa: Alberto 8 votos, Floss 5, Maxiane 1. Contragolpe Chaiany → Maxiane. Alberto vetou Chaiany da Bate e Volta (Colar do Poder). Bate e Volta: Alberto vs Maxiane → Alberto venceu. 6º Paredão Triplo: Chaiany, Maxiane, Milena.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-troca-r-10-mil-por-informacao-privilegiada-no-bbb-26-entenda.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/participantes-do-bbb-26-se-surpreendem-com-maquina-do-poder-no-gramado.ghtml",
@@ -3636,6 +3636,76 @@
       ],
       "origem": "big_fone",
       "impacto": "negativo"
+    },
+    {
+      "date": "2026-02-22",
+      "week": 6,
+      "type": "imunidade",
+      "actor": "Chaiany",
+      "target": "Gabriela",
+      "source": "Anjo",
+      "detail": "Chaiany (Anjo) imunizou Gabriela com o Presente do Anjo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "positivo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-02-22",
+      "week": 6,
+      "type": "indicacao",
+      "actor": "Jonas Sulzbach",
+      "target": "Milena",
+      "source": "Líder",
+      "detail": "Indicação do Líder ao Paredão. Justificativa: 'Porque ela já deixou declarado também que eu sou prioridade para ela'",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-02-22",
+      "week": 6,
+      "type": "contragolpe",
+      "actor": "Chaiany",
+      "target": "Maxiane",
+      "source": "Contragolpe",
+      "detail": "Chaiany (emparedada pelo Duelo de Risco) usou o contragolpe e indicou Maxiane ao Paredão",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-02-22",
+      "week": 6,
+      "type": "veto_prova",
+      "actor": "Alberto Cowboy",
+      "target": "Chaiany",
+      "source": "Colar do Poder (Máquina do Poder)",
+      "detail": "Alberto Cowboy usou o Colar do Poder (comprado na Máquina do Poder) para vetar Chaiany da Prova Bate e Volta. Chaiany vai direto ao Paredão sem chance de escapar.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
+    },
+    {
+      "date": "2026-02-22",
+      "week": 6,
+      "type": "bate_volta",
+      "actor": "Alberto Cowboy",
+      "target": "Maxiane",
+      "source": "Bate e Volta",
+      "detail": "Alberto Cowboy venceu a Prova Bate e Volta contra Maxiane e se salvou do Paredão. Maxiane permanece emparedada.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ],
+      "impacto": "negativo",
+      "origem": "manual"
     }
   ],
   "cartola_points_log": [],
@@ -3732,32 +3802,38 @@
       "week": 6,
       "category": "anjo",
       "emoji": "😇",
-      "title": "Presente do Anjo",
-      "detail": "Chaiany (Anjo) abre o presente e imuniza 1 participante. Se escolher abrir mão do vídeo da família, ganha +1 imunidade extra para dar a outro participante (total de 2 imunizados).",
-      "time": "Ao Vivo"
+      "title": "Presente do Anjo — Chaiany imuniza Gabriela",
+      "detail": "Chaiany (Anjo, mesmo estando no Paredão pelo Duelo de Risco) abriu o Presente do Anjo e imunizou Gabriela.",
+      "time": "Ao Vivo",
+      "participants": ["Chaiany", "Gabriela"],
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ]
     },
     {
       "date": "2026-02-22",
       "week": 6,
       "category": "paredao_formacao",
       "emoji": "🔥",
-      "title": "Formação do 6º Paredão (Paredão Triplo)",
-      "detail": "Imunidades: 1 pelo Duelo de Risco + 1 pelo Anjo + possível +1 extra (se abrir mão do vídeo da família). Emparedados: 1 pelo Duelo de Risco + indicado do Líder (Jonas) + mais votado pela Casa + contragolpe do emparedado pelo Duelo. Alberto Cowboy (Colar do Poder) veta 1 da Bate e Volta — vetado vai direto pro Paredão. 2 jogam Bate e Volta, 1 se salva → Paredão triplo.",
-      "time": "Ao Vivo"
+      "title": "Formação do 6º Paredão — Chaiany, Maxiane, Milena",
+      "detail": "Chaiany (Duelo de Risco + vetada da Bate e Volta por Alberto). Líder Jonas indicou Milena ('ela declarou que eu sou prioridade'). Casa votou: Alberto Cowboy 8 votos, Juliano Floss 5, Maxiane 1. Contragolpe de Chaiany: Maxiane. Alberto (Colar do Poder) vetou Chaiany da Bate e Volta. Bate e Volta: Alberto vs Maxiane → Alberto venceu. Paredão Triplo: Chaiany, Maxiane, Milena.",
+      "time": "Ao Vivo",
+      "participants": ["Chaiany", "Maxiane", "Milena"],
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ]
     },
     {
       "date": "2026-02-22",
       "week": 6,
       "category": "dinamica",
       "emoji": "🛟",
-      "title": "Alberto Cowboy usa Colar do Poder",
-      "detail": "Alberto Cowboy pode vetar alguém da Prova Bate e Volta durante a formação do 6º Paredão.",
+      "title": "Alberto Cowboy usa Colar do Poder — veta Chaiany",
+      "detail": "Alberto Cowboy usou o Colar do Poder (comprado na Máquina do Poder) para vetar Chaiany da Prova Bate e Volta. Chaiany, já emparedada pelo Duelo de Risco, não teve chance de se salvar.",
       "time": "Ao Vivo",
-      "participants": [
-        "Alberto Cowboy"
-      ],
+      "participants": ["Alberto Cowboy", "Chaiany"],
       "fontes": [
-        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/participantes-do-bbb-26-se-surpreendem-com-maquina-do-poder-no-gramado.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
       ]
     },
     {
@@ -3765,9 +3841,13 @@
       "week": 6,
       "category": "bate_volta",
       "emoji": "🔄",
-      "title": "Bate e Volta",
-      "detail": "2 emparedados disputam a Prova Bate e Volta. 1 se salva. Alberto Cowboy (Colar do Poder) veta 1 participante da prova.",
-      "time": "Ao Vivo"
+      "title": "Bate e Volta — Alberto Cowboy vence",
+      "detail": "Alberto Cowboy venceu a Prova Bate e Volta contra Maxiane e se salvou do Paredão. Chaiany vetada (Colar do Poder de Alberto) não participou.",
+      "time": "Ao Vivo",
+      "participants": ["Alberto Cowboy", "Maxiane"],
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
+      ]
     },
     {
       "date": "2026-02-25",

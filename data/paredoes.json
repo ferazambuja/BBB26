@@ -1,6 +1,6 @@
 {
   "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
-  "_last_updated": "2026-02-21",
+  "_last_updated": "2026-02-22",
   "paredoes": [
     {
       "numero": 1,
@@ -677,15 +677,30 @@
       "semana": 6,
       "total_esperado": 3,
       "formacao": {
-        "resumo": "Quinta (20/02): Sincerinho — Paredão Perfeito (3 nomes cada). Mais indicados: Jonas (7×), Alberto Cowboy (7×), Jordana (7×), Milena (6×). Sábado (21/02): Prova do Anjo — Chaiany venceu. Jordana levou Monstro. Big Fone azul (51,56%): Chaiany atendeu, escolheu Jordana para Duelo de Risco. Duelo de Risco: Chaiany emparedada, Jordana imune. Domingo: Presente do Anjo (Chaiany imuniza aliado mesmo estando no Paredão) + Líder Jonas indica + casa vota + contragolpe de Chaiany. Alberto Cowboy usa Colar do Poder (veta 1 da Bate e Volta). Paredão Triplo.",
+        "resumo": "Sex (20/02): Sincerinho — Paredão Perfeito. Sáb (21/02): Chaiany venceu Prova do Anjo, Jordana Monstro. Big Fone azul (51,56%): Chaiany atendeu, escolheu Jordana → Duelo de Risco: Chaiany emparedada, Jordana imune. Dom (22/02): Presente do Anjo — Chaiany imunizou Gabriela. Líder Jonas indicou Milena ('ela já declarou que eu sou prioridade'). Casa votou: Alberto Cowboy mais votado (8 votos). Contragolpe de Chaiany: indicou Maxiane. Alberto Cowboy usou Colar do Poder e vetou Chaiany da Bate e Volta. Bate e Volta: Alberto Cowboy vs Maxiane → Alberto venceu, se salvou. Paredão Triplo: Chaiany, Maxiane, Milena.",
         "lider": "Jonas Sulzbach",
-        "indicado_lider": null,
+        "indicado_lider": "Milena",
+        "motivo_lider": "Porque ela já deixou declarado também que eu sou prioridade para ela",
         "anjo": "Chaiany",
-        "imunizado": null,
-        "contragolpe": null,
-        "bate_volta": null,
+        "imunizado": {
+          "por": "Chaiany",
+          "quem": "Gabriela"
+        },
+        "contragolpe": {
+          "por": "Chaiany",
+          "quem": "Maxiane"
+        },
+        "bate_volta": {
+          "participantes": ["Alberto Cowboy", "Maxiane"],
+          "vencedor": "Alberto Cowboy",
+          "vetado": {
+            "por": "Alberto Cowboy",
+            "quem": "Chaiany",
+            "poder": "Colar do Poder (Máquina do Poder)"
+          }
+        },
         "anjo_autoimune": false,
-        "anjo_escolha": "Pode imunizar 1 aliado + possível 2ª imunidade (abrindo mão do vídeo da família)",
+        "anjo_escolha": "Imunizou Gabriela",
         "duelo_de_risco": {
           "big_fone_atendeu": "Chaiany",
           "big_fone_tipo": "azul (51,56% votação gshow)",
@@ -698,14 +713,45 @@
         {
           "nome": "Chaiany",
           "grupo": "Pipoca",
-          "como": "Duelo de Risco (atendeu Big Fone, escolheu Jordana, ficou com Paredão)"
+          "como": "Duelo de Risco (atendeu Big Fone, escolheu Jordana, ficou com Paredão) + vetada da Bate e Volta (Colar do Poder de Alberto)"
+        },
+        {
+          "nome": "Maxiane",
+          "grupo": "Pipoca",
+          "como": "Contragolpe (indicada por Chaiany) + perdeu Bate e Volta"
+        },
+        {
+          "nome": "Milena",
+          "grupo": "Pipoca",
+          "como": "Líder (indicada por Jonas Sulzbach)"
         }
       ],
-      "votos_casa": {},
+      "votos_casa": {
+        "Alberto Cowboy": "Juliano Floss",
+        "Ana Paula Renault": "Alberto Cowboy",
+        "Marciele": "Juliano Floss",
+        "Milena": "Alberto Cowboy",
+        "Maxiane": "Juliano Floss",
+        "Juliano Floss": "Alberto Cowboy",
+        "Jordana": "Juliano Floss",
+        "Samira": "Alberto Cowboy",
+        "Breno": "Alberto Cowboy",
+        "Gabriela": "Juliano Floss",
+        "Leandro": "Alberto Cowboy",
+        "Solange Couto": "Alberto Cowboy",
+        "Chaiany": "Maxiane",
+        "Babu Santana": "Alberto Cowboy"
+      },
+      "votos_resumo": {
+        "Alberto Cowboy": 8,
+        "Juliano Floss": 5,
+        "Maxiane": 1
+      },
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-jonas-sulzbach-vence-a-6a-disputa.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-chaiany-vence-a-sexta-prova.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/duelo-de-risco-bbb-26-dinamica-influencia-a-formacao-do-6o-paredao.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/duelo-de-risco-bbb-26-dinamica-influencia-a-formacao-do-6o-paredao.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.ghtml"
       ]
     }
   ]
