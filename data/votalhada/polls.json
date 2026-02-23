@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-02-17",
+  "_last_updated": "2026-02-23",
   "paredoes": [
     {
       "numero": 1,
@@ -691,6 +691,87 @@
         "eliminado": "Marcelo",
         "predicao_correta": true
       }
+    },
+    {
+      "numero": 6,
+      "data_paredao": "2026-02-25",
+      "data_coleta": "2026-02-23T12:00:00-03:00",
+      "participantes": [
+        "Chaiany",
+        "Maxiane",
+        "Milena"
+      ],
+      "consolidado": {
+        "Chaiany": 2.09,
+        "Maxiane": 54.53,
+        "Milena": 43.40,
+        "total_votos": 5945949,
+        "predicao_eliminado": "Maxiane"
+      },
+      "plataformas": {
+        "sites": {
+          "Chaiany": 0.94,
+          "Maxiane": 47.18,
+          "Milena": 51.88,
+          "votos": 2970782,
+          "fontes_count": 14,
+          "nota": "EMPATE TÉCNICO - MARGEM DE ERRO entre Maxiane e Milena nos sites"
+        },
+        "youtube": {
+          "Chaiany": 4.83,
+          "Maxiane": 52.58,
+          "Milena": 42.73,
+          "votos": 786800,
+          "fontes_count": 24
+        },
+        "twitter": {
+          "Chaiany": 4.90,
+          "Maxiane": 68.10,
+          "Milena": 27.01,
+          "votos": 582640,
+          "fontes_count": 22
+        },
+        "instagram": {
+          "Chaiany": 1.85,
+          "Maxiane": 64.15,
+          "Milena": 34.00,
+          "votos": 1605727,
+          "fontes_count": 13
+        }
+      },
+      "serie_temporal": [
+        {
+          "hora": "23/fev 01:00",
+          "Chaiany": 2.65,
+          "Maxiane": 54.06,
+          "Milena": 43.71,
+          "votos": 2261670
+        },
+        {
+          "hora": "23/fev 08:00",
+          "Chaiany": 2.19,
+          "Maxiane": 55.26,
+          "Milena": 42.56,
+          "votos": 4716488
+        },
+        {
+          "hora": "23/fev 12:00",
+          "Chaiany": 2.09,
+          "Maxiane": 54.53,
+          "Milena": 43.40,
+          "votos": 5945949
+        }
+      ],
+      "imagens": [
+        "data/votalhada/2026_02_25/consolidados.png",
+        "data/votalhada/2026_02_25/sites.png",
+        "data/votalhada/2026_02_25/youtube.png",
+        "data/votalhada/2026_02_25/twitter.png",
+        "data/votalhada/2026_02_25/instagram.png"
+      ],
+      "fontes": [
+        "https://votalhada.blogspot.com/"
+      ]
     }
   ]
 }
