@@ -746,6 +746,86 @@ Each participant row has a collapsible `<details>` section showing:
 
 ---
 
+## Modelo Ponderado por Precisão (Precision-Weighted Poll Model)
+
+### Problema: Votalhada pesa por volume, não por precisão
+
+O [Votalhada](https://votalhada.blogspot.com/) agrega enquetes de ~75 fontes em 4 plataformas (Sites, YouTube, Twitter, Instagram). O **Consolidado** pondera implicitamente pelo volume de votos de cada plataforma — quem tem mais votos tem mais influência no resultado final.
+
+Na prática, Sites dominam porque têm os maiores veículos (UOL Splash com ~4,7M votos, CNN, NSC Total). Exemplo do 6º Paredão:
+
+| Plataforma | Votos | Peso implícito (volume) | Fontes |
+|-----------|-------:|:-----------------------:|:------:|
+| 🌐 Sites | 10.389.781 | **70,3%** | 14 |
+| 📷 Instagram | 2.039.478 | 13,8% | 15 |
+| ▶️ YouTube | 1.567.600 | 10,6% | 24 |
+| 𝕏 Twitter | 774.622 | **5,2%** | 22 |
+| **Total** | **14.771.481** | 100% | 75 |
+
+**O problema**: Sites são a plataforma **menos precisa** historicamente (RMSE 18,7 p.p.), mas recebem 70% do peso. Twitter é a **mais precisa** (RMSE 4,8 p.p.) mas só tem 5% de influência.
+
+Isso acontece porque as grandes enquetes de Sites sobre-representam fãs engajados que votam estrategicamente (votação em massa coordenada por fanbases), enquanto Twitter, com público menor e mais opinativo, captura melhor o perfil demográfico de quem vota com CPF (Voto Único = 70% do resultado real).
+
+### Solução: ponderação por precisão histórica (inverso do RMSE²)
+
+O modelo usa o **inverso do RMSE quadrado** de cada plataforma como peso:
+
+```
+peso_i = (1 / RMSE_i²) / Σ(1 / RMSE_j²)
+```
+
+O RMSE (Root Mean Square Error) é calculado sobre todos os pares (previsão, resultado real) de todos os paredões finalizados, para cada plataforma separadamente. Usando RMSE² no denominador (ao invés de RMSE linear), plataformas imprecisas são penalizadas quadraticamente — Sites com RMSE 2× maior que YouTube recebem ~4× menos peso.
+
+### Derivação dos pesos (5 paredões finalizados)
+
+| Plataforma | RMSE (p.p.) | 1/RMSE² | Peso modelo | Peso Votalhada | Mudança |
+|-----------|:-----------:|:-------:|:-----------:|:--------------:|:-------:|
+| 𝕏 Twitter | 4,82 | 0,04304 | **54,6%** | 5,2% | ×10,4 |
+| 📷 Instagram | 6,24 | 0,02568 | **32,6%** | 13,8% | ×2,4 |
+| ▶️ YouTube | 11,73 | 0,00727 | **9,2%** | 10,6% | ×0,9 |
+| 🌐 Sites | 18,70 | 0,00286 | **3,6%** | 70,3% | ×0,1 |
+
+A inversão é dramática: Sites perdem 95% de influência, Twitter ganha 10×.
+
+### Validação: Leave-One-Out Cross-Validation
+
+Com apenas 5 paredões, validação padrão (train/test split) não funciona. Usamos **leave-one-out (LOO)**: para cada paredão, calculamos pesos usando APENAS os outros 4, depois prevemos este. Nenhum paredão é previsto com dados de si mesmo.
+
+Resultados do back-test LOO:
+
+| Paredão | Eliminado | Erro Consolidado | Erro Modelo LOO | Melhoria |
+|:-------:|-----------|:----------------:|:---------------:|:--------:|
+| 1º | Aline Campos | 10,3 p.p. | 6,8 p.p. | +3,5 |
+| 2º | Matheus | 10,3 p.p. | 1,9 p.p. | +8,4 |
+| 3º | Brigido | 16,7 p.p. | 5,7 p.p. | +11,0 |
+| 4º | Sarah Andrade | 7,8 p.p. | 3,7 p.p. | +4,1 |
+| 5º | Marcelo | 3,8 p.p. | 3,3 p.p. | +0,5 |
+| **Média** | | **9,78 p.p.** | **4,29 p.p.** | **−56%** |
+
+Ambos os métodos acertaram o eliminado em 5/5 paredões. A diferença está na **precisão das porcentagens**.
+
+### Por que funciona
+
+1. **Sites sobre-representam fanbases organizadas**: grandes portais atraem votação em massa coordenada, inflando certos participantes além do real.
+2. **Twitter captura o Voto Único**: o perfil demográfico do Twitter (mais opinativo, menos coordenado) se aproxima do eleitor que vota com CPF, que vale 70% do resultado final no BBB 26.
+3. **Instagram complementa**: com público engajado mas diverso, tem precisão intermediária.
+4. **YouTube é volátil**: enquetes em vídeo dependem do engajamento do canal, variando muito entre paredões.
+
+### Limitações
+
+- **N pequeno**: 5 paredões é suficiente para LOO mas não para intervalos de confiança robustos. Os pesos vão se estabilizar com mais dados.
+- **Não-estacionário**: a composição de fontes de cada plataforma pode mudar entre paredões (uma nova enquete de Site grande pode alterar o perfil).
+- **Sem modelagem de tendência**: o modelo não usa a série temporal (variação intra-paredão). Usa apenas o snapshot final.
+- **Os pesos são recalculados a cada paredão finalizado** — não são fixos.
+
+### Implementação
+
+- **Funções**: `calculate_precision_weights()`, `predict_precision_weighted()`, `backtest_precision_model()` em `scripts/data_utils.py`
+- **Páginas**: `paredao.qmd` (previsão em andamento + resultado finalizado), `paredoes.qmd` (resumo de precisão + back-test + tabs por paredão)
+- **Cores**: teal `#00bc8c` para o modelo (consistente com o tema BBB dark)
+
+---
+
 ## Consolidation History
 
 **Implemented (2026-01-26)**:

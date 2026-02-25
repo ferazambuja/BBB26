@@ -817,12 +817,26 @@ if ultimo:
 
             print('</tbody></table>')
 
-            # Weight breakdown note
+            # Weight breakdown note (expandable)
             if _model_pred:
                 _wu = _model_pred['weights_used']
                 _plat_labels = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
                 _weight_parts = [f'{_plat_labels.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
-                print(f'<p class="text-muted" style="font-size:0.8em; margin-top:0.3rem;">ℹ️ Pesos do modelo (por precisão histórica): {" · ".join(_weight_parts)}</p>')
+                _rmse_info = _prec.get('rmse', {})
+                print(f'<details style="margin-top:0.5rem; font-size:0.85em;">')
+                print(f'<summary style="cursor:pointer; color:#888;">ℹ️ Pesos do modelo: {" · ".join(_weight_parts)}</summary>')
+                print(f'<div style="padding:0.8rem; margin-top:0.3rem; background:rgba(0,188,140,0.05); border-radius:8px; color:#aaa; font-size:0.95em;">')
+                print(f'<p style="margin:0 0 0.5rem 0;"><strong>Por que esses pesos?</strong> O Votalhada pondera pelo volume de votos — Sites recebem ~70% do peso porque têm os maiores veículos (UOL Splash, CNN). Mas Sites são a plataforma <strong>menos precisa</strong> (RMSE {_rmse_info.get("sites", "?"):.1f} p.p.) porque sobre-representam fanbases organizadas.</p>')
+                print(f'<p style="margin:0 0 0.5rem 0;"><strong>Nosso modelo</strong> usa o inverso do RMSE² (peso = 1/RMSE²). Plataformas mais precisas recebem exponencialmente mais peso:</p>')
+                print(f'<table style="font-size:0.9em; margin:0.3rem 0;">')
+                print(f'<tr><th>Plataforma</th><th style="text-align:center;">RMSE</th><th style="text-align:center;">Votalhada</th><th style="text-align:center;">Modelo</th></tr>')
+                _vol_approx = {'twitter': 5, 'instagram': 14, 'youtube': 11, 'sites': 70}
+                for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
+                    rmse_val = _rmse_info.get(p, 0)
+                    print(f'<tr><td>{_plat_labels.get(p,p)}</td><td style="text-align:center;">{rmse_val:.1f} p.p.</td><td style="text-align:center;">{_vol_approx.get(p,0)}%</td><td style="text-align:center; font-weight:bold;">{w*100:.0f}%</td></tr>')
+                print(f'</table>')
+                print(f'<p style="margin:0.5rem 0 0 0;">Validado com leave-one-out (erro cai de 9,8 → 4,3 p.p.). Pesos recalculados a cada paredão finalizado.</p>')
+                print(f'</div></details>')
             print()
 
             # Time series chart (em_andamento)

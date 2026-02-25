@@ -276,6 +276,7 @@ All scoring formulas, weights, and detailed specifications are in **`docs/SCORIN
 - **VIP/Xepa Tracking**: VIP week = participant in VIP during a leader period. Counted at leader transitions only (from `roles_daily.json` Líder changes). `leader_periods` in `index_data.json` stores full composition per leader. See `docs/SCORING_AND_INDEXES.md` for details.
 
 - **Líder Nomination Prediction**: ranks all participants by Líder → target score from `pairs_daily` (most negative = most likely nomination). Shows on `paredao.qmd` between paredões and during incomplete formation. Includes component breakdown, reciprocity analysis, expandable edge/queridômetro detail rows, VIP/immunity flags. Auto-hides when formation is complete. See `docs/SCORING_AND_INDEXES.md` for full spec.
+- **Modelo Ponderado por Precisão**: re-weights Votalhada platform predictions using inverse-RMSE² (precision weighting). Votalhada weights by vote volume (Sites ~70%), but Sites are the least accurate. Model weights: Twitter 55% · Instagram 33% · YouTube 9% · Sites 4%. Validated with leave-one-out cross-validation (MAE 9.8→4.3 p.p., −56%). Functions: `calculate_precision_weights()`, `predict_precision_weighted()`, `backtest_precision_model()` in `data_utils.py`. See `docs/SCORING_AND_INDEXES.md` for full derivation.
 
 Power events are **modifiers** (rare, one-to-one), not the base — queridômetro drives ongoing sentiment.
 

@@ -185,15 +185,22 @@ ANALYSIS_DESCRIPTIONS = {
         "**2-3×** mais que não-falsos amigos."
     ),
     "precision_model_brief": (
-        "Modelo ponderado por precisão: pesos inversamente proporcionais ao RMSE² histórico de cada plataforma."
+        "Modelo ponderado por precisão: pesos = 1/RMSE² histórico de cada plataforma. "
+        "O Votalhada pesa por volume de votos (Sites ~70%), mas Sites têm o maior erro. "
+        "Nosso modelo inverte: Twitter 55% · Instagram 33% · YouTube 9% · Sites 4%."
     ),
     "precision_model_methodology": (
-        "O modelo pondera as plataformas (Sites, YouTube, Twitter, Instagram) pelo inverso do RMSE² "
-        "histórico de cada uma. Plataformas mais precisas recebem mais peso. A validação usa "
-        "**leave-one-out cross-validation**: para cada paredão, os pesos são calculados usando APENAS "
-        "os outros paredões, evitando overfitting. O resultado é uma previsão que captura melhor "
-        "as dinâmicas reais de votação, especialmente onde Twitter e Instagram se mostram "
-        "historicamente mais precisas que Sites."
+        "O Votalhada pondera as plataformas implicitamente pelo **volume de votos** — "
+        "Sites recebem ~70% do peso porque têm os maiores veículos (UOL Splash, CNN). "
+        "Porém, Sites são a plataforma menos precisa (RMSE 18,7 p.p.) porque sobre-representam "
+        "fanbases organizadas que votam em massa. "
+        "Nosso modelo usa o **inverso do RMSE²** histórico como peso: "
+        "peso_i = (1/RMSE_i²) / Σ(1/RMSE_j²). "
+        "Resultado: Twitter (RMSE 4,8) recebe 55%, Instagram (6,2) 33%, YouTube (11,7) 9%, Sites (18,7) 4%. "
+        "A validação usa **leave-one-out cross-validation**: para cada paredão, os pesos são calculados "
+        "usando APENAS os outros paredões, evitando overfitting. "
+        "O erro médio cai de 9,8 para 4,3 p.p. (−56%). "
+        "Detalhes completos em docs/SCORING_AND_INDEXES.md."
     ),
 }
 
