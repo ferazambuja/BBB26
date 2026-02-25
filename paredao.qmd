@@ -26,11 +26,13 @@ from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
+    calculate_precision_weights, predict_precision_weighted,
     genero, artigo, get_nominee_badge,
     make_poll_timeseries,
     avatar_html, avatar_img,
     REACTION_EMOJI, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
+    ANALYSIS_DESCRIPTIONS,
 )
 
 require_clean_manual_events()
@@ -737,8 +739,31 @@ if ultimo:
             print("\n## 📊 Previsão das Enquetes\n")
             print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]} {poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""}</p>\n')
 
-            print(f'<div class="alert alert-info" style="font-size:0.95rem;">')
-            print(f'🔮 <strong>Previsão atual:</strong> {consolidado.get("predicao_eliminado", "—")} com mais votos para sair ({consolidado.get(consolidado.get("predicao_eliminado", ""), 0):.1f}%)')
+            # Compute precision model prediction
+            _prec = calculate_precision_weights(polls_data)
+            _model_pred = predict_precision_weighted(poll, _prec) if _prec.get('sufficient') else None
+
+            # Side-by-side prediction cards
+            print(f'<div style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">')
+            # Votalhada card
+            _consol_elim = consolidado.get("predicao_eliminado", "—")
+            _consol_pct = consolidado.get(_consol_elim, 0)
+            print(f'<div style="flex:1; min-width:220px; border:2px solid #9b59b6; border-radius:12px; padding:1rem; background:rgba(155,89,182,0.1);">')
+            print(f'<div style="font-size:0.8em; color:#9b59b6; font-weight:bold; margin-bottom:0.3rem;">📊 VOTALHADA (CONSOLIDADO)</div>')
+            print(f'<div style="font-size:1.3em; font-weight:bold;">{_consol_elim}</div>')
+            print(f'<div style="color:#888;">com {_consol_pct:.1f}% dos votos</div>')
+            print(f'</div>')
+            # Model card
+            if _model_pred:
+                _model_elim = _model_pred['predicao_eliminado']
+                _model_pct = _model_pred['prediction'].get(_model_elim, 0)
+                _agree = '✅ Concordam' if _model_elim == _consol_elim else '⚠️ Divergem'
+                print(f'<div style="flex:1; min-width:220px; border:2px solid #00bc8c; border-radius:12px; padding:1rem; background:rgba(0,188,140,0.1);">')
+                print(f'<div style="font-size:0.8em; color:#00bc8c; font-weight:bold; margin-bottom:0.3rem;">🎯 MODELO PONDERADO</div>')
+                print(f'<div style="font-size:1.3em; font-weight:bold;">{_model_elim}</div>')
+                print(f'<div style="color:#888;">com {_model_pct:.1f}% dos votos</div>')
+                print(f'<div style="margin-top:0.5rem; font-size:0.8em; color:#888;">{_agree}</div>')
+                print(f'</div>')
             print(f'</div>\n')
 
             # Platform breakdown table
@@ -779,7 +804,26 @@ if ultimo:
             print(f'<td style="text-align:center; color:#888; font-size:0.9em;">{total_str}</td>')
             print('</tr>')
 
-            print('</tbody></table>\n')
+            # Model row
+            if _model_pred:
+                print(f'<tr style="background:rgba(0,188,140,0.2);"><td style="font-weight:bold;">🎯 Modelo Ponderado</td>')
+                for nome in participantes_poll:
+                    val = _model_pred['prediction'].get(nome, 0)
+                    is_max = val == max(_model_pred['prediction'].get(n, 0) for n in participantes_poll)
+                    style = 'font-weight:bold; color:#00bc8c;' if is_max else 'font-weight:bold;'
+                    print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
+                print(f'<td style="text-align:center; color:#888; font-size:0.8em;">ponderado</td>')
+                print('</tr>')
+
+            print('</tbody></table>')
+
+            # Weight breakdown note
+            if _model_pred:
+                _wu = _model_pred['weights_used']
+                _plat_labels = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
+                _weight_parts = [f'{_plat_labels.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
+                print(f'<p class="text-muted" style="font-size:0.8em; margin-top:0.3rem;">ℹ️ Pesos do modelo (por precisão histórica): {" · ".join(_weight_parts)}</p>')
+            print()
 
             # Time series chart (em_andamento)
             if poll.get('serie_temporal'):
@@ -1296,19 +1340,36 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             resultado = poll['resultado_real']
             accuracy = calculate_poll_accuracy(poll)
 
+            # Model prediction (using all finalized data for display)
+            _prec_fin = calculate_precision_weights(polls_data)
+            _model_pred_fin = predict_precision_weighted(poll, _prec_fin) if _prec_fin.get('sufficient') else None
+            _model_mae_fin = None
+            _model_correct_fin = None
+            if _model_pred_fin:
+                _model_mae_fin = sum(abs(_model_pred_fin['prediction'].get(n, 0) - resultado.get(n, 0)) for n in participantes_poll) / len(participantes_poll)
+                _model_correct_fin = _model_pred_fin['predicao_eliminado'] == resultado.get('eliminado')
+
             print("\n## 📊 Enquetes vs Resultado\n")
             print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]}</p>\n')
 
-            # Status badge
+            # Status badges — Votalhada + Model side by side
             if accuracy and accuracy['predicao_correta']:
-                status_html = '<span style="background:#3CB44B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">✅ Previsão correta</span>'
+                status_html = '<span style="background:#3CB44B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">✅ Votalhada correta</span>'
             else:
-                status_html = '<span style="background:#E6194B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">❌ Previsão errada</span>'
+                status_html = '<span style="background:#E6194B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">❌ Votalhada errada</span>'
 
             erro_medio = accuracy['erro_medio'] if accuracy else 0
             print(f'<div style="text-align:center; margin-bottom:1.5rem;">')
             print(f'{status_html}')
-            print(f'<span style="margin-left:1rem; color:#888;">Erro médio: <strong>{erro_medio:.1f}</strong> pontos percentuais</span>')
+            print(f'<span style="margin-left:0.5rem; color:#888;">Erro: <strong>{erro_medio:.1f}</strong> p.p.</span>')
+
+            if _model_pred_fin and _model_mae_fin is not None:
+                if _model_correct_fin:
+                    model_badge = '<span style="background:#00bc8c; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">✅ Modelo correto</span>'
+                else:
+                    model_badge = '<span style="background:#E6194B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">❌ Modelo errado</span>'
+                print(f'<span style="margin-left:1rem;">{model_badge}</span>')
+                print(f'<span style="margin-left:0.5rem; color:#888;">Erro: <strong>{_model_mae_fin:.1f}</strong> p.p.</span>')
             print(f'</div>\n')
 
             # Grouped bar chart: Enquetes vs Resultado Real
@@ -1321,6 +1382,17 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 marker_color='#9b59b6',
                 hovertemplate='%{x}: %{y:.1f}% (Enquete)<extra></extra>',
             ))
+            # Model bar (between Enquete and Resultado)
+            if _model_pred_fin:
+                model_vals = [_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll]
+                fig_poll.add_trace(go.Bar(
+                    x=participantes_poll, y=model_vals,
+                    text=[f"{v:.1f}%" for v in model_vals],
+                    textposition='outside', name='Modelo Ponderado',
+                    marker_color='#00bc8c',
+                    hovertemplate='%{x}: %{y:.1f}% (Modelo)<extra></extra>',
+                ))
+
             resultado_vals = [resultado.get(n, 0) for n in participantes_poll]
             colors_real = ['#E6194B' if n == resultado.get('eliminado') else '#3CB44B' for n in participantes_poll]
             fig_poll.add_trace(go.Bar(
@@ -1385,6 +1457,17 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
             print(f'<td style="text-align:center; color:#888; font-size:0.9em;">{total_str}</td>')
             print('</tr>')
+
+            # Model row
+            if _model_pred_fin:
+                print(f'<tr style="background:rgba(0,188,140,0.2);"><td style="font-weight:bold;">🎯 Modelo</td>')
+                for nome in participantes_poll:
+                    val = _model_pred_fin['prediction'].get(nome, 0)
+                    is_max = val == max(_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll)
+                    style = 'font-weight:bold; color:#00bc8c;' if is_max else 'font-weight:bold;'
+                    print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
+                print(f'<td style="text-align:center; color:#888; font-size:0.8em;">ponderado</td>')
+                print('</tr>')
 
             print(f'<tr style="background:rgba(52,152,219,0.2);"><td style="font-weight:bold;">🏆 Resultado Real</td>')
             for nome in participantes_poll:

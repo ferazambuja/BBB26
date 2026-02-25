@@ -26,11 +26,13 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
+    calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     genero, get_nominee_badge,
     make_poll_timeseries,
     avatar_html, avatar_img,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
+    ANALYSIS_DESCRIPTIONS,
 )
 
 require_clean_manual_events()
@@ -229,6 +231,9 @@ if len(finalized_polls) >= 1:
 
     platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
+    # Backtest precision model
+    backtest = backtest_precision_model(polls_data)
+
     # Summary cards
     print(f'<div style="background:rgba(155,89,182,0.1); border-radius:12px; padding:1.5rem; margin:1rem 0;">')
     print(f'<h4 style="margin:0 0 1rem 0;">📊 Resumo da Precisão ({total_polls} paredões)</h4>')
@@ -244,6 +249,12 @@ if len(finalized_polls) >= 1:
 
     if best_platform:
         print(f'<div style="min-width:150px;"><strong>Plataforma mais precisa</strong><br><span style="font-size:1.3em;">{platform_names.get(best_platform, best_platform)}</span><br><span style="color:#888;">erro: {platform_avg[best_platform]:.1f} p.p.</span></div>')
+
+    if backtest:
+        _bt_agg = backtest['aggregate']
+        _bt_imp = _bt_agg.get('improvement_pct', 0)
+        _bt_color = '#00bc8c' if _bt_imp and _bt_imp > 0 else '#f39c12'
+        print(f'<div style="min-width:150px; border-left:3px solid #00bc8c; padding-left:1rem;"><strong>🎯 Modelo Ponderado</strong><br><span style="font-size:2em; color:{_bt_color}; font-weight:bold;">{_bt_agg["model_mae"]:.1f}</span><br><span style="color:#888;">p.p. (LOO) — {_bt_imp:+.0f}%</span></div>')
 
     print(f'</div></div>\n')
 
@@ -320,8 +331,30 @@ if len(finalized_polls) >= 1:
     print('<td style="text-align:center;">—</td>')
     print('</tr>')
 
+    # Add model row (from backtest LOO)
+    if backtest:
+        _bt_results = backtest['per_paredao']
+        model_errs = [r['model_mae'] for r in _bt_results if r['model_mae'] is not None]
+        if model_errs:
+            print(f'<tr style="background:rgba(0,188,140,0.2);"><td><strong>🎯 Modelo</strong></td>')
+            for r in _bt_results:
+                if r['model_mae'] is not None:
+                    err_color = '#3CB44B' if r['model_mae'] < 10 else '#f39c12' if r['model_mae'] < 20 else '#E6194B'
+                    print(f'<td style="text-align:center;"><span style="color:{err_color};">{r["model_mae"]:.1f}</span></td>')
+                else:
+                    print('<td style="text-align:center;">—</td>')
+            avg_model = np.mean(model_errs)
+            print(f'<td style="text-align:center; font-weight:bold;">{avg_model:.1f}</td>')
+            # Rank model among platforms
+            all_avgs = list(platform_avg.items()) + [('modelo', avg_model)]
+            all_avgs.sort(key=lambda x: x[1])
+            model_rank = next(i+1 for i, (k, _) in enumerate(all_avgs) if k == 'modelo')
+            medal_m = '🥇' if model_rank == 1 else '🥈' if model_rank == 2 else '🥉' if model_rank == 3 else f'{model_rank}º'
+            print(f'<td style="text-align:center;">{medal_m}</td>')
+            print('</tr>')
+
     print('</tbody></table>')
-    print('<p class="text-muted small">Erro = diferença em pontos percentuais entre previsão e resultado real (Média Final)</p>\n')
+    print('<p class="text-muted small">Erro = diferença em pontos percentuais entre previsão e resultado real (Média Final). Modelo usa leave-one-out cross-validation.</p>\n')
 
     # ── Platform Average Error Bar Chart ──
     platform_colors = {'sites': '#3498db', 'youtube': '#e74c3c', 'twitter': '#1da1f2', 'instagram': '#e1306c'}
@@ -378,6 +411,19 @@ if len(finalized_polls) >= 1:
             hovertemplate='Consolidado: %{y:.1f} p.p.<extra></extra>',
         ))
 
+        # Add model line (from backtest LOO)
+        if backtest:
+            _bt_errs_by_par = {r['numero']: r['model_mae'] for r in backtest['per_paredao'] if r['model_mae'] is not None}
+            _model_y = [_bt_errs_by_par.get(p['numero'], None) for p in finalized_polls]
+            fig_lines.add_trace(go.Scatter(
+                x=paredao_labels, y=_model_y, mode='lines+markers',
+                name='🎯 Modelo',
+                line=dict(width=3, color='#00bc8c', dash='dot'),
+                marker=dict(size=10, symbol='star'),
+                hovertemplate='Modelo: %{y:.1f} p.p.<extra></extra>',
+                connectgaps=True,
+            ))
+
         fig_lines.update_layout(
             title="Evolução do Erro por Plataforma",
             xaxis_title="Paredão", yaxis_title="Erro (p.p.)",
@@ -426,6 +472,51 @@ if len(finalized_polls) >= 1:
     print(f'<strong>📉 Padrão observado:</strong> As enquetes consistentemente <strong>{pattern}</strong> o eliminado em <strong>{abs(underest):.1f} p.p.</strong> em média.')
     print(f'<br><span style="color:#888;">Isso ocorre porque enquetes online sobre-representam fãs engajados que votam estrategicamente.</span>')
     print(f'</div>\n')
+
+    # ══════════════════════════════════════════════════════════════
+    # MODELO DE PRECISÃO — BACK-TEST (LOO)
+    # ══════════════════════════════════════════════════════════════
+    if backtest and len(backtest['per_paredao']) >= 3:
+        _bt_agg = backtest['aggregate']
+        print("\n## 🎯 Modelo de Precisão — Back-test\n")
+        print(f'<p class="text-muted">{ANALYSIS_DESCRIPTIONS["precision_model_methodology"]}</p>\n')
+
+        # Per-paredão LOO table
+        print('<table class="table table-striped table-sm" style="max-width:800px;">')
+        print('<thead><tr><th>Paredão</th><th>Eliminado</th>')
+        print('<th style="text-align:center;">Consolidado (erro)</th>')
+        print('<th style="text-align:center;">Modelo LOO (erro)</th>')
+        print('<th style="text-align:center;">Melhoria</th>')
+        print('</tr></thead><tbody>')
+
+        for r in backtest['per_paredao']:
+            c_err = r['consolidado_mae']
+            m_err = r['model_mae']
+            if m_err is not None:
+                diff = c_err - m_err
+                diff_color = '#00bc8c' if diff > 0 else '#E6194B'
+                diff_str = f'{diff:+.1f}'
+                c_color = '#3CB44B' if c_err < 10 else '#f39c12' if c_err < 20 else '#E6194B'
+                m_color = '#3CB44B' if m_err < 10 else '#f39c12' if m_err < 20 else '#E6194B'
+                print(f'<tr><td>{r["numero"]}º</td><td>{r["eliminado"]}</td>')
+                print(f'<td style="text-align:center; color:{c_color};">{c_err:.1f} p.p.</td>')
+                print(f'<td style="text-align:center; color:{m_color};">{m_err:.1f} p.p.</td>')
+                print(f'<td style="text-align:center; color:{diff_color}; font-weight:bold;">{diff_str} p.p.</td>')
+                print('</tr>')
+
+        # Summary row
+        print(f'<tr style="background:rgba(0,188,140,0.15);"><td colspan="2"><strong>Média</strong></td>')
+        print(f'<td style="text-align:center; font-weight:bold;">{_bt_agg["consolidado_mae"]:.1f} p.p.</td>')
+        print(f'<td style="text-align:center; font-weight:bold;">{_bt_agg["model_mae"]:.1f} p.p.</td>')
+        _imp = _bt_agg.get('improvement_pct', 0)
+        print(f'<td style="text-align:center; font-weight:bold; color:#00bc8c;">{_imp:+.0f}%</td>')
+        print('</tr>')
+        print('</tbody></table>')
+
+        print(f'<div style="background:rgba(0,188,140,0.1); border-radius:8px; padding:1rem; margin:1rem 0;">')
+        print(f'<strong>🎯 Resultado:</strong> O modelo ponderado reduz o erro médio de <strong>{_bt_agg["consolidado_mae"]:.1f}</strong> para <strong>{_bt_agg["model_mae"]:.1f}</strong> p.p. (<strong>{_imp:+.0f}%</strong>), usando leave-one-out cross-validation.')
+        print(f'<br><span style="color:#888;">Acerto: Consolidado {_bt_agg["consolidado_correct"]}/{_bt_agg["n_paredoes"]} · Modelo {_bt_agg["model_correct"]}/{_bt_agg["n_paredoes"]}</span>')
+        print(f'</div>\n')
 
     # ══════════════════════════════════════════════════════════════
     # IMPACTO DO PESO 70/30 VS CENÁRIO 50/50 (RETROATIVO)
@@ -656,6 +747,9 @@ print(tabs_html)
 ```{python}
 #| label: paredao-tabs-content
 #| output: asis
+
+# Precompute precision weights for model rows in tabs
+_prec_all = calculate_precision_weights(polls_data)
 
 # Generate tab content for each finalized paredão
 print('<div class="tab-content" id="paredaoTabsContent">')
@@ -929,6 +1023,17 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         for nome in participantes_poll:
             print(f'<td style="text-align:center; font-weight:bold;">{consolidado.get(nome, 0):.1f}%</td>')
         print('</tr>')
+
+        # Model row
+        _tab_model = predict_precision_weighted(poll, _prec_all) if _prec_all.get('sufficient') else None
+        if _tab_model:
+            print(f'<tr style="background:rgba(0,188,140,0.2);"><td><strong>🎯 Modelo</strong></td>')
+            for nome in participantes_poll:
+                val = _tab_model['prediction'].get(nome, 0)
+                is_max = val == max(_tab_model['prediction'].get(n, 0) for n in participantes_poll)
+                style = 'font-weight:bold; color:#00bc8c;' if is_max else 'font-weight:bold;'
+                print(f'<td style="text-align:center; {style}">{val:.1f}%</td>')
+            print('</tr>')
 
         print(f'<tr style="background:rgba(52,152,219,0.2);"><td><strong>Resultado</strong></td>')
         for nome in participantes_poll:

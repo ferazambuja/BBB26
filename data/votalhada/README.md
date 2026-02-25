@@ -6,13 +6,24 @@
 
 ## Quick Workflow
 
+**Option A — Automated download (recommended)**
+
+```bash
+# Download all poll images for the current paredão (e.g. 6º)
+python scripts/fetch_votalhada_images.py --paredao 6
+```
+
+Images are saved to `data/votalhada/YYYY_MM_DD/` (e.g. `2026_02_22/`). By default the script **overwrites** the previous capture (consolidados.png, consolidados_2.png, …), so you always keep the latest. Use `--timestamp` to keep a history of captures instead.
+
+**Option B — Manual screenshot**
+
 ```
 1. Save Consolidados screenshot → data/votalhada/YYYY_MM_DD/consolidados.png
 2. Ask Claude to read the image and extract data
 3. Claude updates polls.json automatically
 ```
 
-**Only the Consolidados image is required** — it contains all platform aggregates and time series.
+**Only the Consolidados image is required** for data extraction — it contains all platform aggregates and time series.
 
 ## When to Collect
 
@@ -21,6 +32,8 @@
 | **Anytime during voting** | Track poll evolution (preliminary) |
 | **Tuesday ~21:00 BRT** | Final snapshot before elimination |
 | **After elimination** | Add `resultado_real` with actual percentages |
+
+Votalhada typically updates images at **Monday** 1:00, 8:00, 12:00, 15:00, 18:00, 21:00 and **Tuesday** 8:00, 12:00, 15:00, 18:00, 21:00 BRT (a few minutes after the hour). Run the script after those times to capture the latest; by default only the last run is kept (overwrite). Use `--timestamp` to keep multiple captures per day.
 
 ## Collection Steps
 
@@ -108,15 +121,18 @@ data/votalhada/
 ├── README.md               # This file
 ├── 2026_01_20/            # 1º Paredão (timestamp filenames)
 │   └── 2026-01-20_*.png    # Original screenshots
-├── 2026_01_27/            # 2º Paredão (standardized naming)
-│   ├── consolidados.png    # Key image (preliminary)
-│   └── consolidados_final.png  # Final capture
+├── 2026_02_22/            # 6º Paredão (from fetch_votalhada_images.py)
+│   ├── consolidados.png    # Key image (latest capture)
+│   ├── consolidados_2.png  # Second image from post
+│   └── ...                 # Optional: use --timestamp to keep history
 └── ...
 ```
 
-**Naming convention**: Starting with 2º Paredão, we use standardized names (`consolidados.png`, `sites.png`, etc.). Older entries may have timestamp-based names.
+**Naming convention**: The script saves the first image as `consolidados.png` (overwrites each run so you “keep the last one”). Additional images from the post are `consolidados_2.png`, etc. Use `--timestamp` to keep dated copies (e.g. `consolidados_2026-02-24_21-05.png`).
 
-Optional: Keep platform-specific images for reference, but only `consolidados.png` (or `_final.png`) is needed for data extraction.
+Only `consolidados.png` (or `_final.png`) is needed for data extraction.
+
+**Scheduled runs (optional):** To capture at Votalhada’s usual update times, run the script via cron or Task Scheduler (e.g. Mon/Tue at 1:00, 8:00, 12:00, 15:00, 18:00, 21:00 BRT). Use `--paredao N` and set `N` to the current paredão, or use `--url` with the current post URL. With default behavior, each run overwrites the previous capture in that folder.
 
 ## Name Matching
 

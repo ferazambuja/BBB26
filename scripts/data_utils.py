@@ -184,6 +184,17 @@ ANALYSIS_DESCRIPTIONS = {
         "Sincerão + VIP), não apenas o emoji. Nos 2 primeiros paredões, falsos amigos votaram contra "
         "**2-3×** mais que não-falsos amigos."
     ),
+    "precision_model_brief": (
+        "Modelo ponderado por precisão: pesos inversamente proporcionais ao RMSE² histórico de cada plataforma."
+    ),
+    "precision_model_methodology": (
+        "O modelo pondera as plataformas (Sites, YouTube, Twitter, Instagram) pelo inverso do RMSE² "
+        "histórico de cada uma. Plataformas mais precisas recebem mais peso. A validação usa "
+        "**leave-one-out cross-validation**: para cada paredão, os pesos são calculados usando APENAS "
+        "os outros paredões, evitando overfitting. O resultado é uma previsão que captura melhor "
+        "as dinâmicas reais de votação, especialmente onde Twitter e Instagram se mostram "
+        "historicamente mais precisas que Sites."
+    ),
 }
 
 
@@ -448,6 +459,217 @@ def calculate_poll_accuracy(poll_data):
         "predicao_correta": predicao_correta,
         "erro_medio": round(erro_medio, 2),
         "erros_por_participante": {nome: round(d, 2) for nome, d in deltas.items()},
+    }
+
+
+def calculate_precision_weights(polls_data):
+    """Calculate precision-based platform weights from historical poll accuracy.
+
+    Weights are inversely proportional to each platform's RMSE² across
+    all finalized paredões. More accurate platforms get higher weight.
+
+    Args:
+        polls_data: Full polls.json dict with 'paredoes' array.
+
+    Returns:
+        Dict with 'weights', 'rmse', 'n_paredoes', 'sufficient' keys.
+    """
+    import math
+
+    all_polls = polls_data.get("paredoes", [])
+    finalized = [p for p in all_polls if p.get("resultado_real")]
+
+    platforms = ["sites", "youtube", "twitter", "instagram"]
+
+    if len(finalized) < 2:
+        equal_w = {p: 0.25 for p in platforms}
+        return {"weights": equal_w, "rmse": {}, "n_paredoes": len(finalized), "sufficient": False}
+
+    # Collect (predicted, actual) pairs per platform
+    platform_errors = {p: [] for p in platforms}
+    for poll in finalized:
+        resultado = poll["resultado_real"]
+        participantes = poll.get("participantes", [])
+        plataformas = poll.get("plataformas", {})
+        for plat in platforms:
+            if plat not in plataformas:
+                continue
+            pdata = plataformas[plat]
+            for nome in participantes:
+                pred = pdata.get(nome, 0)
+                real = resultado.get(nome, 0)
+                platform_errors[plat].append((pred, real))
+
+    # Calculate RMSE per platform
+    rmse = {}
+    for plat in platforms:
+        pairs = platform_errors[plat]
+        if not pairs:
+            continue
+        mse = sum((p - r) ** 2 for p, r in pairs) / len(pairs)
+        rmse[plat] = math.sqrt(mse)
+
+    if not rmse:
+        equal_w = {p: 0.25 for p in platforms}
+        return {"weights": equal_w, "rmse": {}, "n_paredoes": len(finalized), "sufficient": False}
+
+    # Inverse-RMSE² weights
+    inv_sq = {}
+    for plat, r in rmse.items():
+        if r > 0:
+            inv_sq[plat] = 1.0 / (r ** 2)
+        else:
+            inv_sq[plat] = 1000.0  # Perfect platform gets very high weight
+
+    total = sum(inv_sq.values())
+    weights = {plat: v / total for plat, v in inv_sq.items()}
+
+    return {
+        "weights": weights,
+        "rmse": {p: round(r, 2) for p, r in rmse.items()},
+        "n_paredoes": len(finalized),
+        "sufficient": True,
+    }
+
+
+def predict_precision_weighted(poll_data, precision_result):
+    """Apply precision weights to a poll's platform data.
+
+    Args:
+        poll_data: Single paredão poll dict.
+        precision_result: Output of calculate_precision_weights().
+
+    Returns:
+        Dict with 'prediction', 'predicao_eliminado', 'weights_used', or None.
+    """
+    if not precision_result or not precision_result.get("sufficient"):
+        return None
+
+    participantes = poll_data.get("participantes", [])
+    plataformas = poll_data.get("plataformas", {})
+    weights = precision_result["weights"]
+
+    if not participantes or not plataformas:
+        return None
+
+    # Filter to available platforms and re-normalize weights
+    available = {p: w for p, w in weights.items() if p in plataformas}
+    if not available:
+        return None
+
+    total_w = sum(available.values())
+    norm_weights = {p: w / total_w for p, w in available.items()}
+
+    # Weighted average per participant
+    prediction = {}
+    for nome in participantes:
+        weighted_sum = sum(
+            plataformas[plat].get(nome, 0) * w
+            for plat, w in norm_weights.items()
+        )
+        prediction[nome] = round(weighted_sum, 2)
+
+    # Ensure predictions sum to ~100
+    total_pred = sum(prediction.values())
+    if total_pred > 0 and abs(total_pred - 100) > 0.1:
+        factor = 100.0 / total_pred
+        prediction = {k: round(v * factor, 2) for k, v in prediction.items()}
+
+    eliminado = max(prediction, key=lambda k: prediction[k])
+
+    return {
+        "prediction": prediction,
+        "predicao_eliminado": eliminado,
+        "weights_used": {p: round(w, 4) for p, w in norm_weights.items()},
+    }
+
+
+def backtest_precision_model(polls_data):
+    """Leave-one-out cross-validation of the precision-weighted model.
+
+    For each finalized paredão, compute weights from all OTHER paredões,
+    then predict this one. Compares model MAE vs Votalhada consolidado MAE.
+
+    Args:
+        polls_data: Full polls.json dict.
+
+    Returns:
+        Dict with 'per_paredao' results list and 'aggregate' summary.
+    """
+    all_polls = polls_data.get("paredoes", [])
+    finalized = [p for p in all_polls if p.get("resultado_real")]
+
+    if len(finalized) < 3:
+        return None
+
+    results = []
+    for i, target_poll in enumerate(finalized):
+        # Build LOO dataset (all except target)
+        loo_data = {"paredoes": [p for j, p in enumerate(finalized) if j != i]}
+        precision = calculate_precision_weights(loo_data)
+
+        # Skip if not enough data for weights
+        if not precision.get("sufficient"):
+            continue
+
+        # Model prediction
+        model_pred = predict_precision_weighted(target_poll, precision)
+
+        # Votalhada consolidado prediction
+        consolidado = target_poll.get("consolidado", {})
+        resultado = target_poll["resultado_real"]
+        participantes = target_poll.get("participantes", [])
+
+        # Calculate errors
+        consol_mae = sum(
+            abs(consolidado.get(n, 0) - resultado.get(n, 0))
+            for n in participantes
+        ) / len(participantes) if participantes else 0
+
+        model_mae = None
+        model_correct = None
+        if model_pred:
+            model_mae = sum(
+                abs(model_pred["prediction"].get(n, 0) - resultado.get(n, 0))
+                for n in participantes
+            ) / len(participantes)
+            model_correct = model_pred["predicao_eliminado"] == resultado.get("eliminado")
+
+        consol_correct = consolidado.get("predicao_eliminado") == resultado.get("eliminado")
+
+        results.append({
+            "numero": target_poll["numero"],
+            "eliminado": resultado.get("eliminado"),
+            "consolidado_mae": round(consol_mae, 2),
+            "model_mae": round(model_mae, 2) if model_mae is not None else None,
+            "consolidado_correct": consol_correct,
+            "model_correct": model_correct,
+            "weights_used": model_pred["weights_used"] if model_pred else None,
+            "model_prediction": model_pred["prediction"] if model_pred else None,
+            "consolidado_prediction": {n: consolidado.get(n, 0) for n in participantes},
+        })
+
+    if not results:
+        return None
+
+    valid_model = [r for r in results if r["model_mae"] is not None]
+    avg_consol = sum(r["consolidado_mae"] for r in results) / len(results)
+    avg_model = sum(r["model_mae"] for r in valid_model) / len(valid_model) if valid_model else None
+
+    improvement = None
+    if avg_model is not None and avg_consol > 0:
+        improvement = round((1 - avg_model / avg_consol) * 100, 1)
+
+    return {
+        "per_paredao": results,
+        "aggregate": {
+            "consolidado_mae": round(avg_consol, 2),
+            "model_mae": round(avg_model, 2) if avg_model is not None else None,
+            "improvement_pct": improvement,
+            "n_paredoes": len(results),
+            "consolidado_correct": sum(1 for r in results if r["consolidado_correct"]),
+            "model_correct": sum(1 for r in valid_model if r["model_correct"]),
+        },
     }
 
 
