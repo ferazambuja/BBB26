@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-25T01:32:12.113549+00:00",
+    "generated_at": "2026-02-25T02:42:13.693020+00:00",
     "date": "2026-02-24",
     "week": 7,
     "effective_week_daily": 6,
@@ -2530,6 +2530,31 @@
       "event_type": "veto_prova",
       "visibility": "public",
       "weight": -1.8
+    },
+    {
+      "type": "power_event",
+      "actor": "Marciele",
+      "target": "Babu Santana",
+      "week": 6,
+      "date": "2026-02-24",
+      "weight_raw": -0.48,
+      "revealed": false,
+      "event_type": "veto_ganha_ganha",
+      "visibility": "public",
+      "weight": -0.48
+    },
+    {
+      "type": "power_event",
+      "actor": "Babu Santana",
+      "target": "Marciele",
+      "week": 6,
+      "date": "2026-02-24",
+      "weight_raw": -0.24,
+      "revealed": false,
+      "event_type": "veto_ganha_ganha",
+      "visibility": "public",
+      "backlash": true,
+      "weight": -0.24
     },
     {
       "type": "power_event",
@@ -11962,9 +11987,10 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -0.83,
+        "score": -1.07,
         "components": {
           "queridometro": -0.68,
+          "power_event": -0.24,
           "sincerao": -0.15
         },
         "streak_len": 1,
@@ -13090,9 +13116,10 @@
         "vote_contradiction": false
       },
       "Babu Santana": {
-        "score": -0.5,
+        "score": -0.98,
         "components": {
-          "queridometro": -0.5
+          "queridometro": -0.5,
+          "power_event": -0.48
         },
         "streak_len": 16,
         "break": false,
@@ -14212,9 +14239,10 @@
         "break": false
       },
       "Marciele": {
-        "score": -0.865,
+        "score": -1.105,
         "components": {
           "queridometro": -0.715,
+          "power_event": -0.24,
           "sincerao": -0.15
         },
         "streak_len": 1,
@@ -15235,9 +15263,10 @@
         "break": false
       },
       "Babu Santana": {
-        "score": -0.5,
+        "score": -0.98,
         "components": {
-          "queridometro": -0.5
+          "queridometro": -0.5,
+          "power_event": -0.48
         },
         "streak_len": 16,
         "break": false
@@ -16850,9 +16879,10 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -0.83,
+        "score": -1.07,
         "components": {
           "queridometro": -0.68,
+          "power_event": -0.24,
           "sincerao": -0.15
         },
         "streak_len": 1,
@@ -19559,9 +19589,10 @@
         "vote_contradiction": false
       },
       "Babu Santana": {
-        "score": -0.5,
+        "score": -0.98,
         "components": {
-          "queridometro": -0.5
+          "queridometro": -0.5,
+          "power_event": -0.48
         },
         "streak_len": 16,
         "break": false,
@@ -22319,9 +22350,9 @@
     },
     "Babu Santana": {
       "positive": 4.9,
-      "negative": -23.5305,
-      "total": -18.6305,
-      "count": 48
+      "negative": -24.0105,
+      "total": -19.1105,
+      "count": 49
     },
     "Breno": {
       "positive": 1.7,
@@ -22385,9 +22416,9 @@
     },
     "Marciele": {
       "positive": 5.15,
-      "negative": -10.13,
-      "total": -4.98,
-      "count": 39
+      "negative": -10.37,
+      "total": -5.22,
+      "count": 40
     },
     "Matheus": {
       "positive": 0.3,
