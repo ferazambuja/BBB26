@@ -1839,8 +1839,9 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
 
         # Ganha-Ganha: leve sinal de atividade para os sorteados
         weekly_meta = weekly_events_by_week.get(week, {})
-        ganha = weekly_meta.get("ganha_ganha") if isinstance(weekly_meta, dict) else None
-        if isinstance(ganha, dict):
+        gg_raw = weekly_meta.get("ganha_ganha") if isinstance(weekly_meta, dict) else None
+        gg_list = gg_raw if isinstance(gg_raw, list) else [gg_raw] if isinstance(gg_raw, dict) else []
+        for ganha in gg_list:
             sorteados = ganha.get("sorteados", []) or []
             for name in sorteados:
                 if name:
@@ -3486,9 +3487,10 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
                 "emoji": "🗣️", "title": "Sincerão",
                 "detail": fmt, "participants": [], "source": "weekly_events",
             })
-        # Ganha-Ganha
-        gg = we.get("ganha_ganha")
-        if gg and isinstance(gg, dict):
+        # Ganha-Ganha (supports single dict or array)
+        gg_raw = we.get("ganha_ganha")
+        gg_list = gg_raw if isinstance(gg_raw, list) else [gg_raw] if isinstance(gg_raw, dict) else []
+        for gg in gg_list:
             date = gg.get("date", we.get("start_date", ""))
             w = get_week_number(date) if date else week
             events.append({
@@ -3497,17 +3499,8 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
                 "detail": gg.get("resultado", ""), "participants": gg.get("participants", []),
                 "source": "weekly_events",
             })
-        # Barrado no Baile
-        bb = we.get("barrado_baile")
-        if bb and isinstance(bb, dict):
-            date = bb.get("date", we.get("start_date", ""))
-            w = get_week_number(date) if date else week
-            events.append({
-                "date": date, "week": w, "category": "barrado_baile",
-                "emoji": "🚫", "title": "Barrado no Baile",
-                "detail": bb.get("resultado", ""), "participants": bb.get("participants", []),
-                "source": "weekly_events",
-            })
+        # Barrado no Baile — timeline entries come from power_events, not here
+        # (weekly_events stores metadata only: lider, alvo, date)
         # Tá Com Nada
         tcn = we.get("ta_com_nada")
         if tcn and isinstance(tcn, dict):
