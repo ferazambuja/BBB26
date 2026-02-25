@@ -100,13 +100,15 @@ def run_audit():
 
     # Sincerão integrity
     for i, weekly in enumerate(manual.get("weekly_events", [])):
-        sinc = weekly.get("sincerao")
-        if not sinc:
+        sinc_raw = weekly.get("sincerao")
+        if not sinc_raw:
             continue
-        if not sinc.get("fontes"):
-            issues["sinc_missing_sources"].append((i, weekly.get("week"), sinc))
-        if not sinc.get("date"):
-            issues["sinc_missing_date"].append((i, weekly.get("week"), sinc))
+        sinc_list = sinc_raw if isinstance(sinc_raw, list) else [sinc_raw]
+        for sinc in sinc_list:
+            if not sinc.get("fontes"):
+                issues["sinc_missing_sources"].append((i, weekly.get("week"), sinc))
+            if not sinc.get("date"):
+                issues["sinc_missing_date"].append((i, weekly.get("week"), sinc))
 
     # Eliminations detected by API vs manual log
     manual_participants = manual.get("participants", {}) if isinstance(manual.get("participants"), dict) else {}

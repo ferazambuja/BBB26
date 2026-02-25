@@ -51,12 +51,15 @@ RELATION_POWER_WEIGHTS = {
 
 RELATION_SINC_WEIGHTS = {
     "podio": {1: 0.7, 2: 0.5, 3: 0.3},
+    "regua": {1: 0.7, 2: 0.5, 3: 0.3, 4: 0.2, 5: 0.1, 6: 0.0, 7: -0.05, 8: -0.10, 9: -0.15, 10: -0.20},
+    "regua_fora": -1.0,
     "nao_ganha": -1.0,
     "bomba": -0.8,
     "paredao_perfeito": -0.3,
     "prova_eliminou": -0.15,
 }
 RELATION_SINC_BACKLASH_FACTOR = {
+    "regua_fora": 0.3,
     "nao_ganha": 0.3,
     "bomba": 0.4,
     "paredao_perfeito": 0.2,
@@ -589,9 +592,9 @@ def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
         actor = edge.get("actor")
         target = edge.get("target")
         etype = edge.get("type")
-        if etype == "podio":
+        if etype in ("podio", "regua"):
             slot = edge.get("slot")
-            base_weight = RELATION_SINC_WEIGHTS["podio"].get(slot, 0.0)
+            base_weight = RELATION_SINC_WEIGHTS[etype].get(slot, 0.0)
         else:
             base_weight = RELATION_SINC_WEIGHTS.get(etype, 0.0)
         if base_weight == 0:
@@ -2025,6 +2028,8 @@ def build_sincerao_edges(manual_events):
     weights = {
         "podio_mention": 0.25,
         "nao_ganha_mention": -0.5,
+        "regua_fora_mention": -0.5,
+        "regua_top3_mention": 0.25,
         "sem_podio": -0.4,
         "planta_plateia": -0.3,
         "edge_podio_1": 0.6,
@@ -2041,63 +2046,77 @@ def build_sincerao_edges(manual_events):
     aggregates = []
 
     for weekly in manual_events.get("weekly_events", []) if manual_events else []:
-        sinc = weekly.get("sincerao")
-        if not sinc:
+        sinc_raw = weekly.get("sincerao")
+        if not sinc_raw:
             continue
+        # Normalize: support both single dict and array of dicts
+        sinc_list = sinc_raw if isinstance(sinc_raw, list) else [sinc_raw]
         week = weekly.get("week")
-        date = sinc.get("date")
 
-        weeks.append({
-            "week": week,
-            "date": date,
-            "format": sinc.get("format"),
-            "scoring_mode": sinc.get("scoring_mode", "full"),
-            "participacao": sinc.get("participacao"),
-            "protagonistas": sinc.get("protagonistas", []),
-            "temas_publico": sinc.get("temas_publico", []),
-            "planta": sinc.get("planta"),
-            "notes": sinc.get("notes"),
-            "fontes": sinc.get("fontes", []),
-        })
+        for sinc in sinc_list:
+            date = sinc.get("date")
 
-        for edge in sinc.get("edges", []) if isinstance(sinc.get("edges"), list) else []:
-            edge_entry = dict(edge)
-            edge_entry["week"] = week
-            edge_entry["date"] = date
-            edges.append(edge_entry)
+            weeks.append({
+                "week": week,
+                "date": date,
+                "format": sinc.get("format"),
+                "scoring_mode": sinc.get("scoring_mode", "full"),
+                "participacao": sinc.get("participacao"),
+                "protagonistas": sinc.get("protagonistas", []),
+                "temas_publico": sinc.get("temas_publico", []),
+                "planta": sinc.get("planta"),
+                "notes": sinc.get("notes"),
+                "fontes": sinc.get("fontes", []),
+            })
 
-        stats = sinc.get("stats", {}) if isinstance(sinc.get("stats"), dict) else {}
-        podio_mentions = {item["name"]: item["count"] for item in stats.get("podio_top", []) if "name" in item}
-        nao_ganha_mentions = {item["name"]: item["count"] for item in stats.get("nao_ganha_top", []) if "name" in item}
-        sem_podio = stats.get("sem_podio", []) if isinstance(stats.get("sem_podio", []), list) else []
-        planta = sinc.get("planta", {}).get("target") if isinstance(sinc.get("planta"), dict) else None
+            for edge in sinc.get("edges", []) if isinstance(sinc.get("edges"), list) else []:
+                edge_entry = dict(edge)
+                edge_entry["week"] = week
+                edge_entry["date"] = date
+                edges.append(edge_entry)
 
-        reasons = {}
+            stats = sinc.get("stats", {}) if isinstance(sinc.get("stats"), dict) else {}
+            podio_mentions = {item["name"]: item["count"] for item in stats.get("podio_top", []) if "name" in item}
+            nao_ganha_mentions = {item["name"]: item["count"] for item in stats.get("nao_ganha_top", []) if "name" in item}
+            regua_fora_mentions = {item["name"]: item["count"] for item in stats.get("regua_fora_top", []) if "name" in item}
+            regua_top3_mentions = {item["name"]: item["count"] for item in stats.get("regua_top3", []) if "name" in item}
+            sem_podio = stats.get("sem_podio", []) if isinstance(stats.get("sem_podio", []), list) else []
+            planta = sinc.get("planta", {}).get("target") if isinstance(sinc.get("planta"), dict) else None
 
-        scores = {}
-        for name, count in podio_mentions.items():
-            scores[name] = scores.get(name, 0) + weights["podio_mention"] * count
-            reasons.setdefault(name, []).append("🏆 pódio")
-        for name, count in nao_ganha_mentions.items():
-            scores[name] = scores.get(name, 0) + weights["nao_ganha_mention"] * count
-            reasons.setdefault(name, []).append("🚫 não ganha")
-        for name in sem_podio:
-            scores[name] = scores.get(name, 0) + weights["sem_podio"]
-            reasons.setdefault(name, []).append("🙈 sem pódio")
-        if planta:
-            scores[planta] = scores.get(planta, 0) + weights["planta_plateia"]
-            reasons.setdefault(planta, []).append("🌿 planta")
+            reasons = {}
 
-        aggregates.append({
-            "week": week,
-            "date": date,
-            "podio_mentions": podio_mentions,
-            "nao_ganha_mentions": nao_ganha_mentions,
-            "sem_podio": sem_podio,
-            "planta": planta,
-            "scores": scores,
-            "reasons": reasons,
-        })
+            scores = {}
+            for name, count in podio_mentions.items():
+                scores[name] = scores.get(name, 0) + weights["podio_mention"] * count
+                reasons.setdefault(name, []).append("🏆 pódio")
+            for name, count in nao_ganha_mentions.items():
+                scores[name] = scores.get(name, 0) + weights["nao_ganha_mention"] * count
+                reasons.setdefault(name, []).append("🚫 não ganha")
+            for name, count in regua_fora_mentions.items():
+                scores[name] = scores.get(name, 0) + weights["regua_fora_mention"] * count
+                reasons.setdefault(name, []).append("🚫 fora da régua")
+            for name, count in regua_top3_mentions.items():
+                scores[name] = scores.get(name, 0) + weights["regua_top3_mention"] * count
+                reasons.setdefault(name, []).append("🏆 top 3 régua")
+            for name in sem_podio:
+                scores[name] = scores.get(name, 0) + weights["sem_podio"]
+                reasons.setdefault(name, []).append("🙈 sem pódio")
+            if planta:
+                scores[planta] = scores.get(planta, 0) + weights["planta_plateia"]
+                reasons.setdefault(planta, []).append("🌿 planta")
+
+            aggregates.append({
+                "week": week,
+                "date": date,
+                "podio_mentions": podio_mentions,
+                "nao_ganha_mentions": nao_ganha_mentions,
+                "regua_fora_mentions": regua_fora_mentions,
+                "regua_top3_mentions": regua_top3_mentions,
+                "sem_podio": sem_podio,
+                "planta": planta,
+                "scores": scores,
+                "reasons": reasons,
+            })
 
     return {
         "_metadata": {"generated_at": datetime.now(timezone.utc).isoformat(), "weights": weights},
