@@ -199,8 +199,7 @@ ANALYSIS_DESCRIPTIONS = {
         "Resultado: Twitter (RMSE 4,8) recebe 55%, Instagram (6,2) 33%, YouTube (11,7) 9%, Sites (18,7) 4%. "
         "A validação usa **leave-one-out cross-validation**: para cada paredão, os pesos são calculados "
         "usando APENAS os outros paredões, evitando overfitting. "
-        "O erro médio cai de 9,8 para 4,3 p.p. (−56%). "
-        "Detalhes completos em docs/SCORING_AND_INDEXES.md."
+        "O erro médio cai de 9,8 para 4,3 p.p. (−56%)."
     ),
 }
 

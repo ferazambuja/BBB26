@@ -1,8 +1,8 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-25T02:50:14.808711+00:00",
+    "generated_at": "2026-02-25T03:19:50.452264+00:00",
     "n_weeks": 7,
-    "total_transitions": 61
+    "total_transitions": 58
   },
   "timeline": [
     {
@@ -1398,8 +1398,8 @@
     {
       "date": "2026-02-24",
       "week": 7,
-      "n_active": 14,
-      "n_clusters": 14,
+      "n_active": 15,
+      "n_clusters": 15,
       "silhouette": null,
       "communities": [
         {
@@ -1504,7 +1504,7 @@
         {
           "label": 12,
           "members": [
-            "Milena"
+            "Maxiane"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1513,7 +1513,7 @@
         {
           "label": 13,
           "members": [
-            "Samira"
+            "Milena"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1522,30 +1522,23 @@
         {
           "label": 14,
           "members": [
-            "Solange Couto"
+            "Samira"
           ],
           "size": 1,
           "cohesion": 0,
           "color": "#e67e22"
+        },
+        {
+          "label": 15,
+          "members": [
+            "Solange Couto"
+          ],
+          "size": 1,
+          "cohesion": 0,
+          "color": "#e74c3c"
         }
       ],
-      "transitions": [
-        {
-          "name": "Milena",
-          "from_cluster": 13,
-          "to_cluster": 12
-        },
-        {
-          "name": "Samira",
-          "from_cluster": 14,
-          "to_cluster": 13
-        },
-        {
-          "name": "Solange Couto",
-          "from_cluster": 15,
-          "to_cluster": 14
-        }
-      ]
+      "transitions": []
     }
   ],
   "all_transitions": [
@@ -1954,44 +1947,23 @@
       "to_cluster": 15,
       "week": 6,
       "date": "2026-02-23"
-    },
-    {
-      "name": "Milena",
-      "from_cluster": 13,
-      "to_cluster": 12,
-      "week": 7,
-      "date": "2026-02-24"
-    },
-    {
-      "name": "Samira",
-      "from_cluster": 14,
-      "to_cluster": 13,
-      "week": 7,
-      "date": "2026-02-24"
-    },
-    {
-      "name": "Solange Couto",
-      "from_cluster": 15,
-      "to_cluster": 14,
-      "week": 7,
-      "date": "2026-02-24"
     }
   ],
   "most_mobile": [
     {
+      "name": "Maxiane",
+      "moves": 5
+    },
+    {
       "name": "Milena",
-      "moves": 6
+      "moves": 5
     },
     {
       "name": "Samira",
-      "moves": 6
+      "moves": 5
     },
     {
       "name": "Solange Couto",
-      "moves": 6
-    },
-    {
-      "name": "Maxiane",
       "moves": 5
     },
     {
