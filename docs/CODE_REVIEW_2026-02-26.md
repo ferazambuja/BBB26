@@ -62,12 +62,12 @@
 ### H-7. 68/80 functions untested in `build_derived_data.py`
 - **Impact**: 0% coverage on `paredao_viz.py`, `schemas.py`, `build_index_data.py`
 - **Fix**: Add integration tests for top 5 pipeline functions + smoke tests for viz/schemas
-- [ ] Fixed
+- [x] Fixed (2026-02-26) — 22 integration tests added for top 5 pipeline functions (relations_scores, plant_index, paredao_analysis, clusters, vote_prediction)
 
 ### H-8. Zero integration tests for critical pipeline functions
 - **Impact**: Scoring, clusters, prediction, plant index, paredao analysis — all untested end-to-end
 - **Fix**: Write integration tests using synthetic fixtures
-- [ ] Fixed
+- [x] Fixed (2026-02-26) — `test_integration_scoring.py` (10 tests) + `test_integration_analysis.py` (12 tests) with synthetic 5-participant fixtures
 
 ### H-9. `jsonschema` missing from `requirements.txt`
 - **File**: `requirements.txt`
@@ -268,10 +268,10 @@
 | Severity | Total | Fixed | Remaining |
 |----------|-------|-------|-----------|
 | Critical | 2 | 2 | 0 |
-| High | 10 | 5 | 5 |
+| High | 10 | 7 | 3 |
 | Medium | 21 | 8 | 13 |
 | Low | 16 | 0 | 16 |
-| **Total** | **49** | **15** | **34** |
+| **Total** | **49** | **17** | **32** |
 
 ---
 
@@ -286,11 +286,12 @@ Code Complexity:
 
 Test Coverage (by function count):
   data_utils.py:               91% (39/43)
-  build_derived_data.py:       15% (12/80)
+  build_derived_data.py:       21% (17/80)  ← +5 via integration tests
   build_index_data.py:          0% (0/30)
   paredao_viz.py:               0% (0/8)
   schemas.py:                   0% (0/1)
-  OVERALL:                     31% (51/162)
+  OVERALL:                     35% (56/162)
+  Integration tests:           241 total (219 unit + 22 integration)
 
 Documentation:
   Docstring coverage:          81% (131/162)
