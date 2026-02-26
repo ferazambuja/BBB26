@@ -84,7 +84,7 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Analysis descriptions: `ANALYSIS_DESCRIPTIONS` — centralized explanation text for QMD pages (composite score, profiles intro/footer, vulnerability explanation). Single source of truth for scoring descriptions shown to users.
 - Theme colors: `PLOT_BG`, `PAPER_BG`, `GRID_COLOR`, `TEXT_COLOR`, `BBB_COLORWAY`
 - Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
-- Week boundaries: `PAREDAO_WEEK_ENDS` — paredão result dates that define game week boundaries
+- Week boundaries: `WEEK_END_DATES` — Líder-transition-based dates that define game week boundaries
 - Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `utc_to_game_date()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
 - Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
 - Timeline rendering: `render_cronologia_html()`, `TIMELINE_CAT_COLORS`, `TIMELINE_CAT_LABELS`
@@ -223,20 +223,20 @@ Sentiment weights: positive = +1, mild_negative = -0.5, strong_negative = -1
 
 ### Game Week Boundaries
 
-BBB game weeks are **not** calendar 7-day periods. Each week ends when the paredão result is announced (the Barrado no Baile event and paredão resultado happen on the same day, closing that week). Week lengths vary (6–9 days).
+BBB game weeks are **not** calendar 7-day periods. Each week is defined by a **Líder cycle**: it starts when a new Líder is defined (typically Thursday night Prova do Líder) and ends the day before the next Líder is defined. The paredão result AND the barrado no baile both belong to the week of the Líder who presided over them. Week lengths vary (6–9 days).
 
-`get_week_number(date_str)` uses `PAREDAO_WEEK_ENDS` (a sorted list of paredão result dates) with `bisect_left` to determine the correct week. The paredão result date is **inclusive** — it belongs to the week it ends, not the next.
+`get_week_number(date_str)` uses `WEEK_END_DATES` (a sorted list of week-end dates) with `bisect_left`. The boundary date is **inclusive** — it belongs to the week it ends.
 
-| Week | End Date | Paredão |
-|------|----------|---------|
-| 1 | 2026-01-21 | 1º (Aline Campos) |
-| 2 | 2026-01-27 | 2º (Matheus) |
-| 3 | 2026-02-03 | 3º (Brigido) |
-| 4 | 2026-02-10 | 4º (Sarah Andrade) |
-| 5 | 2026-02-17 | 5º (Marcelo) |
-| 6 | 2026-02-25 | 6º (Maxiane) |
+| Week | End Date | Líder | Paredão | Next Líder |
+|------|----------|-------|---------|------------|
+| 1 | 2026-01-21 | Alberto Cowboy | 1º (Jan 21) | Babu (Jan 22) |
+| 2 | 2026-01-28 | Babu Santana | 2º (Jan 27) | Maxiane (Jan 29) |
+| 3 | 2026-02-04 | Maxiane | 3º (Feb 3) | Jonas (Feb 5) |
+| 4 | 2026-02-12 | Jonas Sulzbach | 4º (Feb 10) | Jonas (Feb 13) |
+| 5 | 2026-02-18 | Jonas Sulzbach | 5º (Feb 17) | Jonas (?) |
+| 6 | 2026-02-25 | Jonas Sulzbach | 6º (Feb 25) | ??? |
 
-**When a new paredão is finalized**: add its result date to `PAREDAO_WEEK_ENDS` in `data_utils.py`.
+**When a new Líder cycle completes**: update `WEEK_END_DATES` in `data_utils.py` with the last day of that week (day before next Prova do Líder).
 
 ### Data Update Timing
 

@@ -70,7 +70,8 @@ def build_big_fone_consensus(
     """
     big_fone_attendees = []
     for wev in manual_events.get("weekly_events", []):
-        if wev.get("week") == current_cycle_week:
+        wev_week = get_week_number(wev["start_date"]) if wev.get("start_date") else wev.get("week", 0)
+        if wev_week == current_cycle_week:
             for bf in wev.get("big_fone", []) or []:
                 att = bf.get("atendeu", "")
                 cons = (bf.get("consequencia", "") or "").lower()
@@ -1381,7 +1382,8 @@ def _compute_vote_multipliers_for_paredao(
         multiplier[voter] = 0
 
     for ev in power_events:
-        if week and ev.get("week") == week:
+        ev_week = get_week_number(ev["date"]) if ev.get("date") else ev.get("week", 0)
+        if week and ev_week == week:
             if ev.get("type") == "voto_duplo":
                 for a in normalize_actors(ev):
                     if a:
@@ -1721,7 +1723,7 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
     historic_events = []
     for ev in target_events_all:
         ev_type = ev.get("type")
-        ev_week = ev.get("week")
+        ev_week = get_week_number(ev["date"]) if ev.get("date") else ev.get("week", 0)
         if ev_type in ["lider", "anjo", "monstro", "imunidade"]:
             role_label = next((k for k, v in ROLE_TYPES.items() if v == ev_type), None)
             if role_label and name in roles_current.get(role_label, []):

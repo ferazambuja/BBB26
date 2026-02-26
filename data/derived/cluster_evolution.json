@@ -1,8 +1,8 @@
 {
   "_metadata": {
-    "generated_at": "2026-02-26T20:38:44.201415+00:00",
+    "generated_at": "2026-02-26T20:49:06.130677+00:00",
     "n_weeks": 7,
-    "total_transitions": 30
+    "total_transitions": 36
   },
   "timeline": [
     {
@@ -214,10 +214,10 @@
       "transitions": []
     },
     {
-      "date": "2026-01-27",
+      "date": "2026-01-28",
       "week": 2,
-      "n_active": 22,
-      "n_clusters": 22,
+      "n_active": 21,
+      "n_clusters": 21,
       "silhouette": null,
       "communities": [
         {
@@ -349,7 +349,7 @@
         {
           "label": 15,
           "members": [
-            "Matheus"
+            "Maxiane"
           ],
           "size": 1,
           "cohesion": 0,
@@ -358,7 +358,7 @@
         {
           "label": 16,
           "members": [
-            "Maxiane"
+            "Milena"
           ],
           "size": 1,
           "cohesion": 0,
@@ -367,7 +367,7 @@
         {
           "label": 17,
           "members": [
-            "Milena"
+            "Paulo Augusto"
           ],
           "size": 1,
           "cohesion": 0,
@@ -376,7 +376,7 @@
         {
           "label": 18,
           "members": [
-            "Paulo Augusto"
+            "Samira"
           ],
           "size": 1,
           "cohesion": 0,
@@ -385,7 +385,7 @@
         {
           "label": 19,
           "members": [
-            "Samira"
+            "Sarah Andrade"
           ],
           "size": 1,
           "cohesion": 0,
@@ -394,7 +394,7 @@
         {
           "label": 20,
           "members": [
-            "Sarah Andrade"
+            "Sol Vega"
           ],
           "size": 1,
           "cohesion": 0,
@@ -403,26 +403,53 @@
         {
           "label": 21,
           "members": [
-            "Sol Vega"
-          ],
-          "size": 1,
-          "cohesion": 0,
-          "color": "#e67e22"
-        },
-        {
-          "label": 22,
-          "members": [
             "Solange Couto"
           ],
           "size": 1,
           "cohesion": 0,
-          "color": "#e74c3c"
+          "color": "#e67e22"
         }
       ],
-      "transitions": []
+      "transitions": [
+        {
+          "name": "Maxiane",
+          "from_cluster": 16,
+          "to_cluster": 15
+        },
+        {
+          "name": "Milena",
+          "from_cluster": 17,
+          "to_cluster": 16
+        },
+        {
+          "name": "Paulo Augusto",
+          "from_cluster": 18,
+          "to_cluster": 17
+        },
+        {
+          "name": "Samira",
+          "from_cluster": 19,
+          "to_cluster": 18
+        },
+        {
+          "name": "Sarah Andrade",
+          "from_cluster": 20,
+          "to_cluster": 19
+        },
+        {
+          "name": "Sol Vega",
+          "from_cluster": 21,
+          "to_cluster": 20
+        },
+        {
+          "name": "Solange Couto",
+          "from_cluster": 22,
+          "to_cluster": 21
+        }
+      ]
     },
     {
-      "date": "2026-02-03",
+      "date": "2026-02-04",
       "week": 3,
       "n_active": 19,
       "n_clusters": 19,
@@ -648,41 +675,41 @@
         },
         {
           "name": "Maxiane",
-          "from_cluster": 16,
+          "from_cluster": 15,
           "to_cluster": 14
         },
         {
           "name": "Milena",
-          "from_cluster": 17,
+          "from_cluster": 16,
           "to_cluster": 15
         },
         {
           "name": "Samira",
-          "from_cluster": 19,
+          "from_cluster": 18,
           "to_cluster": 16
         },
         {
           "name": "Sarah Andrade",
-          "from_cluster": 20,
+          "from_cluster": 19,
           "to_cluster": 17
         },
         {
           "name": "Sol Vega",
-          "from_cluster": 21,
+          "from_cluster": 20,
           "to_cluster": 18
         },
         {
           "name": "Solange Couto",
-          "from_cluster": 22,
+          "from_cluster": 21,
           "to_cluster": 19
         }
       ]
     },
     {
-      "date": "2026-02-10",
+      "date": "2026-02-12",
       "week": 4,
-      "n_active": 18,
-      "n_clusters": 18,
+      "n_active": 17,
+      "n_clusters": 17,
       "silhouette": null,
       "communities": [
         {
@@ -832,37 +859,23 @@
         {
           "label": 17,
           "members": [
-            "Sol Vega"
-          ],
-          "size": 1,
-          "cohesion": 0,
-          "color": "#2ecc71"
-        },
-        {
-          "label": 18,
-          "members": [
             "Solange Couto"
           ],
           "size": 1,
           "cohesion": 0,
-          "color": "#f39c12"
+          "color": "#2ecc71"
         }
       ],
       "transitions": [
         {
-          "name": "Sol Vega",
-          "from_cluster": 18,
-          "to_cluster": 17
-        },
-        {
           "name": "Solange Couto",
           "from_cluster": 19,
-          "to_cluster": 18
+          "to_cluster": 17
         }
       ]
     },
     {
-      "date": "2026-02-17",
+      "date": "2026-02-18",
       "week": 5,
       "n_active": 15,
       "n_clusters": 15,
@@ -1052,7 +1065,7 @@
         },
         {
           "name": "Solange Couto",
-          "from_cluster": 18,
+          "from_cluster": 17,
           "to_cluster": 15
         }
       ]
@@ -1348,193 +1361,235 @@
   ],
   "all_transitions": [
     {
+      "name": "Maxiane",
+      "from_cluster": 16,
+      "to_cluster": 15,
+      "week": 2,
+      "date": "2026-01-28"
+    },
+    {
+      "name": "Milena",
+      "from_cluster": 17,
+      "to_cluster": 16,
+      "week": 2,
+      "date": "2026-01-28"
+    },
+    {
+      "name": "Paulo Augusto",
+      "from_cluster": 18,
+      "to_cluster": 17,
+      "week": 2,
+      "date": "2026-01-28"
+    },
+    {
+      "name": "Samira",
+      "from_cluster": 19,
+      "to_cluster": 18,
+      "week": 2,
+      "date": "2026-01-28"
+    },
+    {
+      "name": "Sarah Andrade",
+      "from_cluster": 20,
+      "to_cluster": 19,
+      "week": 2,
+      "date": "2026-01-28"
+    },
+    {
+      "name": "Sol Vega",
+      "from_cluster": 21,
+      "to_cluster": 20,
+      "week": 2,
+      "date": "2026-01-28"
+    },
+    {
+      "name": "Solange Couto",
+      "from_cluster": 22,
+      "to_cluster": 21,
+      "week": 2,
+      "date": "2026-01-28"
+    },
+    {
       "name": "Chaiany",
       "from_cluster": 6,
       "to_cluster": 5,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Edilson",
       "from_cluster": 7,
       "to_cluster": 6,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Gabriela",
       "from_cluster": 8,
       "to_cluster": 7,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Jonas Sulzbach",
       "from_cluster": 9,
       "to_cluster": 8,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Jordana",
       "from_cluster": 10,
       "to_cluster": 9,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Juliano Floss",
       "from_cluster": 11,
       "to_cluster": 10,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Leandro",
       "from_cluster": 12,
       "to_cluster": 11,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Marcelo",
       "from_cluster": 13,
       "to_cluster": 12,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Marciele",
       "from_cluster": 14,
       "to_cluster": 13,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Maxiane",
-      "from_cluster": 16,
+      "from_cluster": 15,
       "to_cluster": 14,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Milena",
-      "from_cluster": 17,
+      "from_cluster": 16,
       "to_cluster": 15,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Samira",
-      "from_cluster": 19,
+      "from_cluster": 18,
       "to_cluster": 16,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Sarah Andrade",
-      "from_cluster": 20,
+      "from_cluster": 19,
       "to_cluster": 17,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Sol Vega",
-      "from_cluster": 21,
+      "from_cluster": 20,
       "to_cluster": 18,
       "week": 3,
-      "date": "2026-02-03"
+      "date": "2026-02-04"
     },
     {
       "name": "Solange Couto",
-      "from_cluster": 22,
+      "from_cluster": 21,
       "to_cluster": 19,
       "week": 3,
-      "date": "2026-02-03"
-    },
-    {
-      "name": "Sol Vega",
-      "from_cluster": 18,
-      "to_cluster": 17,
-      "week": 4,
-      "date": "2026-02-10"
+      "date": "2026-02-04"
     },
     {
       "name": "Solange Couto",
       "from_cluster": 19,
-      "to_cluster": 18,
+      "to_cluster": 17,
       "week": 4,
-      "date": "2026-02-10"
+      "date": "2026-02-12"
     },
     {
       "name": "Gabriela",
       "from_cluster": 7,
       "to_cluster": 6,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Jonas Sulzbach",
       "from_cluster": 8,
       "to_cluster": 7,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Jordana",
       "from_cluster": 9,
       "to_cluster": 8,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Juliano Floss",
       "from_cluster": 10,
       "to_cluster": 9,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Leandro",
       "from_cluster": 11,
       "to_cluster": 10,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Marciele",
       "from_cluster": 13,
       "to_cluster": 11,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Maxiane",
       "from_cluster": 14,
       "to_cluster": 12,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Milena",
       "from_cluster": 15,
       "to_cluster": 13,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Samira",
       "from_cluster": 16,
       "to_cluster": 14,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Solange Couto",
-      "from_cluster": 18,
+      "from_cluster": 17,
       "to_cluster": 15,
       "week": 5,
-      "date": "2026-02-17"
+      "date": "2026-02-18"
     },
     {
       "name": "Milena",
@@ -1561,22 +1616,22 @@
   "most_mobile": [
     {
       "name": "Solange Couto",
-      "moves": 4
+      "moves": 5
     },
     {
       "name": "Milena",
-      "moves": 3
+      "moves": 4
     },
     {
       "name": "Samira",
+      "moves": 4
+    },
+    {
+      "name": "Maxiane",
       "moves": 3
     },
     {
-      "name": "Gabriela",
-      "moves": 2
-    },
-    {
-      "name": "Jonas Sulzbach",
+      "name": "Sarah Andrade",
       "moves": 2
     }
   ]

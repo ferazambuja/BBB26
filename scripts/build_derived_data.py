@@ -383,7 +383,8 @@ def _compute_vote_multipliers(par: dict, power_events: list[dict], week: int | N
         multiplier[voter] = 0
 
     for ev in power_events:
-        if week and ev.get("week") == week:
+        ev_week = get_week_number(ev["date"]) if ev.get("date") else ev.get("week", 0)
+        if week and ev_week == week:
             if ev.get("type") == "voto_duplo":
                 for a in normalize_actors(ev):
                     if a:
@@ -487,7 +488,7 @@ def _build_power_event_edges(power_events: list[dict], effective_week_daily: int
         visibility = ev.get("visibility", "public")
         vis_factor = RELATION_VISIBILITY_FACTOR.get(visibility, 1.0)
         weight = base_weight * vis_factor
-        ev_week = ev.get("week") or (get_week_number(ev["date"]) if ev.get("date") else effective_week_daily)
+        ev_week = get_week_number(ev["date"]) if ev.get("date") else effective_week_daily
         for actor in actors:
             if actor in SYSTEM_ACTORS:
                 continue
@@ -628,9 +629,9 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
     else:
         candidate_weeks = []
         for ev in power_events:
-            w = ev.get("week")
-            if w:
-                candidate_weeks.append(w)
+            d = ev.get("date", "")
+            if d:
+                candidate_weeks.append(get_week_number(d))
         for edge in (sincerao_edges or {}).get("edges", []):
             w = edge.get("week")
             if w:
@@ -644,9 +645,9 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
             effective_week_paredao = max(candidate_weeks)
     candidate_weeks_daily = []
     for ev in power_events:
-        w = ev.get("week")
-        if w:
-            candidate_weeks_daily.append(w)
+        d = ev.get("date", "")
+        if d:
+            candidate_weeks_daily.append(get_week_number(d))
     for edge in (sincerao_edges or {}).get("edges", []):
         w = edge.get("week")
         if w:
@@ -2032,11 +2033,13 @@ def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, a
 
     events_by_week = defaultdict(list)
     for ev in (manual_events.get("power_events", []) if manual_events else []):
-        week = ev.get("week")
+        d = ev.get("date", "")
+        week = get_week_number(d) if d else ev.get("week", 0)
         if week:
             events_by_week[week].append(ev)
     for ev in auto_events or []:
-        week = ev.get("week")
+        d = ev.get("date", "")
+        week = get_week_number(d) if d else ev.get("week", 0)
         if week:
             events_by_week[week].append(ev)
 
@@ -2565,7 +2568,7 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
             for ev in manual_events.get('power_events', []):
                 if ev.get('type') != 'imunidade':
                     continue
-                ev_week = ev.get('week') or get_week_number(ev.get('date', paredao_date))
+                ev_week = get_week_number(ev['date']) if ev.get('date') else ev.get('week', 0)
                 if ev_week == week and ev.get('target'):
                     extra_imunes.add(ev['target'].strip())
 
@@ -3679,7 +3682,8 @@ def _collect_timeline_auto_events(
         t = ev.get("type", "")
         cat, emoji = type_map.get(t, ("poder", "⚡"))
         date = ev.get("date", "")
-        week = ev.get("week") or (get_week_number(date) if date else 0)
+        # Always compute week from date (ignore stored week)
+        week = get_week_number(date) if date else 0
         target = ev.get("target", "")
         events.append({
             "date": date, "week": week, "category": cat,
@@ -3720,7 +3724,8 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
         # Skip individual punição rows when a ta_com_nada event covers them
         if t in ("punicao_gravissima", "punicao_coletiva") and date in tcn_dates:
             continue
-        week = ev.get("week") or (get_week_number(date) if date else 0)
+        # Always compute week from date (ignore stored week — may use old calendar math)
+        week = get_week_number(date) if date else 0
         actor = ev.get("actor", "")
         target = ev.get("target", "")
         emoji = power_emoji.get(t, "⚡")
@@ -3885,7 +3890,7 @@ def _merge_and_dedup_timeline(
     existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
         date = se.get("date", "")
-        week = se.get("week") or (get_week_number(date) if date else 0)
+        week = get_week_number(date) if date else 0
         key = (date, se.get("category", ""))
         if key in existing_date_cat:
             continue  # skip — a real event already covers this date+category

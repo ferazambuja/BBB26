@@ -272,32 +272,35 @@ def setup_bbb_dark_theme() -> None:
 
 
 
-# Paredão-based week boundaries.
-# Each BBB game week ends on the paredão result date (inclusive).
-# Week N covers: (previous paredão date + 1) through (Nth paredão date).
-# Week 1 covers premiere (Jan 13) through 1st paredão result (Jan 21).
-PAREDAO_WEEK_ENDS: list[str] = [
-    "2026-01-21",  # Week 1 — 1º Paredão (Aline Campos)
-    "2026-01-27",  # Week 2 — 2º Paredão (Matheus)
-    "2026-02-03",  # Week 3 — 3º Paredão (Brigido)
-    "2026-02-10",  # Week 4 — 4º Paredão (Sarah Andrade)
-    "2026-02-17",  # Week 5 — 5º Paredão (Marcelo)
-    "2026-02-25",  # Week 6 — 6º Paredão (Maxiane)
+# Game week boundaries — defined by Líder transitions, not calendar days.
+# A BBB week runs from one Líder's start through the day before the next Líder.
+# The paredão result + barrado no baile close the week; the new Prova do Líder opens
+# the next. Boundaries are the LAST day of each week (inclusive).
+# Update when a new paredão cycle completes or a new Líder is defined.
+WEEK_END_DATES: list[str] = [
+    "2026-01-21",  # Week 1 — Alberto Cowboy Líder; 1º Paredão Jan 21; Babu Líder Jan 22
+    "2026-01-28",  # Week 2 — Babu Santana Líder; 2º Paredão Jan 27; barrado Jan 28; Maxiane Líder Jan 29
+    "2026-02-04",  # Week 3 — Maxiane Líder; 3º Paredão Feb 3; barrado Feb 4; Jonas Líder Feb 5
+    "2026-02-12",  # Week 4 — Jonas Sulzbach Líder; 4º Paredão Feb 10; barrado Feb 11; Jonas Líder Feb 13
+    "2026-02-18",  # Week 5 — Jonas Sulzbach Líder; 5º Paredão Feb 17; barrado Feb 18
+    "2026-02-25",  # Week 6 — Jonas Sulzbach Líder; 6º Paredão Feb 25; barrado Feb 25
 ]
 
 
 def get_week_number(date_str: str) -> int:
     """Calculate BBB26 game week number from date string (YYYY-MM-DD).
 
-    Game weeks are bounded by paredão results (not calendar 7-day periods).
-    Week N ends on the Nth paredão result date (inclusive).
-    Dates after the last known paredão get week = len(PAREDAO_WEEK_ENDS) + 1.
+    Game weeks are bounded by Líder transitions (not calendar 7-day periods).
+    A week includes its paredão result AND the subsequent barrado no baile,
+    since both are decided by that week's Líder. The week ends on the day
+    before the new Líder is defined (typically Thursday night Prova do Líder).
+    Dates after the last known week get week = len(WEEK_END_DATES) + 1.
     Dates before premiere are clamped to week 1.
     """
     if date_str < "2026-01-13":
         return 1
-    # bisect_left: paredão date itself is INCLUDED in the week it ends
-    idx = bisect_left(PAREDAO_WEEK_ENDS, date_str)
+    # bisect_left: boundary date itself is INCLUDED in the week it ends
+    idx = bisect_left(WEEK_END_DATES, date_str)
     return idx + 1
 
 
