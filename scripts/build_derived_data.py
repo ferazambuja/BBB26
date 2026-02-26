@@ -455,6 +455,134 @@ def _build_vote_data(paredoes, manual_events):
     }
 
 
+def _build_power_event_edges(power_events, effective_week_daily, add_edge_raw):
+    """Generate power event edges (actor→target + backlash)."""
+    for ev in power_events:
+        ev_type = ev.get("type")
+        base_weight = RELATION_POWER_WEIGHTS.get(ev_type, 0.0)
+        if base_weight == 0:
+            continue
+        if ev.get("self") or ev.get("self_inflicted"):
+            continue
+        target = ev.get("target")
+        if not target:
+            continue
+        actors = normalize_actors(ev)
+        if not actors:
+            continue
+        visibility = ev.get("visibility", "public")
+        vis_factor = RELATION_VISIBILITY_FACTOR.get(visibility, 1.0)
+        weight = base_weight * vis_factor
+        ev_week = ev.get("week") or (get_week_number(ev["date"]) if ev.get("date") else effective_week_daily)
+        for actor in actors:
+            if actor in SYSTEM_ACTORS:
+                continue
+            add_edge_raw(
+                "power_event",
+                actor,
+                target,
+                weight,
+                week=ev_week,
+                date=ev.get("date"),
+                meta={"event_type": ev_type, "visibility": visibility},
+            )
+            backlash_factor = RELATION_POWER_BACKLASH_FACTOR.get(ev_type)
+            if backlash_factor and visibility != "secret":
+                add_edge_raw(
+                    "power_event",
+                    target,
+                    actor,
+                    weight * backlash_factor,
+                    week=ev_week,
+                    date=ev.get("date"),
+                    meta={"event_type": ev_type, "visibility": visibility, "backlash": True},
+                )
+
+
+def _build_sincerao_edges_section(sincerao_edges, add_edge_raw):
+    """Generate Sincerão edges (actor→target + backlash)."""
+    for edge in (sincerao_edges or {}).get("edges", []):
+        actor = edge.get("actor")
+        target = edge.get("target")
+        etype = edge.get("type")
+        if etype in ("podio", "regua"):
+            slot = edge.get("slot")
+            base_weight = RELATION_SINC_WEIGHTS[etype].get(slot, 0.0)
+        else:
+            base_weight = RELATION_SINC_WEIGHTS.get(etype, 0.0)
+        if base_weight == 0:
+            continue
+        add_edge_raw(
+            "sincerao",
+            actor,
+            target,
+            base_weight,
+            week=edge.get("week"),
+            date=edge.get("date"),
+            meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema")},
+        )
+        backlash = RELATION_SINC_BACKLASH_FACTOR.get(etype)
+        if backlash:
+            add_edge_raw(
+                "sincerao",
+                target,
+                actor,
+                base_weight * backlash,
+                week=edge.get("week"),
+                date=edge.get("date"),
+                meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema"), "backlash": True},
+            )
+
+
+def _build_vote_edges(votes_received_by_week, open_vote_weeks, revealed_votes,
+                      vote_revelation_type, vote_week_to_date, add_edge_raw):
+    """Generate vote edges (voter→target + backlash when revealed)."""
+    for week, targets in votes_received_by_week.items():
+        for target, voters in targets.items():
+            for voter, count in voters.items():
+                if count <= 0:
+                    continue
+                # Determine vote visibility type
+                is_open_week = week in open_vote_weeks
+                is_individually_revealed = voter in revealed_votes.get(target, set())
+
+                if is_open_week:
+                    vote_kind = "open_vote"
+                elif is_individually_revealed:
+                    # Use the specific revelation type (confissao or dedo_duro)
+                    vote_kind = vote_revelation_type.get((voter, target), "dedo_duro")
+                else:
+                    vote_kind = "secret"
+
+                weight = RELATION_VOTE_WEIGHTS[vote_kind] * count
+                is_revealed = vote_kind != "secret"
+                add_edge_raw(
+                    "vote",
+                    voter,
+                    target,
+                    weight,
+                    week=week,
+                    date=vote_week_to_date.get(week),
+                    meta={"vote_count": count, "vote_kind": vote_kind},
+                    revealed=is_revealed,
+                )
+                # Backlash: target resents voter (only when target knows who voted)
+                if is_revealed:
+                    backlash_key = f"{vote_kind}_backlash"
+                    backlash_weight = RELATION_VOTE_WEIGHTS.get(backlash_key, RELATION_VOTE_WEIGHTS.get("dedo_duro_backlash", -1.2))
+                    backlash = backlash_weight * count
+                    add_edge_raw(
+                        "vote",
+                        target,
+                        voter,
+                        backlash,
+                        week=week,
+                        date=vote_week_to_date.get(week),
+                        meta={"vote_count": count, "vote_kind": backlash_key},
+                        revealed=True,
+                    )
+
+
 def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
                      daily_roles, all_names_set, current_week, latest_date, vote_data):
     """Generate all relationship edges (power, Sincerao, VIP, Anjo, votes).
@@ -555,79 +683,8 @@ def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
             edge.update(meta)
         edges_raw.append(edge)
 
-    for ev in power_events:
-        ev_type = ev.get("type")
-        base_weight = RELATION_POWER_WEIGHTS.get(ev_type, 0.0)
-        if base_weight == 0:
-            continue
-        if ev.get("self") or ev.get("self_inflicted"):
-            continue
-        target = ev.get("target")
-        if not target:
-            continue
-        actors = normalize_actors(ev)
-        if not actors:
-            continue
-        visibility = ev.get("visibility", "public")
-        vis_factor = RELATION_VISIBILITY_FACTOR.get(visibility, 1.0)
-        weight = base_weight * vis_factor
-        ev_week = ev.get("week") or (get_week_number(ev["date"]) if ev.get("date") else effective_week_daily)
-        for actor in actors:
-            if actor in SYSTEM_ACTORS:
-                continue
-            add_edge_raw(
-                "power_event",
-                actor,
-                target,
-                weight,
-                week=ev_week,
-                date=ev.get("date"),
-                meta={"event_type": ev_type, "visibility": visibility},
-            )
-            backlash_factor = RELATION_POWER_BACKLASH_FACTOR.get(ev_type)
-            if backlash_factor and visibility != "secret":
-                add_edge_raw(
-                    "power_event",
-                    target,
-                    actor,
-                    weight * backlash_factor,
-                    week=ev_week,
-                    date=ev.get("date"),
-                    meta={"event_type": ev_type, "visibility": visibility, "backlash": True},
-                )
-
-    # Sincerão edges
-    for edge in (sincerao_edges or {}).get("edges", []):
-        actor = edge.get("actor")
-        target = edge.get("target")
-        etype = edge.get("type")
-        if etype in ("podio", "regua"):
-            slot = edge.get("slot")
-            base_weight = RELATION_SINC_WEIGHTS[etype].get(slot, 0.0)
-        else:
-            base_weight = RELATION_SINC_WEIGHTS.get(etype, 0.0)
-        if base_weight == 0:
-            continue
-        add_edge_raw(
-            "sincerao",
-            actor,
-            target,
-            base_weight,
-            week=edge.get("week"),
-            date=edge.get("date"),
-            meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema")},
-        )
-        backlash = RELATION_SINC_BACKLASH_FACTOR.get(etype)
-        if backlash:
-            add_edge_raw(
-                "sincerao",
-                target,
-                actor,
-                base_weight * backlash,
-                week=edge.get("week"),
-                date=edge.get("date"),
-                meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema"), "backlash": True},
-            )
+    _build_power_event_edges(power_events, effective_week_daily, add_edge_raw)
+    _build_sincerao_edges_section(sincerao_edges, add_edge_raw)
 
     # VIP edges — one set per leader reign
     # Use the first day of each leader's reign as the VIP list (before mid-week
@@ -726,51 +783,8 @@ def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
                     meta={"anjo_type": "anjo_nao_imunizou"},
                 )
 
-    # Vote edges
-    for week, targets in votes_received_by_week.items():
-        for target, voters in targets.items():
-            for voter, count in voters.items():
-                if count <= 0:
-                    continue
-                # Determine vote visibility type
-                is_open_week = week in open_vote_weeks
-                is_individually_revealed = voter in revealed_votes.get(target, set())
-
-                if is_open_week:
-                    vote_kind = "open_vote"
-                elif is_individually_revealed:
-                    # Use the specific revelation type (confissao or dedo_duro)
-                    vote_kind = vote_revelation_type.get((voter, target), "dedo_duro")
-                else:
-                    vote_kind = "secret"
-
-                weight = RELATION_VOTE_WEIGHTS[vote_kind] * count
-                is_revealed = vote_kind != "secret"
-                add_edge_raw(
-                    "vote",
-                    voter,
-                    target,
-                    weight,
-                    week=week,
-                    date=vote_week_to_date.get(week),
-                    meta={"vote_count": count, "vote_kind": vote_kind},
-                    revealed=is_revealed,
-                )
-                # Backlash: target resents voter (only when target knows who voted)
-                if is_revealed:
-                    backlash_key = f"{vote_kind}_backlash"
-                    backlash_weight = RELATION_VOTE_WEIGHTS.get(backlash_key, RELATION_VOTE_WEIGHTS.get("dedo_duro_backlash", -1.2))
-                    backlash = backlash_weight * count
-                    add_edge_raw(
-                        "vote",
-                        target,
-                        voter,
-                        backlash,
-                        week=week,
-                        date=vote_week_to_date.get(week),
-                        meta={"vote_count": count, "vote_kind": backlash_key},
-                        revealed=True,
-                    )
+    _build_vote_edges(votes_received_by_week, open_vote_weeks, revealed_votes,
+                      vote_revelation_type, vote_week_to_date, add_edge_raw)
 
     return {
         "edges_raw": edges_raw,
@@ -782,6 +796,127 @@ def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
     }
 
 
+def _blend_streak(q_reactive, actor, target, streak_info):
+    """Blend reactive score with streak memory and break penalty.
+
+    Q_final = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
+    """
+    streak = streak_info.get(actor, {}).get(target)
+    if not streak:
+        return q_reactive
+
+    s_len = streak.get("streak_len", 0)
+    s_sentiment = streak.get("streak_sentiment", 0.0)
+    consistency = min(s_len, STREAK_MEMORY_MAX_LEN) / STREAK_MEMORY_MAX_LEN
+    q_memory = consistency * s_sentiment
+
+    break_pen = 0.0
+    if streak.get("break_from_positive"):
+        prev_len = streak.get("previous_streak_len", 0)
+        break_pen = STREAK_BREAK_PENALTY * min(prev_len, STREAK_BREAK_MAX_LEN) / STREAK_BREAK_MAX_LEN
+
+    return STREAK_REACTIVE_WEIGHT * q_reactive + STREAK_MEMORY_WEIGHT * q_memory + break_pen
+
+
+def _compute_base_weights(ref_date, name_list, daily_snapshots, reaction_matrix_latest, streak_info):
+    """Compute base emoji weights using a short rolling window (3 days) + streak memory + break penalty."""
+    base = {}
+    if daily_snapshots:
+        candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
+        if candidates:
+            selected = candidates[-3:]
+            weights = REACTIVE_WINDOW_WEIGHTS[-len(selected):]
+            total_w = sum(weights)
+            weights = [w / total_w for w in weights]
+            matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+            # Patch missing Raio-X: carry forward from predecessor
+            # For the first matrix, look back one more in candidates
+            fallback_idx = len(candidates) - len(selected) - 1
+            prev_mat = build_reaction_matrix(candidates[fallback_idx]["participants"]) if fallback_idx >= 0 else {}
+            for i in range(len(matrices)):
+                matrices[i], _ = patch_missing_raio_x(matrices[i], selected[i]["participants"], prev_mat)
+                prev_mat = matrices[i]
+            for actor in name_list:
+                if actor in base:
+                    continue
+                base[actor] = {}
+                for target in name_list:
+                    if actor == target:
+                        continue
+                    weighted = 0.0
+                    used = 0.0
+                    for w, mat in zip(weights, matrices):
+                        label = mat.get((actor, target), "")
+                        if label:
+                            weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                            used += w
+                    if used == 0.0:
+                        label = reaction_matrix_latest.get((actor, target), "")
+                        weighted = SENTIMENT_WEIGHTS.get(label, 0.0)
+                    base[actor][target] = _blend_streak(weighted, actor, target, streak_info)
+    return base
+
+
+def _compute_base_weights_all(ref_date, active_names, all_names, daily_snapshots,
+                              reaction_matrix_latest, streak_info, eliminated_last_seen):
+    """Compute base weights for all participants, using last_seen snapshots for eliminated ones."""
+    base = _compute_base_weights(ref_date, active_names, daily_snapshots, reaction_matrix_latest, streak_info)
+
+    # For eliminated participants, compute Q_base from their last known snapshot
+    for elim_name, last_seen in eliminated_last_seen.items():
+        if not last_seen:
+            continue
+        elim_ref = last_seen
+        elim_candidates = [s for s in daily_snapshots if s.get("date") <= elim_ref]
+        if not elim_candidates:
+            continue
+        selected = elim_candidates[-3:]
+        weights = REACTIVE_WINDOW_WEIGHTS[-len(selected):]
+        total_w = sum(weights)
+        weights = [w / total_w for w in weights]
+        matrices = [build_reaction_matrix(s["participants"]) for s in selected]
+        # Patch missing Raio-X for eliminated participants' window
+        fb_idx = len(elim_candidates) - len(selected) - 1
+        prev_mat = build_reaction_matrix(elim_candidates[fb_idx]["participants"]) if fb_idx >= 0 else {}
+        for mi in range(len(matrices)):
+            matrices[mi], _ = patch_missing_raio_x(matrices[mi], selected[mi]["participants"], prev_mat)
+            prev_mat = matrices[mi]
+
+        base[elim_name] = {}
+        for target in all_names:
+            if elim_name == target:
+                continue
+            weighted = 0.0
+            used = 0.0
+            for w, mat in zip(weights, matrices):
+                label = mat.get((elim_name, target), "")
+                if label:
+                    weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                    used += w
+            if used == 0.0:
+                weighted = 0.0
+            base[elim_name][target] = _blend_streak(weighted, elim_name, target, streak_info)
+
+        # Also compute what active participants gave the eliminated participant
+        for actor in all_names:
+            if actor == elim_name:
+                continue
+            if actor not in base:
+                base[actor] = {}
+            weighted = 0.0
+            used = 0.0
+            for w, mat in zip(weights, matrices):
+                label = mat.get((actor, elim_name), "")
+                if label:
+                    weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
+                    used += w
+            if used == 0.0:
+                weighted = 0.0
+            base[actor][elim_name] = _blend_streak(weighted, actor, elim_name, streak_info)
+
+    return base
+
+
 def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, eliminated_last_seen,
                          active_names, active_set, all_names, edges_raw,
                          reference_date_daily, reference_date_paredao):
@@ -789,128 +924,10 @@ def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, e
 
     Returns dict with: pairs_daily, pairs_paredao, pairs_all, contradictions, edges.
     """
-    # Build base emoji weights using a short rolling window (3 days) + streak memory + break penalty
-    def _blend_streak(q_reactive, actor, target):
-        """Blend reactive score with streak memory and break penalty.
-
-        Q_final = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
-        """
-        streak = streak_info.get(actor, {}).get(target)
-        if not streak:
-            return q_reactive
-
-        s_len = streak.get("streak_len", 0)
-        s_sentiment = streak.get("streak_sentiment", 0.0)
-        consistency = min(s_len, STREAK_MEMORY_MAX_LEN) / STREAK_MEMORY_MAX_LEN
-        q_memory = consistency * s_sentiment
-
-        break_pen = 0.0
-        if streak.get("break_from_positive"):
-            prev_len = streak.get("previous_streak_len", 0)
-            break_pen = STREAK_BREAK_PENALTY * min(prev_len, STREAK_BREAK_MAX_LEN) / STREAK_BREAK_MAX_LEN
-
-        return STREAK_REACTIVE_WEIGHT * q_reactive + STREAK_MEMORY_WEIGHT * q_memory + break_pen
-
-    def compute_base_weights(ref_date, name_list=None):
-        if name_list is None:
-            name_list = active_names
-        base = {}
-        if daily_snapshots:
-            candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
-            if candidates:
-                selected = candidates[-3:]
-                weights = REACTIVE_WINDOW_WEIGHTS[-len(selected):]
-                total_w = sum(weights)
-                weights = [w / total_w for w in weights]
-                matrices = [build_reaction_matrix(s["participants"]) for s in selected]
-                # Patch missing Raio-X: carry forward from predecessor
-                # For the first matrix, look back one more in candidates
-                fallback_idx = len(candidates) - len(selected) - 1
-                prev_mat = build_reaction_matrix(candidates[fallback_idx]["participants"]) if fallback_idx >= 0 else {}
-                for i in range(len(matrices)):
-                    matrices[i], _ = patch_missing_raio_x(matrices[i], selected[i]["participants"], prev_mat)
-                    prev_mat = matrices[i]
-                for actor in name_list:
-                    if actor in base:
-                        continue
-                    base[actor] = {}
-                    for target in name_list:
-                        if actor == target:
-                            continue
-                        weighted = 0.0
-                        used = 0.0
-                        for w, mat in zip(weights, matrices):
-                            label = mat.get((actor, target), "")
-                            if label:
-                                weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
-                                used += w
-                        if used == 0.0:
-                            label = reaction_matrix_latest.get((actor, target), "")
-                            weighted = SENTIMENT_WEIGHTS.get(label, 0.0)
-                        base[actor][target] = _blend_streak(weighted, actor, target)
-        return base
-
-    def compute_base_weights_all(ref_date):
-        """Compute base weights for all participants, using last_seen snapshots for eliminated ones."""
-        base = compute_base_weights(ref_date, active_names)
-
-        # For eliminated participants, compute Q_base from their last known snapshot
-        for elim_name, last_seen in eliminated_last_seen.items():
-            if not last_seen:
-                continue
-            elim_ref = last_seen
-            elim_candidates = [s for s in daily_snapshots if s.get("date") <= elim_ref]
-            if not elim_candidates:
-                continue
-            selected = elim_candidates[-3:]
-            weights = REACTIVE_WINDOW_WEIGHTS[-len(selected):]
-            total_w = sum(weights)
-            weights = [w / total_w for w in weights]
-            matrices = [build_reaction_matrix(s["participants"]) for s in selected]
-            # Patch missing Raio-X for eliminated participants' window
-            fb_idx = len(elim_candidates) - len(selected) - 1
-            prev_mat = build_reaction_matrix(elim_candidates[fb_idx]["participants"]) if fb_idx >= 0 else {}
-            for mi in range(len(matrices)):
-                matrices[mi], _ = patch_missing_raio_x(matrices[mi], selected[mi]["participants"], prev_mat)
-                prev_mat = matrices[mi]
-
-            base[elim_name] = {}
-            for target in all_names:
-                if elim_name == target:
-                    continue
-                weighted = 0.0
-                used = 0.0
-                for w, mat in zip(weights, matrices):
-                    label = mat.get((elim_name, target), "")
-                    if label:
-                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
-                        used += w
-                if used == 0.0:
-                    weighted = 0.0
-                base[elim_name][target] = _blend_streak(weighted, elim_name, target)
-
-            # Also compute what active participants gave the eliminated participant
-            for actor in all_names:
-                if actor == elim_name:
-                    continue
-                if actor not in base:
-                    base[actor] = {}
-                weighted = 0.0
-                used = 0.0
-                for w, mat in zip(weights, matrices):
-                    label = mat.get((actor, elim_name), "")
-                    if label:
-                        weighted += SENTIMENT_WEIGHTS.get(label, 0.0) * w
-                        used += w
-                if used == 0.0:
-                    weighted = 0.0
-                base[actor][elim_name] = _blend_streak(weighted, actor, elim_name)
-
-        return base
-
-    base_weights_daily = compute_base_weights(reference_date_daily)
-    base_weights_paredao = compute_base_weights(reference_date_paredao)
-    base_weights_all = compute_base_weights_all(reference_date_daily)
+    base_weights_daily = _compute_base_weights(reference_date_daily, active_names, daily_snapshots, reaction_matrix_latest, streak_info)
+    base_weights_paredao = _compute_base_weights(reference_date_paredao, active_names, daily_snapshots, reaction_matrix_latest, streak_info)
+    base_weights_all = _compute_base_weights_all(reference_date_daily, active_names, all_names, daily_snapshots,
+                                                  reaction_matrix_latest, streak_info, eliminated_last_seen)
 
     def apply_context_edges(edges_in):
         """Prepare context edges with accumulated weights (no decay).
@@ -2259,26 +2276,12 @@ def validate_manual_events(participants_index, manual_events):
     return warnings
 
 
-def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participants_index):
-    """Build Cartola BBB points data from snapshots, manual events, and paredões.
-
-    Returns a dict suitable for writing to cartola_data.json.
-    """
-    calculated_points = defaultdict(lambda: defaultdict(list))
-
+def _detect_cartola_roles(daily_snapshots, calculated_points):
+    """Auto-detect roles from API snapshots and populate calculated_points."""
     def has_event(name, week, event_key):
         week_events = calculated_points.get(name, {}).get(week, [])
         return any(e[0] == event_key for e in week_events)
 
-    def add_event_points(name, week, event_key, points, date_str):
-        if not name:
-            return
-        week_events = calculated_points[name].get(week, [])
-        if any(e[0] == event_key for e in week_events):
-            return
-        calculated_points[name][week].append((event_key, points, date_str))
-
-    # ── 1. Auto-detect roles from API snapshots ──
     previous_holders = {
         'Líder': None, 'Anjo': None,
         'Monstro': set(), 'Imune': set(), 'Paredão': set(),
@@ -2369,7 +2372,25 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
         previous_holders['Imune'] = current_holders['Imune'].copy()
         previous_holders['Paredão'] = current_holders['Paredão'].copy()
 
-    # ── 2. Manual events ──
+
+def _apply_cartola_manual(calculated_points, manual_events, paredoes_data, daily_snapshots):
+    """Apply manual events, paredão-derived events, and merge with cartola_points_log.
+
+    Returns all_points (merged calculated + manual log).
+    """
+    def has_event(name, week, event_key):
+        week_events = calculated_points.get(name, {}).get(week, [])
+        return any(e[0] == event_key for e in week_events)
+
+    def add_event_points(name, week, event_key, points, date_str):
+        if not name:
+            return
+        week_events = calculated_points[name].get(week, [])
+        if any(e[0] == event_key for e in week_events):
+            return
+        calculated_points[name][week].append((event_key, points, date_str))
+
+    # Manual events
     for week_event in manual_events.get('weekly_events', []):
         week = week_event.get('week', 1)
         start_date = week_event.get('start_date', '')
@@ -2395,7 +2416,7 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
         elif status == 'desclassificado':
             calculated_points[name][week].append(('desclassificado', CARTOLA_POINTS['desclassificado'], exit_date))
 
-    # ── 2b. Paredão-derived events ──
+    # Paredão-derived events
     def get_snapshot_on_or_before(date_str):
         if not daily_snapshots:
             return None
@@ -2487,13 +2508,13 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
                     add_event_points(nome, week, 'nao_recebeu_votos',
                                      CARTOLA_POINTS['nao_recebeu_votos'], paredao_date)
 
-    # ── 2c. Rule normalization (Líder doesn't accumulate) ──
+    # Rule normalization (Líder doesn't accumulate)
     for name, weeks in calculated_points.items():
         for week, events in weeks.items():
             if any(e[0] == 'lider' for e in events):
                 calculated_points[name][week] = [e for e in events if e[0] == 'lider']
 
-    # ── 3. Merge with cartola_points_log ──
+    # Merge with cartola_points_log
     all_points = defaultdict(lambda: defaultdict(list))
     for participant, weeks in calculated_points.items():
         for week, events in weeks.items():
@@ -2512,7 +2533,11 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
             if not already_has and event_type not in auto_types:
                 all_points[participant][week].append((event_type, points, None))
 
-    # ── 4. Build output ──
+    return all_points
+
+
+def _format_cartola_output(all_points, participants_index, manual_events, daily_snapshots):
+    """Format Cartola output: leaderboard, weekly points, stats, cumulative evolution."""
     # Build participant info from index
     participant_info = {}
     for rec in participants_index:
@@ -2638,6 +2663,18 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
             "current_roles": current_roles,
         },
     }
+
+
+def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participants_index):
+    """Build Cartola BBB points data from snapshots, manual events, and paredões.
+
+    Returns a dict suitable for writing to cartola_data.json.
+    """
+    calculated_points = defaultdict(lambda: defaultdict(list))
+
+    _detect_cartola_roles(daily_snapshots, calculated_points)
+    all_points = _apply_cartola_manual(calculated_points, manual_events, paredoes_data, daily_snapshots)
+    return _format_cartola_output(all_points, participants_index, manual_events, daily_snapshots)
 
 
 def build_prova_rankings(provas_data, participants_index):
@@ -2931,6 +2968,181 @@ def _assign_phase_positions(positions, fase, excluded_names):
                     positions[name] = pos
 
 
+def _run_cluster_detection(active_names, sym_mat, participant_info, n_active, nx, louvain_communities, np):
+    """Run Louvain community detection with silhouette-based resolution tuning.
+
+    Returns dict with: cluster_of, cluster_members, n_clusters, silhouette_coefficient, resolution_used.
+    """
+    try:
+        from sklearn.metrics import silhouette_score
+        has_sklearn = True
+    except ImportError:
+        has_sklearn = False
+
+    G = nx.Graph()
+    for name in active_names:
+        G.add_node(name, group=participant_info.get(name, {}).get("grupo", "?"))
+
+    for i, a in enumerate(active_names):
+        for j, b in enumerate(active_names):
+            if i >= j:
+                continue
+            w = sym_mat[i][j]
+            if w > 0:
+                G.add_edge(a, b, weight=w)
+
+    # Convert sym_mat to numpy for silhouette computation
+    sym_arr = np.array(sym_mat)
+
+    # Silhouette sweep to find optimal resolution
+    resolutions = [0.5, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5]
+    best_resolution = 1.0
+    best_silhouette = -1.0
+    best_communities = None
+
+    if has_sklearn and n_active >= 4:
+        for res in resolutions:
+            try:
+                comms = list(louvain_communities(G, weight='weight', resolution=res, seed=42))
+                # Skip if too few clusters or singleton clusters dominate
+                if len(comms) < 2:
+                    continue
+                if min(len(c) for c in comms) < 2:
+                    continue
+
+                # Build label array for silhouette
+                name_to_label = {}
+                for label_idx, comm in enumerate(comms):
+                    for name in comm:
+                        name_to_label[name] = label_idx
+                labels = [name_to_label[n] for n in active_names]
+
+                # Use symmetric matrix as distance-like features
+                # silhouette expects samples x features; use each row as feature vector
+                sil = silhouette_score(sym_arr, labels, metric='euclidean')
+                if sil > best_silhouette:
+                    best_silhouette = sil
+                    best_resolution = res
+                    best_communities = comms
+            except Exception:
+                continue
+
+    # Fallback to default resolution if sweep didn't produce valid clusters
+    if best_communities is None:
+        best_communities = list(louvain_communities(G, weight='weight', resolution=1.0, seed=42))
+        best_silhouette = -1.0
+        best_resolution = 1.0
+
+    communities_sets = sorted(best_communities, key=lambda c: -len(c))
+
+    cluster_of = {}
+    cluster_members = {}
+    for idx, comm in enumerate(communities_sets):
+        label = idx + 1
+        cluster_members[label] = sorted(comm)
+        for name in comm:
+            cluster_of[name] = label
+
+    return {
+        "cluster_of": cluster_of,
+        "cluster_members": cluster_members,
+        "n_clusters": len(communities_sets),
+        "silhouette_coefficient": round(best_silhouette, 4) if best_silhouette > -1 else None,
+        "resolution_used": best_resolution,
+    }
+
+
+def _name_clusters(cluster_members, participant_info, name_to_idx, sym_mat):
+    """Auto-name clusters based on group composition and internal cohesion.
+
+    Returns (cluster_names, cluster_colors) dicts.
+    """
+    cluster_names = {}
+    cluster_colors = {}
+
+    for label, members in cluster_members.items():
+        groups = [participant_info.get(m, {}).get("grupo", "?") for m in members]
+        group_counts = Counter(groups)
+        dominant_group, dominant_count = group_counts.most_common(1)[0]
+        pct_dominant = dominant_count / len(members)
+
+        indices = [name_to_idx[m] for m in members]
+        internal_scores = [sym_mat[a][b] for a in indices for b in indices if a != b]
+        avg_internal = sum(internal_scores) / len(internal_scores) if internal_scores else 0
+
+        if pct_dominant >= 0.70:
+            base = f"Núcleo {dominant_group}"
+        else:
+            base = "Grupo Misto"
+
+        if avg_internal > 1.5:
+            prefix = "Aliança "
+        elif avg_internal < 0:
+            prefix = "Frente "
+        else:
+            prefix = ""
+
+        name = f"{prefix}{base}"
+
+        existing_names = list(cluster_names.values())
+        if name in existing_names:
+            for ch in "ABCDEFGH":
+                candidate = f"{name} {ch}"
+                if candidate not in existing_names:
+                    name = candidate
+                    break
+
+        cluster_names[label] = name
+        cluster_colors[label] = CLUSTER_COLORS[(label - 1) % len(CLUSTER_COLORS)]
+
+    return cluster_names, cluster_colors
+
+
+def _compute_cluster_metrics(cluster_members, name_to_idx, sym_mat, score_mat):
+    """Compute internal cohesion, inter-cluster scores, and tension metrics.
+
+    Returns dict with: cluster_internal_avg, inter_cluster_directed, inter_cluster_sym,
+    best_label, worst_pair_key, n_tensions.
+    """
+    cluster_internal_avg = {}
+    for label, members in cluster_members.items():
+        indices = [name_to_idx[m] for m in members]
+        scores = [sym_mat[a][b] for a in indices for b in indices if a != b]
+        cluster_internal_avg[label] = sum(scores) / len(scores) if scores else 0
+
+    inter_cluster_directed = {}
+    for la in sorted(cluster_members):
+        for lb in sorted(cluster_members):
+            if la == lb:
+                continue
+            idx_a = [name_to_idx[m] for m in cluster_members[la]]
+            idx_b = [name_to_idx[m] for m in cluster_members[lb]]
+            scores = [score_mat[a][b] for a in idx_a for b in idx_b]
+            inter_cluster_directed[f"{la}->{lb}"] = sum(scores) / len(scores) if scores else 0
+
+    inter_cluster_sym = {}
+    for la in sorted(cluster_members):
+        for lb in sorted(cluster_members):
+            if la >= lb:
+                continue
+            fwd = inter_cluster_directed.get(f"{la}->{lb}", 0)
+            rev = inter_cluster_directed.get(f"{lb}->{la}", 0)
+            inter_cluster_sym[f"{la}<>{lb}"] = (fwd + rev) / 2
+
+    best_label = max(cluster_internal_avg, key=lambda k: cluster_internal_avg[k])
+    worst_pair_key = min(inter_cluster_sym, key=lambda k: inter_cluster_sym[k]) if inter_cluster_sym else None
+    n_tensions = sum(1 for v in inter_cluster_sym.values() if v < -0.3)
+
+    return {
+        "cluster_internal_avg": cluster_internal_avg,
+        "inter_cluster_directed": inter_cluster_directed,
+        "inter_cluster_sym": inter_cluster_sym,
+        "best_label": best_label,
+        "worst_pair_key": worst_pair_key,
+        "n_tensions": n_tensions,
+    }
+
+
 def build_clusters_data(relations_scores, participants_index, paredoes_data):
     """Build community detection + vote alignment data for clusters.qmd.
 
@@ -3006,155 +3218,25 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
             if vote_participated[i][j] > 0:
                 vote_align[i][j] = vote_cooccur[i][j] / vote_participated[i][j]
 
-    # -------------------------------------------------------------------
     # Louvain community detection with silhouette-based resolution tuning
-    # -------------------------------------------------------------------
-    try:
-        from sklearn.metrics import silhouette_score
-        has_sklearn = True
-    except ImportError:
-        has_sklearn = False
+    detection = _run_cluster_detection(active_names, sym_mat, participant_info, n_active, nx, louvain_communities, np)
+    cluster_of = detection["cluster_of"]
+    cluster_members = detection["cluster_members"]
+    n_clusters = detection["n_clusters"]
+    silhouette_coefficient = detection["silhouette_coefficient"]
+    resolution_used = detection["resolution_used"]
 
-    G = nx.Graph()
-    for name in active_names:
-        G.add_node(name, group=participant_info.get(name, {}).get("grupo", "?"))
-
-    for i, a in enumerate(active_names):
-        for j, b in enumerate(active_names):
-            if i >= j:
-                continue
-            w = sym_mat[i][j]
-            if w > 0:
-                G.add_edge(a, b, weight=w)
-
-    # Convert sym_mat to numpy for silhouette computation
-    sym_arr = np.array(sym_mat)
-
-    # Silhouette sweep to find optimal resolution
-    resolutions = [0.5, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5]
-    best_resolution = 1.0
-    best_silhouette = -1.0
-    best_communities = None
-
-    if has_sklearn and n_active >= 4:
-        for res in resolutions:
-            try:
-                comms = list(louvain_communities(G, weight='weight', resolution=res, seed=42))
-                # Skip if too few clusters or singleton clusters dominate
-                if len(comms) < 2:
-                    continue
-                if min(len(c) for c in comms) < 2:
-                    continue
-
-                # Build label array for silhouette
-                name_to_label = {}
-                for label_idx, comm in enumerate(comms):
-                    for name in comm:
-                        name_to_label[name] = label_idx
-                labels = [name_to_label[n] for n in active_names]
-
-                # Use symmetric matrix as distance-like features
-                # silhouette expects samples × features; use each row as feature vector
-                sil = silhouette_score(sym_arr, labels, metric='euclidean')
-                if sil > best_silhouette:
-                    best_silhouette = sil
-                    best_resolution = res
-                    best_communities = comms
-            except Exception:
-                continue
-
-    # Fallback to default resolution if sweep didn't produce valid clusters
-    if best_communities is None:
-        best_communities = list(louvain_communities(G, weight='weight', resolution=1.0, seed=42))
-        best_silhouette = -1.0
-        best_resolution = 1.0
-
-    communities_sets = sorted(best_communities, key=lambda c: -len(c))
-
-    cluster_of = {}
-    cluster_members = {}
-    for idx, comm in enumerate(communities_sets):
-        label = idx + 1
-        cluster_members[label] = sorted(comm)
-        for name in comm:
-            cluster_of[name] = label
-
-    n_clusters = len(communities_sets)
-    silhouette_coefficient = round(best_silhouette, 4) if best_silhouette > -1 else None
-    resolution_used = best_resolution
-
-    # -------------------------------------------------------------------
     # Auto-naming
-    # -------------------------------------------------------------------
-    cluster_names = {}
-    cluster_colors = {}
+    cluster_names, cluster_colors = _name_clusters(cluster_members, participant_info, name_to_idx, sym_mat)
 
-    for label, members in cluster_members.items():
-        groups = [participant_info.get(m, {}).get("grupo", "?") for m in members]
-        group_counts = Counter(groups)
-        dominant_group, dominant_count = group_counts.most_common(1)[0]
-        pct_dominant = dominant_count / len(members)
-
-        indices = [name_to_idx[m] for m in members]
-        internal_scores = [sym_mat[a][b] for a in indices for b in indices if a != b]
-        avg_internal = sum(internal_scores) / len(internal_scores) if internal_scores else 0
-
-        if pct_dominant >= 0.70:
-            base = f"Núcleo {dominant_group}"
-        else:
-            base = "Grupo Misto"
-
-        if avg_internal > 1.5:
-            prefix = "Aliança "
-        elif avg_internal < 0:
-            prefix = "Frente "
-        else:
-            prefix = ""
-
-        name = f"{prefix}{base}"
-
-        existing_names = list(cluster_names.values())
-        if name in existing_names:
-            for ch in "ABCDEFGH":
-                candidate = f"{name} {ch}"
-                if candidate not in existing_names:
-                    name = candidate
-                    break
-
-        cluster_names[label] = name
-        cluster_colors[label] = CLUSTER_COLORS[(label - 1) % len(CLUSTER_COLORS)]
-
-    # -------------------------------------------------------------------
     # Cluster metrics
-    # -------------------------------------------------------------------
-    cluster_internal_avg = {}
-    for label, members in cluster_members.items():
-        indices = [name_to_idx[m] for m in members]
-        scores = [sym_mat[a][b] for a in indices for b in indices if a != b]
-        cluster_internal_avg[label] = sum(scores) / len(scores) if scores else 0
-
-    inter_cluster_directed = {}
-    for la in sorted(cluster_members):
-        for lb in sorted(cluster_members):
-            if la == lb:
-                continue
-            idx_a = [name_to_idx[m] for m in cluster_members[la]]
-            idx_b = [name_to_idx[m] for m in cluster_members[lb]]
-            scores = [score_mat[a][b] for a in idx_a for b in idx_b]
-            inter_cluster_directed[f"{la}->{lb}"] = sum(scores) / len(scores) if scores else 0
-
-    inter_cluster_sym = {}
-    for la in sorted(cluster_members):
-        for lb in sorted(cluster_members):
-            if la >= lb:
-                continue
-            fwd = inter_cluster_directed.get(f"{la}->{lb}", 0)
-            rev = inter_cluster_directed.get(f"{lb}->{la}", 0)
-            inter_cluster_sym[f"{la}<>{lb}"] = (fwd + rev) / 2
-
-    best_label = max(cluster_internal_avg, key=lambda k: cluster_internal_avg[k])
-    worst_pair_key = min(inter_cluster_sym, key=lambda k: inter_cluster_sym[k]) if inter_cluster_sym else None
-    n_tensions = sum(1 for v in inter_cluster_sym.values() if v < -0.3)
+    metrics = _compute_cluster_metrics(cluster_members, name_to_idx, sym_mat, score_mat)
+    cluster_internal_avg = metrics["cluster_internal_avg"]
+    inter_cluster_directed = metrics["inter_cluster_directed"]
+    inter_cluster_sym = metrics["inter_cluster_sym"]
+    best_label = metrics["best_label"]
+    worst_pair_key = metrics["worst_pair_key"]
+    n_tensions = metrics["n_tensions"]
 
     # -------------------------------------------------------------------
     # Polarization per participant
@@ -3755,6 +3837,375 @@ def build_power_summary(manual_events, auto_events):
     }
 
 
+def _compute_pair_relationship_history(actor, target, daily_matrices, daily_snapshots,
+                                       is_finalizado, analysis_date):
+    """Compute relationship history between actor→target from daily matrices.
+
+    Returns a dict with pattern, days_as_friends/enemies, change_date, narrative.
+    """
+    all_neg = MILD_NEGATIVE | STRONG_NEGATIVE
+    history = []
+    days_positive = 0
+    days_negative = 0
+    days_mutual_positive = 0
+    change_date = None
+    prev_was_positive = None
+
+    for i, mat in enumerate(daily_matrices):
+        snap_date = daily_snapshots[i]["date"]
+        if is_finalizado and snap_date > analysis_date:
+            break
+        rxn_v = mat.get((actor, target), "")
+        if not rxn_v:
+            continue
+        rxn_a = mat.get((target, actor), "")
+        v_pos = rxn_v in POSITIVE
+        v_neg = rxn_v in all_neg
+        history.append((snap_date, rxn_v, rxn_a))
+        if v_pos:
+            days_positive += 1
+            if prev_was_positive is False:
+                change_date = snap_date
+        elif v_neg:
+            days_negative += 1
+            if prev_was_positive is True:
+                change_date = snap_date
+        if v_pos and rxn_a in POSITIVE:
+            days_mutual_positive += 1
+        prev_was_positive = v_pos
+
+    total_hist_days = len(history)
+    if total_hist_days == 0:
+        return {"pattern": "sem_dados", "days_as_friends": 0, "days_as_enemies": 0,
+                "days_mutual_friends": 0, "change_date": None,
+                "narrative": "Sem dados", "total_days": 0}
+
+    current_positive = history[-1][1] in POSITIVE
+    if days_positive == total_hist_days:
+        pattern, narrative = "sempre_amigos", f"Sempre deu ❤️ ({days_positive} dias)."
+    elif days_negative == total_hist_days:
+        pattern, narrative = "sempre_inimigos", f"Inimigos desde o início ({days_negative} dias)."
+    elif days_positive > 0 and not current_positive and change_date:
+        days_since = sum(1 for d, _, _ in history if d >= change_date)
+        if days_since <= 2:
+            pattern, narrative = "recem_inimigos", f"Eram amigos por {days_positive} dias, mudou há {days_since} dia(s)!"
+        else:
+            pattern, narrative = "ex_amigos", f"Foram amigos por {days_positive} dias, romperam em {change_date}."
+    elif days_negative > 0 and current_positive and change_date:
+        pattern, narrative = "reconciliados", f"Reconciliaram em {change_date}."
+    else:
+        pattern, narrative = "instavel", f"Instável: {days_positive}d ❤️, {days_negative}d negativo."
+
+    return {"pattern": pattern, "days_as_friends": days_positive,
+            "days_as_enemies": days_negative,
+            "days_mutual_friends": days_mutual_positive,
+            "change_date": change_date,
+            "narrative": narrative, "total_days": total_hist_days}
+
+
+def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
+    """Analyze a single paredão: nominee stats, relationship history, vote analysis.
+
+    Returns a dict with the full analysis for this paredão, or None if skipped.
+    """
+    numero = par.get("numero")
+    if not numero:
+        return None
+    data_formacao = par.get("data_formacao") or par.get("data", "")
+    status = par.get("status", "")
+    indicados = par.get("indicados_finais", par.get("participantes", []))
+    if isinstance(indicados, list):
+        indicados = [p.get("nome", p) if isinstance(p, dict) else p for p in indicados]
+
+    is_finalizado = status == "finalizado"
+    analysis_date = data_formacao
+
+    # Find snapshot for analysis
+    snap_for_analysis = None
+    if is_finalizado:
+        for snap in reversed(daily_snapshots):
+            if snap["date"] <= analysis_date:
+                snap_for_analysis = snap
+                break
+        if snap_for_analysis is None and daily_snapshots:
+            snap_for_analysis = daily_snapshots[0]
+    else:
+        snap_for_analysis = daily_snapshots[-1] if daily_snapshots else None
+
+    if not snap_for_analysis:
+        return None
+
+    # Sentiment in analysis snapshot
+    sent_paredao = {}
+    neg_paredao = {}
+    for p in snap_for_analysis["participants"]:
+        if p.get("characteristics", {}).get("eliminated"):
+            continue
+        name = p["name"]
+        sent_paredao[name] = calc_sentiment(p)
+        neg_paredao[name] = sum(
+            r["amount"] for r in p.get("characteristics", {}).get("receivedReactions", [])
+            if r["label"] != "Coração"
+        )
+
+    # Ranking
+    ranking_paredao = sorted(sent_paredao.items(), key=lambda x: x[1], reverse=True)
+    rank_map = {name: i + 1 for i, (name, _) in enumerate(ranking_paredao)}
+
+    # Historical daily series (up to analysis_date for finalizado)
+    daily_sent = []  # list of (date, {name: sentiment})
+    for snap in daily_snapshots:
+        date = snap["date"]
+        if is_finalizado and date > analysis_date:
+            continue
+        day_scores = {}
+        for p in snap["participants"]:
+            if p.get("characteristics", {}).get("eliminated"):
+                continue
+            day_scores[p["name"]] = calc_sentiment(p)
+        daily_sent.append((date, day_scores))
+
+    # Top5/Bottom5 counts
+    top5_counts = Counter()
+    bottom5_counts = Counter()
+    for _date, scores in daily_sent:
+        sorted_names = sorted(scores.keys(), key=lambda n: scores[n], reverse=True)
+        for n in sorted_names[:5]:
+            top5_counts[n] += 1
+        for n in sorted_names[-5:]:
+            bottom5_counts[n] += 1
+
+    # Build per-indicado stats
+    indicados_stats = _analyze_nominees(indicados, daily_sent, sent_paredao, rank_map,
+                                        top5_counts, bottom5_counts, neg_paredao)
+
+    # Historical series for indicados
+    historical_series = []
+    for date, scores in daily_sent:
+        for nome in indicados:
+            if nome in scores:
+                historical_series.append({
+                    "date": date,
+                    "name": nome,
+                    "sentiment": round(scores[nome], 2),
+                })
+
+    # Relationship history for each voter→target pair
+    votos = par.get("votos_casa", {}) or {}
+    relationship_history = {}
+    for votante, alvo in votos.items():
+        if not votante or not alvo:
+            continue
+        key = f"{votante}→{alvo}"
+        relationship_history[key] = _compute_pair_relationship_history(
+            votante, alvo, daily_matrices, daily_snapshots, is_finalizado, analysis_date)
+
+    # ── Vote classification (relationship type for each vote) ──
+    # Find the matrix at the analysis date
+    matrix_p = None
+    for idx_snap in range(len(daily_snapshots) - 1, -1, -1):
+        if daily_snapshots[idx_snap]["date"] <= analysis_date:
+            matrix_p = daily_matrices[idx_snap]
+            break
+    if matrix_p is None and daily_matrices:
+        matrix_p = daily_matrices[0]
+
+    vote_analysis = []
+    relationship_counts = Counter()
+    for votante, alvo in votos.items():
+        if not votante or not alvo or matrix_p is None:
+            continue
+        rxn_v = matrix_p.get((votante, alvo), "")
+        rxn_a = matrix_p.get((alvo, votante), "")
+        v_pos = rxn_v in POSITIVE
+        a_pos = rxn_a in POSITIVE
+        v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
+        a_neg = rxn_a in (MILD_NEGATIVE | STRONG_NEGATIVE)
+        v_strong = rxn_v in STRONG_NEGATIVE
+
+        if v_pos and a_pos:
+            rel_type, rel_label, rel_color = "aliados_mutuos", "💔 Traição de Aliado", "#9b59b6"
+        elif v_pos and not a_pos:
+            rel_type, rel_label, rel_color = "falso_amigo", "🎭 Falso Amigo", "#E6194B"
+        elif v_neg and a_neg:
+            rel_type, rel_label, rel_color = "inimigos_declarados", "⚔️ Hostilidade Mútua", "#3CB44B"
+        elif v_neg and a_pos:
+            rel_type, rel_label, rel_color = "ponto_cego", "🎯 Ponto Cego do Alvo", "#f39c12"
+        elif v_strong:
+            rel_type, rel_label, rel_color = "hostilidade_forte", "🐍 Hostilidade Forte", "#3CB44B"
+        elif v_neg:
+            rel_type, rel_label, rel_color = "hostilidade_leve", "🌱 Hostilidade Leve", "#FF9800"
+        else:
+            rel_type, rel_label, rel_color = "neutro", "❓ Neutro", "#999"
+
+        rh_key = f"{votante}→{alvo}"
+        hist = relationship_history.get(rh_key, {})
+        vote_analysis.append({
+            "votante": votante,
+            "alvo": alvo,
+            "tipo": rel_type,
+            "label": rel_label,
+            "cor": rel_color,
+            "emoji_dado": REACTION_EMOJI.get(rxn_v, "?"),
+            "emoji_recebido": REACTION_EMOJI.get(rxn_a, "?"),
+            "hist_pattern": hist.get("pattern", "sem_dados"),
+            "hist_narrative": hist.get("narrative", "Sem dados"),
+            "days_as_friends": hist.get("days_as_friends", 0),
+            "days_as_enemies": hist.get("days_as_enemies", 0),
+            "days_mutual_friends": hist.get("days_mutual_friends", 0),
+            "change_date": hist.get("change_date"),
+            "total_days": hist.get("total_days", 0),
+        })
+        relationship_counts[rel_type] += 1
+
+    # Aggregate stats
+    vote_counts_agg = Counter(votos.values())
+    mais_votado, n_votos_mais = vote_counts_agg.most_common(1)[0] if vote_counts_agg else ("", 0)
+    n_traicoes = sum(1 for v in vote_analysis if v["tipo"] in ("falso_amigo", "aliados_mutuos"))
+    n_pontos_cegos = sum(1 for v in vote_analysis if v["tipo"] == "ponto_cego")
+    n_esperados = sum(relationship_counts.get(t, 0) for t in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve"))
+
+    # ── Per-nominee aggregates (vote breakdown per target) ──
+    per_nominee = {}
+    for nome in indicados:
+        votes_for = [v for v in vote_analysis if v["alvo"] == nome]
+        per_nominee[nome] = {
+            "n_votes": len(votes_for),
+            "from_enemies": sum(1 for v in votes_for if v["tipo"] in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve")),
+            "from_traitors": sum(1 for v in votes_for if v["tipo"] in ("falso_amigo", "aliados_mutuos")),
+            "from_blind": sum(1 for v in votes_for if v["tipo"] == "ponto_cego"),
+            "from_neutral": sum(1 for v in votes_for if v["tipo"] == "neutro"),
+            "voters": [v["votante"] for v in votes_for],
+        }
+
+    # ── Indicator relationship pairs (Líder→indicado, Contragolpe, Dinâmica actors) ──
+    formacao = par.get("formacao", {})
+    indicator_pairs = []
+
+    lider = formacao.get("lider")
+    indicado_lider = formacao.get("indicado_lider")
+    if lider and indicado_lider:
+        indicator_pairs.append({"actor": lider, "target": indicado_lider, "type": "lider"})
+
+    contragolpe = formacao.get("contragolpe")
+    if contragolpe and contragolpe.get("de") and contragolpe.get("para"):
+        indicator_pairs.append({"actor": contragolpe["de"], "target": contragolpe["para"], "type": "contragolpe"})
+
+    big_fone = formacao.get("big_fone")
+    if big_fone and big_fone.get("atendeu") and big_fone.get("indicou"):
+        indicator_pairs.append({"actor": big_fone["atendeu"], "target": big_fone["indicou"], "type": "big_fone"})
+
+    dinamica = formacao.get("dinamica")
+    if dinamica and dinamica.get("indicaram") and dinamica.get("indicado"):
+        for actor in dinamica["indicaram"]:
+            indicator_pairs.append({"actor": actor, "target": dinamica["indicado"], "type": "dinamica"})
+
+    # Build relationship history for indicator pairs not already in votos_casa
+    for pair in indicator_pairs:
+        actor, target = pair["actor"], pair["target"]
+        key = f"{actor}→{target}"
+        if key not in relationship_history and matrix_p:
+            relationship_history[key] = _compute_pair_relationship_history(
+                actor, target, daily_matrices, daily_snapshots, is_finalizado, analysis_date)
+
+        # Also add reverse direction (target→actor)
+        rev_key = f"{target}→{actor}"
+        if rev_key not in relationship_history and matrix_p:
+            relationship_history[rev_key] = _compute_pair_relationship_history(
+                target, actor, daily_matrices, daily_snapshots, is_finalizado, analysis_date)
+
+    # Add indicator reaction snapshots at analysis date
+    indicator_reactions = []
+    for pair in indicator_pairs:
+        actor, target = pair["actor"], pair["target"]
+        if matrix_p:
+            rxn_at = matrix_p.get((actor, target), "")
+            rxn_ta = matrix_p.get((target, actor), "")
+        else:
+            rxn_at, rxn_ta = "", ""
+        indicator_reactions.append({
+            "actor": actor,
+            "target": target,
+            "type": pair["type"],
+            "actor_to_target": REACTION_EMOJI.get(rxn_at, "?"),
+            "target_to_actor": REACTION_EMOJI.get(rxn_ta, "?"),
+            "actor_to_target_raw": rxn_at,
+            "target_to_actor_raw": rxn_ta,
+        })
+
+    return {
+        "numero": numero,
+        "status": status,
+        "data_formacao": data_formacao,
+        "indicados": indicados,
+        "quick_insights": {
+            "analysis_date": analysis_date,
+            "indicados_stats": indicados_stats,
+            "historical_series": historical_series,
+            "negs_recebidas": {nome: neg_paredao.get(nome, 0) for nome in indicados},
+        },
+        "relationship_history": relationship_history,
+        "vote_analysis": vote_analysis,
+        "vote_aggregates": {
+            "relationship_counts": dict(relationship_counts),
+            "vote_counts": dict(vote_counts_agg),
+            "mais_votado": mais_votado,
+            "n_votos_mais": n_votos_mais,
+            "n_traicoes": n_traicoes,
+            "n_pontos_cegos": n_pontos_cegos,
+            "n_esperados": n_esperados,
+            "total_votes": len(votos),
+        },
+        "per_nominee": per_nominee,
+        "indicator_pairs": indicator_pairs,
+        "indicator_reactions": indicator_reactions,
+    }
+
+
+def _analyze_nominees(indicados, daily_sent, sent_paredao, rank_map,
+                      top5_counts, bottom5_counts, neg_paredao):
+    """Build per-nominee stats (sentiment, trend, top5/bottom5 counts)."""
+    def _trend_3d(name):
+        series = [scores.get(name) for _, scores in daily_sent if name in scores]
+        if len(series) < 2:
+            return None
+        last = series[-1]
+        if len(series) >= 4:
+            prev = sum(series[-4:-1]) / 3
+        else:
+            prev = sum(series[:-1]) / (len(series) - 1)
+        return last - prev
+
+    indicados_stats = []
+    for nome in indicados:
+        series = [scores.get(nome) for _, scores in daily_sent if nome in scores]
+        total_days = len(series)
+        neg_days = sum(1 for v in series if v is not None and v < 0)
+        pct_neg = (neg_days / total_days * 100) if total_days else 0
+
+        delta = _trend_3d(nome)
+        if delta is None:
+            delta_str = "—"
+        elif delta >= 0.8:
+            delta_str = f"▲ +{delta:.1f}"
+        elif delta <= -0.8:
+            delta_str = f"▼ {delta:.1f}"
+        else:
+            delta_str = f"≈ {delta:+.1f}"
+
+        indicados_stats.append({
+            "nome": nome,
+            "sentimento": round(sent_paredao.get(nome, 0), 1),
+            "rank": rank_map.get(nome, 0),
+            "delta_3d": delta_str,
+            "dias_top5": top5_counts.get(nome, 0),
+            "dias_bottom5": bottom5_counts.get(nome, 0),
+            "dias_negativos": f"{neg_days}/{total_days} ({pct_neg:.0f}%)",
+            "negs_recebidas": neg_paredao.get(nome, 0),
+        })
+    return indicados_stats
+
+
 def build_paredao_analysis(daily_snapshots, paredoes_data):
     """Build quick insights and relationship history for each paredão.
 
@@ -3776,459 +4227,9 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
         prev_matrix = matrix
 
     for par in paredoes_list:
-        numero = par.get("numero")
-        if not numero:
-            continue
-        data_formacao = par.get("data_formacao") or par.get("data", "")
-        status = par.get("status", "")
-        indicados = par.get("indicados_finais", par.get("participantes", []))
-        if isinstance(indicados, list):
-            indicados = [p.get("nome", p) if isinstance(p, dict) else p for p in indicados]
-
-        is_finalizado = status == "finalizado"
-        analysis_date = data_formacao
-
-        # Find snapshot for analysis
-        snap_for_analysis = None
-        if is_finalizado:
-            for snap in reversed(daily_snapshots):
-                if snap["date"] <= analysis_date:
-                    snap_for_analysis = snap
-                    break
-            if snap_for_analysis is None and daily_snapshots:
-                snap_for_analysis = daily_snapshots[0]
-        else:
-            snap_for_analysis = daily_snapshots[-1] if daily_snapshots else None
-
-        if not snap_for_analysis:
-            continue
-
-        # Sentiment in analysis snapshot
-        sent_paredao = {}
-        neg_paredao = {}
-        for p in snap_for_analysis["participants"]:
-            if p.get("characteristics", {}).get("eliminated"):
-                continue
-            name = p["name"]
-            sent_paredao[name] = calc_sentiment(p)
-            neg_paredao[name] = sum(
-                r["amount"] for r in p.get("characteristics", {}).get("receivedReactions", [])
-                if r["label"] != "Coração"
-            )
-
-        # Ranking
-        ranking_paredao = sorted(sent_paredao.items(), key=lambda x: x[1], reverse=True)
-        rank_map = {name: i + 1 for i, (name, _) in enumerate(ranking_paredao)}
-
-        # Historical daily series (up to analysis_date for finalizado)
-        daily_sent = []  # list of (date, {name: sentiment})
-        for snap in daily_snapshots:
-            date = snap["date"]
-            if is_finalizado and date > analysis_date:
-                continue
-            day_scores = {}
-            for p in snap["participants"]:
-                if p.get("characteristics", {}).get("eliminated"):
-                    continue
-                day_scores[p["name"]] = calc_sentiment(p)
-            daily_sent.append((date, day_scores))
-
-        # Top5/Bottom5 counts
-        top5_counts = Counter()
-        bottom5_counts = Counter()
-        for _date, scores in daily_sent:
-            sorted_names = sorted(scores.keys(), key=lambda n: scores[n], reverse=True)
-            for n in sorted_names[:5]:
-                top5_counts[n] += 1
-            for n in sorted_names[-5:]:
-                bottom5_counts[n] += 1
-
-        # Trend 3-day
-        def _trend_3d(name):
-            series = [scores.get(name) for _, scores in daily_sent if name in scores]
-            if len(series) < 2:
-                return None
-            last = series[-1]
-            if len(series) >= 4:
-                prev = sum(series[-4:-1]) / 3
-            else:
-                prev = sum(series[:-1]) / (len(series) - 1)
-            return last - prev
-
-        # Build per-indicado stats
-        indicados_stats = []
-        for nome in indicados:
-            series = [scores.get(nome) for _, scores in daily_sent if nome in scores]
-            total_days = len(series)
-            neg_days = sum(1 for v in series if v is not None and v < 0)
-            pct_neg = (neg_days / total_days * 100) if total_days else 0
-
-            delta = _trend_3d(nome)
-            if delta is None:
-                delta_str = "—"
-            elif delta >= 0.8:
-                delta_str = f"▲ +{delta:.1f}"
-            elif delta <= -0.8:
-                delta_str = f"▼ {delta:.1f}"
-            else:
-                delta_str = f"≈ {delta:+.1f}"
-
-            indicados_stats.append({
-                "nome": nome,
-                "sentimento": round(sent_paredao.get(nome, 0), 1),
-                "rank": rank_map.get(nome, 0),
-                "delta_3d": delta_str,
-                "dias_top5": top5_counts.get(nome, 0),
-                "dias_bottom5": bottom5_counts.get(nome, 0),
-                "dias_negativos": f"{neg_days}/{total_days} ({pct_neg:.0f}%)",
-                "negs_recebidas": neg_paredao.get(nome, 0),
-            })
-
-        # Historical series for indicados
-        historical_series = []
-        for date, scores in daily_sent:
-            for nome in indicados:
-                if nome in scores:
-                    historical_series.append({
-                        "date": date,
-                        "name": nome,
-                        "sentiment": round(scores[nome], 2),
-                    })
-
-        # Relationship history for each voter→target pair
-        votos = par.get("votos_casa", {}) or {}
-        relationship_history = {}
-        for votante, alvo in votos.items():
-            if not votante or not alvo:
-                continue
-            key = f"{votante}→{alvo}"
-            history = []
-            days_positive = 0
-            days_negative = 0
-            days_mutual_positive = 0
-            change_date = None
-            prev_was_positive = None
-
-            for i, mat in enumerate(daily_matrices):
-                snap_date = daily_snapshots[i]["date"]
-                if is_finalizado and snap_date > analysis_date:
-                    break
-                rxn_v = mat.get((votante, alvo), "")
-                if not rxn_v:
-                    continue
-                rxn_a = mat.get((alvo, votante), "")
-                v_pos = rxn_v in POSITIVE
-                v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
-                history.append((snap_date, rxn_v, rxn_a))
-                if v_pos:
-                    days_positive += 1
-                    if prev_was_positive is False:
-                        change_date = snap_date
-                elif v_neg:
-                    days_negative += 1
-                    if prev_was_positive is True:
-                        change_date = snap_date
-                if v_pos and rxn_a in POSITIVE:
-                    days_mutual_positive += 1
-                prev_was_positive = v_pos
-
-            total_hist_days = len(history)
-            if total_hist_days == 0:
-                rh = {"pattern": "sem_dados", "days_as_friends": 0, "days_as_enemies": 0,
-                      "days_mutual_friends": 0, "change_date": None,
-                      "narrative": "Sem dados", "total_days": 0}
-            else:
-                current_positive = history[-1][1] in POSITIVE
-                if days_positive == total_hist_days:
-                    pattern, narrative = "sempre_amigos", f"Sempre deu ❤️ ({days_positive} dias)."
-                elif days_negative == total_hist_days:
-                    pattern, narrative = "sempre_inimigos", f"Inimigos desde o início ({days_negative} dias)."
-                elif days_positive > 0 and not current_positive and change_date:
-                    days_since = sum(1 for d, _, _ in history if d >= change_date)
-                    if days_since <= 2:
-                        pattern, narrative = "recem_inimigos", f"Eram amigos por {days_positive} dias, mudou há {days_since} dia(s)!"
-                    else:
-                        pattern, narrative = "ex_amigos", f"Foram amigos por {days_positive} dias, romperam em {change_date}."
-                elif days_negative > 0 and current_positive and change_date:
-                    pattern, narrative = "reconciliados", f"Reconciliaram em {change_date}."
-                else:
-                    pattern, narrative = "instavel", f"Instável: {days_positive}d ❤️, {days_negative}d negativo."
-
-                rh = {"pattern": pattern, "days_as_friends": days_positive,
-                      "days_as_enemies": days_negative,
-                      "days_mutual_friends": days_mutual_positive,
-                      "change_date": change_date,
-                      "narrative": narrative, "total_days": total_hist_days}
-
-            relationship_history[key] = rh
-
-        # ── Vote classification (relationship type for each vote) ──
-        # Find the matrix at the analysis date
-        matrix_p = None
-        for idx_snap in range(len(daily_snapshots) - 1, -1, -1):
-            if daily_snapshots[idx_snap]["date"] <= analysis_date:
-                matrix_p = daily_matrices[idx_snap]
-                break
-        if matrix_p is None and daily_matrices:
-            matrix_p = daily_matrices[0]
-
-        vote_analysis = []
-        relationship_counts = Counter()
-        for votante, alvo in votos.items():
-            if not votante or not alvo or matrix_p is None:
-                continue
-            rxn_v = matrix_p.get((votante, alvo), "")
-            rxn_a = matrix_p.get((alvo, votante), "")
-            v_pos = rxn_v in POSITIVE
-            a_pos = rxn_a in POSITIVE
-            v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
-            a_neg = rxn_a in (MILD_NEGATIVE | STRONG_NEGATIVE)
-            v_strong = rxn_v in STRONG_NEGATIVE
-
-            if v_pos and a_pos:
-                rel_type, rel_label, rel_color = "aliados_mutuos", "💔 Traição de Aliado", "#9b59b6"
-            elif v_pos and not a_pos:
-                rel_type, rel_label, rel_color = "falso_amigo", "🎭 Falso Amigo", "#E6194B"
-            elif v_neg and a_neg:
-                rel_type, rel_label, rel_color = "inimigos_declarados", "⚔️ Hostilidade Mútua", "#3CB44B"
-            elif v_neg and a_pos:
-                rel_type, rel_label, rel_color = "ponto_cego", "🎯 Ponto Cego do Alvo", "#f39c12"
-            elif v_strong:
-                rel_type, rel_label, rel_color = "hostilidade_forte", "🐍 Hostilidade Forte", "#3CB44B"
-            elif v_neg:
-                rel_type, rel_label, rel_color = "hostilidade_leve", "🌱 Hostilidade Leve", "#FF9800"
-            else:
-                rel_type, rel_label, rel_color = "neutro", "❓ Neutro", "#999"
-
-            rh_key = f"{votante}→{alvo}"
-            hist = relationship_history.get(rh_key, {})
-            vote_analysis.append({
-                "votante": votante,
-                "alvo": alvo,
-                "tipo": rel_type,
-                "label": rel_label,
-                "cor": rel_color,
-                "emoji_dado": REACTION_EMOJI.get(rxn_v, "?"),
-                "emoji_recebido": REACTION_EMOJI.get(rxn_a, "?"),
-                "hist_pattern": hist.get("pattern", "sem_dados"),
-                "hist_narrative": hist.get("narrative", "Sem dados"),
-                "days_as_friends": hist.get("days_as_friends", 0),
-                "days_as_enemies": hist.get("days_as_enemies", 0),
-                "days_mutual_friends": hist.get("days_mutual_friends", 0),
-                "change_date": hist.get("change_date"),
-                "total_days": hist.get("total_days", 0),
-            })
-            relationship_counts[rel_type] += 1
-
-        # Aggregate stats
-        vote_counts_agg = Counter(votos.values())
-        mais_votado, n_votos_mais = vote_counts_agg.most_common(1)[0] if vote_counts_agg else ("", 0)
-        n_traicoes = sum(1 for v in vote_analysis if v["tipo"] in ("falso_amigo", "aliados_mutuos"))
-        n_pontos_cegos = sum(1 for v in vote_analysis if v["tipo"] == "ponto_cego")
-        n_esperados = sum(relationship_counts.get(t, 0) for t in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve"))
-
-        # ── Per-nominee aggregates (vote breakdown per target) ──
-        per_nominee = {}
-        for nome in indicados:
-            votes_for = [v for v in vote_analysis if v["alvo"] == nome]
-            per_nominee[nome] = {
-                "n_votes": len(votes_for),
-                "from_enemies": sum(1 for v in votes_for if v["tipo"] in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve")),
-                "from_traitors": sum(1 for v in votes_for if v["tipo"] in ("falso_amigo", "aliados_mutuos")),
-                "from_blind": sum(1 for v in votes_for if v["tipo"] == "ponto_cego"),
-                "from_neutral": sum(1 for v in votes_for if v["tipo"] == "neutro"),
-                "voters": [v["votante"] for v in votes_for],
-            }
-
-        # ── Indicator relationship pairs (Líder→indicado, Contragolpe, Dinâmica actors) ──
-        formacao = par.get("formacao", {})
-        indicator_pairs = []
-
-        lider = formacao.get("lider")
-        indicado_lider = formacao.get("indicado_lider")
-        if lider and indicado_lider:
-            indicator_pairs.append({"actor": lider, "target": indicado_lider, "type": "lider"})
-
-        contragolpe = formacao.get("contragolpe")
-        if contragolpe and contragolpe.get("de") and contragolpe.get("para"):
-            indicator_pairs.append({"actor": contragolpe["de"], "target": contragolpe["para"], "type": "contragolpe"})
-
-        big_fone = formacao.get("big_fone")
-        if big_fone and big_fone.get("atendeu") and big_fone.get("indicou"):
-            indicator_pairs.append({"actor": big_fone["atendeu"], "target": big_fone["indicou"], "type": "big_fone"})
-
-        dinamica = formacao.get("dinamica")
-        if dinamica and dinamica.get("indicaram") and dinamica.get("indicado"):
-            for actor in dinamica["indicaram"]:
-                indicator_pairs.append({"actor": actor, "target": dinamica["indicado"], "type": "dinamica"})
-
-        # Build relationship history for indicator pairs not already in votos_casa
-        for pair in indicator_pairs:
-            actor, target = pair["actor"], pair["target"]
-            key = f"{actor}→{target}"
-            if key not in relationship_history and matrix_p:
-                # Compute for this pair
-                history = []
-                days_positive = 0
-                days_negative = 0
-                days_mutual_positive = 0
-                change_date_ip = None
-                prev_was_positive_ip = None
-
-                for idx_m, mat in enumerate(daily_matrices):
-                    snap_date = daily_snapshots[idx_m]["date"]
-                    if is_finalizado and snap_date > analysis_date:
-                        break
-                    rxn_v = mat.get((actor, target), "")
-                    if not rxn_v:
-                        continue
-                    rxn_a = mat.get((target, actor), "")
-                    v_pos = rxn_v in POSITIVE
-                    v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
-                    history.append((snap_date, rxn_v, rxn_a))
-                    if v_pos:
-                        days_positive += 1
-                        if prev_was_positive_ip is False:
-                            change_date_ip = snap_date
-                    elif v_neg:
-                        days_negative += 1
-                        if prev_was_positive_ip is True:
-                            change_date_ip = snap_date
-                    if v_pos and rxn_a in POSITIVE:
-                        days_mutual_positive += 1
-                    prev_was_positive_ip = v_pos
-
-                total_hist = len(history)
-                if total_hist == 0:
-                    rh_ip = {"pattern": "sem_dados", "days_as_friends": 0, "days_as_enemies": 0,
-                             "days_mutual_friends": 0, "change_date": None,
-                             "narrative": "Sem dados", "total_days": 0}
-                else:
-                    cur_pos = history[-1][1] in POSITIVE
-                    if days_positive == total_hist:
-                        pat, narr = "sempre_amigos", f"Sempre deu ❤️ ({days_positive} dias)."
-                    elif days_negative == total_hist:
-                        pat, narr = "sempre_inimigos", f"Inimigos desde o início ({days_negative} dias)."
-                    elif days_positive > 0 and not cur_pos and change_date_ip:
-                        ds = sum(1 for d, _, _ in history if d >= change_date_ip)
-                        if ds <= 2:
-                            pat, narr = "recem_inimigos", f"Eram amigos por {days_positive} dias, mudou há {ds} dia(s)!"
-                        else:
-                            pat, narr = "ex_amigos", f"Foram amigos por {days_positive} dias, romperam em {change_date_ip}."
-                    elif days_negative > 0 and cur_pos and change_date_ip:
-                        pat, narr = "reconciliados", f"Reconciliaram em {change_date_ip}."
-                    else:
-                        pat, narr = "instavel", f"Instável: {days_positive}d ❤️, {days_negative}d negativo."
-                    rh_ip = {"pattern": pat, "days_as_friends": days_positive,
-                             "days_as_enemies": days_negative,
-                             "days_mutual_friends": days_mutual_positive,
-                             "change_date": change_date_ip,
-                             "narrative": narr, "total_days": total_hist}
-                relationship_history[key] = rh_ip
-
-            # Also add reverse direction (target→actor)
-            rev_key = f"{target}→{actor}"
-            if rev_key not in relationship_history and matrix_p:
-                history_r = []
-                dp_r, dn_r, dmp_r = 0, 0, 0
-                cd_r, pwp_r = None, None
-                for idx_m, mat in enumerate(daily_matrices):
-                    snap_date = daily_snapshots[idx_m]["date"]
-                    if is_finalizado and snap_date > analysis_date:
-                        break
-                    rxn_v = mat.get((target, actor), "")
-                    if not rxn_v:
-                        continue
-                    rxn_a = mat.get((actor, target), "")
-                    v_pos = rxn_v in POSITIVE
-                    v_neg = rxn_v in (MILD_NEGATIVE | STRONG_NEGATIVE)
-                    history_r.append((snap_date, rxn_v, rxn_a))
-                    if v_pos:
-                        dp_r += 1
-                        if pwp_r is False:
-                            cd_r = snap_date
-                    elif v_neg:
-                        dn_r += 1
-                        if pwp_r is True:
-                            cd_r = snap_date
-                    if v_pos and rxn_a in POSITIVE:
-                        dmp_r += 1
-                    pwp_r = v_pos
-
-                total_r = len(history_r)
-                if total_r == 0:
-                    rh_r = {"pattern": "sem_dados", "days_as_friends": 0, "days_as_enemies": 0,
-                            "days_mutual_friends": 0, "change_date": None,
-                            "narrative": "Sem dados", "total_days": 0}
-                else:
-                    cur_pos_r = history_r[-1][1] in POSITIVE
-                    if dp_r == total_r:
-                        pat_r, narr_r = "sempre_amigos", f"Sempre deu ❤️ ({dp_r} dias)."
-                    elif dn_r == total_r:
-                        pat_r, narr_r = "sempre_inimigos", f"Inimigos desde o início ({dn_r} dias)."
-                    elif dp_r > 0 and not cur_pos_r and cd_r:
-                        ds_r = sum(1 for d, _, _ in history_r if d >= cd_r)
-                        if ds_r <= 2:
-                            pat_r, narr_r = "recem_inimigos", f"Eram amigos por {dp_r} dias, mudou há {ds_r} dia(s)!"
-                        else:
-                            pat_r, narr_r = "ex_amigos", f"Foram amigos por {dp_r} dias, romperam em {cd_r}."
-                    elif dn_r > 0 and cur_pos_r and cd_r:
-                        pat_r, narr_r = "reconciliados", f"Reconciliaram em {cd_r}."
-                    else:
-                        pat_r, narr_r = "instavel", f"Instável: {dp_r}d ❤️, {dn_r}d negativo."
-                    rh_r = {"pattern": pat_r, "days_as_friends": dp_r,
-                            "days_as_enemies": dn_r,
-                            "days_mutual_friends": dmp_r,
-                            "change_date": cd_r,
-                            "narrative": narr_r, "total_days": total_r}
-                relationship_history[rev_key] = rh_r
-
-        # Add indicator reaction snapshots at analysis date
-        indicator_reactions = []
-        for pair in indicator_pairs:
-            actor, target = pair["actor"], pair["target"]
-            if matrix_p:
-                rxn_at = matrix_p.get((actor, target), "")
-                rxn_ta = matrix_p.get((target, actor), "")
-            else:
-                rxn_at, rxn_ta = "", ""
-            indicator_reactions.append({
-                "actor": actor,
-                "target": target,
-                "type": pair["type"],
-                "actor_to_target": REACTION_EMOJI.get(rxn_at, "?"),
-                "target_to_actor": REACTION_EMOJI.get(rxn_ta, "?"),
-                "actor_to_target_raw": rxn_at,
-                "target_to_actor_raw": rxn_ta,
-            })
-
-        by_paredao[str(numero)] = {
-            "numero": numero,
-            "status": status,
-            "data_formacao": data_formacao,
-            "indicados": indicados,
-            "quick_insights": {
-                "analysis_date": analysis_date,
-                "indicados_stats": indicados_stats,
-                "historical_series": historical_series,
-                "negs_recebidas": {nome: neg_paredao.get(nome, 0) for nome in indicados},
-            },
-            "relationship_history": relationship_history,
-            "vote_analysis": vote_analysis,
-            "vote_aggregates": {
-                "relationship_counts": dict(relationship_counts),
-                "vote_counts": dict(vote_counts_agg),
-                "mais_votado": mais_votado,
-                "n_votos_mais": n_votos_mais,
-                "n_traicoes": n_traicoes,
-                "n_pontos_cegos": n_pontos_cegos,
-                "n_esperados": n_esperados,
-                "total_votes": len(votos),
-            },
-            "per_nominee": per_nominee,
-            "indicator_pairs": indicator_pairs,
-            "indicator_reactions": indicator_reactions,
-        }
+        result = _analyze_single_paredao(par, daily_snapshots, daily_matrices)
+        if result is not None:
+            by_paredao[str(result["numero"])] = result
 
     return {"by_paredao": by_paredao}
 
@@ -4534,6 +4535,292 @@ def _compute_formation_pair_scores(daily_matrices, daily_dates, formation_date, 
     return scores
 
 
+def _apply_prediction_boosts(voters, base_predictions, cluster_map, cluster_voter_counts,
+                             voter_bloc_peers, cfg):
+    """Apply Pass 2 boosts: cluster consensus, bloc history, same-cluster protection.
+
+    Returns final_predictions dict.
+    """
+    final_predictions = {}
+    for voter in voters:
+        if voter not in base_predictions:
+            continue
+
+        ranked = list(base_predictions[voter]["ranked"])  # copy
+        top3_targets = set(t for t, _ in ranked[:3])
+        voter_cid = cluster_map.get(voter)
+        adjustments = {}
+
+        for i, (target, base_score) in enumerate(ranked):
+            adj = {"base_sentiment": base_score, "cluster_consensus": 0.0,
+                   "bloc_history": 0.0, "cluster_protection": 0.0}
+            explanation_parts = []
+            new_score = base_score
+
+            # Cluster consensus boost
+            if voter_cid is not None and target in top3_targets:
+                n_cluster = cluster_voter_counts.get(voter_cid, 0)
+                if n_cluster > 1:  # need at least 2 in cluster to compute consensus
+                    # Count cluster-mates (excluding this voter) who predict this target
+                    mates_targeting = 0
+                    for other_voter, other_pred in base_predictions.items():
+                        if other_voter == voter:
+                            continue
+                        if cluster_map.get(other_voter) == voter_cid:
+                            if other_pred["top1"][0] == target:
+                                mates_targeting += 1
+                    n_mates = n_cluster - 1  # excluding self
+                    if n_mates > 0:
+                        frac = mates_targeting / n_mates
+                        if frac >= cfg["cluster_consensus_threshold"]:
+                            boost = cfg["cluster_consensus_max_boost"] * (frac - 0.5)
+                            adj["cluster_consensus"] = round(boost, 4)
+                            new_score += boost
+                            explanation_parts.append(f"consenso do cluster ({frac*100:.0f}% \u2192 {boost:+.2f})")
+
+            # Bloc history boost
+            if target in top3_targets:
+                peers = voter_bloc_peers.get(voter, set())
+                # How many of voter's past-bloc peers are now (pass-1) targeting this target?
+                bloc_targeting = sum(
+                    1 for p in peers
+                    if p in base_predictions and base_predictions[p]["top1"][0] == target
+                )
+                if bloc_targeting >= cfg["bloc_overlap_min"]:
+                    adj["bloc_history"] = cfg["bloc_overlap_boost"]
+                    new_score += cfg["bloc_overlap_boost"]
+                    explanation_parts.append(f"bloco hist\u00f3rico ({bloc_targeting} peers)")
+
+            # Same-cluster protection (tiebreaker)
+            target_cid = cluster_map.get(target)
+            if voter_cid is not None and target_cid == voter_cid:
+                adj["cluster_protection"] = cfg["same_cluster_penalty"]
+                new_score += cfg["same_cluster_penalty"]
+                explanation_parts.append("prote\u00e7\u00e3o intra-cluster")
+
+            adjustments[target] = {
+                "score": round(new_score, 4),
+                "components": {k: round(v, 4) for k, v in adj.items()},
+                "explanation": "; ".join(explanation_parts) if explanation_parts else None,
+            }
+            ranked[i] = (target, round(new_score, 4))
+
+        # Re-rank after boosts
+        ranked.sort(key=lambda x: x[1])
+        predicted = ranked[0][0]
+        score = ranked[0][1]
+        gap = ranked[1][1] - ranked[0][1] if len(ranked) > 1 else 0
+
+        conf_th = cfg["confidence_thresholds"]
+        confidence = "Alta" if gap >= conf_th["alta"] else ("M\u00e9dia" if gap >= conf_th["media"] else "Baixa")
+
+        top3_detail = []
+        for t, s in ranked[:3]:
+            detail = adjustments.get(t, {})
+            top3_detail.append({
+                "target": t,
+                "score": s,
+                "components": detail.get("components", {}),
+                "explanation": detail.get("explanation"),
+            })
+
+        final_predictions[voter] = {
+            "predicted": predicted,
+            "score": score,
+            "confidence": confidence,
+            "gap": round(gap, 4),
+            "top3": top3_detail,
+        }
+
+    return final_predictions
+
+
+def _predict_single_paredao(par, daily_snapshots, daily_matrices, daily_dates,
+                            pairs_d, pairs_all, cluster_map, cluster_members,
+                            all_voting_blocs, cfg):
+    """Process a single paredão: base predictions + boosts + retrospective.
+
+    Returns (numero_str, paredao_result) or None if skipped.
+    """
+    numero = par["numero"]
+    status = par.get("status", "")
+    formation_date = par.get("data_formacao") or par.get("data")
+
+    elig = extract_paredao_eligibility(par)
+    cant_be_voted = elig["cant_be_voted"]
+    cant_vote = elig["cant_vote"]
+    lider = elig["lider"]
+
+    # Get snapshot at or before formation date to find active participants
+    snap_at_date = None
+    for snap in reversed(daily_snapshots):
+        if snap["date"] <= formation_date:
+            snap_at_date = snap
+            break
+    if not snap_at_date:
+        snap_at_date = daily_snapshots[-1]
+
+    active_at_formation = sorted({
+        p.get("name", "").strip() for p in snap_at_date["participants"]
+        if p.get("name", "").strip()
+    })
+
+    voters = [p for p in active_at_formation if p not in cant_vote]
+    eligible_targets = [p for p in active_at_formation if p not in cant_be_voted]
+
+    # Compute formation-date-specific pairwise scores
+    pair_scores = _compute_formation_pair_scores(
+        daily_matrices, daily_dates, formation_date, pairs_d, pairs_all,
+    )
+
+    # --- PASS 1: Base predictions ---
+    base_predictions = {}
+    for voter in voters:
+        vp = pair_scores.get(voter, {})
+        scored = []
+        for t in eligible_targets:
+            if t == voter:
+                continue
+            score = vp.get(t, 0.0)
+            scored.append((t, score))
+        scored.sort(key=lambda x: x[1])
+        if scored:
+            base_predictions[voter] = {
+                "ranked": scored,
+                "top1": scored[0],
+                "top3": scored[:3],
+            }
+
+    # --- PASS 2: Cluster consensus boost ---
+    # Count pass-1 predictions per cluster
+    cluster_vote_counts = defaultdict(lambda: defaultdict(int))
+    cluster_voter_counts = defaultdict(int)
+    for voter, pred in base_predictions.items():
+        cid = cluster_map.get(voter)
+        if cid is not None:
+            cluster_voter_counts[cid] += 1
+            cluster_vote_counts[cid][pred["top1"][0]] += 1
+
+    # Build bloc history lookup
+    paredao_week = par.get("semana", 99)
+    prior_blocs = [b for b in all_voting_blocs if b.get("week", 99) < paredao_week]
+
+    voter_bloc_peers = defaultdict(set)
+    for bloc in prior_blocs:
+        bloc_voters = set(bloc.get("voters", []))
+        for v in bloc_voters:
+            voter_bloc_peers[v].update(bloc_voters - {v})
+
+    final_predictions = _apply_prediction_boosts(
+        voters, base_predictions, cluster_map, cluster_voter_counts,
+        voter_bloc_peers, cfg)
+
+    # --- Aggregate ---
+    vote_concentration = defaultdict(int)
+    high_conf = 0
+    low_conf = 0
+    for voter, pred in final_predictions.items():
+        vote_concentration[pred["predicted"]] += 1
+        if pred["confidence"] == "Alta":
+            high_conf += 1
+        elif pred["confidence"] == "Baixa":
+            low_conf += 1
+
+    aggregate = {
+        "vote_concentration": dict(sorted(vote_concentration.items(), key=lambda x: -x[1])),
+        "high_confidence_count": high_conf,
+        "low_confidence_count": low_conf,
+    }
+
+    # --- Retrospective ---
+    retrospective = None
+    real_votes = par.get("votos_casa", {})
+    if real_votes:
+        correct = 0
+        total = 0
+        hc_correct = 0
+        hc_total = 0
+        errors = []
+        baseline_correct = 0
+
+        for voter, pred in final_predictions.items():
+            if voter not in real_votes:
+                continue
+            real = real_votes[voter]
+            total += 1
+            if pred["predicted"] == real:
+                correct += 1
+            else:
+                analysis = "voto estrat\u00e9gico/coordenado"
+                if pred["gap"] < 0.2:
+                    analysis = "gap m\u00ednimo (coin flip)"
+                errors.append({
+                    "voter": voter,
+                    "predicted": pred["predicted"],
+                    "actual": real,
+                    "confidence": pred["confidence"],
+                    "analysis": analysis,
+                })
+
+            if pred["confidence"] == "Alta":
+                hc_total += 1
+                if pred["predicted"] == real:
+                    hc_correct += 1
+
+            base_pred = base_predictions.get(voter, {}).get("top1", (None,))[0]
+            if base_pred == real:
+                baseline_correct += 1
+
+        sorted_conc = sorted(vote_concentration.items(), key=lambda x: -x[1])
+        pred_top2 = set(t for t, _ in sorted_conc[:2])
+        real_count = defaultdict(int)
+        for v in real_votes.values():
+            real_count[v] += 1
+        real_top2 = set(t for t, _ in sorted(real_count.items(), key=lambda x: -x[1])[:2])
+
+        retrospective = {
+            "individual": {"correct": correct, "total": total, "pct": round(correct / total * 100, 1) if total else 0},
+            "high_confidence": {"correct": hc_correct, "total": hc_total, "pct": round(hc_correct / hc_total * 100, 1) if hc_total else 0},
+            "top2_match": pred_top2 == real_top2,
+            "baseline_accuracy": round(baseline_correct / total * 100, 1) if total else 0,
+            "errors": errors,
+        }
+
+    # --- Lider indication check ---
+    lider_prediction = None
+    lider_pairs = pair_scores.get(lider, {})
+    if lider and lider_pairs:
+        lider_sorted = sorted(
+            [(t, s) for t, s in lider_pairs.items() if t != lider],
+            key=lambda x: x[1]
+        )
+        if lider_sorted:
+            actual_indicado = par.get("formacao", {}).get("indicado_lider")
+            lider_prediction = {
+                "predicted": lider_sorted[0][0],
+                "score": round(lider_sorted[0][1], 4),
+                "actual": actual_indicado,
+                "correct": lider_sorted[0][0] == actual_indicado if actual_indicado else None,
+            }
+
+    paredao_result = {
+        "status": status,
+        "formation_date": formation_date,
+        "eligibility": {
+            "voters": sorted(voters),
+            "eligible_targets": sorted(eligible_targets),
+            "ineligible_reasons": elig["ineligible_reasons"],
+        },
+        "predictions": final_predictions,
+        "aggregate": aggregate,
+        "lider_prediction": lider_prediction,
+    }
+    if retrospective:
+        paredao_result["retrospective"] = retrospective
+
+    return str(numero), paredao_result
+
+
 def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_scores):
     """Build vote predictions for all paredões using enhanced two-pass model.
 
@@ -4562,8 +4849,8 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
     pairs_all = relations_scores.get("pairs_all", {})
 
     # Build cluster map from clusters_data
-    cluster_map = {}  # participant -> cluster_id
-    cluster_members = {}  # cluster_id -> set of members
+    cluster_map = {}
+    cluster_members = {}
     if clusters_data:
         for comm in clusters_data.get("communities", []):
             cid = comm.get("label", comm.get("id", 0))
@@ -4572,284 +4859,16 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
             for m in members:
                 cluster_map[m] = cid
 
-    # Gather all voting_blocs from relations_scores
     all_voting_blocs = relations_scores.get("voting_blocs", [])
 
     by_paredao = {}
-
     for par in paredoes_list:
-        numero = par["numero"]
-        status = par.get("status", "")
-        formation_date = par.get("data_formacao") or par.get("data")
-
-        elig = extract_paredao_eligibility(par)
-        cant_be_voted = elig["cant_be_voted"]
-        cant_vote = elig["cant_vote"]
-        lider = elig["lider"]
-
-        # Get snapshot at or before formation date to find active participants
-        snap_at_date = None
-        for snap in reversed(daily_snapshots):
-            if snap["date"] <= formation_date:
-                snap_at_date = snap
-                break
-        if not snap_at_date:
-            snap_at_date = daily_snapshots[-1]
-
-        active_at_formation = sorted({
-            p.get("name", "").strip() for p in snap_at_date["participants"]
-            if p.get("name", "").strip()
-        })
-
-        voters = [p for p in active_at_formation if p not in cant_vote]
-        eligible_targets = [p for p in active_at_formation if p not in cant_be_voted]
-
-        # Compute formation-date-specific pairwise scores
-        pair_scores = _compute_formation_pair_scores(
-            daily_matrices, daily_dates, formation_date, pairs_d, pairs_all,
-        )
-
-        # --- PASS 1: Base predictions ---
-        base_predictions = {}
-        for voter in voters:
-            vp = pair_scores.get(voter, {})
-            scored = []
-            for t in eligible_targets:
-                if t == voter:
-                    continue
-                score = vp.get(t, 0.0)
-                scored.append((t, score))
-            scored.sort(key=lambda x: x[1])
-            if scored:
-                base_predictions[voter] = {
-                    "ranked": scored,
-                    "top1": scored[0],
-                    "top3": scored[:3],
-                }
-
-        # --- PASS 2: Cluster consensus boost ---
-        # Count pass-1 predictions per cluster
-        cluster_vote_counts = defaultdict(lambda: defaultdict(int))  # cluster_id -> target -> count
-        cluster_voter_counts = defaultdict(int)  # cluster_id -> num_voters
-        for voter, pred in base_predictions.items():
-            cid = cluster_map.get(voter)
-            if cid is not None:
-                cluster_voter_counts[cid] += 1
-                cluster_vote_counts[cid][pred["top1"][0]] += 1
-
-        # Build bloc history lookup: for each voter, which past blocs they belonged to
-        # Only use blocs from weeks BEFORE this paredão
-        paredao_week = par.get("semana", 99)
-        prior_blocs = [b for b in all_voting_blocs if b.get("week", 99) < paredao_week]
-
-        # For each voter, find co-bloc members
-        voter_bloc_peers = defaultdict(set)
-        for bloc in prior_blocs:
-            bloc_voters = set(bloc.get("voters", []))
-            for v in bloc_voters:
-                voter_bloc_peers[v].update(bloc_voters - {v})
-
-        # Apply boosts
-        final_predictions = {}
-        for voter in voters:
-            if voter not in base_predictions:
-                continue
-
-            ranked = list(base_predictions[voter]["ranked"])  # copy
-            top3_targets = set(t for t, _ in ranked[:3])
-            voter_cid = cluster_map.get(voter)
-            adjustments = {}
-
-            for i, (target, base_score) in enumerate(ranked):
-                adj = {"base_sentiment": base_score, "cluster_consensus": 0.0,
-                       "bloc_history": 0.0, "cluster_protection": 0.0}
-                explanation_parts = []
-                new_score = base_score
-
-                # Cluster consensus boost
-                if voter_cid is not None and target in top3_targets:
-                    n_cluster = cluster_voter_counts.get(voter_cid, 0)
-                    if n_cluster > 1:  # need at least 2 in cluster to compute consensus
-                        # Count cluster-mates (excluding this voter) who predict this target
-                        mates_targeting = 0
-                        for other_voter, other_pred in base_predictions.items():
-                            if other_voter == voter:
-                                continue
-                            if cluster_map.get(other_voter) == voter_cid:
-                                if other_pred["top1"][0] == target:
-                                    mates_targeting += 1
-                        n_mates = n_cluster - 1  # excluding self
-                        if n_mates > 0:
-                            frac = mates_targeting / n_mates
-                            if frac >= cfg["cluster_consensus_threshold"]:
-                                boost = cfg["cluster_consensus_max_boost"] * (frac - 0.5)
-                                adj["cluster_consensus"] = round(boost, 4)
-                                new_score += boost
-                                explanation_parts.append(f"consenso do cluster ({frac*100:.0f}% → {boost:+.2f})")
-
-                # Bloc history boost
-                if target in top3_targets:
-                    peers = voter_bloc_peers.get(voter, set())
-                    # How many of voter's past-bloc peers are now (pass-1) targeting this target?
-                    bloc_targeting = sum(
-                        1 for p in peers
-                        if p in base_predictions and base_predictions[p]["top1"][0] == target
-                    )
-                    if bloc_targeting >= cfg["bloc_overlap_min"]:
-                        adj["bloc_history"] = cfg["bloc_overlap_boost"]
-                        new_score += cfg["bloc_overlap_boost"]
-                        explanation_parts.append(f"bloco histórico ({bloc_targeting} peers)")
-
-                # Same-cluster protection (tiebreaker)
-                target_cid = cluster_map.get(target)
-                if voter_cid is not None and target_cid == voter_cid:
-                    adj["cluster_protection"] = cfg["same_cluster_penalty"]
-                    new_score += cfg["same_cluster_penalty"]
-                    explanation_parts.append("proteção intra-cluster")
-
-                adjustments[target] = {
-                    "score": round(new_score, 4),
-                    "components": {k: round(v, 4) for k, v in adj.items()},
-                    "explanation": "; ".join(explanation_parts) if explanation_parts else None,
-                }
-                ranked[i] = (target, round(new_score, 4))
-
-            # Re-rank after boosts
-            ranked.sort(key=lambda x: x[1])
-            predicted = ranked[0][0]
-            score = ranked[0][1]
-            gap = ranked[1][1] - ranked[0][1] if len(ranked) > 1 else 0
-
-            conf_th = cfg["confidence_thresholds"]
-            confidence = "Alta" if gap >= conf_th["alta"] else ("Média" if gap >= conf_th["media"] else "Baixa")
-
-            top3_detail = []
-            for t, s in ranked[:3]:
-                detail = adjustments.get(t, {})
-                top3_detail.append({
-                    "target": t,
-                    "score": s,
-                    "components": detail.get("components", {}),
-                    "explanation": detail.get("explanation"),
-                })
-
-            final_predictions[voter] = {
-                "predicted": predicted,
-                "score": score,
-                "confidence": confidence,
-                "gap": round(gap, 4),
-                "top3": top3_detail,
-            }
-
-        # --- Aggregate ---
-        vote_concentration = defaultdict(int)
-        high_conf = 0
-        low_conf = 0
-        for voter, pred in final_predictions.items():
-            vote_concentration[pred["predicted"]] += 1
-            if pred["confidence"] == "Alta":
-                high_conf += 1
-            elif pred["confidence"] == "Baixa":
-                low_conf += 1
-
-        aggregate = {
-            "vote_concentration": dict(sorted(vote_concentration.items(), key=lambda x: -x[1])),
-            "high_confidence_count": high_conf,
-            "low_confidence_count": low_conf,
-        }
-
-        # --- Retrospective (for any paredão with recorded house votes) ---
-        retrospective = None
-        real_votes = par.get("votos_casa", {})
-        if real_votes:
-            correct = 0
-            total = 0
-            hc_correct = 0
-            hc_total = 0
-            errors = []
-
-            # Also compute baseline (pass-1 only, no boosts)
-            baseline_correct = 0
-
-            for voter, pred in final_predictions.items():
-                if voter not in real_votes:
-                    continue
-                real = real_votes[voter]
-                total += 1
-                if pred["predicted"] == real:
-                    correct += 1
-                else:
-                    # Error analysis
-                    analysis = "voto estratégico/coordenado"
-                    if pred["gap"] < 0.2:
-                        analysis = "gap mínimo (coin flip)"
-                    errors.append({
-                        "voter": voter,
-                        "predicted": pred["predicted"],
-                        "actual": real,
-                        "confidence": pred["confidence"],
-                        "analysis": analysis,
-                    })
-
-                if pred["confidence"] == "Alta":
-                    hc_total += 1
-                    if pred["predicted"] == real:
-                        hc_correct += 1
-
-                # Baseline: pass-1 prediction
-                base_pred = base_predictions.get(voter, {}).get("top1", (None,))[0]
-                if base_pred == real:
-                    baseline_correct += 1
-
-            # Top-2 match
-            sorted_conc = sorted(vote_concentration.items(), key=lambda x: -x[1])
-            pred_top2 = set(t for t, _ in sorted_conc[:2])
-            real_count = defaultdict(int)
-            for v in real_votes.values():
-                real_count[v] += 1
-            real_top2 = set(t for t, _ in sorted(real_count.items(), key=lambda x: -x[1])[:2])
-
-            retrospective = {
-                "individual": {"correct": correct, "total": total, "pct": round(correct / total * 100, 1) if total else 0},
-                "high_confidence": {"correct": hc_correct, "total": hc_total, "pct": round(hc_correct / hc_total * 100, 1) if hc_total else 0},
-                "top2_match": pred_top2 == real_top2,
-                "baseline_accuracy": round(baseline_correct / total * 100, 1) if total else 0,
-                "errors": errors,
-            }
-
-        # --- Líder indication check ---
-        lider_prediction = None
-        lider_pairs = pair_scores.get(lider, {})
-        if lider and lider_pairs:
-            lider_sorted = sorted(
-                [(t, s) for t, s in lider_pairs.items() if t != lider],
-                key=lambda x: x[1]
-            )
-            if lider_sorted:
-                actual_indicado = par.get("formacao", {}).get("indicado_lider")
-                lider_prediction = {
-                    "predicted": lider_sorted[0][0],
-                    "score": round(lider_sorted[0][1], 4),
-                    "actual": actual_indicado,
-                    "correct": lider_sorted[0][0] == actual_indicado if actual_indicado else None,
-                }
-
-        paredao_result = {
-            "status": status,
-            "formation_date": formation_date,
-            "eligibility": {
-                "voters": sorted(voters),
-                "eligible_targets": sorted(eligible_targets),
-                "ineligible_reasons": elig["ineligible_reasons"],
-            },
-            "predictions": final_predictions,
-            "aggregate": aggregate,
-            "lider_prediction": lider_prediction,
-        }
-        if retrospective:
-            paredao_result["retrospective"] = retrospective
-
-        by_paredao[str(numero)] = paredao_result
+        result = _predict_single_paredao(
+            par, daily_snapshots, daily_matrices, daily_dates,
+            pairs_d, pairs_all, cluster_map, cluster_members,
+            all_voting_blocs, cfg)
+        if result:
+            by_paredao[result[0]] = result[1]
 
     # Cumulative stats across all finalized paredões
     cumulative = {"enhanced": {"correct": 0, "total": 0}, "baseline": {"correct": 0, "total": 0}}
@@ -4859,7 +4878,6 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
             cumulative["enhanced"]["correct"] += retro["individual"]["correct"]
             cumulative["enhanced"]["total"] += retro["individual"]["total"]
             cumulative["baseline"]["total"] += retro["individual"]["total"]
-            # baseline_accuracy is a percentage, convert back
             bt = retro["individual"]["total"]
             cumulative["baseline"]["correct"] += round(retro["baseline_accuracy"] * bt / 100)
 

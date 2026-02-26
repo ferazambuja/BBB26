@@ -44,7 +44,7 @@ This document tracks all identified technical debt items. Check off items as the
 - **Impact**: Hard to test, debug, and maintain. Encourages copy-paste over reuse
 - **Fix**: Extract into smaller functions; test coverage now available (H2) to support safe refactoring
 - **Effort**: 2-3 hours per function group
-- [ ] Not started — requires incremental function-by-function splitting
+- [x] Fixed (2026-02-26) — 9 giant functions split into 25 helpers across `build_derived_data.py` (6→19 helpers) and `build_index_data.py` (3→10 helpers). QMD giant functions remain (inline rendering, harder to extract).
 
 ### H2. Zero test coverage
 - **Impact**: No automated verification of correctness. Refactoring is risky without tests
@@ -57,7 +57,7 @@ This document tracks all identified technical debt items. Check off items as the
 - **Impact**: Inconsistent styling, hard to update themes, bloated HTML output
 - **Fix**: Extract top patterns into `assets/cards.css`, replace inline attrs with CSS classes
 - **Effort**: 45 min for top 5-6 patterns (stat cards, dark cards, badges)
-- [x] Partially fixed — top patterns extracted (2026-02-26)
+- [x] Fixed (2026-02-26) — 15 CSS utility classes in `assets/cards.css`; ~250 inline styles replaced across 8 QMD files. Remaining ~900 are dynamic (f-string colors, variable widths).
 
 ### H4. Residual refactor docs (completed work)
 - **Files**: `docs/refactor_qmd_core.md`, `docs/refactor_qmd_core_pass2.md`, `docs/refactor_qmd_secondary.md`, `docs/refactor_qmd_secondary_pass2.md`, `docs/refactor_scripts_core.md`, `docs/refactor_scripts_core_pass2.md`, `docs/refactor_scripts_utils.md`, `docs/refactor_scripts_utils_pass2.md`
@@ -130,10 +130,9 @@ This document tracks all identified technical debt items. Check off items as the
 | Severity | Total | Fixed | Partial | Remaining |
 |----------|-------|-------|---------|-----------|
 | Critical | 3 | 3 | 0 | 0 |
-| High | 4 | 2 | 1 | 1 |
+| High | 4 | 4 | 0 | 0 |
 | Medium | 4 | 3 | 1 | 0 |
 | Low | 3 | 3 | 0 | 0 |
-| **Total** | **14** | **11** | **2** | **1** |
+| **Total** | **14** | **13** | **1** | **0** |
 
-**Not started**: H1 (giant functions — needs incremental splitting, now unblocked by H2 tests)
-**Partially fixed**: H3 (inline styles — top CSS patterns extracted), M2 (viz helpers — 2 functions created, 2 charts migrated, remaining charts incremental)
+**Partially fixed**: M2 (viz helpers — 2 functions created, 2 charts migrated, remaining charts incremental)

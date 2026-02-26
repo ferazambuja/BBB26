@@ -133,7 +133,7 @@ if bottom:
 
 if highlights:
     print(f'''
-<div style="background: #2a2a2a; border-left: 4px solid #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
+<div class="info-panel" style="border-left-color: #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
 <div style="font-weight: 700; margin-bottom: 0.5rem;">Destaques Cartola — Semana {n_weeks}</div>
 <ul style="margin: 0; padding-left: 1.2rem;">
 ''')
@@ -206,7 +206,7 @@ zero_points = [p for p in leaderboard if p['total'] == 0 and p['active']][:5]
 display_list = with_points + zero_points
 
 if display_list:
-    print('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; margin: 1.5rem 0;">')
+    print('<div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem;">')
 
     for i, p in enumerate(display_list):
         rank = i + 1 if p['total'] != 0 else '—'
@@ -486,7 +486,7 @@ if n_weeks > 0:
 
         if week_points_list:
             print('\n**Pontuações da semana:**\n')
-            print('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem; margin: 1rem 0;">')
+            print('<div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem;">')
 
             for wp in week_points_list:
                 participant_color = participant_colors.get(wp['name'], '#666')
@@ -522,7 +522,7 @@ else:
 
 # Sistema de Pontos {#pontos}
 
-<div style="background: #2a2a2a; border-radius: 12px; padding: 1.2rem; margin: 1rem 0; border-left: 4px solid #17a2b8;">
+<div class="info-panel" style="border-left-color: #17a2b8; padding: 1.2rem; margin: 1rem 0;">
 
 **Como funciona o Cartola BBB**
 
@@ -546,7 +546,7 @@ print('''
 
 <div style="background: linear-gradient(180deg, rgba(39, 174, 96, 0.15) 0%, rgba(39, 174, 96, 0.05) 100%); border: 1px solid rgba(39, 174, 96, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #27ae60; margin-top: 0; border-bottom: 1px solid rgba(39, 174, 96, 0.3); padding-bottom: 0.5rem;">📈 Eventos Positivos</h4>
-<table style="width: 100%; font-size: 0.9rem;">
+<table class="table-full" style="font-size: 0.9rem;">
 ''')
 
 for event, points in CARTOLA_POINTS.items():
@@ -554,8 +554,8 @@ for event, points in CARTOLA_POINTS.items():
         emoji = POINTS_EMOJI.get(event, '•')
         label = POINTS_LABELS.get(event, event)
         # Mark auto-detected events
-        auto = ' <span style="color: #888; font-size: 0.7rem;">(API)</span>' if event in ['lider', 'anjo', 'imunizado', 'vip'] else ''
-        print(f'<tr><td style="color: #ccc; padding: 0.3rem 0;">{emoji} {label}{auto}</td><td style="color: #27ae60; text-align: right; font-weight: bold; padding: 0.3rem 0;">+{points}</td></tr>')
+        auto = ' <span class="text-muted" style="font-size: 0.7rem;">(API)</span>' if event in ['lider', 'anjo', 'imunizado', 'vip'] else ''
+        print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{emoji} {label}{auto}</td><td class="tr" style="color: #27ae60; font-weight: bold; padding: 0.3rem 0;">+{points}</td></tr>')
 
 print('''
 </table>
@@ -563,7 +563,7 @@ print('''
 
 <div style="background: linear-gradient(180deg, rgba(231, 76, 60, 0.15) 0%, rgba(231, 76, 60, 0.05) 100%); border: 1px solid rgba(231, 76, 60, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #e74c3c; margin-top: 0; border-bottom: 1px solid rgba(231, 76, 60, 0.3); padding-bottom: 0.5rem;">📉 Eventos Negativos</h4>
-<table style="width: 100%; font-size: 0.9rem;">
+<table class="table-full" style="font-size: 0.9rem;">
 ''')
 
 for event, points in CARTOLA_POINTS.items():
@@ -571,8 +571,8 @@ for event, points in CARTOLA_POINTS.items():
         emoji = POINTS_EMOJI.get(event, '•')
         label = POINTS_LABELS.get(event, event)
         # Mark auto-detected events
-        auto = ' <span style="color: #888; font-size: 0.7rem;">(API)</span>' if event in ['monstro', 'emparedado'] else ''
-        print(f'<tr><td style="color: #ccc; padding: 0.3rem 0;">{emoji} {label}{auto}</td><td style="color: #e74c3c; text-align: right; font-weight: bold; padding: 0.3rem 0;">{points}</td></tr>')
+        auto = ' <span class="text-muted" style="font-size: 0.7rem;">(API)</span>' if event in ['monstro', 'emparedado'] else ''
+        print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{emoji} {label}{auto}</td><td class="tr" style="color: #e74c3c; font-weight: bold; padding: 0.3rem 0;">{points}</td></tr>')
 
 print('''
 </table>
@@ -581,7 +581,7 @@ print('''
 </div>
 ''')
 
-print('<p class="text-muted small">Eventos marcados com <span style="color: #888;">(API)</span> são detectados automaticamente dos snapshots diários.</p>')
+print('<p class="text-muted small">Eventos marcados com <span class="text-muted">(API)</span> são detectados automaticamente dos snapshots diários.</p>')
 print('<p class="text-muted small">Regras: <strong>Salvo do Paredão</strong> = venceu o Bate e Volta; <strong>Não Eliminado</strong> = indicado que permaneceu; <strong>Não Emparedado</strong> = disponível para votação e fora da lista final (exclui líder/anjo/imunizados e quem venceu o Bate e Volta).</p>')
 ```
 

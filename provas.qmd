@@ -97,7 +97,7 @@ if eligible:
 
 if highlights:
     print('''
-<div style="background: #2a2a2a; border-left: 4px solid #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
+<div class="info-panel" style="border-left-color: #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
 <div style="font-weight: 700; margin-bottom: 0.5rem;">Destaques — Provas</div>
 <ul style="margin: 0; padding-left: 1.2rem;">
 ''')
@@ -155,7 +155,7 @@ Ranking baseado em pontos ponderados: posição na prova gera pontos-base, multi
 # ══════════════════════════════════════════════════════════════════════════════
 
 if leaderboard:
-    print('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; margin: 1.5rem 0;">')
+    print('<div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem;">')
 
     for i, p in enumerate(leaderboard):
         rank = i + 1
@@ -297,7 +297,7 @@ if provas_list:
         # Excluded list
         if excluidos:
             nomes_exc = ", ".join([f"**{e['nome']}** ({e['motivo']})" for e in excluidos])
-            print(f'\n<div style="background: #333; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #aaa;">🚫 Não participaram: {nomes_exc}</div>\n')
+            print(f'\n<div class="table-md" style="background: #333; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1rem; color: #aaa;">🚫 Não participaram: {nomes_exc}</div>\n')
 
         # Phase breakdown
         for fase in fases:
@@ -310,20 +310,20 @@ if provas_list:
             fase_label = "Dupla" if is_duo else "Individual"
             print(f'\n**Fase {fase_num} — {fase_label}**')
             if nota:
-                print(f' <span style="color: #888; font-size: 0.85rem;">({nota})</span>')
+                print(f' <span class="text-muted table-md">({nota})</span>')
             print()
 
             if classificacao:
                 print('<div style="margin: 0.5rem 0 1rem 0;">')
-                print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
+                print('<table class="table-full" style="font-size: 0.9rem;">')
                 print('<thead><tr style="border-bottom: 1px solid #444;">')
-                print('<th style="text-align: center; padding: 0.4rem; color: #888; width: 50px;">Pos</th>')
+                print('<th class="tc cell-compact text-muted" style="width: 50px;">Pos</th>')
                 if is_duo:
-                    print('<th style="text-align: left; padding: 0.4rem; color: #888;">Dupla</th>')
+                    print('<th class="tl cell-compact text-muted">Dupla</th>')
                 else:
-                    print('<th style="text-align: left; padding: 0.4rem; color: #888;">Participante</th>')
+                    print('<th class="tl cell-compact text-muted">Participante</th>')
                 if any(e.get("pontuacao") is not None for e in classificacao):
-                    print('<th style="text-align: right; padding: 0.4rem; color: #888;">Pontuação</th>')
+                    print('<th class="tr cell-compact text-muted">Pontuação</th>')
                 print('</tr></thead><tbody>')
 
                 has_scores = any(e.get("pontuacao") is not None for e in classificacao)
@@ -350,7 +350,7 @@ if provas_list:
                         pos_display = f'{pos}º'
                         row_style = 'color: #aaa;'
 
-                    tied_icon = ' <span style="color: #888; font-size: 0.75rem;">= empate</span>' if is_tied else ''
+                    tied_icon = ' <span class="text-muted table-sm">= empate</span>' if is_tied else ''
 
                     # Name(s)
                     if is_duo:
@@ -362,11 +362,11 @@ if provas_list:
                     pontuacao_cell = ""
                     if has_scores:
                         score = entry.get("pontuacao")
-                        pontuacao_cell = f'<td style="text-align: right; padding: 0.4rem; color: #3498db; font-weight: bold;">{score if score is not None else "—"}</td>'
+                        pontuacao_cell = f'<td class="tr cell-compact" style="color: #3498db; font-weight: bold;">{score if score is not None else "—"}</td>'
 
-                    print(f'<tr style="border-bottom: 1px solid #333; {row_style}">')
-                    print(f'<td style="text-align: center; padding: 0.4rem;">{pos_display}{tied_icon}</td>')
-                    print(f'<td style="text-align: left; padding: 0.4rem; font-weight: {"bold" if pos <= 3 and not is_dq else "normal"};">{name_display}</td>')
+                    print(f'<tr class="sep-bottom" style="{row_style}">')
+                    print(f'<td class="tc cell-compact">{pos_display}{tied_icon}</td>')
+                    print(f'<td class="tl cell-compact" style="font-weight: {"bold" if pos <= 3 and not is_dq else "normal"};">{name_display}</td>')
                     if pontuacao_cell:
                         print(pontuacao_cell)
                     print('</tr>')
@@ -417,25 +417,25 @@ if provas_list:
 
                 # Column 1: Quartas
                 print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
-                print('<div style="text-align: center; font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 4px;">Quartas</div>')
+                print('<div class="tc text-muted" style="font-size: 0.75rem; font-weight: bold; margin-bottom: 4px;">Quartas</div>')
                 for d in quartas:
                     print(matchup_box(d))
                 print('</div>')
 
                 # Column 2: Semis
                 print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
-                print('<div style="text-align: center; font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 4px;">Semis</div>')
+                print('<div class="tc text-muted" style="font-size: 0.75rem; font-weight: bold; margin-bottom: 4px;">Semis</div>')
                 for d in semis:
                     print(matchup_box(d))
                 print('</div>')
 
                 # Column 3: Final
                 print('<div style="display: flex; flex-direction: column; justify-content: center;">')
-                print('<div style="text-align: center; font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 4px;">Final</div>')
+                print('<div class="tc text-muted" style="font-size: 0.75rem; font-weight: bold; margin-bottom: 4px;">Final</div>')
                 for d in final:
                     print(matchup_box(d))
                     winner = d["vencedor"]
-                    print(f'<div style="text-align: center; margin-top: 6px; font-size: 1rem;">🏆 <span style="color: #f1c40f; font-weight: bold;">{winner}</span></div>')
+                    print(f'<div class="tc" style="margin-top: 6px; font-size: 1rem;">🏆 <span style="color: #f1c40f; font-weight: bold;">{winner}</span></div>')
                 print('</div>')
 
                 print('</div>')
@@ -459,21 +459,21 @@ if provas_list:
         if scored_entries:
             print(f'\n<details style="margin-top: 0.5rem;"><summary style="cursor: pointer; color: #3498db; font-size: 0.9rem;">📊 Pontos atribuídos (multiplicador {label}: {mult_label})</summary>')
             print('<div style="margin: 0.5rem 0;">')
-            print('<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">')
+            print('<table class="table-full table-md">')
             print('<thead><tr style="border-bottom: 1px solid #444;">')
-            print('<th style="text-align: left; padding: 0.3rem; color: #888;">Participante</th>')
-            print('<th style="text-align: center; padding: 0.3rem; color: #888;">Pos</th>')
-            print('<th style="text-align: right; padding: 0.3rem; color: #888;">Base</th>')
-            print(f'<th style="text-align: right; padding: 0.3rem; color: #888;">× {mult_label}</th>')
+            print('<th class="tl text-muted" style="padding: 0.3rem;">Participante</th>')
+            print('<th class="tc text-muted" style="padding: 0.3rem;">Pos</th>')
+            print('<th class="tr text-muted" style="padding: 0.3rem;">Base</th>')
+            print(f'<th class="tr text-muted" style="padding: 0.3rem;">× {mult_label}</th>')
             print('</tr></thead><tbody>')
             for se in scored_entries:
                 pos_str = "DQ" if se["position"] == "dq" else f'{se["position"]}º'
                 pts_color = '#27ae60' if se["weighted_pts"] > 0 else '#888'
-                print(f'<tr style="border-bottom: 1px solid #333;">')
-                print(f'<td style="padding: 0.3rem; color: #ccc;">{se["name"]}</td>')
-                print(f'<td style="text-align: center; padding: 0.3rem; color: #aaa;">{pos_str}</td>')
-                print(f'<td style="text-align: right; padding: 0.3rem; color: #aaa;">{se["base_pts"]}</td>')
-                print(f'<td style="text-align: right; padding: 0.3rem; color: {pts_color}; font-weight: bold;">{se["weighted_pts"]}</td>')
+                print(f'<tr class="sep-bottom">')
+                print(f'<td class="text-light" style="padding: 0.3rem;">{se["name"]}</td>')
+                print(f'<td class="tc" style="padding: 0.3rem; color: #aaa;">{pos_str}</td>')
+                print(f'<td class="tr" style="padding: 0.3rem; color: #aaa;">{se["base_pts"]}</td>')
+                print(f'<td class="tr" style="padding: 0.3rem; color: {pts_color}; font-weight: bold;">{se["weighted_pts"]}</td>')
                 print('</tr>')
             print('</tbody></table>')
             print('</div></details>')
@@ -487,7 +487,7 @@ else:
 
 # Sistema de Pontuação {#pontuacao}
 
-<div style="background: #2a2a2a; border-radius: 12px; padding: 1.2rem; margin: 1rem 0; border-left: 4px solid #17a2b8;">
+<div class="info-panel" style="border-left-color: #17a2b8; padding: 1.2rem; margin: 1rem 0;">
 
 **Como funciona o ranking de provas**
 
@@ -517,15 +517,15 @@ print('''
 
 <div style="background: linear-gradient(180deg, rgba(52, 152, 219, 0.15) 0%, rgba(52, 152, 219, 0.05) 100%); border: 1px solid rgba(52, 152, 219, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #3498db; margin-top: 0; border-bottom: 1px solid rgba(52, 152, 219, 0.3); padding-bottom: 0.5rem;">🏅 Pontos por Posição</h4>
-<table style="width: 100%; font-size: 0.9rem;">
+<table class="table-full" style="font-size: 0.9rem;">
 ''')
 
 for pos, pts in sorted(placement_pts.items(), key=lambda x: int(x[0])):
     medal = '🥇' if pos == '1' else ('🥈' if pos == '2' else ('🥉' if pos == '3' else ''))
-    print(f'<tr><td style="color: #ccc; padding: 0.3rem 0;">{medal} {pos}º lugar</td><td style="color: #3498db; text-align: right; font-weight: bold; padding: 0.3rem 0;">{pts}</td></tr>')
+    print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{medal} {pos}º lugar</td><td class="tr" style="color: #3498db; font-weight: bold; padding: 0.3rem 0;">{pts}</td></tr>')
 
-print(f'<tr><td style="color: #888; padding: 0.3rem 0;">9º+ lugar</td><td style="color: #888; text-align: right; font-weight: bold; padding: 0.3rem 0;">{default_pts}</td></tr>')
-print(f'<tr><td style="color: #e74c3c; padding: 0.3rem 0;">DQ (desclassificado)</td><td style="color: #e74c3c; text-align: right; font-weight: bold; padding: 0.3rem 0;">0</td></tr>')
+print(f'<tr><td class="text-muted" style="padding: 0.3rem 0;">9º+ lugar</td><td class="tr text-muted" style="font-weight: bold; padding: 0.3rem 0;">{default_pts}</td></tr>')
+print(f'<tr><td style="color: #e74c3c; padding: 0.3rem 0;">DQ (desclassificado)</td><td class="tr" style="color: #e74c3c; font-weight: bold; padding: 0.3rem 0;">0</td></tr>')
 
 print('''
 </table>
@@ -533,18 +533,18 @@ print('''
 
 <div style="background: linear-gradient(180deg, rgba(241, 196, 15, 0.15) 0%, rgba(241, 196, 15, 0.05) 100%); border: 1px solid rgba(241, 196, 15, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #f1c40f; margin-top: 0; border-bottom: 1px solid rgba(241, 196, 15, 0.3); padding-bottom: 0.5rem;">⚖️ Multiplicadores por Tipo</h4>
-<table style="width: 100%; font-size: 0.9rem;">
+<table class="table-full" style="font-size: 0.9rem;">
 ''')
 
 for tipo, mult in sorted(multipliers.items(), key=lambda x: -x[1]):
     emoji = TIPO_EMOJI.get(tipo, "🏅")
     label = TIPO_LABEL.get(tipo, tipo.title())
     color = TIPO_COLOR.get(tipo, "#888")
-    print(f'<tr><td style="color: #ccc; padding: 0.3rem 0;">{emoji} {label}</td><td style="color: {color}; text-align: right; font-weight: bold; padding: 0.3rem 0;">{mult:.2f}×</td></tr>')
+    print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{emoji} {label}</td><td class="tr" style="color: {color}; font-weight: bold; padding: 0.3rem 0;">{mult:.2f}×</td></tr>')
 
 print('''
 </table>
-<p style="color: #888; font-size: 0.8rem; margin-top: 0.8rem; margin-bottom: 0;">Fórmula: <code>pontos_base × multiplicador</code></p>
+<p class="text-muted" style="font-size: 0.8rem; margin-top: 0.8rem; margin-bottom: 0;">Fórmula: <code>pontos_base × multiplicador</code></p>
 </div>
 
 </div>

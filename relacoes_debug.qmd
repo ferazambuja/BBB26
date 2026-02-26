@@ -903,16 +903,16 @@ else:
 
     # --- Main table: all consensus targets ranked, with per-attendee breakdown ---
     html += '<h4 style="color:#f0c040; margin:1rem 0 0.5rem;">Alvos viáveis: quem os 3 atacavam no queridômetro</h4>'
-    html += '<p style="color:#888; font-size:0.8em; margin-bottom:0.5rem;">Somente alvos que <em>todos os 3</em> davam reação negativa. Ordenado pelo score combinado (soma dos 3 pair scores).</p>'
+    html += '<p class="text-muted" style="font-size:0.8em; margin-bottom:0.5rem;">Somente alvos que <em>todos os 3</em> davam reação negativa. Ordenado pelo score combinado (soma dos 3 pair scores).</p>'
 
-    html += '<div style="overflow-x:auto;">'
-    html += '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">'
-    html += '<tr style="border-bottom:1px solid #555;">'
-    html += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Alvo</th>'
+    html += '<div class="scroll-x">'
+    html += '<table class="table-full table-md">'
+    html += '<tr class="sep-bottom" style="border-color:#555;">'
+    html += '<th class="tl text-light" style="padding:6px 8px;">Alvo</th>'
     for att in attendees:
-        html += f'<th style="padding:6px 8px; text-align:center; color:#ccc;">{att.split()[0]}</th>'
-    html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Combinado</th>'
-    html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Jonas→alvo?</th>'
+        html += f'<th class="tc text-light" style="padding:6px 8px;">{att.split()[0]}</th>'
+    html += '<th class="tc text-light" style="padding:6px 8px;">Combinado</th>'
+    html += '<th class="tc text-light" style="padding:6px 8px;">Jonas→alvo?</th>'
     html += '</tr>'
 
     for t in by_score:
@@ -920,7 +920,7 @@ else:
         row_bg = "background:#1a2a1a;" if is_actual else ""
         row_border = "border-left:3px solid #2ecc71;" if is_actual else ""
 
-        html += f'<tr style="{row_bg} {row_border} border-bottom:1px solid #333;">'
+        html += f'<tr class="sep-bottom" style="{row_bg} {row_border}">'
         marker = " ✅" if is_actual else ""
         html += f'<td style="padding:6px 8px; color:#eee;"><strong>{t["name"]}</strong>{marker}</td>'
 
@@ -928,16 +928,16 @@ else:
         for att in attendees:
             sc = t["scores"].get(att, 0)
             em = t["emojis"].get(att, "?")
-            html += f'<td style="padding:6px 8px; text-align:center;">{em} <span style="color:#e74c3c;">{sc:+.2f}</span></td>'
+            html += f'<td class="tc" style="padding:6px 8px;">{em} <span style="color:#e74c3c;">{sc:+.2f}</span></td>'
 
         # Combined
-        html += f'<td style="padding:6px 8px; text-align:center; color:#e74c3c; font-weight:bold;">{t["combined_score"]:+.2f}</td>'
+        html += f'<td class="tc text-neg" style="padding:6px 8px;">{t["combined_score"]:+.2f}</td>'
 
         # Mutual indicator
         is_mutual = t.get("is_fully_mutual", False)
         mutual_label = "⚔️ Mútuo" if is_mutual else "❤️ Não sabe"
         mutual_color = "#e74c3c" if is_mutual else "#f39c12"
-        html += f'<td style="padding:6px 8px; text-align:center; color:{mutual_color}; font-size:0.85em;">{mutual_label}</td>'
+        html += f'<td class="tc table-md" style="padding:6px 8px; color:{mutual_color};">{mutual_label}</td>'
         html += '</tr>'
 
     html += '</table></div>'
@@ -945,12 +945,12 @@ else:
     # --- Component decomposition: what drove each attendee→Jonas score? ---
     if actual:
         html += '<h4 style="color:#f0c040; margin:1.2rem 0 0.5rem;">O que compõe cada score → Jonas</h4>'
-        html += '<p style="color:#888; font-size:0.8em; margin-bottom:0.5rem;">Decomposição do pair score de cada atendente para Jonas. Queridômetro é o emoji diário; os demais são eventos acumulados.</p>'
+        html += '<p class="text-muted" style="font-size:0.8em; margin-bottom:0.5rem;">Decomposição do pair score de cada atendente para Jonas. Queridômetro é o emoji diário; os demais são eventos acumulados.</p>'
 
-        html += '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">'
-        html += '<tr style="border-bottom:1px solid #555;">'
-        html += '<th style="padding:6px 8px; text-align:left; color:#ccc;">Atendente</th>'
-        html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Emoji</th>'
+        html += '<table class="table-full table-md">'
+        html += '<tr class="sep-bottom" style="border-color:#555;">'
+        html += '<th class="tl text-light" style="padding:6px 8px;">Atendente</th>'
+        html += '<th class="tc text-light" style="padding:6px 8px;">Emoji</th>'
 
         # Collect all component keys across attendees
         all_comp_keys = []
@@ -965,9 +965,9 @@ else:
         comp_labels = {"queridometro": "Queridômetro", "power_event": "Eventos de poder",
                        "sincerao": "Sincerão", "vote": "Votos", "vip": "VIP/Xepa"}
         for ck in all_comp_keys:
-            html += f'<th style="padding:6px 8px; text-align:center; color:#ccc;">{comp_labels.get(ck, ck)}</th>'
-        html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Total</th>'
-        html += '<th style="padding:6px 8px; text-align:center; color:#ccc;">Jonas→</th>'
+            html += f'<th class="tc text-light" style="padding:6px 8px;">{comp_labels.get(ck, ck)}</th>'
+        html += '<th class="tc text-light" style="padding:6px 8px;">Total</th>'
+        html += '<th class="tc text-light" style="padding:6px 8px;">Jonas→</th>'
         html += '</tr>'
 
         for att in attendees:
@@ -979,18 +979,18 @@ else:
             back_neg = mutual_info.get("is_negative", False)
             back_color = "#e74c3c" if back_neg else "#2ecc71"
 
-            html += f'<tr style="border-bottom:1px solid #333;">'
+            html += f'<tr class="sep-bottom">'
             html += f'<td style="padding:6px 8px; color:#eee;">{att}</td>'
-            html += f'<td style="padding:6px 8px; text-align:center;">{em}</td>'
+            html += f'<td class="tc" style="padding:6px 8px;">{em}</td>'
             for ck in all_comp_keys:
                 v = comps.get(ck, 0)
                 if v == 0:
-                    html += f'<td style="padding:6px 8px; text-align:center; color:#555;">—</td>'
+                    html += f'<td class="tc" style="padding:6px 8px; color:#555;">—</td>'
                 else:
                     c = "#e74c3c" if v < 0 else "#2ecc71"
-                    html += f'<td style="padding:6px 8px; text-align:center; color:{c}; font-weight:bold;">{v:+.2f}</td>'
-            html += f'<td style="padding:6px 8px; text-align:center; color:#e74c3c; font-weight:bold;">{total:+.2f}</td>'
-            html += f'<td style="padding:6px 8px; text-align:center;"><span style="color:{back_color};">{back_em}</span></td>'
+                    html += f'<td class="tc" style="padding:6px 8px; color:{c}; font-weight:bold;">{v:+.2f}</td>'
+            html += f'<td class="tc text-neg" style="padding:6px 8px;">{total:+.2f}</td>'
+            html += f'<td class="tc" style="padding:6px 8px;"><span style="color:{back_color};">{back_em}</span></td>'
             html += '</tr>'
 
         html += '</table>'
@@ -998,8 +998,8 @@ else:
         # Component totals
         comp_totals = {ck: sum(att_components[att].get(ck, 0) for att in attendees) for ck in all_comp_keys}
         total_all = sum(comp_totals.values())
-        html += '<div style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#111; border-radius:6px; font-size:0.85em; color:#aaa;">'
-        html += '<strong style="color:#ccc;">Soma dos 3:</strong> '
+        html += '<div class="table-md" style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#111; border-radius:6px; color:#aaa;">'
+        html += '<strong class="text-light">Soma dos 3:</strong> '
         parts = []
         for ck in all_comp_keys:
             v = comp_totals[ck]
@@ -1011,7 +1011,7 @@ else:
 
         # Percentage breakdown
         if total_all != 0:
-            html += '<br><strong style="color:#ccc;">Peso relativo:</strong> '
+            html += '<br><strong class="text-light">Peso relativo:</strong> '
             pct_parts = []
             for ck in all_comp_keys:
                 v = comp_totals[ck]
@@ -1023,7 +1023,7 @@ else:
 
     # --- Compare: why Jonas and not the others? ---
     html += '<h4 style="color:#f0c040; margin:1.2rem 0 0.5rem;">Por que Jonas e não os outros alvos?</h4>'
-    html += '<div style="color:#ccc; font-size:0.85em; line-height:1.7;">'
+    html += '<div class="text-light table-md" style="line-height:1.7;">'
 
     if rank_score == 1 and len(by_score) > 1:
         gap = by_score[1]["combined_score"] - by_score[0]["combined_score"]
@@ -1073,7 +1073,7 @@ else:
     html += '</div>'
 
     # --- Nota sobre consensus_pct ---
-    html += '<div style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#222; border:1px solid #444; border-radius:6px; font-size:0.82em; color:#888;">'
+    html += '<div class="text-muted" style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#222; border:1px solid #444; border-radius:6px; font-size:0.82em;">'
     html += '<strong style="color:#aaa;">Nota sobre consensus %:</strong> '
     html += 'Jonas era #3 por consensus_pct (54% vs 64% de Brigido/Gabriela). '
     html += 'Essa métrica mede "qual % de hipotéticos 3ºs atendentes concordariam" — útil como análise de robustez, '
@@ -1084,13 +1084,13 @@ else:
     html += '<div style="background:#1a2a1a; border:1px solid #2ecc71; border-radius:8px; padding:0.8rem 1rem; margin-top:1rem;">'
     html += '<strong style="color:#2ecc71;">Veredicto:</strong> '
     if rank_score == 1:
-        html += '<span style="color:#ccc;">O scoring <strong>acertou</strong>. Jonas era o alvo #1 dos 3 atendentes por larga margem. '
+        html += '<span class="text-light">O scoring <strong>acertou</strong>. Jonas era o alvo #1 dos 3 atendentes por larga margem. '
         html += 'A combinação de queridômetro negativo + eventos de poder acumulados capturou corretamente a intensidade da rejeição conjunta. '
         html += '<strong>Nenhum ajuste de pesos necessário</strong> — o sistema funcionou como esperado para este caso.</span>'
     elif rank_score and rank_score <= 2:
-        html += f'<span style="color:#ccc;">O scoring chegou perto (#{rank_score}). Considerar se o peso de power_events está calibrado.</span>'
+        html += f'<span class="text-light">O scoring chegou perto (#{rank_score}). Considerar se o peso de power_events está calibrado.</span>'
     else:
-        html += '<span style="color:#ccc;">O scoring errou. Revisar pesos dos componentes — especialmente a proporção entre queridômetro e eventos.</span>'
+        html += '<span class="text-light">O scoring errou. Revisar pesos dos componentes — especialmente a proporção entre queridômetro e eventos.</span>'
     html += '</div>'
 
     html += '</div>'
@@ -1260,8 +1260,8 @@ if retro_summary:
     html_retro += '</div>'
 
 # Methodology box
-html_retro += '<div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; font-size:0.85em; color:#aaa;">'
-html_retro += '<strong style="color:#ccc;">Metodologia</strong><br>'
+html_retro += '<div class="table-md" style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; color:#aaa;">'
+html_retro += '<strong class="text-light">Metodologia</strong><br>'
 html_retro += '<ul style="margin:0.3rem 0 0;">'
 html_retro += '<li><strong>Previsão:</strong> para cada votante, o alvo previsto é o participante elegível com o menor (mais negativo) score <code>pairs_daily</code> combinado.</li>'
 html_retro += '<li><strong>Componentes do score:</strong> queridômetro (emoji diário, 70% janela reativa 3d + 30% memória de sequência) + eventos acumulados (poder, votos, sincerão, VIP) sem decay.</li>'
@@ -1292,7 +1292,7 @@ html_vp = ""
 
 if not vp_by_paredao:
     html_vp += '<div style="background:#1a1a2e; border:1px solid #444; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
-    html_vp += '<p style="color:#888;">Arquivo <code>vote_prediction.json</code> não encontrado. Execute <code>python scripts/build_derived_data.py</code>.</p>'
+    html_vp += '<p class="text-muted">Arquivo <code>vote_prediction.json</code> não encontrado. Execute <code>python scripts/build_derived_data.py</code>.</p>'
     html_vp += '</div>'
     print(html_vp)
 
@@ -1312,9 +1312,9 @@ else:
         html_vp += '<div style="background:#1a2a1a; border:1px solid #2ecc71; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
         html_vp += '<h4 style="color:#2ecc71; margin:0 0 0.8rem;">📊 Acurácia acumulada (todos os paredões com votos)</h4>'
         html_vp += '<div style="display:flex; gap:16px; flex-wrap:wrap;">'
-        html_vp += f'<div style="background:#222; padding:12px 20px; border-radius:8px; text-align:center;"><div style="color:#aaa; font-size:0.8em;">Modelo Aprimorado</div><div style="color:#2ecc71; font-size:1.8em; font-weight:bold;">{enh_pct:.1f}%</div><div style="color:#888; font-size:0.85em;">{enh["correct"]}/{enh["total"]}</div></div>'
-        html_vp += f'<div style="background:#222; padding:12px 20px; border-radius:8px; text-align:center;"><div style="color:#aaa; font-size:0.8em;">Baseline (sentimento)</div><div style="color:#f39c12; font-size:1.8em; font-weight:bold;">{base_pct:.1f}%</div><div style="color:#888; font-size:0.85em;">{base["correct"]}/{base["total"]}</div></div>'
-        html_vp += f'<div style="background:#222; padding:12px 20px; border-radius:8px; text-align:center;"><div style="color:#aaa; font-size:0.8em;">Diferença</div><div style="color:{diff_color}; font-size:1.8em; font-weight:bold;">{diff_str}</div><div style="color:#888; font-size:0.85em;">aprimorado vs baseline</div></div>'
+        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div style="color:#aaa; font-size:0.8em;">Modelo Aprimorado</div><div class="text-pos" style="font-size:1.8em;">{enh_pct:.1f}%</div><div class="text-muted table-md">{enh["correct"]}/{enh["total"]}</div></div>'
+        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div style="color:#aaa; font-size:0.8em;">Baseline (sentimento)</div><div style="color:#f39c12; font-size:1.8em; font-weight:bold;">{base_pct:.1f}%</div><div class="text-muted table-md">{base["correct"]}/{base["total"]}</div></div>'
+        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div style="color:#aaa; font-size:0.8em;">Diferença</div><div style="color:{diff_color}; font-size:1.8em; font-weight:bold;">{diff_str}</div><div class="text-muted table-md">aprimorado vs baseline</div></div>'
         html_vp += '</div></div>'
 
     # ══════════════════════════════════════════════════════════════
@@ -1343,7 +1343,7 @@ else:
         html_vp += f'<h4 style="color:#f0c040; margin:0 0 0.8rem;">{status_icon} {num_str}º Paredão — {formation_date} ({status_label})</h4>'
 
         # Game state
-        html_vp += '<div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.85em; margin-bottom:0.8rem;">'
+        html_vp += '<div class="table-md" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:0.8rem;">'
         for reason_name, reason_text in elig["ineligible_reasons"].items():
             icon_map = {"Líder": "👑", "Indicado do Líder": "👑→", "Imunizado": "🛡️", "Dinâmica": "📞", "Contragolpe": "⚔️", "Anjo (autoimune)": "😇"}
             icon = icon_map.get(reason_text, "🚫")
@@ -1355,7 +1355,7 @@ else:
         if lider_pred:
             lider_mark = "✅" if lider_pred.get("correct") else "❌"
             lider_actual = lider_pred.get("actual", "?")
-            html_vp += f'<div style="font-size:0.9em; margin-bottom:0.5rem; color:#ccc;">{lider_mark} Indicação do Líder: previu <strong>{lider_pred["predicted"]}</strong> ({lider_pred["score"]:+.2f}), real: <strong>{lider_actual}</strong></div>'
+            html_vp += f'<div class="text-light" style="font-size:0.9em; margin-bottom:0.5rem;">{lider_mark} Indicação do Líder: previu <strong>{lider_pred["predicted"]}</strong> ({lider_pred["score"]:+.2f}), real: <strong>{lider_actual}</strong></div>'
 
         # Retrospective accuracy badges
         if retro:
@@ -1388,7 +1388,7 @@ else:
         for i, (target, votes) in enumerate(sorted_conc[:5]):
             bar_w = int(votes / max_v * 120)
             bar_c = "#e74c3c" if i < 2 else "#555"
-            html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span style="min-width:20px; text-align:center; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
+            html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span class="tc" style="min-width:20px; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
         html_vp += '</div>'
 
         # Real concentration
@@ -1401,7 +1401,7 @@ else:
             for i, (target, votes) in enumerate(real_ranking):
                 bar_w = int(votes / max_r * 120)
                 bar_c = "#2ecc71" if i < 2 else "#555"
-                html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span style="min-width:20px; text-align:center; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
+                html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span class="tc" style="min-width:20px; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
             html_vp += '</div>'
 
         html_vp += '</div>'
@@ -1409,7 +1409,7 @@ else:
         # Detailed vote table
         if real_votes:
             html_vp += '<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#f0c040; font-size:0.9em;">🗳️ Detalhe voto a voto</summary>'
-            html_vp += '<div style="overflow-x:auto; margin-top:0.5rem;">'
+            html_vp += '<div class="scroll-x" style="margin-top:0.5rem;">'
 
             vote_rows = []
             for voter in sorted(predictions.keys()):
@@ -1453,7 +1453,7 @@ else:
         if retro and retro.get("errors"):
             errors = retro["errors"]
             html_vp += f'<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#e74c3c; font-size:0.9em;">💡 Análise dos {len(errors)} erros</summary>'
-            html_vp += '<div style="color:#ccc; font-size:0.9em; line-height:1.8; margin-top:0.5rem;">'
+            html_vp += '<div class="text-light" style="font-size:0.9em; line-height:1.8; margin-top:0.5rem;">'
             for err in errors:
                 icon = "🎲" if err["analysis"] == "gap mínimo (coin flip)" else "🤝"
                 html_vp += f'<p style="margin:0.3rem 0;">{icon} <strong>{err["voter"]}</strong>: previu <span style="color:#e74c3c;">{err["predicted"]}</span> → votou <strong style="color:#2ecc71;">{err["actual"]}</strong> ({err["confidence"]}) — {err["analysis"]}</p>'
@@ -1468,7 +1468,7 @@ else:
         )
         if has_adjustments:
             html_vp += '<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#aaa; font-size:0.9em;">🔧 Ajustes do modelo aprimorado</summary>'
-            html_vp += '<div style="font-size:0.85em; margin-top:0.5rem; color:#ccc;">'
+            html_vp += '<div class="text-light table-md" style="margin-top:0.5rem;">'
             for voter in sorted(predictions.keys()):
                 pred = predictions[voter]
                 for t in pred.get("top3", []):
@@ -1483,8 +1483,8 @@ else:
     # METHODOLOGY
     # ══════════════════════════════════════════════════════════════
     config = vp_meta.get("config", {})
-    html_vp += '<div style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; font-size:0.85em; color:#aaa;">'
-    html_vp += '<strong style="color:#ccc;">Metodologia — Modelo Aprimorado (v2)</strong><br>'
+    html_vp += '<div class="table-md" style="background:#111; border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin:1rem 0; color:#aaa;">'
+    html_vp += '<strong class="text-light">Metodologia — Modelo Aprimorado (v2)</strong><br>'
     html_vp += '<ul style="margin:0.3rem 0 0;">'
     html_vp += '<li><strong>Pass 1 (base):</strong> para cada votante, o alvo previsto é o participante elegível com o menor score combinado, usando a <strong>matriz de reações da data de formação</strong> (não a data atual). O score combina: reação do votante→alvo (50%) + consistência histórica negativa (30%) + reciprocidade (20%) + eventos acumulados.</li>'
     html_vp += f'<li><strong>Pass 2 (consenso de cluster):</strong> se ≥{config.get("cluster_consensus_threshold", 0.5)*100:.0f}% dos membros do cluster preveem o mesmo alvo e o alvo está no top-3 do votante, aplica boost de até {config.get("cluster_consensus_max_boost", -0.8)}.</li>'
@@ -1605,7 +1605,7 @@ else:
     html_pred += f'<div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">'
     html_pred += f'{avatar_img(lider_name, _avatars, size=40)}'
     html_pred += f'<span style="font-size:1.1em; color:#eee;"><strong>{lider_name}</strong> '
-    html_pred += f'<span style="color:#888;">— Líder da Semana {DISPLAY_WEEK_DAILY}</span></span></div>'
+    html_pred += f'<span class="text-muted">— Líder da Semana {DISPLAY_WEEK_DAILY}</span></span></div>'
 
     html_pred += '<div style="display:flex; gap:0.8rem; flex-wrap:wrap; margin-bottom:0.8rem;">'
     for i, (tname, tentry) in enumerate(top3):
@@ -1614,7 +1614,7 @@ else:
         vip_tag = ' <span style="color:#3498db; font-size:0.75em;">VIP</span>' if tname in vip_list else ""
         html_pred += f'<div style="background:#111; border:1px solid {color}; border-radius:8px; '
         html_pred += f'padding:0.6rem 0.8rem; min-width:140px; flex:1;">'
-        html_pred += f'<div style="color:#888; font-size:0.75em;">#{i+1} mais provável</div>'
+        html_pred += f'<div class="text-muted" style="font-size:0.75em;">#{i+1} mais provável</div>'
         html_pred += f'<div style="display:flex; align-items:center; gap:0.4rem; margin:0.3rem 0;">'
         html_pred += f'{avatar_img(tname, _avatars, size=24)} '
         html_pred += f'<strong style="color:#eee;">{tname}</strong>{vip_tag}</div>'
@@ -1629,16 +1629,16 @@ else:
             html_pred += f' — imunizou <strong>{imunizado_nome}</strong> (bloqueado como alvo)'
         html_pred += '</div>'
     else:
-        html_pred += '<div style="color:#888; font-size:0.9em;">😇 Anjo ainda não definido esta semana</div>'
+        html_pred += '<div class="text-muted" style="font-size:0.9em;">😇 Anjo ainda não definido esta semana</div>'
 
     html_pred += '</div>'
 
     # ── Full ranking table ─────────────────────────────────────────────
-    html_pred += '<div style="overflow-x:auto; margin-top:1.2rem;">'
-    html_pred += '<table style="width:100%; border-collapse:collapse; font-size:0.85em;">'
+    html_pred += '<div class="scroll-x" style="margin-top:1.2rem;">'
+    html_pred += '<table class="table-full table-md">'
     html_pred += '<thead><tr style="border-bottom:2px solid #444;">'
     for hdr in ["#", "Participante", "Score", "Barra", "Componentes", "Reciprocidade", "Streak", "VIP"]:
-        html_pred += f'<th style="padding:0.5rem 0.4rem; text-align:left; color:#aaa; white-space:nowrap;">{hdr}</th>'
+        html_pred += f'<th class="tl" style="padding:0.5rem 0.4rem; color:#aaa; white-space:nowrap;">{hdr}</th>'
     html_pred += '</tr></thead><tbody>'
 
     # Find max absolute score for bar scaling
@@ -1665,30 +1665,30 @@ else:
         is_immune = (tname == imunizado_nome)
         immune_tag = ' <span style="background:#3498db; color:#fff; font-size:0.7em; padding:1px 4px; border-radius:3px;">IMUNE</span>' if is_immune else ""
 
-        html_pred += f'<tr style="border-bottom:1px solid #333; {row_bg}">'
+        html_pred += f'<tr class="sep-bottom" style="{row_bg}">'
 
         # Rank
-        html_pred += f'<td style="padding:0.4rem; color:#888; text-align:center;">{rank}</td>'
+        html_pred += f'<td class="cell-compact tc text-muted">{rank}</td>'
 
         # Name + avatar
-        html_pred += f'<td style="padding:0.4rem; white-space:nowrap;">'
+        html_pred += f'<td class="cell-compact" style="white-space:nowrap;">'
         html_pred += f'{avatar_img(tname, _avatars, size=22)} '
         html_pred += f'<strong style="color:#eee;">{tname}</strong>{immune_tag}</td>'
 
         # Score
-        html_pred += f'<td style="padding:0.4rem; color:{sc_color}; font-weight:bold; font-family:monospace;">{sc:+.2f}</td>'
+        html_pred += f'<td class="cell-compact" style="color:{sc_color}; font-weight:bold; font-family:monospace;">{sc:+.2f}</td>'
 
         # Score bar
         bar_pct = min(abs(sc) / max_abs * 100, 100)
         bar_color = "#e74c3c" if sc < 0 else "#2ecc71"
         bar_dir = "right" if sc < 0 else "left"
-        html_pred += f'<td style="padding:0.4rem; min-width:80px;">'
+        html_pred += f'<td class="cell-compact" style="min-width:80px;">'
         html_pred += f'<div style="width:100%; background:#222; border-radius:3px; height:12px; position:relative;">'
         html_pred += f'<div style="width:{bar_pct:.0f}%; background:{bar_color}; height:100%; border-radius:3px; '
         html_pred += f'float:{bar_dir};"></div></div></td>'
 
         # Components breakdown
-        html_pred += f'<td style="padding:0.4rem;">'
+        html_pred += f'<td class="cell-compact">'
         chips = []
         for comp_key, (emoji, cneg, cpos) in comp_meta.items():
             val = comps.get(comp_key, 0.0)
@@ -1720,24 +1720,24 @@ else:
             recip_label = "💚 Aliados"
             recip_color = "#2ecc71"
 
-        html_pred += f'<td style="padding:0.4rem; white-space:nowrap;">'
-        html_pred += f'<span style="color:{recip_color}; font-size:0.85em;">{recip_label}</span> '
-        html_pred += f'<span style="color:#888; font-size:0.78em;">({recip_score:+.2f})</span></td>'
+        html_pred += f'<td class="cell-compact" style="white-space:nowrap;">'
+        html_pred += f'<span class="table-md" style="color:{recip_color};">{recip_label}</span> '
+        html_pred += f'<span class="text-muted table-sm">({recip_score:+.2f})</span></td>'
 
         # Streak
         streak_icon = "🔴" if has_break else ("🟢" if streak_len >= 5 else "⚪")
         break_tag = ' <span style="color:#e74c3c; font-size:0.75em;">BREAK</span>' if has_break else ""
-        html_pred += f'<td style="padding:0.4rem; text-align:center; white-space:nowrap;">'
+        html_pred += f'<td class="cell-compact tc" style="white-space:nowrap;">'
         html_pred += f'{streak_icon} {streak_len}d{break_tag}</td>'
 
         # VIP badge
         is_vip = tname in vip_list
         if is_vip:
-            html_pred += '<td style="padding:0.4rem; text-align:center;">'
+            html_pred += '<td class="cell-compact tc">'
             html_pred += '<span style="background:#3498db33; color:#3498db; border:1px solid #3498db55; '
             html_pred += 'border-radius:3px; padding:1px 5px; font-size:0.78em;">VIP</span></td>'
         else:
-            html_pred += '<td style="padding:0.4rem; text-align:center; color:#555;">—</td>'
+            html_pred += '<td class="cell-compact tc" style="color:#555;">—</td>'
 
         html_pred += '</tr>'
 
@@ -1753,7 +1753,7 @@ else:
         if pair_edges or hist_fwd:
             html_pred += f'<tr style="{row_bg}"><td colspan="8" style="padding:0;">'
             html_pred += '<details style="margin:0 0.4rem 0.4rem 1.8rem;">'
-            html_pred += '<summary style="cursor:pointer; color:#888; font-size:0.78em; '
+            html_pred += '<summary class="text-muted table-sm" style="cursor:pointer; '
             html_pred += f'padding:0.2rem 0;">📋 {len(pair_edges)} evento(s) · '
             html_pred += f'{len(hist_fwd)} dia(s) de queridômetro</summary>'
             html_pred += '<div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.4rem;">'
@@ -1762,13 +1762,13 @@ else:
             if pair_edges:
                 html_pred += '<div style="flex:1; min-width:280px;">'
                 html_pred += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;"><strong>Eventos & Edges</strong></div>'
-                html_pred += '<table style="width:100%; border-collapse:collapse; font-size:0.78em;">'
-                html_pred += '<thead><tr style="border-bottom:1px solid #333;">'
-                html_pred += '<th style="padding:2px 4px; color:#666; text-align:left;">Data</th>'
-                html_pred += '<th style="padding:2px 4px; color:#666; text-align:left;">Tipo</th>'
-                html_pred += '<th style="padding:2px 4px; color:#666; text-align:left;">Direção</th>'
-                html_pred += '<th style="padding:2px 4px; color:#666; text-align:right;">Peso</th>'
-                html_pred += '<th style="padding:2px 4px; color:#666; text-align:left;">Detalhe</th>'
+                html_pred += '<table class="table-full table-sm">'
+                html_pred += '<thead><tr class="sep-bottom">'
+                html_pred += '<th class="tl text-dim" style="padding:2px 4px;">Data</th>'
+                html_pred += '<th class="tl text-dim" style="padding:2px 4px;">Tipo</th>'
+                html_pred += '<th class="tl text-dim" style="padding:2px 4px;">Direção</th>'
+                html_pred += '<th class="tr text-dim" style="padding:2px 4px;">Peso</th>'
+                html_pred += '<th class="tl text-dim" style="padding:2px 4px;">Detalhe</th>'
                 html_pred += '</tr></thead><tbody>'
                 for edge in pair_edges:
                     e_type = edge.get("type", "?")
@@ -1797,11 +1797,11 @@ else:
                     detail_str = " · ".join(detail_parts) if detail_parts else "—"
 
                     html_pred += f'<tr style="border-bottom:1px solid #222;">'
-                    html_pred += f'<td style="padding:2px 4px; color:#888; white-space:nowrap;">{e_date}</td>'
+                    html_pred += f'<td class="text-muted" style="padding:2px 4px; white-space:nowrap;">{e_date}</td>'
                     html_pred += f'<td style="padding:2px 4px; white-space:nowrap;">{e_emoji} {e_label}</td>'
                     html_pred += f'<td style="padding:2px 4px; color:#aaa; font-size:0.9em;">{arrow}</td>'
-                    html_pred += f'<td style="padding:2px 4px; color:{e_wcolor}; text-align:right; font-family:monospace;">{e_weight:+.2f}</td>'
-                    html_pred += f'<td style="padding:2px 4px; color:#888;">{detail_str}</td>'
+                    html_pred += f'<td class="tr" style="padding:2px 4px; color:{e_wcolor}; font-family:monospace;">{e_weight:+.2f}</td>'
+                    html_pred += f'<td class="text-muted" style="padding:2px 4px;">{detail_str}</td>'
                     html_pred += '</tr>'
                 html_pred += '</tbody></table></div>'
 
@@ -1817,11 +1817,11 @@ else:
                 html_pred += '<div style="flex:1; min-width:240px;">'
                 html_pred += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;">'
                 html_pred += f'<strong>Queridômetro</strong> (últimos {len(show_dates)} dias)</div>'
-                html_pred += '<table style="width:100%; border-collapse:collapse; font-size:0.78em;">'
-                html_pred += '<thead><tr style="border-bottom:1px solid #333;">'
-                html_pred += f'<th style="padding:2px 4px; color:#666; text-align:left;">Data</th>'
-                html_pred += f'<th style="padding:2px 4px; color:#666; text-align:center;">{lider_name.split()[0]}→</th>'
-                html_pred += f'<th style="padding:2px 4px; color:#666; text-align:center;">→{lider_name.split()[0]}</th>'
+                html_pred += '<table class="table-full table-sm">'
+                html_pred += '<thead><tr class="sep-bottom">'
+                html_pred += f'<th class="tl text-dim" style="padding:2px 4px;">Data</th>'
+                html_pred += f'<th class="tc text-dim" style="padding:2px 4px;">{lider_name.split()[0]}→</th>'
+                html_pred += f'<th class="tc text-dim" style="padding:2px 4px;">→{lider_name.split()[0]}</th>'
                 html_pred += '</tr></thead><tbody>'
                 for dt in show_dates:
                     fwd_lbl = fwd_by_date.get(dt, "")
@@ -1834,9 +1834,9 @@ else:
                     fwd_c = "#2ecc71" if fwd_sent > 0 else "#e74c3c" if fwd_sent < -0.5 else "#e67e22" if fwd_sent < 0 else "#555"
                     rev_c = "#2ecc71" if rev_sent > 0 else "#e74c3c" if rev_sent < -0.5 else "#e67e22" if rev_sent < 0 else "#555"
                     html_pred += f'<tr style="border-bottom:1px solid #222;">'
-                    html_pred += f'<td style="padding:1px 4px; color:#888; font-size:0.9em;">{dt[5:]}</td>'
-                    html_pred += f'<td style="padding:1px 4px; text-align:center; color:{fwd_c};">{fwd_e}</td>'
-                    html_pred += f'<td style="padding:1px 4px; text-align:center; color:{rev_c};">{rev_e}</td>'
+                    html_pred += f'<td class="text-muted" style="padding:1px 4px; font-size:0.9em;">{dt[5:]}</td>'
+                    html_pred += f'<td class="tc" style="padding:1px 4px; color:{fwd_c};">{fwd_e}</td>'
+                    html_pred += f'<td class="tc" style="padding:1px 4px; color:{rev_c};">{rev_e}</td>'
                     html_pred += '</tr>'
                 html_pred += '</tbody></table></div>'
 
@@ -1845,8 +1845,8 @@ else:
     html_pred += '</tbody></table></div>'
 
     # ── Methodology note ───────────────────────────────────────────────
-    html_pred += '<div style="background:#111; border:1px solid #333; border-radius:8px; '
-    html_pred += 'padding:0.8rem 1rem; margin:1rem 0; font-size:0.82em; color:#888;">'
+    html_pred += '<div class="text-muted" style="background:#111; border:1px solid #333; border-radius:8px; '
+    html_pred += 'padding:0.8rem 1rem; margin:1rem 0; font-size:0.82em;">'
     html_pred += '<strong style="color:#aaa;">📐 Metodologia</strong><br>'
     html_pred += 'A previsão é baseada no <strong>score acumulado do Líder → cada participante</strong>, '
     html_pred += 'calculado pelo sistema de Sentiment Index (queridômetro com memória de streak + '

@@ -193,7 +193,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
     # Build HTML table
     html = []
     html.append(f'''
-<div style="overflow-x: auto; max-width: 100%;">
+<div class="scroll-x">
 <style>
 .cross-table {{
     border-collapse: separate;
@@ -331,7 +331,7 @@ def make_reaction_summary_html(summary_data, collapsed_rows=5):
 }}
 .expand-btn:hover {{ background: #333; }}
 </style>
-<div style="overflow-x: auto; max-width: 100%;">
+<div class="scroll-x">
 <table class="summary-table" id="reaction-summary-table">
 <thead>
 <tr>
@@ -452,7 +452,7 @@ def progress_bar(value, max_val, color="#3498db", height=6):
 
 
 if not hl_cards:
-    print(f'''<div style="background:#2a2a2a;border-radius:12px;padding:1.5rem;margin:1rem 0;text-align:center;color:#aaa;">
+    print(f'''<div class="dark-card tc" style="padding:1.5rem;margin:1rem 0;color:#aaa;">
 📅 Primeiro dia de dados — sem comparações disponíveis ainda.</div>''')
 else:
     # Extract context card data for the header
@@ -466,7 +466,7 @@ else:
 <h2 style="margin:0 0 0.2rem 0;font-size:1.3rem;color:#fff;">📋 Destaques do Dia <span style="color:#888;font-weight:400;font-size:0.85rem;">({date_display_pt})</span></h2>
 <div style="height:3px;background:linear-gradient(90deg,#f1c40f,#e74c3c,#3498db,#2ecc71);border-radius:2px;margin-bottom:0.4rem;"></div>
 <div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:0.85rem;color:#999;">
-<span>📅 <b style="color:#ccc;">Semana {ctx_week}</b></span>
+<span>📅 <b class="text-light">Semana {ctx_week}</b></span>
 <span>{ctx_days} dias de dados</span>
 <span>{ctx_active} participantes ativos</span>
 </div>
@@ -549,12 +549,12 @@ else:
                     movers_html += (
                         f'<div style="display:flex;align-items:center;gap:5px;background:rgba(231,76,60,0.1);padding:4px 10px;border-radius:8px;">'
                         f'{av(md["name"], 42, "#e74c3c")}'
-                        f'<span style="font-size:0.8rem;color:#e74c3c;font-weight:700;">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
+                        f'<span class="text-neg" style="font-size:0.8rem;">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
                         f'</div>')
                 movers_html += '</div></div>'
 
             # 3-column grid on desktop, stacks on mobile
-            print(f'''<div style="grid-column:1/-1;background:#2a2a2a;border-radius:12px;border-top:4px solid {color};padding:1rem 1.2rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
 {header}
 <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:0.6rem;align-items:start;">
 {podium_html}
@@ -574,7 +574,7 @@ else:
             hl_lost = card["hearts_lost"]
             direction_color = "#27ae60" if imp > wor else ("#e74c3c" if wor > imp else "#f39c12")
 
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Reações do queridômetro que mudaram de ontem para hoje. Melhorias = score subiu, pioras = score caiu.")}
 <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.6rem;">
 <span style="font-size:2rem;font-weight:800;color:#fff;">{total}</span>
@@ -635,7 +635,7 @@ else:
                 pairs_html += f'<a href="{link}" style="display:flex;align-items:center;padding:4px 10px;background:rgba(255,255,255,0.08);border-radius:8px;color:#aaa;font-size:0.75rem;text-decoration:none;">+{extra} mais ↗</a>'
             pairs_html += '</div>'
 
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {ch}
 {pairs_html}
 </div>''')
@@ -663,7 +663,7 @@ else:
                 )
             rows_html += '</div>'
 
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📸 Sincerão + Queridômetro", subtitle="No Sincerão disse negativo (bomba/não ganha) mas no queridômetro dá ❤️. Discurso contradiz reação.")}
 {rows_html}
 </div>''')
@@ -680,7 +680,7 @@ else:
                     f'</div>'
                 )
             avatars_html += '</div>'
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), subtitle="Participantes emparedados — clique para análise de votos e reações.")}
 {avatars_html}
 </div>''')
@@ -702,7 +702,7 @@ else:
                     f'<div style="flex:1;min-width:0;">'
                     f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
                     f'<span style="font-size:0.8rem;font-weight:600;color:#fff;">{name.split()[0]}</span>'
-                    f'<span style="font-size:0.75rem;color:#e74c3c;font-weight:700;">{neg:.1f}</span>'
+                    f'<span class="text-neg" style="font-size:0.75rem;">{neg:.1f}</span>'
                     f'</div>'
                     f'<div style="background:rgba(255,255,255,0.08);border-radius:3px;height:5px;margin-top:2px;overflow:hidden;">'
                     f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
@@ -711,9 +711,9 @@ else:
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<div style="font-size:0.75rem;color:#888;text-align:center;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+                rows_html += f'<div class="tc" style="font-size:0.75rem;color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
             rows_html += '</div>'
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto negativo acumulado por eventos de poder, votos, Sincerão e VIP. Quem mais sofre ao longo do jogo.")}
 {rows_html}
 </div>''')
@@ -749,9 +749,9 @@ else:
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<div style="font-size:0.75rem;color:#888;text-align:center;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+                rows_html += f'<div class="tc" style="font-size:0.75rem;color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
             rows_html += '</div>'
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Composto", subtitle="Falsos amigos: dá ❤️ a quem tem score negativo contra si (queridômetro + votos + eventos). Risco de voto surpresa.")}
 {rows_html}
 </div>''')
@@ -788,7 +788,7 @@ else:
                 rows_html += f'<a href="{card.get("link", "#")}" style="display:flex;align-items:center;padding:5px 10px;background:rgba(255,255,255,0.06);border-radius:8px;color:#aaa;font-size:0.75rem;text-decoration:none;">+{extra} mais ↗</a>'
             rows_html += '</div>'
 
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), severity_badge or f"{total}", source_tag="📈 Histórico", subtitle="Alianças longas de ❤️ que foram rompidas. Quanto mais dias seguidos, mais grave a ruptura.")}
 {rows_html}
 </div>''')
@@ -808,7 +808,7 @@ else:
                     f'</div>'
                 )
             strat_html += '</div>'
-            print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid {color};padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📈 Composto", subtitle="Score médio recebido (queridômetro + votos + eventos). Líder diverge do ranking puro por emoji.")}
 {strat_html}
 </div>''')
@@ -849,7 +849,7 @@ else:
                 f'</div></div>'
             )
         saldo_rows += '</div>'
-        print(f'''<div style="background:#2a2a2a;border-radius:12px;border-left:4px solid #f1c40f;padding:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+        print(f'''<div class="info-panel" style="border-left-color:#f1c40f;">
 {card_header("💰", "Saldo de Estalecas", "evolucao.html#saldo", source_tag="📸 Dado do dia", subtitle="Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.")}
 {saldo_rows}
 </div>''')
@@ -875,7 +875,7 @@ else:
     detail_html = '<div style="color: #888; font-size: 0.9rem;">Nenhum paredão ativo no momento</div>'
 
 print(f'''
-<div style="background: #2a2a2a; border-radius: 12px; padding: 1rem 1.2rem; margin: 1rem 0 1.5rem 0; border-left: 4px solid {status_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+<div class="info-panel" style="padding: 1rem 1.2rem; margin: 1rem 0 1.5rem 0; border-left-color: {status_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
 <div>
 <div style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 0.3rem;">
 {status_icon} Paredão: <span style="color: {status_color};">{status_text}</span>
@@ -989,7 +989,7 @@ if strategic_rows:
     if divergences:
         divergences.sort(key=lambda x: -abs(x[3]))
         print("<details><summary><strong>Maiores divergências entre rankings</strong> (≥3 posições)</summary>")
-        print("<div style='margin-top: 0.5rem; font-size: 0.85rem;'>")
+        print("<div class='table-md' style='margin-top: 0.5rem;'>")
         for name, qr, sr, delta, cs, qs in divergences:
             if delta > 0:
                 icon = "📈"
@@ -999,7 +999,7 @@ if strategic_rows:
                 icon = "📉"
                 desc = f"cai {abs(delta)} posições"
                 color = "#e74c3c"
-            print(f"<div style='padding: 0.3rem 0; border-bottom: 1px solid #333;'>"
+            print(f"<div class='sep-bottom' style='padding: 0.3rem 0;'>"
                   f"{icon} <strong>{name}</strong>: Queridômetro #{qr} ({qs:+.1f}) → "
                   f"Estratégico #{sr} ({cs:+.2f}) — "
                   f"<span style='color: {color};'>{desc}</span></div>")
@@ -1258,10 +1258,10 @@ print(ANALYSIS_DESCRIPTIONS["profiles_intro"])
 ```
 
 <details style="margin: 1.5rem 0;">
-<summary style="cursor: pointer; color: #fff; font-weight: 600; background: #2a2a2a; border-radius: 12px; padding: 0.9rem 1.2rem; border-left: 4px solid #17a2b8;">
+<summary class="info-panel" style="cursor: pointer; color: #fff; font-weight: 600; padding: 0.9rem 1.2rem; border-left-color: #17a2b8;">
 ℹ️ Como calculamos Vulnerabilidade, Impacto Negativo e Hostilidade Gerada (clique para expandir)
 </summary>
-<div style="background: #2a2a2a; border-radius: 12px; padding: 1.2rem; margin-top: 0.8rem; border-left: 4px solid #17a2b8;">
+<div class="info-panel" style="padding: 1.2rem; margin-top: 0.8rem; border-left-color: #17a2b8;">
 
 **🎯 Vulnerabilidade a Votos Surpresa**
 

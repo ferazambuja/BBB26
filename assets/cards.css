@@ -101,3 +101,40 @@
   border-radius: 12px;
   font-size: 0.85em;
 }
+
+/* ── Table utilities ── */
+.tc { text-align: center; }
+.tr { text-align: right; }
+.tl { text-align: left; }
+.cell-compact { padding: 0.4rem; }
+.table-full { width: 100%; border-collapse: collapse; }
+.table-sm { font-size: 0.78em; }
+.table-md { font-size: 0.85em; }
+
+/* ── Text colors (dark theme) ── */
+.text-muted { color: #888; }
+.text-dim { color: #666; }
+.text-light { color: #ccc; }
+.text-neg { color: #e74c3c; font-weight: 700; }
+.text-pos { color: #2ecc71; font-weight: 700; }
+
+/* ── Layout ── */
+.scroll-x { overflow-x: auto; max-width: 100%; }
+.sep-bottom { border-bottom: 1px solid #333; }
+
+/* ── Info panel ── */
+.info-panel {
+  background: #2a2a2a;
+  border-radius: 12px;
+  border-left: 4px solid #666;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ── Dark card (general purpose) ── */
+.dark-card {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}

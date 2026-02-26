@@ -243,10 +243,10 @@ def build_alignment(participants, sinc_data, week):
 # ── Sub-functions for build_index_data() ──────────────────────────────────
 
 
-def _build_shared_context(snapshots, daily_snapshots, daily_matrices):
-    """Load JSONs, compute shared lookups (member_of, avatars, roles, VIP, plant scores).
+def _load_and_parse_snapshots(snapshots):
+    """Label snapshots, extract member_of/avatars, load all derived JSONs.
 
-    Returns a ctx dict that other sub-functions use.
+    Returns a dict with loaded data and basic lookups.
     """
     for snap in snapshots:
         meta = snap.get("metadata") or {}
@@ -293,6 +293,44 @@ def _build_shared_context(snapshots, daily_snapshots, daily_matrices):
         received_impact = {}
 
     power_events = manual_events.get("power_events", []) + auto_events.get("events", [])
+
+    return {
+        "latest": latest,
+        "latest_matrix": latest_matrix,
+        "latest_date": latest_date,
+        "current_week": current_week,
+        "member_of": member_of,
+        "avatars": avatars,
+        "manual_events": manual_events,
+        "auto_events": auto_events,
+        "sinc_data": sinc_data,
+        "daily_metrics": daily_metrics,
+        "roles_daily": roles_daily,
+        "participants_index": participants_index,
+        "plant_index": plant_index,
+        "relations_data": relations_data,
+        "paredoes": paredoes,
+        "cartola_data": cartola_data,
+        "prova_data": prova_data,
+        "provas_raw": provas_raw,
+        "relations_pairs": relations_pairs,
+        "received_impact": received_impact,
+        "power_events": power_events,
+    }
+
+
+def _aggregate_latest_state(parsed, daily_snapshots):
+    """Compute active participants, roles, VIP/Xepa days, leader periods, plant scores.
+
+    Returns a dict with aggregated state lookups.
+    """
+    latest = parsed["latest"]
+    latest_date = parsed["latest_date"]
+    current_week = parsed["current_week"]
+    plant_index = parsed["plant_index"]
+    roles_daily = parsed["roles_daily"]
+    participants_index = parsed["participants_index"]
+    paredoes = parsed["paredoes"]
 
     def plant_week_has_signals(week_entry):
         if not week_entry:
@@ -426,30 +464,6 @@ def _build_shared_context(snapshots, daily_snapshots, daily_matrices):
     current_cycle_week = active_paredao.get("semana") if active_paredao else current_week
 
     return {
-        "snapshots": snapshots,
-        "daily_snapshots": daily_snapshots,
-        "daily_matrices": daily_matrices,
-        "latest": latest,
-        "latest_matrix": latest_matrix,
-        "latest_date": latest_date,
-        "current_week": current_week,
-        "member_of": member_of,
-        "avatars": avatars,
-        "manual_events": manual_events,
-        "auto_events": auto_events,
-        "sinc_data": sinc_data,
-        "daily_metrics": daily_metrics,
-        "roles_daily": roles_daily,
-        "participants_index": participants_index,
-        "plant_index": plant_index,
-        "relations_data": relations_data,
-        "paredoes": paredoes,
-        "cartola_data": cartola_data,
-        "prova_data": prova_data,
-        "provas_raw": provas_raw,
-        "relations_pairs": relations_pairs,
-        "received_impact": received_impact,
-        "power_events": power_events,
         "plant_week": plant_week,
         "plant_scores": plant_scores,
         "active": active,
@@ -469,239 +483,261 @@ def _build_shared_context(snapshots, daily_snapshots, daily_matrices):
     }
 
 
-def _build_highlights_and_cards(ctx):
-    """Daily movers, dramatic changes, Sincerão contradictions, all highlight cards."""
-    daily_snapshots = ctx["daily_snapshots"]
-    daily_matrices = ctx["daily_matrices"]
-    latest_matrix = ctx["latest_matrix"]
-    active_names = ctx["active_names"]
-    active_set = ctx["active_set"]
-    relations_pairs = ctx["relations_pairs"]
-    received_impact = ctx["received_impact"]
-    relations_data = ctx["relations_data"]
-    sinc_data = ctx["sinc_data"]
-    current_week = ctx["current_week"]
-    latest = ctx["latest"]
+def _build_shared_context(snapshots, daily_snapshots, daily_matrices):
+    """Load JSONs, compute shared lookups (member_of, avatars, roles, VIP, plant scores).
 
+    Returns a ctx dict that other sub-functions use.
+    """
+    parsed = _load_and_parse_snapshots(snapshots)
+    aggregated = _aggregate_latest_state(parsed, daily_snapshots)
+
+    ctx = {
+        "snapshots": snapshots,
+        "daily_snapshots": daily_snapshots,
+        "daily_matrices": daily_matrices,
+    }
+    ctx.update(parsed)
+    ctx.update(aggregated)
+    return ctx
+
+
+def _compute_daily_movers_cards(daily_snapshots, daily_matrices, active_names, relations_pairs):
+    """Ranking leader, podium, movers, reaction changes, dramatic changes, hostilities.
+
+    Returns (highlights, cards) lists for the daily comparison section.
+    """
     highlights = []
     cards = []
 
-    if len(daily_snapshots) >= 2:
-        today = daily_snapshots[-1]
-        yesterday = daily_snapshots[-2]
-        today_mat = daily_matrices[-1]
-        yesterday_mat = daily_matrices[-2]
+    if len(daily_snapshots) < 2:
+        return highlights, cards
 
-        today_active = [p for p in today["participants"]
+    today = daily_snapshots[-1]
+    yesterday = daily_snapshots[-2]
+    today_mat = daily_matrices[-1]
+    yesterday_mat = daily_matrices[-2]
+
+    today_active = [p for p in today["participants"]
+                    if not p.get("characteristics", {}).get("eliminated")]
+    sentiment_today = {p["name"]: calc_sentiment(p) for p in today_active}
+    yesterday_active = [p for p in yesterday["participants"]
                         if not p.get("characteristics", {}).get("eliminated")]
-        sentiment_today = {p["name"]: calc_sentiment(p) for p in today_active}
-        yesterday_active = [p for p in yesterday["participants"]
-                            if not p.get("characteristics", {}).get("eliminated")]
-        sentiment_yesterday = {p["name"]: calc_sentiment(p) for p in yesterday_active}
+    sentiment_yesterday = {p["name"]: calc_sentiment(p) for p in yesterday_active}
 
-        # -- Ranking leader + podium + movers --
-        if sentiment_today:
-            sentiment_leader = max(sentiment_today, key=sentiment_today.get)
-            leader_score = sentiment_today[sentiment_leader]
-            streak = 1
-            for i in range(len(daily_snapshots) - 2, -1, -1):
-                snap = daily_snapshots[i]
-                snap_active = [p for p in snap["participants"]
-                               if not p.get("characteristics", {}).get("eliminated")]
-                if not snap_active:
-                    break
-                snap_sent = {p["name"]: calc_sentiment(p) for p in snap_active}
-                if snap_sent and max(snap_sent, key=snap_sent.get) == sentiment_leader:
-                    streak += 1
-                else:
-                    break
+    # -- Ranking leader + podium + movers --
+    if sentiment_today:
+        sentiment_leader = max(sentiment_today, key=sentiment_today.get)
+        leader_score = sentiment_today[sentiment_leader]
+        streak = 1
+        for i in range(len(daily_snapshots) - 2, -1, -1):
+            snap = daily_snapshots[i]
+            snap_active = [p for p in snap["participants"]
+                           if not p.get("characteristics", {}).get("eliminated")]
+            if not snap_active:
+                break
+            snap_sent = {p["name"]: calc_sentiment(p) for p in snap_active}
+            if snap_sent and max(snap_sent, key=snap_sent.get) == sentiment_leader:
+                streak += 1
+            else:
+                break
 
-            sorted_today = sorted(sentiment_today.items(), key=lambda x: x[1], reverse=True)
-            podium = [{"name": n, "score": s} for n, s in sorted_today[:6]]
-            bottom3 = [{"name": n, "score": s} for n, s in sorted_today[-6:]]
+        sorted_today = sorted(sentiment_today.items(), key=lambda x: x[1], reverse=True)
+        podium = [{"name": n, "score": s} for n, s in sorted_today[:6]]
+        bottom3 = [{"name": n, "score": s} for n, s in sorted_today[-6:]]
 
-            deltas = {}
-            for name, score in sentiment_today.items():
-                if name in sentiment_yesterday:
-                    deltas[name] = round(score - sentiment_yesterday[name], 1)
+        deltas = {}
+        for name, score in sentiment_today.items():
+            if name in sentiment_yesterday:
+                deltas[name] = round(score - sentiment_yesterday[name], 1)
 
-            movers_up = []
-            movers_down = []
-            if deltas:
-                sorted_deltas = sorted(deltas.items(), key=lambda x: x[1], reverse=True)
-                movers_up = [{"name": n, "delta": d} for n, d in sorted_deltas if d > 0.5][:3]
-                movers_down = [{"name": n, "delta": d} for n, d in sorted_deltas if d < -0.5][-3:]
-                movers_down.sort(key=lambda x: x["delta"])  # most negative first
+        movers_up = []
+        movers_down = []
+        if deltas:
+            sorted_deltas = sorted(deltas.items(), key=lambda x: x[1], reverse=True)
+            movers_up = [{"name": n, "delta": d} for n, d in sorted_deltas if d > 0.5][:3]
+            movers_down = [{"name": n, "delta": d} for n, d in sorted_deltas if d < -0.5][-3:]
+            movers_down.sort(key=lambda x: x["delta"])  # most negative first
 
-            cards.append({
-                "type": "ranking",
-                "icon": "🏆", "title": "Ranking",
-                "color": "#f1c40f", "link": "#ranking",
-                "leader": sentiment_leader,
-                "leader_score": round(leader_score, 1),
-                "streak": streak,
-                "podium": podium,
-                "bottom3": bottom3,
-                "movers_up": movers_up,
-                "movers_down": movers_down,
+        cards.append({
+            "type": "ranking",
+            "icon": "🏆", "title": "Ranking",
+            "color": "#f1c40f", "link": "#ranking",
+            "leader": sentiment_leader,
+            "leader_score": round(leader_score, 1),
+            "streak": streak,
+            "podium": podium,
+            "bottom3": bottom3,
+            "movers_up": movers_up,
+            "movers_down": movers_down,
+        })
+
+        streak_text = f" pelo {streak}º dia consecutivo" if streak > 1 else ""
+        pod_txt = " · ".join(f"{p['name']} ({p['score']:+.1f})" for p in podium)
+        movers_parts = []
+        for mu in movers_up:
+            movers_parts.append(f"📈 {mu['name']} ({mu['delta']:+.1f})")
+        for md in movers_down:
+            movers_parts.append(f"📉 {md['name']} ({md['delta']:+.1f})")
+        movers_txt = " | " + " · ".join(movers_parts) if movers_parts else ""
+        highlights.append(
+            f"🏆 **{sentiment_leader}** lidera o [ranking](#ranking){streak_text} ({leader_score:+.1f})"
+            f" — Top 3: {pod_txt}{movers_txt}"
+        )
+
+        # Strategic leader divergence
+        strat_card = None
+        if relations_pairs:
+            strat_scores = {}
+            for sname in active_names:
+                incoming = [
+                    relations_pairs.get(sother, {}).get(sname, {}).get("score", 0)
+                    for sother in active_names if sother != sname and relations_pairs.get(sother, {}).get(sname)
+                ]
+                if incoming:
+                    strat_scores[sname] = sum(incoming) / len(incoming)
+            if strat_scores:
+                strat_leader = max(strat_scores, key=strat_scores.get)
+                if strat_leader != sentiment_leader:
+                    strat_top3 = sorted(strat_scores.items(), key=lambda x: x[1], reverse=True)[:3]
+                    strat_card = {
+                        "type": "strategic",
+                        "icon": "🧭", "title": "Ranking Estratégico",
+                        "color": "#9b59b6", "link": "evolucao.html#sentimento",
+                        "leader": strat_leader,
+                        "podium": [{"name": n, "score": round(s, 2)} for n, s in strat_top3],
+                    }
+                    cards.append(strat_card)
+                    strat_podium = " · ".join(f"{n} ({s:+.2f})" for n, s in strat_top3)
+                    highlights.append(
+                        f"🧭 No [ranking estratégico](evolucao.html#sentimento), **{strat_leader}** lidera "
+                        f"— diverge do queridômetro. Top 3: {strat_podium}"
+                    )
+
+    # -- Reaction changes summary --
+    common_pairs = today_mat.keys() & yesterday_mat.keys()
+    changes = [(pair, yesterday_mat[pair], today_mat[pair])
+               for pair in common_pairs if yesterday_mat[pair] != today_mat[pair]]
+    n_changes = len(changes)
+    if n_changes > 0:
+        total_possible = len(common_pairs)
+        pct_changed = round(n_changes / total_possible * 100, 0) if total_possible > 0 else 0
+
+        n_improve = sum(1 for _, old, new in changes
+                       if SENTIMENT_WEIGHTS.get(new, 0) > SENTIMENT_WEIGHTS.get(old, 0))
+        n_worsen = sum(1 for _, old, new in changes
+                      if SENTIMENT_WEIGHTS.get(new, 0) < SENTIMENT_WEIGHTS.get(old, 0))
+        n_lateral = n_changes - n_improve - n_worsen
+
+        hearts_gained = sum(1 for _, old, new in changes if new in POSITIVE and old not in POSITIVE)
+        hearts_lost = sum(1 for _, old, new in changes if old in POSITIVE and new not in POSITIVE)
+
+        cards.append({
+            "type": "changes",
+            "icon": "📊", "title": "Pulso Diário",
+            "color": "#3498db", "link": "evolucao.html#pulso",
+            "total": n_changes,
+            "pct": int(pct_changed),
+            "total_possible": total_possible,
+            "improve": n_improve,
+            "worsen": n_worsen,
+            "lateral": n_lateral,
+            "hearts_gained": hearts_gained,
+            "hearts_lost": hearts_lost,
+        })
+
+        direction = "🟢 mais melhorias" if n_improve > n_worsen else (
+            "🔴 mais pioras" if n_worsen > n_improve else "⚖️ equilibrado")
+        hearts_parts = []
+        if hearts_gained:
+            hearts_parts.append(f"+{hearts_gained} ❤️")
+        if hearts_lost:
+            hearts_parts.append(f"-{hearts_lost} ❤️")
+        hearts_txt = f" ({' / '.join(hearts_parts)})" if hearts_parts else ""
+        highlights.append(
+            f"📊 **{n_changes} reações** [mudaram](evolucao.html#pulso) ontem ({pct_changed:.0f}% do total)"
+            f" — {n_improve} melhorias, {n_worsen} pioras, {n_lateral} laterais"
+            f" · {direction}{hearts_txt}"
+        )
+
+    # -- Dramatic changes --
+    dramatic_changes = []
+    for pair, old_rxn, new_rxn in changes:
+        giver, receiver = pair
+        old_e = REACTION_EMOJI.get(old_rxn, "?")
+        new_e = REACTION_EMOJI.get(new_rxn, "?")
+        severity = abs(SENTIMENT_WEIGHTS.get(new_rxn, 0) - SENTIMENT_WEIGHTS.get(old_rxn, 0))
+        is_dramatic = (
+            (old_rxn in POSITIVE and new_rxn in STRONG_NEGATIVE) or
+            (old_rxn in STRONG_NEGATIVE and new_rxn in POSITIVE) or
+            (old_rxn in POSITIVE and new_rxn in MILD_NEGATIVE) or
+            (old_rxn in MILD_NEGATIVE and new_rxn in POSITIVE)
+        )
+        if is_dramatic:
+            dramatic_changes.append({
+                "giver": giver, "receiver": receiver,
+                "old_emoji": old_e, "new_emoji": new_e,
+                "severity": severity,
+            })
+    dramatic_changes.sort(key=lambda x: x["severity"], reverse=True)
+
+    if dramatic_changes:
+        cards.append({
+            "type": "dramatic",
+            "icon": "💥", "title": "Mudanças Dramáticas",
+            "color": "#e74c3c", "link": "evolucao.html#pulso",
+            "total": len(dramatic_changes),
+            "items": dramatic_changes[:6],
+        })
+        lines = [f"**{d['giver'].split()[0]}** → **{d['receiver'].split()[0]}** (de {d['old_emoji']} para {d['new_emoji']})"
+                 for d in dramatic_changes[:5]]
+        extra = len(dramatic_changes) - 5
+        highlights.append(
+            f"💥 **{len(dramatic_changes)} mudanças dramáticas** [hoje](evolucao.html#pulso): "
+            + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
+        )
+
+    # -- New one-sided hostilities --
+    new_hostilities = []
+    for pair, old_rxn, new_rxn in changes:
+        giver, receiver = pair
+        new_is_neg = new_rxn not in POSITIVE and new_rxn != ""
+        old_is_pos = old_rxn in POSITIVE
+        receiver_likes_giver = today_mat.get((receiver, giver), "") in POSITIVE
+        if old_is_pos and new_is_neg and receiver_likes_giver:
+            new_hostilities.append({
+                "giver": giver, "receiver": receiver,
+                "emoji": REACTION_EMOJI.get(new_rxn, "?"),
             })
 
-            streak_text = f" pelo {streak}º dia consecutivo" if streak > 1 else ""
-            pod_txt = " · ".join(f"{p['name']} ({p['score']:+.1f})" for p in podium)
-            movers_parts = []
-            for mu in movers_up:
-                movers_parts.append(f"📈 {mu['name']} ({mu['delta']:+.1f})")
-            for md in movers_down:
-                movers_parts.append(f"📉 {md['name']} ({md['delta']:+.1f})")
-            movers_txt = " | " + " · ".join(movers_parts) if movers_parts else ""
-            highlights.append(
-                f"🏆 **{sentiment_leader}** lidera o [ranking](#ranking){streak_text} ({leader_score:+.1f})"
-                f" — Top 3: {pod_txt}{movers_txt}"
-            )
+    if new_hostilities:
+        cards.append({
+            "type": "hostilities",
+            "icon": "⚠️", "title": "Novas Hostilidades",
+            "color": "#f39c12", "link": "relacoes.html#hostilidades-dia",
+            "total": len(new_hostilities),
+            "items": new_hostilities[:6],
+        })
+        lines = [f"{h['giver'].split()[0]} → {h['receiver'].split()[0]} ({h['emoji']})"
+                 for h in new_hostilities[:4]]
+        extra = len(new_hostilities) - 4
+        highlights.append(
+            f"⚠️ **{len(new_hostilities)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades-dia)"
+            f": {' · '.join(lines)}{f' +{extra} mais' if extra > 0 else ''}"
+            f" — {new_hostilities[0]['receiver'].split()[0] if len(new_hostilities) == 1 else 'eles'} não sabe(m)!"
+        )
 
-            # Strategic leader divergence
-            strat_card = None
-            if relations_pairs:
-                strat_scores = {}
-                for sname in active_names:
-                    incoming = [
-                        relations_pairs.get(sother, {}).get(sname, {}).get("score", 0)
-                        for sother in active_names if sother != sname and relations_pairs.get(sother, {}).get(sname)
-                    ]
-                    if incoming:
-                        strat_scores[sname] = sum(incoming) / len(incoming)
-                if strat_scores:
-                    strat_leader = max(strat_scores, key=strat_scores.get)
-                    if strat_leader != sentiment_leader:
-                        strat_top3 = sorted(strat_scores.items(), key=lambda x: x[1], reverse=True)[:3]
-                        strat_card = {
-                            "type": "strategic",
-                            "icon": "🧭", "title": "Ranking Estratégico",
-                            "color": "#9b59b6", "link": "evolucao.html#sentimento",
-                            "leader": strat_leader,
-                            "podium": [{"name": n, "score": round(s, 2)} for n, s in strat_top3],
-                        }
-                        cards.append(strat_card)
-                        strat_podium = " · ".join(f"{n} ({s:+.2f})" for n, s in strat_top3)
-                        highlights.append(
-                            f"🧭 No [ranking estratégico](evolucao.html#sentimento), **{strat_leader}** lidera "
-                            f"— diverge do queridômetro. Top 3: {strat_podium}"
-                        )
+    return highlights, cards
 
-        # -- Reaction changes summary --
-        common_pairs = today_mat.keys() & yesterday_mat.keys()
-        changes = [(pair, yesterday_mat[pair], today_mat[pair])
-                   for pair in common_pairs if yesterday_mat[pair] != today_mat[pair]]
-        n_changes = len(changes)
-        if n_changes > 0:
-            total_possible = len(common_pairs)
-            pct_changed = round(n_changes / total_possible * 100, 0) if total_possible > 0 else 0
 
-            n_improve = sum(1 for _, old, new in changes
-                           if SENTIMENT_WEIGHTS.get(new, 0) > SENTIMENT_WEIGHTS.get(old, 0))
-            n_worsen = sum(1 for _, old, new in changes
-                          if SENTIMENT_WEIGHTS.get(new, 0) < SENTIMENT_WEIGHTS.get(old, 0))
-            n_lateral = n_changes - n_improve - n_worsen
+def _compute_sincerao_highlight(sinc_data, current_week, latest_matrix):
+    """Sincerão x Queridômetro contradictions and alignments.
 
-            hearts_gained = sum(1 for _, old, new in changes if new in POSITIVE and old not in POSITIVE)
-            hearts_lost = sum(1 for _, old, new in changes if old in POSITIVE and new not in POSITIVE)
+    Returns (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
+             sinc_week_used, available_weeks).
+    """
+    highlights = []
+    cards = []
 
-            cards.append({
-                "type": "changes",
-                "icon": "📊", "title": "Pulso Diário",
-                "color": "#3498db", "link": "evolucao.html#pulso",
-                "total": n_changes,
-                "pct": int(pct_changed),
-                "total_possible": total_possible,
-                "improve": n_improve,
-                "worsen": n_worsen,
-                "lateral": n_lateral,
-                "hearts_gained": hearts_gained,
-                "hearts_lost": hearts_lost,
-            })
-
-            direction = "🟢 mais melhorias" if n_improve > n_worsen else (
-                "🔴 mais pioras" if n_worsen > n_improve else "⚖️ equilibrado")
-            hearts_parts = []
-            if hearts_gained:
-                hearts_parts.append(f"+{hearts_gained} ❤️")
-            if hearts_lost:
-                hearts_parts.append(f"-{hearts_lost} ❤️")
-            hearts_txt = f" ({' / '.join(hearts_parts)})" if hearts_parts else ""
-            highlights.append(
-                f"📊 **{n_changes} reações** [mudaram](evolucao.html#pulso) ontem ({pct_changed:.0f}% do total)"
-                f" — {n_improve} melhorias, {n_worsen} pioras, {n_lateral} laterais"
-                f" · {direction}{hearts_txt}"
-            )
-
-        # -- Dramatic changes --
-        dramatic_changes = []
-        for pair, old_rxn, new_rxn in changes:
-            giver, receiver = pair
-            old_e = REACTION_EMOJI.get(old_rxn, "?")
-            new_e = REACTION_EMOJI.get(new_rxn, "?")
-            severity = abs(SENTIMENT_WEIGHTS.get(new_rxn, 0) - SENTIMENT_WEIGHTS.get(old_rxn, 0))
-            is_dramatic = (
-                (old_rxn in POSITIVE and new_rxn in STRONG_NEGATIVE) or
-                (old_rxn in STRONG_NEGATIVE and new_rxn in POSITIVE) or
-                (old_rxn in POSITIVE and new_rxn in MILD_NEGATIVE) or
-                (old_rxn in MILD_NEGATIVE and new_rxn in POSITIVE)
-            )
-            if is_dramatic:
-                dramatic_changes.append({
-                    "giver": giver, "receiver": receiver,
-                    "old_emoji": old_e, "new_emoji": new_e,
-                    "severity": severity,
-                })
-        dramatic_changes.sort(key=lambda x: x["severity"], reverse=True)
-
-        if dramatic_changes:
-            cards.append({
-                "type": "dramatic",
-                "icon": "💥", "title": "Mudanças Dramáticas",
-                "color": "#e74c3c", "link": "evolucao.html#pulso",
-                "total": len(dramatic_changes),
-                "items": dramatic_changes[:6],
-            })
-            lines = [f"**{d['giver'].split()[0]}** → **{d['receiver'].split()[0]}** (de {d['old_emoji']} para {d['new_emoji']})"
-                     for d in dramatic_changes[:5]]
-            extra = len(dramatic_changes) - 5
-            highlights.append(
-                f"💥 **{len(dramatic_changes)} mudanças dramáticas** [hoje](evolucao.html#pulso): "
-                + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
-            )
-
-        # -- New one-sided hostilities --
-        new_hostilities = []
-        for pair, old_rxn, new_rxn in changes:
-            giver, receiver = pair
-            new_is_neg = new_rxn not in POSITIVE and new_rxn != ""
-            old_is_pos = old_rxn in POSITIVE
-            receiver_likes_giver = today_mat.get((receiver, giver), "") in POSITIVE
-            if old_is_pos and new_is_neg and receiver_likes_giver:
-                new_hostilities.append({
-                    "giver": giver, "receiver": receiver,
-                    "emoji": REACTION_EMOJI.get(new_rxn, "?"),
-                })
-
-        if new_hostilities:
-            cards.append({
-                "type": "hostilities",
-                "icon": "⚠️", "title": "Novas Hostilidades",
-                "color": "#f39c12", "link": "relacoes.html#hostilidades-dia",
-                "total": len(new_hostilities),
-                "items": new_hostilities[:6],
-            })
-            lines = [f"{h['giver'].split()[0]} → {h['receiver'].split()[0]} ({h['emoji']})"
-                     for h in new_hostilities[:4]]
-            extra = len(new_hostilities) - 4
-            highlights.append(
-                f"⚠️ **{len(new_hostilities)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades-dia)"
-                f": {' · '.join(lines)}{f' +{extra} mais' if extra > 0 else ''}"
-                f" — {new_hostilities[0]['receiver'].split()[0] if len(new_hostilities) == 1 else 'eles'} não sabe(m)!"
-            )
-
-    # -- Sincerão x Queridômetro (pares) --
     sinc_week_used = current_week
     edge_weeks = [e.get("week") for e in sinc_data.get("edges", []) if isinstance(e.get("week"), int)] if sinc_data else []
     agg_weeks = [a.get("week") for a in sinc_data.get("aggregates", []) if a.get("scores")] if sinc_data else []
@@ -760,6 +796,18 @@ def _build_highlights_and_cards(ctx):
     if pair_aligned_pos:
         sample_txt = ", ".join([f"{r['ator']}→{r['alvo']}" for r in pair_aligned_pos[:3]])
         highlights.append(f"🤝 Alinhamentos positivos Sincerão×Queridômetro: {sample_txt}")
+
+    return (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
+            sinc_week_used, available_weeks)
+
+
+def _compute_vulnerability_cards(latest, active_names, active_set, received_impact, relations_pairs):
+    """Impact, vulnerability, and active paredão cards.
+
+    Returns (highlights, cards, paredao_names).
+    """
+    highlights = []
+    cards = []
 
     # -- Active paredão --
     paredao_names = [p["name"] for p in latest["participants"]
@@ -843,6 +891,17 @@ def _build_highlights_and_cards(ctx):
                 + (f" (+{extra} mais com 3+)" if extra > 0 else "")
             )
 
+    return highlights, cards, paredao_names
+
+
+def _compute_breaks_and_context_cards(relations_data, active_set, latest, current_week, daily_snapshots):
+    """Streak breaks (alliance ruptures) and week context cards.
+
+    Returns (highlights, cards).
+    """
+    highlights = []
+    cards = []
+
     # -- Streak breaks (alliance ruptures) --
     streak_breaks_data = relations_data.get("streak_breaks", []) if isinstance(relations_data, dict) else []
     active_breaks = [b for b in streak_breaks_data if b.get("giver") in active_set and b.get("receiver") in active_set]
@@ -888,6 +947,51 @@ def _build_highlights_and_cards(ctx):
     highlights.append(
         f"📅 **Semana {current_week}** — {len(daily_snapshots)} dias de dados, {n_active} participantes ativos"
     )
+
+    return highlights, cards
+
+
+def _build_highlights_and_cards(ctx):
+    """Daily movers, dramatic changes, Sincerão contradictions, all highlight cards."""
+    daily_snapshots = ctx["daily_snapshots"]
+    daily_matrices = ctx["daily_matrices"]
+    latest_matrix = ctx["latest_matrix"]
+    active_names = ctx["active_names"]
+    active_set = ctx["active_set"]
+    relations_pairs = ctx["relations_pairs"]
+    received_impact = ctx["received_impact"]
+    relations_data = ctx["relations_data"]
+    sinc_data = ctx["sinc_data"]
+    current_week = ctx["current_week"]
+    latest = ctx["latest"]
+
+    highlights = []
+    cards = []
+
+    # Daily movers, ranking, changes, dramatic, hostilities
+    dm_hl, dm_cards = _compute_daily_movers_cards(
+        daily_snapshots, daily_matrices, active_names, relations_pairs)
+    highlights.extend(dm_hl)
+    cards.extend(dm_cards)
+
+    # Sincerão x Queridômetro
+    (sinc_hl, sinc_cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
+     sinc_week_used, available_weeks) = _compute_sincerao_highlight(
+        sinc_data, current_week, latest_matrix)
+    highlights.extend(sinc_hl)
+    cards.extend(sinc_cards)
+
+    # Impact, vulnerability, paredão
+    vuln_hl, vuln_cards, paredao_names = _compute_vulnerability_cards(
+        latest, active_names, active_set, received_impact, relations_pairs)
+    highlights.extend(vuln_hl)
+    cards.extend(vuln_cards)
+
+    # Breaks and context
+    bc_hl, bc_cards = _compute_breaks_and_context_cards(
+        relations_data, active_set, latest, current_week, daily_snapshots)
+    highlights.extend(bc_hl)
+    cards.extend(bc_cards)
 
     return {
         "highlights": highlights,
@@ -1442,49 +1546,11 @@ def _build_curiosity_lookups(ctx):
     }
 
 
-def _build_profile_entry(name, ctx, lookups):
-    """Per-participant profile: allies, enemies, curiosities, game stats."""
-    latest = ctx["latest"]
-    latest_matrix = ctx["latest_matrix"]
-    active_names = ctx["active_names"]
-    active_set = ctx["active_set"]
-    avatars = ctx["avatars"]
-    relations_pairs = ctx["relations_pairs"]
-    relations_data = ctx["relations_data"]
-    received_impact = ctx["received_impact"]
-    power_events = ctx["power_events"]
-    sinc_data = ctx["sinc_data"]
-    paredoes = ctx["paredoes"]
-    roles_current = ctx["roles_current"]
-    current_cycle_week = ctx["current_cycle_week"]
-    current_week = ctx["current_week"]
-    plant_scores = ctx["plant_scores"]
-    plant_week = ctx["plant_week"]
-    vip_days = ctx["vip_days"]
-    xepa_days = ctx["xepa_days"]
-    total_days = ctx["total_days"]
-    vip_weeks_selected = ctx["vip_weeks_selected"]
-    xepa_weeks = ctx["xepa_weeks"]
+def _build_profile_header(name, latest, latest_matrix, active_names, avatars):
+    """Participant data lookup, reaction summaries, given/received details.
 
-    votes_received_by_week = lookups["votes_received_by_week"]
-    revealed_votes = lookups["revealed_votes"]
-    current_vote_week = lookups["current_vote_week"]
-    sinc_edges_week = lookups["sinc_edges_week"]
-    cartola_by_name = lookups["cartola_by_name"]
-    prova_by_name = lookups["prova_by_name"]
-    sentiment_history = lookups["sentiment_history"]
-    streak_breaks_data = lookups["streak_breaks_data"]
-    longest_streaks = lookups["longest_streaks"]
-    long_alliance_counts = lookups["long_alliance_counts"]
-    total_house_votes = lookups["total_house_votes"]
-    ever_nominated = lookups["ever_nominated"]
-    survived_paredao = lookups["survived_paredao"]
-    bv_escapes = lookups["bv_escapes"]
-    breaks_given_count = lookups["breaks_given_count"]
-    breaks_received_count = lookups["breaks_received_count"]
-    n_leader_periods = lookups["n_leader_periods"]
-
-    # Find participant data
+    Returns a dict with p, roles, rxn_summary, given_summary, given_detail, received_detail.
+    """
     p = next(pp for pp in latest["participants"] if pp.get("name") == name)
     roles = parse_roles(p.get("characteristics", {}).get("roles", []))
 
@@ -1509,6 +1575,28 @@ def _build_profile_entry(name, ctx, lookups):
             received_detail.append({"name": other_name, "emoji": REACTION_EMOJI.get(rxn_from, rxn_from)})
     given_summary = [{"emoji": e, "count": c} for e, c in sorted(given.items(), key=lambda x: -x[1])]
 
+    return {
+        "p": p,
+        "roles": roles,
+        "rxn_summary": rxn_summary,
+        "given_summary": given_summary,
+        "given_detail": given_detail,
+        "received_detail": received_detail,
+        "score": calc_sentiment(p),
+        "avatar": avatars.get(name, ""),
+        "member_of": p.get("characteristics", {}).get("memberOf", "?"),
+        "group": p.get("characteristics", {}).get("group", "?"),
+        "balance": p.get("characteristics", {}).get("balance", 0),
+    }
+
+
+def _build_profile_stats_grid(name, latest_matrix, active_names, relations_pairs,
+                               received_impact, relations_data, power_events,
+                               roles_current, current_cycle_week):
+    """Relations (allies/enemies/false_friends/blind_targets), risk level, impact, animosity, events.
+
+    Returns a dict with relations, risk, impact, animosity, and event data.
+    """
     def pair_sentiment(giver, receiver):
         rel = relations_pairs.get(giver, {}).get(receiver)
         if rel:
@@ -1598,26 +1686,6 @@ def _build_profile_entry(name, ctx, lookups):
     pos_events_hist = [ev for ev in historic_events if ev.get("impacto") == "positivo"]
     neg_events_hist = [ev for ev in historic_events if ev.get("impacto") == "negativo"]
 
-    vote_map = votes_received_by_week.get(current_vote_week, {}).get(name, {})
-
-    sinc_agg = next((a for a in sinc_data.get("aggregates", []) if a.get("week") == current_week), None)
-    sinc_reasons = sinc_agg.get("reasons", {}).get(name, []) if sinc_agg else []
-    bombs = {}
-    for edge in sinc_edges_week:
-        if edge.get("type") == "bomba" and edge.get("target") == name:
-            tema = edge.get("tema") or "bomba"
-            bombs[tema] = bombs.get(tema, 0) + 1
-
-    sinc_contra_targets = set()
-    for edge in sinc_edges_week:
-        if edge.get("actor") != name:
-            continue
-        if edge.get("type") not in ["nao_ganha", "bomba"]:
-            continue
-        target = edge.get("target")
-        if target and latest_matrix.get((name, target), "") == "Coração":
-            sinc_contra_targets.add(target)
-
     # Impacto Negativo — from received_impact in relations_scores.json
     impact = received_impact.get(name, {})
     external_score = impact.get("negative", 0)
@@ -1668,6 +1736,57 @@ def _build_profile_entry(name, ctx, lookups):
         animosity_level = "🟢 NENHUMA"
         animosity_color = "#28a745"
 
+    return {
+        "allies": allies,
+        "enemies": enemies,
+        "false_friends": false_friends,
+        "blind_targets": blind_targets,
+        "risk_level": risk_level,
+        "risk_color": risk_color,
+        "pos_events": pos_events,
+        "neg_events": neg_events,
+        "pos_events_hist": pos_events_hist,
+        "neg_events_hist": neg_events_hist,
+        "external_score": external_score,
+        "external_positive": external_positive,
+        "external_count": external_count,
+        "external_breakdown": external_breakdown,
+        "external_level": external_level,
+        "external_color": external_color,
+        "animosity_score": animosity_score,
+        "animosity_breakdown": animosity_breakdown,
+        "animosity_level": animosity_level,
+        "animosity_color": animosity_color,
+    }
+
+
+def _build_profile_querido_section(name, latest_matrix, sinc_data, sinc_edges_week,
+                                    current_week, votes_received_by_week, current_vote_week,
+                                    revealed_votes, plant_scores, plant_week):
+    """Queridômetro section: votes, Sincerão, plant index.
+
+    Returns a dict with vote_list, sincerao, sinc_contra, plant_info.
+    """
+    vote_map = votes_received_by_week.get(current_vote_week, {}).get(name, {})
+
+    sinc_agg = next((a for a in sinc_data.get("aggregates", []) if a.get("week") == current_week), None)
+    sinc_reasons = sinc_agg.get("reasons", {}).get(name, []) if sinc_agg else []
+    bombs = {}
+    for edge in sinc_edges_week:
+        if edge.get("type") == "bomba" and edge.get("target") == name:
+            tema = edge.get("tema") or "bomba"
+            bombs[tema] = bombs.get(tema, 0) + 1
+
+    sinc_contra_targets = set()
+    for edge in sinc_edges_week:
+        if edge.get("actor") != name:
+            continue
+        if edge.get("type") not in ["nao_ganha", "bomba"]:
+            continue
+        target = edge.get("target")
+        if target and latest_matrix.get((name, target), "") == "Coração":
+            sinc_contra_targets.add(target)
+
     def aggregate_events(events):
         grouped = defaultdict(lambda: {"count": 0, "actors": []})
         for ev in events:
@@ -1700,6 +1819,40 @@ def _build_profile_entry(name, ctx, lookups):
         plant_info = dict(plant_info)
         plant_info["week"] = plant_week.get("week")
         plant_info["date_range"] = plant_week.get("date_range", {})
+
+    return {
+        "aggregate_events": aggregate_events,
+        "vote_list": vote_list,
+        "sinc_reasons": sinc_reasons,
+        "bombs": bombs,
+        "sinc_contra_targets": sinc_contra_targets,
+        "plant_info": plant_info,
+    }
+
+
+def _build_profile_footer(name, allies, enemies, given_summary, active_set,
+                           paredoes, lookups, vip_days, xepa_days, total_days,
+                           vip_weeks_selected, plant_scores):
+    """Curiosities and game stats for the profile footer.
+
+    Returns a dict with curiosities, paredao_history, bv_escape_list, house_votes_detail.
+    """
+    streak_breaks_data = lookups["streak_breaks_data"]
+    longest_streaks = lookups["longest_streaks"]
+    long_alliance_counts = lookups["long_alliance_counts"]
+    total_house_votes = lookups["total_house_votes"]
+    ever_nominated = lookups["ever_nominated"]
+    survived_paredao = lookups["survived_paredao"]
+    bv_escapes = lookups["bv_escapes"]
+    breaks_given_count = lookups["breaks_given_count"]
+    breaks_received_count = lookups["breaks_received_count"]
+    n_leader_periods = lookups["n_leader_periods"]
+    cartola_by_name = lookups["cartola_by_name"]
+    prova_by_name = lookups["prova_by_name"]
+    sentiment_history = lookups["sentiment_history"]
+    votes_received_by_week = lookups["votes_received_by_week"]
+    revealed_votes = lookups["revealed_votes"]
+    current_vote_week = lookups["current_vote_week"]
 
     # -- Build curiosities --
     curiosities = []
@@ -1916,43 +2069,98 @@ def _build_profile_entry(name, ctx, lookups):
             })
 
     return {
+        "curiosities": curiosities,
+        "paredao_history": paredao_history,
+        "bv_escape_list": bv_escape_list,
+        "house_votes_detail": house_votes_detail,
+    }
+
+
+def _build_profile_entry(name, ctx, lookups):
+    """Per-participant profile: allies, enemies, curiosities, game stats."""
+    latest = ctx["latest"]
+    latest_matrix = ctx["latest_matrix"]
+    active_names = ctx["active_names"]
+    active_set = ctx["active_set"]
+    avatars = ctx["avatars"]
+    relations_pairs = ctx["relations_pairs"]
+    relations_data = ctx["relations_data"]
+    received_impact = ctx["received_impact"]
+    power_events = ctx["power_events"]
+    sinc_data = ctx["sinc_data"]
+    paredoes = ctx["paredoes"]
+    roles_current = ctx["roles_current"]
+    current_cycle_week = ctx["current_cycle_week"]
+    current_week = ctx["current_week"]
+    plant_scores = ctx["plant_scores"]
+    plant_week = ctx["plant_week"]
+    vip_days = ctx["vip_days"]
+    xepa_days = ctx["xepa_days"]
+    total_days = ctx["total_days"]
+    vip_weeks_selected = ctx["vip_weeks_selected"]
+    xepa_weeks = ctx["xepa_weeks"]
+
+    # 1. Header: participant data, reactions, given/received details
+    header = _build_profile_header(name, latest, latest_matrix, active_names, avatars)
+
+    # 2. Stats grid: relations, risk, impact, animosity, events
+    stats = _build_profile_stats_grid(
+        name, latest_matrix, active_names, relations_pairs,
+        received_impact, relations_data, power_events,
+        roles_current, current_cycle_week)
+
+    # 3. Queridômetro section: votes, Sincerão, plant index
+    querido = _build_profile_querido_section(
+        name, latest_matrix, sinc_data, lookups["sinc_edges_week"],
+        current_week, lookups["votes_received_by_week"], lookups["current_vote_week"],
+        lookups["revealed_votes"], plant_scores, plant_week)
+
+    # 4. Footer: curiosities, game stats
+    footer = _build_profile_footer(
+        name, stats["allies"], stats["enemies"], header["given_summary"],
+        active_set, paredoes, lookups, vip_days, xepa_days, total_days,
+        vip_weeks_selected, plant_scores)
+
+    aggregate_events = querido["aggregate_events"]
+
+    return {
         "name": name,
-        "member_of": p.get("characteristics", {}).get("memberOf", "?"),
-        "group": p.get("characteristics", {}).get("group", "?"),
-        "balance": p.get("characteristics", {}).get("balance", 0),
-        "roles": roles,
-        "score": calc_sentiment(p),
-        "avatar": avatars.get(name, ""),
-        "risk_level": risk_level,
-        "risk_color": risk_color,
-        "external_level": external_level,
-        "external_color": external_color,
-        "animosity_level": animosity_level,
-        "animosity_color": animosity_color,
-        "rxn_summary": rxn_summary,
-        "given_summary": given_summary,
-        "received_detail": sorted(received_detail, key=lambda x: x["name"]),
-        "given_detail": sorted(given_detail, key=lambda x: x["name"]),
+        "member_of": header["member_of"],
+        "group": header["group"],
+        "balance": header["balance"],
+        "roles": header["roles"],
+        "score": header["score"],
+        "avatar": header["avatar"],
+        "risk_level": stats["risk_level"],
+        "risk_color": stats["risk_color"],
+        "external_level": stats["external_level"],
+        "external_color": stats["external_color"],
+        "animosity_level": stats["animosity_level"],
+        "animosity_color": stats["animosity_color"],
+        "rxn_summary": header["rxn_summary"],
+        "given_summary": header["given_summary"],
+        "received_detail": sorted(header["received_detail"], key=lambda x: x["name"]),
+        "given_detail": sorted(header["given_detail"], key=lambda x: x["name"]),
         "relations": {
-            "allies": sorted(allies, key=lambda x: x["name"]),
-            "enemies": sorted(enemies, key=lambda x: x["name"]),
-            "false_friends": sorted(false_friends, key=lambda x: x["name"]),
-            "blind_targets": sorted(blind_targets, key=lambda x: x["name"]),
+            "allies": sorted(stats["allies"], key=lambda x: x["name"]),
+            "enemies": sorted(stats["enemies"], key=lambda x: x["name"]),
+            "false_friends": sorted(stats["false_friends"], key=lambda x: x["name"]),
+            "blind_targets": sorted(stats["blind_targets"], key=lambda x: x["name"]),
         },
         "events": {
-            "pos_week": aggregate_events(pos_events),
-            "neg_week": aggregate_events(neg_events),
-            "pos_hist": aggregate_events(pos_events_hist),
-            "neg_hist": aggregate_events(neg_events_hist),
+            "pos_week": aggregate_events(stats["pos_events"]),
+            "neg_week": aggregate_events(stats["neg_events"]),
+            "pos_hist": aggregate_events(stats["pos_events_hist"]),
+            "neg_hist": aggregate_events(stats["neg_events_hist"]),
         },
-        "votes_received": vote_list,
+        "votes_received": querido["vote_list"],
         "sincerao": {
-            "reasons": sinc_reasons,
-            "bombas": bombs,
+            "reasons": querido["sinc_reasons"],
+            "bombas": querido["bombs"],
         },
         "sinc_contra": {
-            "count": len(sinc_contra_targets),
-            "targets": sorted(sinc_contra_targets),
+            "count": len(querido["sinc_contra_targets"]),
+            "targets": sorted(querido["sinc_contra_targets"]),
         },
         "vip_days": vip_days.get(name, 0),
         "xepa_days": xepa_days.get(name, 0),
@@ -1960,26 +2168,26 @@ def _build_profile_entry(name, ctx, lookups):
         "vip_weeks": vip_weeks_selected.get(name, 0),
         "xepa_weeks": xepa_weeks.get(name, 0),
         "scores": {
-            "external": external_score,
-            "external_positive": external_positive,
-            "external_count": external_count,
-            "external_breakdown": {k: round(v, 2) for k, v in sorted(external_breakdown.items(), key=lambda x: x[1])},
-            "animosity": animosity_score,
-            "animosity_breakdown": {k: round(v, 2) for k, v in sorted(animosity_breakdown.items(), key=lambda x: x[1])},
+            "external": stats["external_score"],
+            "external_positive": stats["external_positive"],
+            "external_count": stats["external_count"],
+            "external_breakdown": {k: round(v, 2) for k, v in sorted(stats["external_breakdown"].items(), key=lambda x: x[1])},
+            "animosity": stats["animosity_score"],
+            "animosity_breakdown": {k: round(v, 2) for k, v in sorted(stats["animosity_breakdown"].items(), key=lambda x: x[1])},
         },
-        "plant_index": plant_info,
+        "plant_index": querido["plant_info"],
         "game_stats": {
-            "total_house_votes": total_house_votes.get(name, 0),
-            "house_votes_detail": house_votes_detail,
-            "paredao_count": len(paredao_history),
-            "paredao_history": paredao_history,
-            "bv_escapes": len(bv_escape_list),
-            "bv_escape_detail": bv_escape_list,
-            "cartola_total": cartola_by_name.get(name, {}).get("total", 0),
-            "cartola_rank": cartola_by_name.get(name, {}).get("rank"),
-            "prova_wins": prova_by_name.get(name, {}).get("wins", 0),
+            "total_house_votes": lookups["total_house_votes"].get(name, 0),
+            "house_votes_detail": footer["house_votes_detail"],
+            "paredao_count": len(footer["paredao_history"]),
+            "paredao_history": footer["paredao_history"],
+            "bv_escapes": len(footer["bv_escape_list"]),
+            "bv_escape_detail": footer["bv_escape_list"],
+            "cartola_total": lookups["cartola_by_name"].get(name, {}).get("total", 0),
+            "cartola_rank": lookups["cartola_by_name"].get(name, {}).get("rank"),
+            "prova_wins": lookups["prova_by_name"].get(name, {}).get("wins", 0),
         },
-        "curiosities": curiosities,
+        "curiosities": footer["curiosities"],
     }
 
 
