@@ -24,7 +24,9 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
+    load_reaction_matrices, deserialize_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    load_paredoes_transformed,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted,
     genero, artigo, get_nominee_badge,
@@ -44,7 +46,19 @@ setup_bbb_dark_theme()
 #| label: load-data
 
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
-all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+# Load precomputed matrices (with fallback to runtime computation)
+_precomp = load_reaction_matrices()
+if _precomp and "by_date" in _precomp:
+    all_matrices = []
+    for s in snapshots:
+        date_key = s.get("date", "")
+        if date_key in _precomp["by_date"]:
+            all_matrices.append(deserialize_matrix(_precomp["by_date"][date_key]))
+        else:
+            all_matrices.append(build_reaction_matrix(s["participants"]))
+else:
+    all_matrices = [build_reaction_matrix(s["participants"]) for s in snapshots]
 
 latest = snapshots[-1]
 latest_matrix = all_matrices[-1]
@@ -75,79 +89,7 @@ print(f'<p class="text-muted small mb-0">📅 Dados de <strong>{latest["label"]}
 # ║  Fonte: data/paredoes.json (atualizado manualmente)         ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-PAREDOES_FILE = Path("data/paredoes.json")
-
-def load_paredoes():
-    """Carrega dados de paredão do arquivo JSON."""
-    if not PAREDOES_FILE.exists():
-        return []
-    with open(PAREDOES_FILE, encoding="utf-8") as f:
-        data = json.load(f)
-
-    # Convert JSON structure to the format expected by the dashboard
-    paredoes = []
-    for p in data.get('paredoes', []):
-        entry = {
-            'numero': p['numero'],
-            'status': p['status'],
-            'data': p['data'],
-            'data_formacao': p.get('data_formacao'),
-            'titulo': p['titulo'],
-            'lider': p.get('formacao', {}).get('lider'),
-            'indicado_lider': p.get('formacao', {}).get('indicado_lider'),
-            'motivo_lider': p.get('formacao', {}).get('motivo_lider'),
-            'anjo': p.get('formacao', {}).get('anjo'),
-            'anjo_autoimune': p.get('formacao', {}).get('anjo_autoimune'),
-            'formacao': p.get('formacao', {}).get('resumo', ''),
-            'formacao_raw': p.get('formacao', {}),
-            'dinamica': p.get('formacao', {}).get('dinamica'),
-            'big_fone': p.get('formacao', {}).get('big_fone'),
-            'contragolpe': p.get('formacao', {}).get('contragolpe'),
-            'bate_volta': p.get('formacao', {}).get('bate_volta'),
-            'votos_casa': p.get('votos_casa', {}),
-            'fontes': p.get('fontes', []),
-            'impedidos_votar': p.get('impedidos_votar', []),
-            'votos_anulados': p.get('votos_anulados', []),
-        }
-
-        # Handle imunizado
-        im = p.get('formacao', {}).get('imunizado')
-        if im:
-            entry['imunizado'] = im
-
-        # Include resultado for badge logic
-        if p.get('resultado'):
-            entry['resultado'] = p['resultado']
-
-        # Handle participantes based on status
-        if p['status'] == 'finalizado' and p.get('resultado'):
-            entry['participantes'] = []
-            for ind in p.get('indicados_finais', []):
-                part = {
-                    'nome': ind['nome'],
-                    'grupo': ind.get('grupo', MEMBER_OF.get(ind['nome'], '?')),
-                    'como': ind.get('como', ''),
-                }
-                # Add vote data if available
-                votos = p['resultado'].get('votos', {}).get(ind['nome'], {})
-                if votos:
-                    part['voto_unico'] = votos.get('voto_unico', 0)
-                    part['voto_torcida'] = votos.get('voto_torcida', 0)
-                    part['voto_total'] = votos.get('voto_total', 0)
-                    part['resultado'] = 'ELIMINADA' if ind['nome'] == p['resultado'].get('eliminado') else 'Salva'
-                entry['participantes'].append(part)
-        else:
-            entry['participantes'] = [
-                {'nome': ind['nome'], 'grupo': ind.get('grupo', '?'), 'como': ind.get('como', '')}
-                for ind in p.get('indicados_finais', [])
-            ]
-            entry['total_esperado'] = 3
-
-        paredoes.append(entry)
-
-    return paredoes
-
-paredoes = load_paredoes()
+paredoes = load_paredoes_transformed(member_of=MEMBER_OF)
 
 # Aviso se faltar data_formacao
 missing_formacao = [p for p in paredoes if p.get('status') == 'finalizado' and not p.get('data_formacao')]
@@ -300,11 +242,11 @@ if ultimo:
                 border_style = f"2px dashed {cor_grupo}" if is_auto else f"2px solid {cor_grupo}"
                 opacity = "0.85" if is_auto else "1"
 
-                print(f'<div style="background: linear-gradient(145deg, #3a3a3a, #2a2a2a); border-radius: 16px; padding: 1.5rem; text-align: center; width: 180px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: {border_style}; opacity: {opacity};">')
+                print(f'<div class="nominee-card" style="border: {border_style}; opacity: {opacity};">')
                 if avatar_url:
-                    print(f'<img src="{avatar_url}" alt="{nome}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid {cor_grupo}; margin-bottom: 1rem;">')
+                    print(f'<img src="{avatar_url}" alt="{nome}" class="nominee-avatar" style="border: 3px solid {cor_grupo};">')
                 print(f'<h4 style="margin: 0; color: #fff; font-size: 1.1em; text-align: center;">{nome}</h4>')
-                print(f'<span style="display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: {cor_grupo}; color: #fff; border-radius: 12px; font-size: 0.85em;">{grupo}</span>')
+                print(f'<span class="group-badge" style="background: {cor_grupo};">{grupo}</span>')
                 if como_indicado and not is_auto:
                     print(f'<div style="color: #aaa; font-size: 0.8em; margin-top: 0.5rem;">via {como_indicado}</div>')
                 elif is_auto:
@@ -313,7 +255,7 @@ if ultimo:
 
             # Placeholder cards para indicados faltantes
             for i in range(esperado_indicados - n_indicados):
-                print(f'<div style="background: linear-gradient(145deg, #2a2a2a, #1a1a1a); border-radius: 16px; padding: 1.5rem; text-align: center; width: 180px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 2px dashed #555;">')
+                print(f'<div class="nominee-card-placeholder">')
                 print(f'<div style="width: 120px; height: 120px; border-radius: 50%; background: #333; margin: 0 auto 1rem auto; display: flex; align-items: center; justify-content: center; font-size: 2em; color: #555;">?</div>')
                 print(f'<h4 style="margin: 0; color: #666; font-size: 1.1em; text-align: center;">Aguardando...</h4>')
                 print('</div>')
@@ -1291,7 +1233,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 badge_text = 'SALVO(A)'
                 img_filter = 'none'
 
-            print(f'<div style="background: linear-gradient(145deg, #3a3a3a, #2a2a2a); border-radius: 16px; padding: 1.5rem; text-align: center; width: 160px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid {border_color};">')
+            print(f'<div class="nominee-card" style="width: 160px; border: 3px solid {border_color};">')
             if avatar_url:
                 print(f'<img src="{avatar_url}" alt="{nome}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid {border_color}; margin-bottom: 0.75rem; filter: {img_filter};">')
             print(f'<h4 style="margin: 0 0 0.25rem 0; color: #fff; font-size: 1em; text-align: center;">{nome}</h4>')

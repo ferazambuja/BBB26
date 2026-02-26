@@ -25,6 +25,7 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
+    load_relations_scores, load_participants_index,
 )
 
 require_clean_manual_events()
@@ -45,11 +46,9 @@ from scipy.spatial import ConvexHull
 with open("data/derived/clusters_data.json") as f:
     clusters = json.load(f)
 
-with open("data/derived/relations_scores.json") as f:
-    rel_data = json.load(f)
+rel_data = load_relations_scores()
 
-with open("data/derived/participants_index.json") as f:
-    participants_index = json.load(f)
+participants_index = load_participants_index()
 
 # --- Metadata ---
 meta = clusters["_metadata"]
@@ -178,31 +177,31 @@ else:
     sil_color_start, sil_color_end = "#7f8c8d", "#5d6d7e"
 
 print(f'''
-<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
+<div class="stat-row">
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_clusters}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Comunidades</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+<div class="stat-value">{n_clusters}</div>
+<div class="stat-label">Comunidades</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{overall_cohesion:+.2f}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Coesão Média</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+<div class="stat-value">{overall_cohesion:+.2f}</div>
+<div class="stat-label">Coesão Média</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, {sil_color_start} 0%, {sil_color_end} 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{silhouette_display}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Silhouette ({sil_quality})</div>
+<div class="stat-card" style="background: linear-gradient(135deg, {sil_color_start}, {sil_color_end});">
+<div class="stat-value">{silhouette_display}</div>
+<div class="stat-label">Silhouette ({sil_quality})</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_tensions}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Tensões</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+<div class="stat-value">{n_tensions}</div>
+<div class="stat-label">Tensões</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_contradictions}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">Contradições</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+<div class="stat-value">{n_contradictions}</div>
+<div class="stat-label">Contradições</div>
 </div>
 
 </div>

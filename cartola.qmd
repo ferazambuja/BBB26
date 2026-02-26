@@ -155,31 +155,31 @@ n_anjos = len(seen_roles.get('Anjo', []))
 n_monstros = len(seen_roles.get('Monstro', []))
 
 print(f'''
-<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
+<div class="stat-row">
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">Sem {n_weeks}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📅 Semana Atual</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+<div class="stat-value">Sem {n_weeks}</div>
+<div class="stat-label">📅 Semana Atual</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f1c40f 0%, #d4ac0d 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_lideres}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">👑 Líderes</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #f1c40f, #d4ac0d);">
+<div class="stat-value">{n_lideres}</div>
+<div class="stat-label">👑 Líderes</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{n_anjos}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">😇 Anjos</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+<div class="stat-value">{n_anjos}</div>
+<div class="stat-label">😇 Anjos</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{total_positive:+d}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📈 Pts Positivos</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #27ae60, #1e8449);">
+<div class="stat-value">{total_positive:+d}</div>
+<div class="stat-label">📈 Pts Positivos</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{total_negative:+d}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📉 Pts Negativos</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+<div class="stat-value">{total_negative:+d}</div>
+<div class="stat-label">📉 Pts Negativos</div>
 </div>
 
 </div>
@@ -542,7 +542,7 @@ O Cartola BBB é um sistema de fantasy onde cada evento do jogo pontua. Os ponto
 # ══════════════════════════════════════════════════════════════════════════════
 
 print('''
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+<div class="info-grid">
 
 <div style="background: linear-gradient(180deg, rgba(39, 174, 96, 0.15) 0%, rgba(39, 174, 96, 0.05) 100%); border: 1px solid rgba(39, 174, 96, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #27ae60; margin-top: 0; border-bottom: 1px solid rgba(39, 174, 96, 0.3); padding-bottom: 0.5rem;">📈 Eventos Positivos</h4>

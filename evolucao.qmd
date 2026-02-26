@@ -27,10 +27,12 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    load_daily_metrics, load_relations_scores, load_paredoes_raw, load_roles_daily,
     avatar_img,
     REACTION_EMOJI, SENTIMENT_WEIGHTS,
     GROUP_COLORS,
     render_cronologia_html,
+    make_horizontal_bar,
 )
 
 require_clean_manual_events()
@@ -42,11 +44,7 @@ setup_bbb_dark_theme()
 #| include: false
 
 # ── Load precomputed data ──
-daily_metrics_data = {}
-DM_FILE = Path("data/derived/daily_metrics.json")
-if DM_FILE.exists():
-    with open(DM_FILE, encoding="utf-8") as f:
-        daily_metrics_data = json.load(f)
+daily_metrics_data = load_daily_metrics()
 
 daily_metrics_list = daily_metrics_data.get("daily", [])
 daily_metrics_map = {d.get("date"): d for d in daily_metrics_list}
@@ -56,11 +54,7 @@ vulnerability_history = daily_metrics_data.get("vulnerability_history", [])
 impact_history = daily_metrics_data.get("impact_history", [])
 
 # Relations scores
-relations_data = {}
-REL_FILE = Path("data/derived/relations_scores.json")
-if REL_FILE.exists():
-    with open(REL_FILE, encoding="utf-8") as f:
-        relations_data = json.load(f)
+relations_data = load_relations_scores()
 
 received_impact = relations_data.get("received_impact", {})
 streak_breaks = relations_data.get("streak_breaks", [])
@@ -93,19 +87,10 @@ if AUTO_EVENTS_FILE.exists():
 power_events = power_events_manual + power_events_auto
 
 # Roles daily
-roles_daily = []
-ROLES_FILE = Path("data/derived/roles_daily.json")
-if ROLES_FILE.exists():
-    with open(ROLES_FILE, encoding="utf-8") as f:
-        roles_payload = json.load(f)
-    roles_daily = roles_payload.get("daily", [])
+roles_daily = load_roles_daily().get("daily", [])
 
 # Paredões
-paredoes_data = {"paredoes": []}
-PAREDOES_FILE = Path("data/paredoes.json")
-if PAREDOES_FILE.exists():
-    with open(PAREDOES_FILE, encoding="utf-8") as f:
-        paredoes_data = json.load(f)
+paredoes_data = load_paredoes_raw()
 
 # ── Load snapshots for diff heatmap + balance charts ──
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
@@ -208,23 +193,18 @@ if _latest_dc and _latest_dc.get("pair_changes"):
     receiver_data.sort(key=lambda x: x['delta'])
 
     if receiver_data:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            y=[d['name'] for d in receiver_data],
-            x=[d['delta'] for d in receiver_data],
-            orientation='h',
-            marker_color=[d['color'] for d in receiver_data],
-            text=[f"{d['delta']:+.1f}" for d in receiver_data],
-            textposition='outside',
-            hovertemplate='%{y}: %{x:+.1f} pontos<extra></extra>',
-        ))
-        fig.add_vline(x=0, line_width=2, line_color='white')
-        fig.update_layout(
+        fig = make_horizontal_bar(
+            names=[d['name'] for d in receiver_data],
+            values=[d['delta'] for d in receiver_data],
             title="Impacto Líquido: Quem Ganhou/Perdeu Pontos de Sentimento",
             xaxis_title="Δ Sentimento (soma das mudanças recebidas)",
+            colors=[d['color'] for d in receiver_data],
+            text=[f"{d['delta']:+.1f}" for d in receiver_data],
             height=max(400, len(receiver_data) * 28),
-            margin=dict(l=150), showlegend=False,
+            left_margin=150,
+            hovertemplate='%{y}: %{x:+.1f} pontos<extra></extra>',
         )
+        fig.add_vline(x=0, line_width=2, line_color='white')
         fig.show()
 
         benefited = sorted([(k, v) for k, v in receiver_delta.items() if v > 0], key=lambda x: -x[1])

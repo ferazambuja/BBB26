@@ -25,6 +25,8 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
+    load_reaction_matrices, deserialize_matrix,
+    load_paredoes_transformed,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
@@ -59,74 +61,26 @@ def get_snapshot_for_date(target_date, snapshots_list, matrices_list):
     return snapshots_list[closest_idx], matrices_list[closest_idx], closest_idx
 
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
-all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+# Load precomputed matrices (with fallback to runtime computation)
+_precomp = load_reaction_matrices()
+if _precomp and "by_date" in _precomp:
+    all_matrices = []
+    for s in snapshots:
+        date_key = s.get("date", "")
+        if date_key in _precomp["by_date"]:
+            all_matrices.append(deserialize_matrix(_precomp["by_date"][date_key]))
+        else:
+            all_matrices.append(build_reaction_matrix(s["participants"]))
+else:
+    all_matrices = [build_reaction_matrix(s["participants"]) for s in snapshots]
 ```
 
 ```{python}
 #| label: paredao-data
 #| include: false
 
-def load_paredoes():
-    paredoes_file = Path("data/paredoes.json")
-    if not paredoes_file.exists():
-        return []
-    with open(paredoes_file, encoding="utf-8") as f:
-        data = json.load(f)
-
-    paredoes = []
-    for p in data.get('paredoes', []):
-        entry = {
-            'numero': p['numero'],
-            'status': p['status'],
-            'data': p['data'],
-            'data_formacao': p.get('data_formacao'),
-            'titulo': p['titulo'],
-            'lider': p.get('formacao', {}).get('lider'),
-            'indicado_lider': p.get('formacao', {}).get('indicado_lider'),
-            'motivo_lider': p.get('formacao', {}).get('motivo_lider'),
-            'formacao': p.get('formacao', {}).get('resumo', ''),
-            'dinamica': p.get('formacao', {}).get('dinamica'),
-            'big_fone': p.get('formacao', {}).get('big_fone'),
-            'contragolpe': p.get('formacao', {}).get('contragolpe'),
-            'bate_volta': p.get('formacao', {}).get('bate_volta'),
-            'votos_casa': p.get('votos_casa', {}),
-            'fontes': p.get('fontes', []),
-        }
-
-        im = p.get('formacao', {}).get('imunizado')
-        if im:
-            entry['imunizado'] = im
-
-        if p.get('resultado'):
-            entry['resultado'] = p['resultado']
-
-        if p['status'] == 'finalizado' and p.get('resultado'):
-            entry['participantes'] = []
-            for ind in p.get('indicados_finais', []):
-                part = {
-                    'nome': ind['nome'],
-                    'grupo': ind.get('grupo', MEMBER_OF.get(ind['nome'], '?')),
-                    'como': ind.get('como', ''),
-                }
-                votos = p['resultado'].get('votos', {}).get(ind['nome'], {})
-                if votos:
-                    part['voto_unico'] = votos.get('voto_unico', 0)
-                    part['voto_torcida'] = votos.get('voto_torcida', 0)
-                    part['voto_total'] = votos.get('voto_total', 0)
-                    part['resultado'] = 'ELIMINADA' if ind['nome'] == p['resultado'].get('eliminado') else 'Salva'
-                entry['participantes'].append(part)
-        else:
-            entry['participantes'] = [
-                {'nome': ind['nome'], 'grupo': ind.get('grupo', '?'), 'como': ind.get('como', '')}
-                for ind in p.get('indicados_finais', [])
-            ]
-            entry['total_esperado'] = 3
-
-        paredoes.append(entry)
-
-    return paredoes
-
-paredoes = load_paredoes()
+paredoes = load_paredoes_transformed(member_of=MEMBER_OF)
 polls_data = load_votalhada_polls()
 
 missing_formacao = [p for p in paredoes if p.get('status') == 'finalizado' and not p.get('data_formacao')]
@@ -795,7 +749,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             badge_text = 'SALVO(A)'
             img_filter = 'none'
 
-        print(f'<div style="background: linear-gradient(145deg, #3a3a3a, #2a2a2a); border-radius: 12px; padding: 1rem; text-align: center; width: 130px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 2px solid {border_color};">')
+        print(f'<div class="nominee-card-sm" style="border: 2px solid {border_color};">')
         if avatar_url:
             print(f'<img src="{avatar_url}" alt="{nome}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid {border_color}; margin-bottom: 0.5rem; filter: {img_filter};">')
         print(f'<div style="color: #fff; font-size: 0.9em; font-weight:bold;">{nome.split()[0]}</div>')

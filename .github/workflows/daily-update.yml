@@ -10,20 +10,6 @@ name: BBB26 Daily Update
 # | 21:00| 18:00 | Evening — catches balance/role changes |
 # | 03:00| 00:00 | Night — catches post-episode changes (Sun Líder/Anjo, Tue elimination) |
 #
-# TEMPORARY OBSERVATION PROBES (added 2026-02-06):
-# Hourly 10:00–16:00 BRT to pinpoint exact queridômetro API update time.
-# Review after ~7 days with: python scripts/analyze_capture_timing.py
-# Remove probes once timing is established (keep only the permanent slots).
-#
-# | UTC  | BRT   | Purpose |
-# |------|-------|---------|
-# | 13:00| 10:00 | Probe — earliest possible Raio-X window |
-# | 14:00| 11:00 | Probe |
-# | 15:00| 12:00 | Probe |
-# | 16:00| 13:00 | Probe |
-# | 17:00| 14:00 | Probe — expected API update window |
-# | 19:00| 16:00 | Probe — late update safety net |
-#
 # SATURDAY EXTRAS (Anjo challenge + Monstro usually Saturday afternoon):
 # | UTC  | BRT   | Purpose |
 # |------|-------|---------|
@@ -42,13 +28,6 @@ on:
     - cron: '0 9 * * *'    # 06:00 BRT - Pre-Raio-X baseline
     - cron: '0 18 * * *'   # 15:00 BRT - Post-Raio-X (primary)
     - cron: '0 21 * * *'   # 18:00 BRT - Evening
-    # ── Temporary observation probes (remove after timing established) ──
-    - cron: '0 13 * * *'   # 10:00 BRT - Probe
-    - cron: '0 14 * * *'   # 11:00 BRT - Probe
-    - cron: '0 15 * * *'   # 12:00 BRT - Probe
-    - cron: '0 16 * * *'   # 13:00 BRT - Probe
-    - cron: '0 17 * * *'   # 14:00 BRT - Probe
-    - cron: '0 19 * * *'   # 16:00 BRT - Probe
     # ── Saturday extras (Anjo/Monstro) ──
     - cron: '0 20 * * 6'   # 17:00 BRT Sat - Post-Anjo challenge
     - cron: '0 23 * * 6'   # 20:00 BRT Sat - Post-Monstro pick

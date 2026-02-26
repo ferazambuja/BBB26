@@ -1,0 +1,9 @@
+[project]
+name = "bbb26"
+version = "0.1.0"
+description = "BBB26 Data Analysis"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]

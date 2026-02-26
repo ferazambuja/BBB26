@@ -16,17 +16,18 @@ import sys
 
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    require_clean_manual_events, get_all_snapshots, load_snapshot,
-    build_reaction_matrix, REACTION_EMOJI, SENTIMENT_WEIGHTS, get_week_number,
+    require_clean_manual_events, setup_bbb_dark_theme,
+    get_all_snapshots, load_snapshot, load_relations_scores,
+    build_reaction_matrix, load_reaction_matrices, deserialize_matrix,
+    REACTION_EMOJI, SENTIMENT_WEIGHTS, get_week_number,
     parse_roles, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, POWER_EVENT_EMOJI,
     avatar_img, artigo
 )
 
 require_clean_manual_events()
+setup_bbb_dark_theme()
 
-RELATIONS_FILE = Path("data/derived/relations_scores.json")
-
-relations = json.loads(RELATIONS_FILE.read_text(encoding="utf-8")) if RELATIONS_FILE.exists() else {}
+relations = load_relations_scores()
 relations_pairs_daily = relations.get("pairs_daily", {}) or relations.get("pairs", {})
 relations_pairs_all = relations.get("pairs_all", {})
 contradictions = relations.get("contradictions", {})
@@ -50,6 +51,17 @@ week_snapshot_daily = None
 week_snapshot_paredao = None
 week_date_daily = None
 week_date_paredao = None
+
+# Load precomputed matrices for fast by-date lookup
+_precomp = load_reaction_matrices()
+_precomp_by_date = _precomp.get("by_date", {}) if _precomp else {}
+
+def _get_matrix_for_date(date_key, participants_list):
+    """Get matrix from precomputed data or compute at runtime."""
+    if date_key in _precomp_by_date:
+        return deserialize_matrix(_precomp_by_date[date_key])
+    return build_reaction_matrix(participants_list)
+
 if snapshots:
     if reference_date_daily:
         for fp, date in snapshots:
@@ -74,11 +86,11 @@ if snapshots:
 if week_snapshot_daily:
     week_fp, week_date_daily = week_snapshot_daily
     participants, _ = load_snapshot(week_fp)
-    matrix_daily = build_reaction_matrix(participants)
+    matrix_daily = _get_matrix_for_date(week_date_daily, participants)
 if week_snapshot_paredao:
     week_fp, week_date_paredao = week_snapshot_paredao
     participants, _ = load_snapshot(week_fp)
-    matrix_paredao = build_reaction_matrix(participants)
+    matrix_paredao = _get_matrix_for_date(week_date_paredao, participants)
 
 
 def reaction_label(actor, target, matrix):
@@ -711,7 +723,7 @@ for ev in unique_events:
         if not date_key or date_key not in daily_map:
             return "—", "—"
         ps, _ = load_snapshot(daily_map[date_key])
-        mat = build_reaction_matrix(ps)
+        mat = _get_matrix_for_date(date_key, ps)
         names_in = {p.get("name") for p in ps}
         ab_label = mat.get((a, b), "")
         ba_label = mat.get((b, a), "")
@@ -1557,7 +1569,7 @@ else:
         _by_date[_ds] = _fp
     for _date, _fp in sorted(_by_date.items()):
         _parts, _ = load_snapshot(_fp)
-        _mat = build_reaction_matrix(_parts)
+        _mat = _get_matrix_for_date(_date, _parts)
         for (g, r), lbl in _mat.items():
             if g == lider_name or r == lider_name:
                 _querido_history.setdefault((g, r), []).append((_date, lbl))

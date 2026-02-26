@@ -20,7 +20,8 @@ import sys
 
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    require_clean_manual_events, setup_bbb_dark_theme, GROUP_COLORS,
+    require_clean_manual_events, setup_bbb_dark_theme, load_participants_index,
+    GROUP_COLORS,
 )
 
 require_clean_manual_events()
@@ -41,8 +42,7 @@ with open("data/provas.json") as f:
 provas_list = provas_raw["provas"]
 
 # Load participant index (avatars, groups, status)
-with open("data/derived/participants_index.json") as f:
-    participants_index = json.load(f)
+participants_index = load_participants_index()
 
 PINFO = {p["name"]: p for p in participants_index["participants"]}
 
@@ -121,21 +121,21 @@ eligible_avg = [p for p in leaderboard if p["provas_participated"] >= 2 and p["a
 best_avg_p = max(eligible_avg, key=lambda p: p["avg_points"]) if eligible_avg else None
 
 print(f'''
-<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 1.5rem 0;">
+<div class="stat-row">
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{total_provas}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📋 Provas</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+<div class="stat-value">{total_provas}</div>
+<div class="stat-label">📋 Provas</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #f1c40f 0%, #d4ac0d 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{unique_winners}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">🏆 Vencedores únicos</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #f1c40f, #d4ac0d);">
+<div class="stat-value">{unique_winners}</div>
+<div class="stat-label">🏆 Vencedores únicos</div>
 </div>
 
-<div style="flex: 1 1 150px; min-width: 120px; background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); border-radius: 10px; padding: 1rem; text-align: center; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
-<div style="font-size: 2rem; font-weight: bold; color: #fff;">{best_avg_p["avg_points"]:.1f}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.85); text-transform: uppercase;">📊 Melhor média ({best_avg_p["name"].split()[0]})</div>
+<div class="stat-card" style="background: linear-gradient(135deg, #27ae60, #1e8449);">
+<div class="stat-value">{best_avg_p["avg_points"]:.1f}</div>
+<div class="stat-label">📊 Melhor média ({best_avg_p["name"].split()[0]})</div>
 </div>
 
 </div>
@@ -513,7 +513,7 @@ default_pts = scoring["placement_default"]
 multipliers = scoring["type_multipliers"]
 
 print('''
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+<div class="info-grid">
 
 <div style="background: linear-gradient(180deg, rgba(52, 152, 219, 0.15) 0%, rgba(52, 152, 219, 0.05) 100%); border: 1px solid rgba(52, 152, 219, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #3498db; margin-top: 0; border-bottom: 1px solid rgba(52, 152, 219, 0.3); padding-bottom: 0.5rem;">🏅 Pontos por Posição</h4>

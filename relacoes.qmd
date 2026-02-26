@@ -26,8 +26,11 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
+    load_reaction_matrices, deserialize_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    load_relations_scores, load_daily_metrics, load_participants_index, load_paredoes_raw,
     REACTION_EMOJI, POSITIVE, GROUP_COLORS,
+    make_horizontal_bar,
 )
 
 require_clean_manual_events()
@@ -39,11 +42,7 @@ setup_bbb_dark_theme()
 #| include: false
 
 # ── Precomputed data ──
-relations_data = {}
-REL_FILE = Path("data/derived/relations_scores.json")
-if REL_FILE.exists():
-    with open(REL_FILE, encoding="utf-8") as f:
-        relations_data = json.load(f)
+relations_data = load_relations_scores()
 
 pairs_daily = relations_data.get("pairs_daily", [])
 streak_breaks = relations_data.get("streak_breaks", [])
@@ -55,12 +54,9 @@ contradiction_notes = contradictions_data.get("context_notes", {}) if isinstance
 voting_blocs = relations_data.get("voting_blocs", [])
 edges = relations_data.get("edges", [])
 
-daily_metrics_data = {}
-DM_FILE = Path("data/derived/daily_metrics.json")
-if DM_FILE.exists():
-    with open(DM_FILE, encoding="utf-8") as f:
-        daily_metrics_data = json.load(f)
+daily_metrics_data = load_daily_metrics()
 hostility_counts = daily_metrics_data.get("hostility_counts", [])
+daily_changes = daily_metrics_data.get("daily_changes", [])
 
 clusters_data = {}
 CLUSTERS_FILE = Path("data/derived/clusters_data.json")
@@ -68,18 +64,9 @@ if CLUSTERS_FILE.exists():
     with open(CLUSTERS_FILE, encoding="utf-8") as f:
         clusters_data = json.load(f)
 
-participants_index = []
-PI_FILE = Path("data/derived/participants_index.json")
-if PI_FILE.exists():
-    with open(PI_FILE, encoding="utf-8") as f:
-        pi_data = json.load(f)
-    participants_index = pi_data.get("participants", [])
+participants_index = load_participants_index().get("participants", [])
 
-paredoes_data = {"paredoes": []}
-PAREDOES_FILE = Path("data/paredoes.json")
-if PAREDOES_FILE.exists():
-    with open(PAREDOES_FILE, encoding="utf-8") as f:
-        paredoes_data = json.load(f)
+paredoes_data = load_paredoes_raw()
 
 index_data = {}
 INDEX_FILE = Path("data/derived/index_data.json")
@@ -89,7 +76,19 @@ if INDEX_FILE.exists():
 
 # ── Load snapshots for reaction matrices and network graph ──
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
-all_matrices = [build_reaction_matrix(s['participants']) for s in snapshots]
+
+# Load precomputed matrices (with fallback to runtime computation)
+_precomp = load_reaction_matrices()
+if _precomp and "by_date" in _precomp:
+    all_matrices = []
+    for s in snapshots:
+        date_key = s.get("date", "")
+        if date_key in _precomp["by_date"]:
+            all_matrices.append(deserialize_matrix(_precomp["by_date"][date_key]))
+        else:
+            all_matrices.append(build_reaction_matrix(s["participants"]))
+else:
+    all_matrices = [build_reaction_matrix(s["participants"]) for s in snapshots]
 
 latest = snapshots[-1]
 latest_matrix = all_matrices[-1]
@@ -223,6 +222,78 @@ fig.update_layout(
 fig.show()
 ```
 
+# Pulso Social {#pulso-social}
+
+📅 **Comparação dia-a-dia** — Resumo das mudanças sociais do último dia.
+
+```{python}
+#| label: pulso-social
+#| output: asis
+
+if daily_changes:
+    dc = daily_changes[-1]
+    hl = dc.get("hearts_lost", 0)
+    hg = dc.get("hearts_gained", 0)
+    n_mut = len(dc.get("new_mutual_hostilities", []))
+    n_blind = len(dc.get("new_blind_spots", []))
+    n_breaks = len(dc.get("new_streak_breaks", []))
+    r_mut = len(dc.get("resolved_mutual_hostilities", []))
+    r_blind = len(dc.get("resolved_blind_spots", []))
+
+    def _stat_card(emoji, value, label, color):
+        return (f'<div style="flex:1; min-width:100px; background:#2a2a2a; border-radius:8px; '
+                f'padding:0.6rem; text-align:center; border-top:3px solid {color};">'
+                f'<div style="font-size:1.6rem;">{emoji}</div>'
+                f'<div style="font-size:1.4rem; font-weight:bold; color:{color};">{value}</div>'
+                f'<div style="font-size:0.75rem; color:#aaa;">{label}</div></div>')
+
+    cards = [
+        _stat_card("💔", hl, "Corações perdidos", "#e74c3c"),
+        _stat_card("❤️", hg, "Corações ganhos", "#27ae60"),
+        _stat_card("⚔️", n_mut, "Novas rivalidades", "#d73027"),
+        _stat_card("🔍", n_blind, "Novos pontos cegos", "#f39c12"),
+        _stat_card("💥", n_breaks, "Rupturas de aliança", "#e74c3c"),
+    ]
+
+    print(f'''<div style="background:#1e1e1e; border-radius:12px; padding:1.2rem; margin:1rem 0;">
+<div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem;">
+{"".join(cards)}
+</div>''')
+
+    # Narrative chain
+    parts = []
+    if hl > 0:
+        parts.append(f"<strong>{hl}</strong> corações perdidos")
+    if n_mut > 0:
+        mut_names = [f"{m['pair'][0]} ↔ {m['pair'][1]}" for m in dc.get("new_mutual_hostilities", [])]
+        parts.append(f"<strong>{n_mut}</strong> novas rivalidades mútuas ({', '.join(mut_names[:3])}{'…' if len(mut_names) > 3 else ''})")
+    if n_blind > 0:
+        blind_names = [f"{b['attacker']} → {b['victim']}" for b in dc.get("new_blind_spots", [])]
+        parts.append(f"<strong>{n_blind}</strong> novos pontos cegos ({', '.join(blind_names[:3])}{'…' if len(blind_names) > 3 else ''})")
+    if n_breaks > 0:
+        break_names = [f"{b['giver']} → {b['receiver']}" for b in dc.get("new_streak_breaks", [])]
+        parts.append(f"<strong>{n_breaks}</strong> rupturas de aliança ({', '.join(break_names[:3])}{'…' if len(break_names) > 3 else ''})")
+
+    if parts:
+        print(f'<div style="font-size:0.9rem; color:#ccc; line-height:1.6;">🔗 {" → ".join(parts)}</div>')
+
+    # Resolutions
+    if r_mut > 0 or r_blind > 0:
+        res_parts = []
+        if r_mut > 0:
+            res_parts.append(f"{r_mut} rivalidade(s) mútua(s)")
+        if r_blind > 0:
+            res_parts.append(f"{r_blind} ponto(s) cego(s)")
+        print(f'<div style="font-size:0.85rem; color:#91cf60; margin-top:0.5rem;">✅ Resolvidos: {", ".join(res_parts)}</div>')
+
+    if not parts and r_mut == 0 and r_blind == 0:
+        print('<div style="font-size:0.9rem; color:#888;">Sem mudanças significativas nas dinâmicas sociais.</div>')
+
+    print('</div>')
+else:
+    print("*Dados insuficientes para Pulso Social.*")
+```
+
 # Alianças & Rupturas {#aliancas}
 
 ::: {.panel-tabset}
@@ -269,18 +340,18 @@ alliance_data = [{'Par': f"{a} ↔ {b}", 'Dias com ❤️ mútuo': count,
                    'Total': n_daily, 'Consistência': f"{count/n_daily*100:.0f}%"}
                   for (a, b), count in top_alliances]
 
-fig = go.Figure(go.Bar(
-    x=[a['Dias com ❤️ mútuo'] for a in alliance_data],
-    y=[a['Par'] for a in alliance_data], orientation='h',
-    marker_color='#1a9850',
-    text=[a['Consistência'] for a in alliance_data], textposition='outside',
-    hovertemplate='%{y}: ❤️ mútuo em %{x}/' + str(n_daily) + ' dias<extra></extra>'
-))
-fig.update_layout(
+fig = make_horizontal_bar(
+    names=[a['Par'] for a in alliance_data],
+    values=[a['Dias com ❤️ mútuo'] for a in alliance_data],
     title="Top 15 Alianças Mais Consistentes (❤️ Mútuo)",
     xaxis_title=f"Dias com ❤️ mútuo (de {n_daily})",
-    height=500, margin=dict(l=250), xaxis_range=[0, n_daily + 1],
+    colors='#1a9850',
+    text=[a['Consistência'] for a in alliance_data],
+    height=500,
+    left_margin=250,
+    hovertemplate='%{y}: ❤️ mútuo em %{x}/' + str(n_daily) + ' dias<extra></extra>',
 )
+fig.update_layout(xaxis_range=[0, n_daily + 1])
 fig.show()
 ```
 
@@ -319,10 +390,19 @@ if rivalry_data:
 #| output: asis
 
 if streak_breaks:
-    print(f"**{len(streak_breaks)} rupturas** de aliança detectadas na temporada.\n")
+    # Build set of today's new streak breaks for NOVO badges
+    _new_sb_set = set()
+    if daily_changes:
+        for nsb in daily_changes[-1].get("new_streak_breaks", []):
+            _new_sb_set.add((nsb["giver"], nsb["receiver"]))
+
+    _n_new = len(_new_sb_set)
+    _novo_note = f" (<span style='color:#e74c3c;'>{_n_new} nova(s) hoje</span>)" if _n_new > 0 else ""
+    print(f"**{len(streak_breaks)} rupturas** de aliança detectadas na temporada.{_novo_note}\n")
     print('<div style="overflow-x:auto;">')
     print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
     print('<thead><tr style="border-bottom: 1px solid #444;">'
+          '<th style="padding: 0.4rem; width: 3rem;"></th>'
           '<th style="padding: 0.4rem;">Emissor</th><th style="padding: 0.4rem;">Receptor</th>'
           '<th style="padding: 0.4rem;">Dias de ❤️</th><th style="padding: 0.4rem;">Nova reação</th>'
           '<th style="padding: 0.4rem;">Gravidade</th><th style="padding: 0.4rem;">Data</th>'
@@ -333,7 +413,11 @@ if streak_breaks:
         severity = sb.get("severity", "mild")
         sev_color = "#e74c3c" if severity == "strong" else "#f39c12"
         sev_label = "Forte" if severity == "strong" else "Leve"
+        is_new = (sb["giver"], sb["receiver"]) in _new_sb_set
+        novo_badge = ('<span style="background:#e74c3c; color:white; font-size:0.7rem; '
+                      'padding:0.1rem 0.4rem; border-radius:4px; font-weight:bold;">NOVO</span>') if is_new else ""
         print(f'<tr style="border-left: 3px solid {sev_color};">'
+              f'<td style="padding: 0.4rem; text-align: center;">{novo_badge}</td>'
               f'<td style="padding: 0.4rem;">{sb["giver"]}</td>'
               f'<td style="padding: 0.4rem;">{sb["receiver"]}</td>'
               f'<td style="padding: 0.4rem; text-align: center;">{sb["previous_streak"]}</td>'
@@ -557,42 +641,14 @@ if top_one:
 #| label: hostility-daily
 #| output: asis
 
-if n_daily >= 2:
-    def get_hostility_pairs(matrix, active_names):
-        one_sided = set()
-        two_sided = set()
-        for (a, b), rxn_ab in matrix.items():
-            if a not in active_names or b not in active_names:
-                continue
-            rxn_ba = matrix.get((b, a), '')
-            a_neg = rxn_ab not in POSITIVE and rxn_ab != ''
-            b_neg = rxn_ba not in POSITIVE and rxn_ba != ''
-            b_pos = rxn_ba in POSITIVE
-            if a_neg and b_neg:
-                two_sided.add(frozenset([a, b]))
-            elif a_neg and b_pos:
-                one_sided.add((a, b))
-        return one_sided, two_sided
+if daily_changes:
+    dc = daily_changes[-1]
+    new_two = dc.get("new_mutual_hostilities", [])
+    resolved_two = dc.get("resolved_mutual_hostilities", [])
+    new_blind = dc.get("new_blind_spots", [])
+    resolved_blind = dc.get("resolved_blind_spots", [])
 
-    prev_snap = daily_snapshots[-2]
-    curr_snap = daily_snapshots[-1]
-    prev_mat = daily_matrices[-2]
-    curr_mat = daily_matrices[-1]
-
-    prev_names = set(p['name'] for p in prev_snap['participants']
-                     if not p.get('characteristics', {}).get('eliminated'))
-    curr_names = set(p['name'] for p in curr_snap['participants']
-                     if not p.get('characteristics', {}).get('eliminated'))
-
-    prev_one, prev_two = get_hostility_pairs(prev_mat, prev_names)
-    curr_one, curr_two = get_hostility_pairs(curr_mat, curr_names)
-
-    new_two = curr_two - prev_two
-    resolved_two = prev_two - curr_two
-    new_one = curr_one - prev_one
-    resolved_one = prev_one - curr_one
-
-    has_changes = new_two or resolved_two or new_one or resolved_one
+    has_changes = new_two or resolved_two or new_blind or resolved_blind
 
     if has_changes:
         categories, values, colors, hover_texts = [], [], [], []
@@ -600,22 +656,22 @@ if n_daily >= 2:
             categories.append('🔥 Novas\nMútuas')
             values.append(len(new_two))
             colors.append('#d73027')
-            hover_texts.append('<br>'.join(f"{sorted(p)[0]} ↔ {sorted(p)[1]}" for p in new_two))
+            hover_texts.append('<br>'.join(f"{m['pair'][0]} ↔ {m['pair'][1]}" for m in new_two))
         if resolved_two:
             categories.append('✅ Resolvidas\nMútuas')
             values.append(len(resolved_two))
             colors.append('#1a9850')
-            hover_texts.append('<br>'.join(f"{sorted(p)[0]} ↔ {sorted(p)[1]}" for p in resolved_two))
-        if new_one:
-            categories.append('😠 Novas\nUnilaterais')
-            values.append(len(new_one))
+            hover_texts.append('<br>'.join(f"{m['pair'][0]} ↔ {m['pair'][1]}" for m in resolved_two))
+        if new_blind:
+            categories.append('🔍 Novos\nPontos Cegos')
+            values.append(len(new_blind))
             colors.append('#fc8d59')
-            hover_texts.append('<br>'.join(f"{h} → {f}" for h, f in sorted(new_one))[:500])
-        if resolved_one:
-            categories.append('💚 Resolvidas\nUnilaterais')
-            values.append(len(resolved_one))
+            hover_texts.append('<br>'.join(f"{b['attacker']} → {b['victim']}" for b in new_blind)[:500])
+        if resolved_blind:
+            categories.append('💚 Resolvidos\nPontos Cegos')
+            values.append(len(resolved_blind))
             colors.append('#91cf60')
-            hover_texts.append('<br>'.join(f"{h} → {f}" for h, f in sorted(resolved_one))[:500])
+            hover_texts.append('<br>'.join(f"{b['attacker']} → {b['victim']}" for b in resolved_blind)[:500])
 
         fig = go.Figure(data=[go.Bar(
             x=categories, y=values, marker_color=colors,
@@ -624,7 +680,7 @@ if n_daily >= 2:
             hovertemplate='<b>%{x}</b><br>Quantidade: %{y}<br><br>%{customdata}<extra></extra>',
         )])
         fig.update_layout(
-            title=f"Mudanças em Hostilidades: {prev_snap['date']} → {curr_snap['date']}",
+            title=f"Mudanças em Hostilidades: {dc['date']}",
             yaxis_title="Quantidade", height=400, showlegend=False,
         )
         fig.show()
@@ -634,25 +690,25 @@ if n_daily >= 2:
         print("## 📋 Detalhes\n")
         if new_two:
             print("### 🔥 Novas Hostilidades Mútuas\n")
-            for pair in sorted(new_two, key=lambda x: tuple(sorted(x))):
-                a, b = sorted(pair)
-                ea = REACTION_EMOJI.get(curr_mat.get((a, b), ''), '?')
-                eb = REACTION_EMOJI.get(curr_mat.get((b, a), ''), '?')
+            for m in new_two:
+                a, b = m["pair"]
+                ea = REACTION_EMOJI.get(m["reactions"]["a_to_b"], "?")
+                eb = REACTION_EMOJI.get(m["reactions"]["b_to_a"], "?")
                 print(f"- **{a}** {ea}↔{eb} **{b}**")
-        if new_one:
-            print("\n### 😠 Novas Hostilidades Unilaterais\n")
-            for hostile, friendly in sorted(new_one):
-                emoji = REACTION_EMOJI.get(curr_mat.get((hostile, friendly), ''), '?')
-                print(f"- **{hostile}** {emoji}→ {friendly} (que dá ❤️)")
+        if new_blind:
+            print("\n### 🔍 Novos Pontos Cegos\n")
+            for b in new_blind:
+                emoji = REACTION_EMOJI.get(b["attack_reaction"], "?")
+                print(f"- **{b['attacker']}** {emoji}→ {b['victim']} (que dá ❤️)")
         print("\n:::")
 
         net_mutual = len(new_two) - len(resolved_two)
-        net_one = len(new_one) - len(resolved_one)
+        net_blind = len(new_blind) - len(resolved_blind)
         m_color = '#dc3545' if net_mutual > 0 else '#28a745' if net_mutual < 0 else '#888'
-        o_color = '#dc3545' if net_one > 0 else '#28a745' if net_one < 0 else '#888'
+        b_color = '#dc3545' if net_blind > 0 else '#28a745' if net_blind < 0 else '#888'
         print(f"""
 <div style="background: #2a2a2a; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
-<strong>Saldo:</strong> Mútuas <span style="color: {m_color};">{net_mutual:+d}</span> | Unilaterais <span style="color: {o_color};">{net_one:+d}</span>
+<strong>Saldo:</strong> Mútuas <span style="color: {m_color};">{net_mutual:+d}</span> | Pontos Cegos <span style="color: {b_color};">{net_blind:+d}</span>
 </div>""")
     else:
         print("*Nenhuma mudança em hostilidades — relacionamentos estáveis.*")

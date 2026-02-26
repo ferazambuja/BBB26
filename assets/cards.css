@@ -1,0 +1,103 @@
+/* ══════════════════════════════════════════════════════════════
+   BBB26 — Shared card & badge styles
+   Extracted from inline style= attributes across QMD pages
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Stat card container ── */
+.stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 1.5rem 0;
+}
+
+/* ── Individual stat card ──
+   Usage: <div class="stat-card" style="background: linear-gradient(135deg, #COLOR1, #COLOR2);">
+   The gradient color stays inline since each card has a unique color.
+*/
+.stat-card {
+  flex: 1 1 150px;
+  min-width: 120px;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+.stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.stat-card .stat-label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.85);
+  text-transform: uppercase;
+}
+
+/* ── Nominee card (paredao/paredoes) ──
+   Usage: <div class="nominee-card" style="border: 2px solid #COLOR;">
+*/
+.nominee-card {
+  background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  width: 180px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.nominee-card-sm {
+  background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  width: 130px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.nominee-card-placeholder {
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  width: 180px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  border: 2px dashed #555;
+}
+
+/* ── Info panel grid ── */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+/* ── Avatar in nominee cards ── */
+.nominee-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+}
+
+.nominee-avatar-sm {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Group badge ── */
+.group-badge {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 0.85em;
+}

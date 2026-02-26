@@ -27,6 +27,7 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
+    load_paredoes_raw,
     avatar_html as _avatar_html,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
@@ -1015,11 +1016,9 @@ else:
 
 # Shared setup for evolution charts
 _paredoes_markers = []
-_paredoes_file = Path("data/paredoes.json")
-if _paredoes_file.exists():
-    with open(_paredoes_file, encoding="utf-8") as f:
-        _paredoes_json = json.load(f)
-    for _p in _paredoes_json.get('paredoes', []):
+_paredoes_json = load_paredoes_raw()
+if _paredoes_json.get('paredoes'):
+    for _p in _paredoes_json['paredoes']:
         _paredoes_markers.append({
             'date': pd.to_datetime(_p['data']),
             'label': f"🗳️ {_p['numero']}º Paredão",

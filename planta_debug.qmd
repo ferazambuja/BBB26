@@ -15,24 +15,27 @@ import pandas as pd
 import sys
 
 sys.path.append(str(Path("scripts").resolve()))
-from data_utils import require_clean_manual_events, REACTION_EMOJI, POWER_EVENT_LABELS, POWER_EVENT_EMOJI
+from data_utils import (
+    require_clean_manual_events, setup_bbb_dark_theme,
+    load_participants_index, load_paredoes_raw,
+    REACTION_EMOJI, POWER_EVENT_LABELS, POWER_EVENT_EMOJI,
+)
 
 require_clean_manual_events()
+setup_bbb_dark_theme()
 
 PLANT_INDEX_FILE = Path("data/derived/plant_index.json")
 MANUAL_EVENTS_FILE = Path("data/manual_events.json")
 AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
 SINCERAO_FILE = Path("data/derived/sincerao_edges.json")
-PARTICIPANTS_INDEX_FILE = Path("data/derived/participants_index.json")
-PAREDOES_FILE = Path("data/paredoes.json")
 INDEX_DATA_FILE = Path("data/derived/index_data.json")
 
 plant_index = json.loads(PLANT_INDEX_FILE.read_text(encoding="utf-8")) if PLANT_INDEX_FILE.exists() else {}
 manual_events = json.loads(MANUAL_EVENTS_FILE.read_text(encoding="utf-8")) if MANUAL_EVENTS_FILE.exists() else {}
 auto_events = json.loads(AUTO_EVENTS_FILE.read_text(encoding="utf-8")) if AUTO_EVENTS_FILE.exists() else {}
 sinc_data = json.loads(SINCERAO_FILE.read_text(encoding="utf-8")) if SINCERAO_FILE.exists() else {}
-participants_index = json.loads(PARTICIPANTS_INDEX_FILE.read_text(encoding="utf-8")) if PARTICIPANTS_INDEX_FILE.exists() else {}
-paredoes = json.loads(PAREDOES_FILE.read_text(encoding="utf-8")) if PAREDOES_FILE.exists() else {}
+participants_index = load_participants_index()
+paredoes = load_paredoes_raw()
 index_data = json.loads(INDEX_DATA_FILE.read_text(encoding="utf-8")) if INDEX_DATA_FILE.exists() else {}
 
 latest_week = plant_index.get("latest", {}).get("week")

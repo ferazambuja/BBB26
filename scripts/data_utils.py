@@ -11,9 +11,15 @@ This module is the SINGLE SOURCE OF TRUTH for:
 - Snapshot loading and reaction matrix utilities
 """
 
+from __future__ import annotations
+
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import plotly.graph_objects as go
 
 UTC = timezone.utc
 BRT = timezone(timedelta(hours=-3))
@@ -216,7 +222,7 @@ TEXT_COLOR = '#fff'
 BBB_COLORWAY = ['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6']
 
 
-def setup_bbb_dark_theme():
+def setup_bbb_dark_theme() -> None:
     """Register and activate the bbb_dark Plotly theme.
 
     Call this once in each QMD setup cell after importing plotly.
@@ -258,7 +264,7 @@ def setup_bbb_dark_theme():
 # ══════════════════════════════════════════════════════════════
 
 
-def get_week_number(date_str):
+def get_week_number(date_str: str) -> int:
     """Calculate BBB26 week number from date string (YYYY-MM-DD).
 
     Week 1 starts on 2026-01-13 (BBB26 premiere).
@@ -269,7 +275,7 @@ def get_week_number(date_str):
     return max(1, (delta // 7) + 1)
 
 
-def calc_sentiment(participant):
+def calc_sentiment(participant: dict) -> float:
     """Calculate sentiment score for a participant from their received reactions.
 
     Uses SENTIMENT_WEIGHTS: positive = +1, mild_negative = -0.5, strong_negative = -1.
@@ -281,7 +287,7 @@ def calc_sentiment(participant):
     return total
 
 
-def require_clean_manual_events(audit_path=None):
+def require_clean_manual_events(audit_path: str | Path | None = None) -> None:
     """Raise if manual events audit reports inconsistencies."""
     audit_path = Path(audit_path) if audit_path is not None else Path("data/derived/manual_events_audit.json")
 
@@ -296,7 +302,7 @@ def require_clean_manual_events(audit_path=None):
         raise RuntimeError(f"Manual events audit falhou com {issues} problema(s). Veja docs/MANUAL_EVENTS_AUDIT.md")
 
 
-def load_snapshot(filepath):
+def load_snapshot(filepath: str | Path) -> tuple[list[dict], dict]:
     """Load snapshot JSON (new or old format)."""
     with open(filepath, encoding="utf-8") as f:
         data = json.load(f)
@@ -305,7 +311,146 @@ def load_snapshot(filepath):
     return data, {}
 
 
-def utc_to_game_date(utc_dt):
+# ══════════════════════════════════════════════════════════════
+# Centralized Data Loaders (derived + manual JSON files)
+# ══════════════════════════════════════════════════════════════
+
+def load_paredoes_raw() -> dict:
+    """Load data/paredoes.json. Returns dict with 'paredoes' key."""
+    p = Path("data/paredoes.json")
+    if not p.exists():
+        return {"paredoes": []}
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Keep backward-compatible alias for callers that use the raw dict format
+load_paredoes = load_paredoes_raw
+
+
+def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[dict]:
+    """Load and transform paredoes.json into dashboard-friendly format.
+
+    Args:
+        member_of: Optional dict mapping participant name to group.
+
+    Returns:
+        List of transformed paredao dicts ready for dashboard rendering.
+    """
+    raw = load_paredoes_raw()
+    paredoes = []
+    for p in raw.get('paredoes', []):
+        entry = {
+            'numero': p['numero'],
+            'status': p['status'],
+            'data': p['data'],
+            'data_formacao': p.get('data_formacao'),
+            'titulo': p['titulo'],
+            'lider': p.get('formacao', {}).get('lider'),
+            'indicado_lider': p.get('formacao', {}).get('indicado_lider'),
+            'motivo_lider': p.get('formacao', {}).get('motivo_lider'),
+            'anjo': p.get('formacao', {}).get('anjo'),
+            'anjo_autoimune': p.get('formacao', {}).get('anjo_autoimune'),
+            'formacao': p.get('formacao', {}).get('resumo', ''),
+            'formacao_raw': p.get('formacao', {}),
+            'dinamica': p.get('formacao', {}).get('dinamica'),
+            'big_fone': p.get('formacao', {}).get('big_fone'),
+            'contragolpe': p.get('formacao', {}).get('contragolpe'),
+            'bate_volta': p.get('formacao', {}).get('bate_volta'),
+            'votos_casa': p.get('votos_casa', {}),
+            'fontes': p.get('fontes', []),
+            'impedidos_votar': p.get('impedidos_votar', []),
+            'votos_anulados': p.get('votos_anulados', []),
+        }
+        im = p.get('formacao', {}).get('imunizado')
+        if im:
+            entry['imunizado'] = im
+        if p.get('resultado'):
+            entry['resultado'] = p['resultado']
+        if p['status'] == 'finalizado' and p.get('resultado'):
+            entry['participantes'] = []
+            for ind in p.get('indicados_finais', []):
+                grupo = ind.get('grupo', '?')
+                if grupo == '?' and member_of:
+                    grupo = member_of.get(ind['nome'], '?')
+                part = {
+                    'nome': ind['nome'],
+                    'grupo': grupo,
+                    'como': ind.get('como', ''),
+                }
+                votos = p['resultado'].get('votos', {}).get(ind['nome'], {})
+                if votos:
+                    part['voto_unico'] = votos.get('voto_unico', 0)
+                    part['voto_torcida'] = votos.get('voto_torcida', 0)
+                    part['voto_total'] = votos.get('voto_total', 0)
+                    part['resultado'] = 'ELIMINADA' if ind['nome'] == p['resultado'].get('eliminado') else 'Salva'
+                entry['participantes'].append(part)
+        else:
+            entry['participantes'] = [
+                {'nome': ind['nome'], 'grupo': ind.get('grupo', '?'), 'como': ind.get('como', '')}
+                for ind in p.get('indicados_finais', [])
+            ]
+            entry['total_esperado'] = 3
+        paredoes.append(entry)
+    return paredoes
+
+
+def load_participants_index() -> dict:
+    """Load data/derived/participants_index.json. Returns dict with 'participants' key."""
+    p = Path("data/derived/participants_index.json")
+    if not p.exists():
+        return {"participants": []}
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_relations_scores() -> dict:
+    """Load data/derived/relations_scores.json. Returns full dict."""
+    p = Path("data/derived/relations_scores.json")
+    if not p.exists():
+        return {}
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_daily_metrics() -> dict:
+    """Load data/derived/daily_metrics.json. Returns full dict."""
+    p = Path("data/derived/daily_metrics.json")
+    if not p.exists():
+        return {}
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_roles_daily() -> dict:
+    """Load data/derived/roles_daily.json. Returns full dict."""
+    p = Path("data/derived/roles_daily.json")
+    if not p.exists():
+        return {}
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_reaction_matrices() -> dict:
+    """Load precomputed reaction matrices from data/derived/reaction_matrices.json."""
+    p = Path("data/derived/reaction_matrices.json")
+    if not p.exists():
+        return {}
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def deserialize_matrix(serialized: dict[str, str]) -> dict[tuple[str, str], str]:
+    """Convert serialized 'giver|receiver' keys back to (giver, receiver) tuples."""
+    result = {}
+    for key, value in serialized.items():
+        parts = key.split("|", 1)
+        if len(parts) == 2:
+            result[(parts[0], parts[1])] = value
+    return result
+
+
+def utc_to_game_date(utc_dt: datetime) -> str:
     """Convert a UTC datetime to the BBB game date (BRT-based).
 
     The BBB game day runs roughly 06:00 BRT to 06:00 BRT next day.
@@ -319,7 +464,7 @@ def utc_to_game_date(utc_dt):
     return brt_dt.strftime("%Y-%m-%d")
 
 
-def get_all_snapshots(data_dir=Path("data/snapshots")):
+def get_all_snapshots(data_dir: str | Path = Path("data/snapshots")) -> list[tuple[Path, str]]:
     """Return list of (filepath, date_str) sorted by filename.
 
     Filenames are UTC timestamps. date_str is the BRT game date
@@ -340,7 +485,7 @@ def get_all_snapshots(data_dir=Path("data/snapshots")):
     return result
 
 
-def parse_roles(roles_data):
+def parse_roles(roles_data: dict | list | str | None) -> list[str]:
     """Extract role labels from roles array (strings or dicts)."""
     if not roles_data:
         return []
@@ -348,7 +493,7 @@ def parse_roles(roles_data):
     return [label for label in labels if label]
 
 
-def build_reaction_matrix(participants):
+def build_reaction_matrix(participants: list[dict]) -> dict[tuple[str, str], str]:
     """Build {(giver_name, receiver_name): reaction_label} dict."""
     matrix = {}
     for receiver in participants:
@@ -364,7 +509,7 @@ def build_reaction_matrix(participants):
     return matrix
 
 
-def patch_missing_raio_x(matrix, participants, prev_matrix):
+def patch_missing_raio_x(matrix: dict[tuple[str, str], str], participants: list[dict], prev_matrix: dict[tuple[str, str], str]) -> tuple[dict[tuple[str, str], str], list[str]]:
     """Carry forward reactions for participants who missed the Raio-X.
 
     A participant missed the Raio-X when they are present in the snapshot
@@ -397,7 +542,7 @@ def patch_missing_raio_x(matrix, participants, prev_matrix):
     return matrix, carried
 
 
-def load_votalhada_polls(filepath=None):
+def load_votalhada_polls(filepath: str | Path | None = None) -> dict:
     """Load Votalhada poll aggregation data.
 
     Returns dict with 'paredoes' list, or empty structure if file missing.
@@ -411,7 +556,7 @@ def load_votalhada_polls(filepath=None):
         return json.load(f)
 
 
-def load_sincerao_edges(filepath=None):
+def load_sincerao_edges(filepath: str | Path | None = None) -> dict:
     """Load derived Sincerão edges/aggregates."""
     filepath = Path(filepath) if filepath is not None else Path("data/derived/sincerao_edges.json")
 
@@ -422,7 +567,7 @@ def load_sincerao_edges(filepath=None):
         return json.load(f)
 
 
-def get_poll_for_paredao(polls_data, numero):
+def get_poll_for_paredao(polls_data: dict, numero: int) -> dict | None:
     """Get poll data for a specific paredão number.
 
     Args:
@@ -438,7 +583,7 @@ def get_poll_for_paredao(polls_data, numero):
     return None
 
 
-def calculate_poll_accuracy(poll_data):
+def calculate_poll_accuracy(poll_data: dict | None) -> dict | None:
     """Calculate accuracy metrics for a finalized paredão poll.
 
     Args:
@@ -468,7 +613,7 @@ def calculate_poll_accuracy(poll_data):
     }
 
 
-def calculate_precision_weights(polls_data):
+def calculate_precision_weights(polls_data: dict) -> dict:
     """Calculate precision-based platform weights from historical poll accuracy.
 
     Weights are inversely proportional to each platform's RMSE² across
@@ -538,7 +683,7 @@ def calculate_precision_weights(polls_data):
     }
 
 
-def predict_precision_weighted(poll_data, precision_result):
+def predict_precision_weighted(poll_data: dict, precision_result: dict) -> dict | None:
     """Apply precision weights to a poll's platform data.
 
     Args:
@@ -590,7 +735,7 @@ def predict_precision_weighted(poll_data, precision_result):
     }
 
 
-def backtest_precision_model(polls_data):
+def backtest_precision_model(polls_data: dict) -> dict | None:
     """Leave-one-out cross-validation of the precision-weighted model.
 
     For each finalized paredão, compute weights from all OTHER paredões,
@@ -716,7 +861,7 @@ TIMELINE_CAT_LABELS = {
 }
 
 
-def render_cronologia_html(timeline_events):
+def render_cronologia_html(timeline_events: list[dict]) -> str:
     """Render game timeline as an HTML table. Returns HTML string."""
     if not timeline_events:
         return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
@@ -806,7 +951,7 @@ MONTH_MAP_PT = {'jan': 1, 'fev': 2, 'mar': 3, 'abr': 4, 'mai': 5, 'jun': 6,
                 'jul': 7, 'ago': 8, 'set': 9, 'out': 10, 'nov': 11, 'dez': 12}
 
 
-def parse_votalhada_hora(hora_str, year=2026):
+def parse_votalhada_hora(hora_str: str, year: int = 2026) -> datetime:
     """Parse Votalhada timestamp '19/jan 01:00' → datetime."""
     tokens = hora_str.split()
     day_str, month_str = tokens[0].split('/')
@@ -814,7 +959,7 @@ def parse_votalhada_hora(hora_str, year=2026):
     return datetime(year, MONTH_MAP_PT[month_str], int(day_str), hour, minute)
 
 
-def make_poll_timeseries(poll, resultado_real=None, compact=False):
+def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact: bool = False) -> go.Figure | None:
     """Build a Plotly figure for Votalhada poll time series.
 
     Args:
@@ -884,9 +1029,126 @@ def make_poll_timeseries(poll, resultado_real=None, compact=False):
     return fig
 
 
+# ── Visualization helpers ─────────────────────────────────────────────────────
+
+
+def make_horizontal_bar(
+    names: list[str],
+    values: list[float],
+    *,
+    title: str = "",
+    xaxis_title: str = "",
+    colors: list[str] | str | None = None,
+    text: list[str] | None = None,
+    height: int | None = None,
+    left_margin: int = 180,
+    show_legend: bool = False,
+    template: str = "bbb_dark",
+    **kwargs: object,
+) -> go.Figure:
+    """Create a styled horizontal bar chart.
+
+    Args:
+        names: Y-axis category labels.
+        values: Bar values.
+        colors: Bar colors (single color string, list, or None for default).
+        text: Text to display on bars.
+        height: Chart height in pixels (auto-calculated if None).
+        left_margin: Left margin for long labels.
+        template: Plotly template name.
+        **kwargs: Additional kwargs passed to go.Bar().
+    """
+    import plotly.graph_objects as _go  # noqa: PLC0415
+
+    if height is None:
+        height = max(300, len(names) * 32 + 100)
+
+    bar_kwargs: dict = dict(
+        y=names,
+        x=values,
+        orientation="h",
+        text=text if text else [f"{v:.1f}" if isinstance(v, float) else str(v) for v in values],
+        textposition="outside",
+    )
+    if colors is not None:
+        if isinstance(colors, str):
+            bar_kwargs["marker_color"] = colors
+        else:
+            bar_kwargs["marker_color"] = colors
+    bar_kwargs.update(kwargs)
+
+    fig = _go.Figure(_go.Bar(**bar_kwargs))
+    fig.update_layout(
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis=dict(autorange="reversed"),
+        height=height,
+        margin=dict(l=left_margin),
+        template=template,
+        showlegend=show_legend,
+    )
+    return fig
+
+
+def make_sentiment_heatmap(
+    z_data: list[list[float]],
+    x_labels: list[str],
+    y_labels: list[str],
+    *,
+    title: str = "",
+    text_matrix: list[list[str]] | None = None,
+    colorscale: str | list = "RdYlGn",
+    zmin: float | None = None,
+    zmax: float | None = None,
+    height: int | None = None,
+    template: str = "bbb_dark",
+    **kwargs: object,
+) -> go.Figure:
+    """Create a styled sentiment heatmap.
+
+    Args:
+        z_data: 2D array of numeric values.
+        x_labels: Column labels.
+        y_labels: Row labels.
+        text_matrix: Optional 2D array of display text.
+        colorscale: Plotly colorscale.
+        zmin/zmax: Color scale bounds.
+        height: Chart height (auto-calculated if None).
+        template: Plotly template name.
+        **kwargs: Additional kwargs passed to go.Heatmap().
+    """
+    import plotly.graph_objects as _go  # noqa: PLC0415
+
+    if height is None:
+        height = max(400, len(y_labels) * 28 + 150)
+
+    heatmap_kwargs: dict = dict(
+        z=z_data,
+        x=x_labels,
+        y=y_labels,
+        colorscale=colorscale,
+        texttemplate="%{text}",
+    )
+    if text_matrix is not None:
+        heatmap_kwargs["text"] = text_matrix
+    if zmin is not None:
+        heatmap_kwargs["zmin"] = zmin
+    if zmax is not None:
+        heatmap_kwargs["zmax"] = zmax
+    heatmap_kwargs.update(kwargs)
+
+    fig = _go.Figure(_go.Heatmap(**heatmap_kwargs))
+    fig.update_layout(
+        title=title,
+        height=height,
+        template=template,
+    )
+    return fig
+
+
 # ── Shared snapshot helpers (for build scripts) ─────────────────────────────────
 
-def normalize_actors(ev):
+def normalize_actors(ev: dict) -> list[str]:
     """Extract actor list from an event dict, handling multi-actor formats.
 
     Handles:
@@ -908,7 +1170,7 @@ def normalize_actors(ev):
     return [actor.strip()]
 
 
-def get_daily_snapshots(snapshots):
+def get_daily_snapshots(snapshots: list[dict]) -> list[dict]:
     """Filter snapshot list to one per date (last capture wins).
 
     Args:
@@ -923,7 +1185,7 @@ def get_daily_snapshots(snapshots):
     return [by_date[d] for d in sorted(by_date.keys())]
 
 
-def get_all_snapshots_with_data(data_dir=Path("data/snapshots")):
+def get_all_snapshots_with_data(data_dir: str | Path = Path("data/snapshots")) -> list[dict]:
     """Load all snapshots with participant data (for build scripts).
 
     Returns list of dicts: [{"file": str, "date": str, "participants": list, "metadata": dict}]
@@ -941,7 +1203,7 @@ def get_all_snapshots_with_data(data_dir=Path("data/snapshots")):
     return items
 
 
-def load_snapshots_full(data_dir=Path("data/snapshots")):
+def load_snapshots_full(data_dir: str | Path = Path("data/snapshots")) -> tuple[list[dict], dict[str, str], dict[str, str], list[dict], dict[str, str]]:
     """Load all snapshots with metadata for QMD pages.
 
     Returns:
@@ -1000,8 +1262,8 @@ def load_snapshots_full(data_dir=Path("data/snapshots")):
 
 # ── Avatar HTML helpers ────────────────────────────────────────────────────────
 
-def avatar_html(name, avatars, size=24, show_name=True, link=None,
-                border_color=None, grayscale=False, fallback_initials=False):
+def avatar_html(name: str, avatars: dict[str, str], size: int = 24, show_name: bool = True, link: str | None = None,
+                border_color: str | None = None, grayscale: bool = False, fallback_initials: bool = False) -> str:
     """Unified avatar HTML helper.
 
     Args:
@@ -1042,7 +1304,7 @@ def avatar_html(name, avatars, size=24, show_name=True, link=None,
     return img
 
 
-def avatar_img(name, avatars, size=24, **kwargs):
+def avatar_img(name: str, avatars: dict[str, str], size: int = 24, **kwargs: object) -> str:
     """Generate just the avatar image HTML (no name text). Convenience wrapper."""
     return avatar_html(name, avatars, size=size, show_name=False, **kwargs)
 
@@ -1055,7 +1317,7 @@ _FEMALE_NAMES = frozenset({
 })
 
 
-def genero(nome):
+def genero(nome: str) -> str:
     """Return 'f' for female, 'm' for male based on first name."""
     first = nome.lower().split()[0]
     if first in _FEMALE_NAMES:
@@ -1065,14 +1327,14 @@ def genero(nome):
     return 'm'
 
 
-def artigo(nome, definido=True):
+def artigo(nome: str, definido: bool = True) -> str:
     """Return Portuguese definite/indefinite article based on gender."""
     if genero(nome) == 'f':
         return 'a' if definido else 'uma'
     return 'o' if definido else 'um'
 
 
-def get_nominee_badge(nome, paredao_entry, bate_volta_survivors=None):
+def get_nominee_badge(nome: str, paredao_entry: dict, bate_volta_survivors: set[str] | None = None) -> tuple[str, str, str]:
     """Return (badge_text, badge_color, badge_emoji) for a nominee.
 
     Args:

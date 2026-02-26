@@ -17,6 +17,7 @@ from data_utils import (
     load_snapshot, utc_to_game_date, parse_roles,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
 )
+from schemas import validate_input_files
 
 UTC = timezone.utc
 BRT = timezone(timedelta(hours=-3))
@@ -155,6 +156,14 @@ PLANT_INDEX_ROLLING_WEEKS = 2
 PLANT_GANHA_GANHA_WEIGHT = 0.3
 
 CLUSTER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22']
+
+# ── Streak blending constants (see docs/SCORING_AND_INDEXES.md) ──
+STREAK_REACTIVE_WEIGHT = 0.7
+STREAK_MEMORY_WEIGHT = 0.3
+STREAK_BREAK_PENALTY = -0.15
+STREAK_BREAK_MAX_LEN = 15
+STREAK_MEMORY_MAX_LEN = 10
+REACTIVE_WINDOW_WEIGHTS = [0.6, 0.3, 0.1]
 
 
 def get_all_snapshots():
@@ -792,15 +801,15 @@ def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, e
 
         s_len = streak.get("streak_len", 0)
         s_sentiment = streak.get("streak_sentiment", 0.0)
-        consistency = min(s_len, 10) / 10.0
+        consistency = min(s_len, STREAK_MEMORY_MAX_LEN) / STREAK_MEMORY_MAX_LEN
         q_memory = consistency * s_sentiment
 
         break_pen = 0.0
         if streak.get("break_from_positive"):
             prev_len = streak.get("previous_streak_len", 0)
-            break_pen = -0.15 * min(prev_len, 15) / 15.0
+            break_pen = STREAK_BREAK_PENALTY * min(prev_len, STREAK_BREAK_MAX_LEN) / STREAK_BREAK_MAX_LEN
 
-        return 0.7 * q_reactive + 0.3 * q_memory + break_pen
+        return STREAK_REACTIVE_WEIGHT * q_reactive + STREAK_MEMORY_WEIGHT * q_memory + break_pen
 
     def compute_base_weights(ref_date, name_list=None):
         if name_list is None:
@@ -810,7 +819,7 @@ def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, e
             candidates = [s for s in daily_snapshots if s.get("date") <= ref_date]
             if candidates:
                 selected = candidates[-3:]
-                weights = [0.6, 0.3, 0.1][-len(selected):]
+                weights = REACTIVE_WINDOW_WEIGHTS[-len(selected):]
                 total_w = sum(weights)
                 weights = [w / total_w for w in weights]
                 matrices = [build_reaction_matrix(s["participants"]) for s in selected]
@@ -854,7 +863,7 @@ def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, e
             if not elim_candidates:
                 continue
             selected = elim_candidates[-3:]
-            weights = [0.6, 0.3, 0.1][-len(selected):]
+            weights = REACTIVE_WINDOW_WEIGHTS[-len(selected):]
             total_w = sum(weights)
             weights = [w / total_w for w in weights]
             matrices = [build_reaction_matrix(s["participants"]) for s in selected]
@@ -1358,6 +1367,43 @@ def build_daily_metrics(daily_snapshots):
     return daily
 
 
+def _classify_hostility_pairs(matrix, active_names):
+    """Classify mutual hostilities and blind spots in a reaction matrix.
+
+    Returns:
+        mutual: set of frozenset({A, B}) — both give negative
+        blind_spots: set of (attacker, victim) — attacker gives negative, victim gives ❤️
+    """
+    mutual = set()
+    blind_spots = set()
+    checked = set()
+
+    for (a, b), rxn_ab in matrix.items():
+        if a not in active_names or b not in active_names:
+            continue
+        pair = frozenset([a, b])
+        if pair in checked:
+            continue
+
+        rxn_ba = matrix.get((b, a), "")
+        a_neg = rxn_ab not in POSITIVE and rxn_ab != ""
+        b_neg = rxn_ba not in POSITIVE and rxn_ba != ""
+        a_pos = rxn_ab in POSITIVE
+        b_pos = rxn_ba in POSITIVE
+
+        if a_neg and b_neg:
+            mutual.add(pair)
+            checked.add(pair)
+        else:
+            if a_neg and b_pos:
+                blind_spots.add((a, b))
+            if b_neg and a_pos:
+                blind_spots.add((b, a))
+            checked.add(pair)
+
+    return mutual, blind_spots
+
+
 def build_daily_changes_summary(daily_snapshots):
     """For each consecutive pair of daily snapshots, compute change statistics.
 
@@ -1480,6 +1526,55 @@ def build_daily_changes_summary(daily_snapshots):
         # Receiver deltas (full, not just top/bottom)
         receiver_deltas = {k: round(v, 2) for k, v in receiver_delta.items() if v != 0}
 
+        # Hostility pair classification (mutual hostilities + blind spots)
+        prev_mutual, prev_blind = _classify_hostility_pairs(prev_matrix, common)
+        curr_mutual, curr_blind = _classify_hostility_pairs(curr_matrix, common)
+
+        new_mutual = curr_mutual - prev_mutual
+        resolved_mutual = prev_mutual - curr_mutual
+        new_blind = curr_blind - prev_blind
+        resolved_blind = prev_blind - curr_blind
+
+        new_mutual_list = []
+        for pair in sorted(new_mutual, key=lambda p: tuple(sorted(p))):
+            a, b = sorted(pair)
+            new_mutual_list.append({
+                "pair": [a, b],
+                "reactions": {
+                    "a_to_b": curr_matrix.get((a, b), ""),
+                    "b_to_a": curr_matrix.get((b, a), ""),
+                },
+            })
+
+        resolved_mutual_list = []
+        for pair in sorted(resolved_mutual, key=lambda p: tuple(sorted(p))):
+            a, b = sorted(pair)
+            resolved_mutual_list.append({
+                "pair": [a, b],
+                "prev_reactions": {
+                    "a_to_b": prev_matrix.get((a, b), ""),
+                    "b_to_a": prev_matrix.get((b, a), ""),
+                },
+                "curr_reactions": {
+                    "a_to_b": curr_matrix.get((a, b), ""),
+                    "b_to_a": curr_matrix.get((b, a), ""),
+                },
+            })
+
+        new_blind_list = [
+            {"attacker": atk, "victim": vic, "attack_reaction": curr_matrix.get((atk, vic), "")}
+            for atk, vic in sorted(new_blind)
+        ]
+
+        resolved_blind_list = [
+            {
+                "attacker": atk, "victim": vic,
+                "prev_reaction": prev_matrix.get((atk, vic), ""),
+                "curr_reaction": curr_matrix.get((atk, vic), ""),
+            }
+            for atk, vic in sorted(resolved_blind)
+        ]
+
         results.append({
             "date": curr_snap["date"],
             "total_changes": total_changes,
@@ -1497,6 +1592,10 @@ def build_daily_changes_summary(daily_snapshots):
             "transition_counts": dict(transition_counts),
             "giver_volatility": giver_volatility,
             "receiver_deltas": receiver_deltas,
+            "new_mutual_hostilities": new_mutual_list,
+            "resolved_mutual_hostilities": resolved_mutual_list,
+            "new_blind_spots": new_blind_list,
+            "resolved_blind_spots": resolved_blind_list,
         })
 
     return results
@@ -4779,6 +4878,27 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
     }
 
 
+def build_reaction_matrices(daily_snapshots):
+    """Precompute reaction matrices for all daily snapshots.
+
+    Returns dict with:
+        by_date: {date_str: {"giver|receiver": reaction_label, ...}}
+        all_dates: sorted list of date strings
+    """
+    by_date = {}
+    for snap in daily_snapshots:
+        date_str = snap["date"]
+        matrix = build_reaction_matrix(snap["participants"])
+        serialized = {}
+        for (giver, receiver), label in matrix.items():
+            serialized[f"{giver}|{receiver}"] = label
+        by_date[date_str] = serialized
+    return {
+        "by_date": by_date,
+        "all_dates": sorted(by_date.keys()),
+    }
+
+
 def write_json(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -4786,6 +4906,7 @@ def write_json(path, payload):
 
 
 def build_derived_data():
+    validate_input_files()
     snapshots = get_all_snapshots()
     if not snapshots:
         print("No snapshots found. Skipping derived data.")
@@ -4855,6 +4976,28 @@ def build_derived_data():
 
     impact_history = build_impact_history(relations_scores)
 
+    # Cross-reference streak breaks with today's pair changes
+    streak_breaks = relations_scores.get("streak_breaks", [])
+    if daily_changes_summary and streak_breaks:
+        latest_dc = daily_changes_summary[-1]
+        # Build set of (giver, receiver) that lost hearts today
+        hearts_lost_today = set()
+        for pc in latest_dc.get("pair_changes", []):
+            if pc.get("prev_rxn") in POSITIVE and pc.get("curr_rxn") not in POSITIVE:
+                hearts_lost_today.add((pc["giver"], pc["receiver"]))
+        # Match streak breaks against today's heart losses
+        new_streak_breaks = []
+        for sb in streak_breaks:
+            if (sb["giver"], sb["receiver"]) in hearts_lost_today:
+                new_streak_breaks.append({
+                    "giver": sb["giver"],
+                    "receiver": sb["receiver"],
+                    "previous_streak": sb["previous_streak"],
+                    "new_emoji": sb["new_emoji"],
+                    "severity": sb["severity"],
+                })
+        latest_dc["new_streak_breaks"] = new_streak_breaks
+
     write_json(DERIVED_DIR / "daily_metrics.json", {
         "_metadata": {"generated_at": now, "source": "snapshots", "sentiment_weights": SENTIMENT_WEIGHTS},
         "daily": daily_metrics,
@@ -4921,6 +5064,13 @@ def build_derived_data():
     # Build Cartola data
     cartola_data = build_cartola_data(daily_snapshots, manual_events, paredoes, participants_index)
     write_json(DERIVED_DIR / "cartola_data.json", cartola_data)
+
+    # Build precomputed reaction matrices
+    reaction_matrices = build_reaction_matrices(daily_snapshots)
+    write_json(DERIVED_DIR / "reaction_matrices.json", {
+        "_metadata": {"generated_at": now, "source": "snapshots"},
+        **reaction_matrices,
+    })
 
     # Build index data (for index.qmd)
     try:
