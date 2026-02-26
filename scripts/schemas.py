@@ -38,6 +38,23 @@ PAREDAO_SCHEMA = {
                             "votos": {"type": "object"},
                         },
                     },
+                    "fontes": {
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                {"type": "string"},
+                                {
+                                    "type": "object",
+                                    "required": ["url"],
+                                    "properties": {
+                                        "url": {"type": "string"},
+                                        "arquivo": {"type": ["string", "null"]},
+                                        "titulo": {"type": ["string", "null"]},
+                                    },
+                                },
+                            ],
+                        },
+                    },
                 },
             },
         },
