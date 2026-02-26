@@ -5,6 +5,7 @@ from data_utils import (
     calc_sentiment,
     utc_to_game_date,
     get_week_number,
+    get_week_start_date,
     parse_roles,
     build_reaction_matrix,
     SENTIMENT_WEIGHTS,
@@ -171,6 +172,34 @@ class TestGetWeekNumber:
         weeks = [get_week_number(d) for d in dates]
         for i in range(1, len(weeks)):
             assert weeks[i] >= weeks[i - 1]
+
+
+class TestGetWeekStartDate:
+    """Test get_week_start_date() — derives start date for each game week."""
+
+    def test_week_1_starts_at_premiere(self):
+        assert get_week_start_date(1) == "2026-01-13"
+
+    def test_week_2_starts_after_week_1_end(self):
+        assert get_week_start_date(2) == "2026-01-22"
+
+    def test_week_3_starts_after_week_2_end(self):
+        assert get_week_start_date(3) == "2026-01-29"
+
+    def test_week_4_jonas_first_term(self):
+        assert get_week_start_date(4) == "2026-02-05"
+
+    def test_week_5_jonas_second_term(self):
+        assert get_week_start_date(5) == "2026-02-13"
+
+    def test_week_6_jonas_third_term(self):
+        assert get_week_start_date(6) == "2026-02-19"
+
+    def test_open_week_after_last_boundary(self):
+        assert get_week_start_date(7) == "2026-02-26"
+
+    def test_week_0_clamps_to_premiere(self):
+        assert get_week_start_date(0) == "2026-01-13"
 
 
 class TestParseRoles:

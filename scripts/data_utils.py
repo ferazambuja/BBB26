@@ -277,6 +277,8 @@ def setup_bbb_dark_theme() -> None:
 # The paredão result + barrado no baile close the week; the new Prova do Líder opens
 # the next. Boundaries are the LAST day of each week (inclusive).
 # Update when a new paredão cycle completes or a new Líder is defined.
+BBB26_PREMIERE = "2026-01-13"
+
 WEEK_END_DATES: list[str] = [
     "2026-01-21",  # Week 1 — Alberto Cowboy Líder; 1º Paredão Jan 21; Babu Líder Jan 22
     "2026-01-28",  # Week 2 — Babu Santana Líder; 2º Paredão Jan 27; barrado Jan 28; Maxiane Líder Jan 29
@@ -302,6 +304,24 @@ def get_week_number(date_str: str) -> int:
     # bisect_left: boundary date itself is INCLUDED in the week it ends
     idx = bisect_left(WEEK_END_DATES, date_str)
     return idx + 1
+
+
+def get_week_start_date(week_num: int) -> str:
+    """Return the start date (YYYY-MM-DD) of the given game week.
+
+    Week 1 starts at BBB26 premiere. Week N (N>1) starts the day after
+    WEEK_END_DATES[N-2]. Weeks beyond the last known boundary use the
+    day after the last entry.
+    """
+    if week_num <= 1:
+        return BBB26_PREMIERE
+    idx = week_num - 2  # WEEK_END_DATES[0] = end of week 1
+    if idx < len(WEEK_END_DATES):
+        prev_end = WEEK_END_DATES[idx]
+    else:
+        prev_end = WEEK_END_DATES[-1] if WEEK_END_DATES else BBB26_PREMIERE
+    d = datetime.strptime(prev_end, "%Y-%m-%d").date()
+    return (d + timedelta(days=1)).isoformat()
 
 
 def calc_sentiment(participant: dict) -> float:
