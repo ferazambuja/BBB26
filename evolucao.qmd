@@ -1012,7 +1012,12 @@ else:
         z_vals.append(row)
         text_vals.append(text_row)
 
-    col_labels = [f"👑 {lp['leader'].split()[0]}<br><sub>{lp['start'][5:]}</sub>" for lp in leader_periods]
+    col_labels = [
+        f"👑 {lp['leader'].split()[0]}<br><sub>{lp['start'][5:]}</sub>"
+        if lp.get('leader')
+        else f"🏠 Sem Líder<br><sub>{lp['start'][5:]}</sub>"
+        for lp in leader_periods
+    ]
 
     # Custom colorscale: Xepa=gray, absent=dark, VIP=gold
     colorscale = [
@@ -1108,7 +1113,7 @@ if not leader_periods:
     print("*Nenhum período de liderança registrado.*")
 else:
     for i, lp in enumerate(leader_periods):
-        leader = lp["leader"]
+        leader = lp.get("leader") or "Sem Líder"
         avatar = AVATARS.get(leader, "")
         start = lp["start"][5:]  # MM-DD
         end = lp["end"][5:]
