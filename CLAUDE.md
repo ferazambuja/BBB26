@@ -85,7 +85,8 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Theme colors: `PLOT_BG`, `PAPER_BG`, `GRID_COLOR`, `TEXT_COLOR`, `BBB_COLORWAY`
 - Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
 - Week boundaries: `WEEK_END_DATES` — Líder-transition-based dates that define game week boundaries
-- Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `utc_to_game_date()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
+- Premiere constant: `BBB26_PREMIERE` — start date of the season (`"2026-01-13"`)
+- Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `utc_to_game_date()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`, `get_week_start_date()`
 - Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
 - Timeline rendering: `render_cronologia_html()`, `TIMELINE_CAT_COLORS`, `TIMELINE_CAT_LABELS`
 - Votalhada helpers: `MONTH_MAP_PT`, `parse_votalhada_hora()`, `make_poll_timeseries()`
@@ -237,6 +238,25 @@ BBB game weeks are **not** calendar 7-day periods. Each week is defined by a **L
 | 6 | 2026-02-25 | Jonas Sulzbach | 6º (Feb 25) | ??? |
 
 **When a new Líder cycle completes**: update `WEEK_END_DATES` in `data_utils.py` with the last day of that week (day before next Prova do Líder).
+
+**Consecutive Líder**: When the same person wins multiple Prova do Líder, each term is a separate week with its own `WEEK_END_DATES` entry. The `leader_periods` in `index_data.json` are derived from `WEEK_END_DATES` + `paredoes.json` (not from API role changes), so consecutive same-person terms are correctly separated.
+
+### Source Citations (fontes)
+
+`paredoes.json` stores source references as objects in the `fontes` array:
+
+```json
+"fontes": [
+  {"url": "https://gshow.globo.com/.../slug.ghtml", "arquivo": "docs/scraped/slug.md", "titulo": "Article Title"},
+  {"url": "https://gshow.globo.com/.../outro.ghtml", "arquivo": null, "titulo": null}
+]
+```
+
+- `url` — required, the web source URL
+- `arquivo` — relative path to local scraped `.md` copy (in `docs/scraped/`), or `null`
+- `titulo` — optional article title, or `null`
+
+**When adding new sources**: add the entry with both `url` and `arquivo` filled. Older entries may have `arquivo: null` — fill retroactively when convenient.
 
 ### Data Update Timing
 
