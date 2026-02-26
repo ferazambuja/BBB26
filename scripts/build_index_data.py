@@ -16,7 +16,7 @@ from data_utils import (
     load_snapshot, build_reaction_matrix, parse_roles, calc_sentiment,
     REACTION_EMOJI, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
-    utc_to_game_date, get_week_number,
+    utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
 )
 
@@ -395,46 +395,56 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
             elif group == "xepa":
                 xepa_days[name] += 1
 
-    # VIP weeks selected — based on leader transitions (not VIP composition changes).
+    # VIP weeks selected — based on WEEK_END_DATES boundaries (not API role changes).
+    # This correctly handles consecutive same-person Líder (e.g., Jonas weeks 4–6).
     vip_weeks_selected = defaultdict(int)
     xepa_weeks = defaultdict(int)
     leader_periods = []
 
     daily_snap_by_date = {snap["date"]: snap for snap in daily_snapshots}
 
-    rd_entries = sorted(roles_daily.get("daily", []), key=lambda x: x.get("date", ""))
-    prev_leader = None
-    transition_dates = []
-    for entry in rd_entries:
-        leader_list = entry.get("roles", {}).get("Líder", [])
-        leader = leader_list[0] if leader_list else None
-        if leader and leader != prev_leader:
-            transition_dates.append((entry["date"], leader))
-        prev_leader = leader
+    paredoes_list = paredoes.get("paredoes", []) if paredoes else []
+    lider_by_paredao = {}
+    for par in paredoes_list:
+        lider_by_paredao[par["numero"]] = par.get("formacao", {}).get("lider")
 
-    for i, (trans_date, leader_name) in enumerate(transition_dates):
-        if i + 1 < len(transition_dates):
-            end_date = transition_dates[i + 1][0]
+    n_weeks = len(WEEK_END_DATES)
+    for week_num in range(1, n_weeks + 2):  # +1 for open current week
+        start_date = get_week_start_date(week_num)
+
+        if week_num <= n_weeks:
+            end_date = WEEK_END_DATES[week_num - 1]
         else:
-            end_date = daily_snapshots[-1]["date"] if daily_snapshots else trans_date
+            # Open week (current, no end boundary yet)
+            end_date = daily_snapshots[-1]["date"] if daily_snapshots else start_date
 
-        snap = daily_snap_by_date.get(trans_date)
+        # Only include if we have data for this start date (or later)
+        if daily_snapshots and start_date > daily_snapshots[-1]["date"]:
+            break
+
+        leader_name = lider_by_paredao.get(week_num)
+
+        # VIP from snapshot on start_date (or nearest available after)
+        snap = daily_snap_by_date.get(start_date)
         if not snap:
-            continue
+            # Find nearest snapshot on or after start_date
+            for ds in daily_snapshots:
+                if ds["date"] >= start_date:
+                    snap = ds
+                    break
 
         period_vip = []
         period_xepa = []
-        all_in_house = set()
-        for p in snap["participants"]:
-            nm = p.get("name")
-            if not nm:
-                continue
-            all_in_house.add(nm)
-            grp = (p.get("characteristics", {}).get("group") or "").lower()
-            if grp == "vip":
-                period_vip.append(nm)
-            elif grp == "xepa":
-                period_xepa.append(nm)
+        if snap:
+            for p in snap["participants"]:
+                nm = p.get("name")
+                if not nm:
+                    continue
+                grp = (p.get("characteristics", {}).get("group") or "").lower()
+                if grp == "vip":
+                    period_vip.append(nm)
+                elif grp == "xepa":
+                    period_xepa.append(nm)
 
         for nm in period_vip:
             vip_weeks_selected[nm] += 1
@@ -443,8 +453,9 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
 
         leader_periods.append({
             "leader": leader_name,
-            "start": trans_date,
+            "start": start_date,
             "end": end_date,
+            "week": week_num,
             "vip": sorted(period_vip),
             "xepa": sorted(period_xepa),
         })
@@ -453,15 +464,9 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     if roles_current.get("Líder"):
         house_leader = roles_current["Líder"][0]
 
-    leader_start_date = latest_date
-    if house_leader and roles_daily.get("daily"):
-        prev = None
-        for entry in sorted(roles_daily.get("daily", []), key=lambda x: x.get("date", "")):
-            leader_list = entry.get("roles", {}).get("Líder", [])
-            leader = leader_list[0] if leader_list else None
-            if leader != prev and leader == house_leader:
-                leader_start_date = entry.get("date", leader_start_date)
-            prev = leader
+    # leader_start_date: derived from WEEK_END_DATES for the current open week.
+    current_open_week = len(WEEK_END_DATES) + 1
+    leader_start_date = get_week_start_date(current_open_week)
 
     first_seen = {p["name"]: p.get("first_seen") for p in participants_index.get("participants", []) if p.get("name")}
     vip_group = {p.get("name") for p in latest["participants"]
