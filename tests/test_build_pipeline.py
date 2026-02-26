@@ -372,10 +372,10 @@ class TestComputeStreakData:
     """Test compute_streak_data() streak detection."""
 
     def test_empty_snapshots(self):
-        result = compute_streak_data([])
-        # Empty snapshots returns (empty_dict, empty_list) — only 2 values
-        assert result[0] == {}
-        assert result[1] == []
+        streak_info, streak_breaks, missing_log = compute_streak_data([])
+        assert streak_info == {}
+        assert streak_breaks == []
+        assert missing_log == []
 
     def test_single_day_no_break(self):
         """A single day cannot have a streak break."""

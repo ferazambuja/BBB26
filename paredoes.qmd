@@ -42,7 +42,7 @@ setup_bbb_dark_theme()
 
 # Load precomputed paredão analysis
 _pa_path = Path("data/derived/paredao_analysis.json")
-PAREDAO_ANALYSIS = json.load(open(_pa_path, encoding="utf-8")) if _pa_path.exists() else {}
+PAREDAO_ANALYSIS = json.loads(_pa_path.read_text(encoding="utf-8")) if _pa_path.exists() else {}
 
 # Load vote prediction data
 _vp_path = Path("data/derived/vote_prediction.json")

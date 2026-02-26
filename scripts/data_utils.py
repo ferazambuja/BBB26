@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+from html import escape as _html_escape
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -23,6 +24,11 @@ if TYPE_CHECKING:
 
 UTC = timezone.utc
 BRT = timezone(timedelta(hours=-3))
+
+
+def safe_html(text: str) -> str:
+    """Escape text for safe HTML interpolation."""
+    return _html_escape(str(text), quote=True)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -902,8 +908,8 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
             color = TIMELINE_CAT_COLORS.get(cat, "#666")
             label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
             emoji = ev.get("emoji", "")
-            title = ev.get("title", "")
-            detail = ev.get("detail", "")
+            title = safe_html(ev.get("title", ""))
+            detail = safe_html(ev.get("detail", ""))
             date = ev.get("date", "")
             is_scheduled = ev.get("status") == "scheduled"
             time_info = ev.get("time", "")
@@ -1489,6 +1495,7 @@ def avatar_html(name: str, avatars: dict[str, str], size: int = 24, show_name: b
         fallback_initials: Show initials circle when no avatar URL
     """
     url = avatars.get(name, '')
+    esc_name = safe_html(name)
     styles = ['border-radius:50%']
     if border_color:
         styles.append(f'border:2px solid {border_color}')
@@ -1497,22 +1504,22 @@ def avatar_html(name: str, avatars: dict[str, str], size: int = 24, show_name: b
 
     if url:
         style_str = ';'.join(styles)
-        img = f'<img src="{url}" width="{size}" height="{size}" style="{style_str}" alt="{name}" title="{name}">'
+        img = f'<img src="{url}" width="{size}" height="{size}" style="{style_str}" alt="{esc_name}" title="{esc_name}">'
     elif fallback_initials:
         style_str = ';'.join(styles + [
             'display:inline-flex', 'align-items:center', 'justify-content:center',
             f'width:{size}px', f'height:{size}px', 'background:#444', 'color:#ccc',
             f'font-size:{size//3}px',
         ])
-        img = f'<span style="{style_str}">{name[:2]}</span>'
+        img = f'<span style="{style_str}">{esc_name[:2]}</span>'
     else:
-        return name if show_name else ''
+        return esc_name if show_name else ''
 
     if link:
-        img = f'<a href="{link}" style="text-decoration:none;flex-shrink:0;" title="{name}">{img}</a>'
+        img = f'<a href="{link}" style="text-decoration:none;flex-shrink:0;" title="{esc_name}">{img}</a>'
 
     if show_name:
-        return f'{img} {name}'
+        return f'{img} {esc_name}'
     return img
 
 

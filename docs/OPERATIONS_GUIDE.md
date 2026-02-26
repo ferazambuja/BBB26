@@ -8,7 +8,7 @@
 
 ## Git Workflow (sync local ↔ GitHub)
 
-The GitHub Actions bot auto-commits `data/` files up to 12× daily (probes + permanent slots). Always pull before working.
+The GitHub Actions bot auto-commits `data/` files up to 6× daily (8 on Saturdays). Always pull before working.
 
 ```bash
 # Before any local work
@@ -22,8 +22,7 @@ git push
 # Deploy immediately (instead of waiting for next cron)
 gh workflow run daily-update.yml
 
-# Or wait — permanent cron runs at 06:00, 15:00, 18:00, 00:00 BRT
-# Plus hourly probes 10:00–16:00 BRT (temporary, see Capture Timing section)
+# Or wait — permanent cron runs at 00:00, 06:00, 15:00, 18:00 BRT (+ 17:00, 20:00 on Saturdays)
 ```
 
 **Key rule**: The bot only touches `data/` files. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
@@ -63,7 +62,7 @@ git add data/ && git commit -m "data: rebuild derived after merge"
 git push
 ```
 
-**Timing tip**: The bot runs most frequently between 10:00–16:00 BRT (hourly probes). If you're editing during that window, work quickly: `pull → edit → build → push` in one go to minimize the chance of a concurrent bot commit.
+**Timing tip**: The bot runs at fixed slots (00:00, 06:00, 15:00, 18:00 BRT). If you're editing near those times, work quickly: `pull → edit → build → push` in one go to minimize the chance of a concurrent bot commit.
 
 ---
 
@@ -221,51 +220,16 @@ The Raio-X has **no fixed time** — it depends on when production wakes the par
 | 18:00 | 15:00 | Post-Raio-X — **primary capture** |
 | 21:00 | 18:00 | Evening — balance/role changes |
 
-**Temporary observation probes** (added 2026-02-06, hourly 10–16 BRT):
-
-| UTC | BRT | Purpose |
-|-----|-----|---------|
-| 13:00 | 10:00 | Earliest possible Raio-X update |
-| 14:00 | 11:00 | Probe |
-| 15:00 | 12:00 | Probe |
-| 16:00 | 13:00 | Probe |
-| 17:00 | 14:00 | Expected API update window |
-| 19:00 | 16:00 | Late update safety net |
-
 **Saturday extras** (Anjo challenge + Monstro usually Saturday afternoon):
 
 | UTC | BRT | Purpose |
 |-----|-----|---------|
-| 20:00 | 17:00 | Post-Anjo challenge (runs ~14h–17h) |
+| 20:00 | 17:00 | Post-Anjo challenge (runs ~14h-17h) |
 | 23:00 | 20:00 | Post-Monstro pick (Anjo chooses after win) |
 
-**Total**: ~12 runs/day (weekdays), ~14 runs/day (Saturday). Probes are temporary — remove once timing is pinpointed.
+**Total**: 6 runs/day (weekdays), 8 on Saturdays.
 
-Sources: [TVH News](https://tvhnews.com.br/como-funciona-o-raio-x-do-bbb-26-saiba-para-que-serve-a-dinamica/), [DCI](https://www.dci.com.br/dci-mais/bbb-21/bbb-21-que-horas-e-o-raio-x-veja-como-funciona/94397/), [GShow Feb 5](https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/queridometro-do-bbb-26-reflete-tensao-pos-festa-e-brothers-recebem-emojis-negativos.ghtml)
-
-### Tracking with data
-
-To monitor when reaction changes happen and if the timing is right:
-
-```bash
-python scripts/analyze_capture_timing.py
-```
-
-This analyzes all snapshots with metadata and reports:
-- When reaction changes were detected (by BRT hour)
-- Hour-by-hour histogram showing capture distribution
-- Whether the probes are catching changes earlier than 15:00 BRT
-- Suggested adjustments if the data shows a consistent pattern
-
-**How it works**: Each snapshot has `_metadata.reactions_hash`. The script compares consecutive snapshots — when the hash changes, that capture caught a reaction update.
-
-**Interpreting results** (after ~7 days of probes):
-- If probes catch changes at 12:00–13:00 → shift primary capture earlier
-- If 15:00 BRT consistently catches changes → probes confirmed the timing, remove them
-- If caught at 18:00 instead → data is updating later, keep probes and shift primary
-- If caught at 06:00 → reactions updated overnight (unusual, investigate)
-
-**Action after observation period**: Run `analyze_capture_timing.py`, check the hour histogram, remove the temporary probes from `.github/workflows/daily-update.yml`, keep only the permanent slots (adjusted if needed).
+**Timing confirmed** (median 15:00 BRT, 2026-02-26). Hourly probes removed; permanent slots sufficient. Run `python scripts/analyze_capture_timing.py` to verify ongoing capture quality.
 
 ---
 

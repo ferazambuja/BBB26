@@ -88,11 +88,15 @@ Use esta página para navegar pelos dados diários do Queridômetro. Em breve, o
       tbody.innerHTML = '';
       rows.forEach((r, idx) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${idx + 1}</td>
-          <td>${r.name}</td>
-          <td>${r.score.toFixed(1)}</td>
-        `;
+        const tdRank = document.createElement('td');
+        tdRank.textContent = idx + 1;
+        const tdName = document.createElement('td');
+        tdName.textContent = r.name;
+        const tdScore = document.createElement('td');
+        tdScore.textContent = r.score.toFixed(1);
+        tr.appendChild(tdRank);
+        tr.appendChild(tdName);
+        tr.appendChild(tdScore);
         tbody.appendChild(tr);
       });
     }

@@ -230,7 +230,7 @@ Sentiment weights: positive = +1, mild_negative = -0.5, strong_negative = -1
 
 ### Multi-Capture Strategy
 
-GitHub Actions runs permanent slots at **00:00, 06:00, 15:00, 18:00 BRT**, plus hourly probes **10:00–16:00 BRT** (currently enabled) and Saturday extras at **17:00** and **20:00 BRT**.
+GitHub Actions runs permanent slots at **00:00, 06:00, 15:00, 18:00 BRT** plus Saturday extras at **17:00** and **20:00 BRT** (6 runs/day, 8 on Saturdays).
 `fetch_data.py` saves **only if data hash changed**. Multiple snapshots per day are normal.
 
 ### Two Data Views in Dashboard

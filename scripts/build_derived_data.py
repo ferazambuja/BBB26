@@ -207,7 +207,7 @@ def compute_streak_data(daily_snapshots: list[dict], eliminated_last_seen: dict[
         streak_breaks: list of detected break events
     """
     if not daily_snapshots:
-        return {}, []
+        return {}, [], []
 
     # Build per-pair emoji history in chronological order
     pair_history = defaultdict(list)  # (actor, target) → [(date, label), ...]
@@ -3056,7 +3056,8 @@ def _run_cluster_detection(active_names: list[str], sym_mat: list[list[float]], 
                     best_silhouette = sil
                     best_resolution = res
                     best_communities = comms
-            except Exception:
+            except (ValueError, KeyError, ZeroDivisionError):
+                # Louvain or silhouette can fail on degenerate graphs
                 continue
 
     # Fallback to default resolution if sweep didn't produce valid clusters
@@ -3499,7 +3500,8 @@ def build_cluster_evolution(daily_snapshots: list[dict], participants_index: lis
         # Run Louvain with fixed resolution for comparability
         try:
             comms = list(louvain_communities(G, weight='weight', resolution=1.0, seed=42))
-        except Exception:
+        except (ValueError, KeyError, ZeroDivisionError):
+            # Louvain can fail on degenerate or disconnected graphs
             continue
 
         comms = sorted(comms, key=lambda c: -len(c))
@@ -3533,7 +3535,8 @@ def build_cluster_evolution(daily_snapshots: list[dict], participants_index: lis
                 labels = [membership[n] for n in active_names]
                 silhouette = silhouette_score(sym_arr, labels, metric='euclidean')
                 silhouette = round(silhouette, 4)
-            except Exception:
+            except (ValueError, KeyError):
+                # Silhouette can fail with degenerate label assignments
                 pass
 
         # Detect transitions from previous week
@@ -5262,13 +5265,10 @@ def build_derived_data() -> None:
     })
 
     # Build index data (for index.qmd)
-    try:
-        from build_index_data import build_index_data
-        index_payload = build_index_data()
-        if index_payload:
-            write_json(DERIVED_DIR / "index_data.json", index_payload)
-    except Exception as e:
-        print(f"Index data build failed: {e}")
+    from build_index_data import build_index_data
+    index_payload = build_index_data()
+    if index_payload:
+        write_json(DERIVED_DIR / "index_data.json", index_payload)
 
     # Run audit report for manual events (hard fail on issues)
     from audit_manual_events import run_audit

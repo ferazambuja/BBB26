@@ -33,21 +33,21 @@ on:
     - cron: '0 23 * * 6'   # 20:00 BRT Sat - Post-Monstro pick
   workflow_dispatch:  # Allow manual trigger
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
+# ── Job 1: build (read-only) ──────────────────────────────────────────
+# Runs tests, fetches data, builds derived JSON, renders Quarto site.
+# No write access to repo contents — limits blast radius if a dependency
+# or script is compromised.
 jobs:
-  update-and-publish:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+    outputs:
+      data_changed: ${{ steps.fetch.outputs.data_changed }}
 
     steps:
       - name: Checkout repository
@@ -65,12 +65,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
-        run: python -m pytest tests/ -v --tb=short
+        run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
 
       - name: Fetch latest data
         id: fetch
         run: |
-          python scripts/fetch_data.py
+          python scripts/fetch_data.py --skip-derived
           # Check if any new files were created
           if git status --porcelain | grep -q "data/"; then
             echo "data_changed=true" >> $GITHUB_OUTPUT
@@ -123,23 +123,62 @@ jobs:
       - name: Render Quarto site
         run: quarto render
 
-      - name: Commit data changes
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Upload data artifact
         if: steps.fetch.outputs.data_changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: new-data
+          path: |
+            data/
+            docs/MANUAL_EVENTS_AUDIT.md
+          include-hidden-files: false
+
+  # ── Job 2: deploy (write access) ─────────────────────────────────────
+  # Deploys the site FIRST, then commits data changes.
+  # This ensures a failed deploy does not leave orphaned data commits
+  # with a stale site (H-2: deploy rollback).
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Checkout repository
+        if: needs.build.outputs.data_changed == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download data artifact
+        if: needs.build.outputs.data_changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: new-data
+          path: .
+
+      - name: Commit data changes
+        if: needs.build.outputs.data_changed == 'true'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add data/ docs/MANUAL_EVENTS_AUDIT.md
           git diff --staged --quiet || git commit -m "data: snapshot $(date -u +%Y-%m-%d_%H-%M) UTC"
           git push
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '_site'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
