@@ -32,7 +32,7 @@ from data_utils import (
     REACTION_EMOJI, SENTIMENT_WEIGHTS,
     GROUP_COLORS,
     render_cronologia_html,
-    make_horizontal_bar,
+    make_horizontal_bar, make_line_evolution, make_stacked_bar, make_visibility_buttons,
 )
 
 require_clean_manual_events()
@@ -239,25 +239,21 @@ if _giver_vol:
     giver_data.sort(key=lambda x: x['total'], reverse=True)
 
     if giver_data:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            y=[d['name'] for d in giver_data], x=[d['melhora'] for d in giver_data],
-            name='Melhorou opinião', orientation='h', marker_color='#1a9850',
-        ))
-        fig.add_trace(go.Bar(
-            y=[d['name'] for d in giver_data], x=[d['piora'] for d in giver_data],
-            name='Piorou opinião', orientation='h', marker_color='#d73027',
-        ))
-        fig.add_trace(go.Bar(
-            y=[d['name'] for d in giver_data], x=[d['lateral'] for d in giver_data],
-            name='Mudança lateral', orientation='h', marker_color='#888',
-        ))
+        _vol_names = [d['name'] for d in giver_data]
+        fig = make_stacked_bar(
+            _vol_names,
+            [
+                dict(values=[d['melhora'] for d in giver_data], name='Melhorou opinião', color='#1a9850'),
+                dict(values=[d['piora'] for d in giver_data], name='Piorou opinião', color='#d73027'),
+                dict(values=[d['lateral'] for d in giver_data], name='Mudança lateral', color='#888'),
+            ],
+            title="Volatilidade: Quem Mais Mudou de Opinião?",
+            xaxis_title="Número de opiniões alteradas",
+            height=max(500, len(giver_data) * 28),
+        )
         fig.update_layout(
             title=dict(text="Volatilidade: Quem Mais Mudou de Opinião?", y=0.98, x=0.5, xanchor='center'),
-            xaxis_title="Número de opiniões alteradas", barmode='stack',
-            height=max(500, len(giver_data) * 28),
             margin=dict(l=150, t=100),
-            legend=dict(orientation='h', yanchor='top', y=1.12, xanchor='center', x=0.5),
         )
         fig.show()
 
@@ -440,48 +436,10 @@ if not df_timeline.empty:
 else:
     highlight = set()
 
-# ── Helper: visibility selector buttons with individual dropdown ──
+# ── Helper: visibility selector buttons (wraps data_utils.make_visibility_buttons with MEMBER_OF) ──
+_make_vis_buttons_orig = make_visibility_buttons
 def make_visibility_buttons(trace_names, highlight_set):
-    """Build updatemenus with group buttons + individual participant dropdown."""
-    pipoca = {n for n in trace_names if MEMBER_OF.get(n) == 'Pipoca'}
-    famosos = {n for n in trace_names if MEMBER_OF.get(n) in ('Camarote', 'Veterano')}
-
-    def vis(active_set):
-        return [True if n in active_set else 'legendonly' for n in trace_names]
-
-    # Group filter buttons
-    group_buttons = [
-        dict(label='Destaques', method='update', args=[{'visible': vis(highlight_set)}]),
-        dict(label='Pipoca', method='update', args=[{'visible': vis(pipoca)}]),
-        dict(label='Famosos', method='update', args=[{'visible': vis(famosos)}]),
-        dict(label='Todos', method='update', args=[{'visible': [True] * len(trace_names)}]),
-    ]
-
-    # Individual participant dropdown (sorted alphabetically by first name)
-    sorted_names = sorted(trace_names, key=lambda n: n.split()[0].lower())
-    individual_buttons = [
-        dict(label=n.split()[0], method='update', args=[{'visible': vis({n})}])
-        for n in sorted_names
-    ]
-
-    return [
-        # Row 1: Group filter buttons
-        dict(
-            type='buttons', direction='right',
-            x=0.0, y=1.15, xanchor='left', yanchor='top',
-            bgcolor='rgba(50,50,50,0.8)', font=dict(color='#ccc', size=10),
-            buttons=group_buttons,
-        ),
-        # Row 2: Individual participant dropdown
-        dict(
-            type='dropdown', direction='down',
-            x=0.55, y=1.15, xanchor='left', yanchor='top',
-            bgcolor='rgba(50,50,50,0.9)', font=dict(color='#ccc', size=9),
-            buttons=individual_buttons,
-            showactive=True,
-            pad=dict(l=5, r=5),
-        ),
-    ]
+    return _make_vis_buttons_orig(trace_names, highlight_set, member_of=MEMBER_OF)
 ```
 
 ```{python}
@@ -740,22 +698,15 @@ if received_impact:
     impact_data.sort(key=lambda x: x['net'])
 
     if impact_data:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            y=[d['name'] for d in impact_data],
-            x=[d['negative'] for d in impact_data],
-            name='Negativo', orientation='h', marker_color='#e74c3c',
-        ))
-        fig.add_trace(go.Bar(
-            y=[d['name'] for d in impact_data],
-            x=[d['positive'] for d in impact_data],
-            name='Positivo', orientation='h', marker_color='#2ecc71',
-        ))
-        fig.update_layout(
+        _impact_names = [d['name'] for d in impact_data]
+        fig = make_stacked_bar(
+            _impact_names,
+            [
+                dict(values=[d['negative'] for d in impact_data], name='Negativo', color='#e74c3c'),
+                dict(values=[d['positive'] for d in impact_data], name='Positivo', color='#2ecc71'),
+            ],
             title="Impacto Acumulado por Participante (Eventos + Votos + Sincerão)",
             xaxis_title="Impacto", barmode='relative',
-            height=max(400, len(impact_data) * 28),
-            margin=dict(l=150),
         )
         fig.show()
 else:
@@ -769,29 +720,21 @@ else:
 #| output: asis
 
 if impact_history:
-    fig = go.Figure()
-    # Get all participant names from last entry
     last_entry = impact_history[-1]
     names = sorted(last_entry.get("participants", {}).keys())
     dates = [pd.to_datetime(e["date"]) for e in impact_history]
 
+    _impact_series = {}
     for name in names:
         neg_values = [e.get("participants", {}).get(name, {}).get("negative", 0) for e in impact_history]
-        is_hl = name in highlight
-        fig.add_trace(go.Scatter(
-            x=dates, y=neg_values, mode='lines',
-            name=name,
-            line=dict(width=3 if is_hl else 1.5, color=participant_colors.get(name, '#666')),
-            hovertemplate=f'{name}: ' + '%{y:.2f}<extra></extra>',
-            visible=True if is_hl else 'legendonly',
-        ))
+        _impact_series[name] = (dates, neg_values)
 
-    fig.update_layout(
+    fig = make_line_evolution(
+        _impact_series,
         title="Trajetória de Impacto Negativo Acumulado",
-        xaxis_title="Data", yaxis_title="Impacto Negativo Acumulado",
-        height=500, hovermode='x unified',
-        legend=dict(font=dict(size=10)),
-        updatemenus=make_visibility_buttons(names, highlight),
+        yaxis_title="Impacto Negativo Acumulado",
+        highlight=highlight, colors=participant_colors, member_of=MEMBER_OF,
+        height=500,
     )
     fig.show()
 else:
@@ -805,28 +748,21 @@ else:
 #| output: asis
 
 if vulnerability_history:
-    fig = go.Figure()
     last_entry = vulnerability_history[-1]
     names = sorted(last_entry.get("participants", {}).keys())
     dates = [pd.to_datetime(e["date"]) for e in vulnerability_history]
 
+    _vuln_series = {}
     for name in names:
         ff_values = [e.get("participants", {}).get(name, {}).get("false_friends", 0) for e in vulnerability_history]
-        is_hl = name in highlight
-        fig.add_trace(go.Scatter(
-            x=dates, y=ff_values, mode='lines',
-            name=name,
-            line=dict(width=3 if is_hl else 1.5, color=participant_colors.get(name, '#666')),
-            hovertemplate=f'{name}: ' + '%{y} falsos amigos<extra></extra>',
-            visible=True if is_hl else 'legendonly',
-        ))
+        _vuln_series[name] = (dates, ff_values)
 
-    fig.update_layout(
+    fig = make_line_evolution(
+        _vuln_series,
         title="Vulnerabilidade: Falsos Amigos ao Longo do Tempo",
-        xaxis_title="Data", yaxis_title="Nº de falsos amigos (dá ❤️ a quem detesta)",
-        height=500, hovermode='x unified',
-        legend=dict(font=dict(size=10)),
-        updatemenus=make_visibility_buttons(names, highlight),
+        yaxis_title="Nº de falsos amigos (dá ❤️ a quem detesta)",
+        highlight=highlight, colors=participant_colors, member_of=MEMBER_OF,
+        hover_format="%{y} falsos amigos", height=500,
     )
     fig.show()
     print("Quem está cada vez mais exposto a votos surpresa?")
@@ -1352,13 +1288,16 @@ else:
         for name in ps_sorted
     ]).set_index("name")
 
-    fig = go.Figure()
-    fig.add_trace(go.Bar(y=impact.index, x=[-v for v in impact['negativo']],
-                         orientation='h', name='Prejuízo', marker_color='#e74c3c'))
-    fig.add_trace(go.Bar(y=impact.index, x=impact['positivo'],
-                         orientation='h', name='Benefício', marker_color='#2ecc71'))
-    fig.update_layout(title='Saldo de poderes por participante', barmode='relative',
-                      xaxis_title='Eventos', height=360 + 18 * len(impact))
+    fig = make_stacked_bar(
+        list(impact.index),
+        [
+            dict(values=[-v for v in impact['negativo']], name='Prejuízo', color='#e74c3c'),
+            dict(values=list(impact['positivo']), name='Benefício', color='#2ecc71'),
+        ],
+        title='Saldo de poderes por participante',
+        xaxis_title='Eventos', barmode='relative',
+        height=360 + 18 * len(impact),
+    )
     fig.show()
 ```
 

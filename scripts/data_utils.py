@@ -1146,6 +1146,218 @@ def make_sentiment_heatmap(
     return fig
 
 
+def make_visibility_buttons(
+    trace_names: list[str],
+    highlight_set: set[str],
+    member_of: dict[str, str] | None = None,
+) -> list[dict]:
+    """Build Plotly updatemenus with group filter buttons + individual dropdown.
+
+    Args:
+        trace_names: Ordered list of trace names (one per Scatter/Bar trace).
+        highlight_set: Names to show by default in 'Destaques' view.
+        member_of: Optional {name: group} dict for Pipoca/Famosos filters.
+            If None, group buttons are omitted.
+
+    Returns:
+        List of updatemenu dicts for ``fig.update_layout(updatemenus=...)``.
+    """
+    def vis(active: set[str]) -> list[bool | str]:
+        return [True if n in active else 'legendonly' for n in trace_names]
+
+    group_buttons: list[dict] = [
+        dict(label='Destaques', method='update', args=[{'visible': vis(highlight_set)}]),
+    ]
+
+    if member_of:
+        pipoca = {n for n in trace_names if member_of.get(n) == 'Pipoca'}
+        famosos = {n for n in trace_names if member_of.get(n) in ('Camarote', 'Veterano')}
+        group_buttons += [
+            dict(label='Pipoca', method='update', args=[{'visible': vis(pipoca)}]),
+            dict(label='Famosos', method='update', args=[{'visible': vis(famosos)}]),
+        ]
+
+    group_buttons.append(
+        dict(label='Todos', method='update', args=[{'visible': [True] * len(trace_names)}]),
+    )
+
+    sorted_names = sorted(trace_names, key=lambda n: n.split()[0].lower())
+    individual_buttons = [
+        dict(label=n.split()[0], method='update', args=[{'visible': vis({n})}])
+        for n in sorted_names
+    ]
+
+    return [
+        dict(
+            type='buttons', direction='right',
+            x=0.0, y=1.15, xanchor='left', yanchor='top',
+            bgcolor='rgba(50,50,50,0.8)', font=dict(color='#ccc', size=10),
+            buttons=group_buttons,
+        ),
+        dict(
+            type='dropdown', direction='down',
+            x=0.55, y=1.15, xanchor='left', yanchor='top',
+            bgcolor='rgba(50,50,50,0.9)', font=dict(color='#ccc', size=9),
+            buttons=individual_buttons,
+            showactive=True,
+            pad=dict(l=5, r=5),
+        ),
+    ]
+
+
+def make_line_evolution(
+    series: dict[str, tuple[list, list]],
+    *,
+    title: str = "",
+    xaxis_title: str = "Data",
+    yaxis_title: str = "",
+    highlight: set[str] | None = None,
+    colors: dict[str, str] | None = None,
+    member_of: dict[str, str] | None = None,
+    mode: str = "lines",
+    hover_format: str = "%{y:.2f}",
+    height: int | None = None,
+    show_zero_line: bool = False,
+    template: str = "bbb_dark",
+) -> go.Figure:
+    """Create a multi-participant line evolution chart with visibility controls.
+
+    Args:
+        series: {name: (x_values, y_values)} per participant.
+        title: Chart title.
+        xaxis_title: X-axis label.
+        yaxis_title: Y-axis label.
+        highlight: Names to show by default (others start as legendonly).
+            If None, all traces are visible.
+        colors: {name: hex_color} mapping. Falls back to '#666'.
+        member_of: {name: group} for visibility button group filters.
+        mode: Plotly line mode (e.g. 'lines', 'lines+markers').
+        hover_format: Format string for y-value in hover (e.g. '%{y:+.1f}').
+        height: Chart height in pixels (auto-calculated if None).
+        show_zero_line: Add a horizontal dashed red line at y=0.
+        template: Plotly template name.
+
+    Returns:
+        A plotly Figure with one Scatter trace per participant.
+    """
+    import plotly.graph_objects as _go  # noqa: PLC0415
+
+    if height is None:
+        height = max(500, len(series) * 25)
+
+    fig = _go.Figure()
+    trace_names: list[str] = []
+    all_x: list = []
+    all_y: list = []
+
+    for name, (x_vals, y_vals) in series.items():
+        trace_names.append(name)
+        all_x.extend(x_vals)
+        all_y.extend(y_vals)
+        is_hl = highlight is None or name in highlight
+        color = (colors or {}).get(name, '#666')
+
+        fig.add_trace(_go.Scatter(
+            x=x_vals, y=y_vals, mode=mode,
+            name=name,
+            line=dict(width=3 if is_hl else 1.5, color=color),
+            marker=dict(size=6 if is_hl else 4, color=color),
+            hovertemplate=f'{name}: {hover_format}<extra></extra>',
+            visible=True if is_hl else 'legendonly',
+        ))
+
+    if show_zero_line and all_x:
+        fig.add_shape(
+            type='line', x0=min(all_x), x1=max(all_x),
+            y0=0, y1=0, line=dict(color='red', dash='dash', width=1),
+        )
+
+    layout_kwargs: dict = dict(
+        title=title,
+        xaxis_title=xaxis_title,
+        yaxis_title=yaxis_title,
+        height=height,
+        hovermode='x unified',
+        legend=dict(font=dict(size=10), itemsizing='constant'),
+        template=template,
+    )
+
+    if highlight is not None and trace_names:
+        layout_kwargs['updatemenus'] = make_visibility_buttons(
+            trace_names, highlight, member_of,
+        )
+
+    fig.update_layout(**layout_kwargs)
+    return fig
+
+
+def make_stacked_bar(
+    names: list[str],
+    categories: list[dict],
+    *,
+    title: str = "",
+    xaxis_title: str = "",
+    barmode: str = "stack",
+    height: int | None = None,
+    left_margin: int = 150,
+    legend_horizontal: bool = True,
+    template: str = "bbb_dark",
+) -> go.Figure:
+    """Create a horizontal stacked (or relative) bar chart with multiple categories.
+
+    Args:
+        names: Y-axis labels (participant names).
+        categories: List of dicts, each with keys:
+            - ``values``: list of numeric values (same length as *names*).
+            - ``name``: legend label for this category.
+            - ``color``: bar color.
+            - ``text`` (optional): list of bar text labels.
+        title: Chart title.
+        xaxis_title: X-axis label.
+        barmode: Plotly barmode ('stack', 'relative', 'overlay').
+        height: Chart height (auto-calculated if None).
+        left_margin: Left margin for long labels.
+        legend_horizontal: Place legend horizontally above chart.
+        template: Plotly template name.
+
+    Returns:
+        A plotly Figure with one Bar trace per category.
+    """
+    import plotly.graph_objects as _go  # noqa: PLC0415
+
+    if height is None:
+        height = max(400, len(names) * 28)
+
+    fig = _go.Figure()
+    for cat in categories:
+        bar_kwargs: dict = dict(
+            y=names,
+            x=cat['values'],
+            orientation='h',
+            name=cat['name'],
+            marker_color=cat['color'],
+        )
+        if 'text' in cat:
+            bar_kwargs['text'] = cat['text']
+            bar_kwargs['textposition'] = 'outside'
+        fig.add_trace(_go.Bar(**bar_kwargs))
+
+    legend_kwargs: dict = {}
+    if legend_horizontal:
+        legend_kwargs = dict(orientation='h', yanchor='top', y=1.12, xanchor='center', x=0.5)
+
+    fig.update_layout(
+        title=title,
+        xaxis_title=xaxis_title,
+        barmode=barmode,
+        height=height,
+        margin=dict(l=left_margin),
+        legend=legend_kwargs if legend_kwargs else None,
+        template=template,
+    )
+    return fig
+
+
 # ── Shared snapshot helpers (for build scripts) ─────────────────────────────────
 
 def normalize_actors(ev: dict) -> list[str]:

@@ -36,6 +36,16 @@ from data_utils import (
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     ANALYSIS_DESCRIPTIONS,
 )
+from paredao_viz import (
+    render_nominee_cards_em_andamento,
+    render_nominee_cards_finalized,
+    render_voting_blocs,
+    render_votos_casa_table,
+    render_duelo_result_card,
+    render_overlap_box,
+    render_sincerinho_bar_chart,
+    render_lider_prediction,
+)
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
@@ -229,38 +239,7 @@ if ultimo:
 
         # Cards dos indicados conhecidos
         if participantes:
-            print('<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; margin: 2rem 0;">')
-            for p in participantes:
-                nome = p['nome']
-                grupo = p.get('grupo', MEMBER_OF.get(nome, '?'))
-                cor_grupo = GROUP_COLORS.get(grupo, '#666')
-                avatar_url = AVATARS.get(nome, '')
-                como_indicado = p.get('como', '')  # Ex: "Dinâmica", "Líder", "Casa", "API"
-                is_auto = como_indicado == 'API'
-
-                # Different border style for auto-detected
-                border_style = f"2px dashed {cor_grupo}" if is_auto else f"2px solid {cor_grupo}"
-                opacity = "0.85" if is_auto else "1"
-
-                print(f'<div class="nominee-card" style="border: {border_style}; opacity: {opacity};">')
-                if avatar_url:
-                    print(f'<img src="{avatar_url}" alt="{nome}" class="nominee-avatar" style="border: 3px solid {cor_grupo};">')
-                print(f'<h4 class="tc" style="margin: 0; color: #fff; font-size: 1.1em;">{nome}</h4>')
-                print(f'<span class="group-badge" style="background: {cor_grupo};">{grupo}</span>')
-                if como_indicado and not is_auto:
-                    print(f'<div style="color: #aaa; font-size: 0.8em; margin-top: 0.5rem;">via {como_indicado}</div>')
-                elif is_auto:
-                    print(f'<div style="color: #f39c12; font-size: 0.75em; margin-top: 0.5rem;">⏳ aguardando detalhes</div>')
-                print('</div>')
-
-            # Placeholder cards para indicados faltantes
-            for i in range(esperado_indicados - n_indicados):
-                print(f'<div class="nominee-card-placeholder">')
-                print(f'<div style="width: 120px; height: 120px; border-radius: 50%; background: #333; margin: 0 auto 1rem auto; display: flex; align-items: center; justify-content: center; font-size: 2em; color: #555;">?</div>')
-                print(f'<h4 class="tc" style="margin: 0; color: #666; font-size: 1.1em;">Aguardando...</h4>')
-                print('</div>')
-
-            print('</div>')
+            print(render_nominee_cards_em_andamento(participantes, esperado_indicados, AVATARS, MEMBER_OF))
 
         # ── Setup duelo data (used by Consensus Analysis and Sincerinho later) ──
         _formacao_raw = ultimo.get('formacao_raw', {})
@@ -323,20 +302,8 @@ if ultimo:
 
         # Votação da casa (formato mais legível)
         if tem_votos_casa:
-            votos = ultimo['votos_casa']
-            contagem = Counter(votos.values())
-            ranking = contagem.most_common()
             print(f"\n### 🗳️ Votação da Casa\n")
-            print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
-
-            print('<table class="table table-striped" style="font-size: 1.05rem;">')
-            print('<thead><tr><th>Alvo</th><th class="tc">Votos</th><th>Votantes</th></tr></thead>')
-            print('<tbody>')
-            for alvo, n in ranking:
-                votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
-                print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td class="tc" style="font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
-            print('</tbody></table>\n')
+            print(render_votos_casa_table(ultimo['votos_casa'], AVATARS))
         elif n_indicados >= esperado_indicados:
             print(f"\n### 🗳️ Votação da Casa\n")
             print(f"*Aguardando divulgação da votação da casa...*")
@@ -531,48 +498,13 @@ if ultimo:
             if len(ranking) >= 2:
                 print("\n### 🏛️ Blocos de Votação\n")
 
-                # Build bloc data
+                # Build bloc data (needed for Sincerinho cross-reference below)
                 blocs = []
                 for alvo, n_votos in ranking:
                     votantes = sorted([v for v, a in votos.items() if a == alvo])
                     blocs.append({'alvo': alvo, 'n': n_votos, 'votantes': votantes})
 
-                # Narrative
-                if len(ranking) == 2:
-                    print(f'A casa se dividiu em dois blocos claros: **{blocs[0]["n"]}** votaram em **{blocs[0]["alvo"]}**, **{blocs[1]["n"]}** votaram em **{blocs[1]["alvo"]}**.\n')
-                else:
-                    parts_bloc = [f'{b["n"]} em {b["alvo"]}' for b in blocs]
-                    print(f'Divisão da casa: {", ".join(parts_bloc)}.\n')
-
-                # Side-by-side visual boxes
-                print('<div style="display:flex; flex-wrap:wrap; gap:1.5rem; justify-content:center; margin:1rem 0;">')
-                for bloc in blocs:
-                    alvo = bloc['alvo']
-                    n_bl = bloc['n']
-                    votantes = bloc['votantes']
-                    cor_alvo = GROUP_COLORS.get(MEMBER_OF.get(alvo, '?'), '#888')
-                    print(f'<div style="background:linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border:2px solid {cor_alvo}; border-radius:12px; padding:1rem; min-width:200px; flex:1; max-width:400px;">')
-                    print(f'<div class="tc" style="margin-bottom:0.8rem;">')
-                    print(f'{avatar_img(alvo, AVATARS, 48)}')
-                    print(f'<div style="color:#fff; font-weight:bold; font-size:1.05em; margin-top:0.3rem;">{alvo}</div>')
-                    print(f'<div style="color:{cor_alvo}; font-size:1.3em; font-weight:bold;">{n_bl} votos</div>')
-                    print(f'</div>')
-                    # Voter avatars with group colors
-                    print(f'<div style="display:flex; flex-wrap:wrap; gap:0.4rem; justify-content:center;">')
-                    for vot in votantes:
-                        vot_grupo = MEMBER_OF.get(vot, '?')
-                        vot_cor = GROUP_COLORS.get(vot_grupo, '#888')
-                        print(f'<div class="tc">')
-                        av_url = AVATARS.get(vot, '')
-                        if av_url:
-                            print(f'<img src="{av_url}" style="width:36px; height:36px; border-radius:50%; border:2px solid {vot_cor};" alt="{vot}" title="{vot}">')
-                        else:
-                            print(f'<div style="width:36px; height:36px; border-radius:50%; background:{vot_cor}; display:flex; align-items:center; justify-content:center; font-size:0.7em; color:#fff;">{vot[:2]}</div>')
-                        print(f'<div style="font-size:0.6em; color:#aaa; max-width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{vot.split()[0]}</div>')
-                        print(f'</div>')
-                    print(f'</div>')
-                    print(f'</div>')
-                print('</div>')
+                print(render_voting_blocs(votos, AVATARS, MEMBER_OF))
 
                 # Sincerinho cross-reference
                 _formacao_raw_blocs = ultimo.get('formacao_raw', {})
@@ -857,72 +789,12 @@ if ultimo:
             print(f'<p style="color:#aaa; font-size:0.9em;">Análise dos dados que embasaram a decisão conjunta no Duelo de Risco. Scores pré-duelo (excluindo a indicação).</p>\n')
 
             # ── 1. Result Card ────────────────────────────────────────────
-            _av_s = AVATARS.get(_sorteado, '')
-            _av_o = AVATARS.get(_oponente, '')
-            _av_t = AVATARS.get(_consenso_target, '')
-            print('<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:1.2rem; margin:1.5rem 0; padding:1.5rem; background:linear-gradient(145deg,#1a1a2e,#16213e); border-radius:16px; border:1px solid rgba(155,89,182,0.4);">')
-            # Sorteado
-            print(f'<div class="tc">')
-            if _av_s:
-                print(f'<img src="{_av_s}" style="width:72px; height:72px; border-radius:50%; border:3px solid #9b59b6;" alt="{_sorteado}">')
-            print(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{_sorteado}</div>')
-            print(f'<div style="background:#9b59b6; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">🎲 Sorteada</div>')
-            print('</div>')
-            # Arrow + decision
-            print(f'<div class="tc" style="color:#9b59b6; font-size:1.5em; padding:0 0.5rem;">')
-            print(f'<div>🤝</div>')
-            print(f'<div style="font-size:0.5em; color:#ccc;">Nós indicamos</div>')
-            print(f'</div>')
-            # Oponente
-            print(f'<div class="tc">')
-            if _av_o:
-                print(f'<img src="{_av_o}" style="width:72px; height:72px; border-radius:50%; border:3px solid #e67e22;" alt="{_oponente}">')
-            print(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{_oponente}</div>')
-            print(f'<div style="background:#e67e22; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">⚔️ Oponente</div>')
-            print('</div>')
-            # Arrow to target
-            print(f'<div class="tc" style="color:#e74c3c; font-size:1.5em; padding:0 0.5rem;">→</div>')
-            # Target
-            print(f'<div class="tc">')
-            if _av_t:
-                print(f'<img src="{_av_t}" style="width:72px; height:72px; border-radius:50%; border:3px solid #e74c3c;" alt="{_consenso_target}">')
-            print(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{_consenso_target}</div>')
-            print(f'<div style="background:#e74c3c; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">📌 Emparedada</div>')
-            print('</div>')
-            print('</div>')
-            if _resultado_detail:
-                print(f'<p class="tc" style="color:#aaa; font-size:0.85em; margin-top:0.5rem;">{_resultado_detail}</p>\n')
+            print(render_duelo_result_card(_sorteado, _oponente, _consenso_target, AVATARS, _resultado_detail))
 
             # ── 1b. Game theory — possible outcomes ──────────────────────
             _escolha_s = _duelo.get(f'escolha_{_sorteado.lower().replace(" ", "_")}', '')
             _escolha_o = _duelo.get(f'escolha_{_oponente.lower().replace(" ", "_")}', '')
-
-            _outcome_map = {
-                ('nos_indicamos', 'nos_indicamos'): ('🤝 Consenso', 'Ambos indicam alguém em acordo', '#9b59b6'),
-                ('nos_indicamos', 'eu_encaro'): ('⚔️ Divergência', f'{_oponente.split()[0]} vai ao Paredão sozinho', '#e67e22'),
-                ('eu_encaro', 'nos_indicamos'): ('⚔️ Divergência', f'{_sorteado.split()[0]} vai ao Paredão sozinho', '#e67e22'),
-                ('eu_encaro', 'eu_encaro'): ('💥 Duelo direto', 'Ambos vão ao Paredão', '#e74c3c'),
-            }
-
-            print('<div style="margin:1rem 0;">')
-            print('<details style="background:rgba(255,255,255,0.03); border:1px solid #444; border-radius:10px; padding:0.8rem;">')
-            print('<summary style="cursor:pointer; color:#ccc; font-size:0.9em;">📐 <strong>Matriz de decisões possíveis</strong> — o que cada combinação de escolhas produzia</summary>')
-            print('<div style="padding:0.8rem 0;">')
-            print(f'<p style="color:#aaa; font-size:0.82em;">No Duelo de Risco, cada duelista escolhe secretamente: <strong>"Nós indicamos"</strong> (juntos indicam um terceiro) ou <strong>"Eu encaro"</strong> (vai ao Paredão sozinho). O resultado depende da combinação.</p>')
-            print('<table class="table" style="max-width:500px; font-size:0.85rem; margin:0.5rem auto;">')
-            print(f'<thead><tr><th></th><th class="tc">🟣 {_oponente.split()[0]}<br><span style="font-size:0.8em; color:#888;">"Nós indicamos"</span></th><th class="tc">🟠 {_oponente.split()[0]}<br><span style="font-size:0.8em; color:#888;">"Eu encaro"</span></th></tr></thead>')
-            print('<tbody>')
-            for s_choice, s_label in [('nos_indicamos', 'Nós indicamos'), ('eu_encaro', 'Eu encaro')]:
-                print(f'<tr><td style="vertical-align:middle;"><strong>🟣 {_sorteado.split()[0]}</strong><br><span style="font-size:0.8em; color:#888;">"{s_label}"</span></td>')
-                for o_choice in ['nos_indicamos', 'eu_encaro']:
-                    _title, _desc, _color = _outcome_map.get((s_choice, o_choice), ('?', '?', '#888'))
-                    _is_actual = (s_choice == _escolha_s and o_choice == _escolha_o)
-                    _border = f'border:2px solid {_color}; background:rgba(155,89,182,0.15);' if _is_actual else ''
-                    _check = ' ✅' if _is_actual else ''
-                    print(f'<td class="tc" style="{_border} border-radius:6px; padding:0.5rem;"><span style="color:{_color}; font-weight:bold;">{_title}</span>{_check}<br><span style="font-size:0.8em; color:#aaa;">{_desc}</span></td>')
-                print('</tr>')
-            print('</tbody></table>')
-            print('</div></details></div>\n')
+            print(render_duelo_decision_matrix(_sorteado, _oponente, _escolha_s, _escolha_o))
 
             # ── 2. Pre-Duel Score Table ───────────────────────────────────
             print(f"### 📊 Opções pré-duelo — Viabilidade de consenso\n")
@@ -1000,23 +872,10 @@ if ultimo:
                 else:
                     _both_pos.append(_c)
 
-            def _render_overlap_box(title, color, rgba_bg, items, emoji):
-                if not items:
-                    return
-                print(f'<div style="background:{rgba_bg}; border:1px solid {color}; border-radius:10px; padding:0.8rem; margin:0.6rem 0;">')
-                print(f'<h5 style="color:{color}; margin-top:0;">{emoji} {title} ({len(items)})</h5>')
-                print('<div style="display:flex; flex-wrap:wrap; gap:0.5rem;">')
-                for _it in items:
-                    _av_it = AVATARS.get(_it["name"], '')
-                    _img_it = f'<img src="{_av_it}" style="width:28px; height:28px; border-radius:50%; vertical-align:middle; margin-right:3px; border:2px solid {color};">' if _av_it else ''
-                    _mark = ' ⭐' if _it["name"] == _consenso_target else ''
-                    print(f'<span style="background:rgba(0,0,0,0.3); padding:0.3rem 0.6rem; border-radius:8px; font-size:0.85em;">{_img_it}<strong>{_it["name"]}</strong>{_mark} <span style="color:#888;">({_it["bottleneck"]:+.2f})</span></span>')
-                print('</div></div>')
-
-            _render_overlap_box(f"Ambos negativos — consenso natural", "#e74c3c", "rgba(231,76,60,0.08)", _both_neg, "🔴")
-            _render_overlap_box(f"Só {_sorteado.split()[0]} negativ{artigo(_sorteado).replace('o','a') if artigo(_sorteado)=='a' else 'o'}", "#e67e22", "rgba(230,126,34,0.08)", _sol_only, "🟠")
-            _render_overlap_box(f"Só {_oponente.split()[0]} negativo", "#f1c40f", "rgba(241,196,15,0.08)", _jf_only, "🟡")
-            _render_overlap_box(f"Ambos positivos — seguro", "#2ecc71", "rgba(46,204,113,0.08)", _both_pos, "🟢")
+            print(render_overlap_box(f"Ambos negativos — consenso natural", "#e74c3c", "rgba(231,76,60,0.08)", _both_neg, "🔴", _consenso_target, AVATARS))
+            print(render_overlap_box(f"Só {_sorteado.split()[0]} negativ{artigo(_sorteado).replace('o','a') if artigo(_sorteado)=='a' else 'o'}", "#e67e22", "rgba(230,126,34,0.08)", _sol_only, "🟠", _consenso_target, AVATARS))
+            print(render_overlap_box(f"Só {_oponente.split()[0]} negativo", "#f1c40f", "rgba(241,196,15,0.08)", _jf_only, "🟡", _consenso_target, AVATARS))
+            print(render_overlap_box(f"Ambos positivos — seguro", "#2ecc71", "rgba(46,204,113,0.08)", _both_pos, "🟢", _consenso_target, AVATARS))
 
             # Highlight contradiction if target is not in both_neg
             _target_in_both_neg = any(_c["name"] == _consenso_target for _c in _both_neg)
@@ -1212,36 +1071,9 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
         has_breakdown = 'voto_unico' in df_p.columns and df_p['voto_unico'].notna().all()
 
         # ── Visual: Cards com fotos e resultado ──
-        print(f'<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; margin: 1.5rem 0 2rem 0;">')
-        for _, row in df_p.iterrows():
-            nome = row['nome']
-            grupo = row.get('grupo', MEMBER_OF.get(nome, '?'))
-            resultado = row.get('resultado', '')
-            voto_total = row.get('voto_total', 0)
-            avatar_url = AVATARS.get(nome, '')
-            cor_grupo = GROUP_COLORS.get(grupo, '#666')
-
-            # Card styling based on result
-            if resultado == 'ELIMINADA':
-                border_color = '#E6194B'
-                badge_bg = '#E6194B'
-                badge_text = 'ELIMINADO(A)'
-                img_filter = 'grayscale(100%)'  # B&W for eliminated
-            else:
-                border_color = '#3CB44B'
-                badge_bg = '#3CB44B'
-                badge_text = 'SALVO(A)'
-                img_filter = 'none'
-
-            print(f'<div class="nominee-card" style="width: 160px; border: 3px solid {border_color};">')
-            if avatar_url:
-                print(f'<img src="{avatar_url}" alt="{nome}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid {border_color}; margin-bottom: 0.75rem; filter: {img_filter};">')
-            print(f'<h4 class="tc" style="margin: 0 0 0.25rem 0; color: #fff; font-size: 1em;">{nome}</h4>')
-            print(f'<span style="display: block; color: {cor_grupo}; font-size: 0.8em; margin-bottom: 0.5rem;">{grupo}</span>')
-            print(f'<span style="display: inline-block; padding: 0.25rem 0.6rem; background: {badge_bg}; color: #fff; border-radius: 10px; font-size: 0.75em; font-weight: bold;">{badge_text}</span>')
-            print(f'<div style="color: #fff; font-size: 1.3em; font-weight: bold; margin-top: 0.5rem;">{voto_total:.1f}%</div>')
-            print('</div>')
-        print('</div>')
+        print(render_nominee_cards_finalized(
+            df_p.to_dict('records'), AVATARS, MEMBER_OF
+        ))
 
         fig = go.Figure()
 
@@ -1592,20 +1424,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
         # Votação da casa (finalizado)
         if ultimo.get('votos_casa'):
-            votos = ultimo['votos_casa']
-            contagem = Counter(votos.values())
-            ranking = contagem.most_common()
             print(f"\n### 🗳️ Votação da Casa\n")
-            print(f"**Mais votado:** **{ranking[0][0]}** ({ranking[0][1]} votos)\n")
-
-            print('<table class="table table-striped" style="font-size: 1.05rem;">')
-            print('<thead><tr><th>Alvo</th><th class="tc">Votos</th><th>Votantes</th></tr></thead>')
-            print('<tbody>')
-            for alvo, n in ranking:
-                votantes = sorted([v for v, a in votos.items() if a == alvo])
-                votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
-                print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td class="tc" style="font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
-            print('</tbody></table>\n')
+            print(render_votos_casa_table(ultimo['votos_casa'], AVATARS))
 
 ```
 
@@ -1646,28 +1466,7 @@ if _pp_data:
     print('<p class="text-muted" style="font-size:0.85rem;">Cada participante montou sua berlinda ideal com 3 nomes. Resultado alimentou o Big Fone e o Duelo de Risco.</p>\n')
 
     # ── Bar chart ──
-    _sorted_names = sorted(_received.keys(), key=lambda x: -_received[x])
-    _max_count = max(_received.values()) if _received else 1
-
-    _html = '<h4 style="margin-top:1.2rem;">📊 Indicações Recebidas</h4>\n'
-    _html += '<div style="max-width:700px;">\n'
-    for _name in _sorted_names:
-        _count = _received[_name]
-        _pct = (_count / _max_count) * 100
-        _color = "#E6194B" if _count >= 6 else "#FF8C00" if _count >= 3 else "#3CB44B"
-        _av = avatar_img(_name, AVATARS, 32)
-        _html += f'<div style="display:flex; align-items:center; margin-bottom:4px;">'
-        _html += f'<div style="width:180px; display:flex; align-items:center; gap:6px;">{_av} <span style="font-size:0.85rem;">{_name}</span></div>'
-        _html += f'<div style="flex:1; background:#333; border-radius:4px; height:22px; position:relative;">'
-        _html += f'<div style="width:{_pct}%; background:{_color}; height:100%; border-radius:4px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px;">'
-        _html += f'<span style="color:#fff; font-weight:bold; font-size:0.8rem;">{_count}×</span>'
-        _html += '</div></div></div>\n'
-    if _not_nom:
-        _not_html = " ".join([f'{avatar_img(n, AVATARS, 32)} {n}' for n in _not_nom])
-        _html += f'<div style="margin-top:8px; padding:6px 10px; background:#1a3a1a; border:1px solid #3CB44B; border-radius:6px; font-size:0.85rem;">'
-        _html += f'🛡️ <strong>Não indicados:</strong> {_not_html}</div>\n'
-    _html += '</div>\n'
-    print(_html)
+    print(render_sincerinho_bar_chart(dict(_received), _not_nom, AVATARS))
 
     # ── Faction insight ──
     _jonas_nom = set(_received_from.get('Jonas Sulzbach', []))
@@ -1800,58 +1599,30 @@ if _show_prediction:
     _pix_list = _pix.get("participants", _pix) if isinstance(_pix, dict) else _pix
     _active_names = {p["name"] for p in _pix_list if p.get("active", True)}
 
-    html_pred = ""
+    # ── Líder's scores toward all participants ────────────────────
+    _lider_scores = _pairs_daily.get(_lider_name, {}) if _lider_name else {}
 
-    if not _lider_name:
-        html_pred += '<div class="tc" style="background:#1a1a2e; border:1px solid #444; border-radius:10px; '
-        html_pred += 'padding:1.5rem; margin:1rem 0; color:#aaa; font-size:1.1em;">'
-        html_pred += '🏠 <strong>Sem líder ativo</strong> — previsão de indicação indisponível.</div>'
-    else:
-        # ── Líder's scores toward all participants ────────────────────
-        _lider_scores = _pairs_daily.get(_lider_name, {})
+    # Eligible targets: active participants minus the Líder and already-nominated
+    _already_nominated = set()
+    if ultimo and ultimo.get('status') == 'em_andamento':
+        _already_nominated = {p['nome'] for p in ultimo.get('participantes', [])}
+    _eligible = {name: entry for name, entry in _lider_scores.items()
+                 if name in _active_names and name != _lider_name
+                 and name not in _already_nominated}
 
-        # Eligible targets: active participants minus the Líder and already-nominated
-        _already_nominated = set()
-        if ultimo and ultimo.get('status') == 'em_andamento':
-            _already_nominated = {p['nome'] for p in ultimo.get('participantes', [])}
-        _eligible = {name: entry for name, entry in _lider_scores.items()
-                     if name in _active_names and name != _lider_name
-                     and name not in _already_nominated}
+    # Rank by score ascending (most negative = most likely target)
+    _ranked = sorted(_eligible.items(), key=lambda x: x[1].get("score", 0))
 
-        # Rank by score ascending (most negative = most likely target)
-        _ranked = sorted(_eligible.items(), key=lambda x: x[1].get("score", 0))
+    # ── Anjo immunity info ────────────────────────────────────────
+    _anjo_name = _anjo_list[0] if _anjo_list else None
+    _imunizado_nome = None
+    if ultimo and ultimo.get('status') == 'em_andamento':
+        _imun = ultimo.get('imunizado', {})
+        _imunizado_nome = _imun.get('quem') if _imun else None
 
-        # ── Anjo immunity info ────────────────────────────────────────
-        _anjo_name = _anjo_list[0] if _anjo_list else None
-        _imunizado_nome = None
-        if ultimo and ultimo.get('status') == 'em_andamento':
-            _imun = ultimo.get('imunizado', {})
-            _imunizado_nome = _imun.get('quem') if _imun else None
-
-        # ── Component emoji mapping ───────────────────────────────────
-        _comp_meta = {
-            "queridometro": ("🐍", "#e74c3c", "#2ecc71"),
-            "power_event": ("⚔️", "#e74c3c", "#2ecc71"),
-            "sincerao":    ("📢", "#e67e22", "#3498db"),
-            "vote":        ("🗳️", "#e74c3c", "#2ecc71"),
-            "vip":         ("🏠", "#3498db", "#3498db"),
-            "anjo":        ("😇", "#3498db", "#3498db"),
-        }
-        _edge_display = {
-            "power_event": ("⚔️", "Power Event"),
-            "sincerao": ("📢", "Sincerão"),
-            "vote": ("🗳️", "Voto"),
-            "vip": ("🏠", "VIP"),
-            "anjo": ("😇", "Anjo"),
-        }
-
-        # ── Build queridômetro history (reuse already-loaded snapshots) ──
-        _emoji_map = {
-            "Coração": "❤️", "Planta": "🌱", "Cobra": "🐍", "Mala": "💼",
-            "Biscoito": "🍪", "Coração partido": "💔", "Alvo": "🎯",
-            "Vômito": "🤮", "Mentiroso": "🤥",
-        }
-        _querido_history = {}
+    # ── Build queridômetro history (reuse already-loaded snapshots) ──
+    _querido_history = {}
+    if _lider_name:
         for _i_snap, _snap_d in enumerate(daily_snapshots):
             _mat = daily_matrices[_i_snap]
             _dt = _snap_d['date']
@@ -1859,239 +1630,10 @@ if _show_prediction:
                 if g == _lider_name or r == _lider_name:
                     _querido_history.setdefault((g, r), []).append((_dt, lbl))
 
-        # ── Section header ────────────────────────────────────────────
-        _art = artigo(_lider_name)
-
-        html_pred += '<h2 id="previsao-indicacao">🎯 Previsão — Indicação do Líder</h2>'
-
-        html_pred += '<div style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); '
-        html_pred += 'border:2px solid #e74c3c; border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0;">'
-        html_pred += f'<div style="font-size:1.2em; margin-bottom:0.8rem;">'
-        html_pred += f'🎯 <strong style="color:#e74c3c;">Previsão de Indicação d{_art} Líder</strong></div>'
-
-        html_pred += f'<div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">'
-        html_pred += f'{avatar_img(_lider_name, AVATARS, size=40)}'
-        html_pred += f'<span style="font-size:1.1em; color:#eee;"><strong>{_lider_name}</strong> '
-        html_pred += f'<span class="text-muted">— Líder da Semana {_display_week}</span></span></div>'
-
-        # ── Top 3 summary cards ───────────────────────────────────────
-        _top3 = _ranked[:3]
-        html_pred += '<div style="display:flex; gap:0.8rem; flex-wrap:wrap; margin-bottom:0.8rem;">'
-        for _i, (_tname, _tentry) in enumerate(_top3):
-            _sc = _tentry.get("score", 0)
-            _color = "#e74c3c" if _sc < -2 else "#e67e22" if _sc < 0 else "#2ecc71"
-            _vip_tag = ' <span style="color:#3498db; font-size:0.75em;">VIP</span>' if _tname in _vip_list else ""
-            html_pred += f'<div style="background:#111; border:1px solid {_color}; border-radius:8px; '
-            html_pred += f'padding:0.6rem 0.8rem; min-width:140px; flex:1;">'
-            html_pred += f'<div class="text-muted" style="font-size:0.75em;">#{_i+1} mais provável</div>'
-            html_pred += f'<div style="display:flex; align-items:center; gap:0.4rem; margin:0.3rem 0;">'
-            html_pred += f'{avatar_img(_tname, AVATARS, size=24)} '
-            html_pred += f'<strong style="color:#eee;">{_tname}</strong>{_vip_tag}</div>'
-            html_pred += f'<div style="color:{_color}; font-size:1.1em; font-weight:bold;">{_sc:+.2f}</div>'
-            html_pred += '</div>'
-        html_pred += '</div>'
-
-        # Anjo note
-        if _anjo_name:
-            html_pred += f'<div style="color:#3498db; font-size:0.9em;">😇 Anjo: <strong>{_anjo_name}</strong>'
-            if _imunizado_nome:
-                html_pred += f' — imunizou <strong>{_imunizado_nome}</strong> (bloqueado como alvo)'
-            html_pred += '</div>'
-        else:
-            html_pred += '<div class="text-muted" style="font-size:0.9em;">😇 Anjo ainda não definido esta semana</div>'
-
-        html_pred += '</div>'
-
-        # ── Full ranking table ────────────────────────────────────────
-        html_pred += '<div class="scroll-x" style="margin-top:1.2rem;">'
-        html_pred += '<table class="table-full" style="font-size:0.85em;">'
-        html_pred += '<thead><tr style="border-bottom:2px solid #444;">'
-        for _hdr in ["#", "Participante", "Score", "Barra", "Componentes", "Reciprocidade", "Streak", "VIP"]:
-            html_pred += f'<th style="padding:0.5rem 0.4rem; text-align:left; color:#aaa; white-space:nowrap;">{_hdr}</th>'
-        html_pred += '</tr></thead><tbody>'
-
-        _max_abs = max((abs(e.get("score", 0)) for _, e in _ranked), default=1) or 1
-
-        for _rank, (_tname, _tentry) in enumerate(_ranked, 1):
-            _sc = _tentry.get("score", 0)
-            _comps = _tentry.get("components", {})
-            _streak_len = _tentry.get("streak_len", 0)
-            _has_break = _tentry.get("break", False)
-
-            _sc_color = "#e74c3c" if _sc < -2 else "#e67e22" if _sc < 0 else "#2ecc71"
-            _row_bg = "background:rgba(231,76,60,0.08);" if _rank <= 3 else ""
-
-            _is_immune = (_tname == _imunizado_nome)
-            _immune_tag = ' <span style="background:#3498db; color:#fff; font-size:0.7em; padding:1px 4px; border-radius:3px;">IMUNE</span>' if _is_immune else ""
-
-            html_pred += f'<tr class="sep-bottom" style="{_row_bg}">'
-            html_pred += f'<td class="cell-compact tc text-muted">{_rank}</td>'
-            html_pred += f'<td class="cell-compact" style="white-space:nowrap;">{avatar_img(_tname, AVATARS, size=22)}'
-            html_pred += f'<strong style="color:#eee;">{_tname}</strong>{_immune_tag}</td>'
-            html_pred += f'<td class="cell-compact" style="color:{_sc_color}; font-weight:bold; font-family:monospace;">{_sc:+.2f}</td>'
-
-            # Score bar
-            _bar_pct = min(abs(_sc) / _max_abs * 100, 100)
-            _bar_color = "#e74c3c" if _sc < 0 else "#2ecc71"
-            _bar_dir = "right" if _sc < 0 else "left"
-            html_pred += f'<td class="cell-compact" style="min-width:80px;">'
-            html_pred += f'<div style="width:100%; background:#222; border-radius:3px; height:12px; position:relative;">'
-            html_pred += f'<div style="width:{_bar_pct:.0f}%; background:{_bar_color}; height:100%; border-radius:3px; '
-            html_pred += f'float:{_bar_dir};"></div></div></td>'
-
-            # Components
-            html_pred += f'<td class="cell-compact">'
-            _chips = []
-            for _ck, (_ce, _cneg, _cpos) in _comp_meta.items():
-                _cv = _comps.get(_ck, 0.0)
-                if abs(_cv) < 0.01:
-                    continue
-                _cc = _cneg if _cv < 0 else _cpos
-                _chips.append(
-                    f'<span style="background:{_cc}22; color:{_cc}; border:1px solid {_cc}44; '
-                    f'border-radius:3px; padding:0px 4px; font-size:0.78em; white-space:nowrap;">'
-                    f'{_ce} {_cv:+.2f}</span>'
-                )
-            html_pred += " ".join(_chips) if _chips else '<span style="color:#555;">—</span>'
-            html_pred += '</td>'
-
-            # Reciprocity
-            _recip_entry = _pairs_daily.get(_tname, {}).get(_lider_name, {})
-            _recip_score = _recip_entry.get("score", 0) if _recip_entry else 0
-
-            if _sc < 0 and _recip_score < 0:
-                _rl, _rc = "⚔️ Mútua", "#e74c3c"
-            elif _sc < 0 and _recip_score >= 0:
-                _rl, _rc = "🔍 Alvo cego", "#e67e22"
-            elif _sc >= 0 and _recip_score < 0:
-                _rl, _rc = "⚠️ Risco oculto", "#e67e22"
-            else:
-                _rl, _rc = "💚 Aliados", "#2ecc71"
-
-            html_pred += f'<td class="cell-compact" style="white-space:nowrap;">'
-            html_pred += f'<span style="color:{_rc}; font-size:0.85em;">{_rl}</span> '
-            html_pred += f'<span class="text-muted" style="font-size:0.78em;">({_recip_score:+.2f})</span></td>'
-
-            # Streak
-            _si = "🔴" if _has_break else ("🟢" if _streak_len >= 5 else "⚪")
-            _bt = ' <span style="color:#e74c3c; font-size:0.75em;">BREAK</span>' if _has_break else ""
-            html_pred += f'<td class="cell-compact tc" style="white-space:nowrap;">{_si} {_streak_len}d{_bt}</td>'
-
-            # VIP
-            if _tname in _vip_list:
-                html_pred += '<td class="cell-compact tc">'
-                html_pred += '<span style="background:#3498db33; color:#3498db; border:1px solid #3498db55; '
-                html_pred += 'border-radius:3px; padding:1px 5px; font-size:0.78em;">VIP</span></td>'
-            else:
-                html_pred += '<td class="cell-compact tc" style="color:#555;">—</td>'
-
-            html_pred += '</tr>'
-
-            # ── Expandable detail row: edges + queridômetro history ────
-            _pair_edges = [e for e in _rel_edges if
-                (e.get("actor") == _lider_name and e.get("target") == _tname) or
-                (e.get("actor") == _tname and e.get("target") == _lider_name)]
-            _pair_edges.sort(key=lambda e: e.get("date", ""))
-
-            _hist_fwd = _querido_history.get((_lider_name, _tname), [])
-            _hist_rev = _querido_history.get((_tname, _lider_name), [])
-
-            if _pair_edges or _hist_fwd:
-                html_pred += f'<tr style="{_row_bg}"><td colspan="8" style="padding:0;">'
-                html_pred += '<details style="margin:0 0.4rem 0.4rem 1.8rem;">'
-                html_pred += '<summary class="text-muted" style="cursor:pointer; font-size:0.78em; '
-                html_pred += f'padding:0.2rem 0;">📋 {len(_pair_edges)} evento(s) · '
-                html_pred += f'{len(_hist_fwd)} dia(s) de queridômetro</summary>'
-                html_pred += '<div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.4rem;">'
-
-                # Edges sub-table
-                if _pair_edges:
-                    html_pred += '<div style="flex:1; min-width:280px;">'
-                    html_pred += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;"><strong>Eventos & Edges</strong></div>'
-                    html_pred += '<table class="table-full table-sm">'
-                    html_pred += '<thead><tr class="sep-bottom">'
-                    html_pred += '<th class="text-dim tl" style="padding:2px 4px;">Data</th>'
-                    html_pred += '<th class="text-dim tl" style="padding:2px 4px;">Tipo</th>'
-                    html_pred += '<th class="text-dim tl" style="padding:2px 4px;">Direção</th>'
-                    html_pred += '<th class="text-dim tr" style="padding:2px 4px;">Peso</th>'
-                    html_pred += '<th class="text-dim tl" style="padding:2px 4px;">Detalhe</th>'
-                    html_pred += '</tr></thead><tbody>'
-                    for _edge in _pair_edges:
-                        _e_type = _edge.get("type", "?")
-                        _e_actor = _edge.get("actor", "")
-                        _e_weight = _edge.get("weight", 0)
-                        _e_date = _edge.get("date", "?")
-                        _e_emoji, _e_label = _edge_display.get(_e_type, ("❓", _e_type))
-                        _e_wcolor = "#e74c3c" if _e_weight < 0 else "#2ecc71"
-                        _is_backlash = _edge.get("backlash", False)
-                        _arrow = f'{_e_actor.split()[0]} → {(_tname if _e_actor == _lider_name else _lider_name).split()[0]}'
-                        _detail_parts = []
-                        if _edge.get("event_type"):
-                            _detail_parts.append(_edge["event_type"])
-                        if _edge.get("vote_kind"):
-                            _detail_parts.append(_edge["vote_kind"])
-                        if _is_backlash:
-                            _detail_parts.append('<span style="color:#e67e22;">backlash</span>')
-                        _detail_str = " · ".join(_detail_parts) if _detail_parts else "—"
-                        html_pred += f'<tr style="border-bottom:1px solid #222;">'
-                        html_pred += f'<td class="text-muted" style="padding:2px 4px; white-space:nowrap;">{_e_date}</td>'
-                        html_pred += f'<td style="padding:2px 4px; white-space:nowrap;">{_e_emoji} {_e_label}</td>'
-                        html_pred += f'<td style="padding:2px 4px; color:#aaa; font-size:0.9em;">{_arrow}</td>'
-                        html_pred += f'<td class="tr" style="padding:2px 4px; color:{_e_wcolor}; font-family:monospace;">{_e_weight:+.2f}</td>'
-                        html_pred += f'<td class="text-muted" style="padding:2px 4px;">{_detail_str}</td>'
-                        html_pred += '</tr>'
-                    html_pred += '</tbody></table></div>'
-
-                # Queridômetro timeline
-                if _hist_fwd:
-                    _all_dates = sorted(set(d for d, _ in _hist_fwd) | set(d for d, _ in _hist_rev))
-                    _fwd_by_date = {d: lbl for d, lbl in _hist_fwd}
-                    _rev_by_date = {d: lbl for d, lbl in _hist_rev}
-                    _show_dates = _all_dates[-14:]
-
-                    html_pred += '<div style="flex:1; min-width:240px;">'
-                    html_pred += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;">'
-                    html_pred += f'<strong>Queridômetro</strong> (últimos {len(_show_dates)} dias)</div>'
-                    html_pred += '<table class="table-full table-sm">'
-                    html_pred += '<thead><tr class="sep-bottom">'
-                    html_pred += f'<th class="text-dim tl" style="padding:2px 4px;">Data</th>'
-                    html_pred += f'<th class="text-dim tc" style="padding:2px 4px;">{_lider_name.split()[0]}→</th>'
-                    html_pred += f'<th class="text-dim tc" style="padding:2px 4px;">→{_lider_name.split()[0]}</th>'
-                    html_pred += '</tr></thead><tbody>'
-                    for _dt in _show_dates:
-                        _fwd_lbl = _fwd_by_date.get(_dt, "")
-                        _rev_lbl = _rev_by_date.get(_dt, "")
-                        _fwd_e = _emoji_map.get(_fwd_lbl, "")
-                        _rev_e = _emoji_map.get(_rev_lbl, "")
-                        _fwd_sent = SENTIMENT_WEIGHTS.get(_fwd_lbl, 0)
-                        _rev_sent = SENTIMENT_WEIGHTS.get(_rev_lbl, 0)
-                        _fwd_c = "#2ecc71" if _fwd_sent > 0 else "#e74c3c" if _fwd_sent < -0.5 else "#e67e22" if _fwd_sent < 0 else "#555"
-                        _rev_c = "#2ecc71" if _rev_sent > 0 else "#e74c3c" if _rev_sent < -0.5 else "#e67e22" if _rev_sent < 0 else "#555"
-                        html_pred += f'<tr style="border-bottom:1px solid #222;">'
-                        html_pred += f'<td class="text-muted" style="padding:1px 4px; font-size:0.9em;">{_dt[5:]}</td>'
-                        html_pred += f'<td class="tc" style="padding:1px 4px; color:{_fwd_c};">{_fwd_e}</td>'
-                        html_pred += f'<td class="tc" style="padding:1px 4px; color:{_rev_c};">{_rev_e}</td>'
-                        html_pred += '</tr>'
-                    html_pred += '</tbody></table></div>'
-
-                html_pred += '</div></details></td></tr>'
-
-        html_pred += '</tbody></table></div>'
-
-        # ── Methodology note ──────────────────────────────────────────
-        html_pred += '<div class="text-muted" style="background:#111; border:1px solid #333; border-radius:8px; '
-        html_pred += 'padding:0.8rem 1rem; margin:1rem 0; font-size:0.82em;">'
-        html_pred += '<strong style="color:#aaa;">📐 Metodologia</strong><br>'
-        html_pred += 'A previsão é baseada no <strong>score acumulado do Líder → cada participante</strong>, '
-        html_pred += 'calculado pelo sistema de Sentiment Index (queridômetro com memória de streak + '
-        html_pred += 'eventos de poder, Sincerão, votos e VIP). O participante com o score mais negativo '
-        html_pred += 'é o alvo mais provável de indicação. '
-        html_pred += 'Membros do VIP foram escolhidos pelo Líder, indicando aliança — são alvos improváveis. '
-        html_pred += '<strong>Isto não é um modelo preditivo dedicado</strong> — é uma leitura dos dados '
-        html_pred += 'de relacionamento acumulados até o momento.'
-        html_pred += '</div>'
-
-    print(html_pred)
+    print(render_lider_prediction(
+        _lider_name, _ranked, _pairs_daily, _rel_edges, _vip_list,
+        _anjo_name, _imunizado_nome, _display_week, AVATARS, _querido_history,
+    ))
 ```
 
 ---

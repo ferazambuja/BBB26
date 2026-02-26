@@ -64,6 +64,9 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+
       - name: Fetch latest data
         id: fetch
         run: |
@@ -111,6 +114,9 @@ jobs:
               print(f'All {n_files} snapshots valid')
           "
 
+      - name: Build derived data
+        run: python scripts/build_derived_data.py
+
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
@@ -122,7 +128,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/
+          git add data/ docs/MANUAL_EVENTS_AUDIT.md
           git diff --staged --quiet || git commit -m "data: snapshot $(date -u +%Y-%m-%d_%H-%M) UTC"
           git push
 

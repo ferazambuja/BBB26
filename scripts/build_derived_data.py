@@ -3,11 +3,13 @@
 Build derived data files from raw snapshots + manual events.
 Outputs go to data/derived/ and are meant to be reused by QMD pages.
 """
+from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections import Counter, defaultdict
+from typing import Any
 
 from data_utils import (
     SENTIMENT_WEIGHTS, calc_sentiment, get_week_number,
@@ -166,12 +168,12 @@ STREAK_MEMORY_MAX_LEN = 10
 REACTIVE_WINDOW_WEIGHTS = [0.6, 0.3, 0.1]
 
 
-def get_all_snapshots():
+def get_all_snapshots() -> list[dict]:
     """Wrapper for backward-compatible call sites."""
     return get_all_snapshots_with_data(DATA_DIR)
 
 
-def _classify_sentiment(label):
+def _classify_sentiment(label: str) -> str | None:
     """Classify an emoji label into a sentiment category string."""
     if label in POSITIVE:
         return "positive"
@@ -182,7 +184,7 @@ def _classify_sentiment(label):
     return None
 
 
-def _sentiment_value_for_category(cat):
+def _sentiment_value_for_category(cat: str) -> float:
     """Return a representative sentiment weight for a streak category."""
     if cat == "positive":
         return 1.0
@@ -193,7 +195,7 @@ def _sentiment_value_for_category(cat):
     return 0.0
 
 
-def compute_streak_data(daily_snapshots, eliminated_last_seen=None):
+def compute_streak_data(daily_snapshots: list[dict], eliminated_last_seen: dict[str, str | None] | None = None) -> tuple[dict, list[dict], list[dict]]:
     """Compute emoji streak info and detect alliance breaks for all pairs.
 
     Returns:
@@ -315,7 +317,7 @@ def compute_streak_data(daily_snapshots, eliminated_last_seen=None):
     return dict(streak_info), streak_breaks, missing_raio_x_log
 
 
-def _resolve_participant_sets(latest_snapshot, daily_snapshots, participants_index):
+def _resolve_participant_sets(latest_snapshot: dict, daily_snapshots: list[dict], participants_index: list[dict] | None) -> dict:
     """Derive active/all name sets, eliminated tracking, streak data, and latest reaction matrix.
 
     Returns dict with: latest_date, current_week, participants, active_names, active_set,
@@ -367,7 +369,7 @@ def _resolve_participant_sets(latest_snapshot, daily_snapshots, participants_ind
     }
 
 
-def _build_vote_data(paredoes, manual_events):
+def _build_vote_data(paredoes: dict | None, manual_events: dict) -> dict:
     """Parse paredao votes, revealed votes, open vote weeks.
 
     Returns dict with: votes_received_by_week, revealed_votes, vote_week_to_date,
@@ -455,7 +457,7 @@ def _build_vote_data(paredoes, manual_events):
     }
 
 
-def _build_power_event_edges(power_events, effective_week_daily, add_edge_raw):
+def _build_power_event_edges(power_events: list[dict], effective_week_daily: int, add_edge_raw: Any) -> None:
     """Generate power event edges (actor→target + backlash)."""
     for ev in power_events:
         ev_type = ev.get("type")
@@ -499,7 +501,7 @@ def _build_power_event_edges(power_events, effective_week_daily, add_edge_raw):
                 )
 
 
-def _build_sincerao_edges_section(sincerao_edges, add_edge_raw):
+def _build_sincerao_edges_section(sincerao_edges: dict | None, add_edge_raw: Any) -> None:
     """Generate Sincerão edges (actor→target + backlash)."""
     for edge in (sincerao_edges or {}).get("edges", []):
         actor = edge.get("actor")
@@ -534,8 +536,8 @@ def _build_sincerao_edges_section(sincerao_edges, add_edge_raw):
             )
 
 
-def _build_vote_edges(votes_received_by_week, open_vote_weeks, revealed_votes,
-                      vote_revelation_type, vote_week_to_date, add_edge_raw):
+def _build_vote_edges(votes_received_by_week: dict, open_vote_weeks: set, revealed_votes: dict,
+                      vote_revelation_type: dict, vote_week_to_date: dict, add_edge_raw: Any) -> None:
     """Generate vote edges (voter→target + backlash when revealed)."""
     for week, targets in votes_received_by_week.items():
         for target, voters in targets.items():
@@ -583,8 +585,8 @@ def _build_vote_edges(votes_received_by_week, open_vote_weeks, revealed_votes,
                     )
 
 
-def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
-                     daily_roles, all_names_set, current_week, latest_date, vote_data):
+def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: list[dict] | None, sincerao_edges: dict | None,
+                     daily_roles: list[dict], all_names_set: set[str], current_week: int, latest_date: str, vote_data: dict) -> dict:
     """Generate all relationship edges (power, Sincerao, VIP, Anjo, votes).
 
     Returns dict with: edges_raw, effective_week_daily, effective_week_paredao,
@@ -796,7 +798,7 @@ def _build_raw_edges(paredoes, manual_events, auto_events, sincerao_edges,
     }
 
 
-def _blend_streak(q_reactive, actor, target, streak_info):
+def _blend_streak(q_reactive: float, actor: str, target: str, streak_info: dict) -> float:
     """Blend reactive score with streak memory and break penalty.
 
     Q_final = 0.7 * Q_reactive + 0.3 * Q_memory + break_penalty
@@ -818,7 +820,7 @@ def _blend_streak(q_reactive, actor, target, streak_info):
     return STREAK_REACTIVE_WEIGHT * q_reactive + STREAK_MEMORY_WEIGHT * q_memory + break_pen
 
 
-def _compute_base_weights(ref_date, name_list, daily_snapshots, reaction_matrix_latest, streak_info):
+def _compute_base_weights(ref_date: str, name_list: list[str], daily_snapshots: list[dict], reaction_matrix_latest: dict, streak_info: dict) -> dict:
     """Compute base emoji weights using a short rolling window (3 days) + streak memory + break penalty."""
     base = {}
     if daily_snapshots:
@@ -857,8 +859,8 @@ def _compute_base_weights(ref_date, name_list, daily_snapshots, reaction_matrix_
     return base
 
 
-def _compute_base_weights_all(ref_date, active_names, all_names, daily_snapshots,
-                              reaction_matrix_latest, streak_info, eliminated_last_seen):
+def _compute_base_weights_all(ref_date: str, active_names: list[str], all_names: list[str], daily_snapshots: list[dict],
+                              reaction_matrix_latest: dict, streak_info: dict, eliminated_last_seen: dict[str, str | None]) -> dict:
     """Compute base weights for all participants, using last_seen snapshots for eliminated ones."""
     base = _compute_base_weights(ref_date, active_names, daily_snapshots, reaction_matrix_latest, streak_info)
 
@@ -917,9 +919,9 @@ def _compute_base_weights_all(ref_date, active_names, all_names, daily_snapshots
     return base
 
 
-def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, eliminated_last_seen,
-                         active_names, active_set, all_names, edges_raw,
-                         reference_date_daily, reference_date_paredao):
+def _compute_pair_scores(daily_snapshots: list[dict], reaction_matrix_latest: dict, streak_info: dict, eliminated_last_seen: dict,
+                         active_names: list[str], active_set: set[str], all_names: list[str], edges_raw: list[dict],
+                         reference_date_daily: str, reference_date_paredao: str) -> dict:
     """Streak blending, base weights, pair assembly, contradiction detection.
 
     Returns dict with: pairs_daily, pairs_paredao, pairs_all, contradictions, edges.
@@ -1052,8 +1054,8 @@ def _compute_pair_scores(daily_snapshots, reaction_matrix_latest, streak_info, e
     }
 
 
-def _compute_derived_metrics(edges, paredoes, all_names,
-                             votes_received_by_week, vote_week_to_date):
+def _compute_derived_metrics(edges: list[dict], paredoes: dict | None, all_names: list[str],
+                             votes_received_by_week: dict, vote_week_to_date: dict) -> dict:
     """Received impact, voting blocs, Anjo autoimune.
 
     Returns dict with: received_impact, voting_blocs, anjo_autoimune_events.
@@ -1104,7 +1106,7 @@ def _compute_derived_metrics(edges, paredoes, all_names,
     }
 
 
-def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes, daily_roles, participants_index=None):
+def build_relations_scores(latest_snapshot: dict, daily_snapshots: list[dict], manual_events: dict, auto_events: list[dict] | None, sincerao_edges: dict | None, paredoes: dict | None, daily_roles: list[dict], participants_index: list[dict] | None = None) -> dict:
     """Build pairwise sentiment scores (A -> B) combining queridômetro + events."""
     # 1. Resolve participant sets, streak data, reaction matrix
     psets = _resolve_participant_sets(latest_snapshot, daily_snapshots, participants_index)
@@ -1170,7 +1172,7 @@ def build_relations_scores(latest_snapshot, daily_snapshots, manual_events, auto
     }
 
 
-def build_participants_index(snapshots, manual_events):
+def build_participants_index(snapshots: list[dict], manual_events: dict) -> list[dict]:
     index = {}
     for snap in snapshots:
         date = snap["date"]
@@ -1208,7 +1210,7 @@ def build_participants_index(snapshots, manual_events):
     return sorted(index.values(), key=lambda x: x["name"])
 
 
-def build_daily_roles(daily_snapshots):
+def build_daily_roles(daily_snapshots: list[dict]) -> list[dict]:
     daily_roles = []
     for snap in daily_snapshots:
         roles_map = {r: [] for r in ROLES}
@@ -1238,7 +1240,7 @@ def build_daily_roles(daily_snapshots):
     return daily_roles
 
 
-def build_auto_events(daily_roles):
+def build_auto_events(daily_roles: list[dict]) -> list[dict]:
     events = []
     prev = None
 
@@ -1303,7 +1305,7 @@ def build_auto_events(daily_roles):
     return events
 
 
-def _normalize_big_fone(raw):
+def _normalize_big_fone(raw: Any) -> list[dict]:
     """Normalize big_fone field to a list of dicts (supports legacy single-object and new array)."""
     if raw is None:
         return []
@@ -1314,7 +1316,7 @@ def _normalize_big_fone(raw):
     return []
 
 
-def apply_big_fone_context(auto_events, manual_events):
+def apply_big_fone_context(auto_events: list[dict], manual_events: dict) -> list[dict]:
     if not auto_events or not manual_events:
         return auto_events
     big_fone_map = []
@@ -1349,7 +1351,7 @@ def apply_big_fone_context(auto_events, manual_events):
     return auto_events
 
 
-def build_daily_metrics(daily_snapshots):
+def build_daily_metrics(daily_snapshots: list[dict]) -> list[dict]:
     daily = []
     for snap in daily_snapshots:
         sentiment = {}
@@ -1384,7 +1386,7 @@ def build_daily_metrics(daily_snapshots):
     return daily
 
 
-def _classify_hostility_pairs(matrix, active_names):
+def _classify_hostility_pairs(matrix: dict, active_names: set[str]) -> tuple[set, set]:
     """Classify mutual hostilities and blind spots in a reaction matrix.
 
     Returns:
@@ -1421,7 +1423,7 @@ def _classify_hostility_pairs(matrix, active_names):
     return mutual, blind_spots
 
 
-def build_daily_changes_summary(daily_snapshots):
+def build_daily_changes_summary(daily_snapshots: list[dict]) -> list[dict]:
     """For each consecutive pair of daily snapshots, compute change statistics.
 
     Returns a list of dicts with per-day change metrics for historical volatility charts.
@@ -1618,7 +1620,7 @@ def build_daily_changes_summary(daily_snapshots):
     return results
 
 
-def build_hostility_daily_counts(daily_snapshots):
+def build_hostility_daily_counts(daily_snapshots: list[dict]) -> list[dict]:
     """For each daily snapshot, count mutual and one-sided hostilities.
 
     Returns a list of dicts with per-day hostility counts.
@@ -1666,7 +1668,7 @@ def build_hostility_daily_counts(daily_snapshots):
     return results
 
 
-def build_vulnerability_history(daily_snapshots):
+def build_vulnerability_history(daily_snapshots: list[dict]) -> list[dict]:
     """For each daily snapshot, compute false friends and blind attacks per participant.
 
     false_friends: gives ❤️ to people who give them negative
@@ -1710,7 +1712,7 @@ def build_vulnerability_history(daily_snapshots):
     return results
 
 
-def build_impact_history(relations_scores):
+def build_impact_history(relations_scores: dict) -> list[dict]:
     """Build cumulative impact history per participant per date from relations_scores edges.
 
     Each edge in relations_scores has a date and weight. We accumulate positive/negative
@@ -1763,7 +1765,7 @@ def build_impact_history(relations_scores):
     return results
 
 
-def format_date_label(date_str):
+def format_date_label(date_str: str) -> str:
     try:
         dt = datetime.strptime(date_str, "%Y-%m-%d")
     except Exception:
@@ -1772,7 +1774,7 @@ def format_date_label(date_str):
     return f"{dt.day:02d} {months[dt.month - 1]} {dt.year}"
 
 
-def build_snapshots_manifest(daily_snapshots, daily_metrics):
+def build_snapshots_manifest(daily_snapshots: list[dict], daily_metrics: list[dict]) -> dict:
     repo_root = Path(__file__).parent.parent.resolve()
     metrics_dates = {d.get("date") for d in daily_metrics if d.get("date")}
     items = []
@@ -1802,7 +1804,7 @@ def build_snapshots_manifest(daily_snapshots, daily_metrics):
     }
 
 
-def detect_eliminations(daily_snapshots):
+def detect_eliminations(daily_snapshots: list[dict]) -> list[dict]:
     records = []
     prev_names = None
     prev_date = None
@@ -1824,7 +1826,134 @@ def detect_eliminations(daily_snapshots):
     return records
 
 
-def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edges, paredoes=None):
+def _compute_plant_component_scores(
+    name: str,
+    percentiles: dict[str, float],
+    totals: dict[str, int],
+    received: dict,
+    received_planta: dict,
+    received_heart: dict,
+    given: dict,
+    plant_ratio_sum: dict,
+    plant_ratio_days: dict,
+    heart_ratio_sum: dict,
+    heart_ratio_days: dict,
+    power_counts: dict,
+    power_activity: dict,
+    max_power_activity: float,
+    sinc_edges: list[dict],
+    sinc_participacao: set[str],
+    has_sincerao: bool,
+    max_sinc_edges: int,
+    prev_sincerao_values: dict[str, float],
+    planta_plateia_target: str | None,
+) -> dict:
+    """Compute per-participant plant index score with all 5 components."""
+    total_rxn = totals.get(name, 0)
+    invisibility = max(0.0, 1 - percentiles.get(name, 0.0))
+    power_count = power_counts.get(name, 0)
+    activity_score = power_activity.get(name, 0.0)
+    if max_power_activity > 0:
+        low_power_events = max(0.0, 1 - (activity_score / max_power_activity))
+    else:
+        low_power_events = 0.0
+
+    sinc_edges_count = sum(1 for e in sinc_edges if e.get("actor") == name or e.get("target") == name)
+    participated = name in sinc_participacao or sinc_edges_count > 0
+    if has_sincerao:
+        sinc_activity = (1.0 if participated else 0.0) + (0.5 * sinc_edges_count)
+        max_sinc_activity = (1.0 + 0.5 * max_sinc_edges) if max_sinc_edges else (1.0 if has_sincerao else 0.0)
+        if max_sinc_activity > 0:
+            low_sincerao = max(0.0, 1 - (sinc_activity / max_sinc_activity))
+        else:
+            low_sincerao = 0.0
+    else:
+        low_sincerao = prev_sincerao_values.get(name, 0.0) * PLANT_INDEX_SINCERAO_DECAY
+    sinc_weight = PLANT_INDEX_WEIGHTS["low_sincerao"]["weight"]
+
+    received_total = received.get(name, 0)
+    if plant_ratio_days.get(name, 0) > 0:
+        plant_ratio = plant_ratio_sum[name] / plant_ratio_days[name]
+    else:
+        plant_ratio = 0.0
+    plant_score = min(PLANT_INDEX_EMOJI_CAP, plant_ratio) / PLANT_INDEX_EMOJI_CAP if plant_ratio else 0.0
+
+    if heart_ratio_days.get(name, 0) > 0:
+        avg_heart_ratio = heart_ratio_sum[name] / heart_ratio_days[name]
+    else:
+        avg_heart_ratio = 0.0
+    heart_uniformity_raw = (min(PLANT_INDEX_HEART_CAP, avg_heart_ratio) / PLANT_INDEX_HEART_CAP) if avg_heart_ratio > 0 else 0.0
+    heart_uniformity_effective = heart_uniformity_raw * low_power_events
+
+    bonus = PLANT_INDEX_BONUS_PLATEIA if planta_plateia_target == name else 0
+
+    low_power_weight = PLANT_INDEX_WEIGHTS["low_power_events"]["weight"]
+
+    points = {
+        "invisibility": PLANT_INDEX_WEIGHTS["invisibility"]["weight"] * invisibility * 100,
+        "low_power_events": low_power_weight * low_power_events * 100,
+        "low_sincerao": sinc_weight * low_sincerao * 100,
+        "plant_emoji": PLANT_INDEX_WEIGHTS["plant_emoji"]["weight"] * plant_score * 100,
+        "heart_uniformity": PLANT_INDEX_WEIGHTS["heart_uniformity"]["weight"] * heart_uniformity_effective * 100,
+        "plateia_bonus": bonus,
+    }
+
+    base = sum(points[k] for k in ["invisibility", "low_power_events", "low_sincerao", "plant_emoji", "heart_uniformity"])
+    score = max(0.0, min(100.0, base + bonus))
+
+    breakdown = [
+        {"label": PLANT_INDEX_WEIGHTS["invisibility"]["label"], "points": round(points["invisibility"], 1)},
+        {"label": PLANT_INDEX_WEIGHTS["low_power_events"]["label"], "points": round(points["low_power_events"], 1)},
+        {"label": PLANT_INDEX_WEIGHTS["low_sincerao"]["label"], "points": round(points["low_sincerao"], 1)},
+        {"label": PLANT_INDEX_WEIGHTS["plant_emoji"]["label"], "points": round(points["plant_emoji"], 1)},
+        {"label": PLANT_INDEX_WEIGHTS["heart_uniformity"]["label"], "points": round(points["heart_uniformity"], 1)},
+    ]
+    if bonus:
+        breakdown.append({"label": "Plateia definiu planta", "points": bonus})
+
+    prev_sincerao_values[name] = low_sincerao
+
+    return {
+        "score": round(score, 1),
+        "components": {
+            "invisibility": round(invisibility, 3),
+            "low_power_events": round(low_power_events, 3),
+            "low_sincerao": round(low_sincerao, 3),
+            "plant_emoji": round(plant_score, 3),
+            "heart_uniformity": round(heart_uniformity_effective, 3),
+            "plateia_bonus": 1 if bonus else 0,
+        },
+        "breakdown": breakdown,
+        "raw": {
+            "reactions_total": total_rxn,
+            "reactions_received": received_total,
+            "reactions_given": given.get(name, 0),
+            "plant_received": received_planta.get(name, 0),
+            "heart_received": received_heart.get(name, 0),
+            "heart_ratio": round(avg_heart_ratio, 3),
+            "heart_uniformity_raw": round(heart_uniformity_raw, 3),
+            "heart_uniformity_effective": round(heart_uniformity_effective, 3),
+            "power_events": power_count,
+            "power_activity": round(activity_score, 2),
+            "sincerao_edges": sinc_edges_count,
+            "sincerao_activity": round(((1.0 if participated else 0.0) + (0.5 * sinc_edges_count)) if has_sincerao else 0.0, 2),
+            "sincerao_participation": participated if has_sincerao else None,
+            "plateia_planta": planta_plateia_target == name,
+        },
+    }
+
+
+def _compute_plant_rolling_averages(weeks_out: list[dict]) -> None:
+    """Compute rolling averages in-place for plant index weekly scores."""
+    history: dict[str, list[float]] = defaultdict(list)
+    for week in sorted(weeks_out, key=lambda x: x["week"]):
+        for name, rec in week["scores"].items():
+            history[name].append(rec["score"])
+            recent = history[name][-PLANT_INDEX_ROLLING_WEEKS:]
+            rec["rolling"] = round(sum(recent) / len(recent), 1)
+
+
+def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, auto_events: list[dict] | None, sincerao_edges: dict | None, paredoes: dict | None = None) -> dict:
     weekly = defaultdict(lambda: {"dates": [], "snapshots": []})
     for snap in daily_snapshots:
         week = get_week_number(snap["date"])
@@ -1879,7 +2008,7 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
 
     sinc_weeks = {w.get("week"): w for w in (sincerao_edges or {}).get("weeks", [])}
 
-    prev_sincerao_values = {}
+    prev_sincerao_values: dict[str, float] = {}
 
     weeks_out = []
     for week in sorted(weekly.keys()):
@@ -2014,97 +2143,13 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
 
         scores = {}
         for name in sorted(participants):
-            total_rxn = totals.get(name, 0)
-            invisibility = max(0.0, 1 - percentiles.get(name, 0.0))
-            power_count = power_counts.get(name, 0)
-            activity_score = power_activity.get(name, 0.0)
-            if max_power_activity > 0:
-                low_power_events = max(0.0, 1 - (activity_score / max_power_activity))
-            else:
-                low_power_events = 0.0
-
-            sinc_edges_count = sum(1 for e in sinc_edges if e.get("actor") == name or e.get("target") == name)
-            participated = name in sinc_participacao or sinc_edges_count > 0
-            if has_sincerao:
-                sinc_activity = (1.0 if participated else 0.0) + (0.5 * sinc_edges_count)
-                max_sinc_activity = (1.0 + 0.5 * max_sinc_edges) if max_sinc_edges else (1.0 if has_sincerao else 0.0)
-                if max_sinc_activity > 0:
-                    low_sincerao = max(0.0, 1 - (sinc_activity / max_sinc_activity))
-                else:
-                    low_sincerao = 0.0
-            else:
-                low_sincerao = prev_sincerao_values.get(name, 0.0) * PLANT_INDEX_SINCERAO_DECAY
-            sinc_weight = PLANT_INDEX_WEIGHTS["low_sincerao"]["weight"]
-
-            received_total = received.get(name, 0)
-            if plant_ratio_days.get(name, 0) > 0:
-                plant_ratio = plant_ratio_sum[name] / plant_ratio_days[name]
-            else:
-                plant_ratio = 0.0
-            plant_score = min(PLANT_INDEX_EMOJI_CAP, plant_ratio) / PLANT_INDEX_EMOJI_CAP if plant_ratio else 0.0
-
-            if heart_ratio_days.get(name, 0) > 0:
-                avg_heart_ratio = heart_ratio_sum[name] / heart_ratio_days[name]
-            else:
-                avg_heart_ratio = 0.0
-            heart_uniformity_raw = (min(PLANT_INDEX_HEART_CAP, avg_heart_ratio) / PLANT_INDEX_HEART_CAP) if avg_heart_ratio > 0 else 0.0
-            heart_uniformity_effective = heart_uniformity_raw * low_power_events
-
-            bonus = PLANT_INDEX_BONUS_PLATEIA if planta_plateia_target == name else 0
-
-            low_power_weight = PLANT_INDEX_WEIGHTS["low_power_events"]["weight"]
-
-            points = {
-                "invisibility": PLANT_INDEX_WEIGHTS["invisibility"]["weight"] * invisibility * 100,
-                "low_power_events": low_power_weight * low_power_events * 100,
-                "low_sincerao": sinc_weight * low_sincerao * 100,
-                "plant_emoji": PLANT_INDEX_WEIGHTS["plant_emoji"]["weight"] * plant_score * 100,
-                "heart_uniformity": PLANT_INDEX_WEIGHTS["heart_uniformity"]["weight"] * heart_uniformity_effective * 100,
-                "plateia_bonus": bonus,
-            }
-
-            base = sum(points[k] for k in ["invisibility", "low_power_events", "low_sincerao", "plant_emoji", "heart_uniformity"])
-            score = max(0.0, min(100.0, base + bonus))
-
-            breakdown = [
-                {"label": PLANT_INDEX_WEIGHTS["invisibility"]["label"], "points": round(points["invisibility"], 1)},
-                {"label": PLANT_INDEX_WEIGHTS["low_power_events"]["label"], "points": round(points["low_power_events"], 1)},
-                {"label": PLANT_INDEX_WEIGHTS["low_sincerao"]["label"], "points": round(points["low_sincerao"], 1)},
-                {"label": PLANT_INDEX_WEIGHTS["plant_emoji"]["label"], "points": round(points["plant_emoji"], 1)},
-                {"label": PLANT_INDEX_WEIGHTS["heart_uniformity"]["label"], "points": round(points["heart_uniformity"], 1)},
-            ]
-            if bonus:
-                breakdown.append({"label": "Plateia definiu planta", "points": bonus})
-
-            scores[name] = {
-                "score": round(score, 1),
-                "components": {
-                    "invisibility": round(invisibility, 3),
-                    "low_power_events": round(low_power_events, 3),
-                    "low_sincerao": round(low_sincerao, 3),
-                    "plant_emoji": round(plant_score, 3),
-                    "heart_uniformity": round(heart_uniformity_effective, 3),
-                    "plateia_bonus": 1 if bonus else 0,
-                },
-                "breakdown": breakdown,
-                "raw": {
-                    "reactions_total": total_rxn,
-                    "reactions_received": received_total,
-                    "reactions_given": given.get(name, 0),
-                    "plant_received": received_planta.get(name, 0),
-                    "heart_received": received_heart.get(name, 0),
-                    "heart_ratio": round(avg_heart_ratio, 3),
-                    "heart_uniformity_raw": round(heart_uniformity_raw, 3),
-                    "heart_uniformity_effective": round(heart_uniformity_effective, 3),
-                    "power_events": power_count,
-                    "power_activity": round(activity_score, 2),
-                    "sincerao_edges": sinc_edges_count,
-                    "sincerao_activity": round(((1.0 if participated else 0.0) + (0.5 * sinc_edges_count)) if has_sincerao else 0.0, 2),
-                    "sincerao_participation": participated if has_sincerao else None,
-                    "plateia_planta": planta_plateia_target == name,
-                },
-            }
-            prev_sincerao_values[name] = low_sincerao
+            scores[name] = _compute_plant_component_scores(
+                name, percentiles, totals, received, received_planta,
+                received_heart, given, plant_ratio_sum, plant_ratio_days,
+                heart_ratio_sum, heart_ratio_days, power_counts, power_activity,
+                max_power_activity, sinc_edges, sinc_participacao, has_sincerao,
+                max_sinc_edges, prev_sincerao_values, planta_plateia_target,
+            )
 
         weeks_out.append({
             "week": week,
@@ -2112,12 +2157,7 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
             "scores": scores,
         })
 
-    history = defaultdict(list)
-    for week in sorted(weeks_out, key=lambda x: x["week"]):
-        for name, rec in week["scores"].items():
-            history[name].append(rec["score"])
-            recent = history[name][-PLANT_INDEX_ROLLING_WEEKS:]
-            rec["rolling"] = round(sum(recent) / len(recent), 1)
+    _compute_plant_rolling_averages(weeks_out)
 
     latest_week = max((w["week"] for w in weeks_out), default=None)
     latest_scores = {}
@@ -2141,7 +2181,7 @@ def build_plant_index(daily_snapshots, manual_events, auto_events, sincerao_edge
     }
 
 
-def build_sincerao_edges(manual_events):
+def build_sincerao_edges(manual_events: dict) -> dict:
     weights = {
         "podio_mention": 0.25,
         "nao_ganha_mention": -0.5,
@@ -2243,7 +2283,7 @@ def build_sincerao_edges(manual_events):
     }
 
 
-def split_names(value):
+def split_names(value: str | None) -> list[str]:
     """Split consensus actor names (e.g., 'A + B') into individual names."""
     if not value or not isinstance(value, str):
         return []
@@ -2252,7 +2292,7 @@ def split_names(value):
     return [value.strip()]
 
 
-def validate_manual_events(participants_index, manual_events):
+def validate_manual_events(participants_index: list[dict], manual_events: dict) -> list[dict]:
     names = {p["name"] for p in participants_index}
     warnings = []
 
@@ -2276,7 +2316,7 @@ def validate_manual_events(participants_index, manual_events):
     return warnings
 
 
-def _detect_cartola_roles(daily_snapshots, calculated_points):
+def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) -> None:
     """Auto-detect roles from API snapshots and populate calculated_points."""
     def has_event(name, week, event_key):
         week_events = calculated_points.get(name, {}).get(week, [])
@@ -2373,7 +2413,7 @@ def _detect_cartola_roles(daily_snapshots, calculated_points):
         previous_holders['Paredão'] = current_holders['Paredão'].copy()
 
 
-def _apply_cartola_manual(calculated_points, manual_events, paredoes_data, daily_snapshots):
+def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes_data: dict, daily_snapshots: list[dict]) -> dict:
     """Apply manual events, paredão-derived events, and merge with cartola_points_log.
 
     Returns all_points (merged calculated + manual log).
@@ -2536,7 +2576,7 @@ def _apply_cartola_manual(calculated_points, manual_events, paredoes_data, daily
     return all_points
 
 
-def _format_cartola_output(all_points, participants_index, manual_events, daily_snapshots):
+def _format_cartola_output(all_points: dict, participants_index: list[dict], manual_events: dict, daily_snapshots: list[dict]) -> dict:
     """Format Cartola output: leaderboard, weekly points, stats, cumulative evolution."""
     # Build participant info from index
     participant_info = {}
@@ -2665,7 +2705,7 @@ def _format_cartola_output(all_points, participants_index, manual_events, daily_
     }
 
 
-def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participants_index):
+def build_cartola_data(daily_snapshots: list[dict], manual_events: dict, paredoes_data: dict, participants_index: list[dict]) -> dict:
     """Build Cartola BBB points data from snapshots, manual events, and paredões.
 
     Returns a dict suitable for writing to cartola_data.json.
@@ -2677,88 +2717,73 @@ def build_cartola_data(daily_snapshots, manual_events, paredoes_data, participan
     return _format_cartola_output(all_points, participants_index, manual_events, daily_snapshots)
 
 
-def build_prova_rankings(provas_data, participants_index):
-    """Build per-participant ranking from competition placements.
+def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
+    """Compute final positions for every participant in a single prova."""
+    numero = prova["numero"]
+    tipo = prova["tipo"]
+    week = prova["week"]
+    prova_date = prova.get("date", "")
+    fases = prova.get("fases", [])
+    excluded_names = {e["nome"] for e in prova.get("excluidos", [])}
 
-    For each prova, determines final positions considering multi-phase
-    competitions, duo phases, ties, DQs, and excluded participants.
-    Applies type-based multipliers to base placement points.
-    """
-    provas_list = provas_data.get("provas", []) if provas_data else []
-    if not provas_list:
-        return {
-            "_metadata": {
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-                "total_provas": 0,
-                "scoring": {
-                    "placement_points": PROVA_PLACEMENT_POINTS,
-                    "placement_default": PROVA_PLACEMENT_DEFAULT,
-                    "type_multipliers": PROVA_TYPE_MULTIPLIER,
-                },
-            },
-            "leaderboard": [],
-            "provas_summary": [],
-        }
+    # Determine who participated: everyone in the house on prova date minus excluded
+    available_names = set()
+    for name, info in pi_map.items():
+        first = info.get("first_seen", "")
+        last = info.get("last_seen", "")
+        if first and first <= prova_date and (not last or last >= prova_date):
+            available_names.add(name)
+        elif not first:
+            available_names.add(name)
 
-    # Build participant availability: which provas existed while each was in the house
-    pi_map = {}
-    for p in participants_index:
-        pi_map[p["name"]] = {
-            "first_seen": p.get("first_seen"),
-            "last_seen": p.get("last_seen"),
-            "active": p.get("active", True),
-        }
-    all_participant_names = set(pi_map.keys())
+    # Build final positions from phases
+    positions: dict[str, Any] = {}
 
-    # For each prova, compute final positions for every participant
-    prova_results = []  # list of dicts: { prova_numero, tipo, week, positions: {name: pos_or_None} }
+    if len(fases) == 1:
+        fase = fases[0]
+        _assign_phase_positions(positions, fase, excluded_names)
+    elif len(fases) == 2:
+        fase1 = fases[0]
+        fase2 = fases[1]
+        n_phase2 = len(fase2.get("classificacao", []))
 
-    for prova in provas_list:
-        numero = prova["numero"]
-        tipo = prova["tipo"]
-        week = prova["week"]
-        prova_date = prova.get("date", "")
-        fases = prova.get("fases", [])
-        excluded_names = {e["nome"] for e in prova.get("excluidos", [])}
+        _assign_phase_positions(positions, fase2, excluded_names)
 
-        # Determine who participated: everyone in the house on prova date minus excluded
-        available_names = set()
-        for name, info in pi_map.items():
-            first = info.get("first_seen", "")
-            last = info.get("last_seen", "")
-            if first and first <= prova_date and (not last or last >= prova_date):
-                available_names.add(name)
-            elif not first:
-                available_names.add(name)
+        phase2_names = set()
+        for entry in fase2.get("classificacao", []):
+            if "nome" in entry:
+                phase2_names.add(entry["nome"])
+            elif "dupla" in entry:
+                phase2_names.update(entry["dupla"])
+            elif "membros" in entry:
+                phase2_names.update(entry["membros"])
 
-        # Build final positions from phases
-        positions = {}  # name -> position (int) or None
+        for entry in fase1.get("classificacao", []):
+            names_in_entry = []
+            if "nome" in entry:
+                names_in_entry = [entry["nome"]]
+            elif "dupla" in entry:
+                names_in_entry = list(entry["dupla"])
+            elif "membros" in entry:
+                names_in_entry = list(entry["membros"])
 
-        if len(fases) == 1:
-            # Single phase: positions come directly from classificacao
-            fase = fases[0]
-            _assign_phase_positions(positions, fase, excluded_names)
-        elif len(fases) == 2:
-            fase1 = fases[0]
-            fase2 = fases[1]
-            n_phase2 = len(fase2.get("classificacao", []))
-
-            # Phase 2 finalists get their Phase 2 positions
-            _assign_phase_positions(positions, fase2, excluded_names)
-
-            # Phase 2 participant names (to exclude from Phase 1 offset)
-            phase2_names = set()
-            for entry in fase2.get("classificacao", []):
-                if "nome" in entry:
-                    phase2_names.add(entry["nome"])
-                elif "dupla" in entry:
-                    phase2_names.update(entry["dupla"])
-                elif "membros" in entry:
-                    phase2_names.update(entry["membros"])
-
-            # Phase 1 non-finalists get their Phase 1 position + offset
-            # For team provas, each member of a group shares the group's position
-            for entry in fase1.get("classificacao", []):
+            for name in names_in_entry:
+                if name in phase2_names:
+                    continue
+                if name in excluded_names:
+                    continue
+                if entry.get("dq") or entry.get("eliminados"):
+                    positions[name] = "dq"
+                    continue
+                pos = entry.get("pos")
+                if pos is not None:
+                    final_pos = pos + n_phase2
+                    positions[name] = final_pos
+    elif len(fases) >= 3:
+        assigned_names = set()
+        for phase_idx in range(len(fases) - 1, -1, -1):
+            fase = fases[phase_idx]
+            for entry in fase.get("classificacao", []):
                 names_in_entry = []
                 if "nome" in entry:
                     names_in_entry = [entry["nome"]]
@@ -2766,71 +2791,40 @@ def build_prova_rankings(provas_data, participants_index):
                     names_in_entry = list(entry["dupla"])
                 elif "membros" in entry:
                     names_in_entry = list(entry["membros"])
-
                 for name in names_in_entry:
-                    if name in phase2_names:
-                        continue  # already assigned from Phase 2
-                    if name in excluded_names:
+                    if name in assigned_names or name in excluded_names:
                         continue
                     if entry.get("dq") or entry.get("eliminados"):
                         positions[name] = "dq"
-                        continue
-                    pos = entry.get("pos")
-                    if pos is not None:
-                        # Offset by number of Phase 2 positions (since those are final 1..N)
-                        # For team provas: all members of a group share the same offset position
-                        final_pos = pos + n_phase2
-                        positions[name] = final_pos
-                    # else: unknown position, leave as None
-        elif len(fases) >= 3:
-            # Bracket-style multi-phase (3+ phases): positions in each phase
-            # are global (include all participants). Walk from last phase backward,
-            # assigning positions without offset for already-eliminated participants.
-            assigned_names = set()
-            for phase_idx in range(len(fases) - 1, -1, -1):
-                fase = fases[phase_idx]
-                for entry in fase.get("classificacao", []):
-                    names_in_entry = []
-                    if "nome" in entry:
-                        names_in_entry = [entry["nome"]]
-                    elif "dupla" in entry:
-                        names_in_entry = list(entry["dupla"])
-                    elif "membros" in entry:
-                        names_in_entry = list(entry["membros"])
-                    for name in names_in_entry:
-                        if name in assigned_names or name in excluded_names:
-                            continue
-                        if entry.get("dq") or entry.get("eliminados"):
-                            positions[name] = "dq"
-                        else:
-                            pos = entry.get("pos")
-                            if pos is not None:
-                                positions[name] = pos
-                        assigned_names.add(name)
+                    else:
+                        pos = entry.get("pos")
+                        if pos is not None:
+                            positions[name] = pos
+                    assigned_names.add(name)
 
-        # Mark excluded as None (not 0)
-        for name in excluded_names:
-            if name in available_names:
-                positions[name] = None
+    for name in excluded_names:
+        if name in available_names:
+            positions[name] = None
 
-        # Anyone in available_names but not in positions gets None (unknown)
-        for name in available_names:
-            if name not in positions:
-                positions[name] = None
+    for name in available_names:
+        if name not in positions:
+            positions[name] = None
 
-        prova_results.append({
-            "numero": numero,
-            "tipo": tipo,
-            "week": week,
-            "date": prova_date,
-            "positions": positions,
-            "available_names": available_names,
-            "excluded_names": excluded_names,
-            "vencedor": prova.get("vencedor"),
-            "participantes_total": prova.get("participantes_total", 0),
-        })
+    return {
+        "numero": numero,
+        "tipo": tipo,
+        "week": week,
+        "date": prova_date,
+        "positions": positions,
+        "available_names": available_names,
+        "excluded_names": excluded_names,
+        "vencedor": prova.get("vencedor"),
+        "participantes_total": prova.get("participantes_total", 0),
+    }
 
-    # Aggregate per participant
+
+def _compute_prova_leaderboard(prova_results: list[dict], all_participant_names: set[str]) -> list[dict]:
+    """Aggregate per-participant stats from prova results and build leaderboard."""
     participant_stats: dict[str, dict] = {}
 
     def _get_prova_stats(name: str) -> dict:
@@ -2853,12 +2847,11 @@ def build_prova_rankings(provas_data, participants_index):
             stats = _get_prova_stats(name)
 
             if name not in pr["available_names"]:
-                continue  # wasn't in the house for this prova
+                continue
             stats["provas_available"] += 1
 
             pos = pr["positions"].get(name)
             if pos is None:
-                # Excluded or unknown — don't count
                 stats["detail"].append({
                     "prova": pr["numero"],
                     "tipo": pr["tipo"],
@@ -2897,11 +2890,10 @@ def build_prova_rankings(provas_data, participants_index):
                 "weighted_pts": weighted_pts,
             })
 
-    # Build leaderboard sorted by total_points desc
     leaderboard = []
     for name, stats in participant_stats.items():
         if stats["provas_available"] == 0:
-            continue  # skip participants with no provas available
+            continue
         avg = round(stats["total_points"] / stats["provas_participated"], 2) if stats["provas_participated"] > 0 else 0.0
         participation_rate = round(stats["provas_participated"] / stats["provas_available"], 2) if stats["provas_available"] > 0 else 0.0
         leaderboard.append({
@@ -2918,6 +2910,46 @@ def build_prova_rankings(provas_data, participants_index):
         })
 
     leaderboard.sort(key=lambda x: (-x["total_points"], -x["wins"], x["name"]))
+    return leaderboard
+
+
+def build_prova_rankings(provas_data: dict | None, participants_index: list[dict]) -> dict:
+    """Build per-participant ranking from competition placements.
+
+    For each prova, determines final positions considering multi-phase
+    competitions, duo phases, ties, DQs, and excluded participants.
+    Applies type-based multipliers to base placement points.
+    """
+    provas_list = provas_data.get("provas", []) if provas_data else []
+    if not provas_list:
+        return {
+            "_metadata": {
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "total_provas": 0,
+                "scoring": {
+                    "placement_points": PROVA_PLACEMENT_POINTS,
+                    "placement_default": PROVA_PLACEMENT_DEFAULT,
+                    "type_multipliers": PROVA_TYPE_MULTIPLIER,
+                },
+            },
+            "leaderboard": [],
+            "provas_summary": [],
+        }
+
+    # Build participant availability: which provas existed while each was in the house
+    pi_map = {}
+    for p in participants_index:
+        pi_map[p["name"]] = {
+            "first_seen": p.get("first_seen"),
+            "last_seen": p.get("last_seen"),
+            "active": p.get("active", True),
+        }
+    all_participant_names = set(pi_map.keys())
+
+    # For each prova, compute final positions for every participant
+    prova_results = [_score_single_prova(prova, pi_map) for prova in provas_list]
+
+    leaderboard = _compute_prova_leaderboard(prova_results, all_participant_names)
 
     # Build provas summary
     provas_summary = []
@@ -2946,7 +2978,7 @@ def build_prova_rankings(provas_data, participants_index):
     }
 
 
-def _assign_phase_positions(positions, fase, excluded_names):
+def _assign_phase_positions(positions: dict, fase: dict, excluded_names: set[str]) -> None:
     """Assign positions from a single phase's classificacao to the positions dict."""
     for entry in fase.get("classificacao", []):
         names_in_entry = []
@@ -2968,7 +3000,7 @@ def _assign_phase_positions(positions, fase, excluded_names):
                     positions[name] = pos
 
 
-def _run_cluster_detection(active_names, sym_mat, participant_info, n_active, nx, louvain_communities, np):
+def _run_cluster_detection(active_names: list[str], sym_mat: list[list[float]], participant_info: dict, n_active: int, nx: Any, louvain_communities: Any, np: Any) -> dict:
     """Run Louvain community detection with silhouette-based resolution tuning.
 
     Returns dict with: cluster_of, cluster_members, n_clusters, silhouette_coefficient, resolution_used.
@@ -3052,7 +3084,7 @@ def _run_cluster_detection(active_names, sym_mat, participant_info, n_active, nx
     }
 
 
-def _name_clusters(cluster_members, participant_info, name_to_idx, sym_mat):
+def _name_clusters(cluster_members: dict, participant_info: dict, name_to_idx: dict[str, int], sym_mat: list[list[float]]) -> tuple[dict, dict]:
     """Auto-name clusters based on group composition and internal cohesion.
 
     Returns (cluster_names, cluster_colors) dicts.
@@ -3098,7 +3130,7 @@ def _name_clusters(cluster_members, participant_info, name_to_idx, sym_mat):
     return cluster_names, cluster_colors
 
 
-def _compute_cluster_metrics(cluster_members, name_to_idx, sym_mat, score_mat):
+def _compute_cluster_metrics(cluster_members: dict, name_to_idx: dict[str, int], sym_mat: list[list[float]], score_mat: list[list[float]]) -> dict:
     """Compute internal cohesion, inter-cluster scores, and tension metrics.
 
     Returns dict with: cluster_internal_avg, inter_cluster_directed, inter_cluster_sym,
@@ -3143,7 +3175,7 @@ def _compute_cluster_metrics(cluster_members, name_to_idx, sym_mat, score_mat):
     }
 
 
-def build_clusters_data(relations_scores, participants_index, paredoes_data):
+def build_clusters_data(relations_scores: dict, participants_index: list[dict] | dict, paredoes_data: dict | list) -> dict | None:
     """Build community detection + vote alignment data for clusters.qmd.
 
     Uses Louvain community detection on the composite relation scores graph.
@@ -3369,7 +3401,7 @@ def build_clusters_data(relations_scores, participants_index, paredoes_data):
     }
 
 
-def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
+def build_cluster_evolution(daily_snapshots: list[dict], participants_index: list[dict] | dict, paredoes_data: dict | list) -> dict | None:
     """Track cluster membership changes across weekly snapshots.
 
     Computes Louvain communities for one snapshot per week, tracks:
@@ -3558,9 +3590,17 @@ def build_cluster_evolution(daily_snapshots, participants_index, paredoes_data):
     }
 
 
-def build_game_timeline(eliminations_detected, auto_events, manual_events, paredoes_data):
-    """Build a unified chronological timeline merging all event sources."""
-    events = []
+def _collect_timeline_auto_events(
+    eliminations_detected: list[dict],
+    auto_events: list[dict],
+    manual_events: dict,
+) -> list[dict]:
+    """Collect timeline events from eliminations_detected and auto_events.
+
+    Handles entries/exits (section 1) and auto power events like Líder, Anjo,
+    Monstro, Imune (section 2).
+    """
+    events: list[dict] = []
 
     # --- 1. Entries and exits from eliminations_detected ---
     participant_details = manual_events.get("participants", {})
@@ -3602,6 +3642,17 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
             "detail": ev.get("detail", ""), "participants": [target] if target else [],
             "source": "auto_events",
         })
+
+    return events
+
+
+def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
+    """Collect timeline events from manual power events, weekly events, and special events.
+
+    Handles power events (section 3), weekly events (section 4), and
+    special events/dinâmicas (section 6).
+    """
+    events: list[dict] = []
 
     # --- 3. Power events (manual) ---
     # Collect dates with ta_com_nada so individual punição events are suppressed in timeline
@@ -3696,8 +3747,30 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
                 "source": "weekly_events",
             })
 
-    # --- 5. Paredão formation + resultado ---
-    paredao_list = []
+    # --- 6. Special events (dinâmicas, new entrants) ---
+    for se in manual_events.get("special_events", []):
+        date = se.get("date", "")
+        week = get_week_number(date) if date else 0
+        name = se.get("name", se.get("description", "Evento especial"))
+        participants = se.get("participants", se.get("participants_affected", []))
+        events.append({
+            "date": date, "week": week, "category": "dinamica",
+            "emoji": "⭐", "title": name,
+            "detail": se.get("description", se.get("resultado", "")),
+            "participants": participants if isinstance(participants, list) else [],
+            "source": "special_events",
+        })
+
+    return events
+
+
+def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[dict]:
+    """Collect timeline events from paredão formation and results.
+
+    Handles paredão formation + resultado (section 5).
+    """
+    events: list[dict] = []
+    paredao_list: list[dict] = []
     if isinstance(paredoes_data, dict):
         paredao_list = paredoes_data.get("paredoes", [])
     elif isinstance(paredoes_data, list):
@@ -3744,20 +3817,18 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
                 "participants": [eliminado] if eliminado else [], "source": "paredoes",
             })
 
-    # --- 6. Special events (dinâmicas, new entrants) ---
-    for se in manual_events.get("special_events", []):
-        date = se.get("date", "")
-        week = get_week_number(date) if date else 0
-        name = se.get("name", se.get("description", "Evento especial"))
-        participants = se.get("participants", se.get("participants_affected", []))
-        events.append({
-            "date": date, "week": week, "category": "dinamica",
-            "emoji": "⭐", "title": name,
-            "detail": se.get("description", se.get("resultado", "")),
-            "participants": participants if isinstance(participants, list) else [],
-            "source": "special_events",
-        })
+    return events
 
+
+def _merge_and_dedup_timeline(
+    events: list[dict],
+    manual_events: dict,
+) -> list[dict]:
+    """Merge scheduled events, sort, and deduplicate the timeline.
+
+    Handles scheduled future events (section 7), sorting by date+category,
+    and deduplication by (date, category, title).
+    """
     # --- 7. Scheduled (future) events ---
     # Dedup by (date, category): if ANY real event exists for that date+category,
     # the scheduled placeholder is dropped (titles often differ, e.g. "Prova do Anjo"
@@ -3789,8 +3860,8 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
     events.sort(key=lambda e: (e.get("date", ""), cat_order.get(e.get("category", ""), 99)))
 
     # Deduplicate: same date + category + same title → keep first
-    seen = set()
-    unique = []
+    seen: set[tuple[str, str, str]] = set()
+    unique: list[dict] = []
     for e in events:
         key = (e["date"], e["category"], e["title"])
         if key not in seen:
@@ -3800,7 +3871,21 @@ def build_game_timeline(eliminations_detected, auto_events, manual_events, pared
     return unique
 
 
-def build_power_summary(manual_events, auto_events):
+def build_game_timeline(
+    eliminations_detected: list[dict],
+    auto_events: list[dict],
+    manual_events: dict,
+    paredoes_data: dict | list | None,
+) -> list[dict]:
+    """Build a unified chronological timeline merging all event sources."""
+    events: list[dict] = []
+    events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events))
+    events.extend(_collect_timeline_manual_events(manual_events))
+    events.extend(_collect_timeline_paredao_events(paredoes_data))
+    return _merge_and_dedup_timeline(events, manual_events)
+
+
+def build_power_summary(manual_events: dict, auto_events: list[dict]) -> dict:
     """Build per-participant power event impact summary.
 
     Returns a dict with by_participant counts and sorted_by_saldo list.
@@ -3837,8 +3922,14 @@ def build_power_summary(manual_events, auto_events):
     }
 
 
-def _compute_pair_relationship_history(actor, target, daily_matrices, daily_snapshots,
-                                       is_finalizado, analysis_date):
+def _compute_pair_relationship_history(
+    actor: str,
+    target: str,
+    daily_matrices: list[dict],
+    daily_snapshots: list[dict],
+    is_finalizado: bool,
+    analysis_date: str,
+) -> dict:
     """Compute relationship history between actor→target from daily matrices.
 
     Returns a dict with pattern, days_as_friends/enemies, change_date, narrative.
@@ -3903,115 +3994,17 @@ def _compute_pair_relationship_history(actor, target, daily_matrices, daily_snap
             "narrative": narrative, "total_days": total_hist_days}
 
 
-def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
-    """Analyze a single paredão: nominee stats, relationship history, vote analysis.
+def _build_paredao_vote_analysis(
+    votos: dict[str, str],
+    relationship_history: dict[str, dict],
+    matrix_p: dict[tuple[str, str], str] | None,
+) -> tuple[list[dict], Counter]:
+    """Classify each house vote by relationship type (voter→target reaction patterns).
 
-    Returns a dict with the full analysis for this paredão, or None if skipped.
+    Returns (vote_analysis list, relationship_counts Counter).
     """
-    numero = par.get("numero")
-    if not numero:
-        return None
-    data_formacao = par.get("data_formacao") or par.get("data", "")
-    status = par.get("status", "")
-    indicados = par.get("indicados_finais", par.get("participantes", []))
-    if isinstance(indicados, list):
-        indicados = [p.get("nome", p) if isinstance(p, dict) else p for p in indicados]
-
-    is_finalizado = status == "finalizado"
-    analysis_date = data_formacao
-
-    # Find snapshot for analysis
-    snap_for_analysis = None
-    if is_finalizado:
-        for snap in reversed(daily_snapshots):
-            if snap["date"] <= analysis_date:
-                snap_for_analysis = snap
-                break
-        if snap_for_analysis is None and daily_snapshots:
-            snap_for_analysis = daily_snapshots[0]
-    else:
-        snap_for_analysis = daily_snapshots[-1] if daily_snapshots else None
-
-    if not snap_for_analysis:
-        return None
-
-    # Sentiment in analysis snapshot
-    sent_paredao = {}
-    neg_paredao = {}
-    for p in snap_for_analysis["participants"]:
-        if p.get("characteristics", {}).get("eliminated"):
-            continue
-        name = p["name"]
-        sent_paredao[name] = calc_sentiment(p)
-        neg_paredao[name] = sum(
-            r["amount"] for r in p.get("characteristics", {}).get("receivedReactions", [])
-            if r["label"] != "Coração"
-        )
-
-    # Ranking
-    ranking_paredao = sorted(sent_paredao.items(), key=lambda x: x[1], reverse=True)
-    rank_map = {name: i + 1 for i, (name, _) in enumerate(ranking_paredao)}
-
-    # Historical daily series (up to analysis_date for finalizado)
-    daily_sent = []  # list of (date, {name: sentiment})
-    for snap in daily_snapshots:
-        date = snap["date"]
-        if is_finalizado and date > analysis_date:
-            continue
-        day_scores = {}
-        for p in snap["participants"]:
-            if p.get("characteristics", {}).get("eliminated"):
-                continue
-            day_scores[p["name"]] = calc_sentiment(p)
-        daily_sent.append((date, day_scores))
-
-    # Top5/Bottom5 counts
-    top5_counts = Counter()
-    bottom5_counts = Counter()
-    for _date, scores in daily_sent:
-        sorted_names = sorted(scores.keys(), key=lambda n: scores[n], reverse=True)
-        for n in sorted_names[:5]:
-            top5_counts[n] += 1
-        for n in sorted_names[-5:]:
-            bottom5_counts[n] += 1
-
-    # Build per-indicado stats
-    indicados_stats = _analyze_nominees(indicados, daily_sent, sent_paredao, rank_map,
-                                        top5_counts, bottom5_counts, neg_paredao)
-
-    # Historical series for indicados
-    historical_series = []
-    for date, scores in daily_sent:
-        for nome in indicados:
-            if nome in scores:
-                historical_series.append({
-                    "date": date,
-                    "name": nome,
-                    "sentiment": round(scores[nome], 2),
-                })
-
-    # Relationship history for each voter→target pair
-    votos = par.get("votos_casa", {}) or {}
-    relationship_history = {}
-    for votante, alvo in votos.items():
-        if not votante or not alvo:
-            continue
-        key = f"{votante}→{alvo}"
-        relationship_history[key] = _compute_pair_relationship_history(
-            votante, alvo, daily_matrices, daily_snapshots, is_finalizado, analysis_date)
-
-    # ── Vote classification (relationship type for each vote) ──
-    # Find the matrix at the analysis date
-    matrix_p = None
-    for idx_snap in range(len(daily_snapshots) - 1, -1, -1):
-        if daily_snapshots[idx_snap]["date"] <= analysis_date:
-            matrix_p = daily_matrices[idx_snap]
-            break
-    if matrix_p is None and daily_matrices:
-        matrix_p = daily_matrices[0]
-
-    vote_analysis = []
-    relationship_counts = Counter()
+    vote_analysis: list[dict] = []
+    relationship_counts: Counter = Counter()
     for votante, alvo in votos.items():
         if not votante or not alvo or matrix_p is None:
             continue
@@ -4058,6 +4051,26 @@ def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
         })
         relationship_counts[rel_type] += 1
 
+    return vote_analysis, relationship_counts
+
+
+def _build_paredao_summary_stats(
+    par: dict,
+    indicados: list[str],
+    votos: dict[str, str],
+    vote_analysis: list[dict],
+    relationship_counts: Counter,
+    relationship_history: dict[str, dict],
+    matrix_p: dict[tuple[str, str], str] | None,
+    daily_matrices: list[dict],
+    daily_snapshots: list[dict],
+    is_finalizado: bool,
+    analysis_date: str,
+) -> dict:
+    """Compute aggregate vote stats, per-nominee breakdowns, and indicator pair analysis.
+
+    Returns dict with vote_aggregates, per_nominee, indicator_pairs, indicator_reactions.
+    """
     # Aggregate stats
     vote_counts_agg = Counter(votos.values())
     mais_votado, n_votos_mais = vote_counts_agg.most_common(1)[0] if vote_counts_agg else ("", 0)
@@ -4066,7 +4079,7 @@ def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
     n_esperados = sum(relationship_counts.get(t, 0) for t in ("inimigos_declarados", "hostilidade_forte", "hostilidade_leve"))
 
     # ── Per-nominee aggregates (vote breakdown per target) ──
-    per_nominee = {}
+    per_nominee: dict[str, dict] = {}
     for nome in indicados:
         votes_for = [v for v in vote_analysis if v["alvo"] == nome]
         per_nominee[nome] = {
@@ -4080,7 +4093,7 @@ def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
 
     # ── Indicator relationship pairs (Líder→indicado, Contragolpe, Dinâmica actors) ──
     formacao = par.get("formacao", {})
-    indicator_pairs = []
+    indicator_pairs: list[dict] = []
 
     lider = formacao.get("lider")
     indicado_lider = formacao.get("indicado_lider")
@@ -4115,7 +4128,7 @@ def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
                 target, actor, daily_matrices, daily_snapshots, is_finalizado, analysis_date)
 
     # Add indicator reaction snapshots at analysis date
-    indicator_reactions = []
+    indicator_reactions: list[dict] = []
     for pair in indicator_pairs:
         actor, target = pair["actor"], pair["target"]
         if matrix_p:
@@ -4134,18 +4147,6 @@ def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
         })
 
     return {
-        "numero": numero,
-        "status": status,
-        "data_formacao": data_formacao,
-        "indicados": indicados,
-        "quick_insights": {
-            "analysis_date": analysis_date,
-            "indicados_stats": indicados_stats,
-            "historical_series": historical_series,
-            "negs_recebidas": {nome: neg_paredao.get(nome, 0) for nome in indicados},
-        },
-        "relationship_history": relationship_history,
-        "vote_analysis": vote_analysis,
         "vote_aggregates": {
             "relationship_counts": dict(relationship_counts),
             "vote_counts": dict(vote_counts_agg),
@@ -4162,8 +4163,152 @@ def _analyze_single_paredao(par, daily_snapshots, daily_matrices):
     }
 
 
-def _analyze_nominees(indicados, daily_sent, sent_paredao, rank_map,
-                      top5_counts, bottom5_counts, neg_paredao):
+def _analyze_single_paredao(
+    par: dict,
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+) -> dict | None:
+    """Analyze a single paredão: nominee stats, relationship history, vote analysis.
+
+    Returns a dict with the full analysis for this paredão, or None if skipped.
+    """
+    numero = par.get("numero")
+    if not numero:
+        return None
+    data_formacao = par.get("data_formacao") or par.get("data", "")
+    status = par.get("status", "")
+    indicados = par.get("indicados_finais", par.get("participantes", []))
+    if isinstance(indicados, list):
+        indicados = [p.get("nome", p) if isinstance(p, dict) else p for p in indicados]
+
+    is_finalizado = status == "finalizado"
+    analysis_date = data_formacao
+
+    # Find snapshot for analysis
+    snap_for_analysis = None
+    if is_finalizado:
+        for snap in reversed(daily_snapshots):
+            if snap["date"] <= analysis_date:
+                snap_for_analysis = snap
+                break
+        if snap_for_analysis is None and daily_snapshots:
+            snap_for_analysis = daily_snapshots[0]
+    else:
+        snap_for_analysis = daily_snapshots[-1] if daily_snapshots else None
+
+    if not snap_for_analysis:
+        return None
+
+    # Sentiment in analysis snapshot
+    sent_paredao: dict[str, float] = {}
+    neg_paredao: dict[str, int] = {}
+    for p in snap_for_analysis["participants"]:
+        if p.get("characteristics", {}).get("eliminated"):
+            continue
+        name = p["name"]
+        sent_paredao[name] = calc_sentiment(p)
+        neg_paredao[name] = sum(
+            r["amount"] for r in p.get("characteristics", {}).get("receivedReactions", [])
+            if r["label"] != "Coração"
+        )
+
+    # Ranking
+    ranking_paredao = sorted(sent_paredao.items(), key=lambda x: x[1], reverse=True)
+    rank_map = {name: i + 1 for i, (name, _) in enumerate(ranking_paredao)}
+
+    # Historical daily series (up to analysis_date for finalizado)
+    daily_sent: list[tuple[str, dict[str, float]]] = []
+    for snap in daily_snapshots:
+        date = snap["date"]
+        if is_finalizado and date > analysis_date:
+            continue
+        day_scores: dict[str, float] = {}
+        for p in snap["participants"]:
+            if p.get("characteristics", {}).get("eliminated"):
+                continue
+            day_scores[p["name"]] = calc_sentiment(p)
+        daily_sent.append((date, day_scores))
+
+    # Top5/Bottom5 counts
+    top5_counts: Counter = Counter()
+    bottom5_counts: Counter = Counter()
+    for _date, scores in daily_sent:
+        sorted_names = sorted(scores.keys(), key=lambda n: scores[n], reverse=True)
+        for n in sorted_names[:5]:
+            top5_counts[n] += 1
+        for n in sorted_names[-5:]:
+            bottom5_counts[n] += 1
+
+    # Build per-indicado stats
+    indicados_stats = _analyze_nominees(indicados, daily_sent, sent_paredao, rank_map,
+                                        top5_counts, bottom5_counts, neg_paredao)
+
+    # Historical series for indicados
+    historical_series: list[dict] = []
+    for date, scores in daily_sent:
+        for nome in indicados:
+            if nome in scores:
+                historical_series.append({
+                    "date": date,
+                    "name": nome,
+                    "sentiment": round(scores[nome], 2),
+                })
+
+    # Relationship history for each voter→target pair
+    votos = par.get("votos_casa", {}) or {}
+    relationship_history: dict[str, dict] = {}
+    for votante, alvo in votos.items():
+        if not votante or not alvo:
+            continue
+        key = f"{votante}→{alvo}"
+        relationship_history[key] = _compute_pair_relationship_history(
+            votante, alvo, daily_matrices, daily_snapshots, is_finalizado, analysis_date)
+
+    # Find the matrix at the analysis date
+    matrix_p = None
+    for idx_snap in range(len(daily_snapshots) - 1, -1, -1):
+        if daily_snapshots[idx_snap]["date"] <= analysis_date:
+            matrix_p = daily_matrices[idx_snap]
+            break
+    if matrix_p is None and daily_matrices:
+        matrix_p = daily_matrices[0]
+
+    # Vote classification
+    vote_analysis, relationship_counts = _build_paredao_vote_analysis(
+        votos, relationship_history, matrix_p)
+
+    # Summary stats (aggregates, per-nominee, indicator pairs)
+    summary = _build_paredao_summary_stats(
+        par, indicados, votos, vote_analysis, relationship_counts,
+        relationship_history, matrix_p, daily_matrices, daily_snapshots,
+        is_finalizado, analysis_date)
+
+    return {
+        "numero": numero,
+        "status": status,
+        "data_formacao": data_formacao,
+        "indicados": indicados,
+        "quick_insights": {
+            "analysis_date": analysis_date,
+            "indicados_stats": indicados_stats,
+            "historical_series": historical_series,
+            "negs_recebidas": {nome: neg_paredao.get(nome, 0) for nome in indicados},
+        },
+        "relationship_history": relationship_history,
+        "vote_analysis": vote_analysis,
+        **summary,
+    }
+
+
+def _analyze_nominees(
+    indicados: list[str],
+    daily_sent: list[tuple[str, dict[str, float]]],
+    sent_paredao: dict[str, float],
+    rank_map: dict[str, int],
+    top5_counts: Counter,
+    bottom5_counts: Counter,
+    neg_paredao: dict[str, int],
+) -> list[dict]:
     """Build per-nominee stats (sentiment, trend, top5/bottom5 counts)."""
     def _trend_3d(name):
         series = [scores.get(name) for _, scores in daily_sent if name in scores]
@@ -4206,7 +4351,7 @@ def _analyze_nominees(indicados, daily_sent, sent_paredao, rank_map,
     return indicados_stats
 
 
-def build_paredao_analysis(daily_snapshots, paredoes_data):
+def build_paredao_analysis(daily_snapshots: list[dict], paredoes_data: dict | None) -> dict:
     """Build quick insights and relationship history for each paredão.
 
     Returns a dict keyed by paredão number with stats for each nominee
@@ -4234,7 +4379,7 @@ def build_paredao_analysis(daily_snapshots, paredoes_data):
     return {"by_paredao": by_paredao}
 
 
-def build_paredao_badges(daily_snapshots, paredoes_data):
+def build_paredao_badges(daily_snapshots: list[dict], paredoes_data: dict | None) -> dict:
     """Build badge-vs-reality analysis for each paredão.
 
     Computes per-participant vulnerability, impact, and vote counts
@@ -4371,7 +4516,7 @@ VOTE_PREDICTION_CONFIG = {
 }
 
 
-def extract_paredao_eligibility(paredao_entry):
+def extract_paredao_eligibility(paredao_entry: dict) -> dict:
     """Parse a paredão entry to determine who can vote and who can be voted on.
 
     Returns dict with 'voters', 'eligible_targets', 'ineligible_reasons',
@@ -4453,7 +4598,13 @@ def extract_paredao_eligibility(paredao_entry):
     }
 
 
-def _compute_formation_pair_scores(daily_matrices, daily_dates, formation_date, pairs_daily, pairs_all):
+def _compute_formation_pair_scores(
+    daily_matrices: list[dict],
+    daily_dates: list[str],
+    formation_date: str,
+    pairs_daily: dict,
+    pairs_all: dict,
+) -> dict:
     """Compute pairwise sentiment scores anchored to a specific formation date.
 
     Uses the reaction matrix at the formation date for the queridômetro component,
@@ -4535,8 +4686,14 @@ def _compute_formation_pair_scores(daily_matrices, daily_dates, formation_date, 
     return scores
 
 
-def _apply_prediction_boosts(voters, base_predictions, cluster_map, cluster_voter_counts,
-                             voter_bloc_peers, cfg):
+def _apply_prediction_boosts(
+    voters: list[str],
+    base_predictions: dict[str, dict],
+    cluster_map: dict[str, Any],
+    cluster_voter_counts: dict[Any, int],
+    voter_bloc_peers: dict[str, set[str]],
+    cfg: dict[str, Any],
+) -> dict[str, dict]:
     """Apply Pass 2 boosts: cluster consensus, bloc history, same-cluster protection.
 
     Returns final_predictions dict.
@@ -4635,9 +4792,18 @@ def _apply_prediction_boosts(voters, base_predictions, cluster_map, cluster_vote
     return final_predictions
 
 
-def _predict_single_paredao(par, daily_snapshots, daily_matrices, daily_dates,
-                            pairs_d, pairs_all, cluster_map, cluster_members,
-                            all_voting_blocs, cfg):
+def _predict_single_paredao(
+    par: dict,
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+    daily_dates: list[str],
+    pairs_d: dict,
+    pairs_all: dict,
+    cluster_map: dict[str, Any],
+    cluster_members: dict[Any, set[str]],
+    all_voting_blocs: list[dict],
+    cfg: dict[str, Any],
+) -> tuple[str, dict] | None:
     """Process a single paredão: base predictions + boosts + retrospective.
 
     Returns (numero_str, paredao_result) or None if skipped.
@@ -4821,7 +4987,12 @@ def _predict_single_paredao(par, daily_snapshots, daily_matrices, daily_dates,
     return str(numero), paredao_result
 
 
-def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_scores):
+def build_vote_prediction(
+    daily_snapshots: list[dict],
+    paredoes: dict | None,
+    clusters_data: dict | None,
+    relations_scores: dict,
+) -> dict:
     """Build vote predictions for all paredões using enhanced two-pass model.
 
     Pass 1: Base prediction using formation-date reaction matrix + event history.
@@ -4896,7 +5067,7 @@ def build_vote_prediction(daily_snapshots, paredoes, clusters_data, relations_sc
     }
 
 
-def build_reaction_matrices(daily_snapshots):
+def build_reaction_matrices(daily_snapshots: list[dict]) -> dict:
     """Precompute reaction matrices for all daily snapshots.
 
     Returns dict with:
@@ -4917,13 +5088,13 @@ def build_reaction_matrices(daily_snapshots):
     }
 
 
-def write_json(path, payload):
+def write_json(path: Path, payload: dict | list) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
 
-def build_derived_data():
+def build_derived_data() -> None:
     validate_input_files()
     snapshots = get_all_snapshots()
     if not snapshots:

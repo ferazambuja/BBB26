@@ -44,13 +44,13 @@ This document tracks all identified technical debt items. Check off items as the
 - **Impact**: Hard to test, debug, and maintain. Encourages copy-paste over reuse
 - **Fix**: Extract into smaller functions; test coverage now available (H2) to support safe refactoring
 - **Effort**: 2-3 hours per function group
-- [x] Fixed (2026-02-26) — 9 giant functions split into 25 helpers across `build_derived_data.py` (6→19 helpers) and `build_index_data.py` (3→10 helpers). QMD giant functions remain (inline rendering, harder to extract).
+- [x] Fixed (2026-02-26) — 13 giant functions split into 40 helpers across `build_derived_data.py` (10→30 helpers) and `build_index_data.py` (3→10 helpers). `paredao.qmd` extracted 8 viz functions (553 lines) to `scripts/paredao_viz.py`.
 
 ### H2. Zero test coverage
 - **Impact**: No automated verification of correctness. Refactoring is risky without tests
 - **Fix**: Add pytest infrastructure + fixtures for `data_utils.py` functions, then build_derived pipeline
 - **Effort**: 4-6 hours for initial infrastructure + core function tests
-- [x] Fixed (2026-02-26) — pytest infrastructure + 37 tests covering 6 core functions
+- [x] Fixed (2026-02-26) — 219 tests: 37 core + 119 data_utils extended + 63 build pipeline. Covers loaders, scoring, edge builders, data builders, viz helpers, poll functions.
 
 ### H3. ~1,200 inline `style=` attributes in QMD files
 - **Files** (by count): `paredao.qmd` (363), `index.qmd` (210), `relacoes_debug.qmd` (170), `paredoes.qmd` (107), `provas.qmd` (92), `cartola.qmd` (77), `clusters.qmd` (70), `relacoes.qmd` (52), `evolucao.qmd` (34), `datas.qmd` (7)
@@ -82,7 +82,7 @@ This document tracks all identified technical debt items. Check off items as the
 - **Impact**: Style inconsistencies between pages, harder to update chart defaults
 - **Fix**: Extract `make_bar_chart()`, `make_heatmap()`, `make_timeline()` into `data_utils.py`
 - **Effort**: 2-3 hours
-- [x] Partially fixed (2026-02-26) — `make_horizontal_bar()` + `make_sentiment_heatmap()` added; 2 QMD charts migrated
+- [x] Fixed (2026-02-26) — 5 viz helpers: `make_horizontal_bar()`, `make_sentiment_heatmap()`, `make_visibility_buttons()`, `make_line_evolution()`, `make_stacked_bar()`. 7 QMD charts migrated in `evolucao.qmd`.
 
 ### M3. Duplicate `load_paredoes()` transformer in paredao.qmd and paredoes.qmd
 - **Current**: Both files have a ~70-line `load_paredoes()` function that transforms `paredoes.json` into a dashboard-friendly format
@@ -112,9 +112,8 @@ This document tracks all identified technical debt items. Check off items as the
 ### L2. Missing type hints in `data_utils.py`
 - **Current**: Functions lack type annotations
 - **Impact**: IDE support limited, harder for new contributors to understand interfaces
-- **Fix**: Add `-> dict`, `-> list[dict]`, etc. to all public functions
 - **Effort**: 1 hour
-- [x] Fixed (2026-02-26) — `from __future__ import annotations` + type hints on all 35 public functions
+- [x] Fixed (2026-02-26) — `from __future__ import annotations` + type hints on all 35 public functions in `data_utils.py`, all 70+ functions in `build_derived_data.py`, all 30 functions in `build_index_data.py`
 
 ### L3. Hardcoded magic numbers in scoring
 - **Current**: Weights like `0.7` (Sincerão decay), `0.10`/`0.35`/`0.25`/`0.15`/`0.15` (Planta Index) are inline in `build_derived_data.py`
@@ -125,14 +124,29 @@ This document tracks all identified technical debt items. Check off items as the
 
 ---
 
+## New Items (identified 2026-02-26)
+
+### N1. CI/CD: No test execution in pipeline
+- **Impact**: Tests never ran in GitHub Actions; untested code deployed directly
+- **Fix**: Add `pytest` step + `build_derived_data.py` step to workflow
+- [x] Fixed (2026-02-26) — pytest + build_derived_data.py steps added to `daily-update.yml`
+
+### N2. Paredao.qmd: Inline viz functions (500+ lines)
+- **Impact**: Untestable HTML generation, 2,700-line QMD file
+- **Fix**: Extract to `scripts/paredao_viz.py` module
+- [x] Fixed (2026-02-26) — 8 functions (553 lines) extracted, paredao.qmd reduced by 459 lines
+
+---
+
 ## Summary
 
 | Severity | Total | Fixed | Partial | Remaining |
 |----------|-------|-------|---------|-----------|
 | Critical | 3 | 3 | 0 | 0 |
 | High | 4 | 4 | 0 | 0 |
-| Medium | 4 | 3 | 1 | 0 |
+| Medium | 4 | 4 | 0 | 0 |
 | Low | 3 | 3 | 0 | 0 |
-| **Total** | **14** | **13** | **1** | **0** |
+| New | 2 | 2 | 0 | 0 |
+| **Total** | **16** | **16** | **0** | **0** |
 
-**Partially fixed**: M2 (viz helpers — 2 functions created, 2 charts migrated, remaining charts incremental)
+All identified tech debt items have been resolved.

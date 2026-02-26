@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Build derived index data for index.qmd (lightweight tables)."""
 
+from __future__ import annotations
+
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections import defaultdict, Counter
+from typing import Any, Callable
 
 UTC = timezone.utc
 BRT = timezone(timedelta(hours=-3))
@@ -42,7 +45,7 @@ ROLE_TYPES = {
 }
 
 
-def load_json(path, default):
+def load_json(path: Path, default: Any) -> Any:
     if path.exists():
         with open(path, encoding="utf-8") as f:
             return json.load(f)
@@ -50,9 +53,16 @@ def load_json(path, default):
 
 
 def build_big_fone_consensus(
-    manual_events, current_cycle_week, active_names, active_set,
-    avatars, member_of, roles_current, latest_matrix, pair_sentiment_fn,
-):
+    manual_events: dict,
+    current_cycle_week: int | None,
+    active_names: list[str],
+    active_set: set[str],
+    avatars: dict[str, str],
+    member_of: dict[str, str],
+    roles_current: dict[str, list[str]],
+    latest_matrix: dict[tuple[str, str], str],
+    pair_sentiment_fn: Callable[[str, str], float],
+) -> dict | None:
     """Build Big Fone consensus analysis for the current week.
 
     Returns a dict with attendees, target analysis, potential 3rd persons,
@@ -205,12 +215,12 @@ def build_big_fone_consensus(
     }
 
 
-def get_all_snapshots():
+def get_all_snapshots() -> list[dict]:
     """Wrapper for backward-compatible call sites."""
     return get_all_snapshots_with_data(DATA_DIR)
 
 
-def build_alignment(participants, sinc_data, week):
+def build_alignment(participants: list[dict], sinc_data: dict, week: int) -> list[dict] | None:
     if not sinc_data:
         return None
     agg = next((a for a in sinc_data.get("aggregates", []) if a.get("week") == week), None)
@@ -243,7 +253,7 @@ def build_alignment(participants, sinc_data, week):
 # ── Sub-functions for build_index_data() ──────────────────────────────────
 
 
-def _load_and_parse_snapshots(snapshots):
+def _load_and_parse_snapshots(snapshots: list[dict]) -> dict[str, Any]:
     """Label snapshots, extract member_of/avatars, load all derived JSONs.
 
     Returns a dict with loaded data and basic lookups.
@@ -319,7 +329,7 @@ def _load_and_parse_snapshots(snapshots):
     }
 
 
-def _aggregate_latest_state(parsed, daily_snapshots):
+def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict]) -> dict[str, Any]:
     """Compute active participants, roles, VIP/Xepa days, leader periods, plant scores.
 
     Returns a dict with aggregated state lookups.
@@ -332,7 +342,7 @@ def _aggregate_latest_state(parsed, daily_snapshots):
     participants_index = parsed["participants_index"]
     paredoes = parsed["paredoes"]
 
-    def plant_week_has_signals(week_entry):
+    def plant_week_has_signals(week_entry: dict | None) -> bool:
         if not week_entry:
             return False
         for info in week_entry.get("scores", {}).values():
@@ -483,7 +493,7 @@ def _aggregate_latest_state(parsed, daily_snapshots):
     }
 
 
-def _build_shared_context(snapshots, daily_snapshots, daily_matrices):
+def _build_shared_context(snapshots: list[dict], daily_snapshots: list[dict], daily_matrices: list[dict]) -> dict[str, Any]:
     """Load JSONs, compute shared lookups (member_of, avatars, roles, VIP, plant scores).
 
     Returns a ctx dict that other sub-functions use.
@@ -501,7 +511,7 @@ def _build_shared_context(snapshots, daily_snapshots, daily_matrices):
     return ctx
 
 
-def _compute_daily_movers_cards(daily_snapshots, daily_matrices, active_names, relations_pairs):
+def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: list[dict], active_names: list[str], relations_pairs: dict) -> tuple[list[str], list[dict]]:
     """Ranking leader, podium, movers, reaction changes, dramatic changes, hostilities.
 
     Returns (highlights, cards) lists for the daily comparison section.
@@ -729,7 +739,7 @@ def _compute_daily_movers_cards(daily_snapshots, daily_matrices, active_names, r
     return highlights, cards
 
 
-def _compute_sincerao_highlight(sinc_data, current_week, latest_matrix):
+def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matrix: dict[tuple[str, str], str]) -> tuple[list[str], list[dict], list[dict], list[dict], list[dict], int, list[int]]:
     """Sincerão x Queridômetro contradictions and alignments.
 
     Returns (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
@@ -801,7 +811,7 @@ def _compute_sincerao_highlight(sinc_data, current_week, latest_matrix):
             sinc_week_used, available_weeks)
 
 
-def _compute_vulnerability_cards(latest, active_names, active_set, received_impact, relations_pairs):
+def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_set: set[str], received_impact: dict, relations_pairs: dict) -> tuple[list[str], list[dict], list[str]]:
     """Impact, vulnerability, and active paredão cards.
 
     Returns (highlights, cards, paredao_names).
@@ -894,7 +904,7 @@ def _compute_vulnerability_cards(latest, active_names, active_set, received_impa
     return highlights, cards, paredao_names
 
 
-def _compute_breaks_and_context_cards(relations_data, active_set, latest, current_week, daily_snapshots):
+def _compute_breaks_and_context_cards(relations_data: dict | list, active_set: set[str], latest: dict, current_week: int, daily_snapshots: list[dict]) -> tuple[list[str], list[dict]]:
     """Streak breaks (alliance ruptures) and week context cards.
 
     Returns (highlights, cards).
@@ -951,7 +961,7 @@ def _compute_breaks_and_context_cards(relations_data, active_set, latest, curren
     return highlights, cards
 
 
-def _build_highlights_and_cards(ctx):
+def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     """Daily movers, dramatic changes, Sincerão contradictions, all highlight cards."""
     daily_snapshots = ctx["daily_snapshots"]
     daily_matrices = ctx["daily_matrices"]
@@ -1005,7 +1015,7 @@ def _build_highlights_and_cards(ctx):
     }
 
 
-def _build_overview_stats(ctx):
+def _build_overview_stats(ctx: dict[str, Any]) -> dict[str, Any]:
     """Group counts, hearts, hostility stats, watchlist."""
     active = ctx["active"]
     active_set = ctx["active_set"]
@@ -1109,7 +1119,7 @@ def _build_overview_stats(ctx):
     }
 
 
-def _build_ranking_tables(ctx):
+def _build_ranking_tables(ctx: dict[str, Any]) -> dict[str, Any]:
     """Sentiment ranking, strategic ranking, timeline, changes."""
     latest = ctx["latest"]
     daily_snapshots = ctx["daily_snapshots"]
@@ -1156,7 +1166,7 @@ def _build_ranking_tables(ctx):
             if not p.get("characteristics", {}).get("eliminated"):
                 week_ago_scores[p["name"]] = calc_sentiment(p)
 
-    def build_change_rows(today_list, past_scores):
+    def build_change_rows(today_list: list[dict], past_scores: dict[str, float]) -> list[dict]:
         rows = []
         if not past_scores:
             return rows
@@ -1304,7 +1314,7 @@ def _build_ranking_tables(ctx):
     }
 
 
-def _build_cross_table_and_summary(ctx):
+def _build_cross_table_and_summary(ctx: dict[str, Any]) -> dict[str, Any]:
     """Cross-reaction matrix, reaction summary table."""
     active_names = ctx["active_names"]
     active = ctx["active"]
@@ -1355,7 +1365,7 @@ def _build_cross_table_and_summary(ctx):
     }
 
 
-def _build_curiosity_lookups(ctx):
+def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     """Cartola, provas, streaks, vote history lookups for profiles."""
     paredoes = ctx["paredoes"]
     manual_events = ctx["manual_events"]
@@ -1546,7 +1556,7 @@ def _build_curiosity_lookups(ctx):
     }
 
 
-def _build_profile_header(name, latest, latest_matrix, active_names, avatars):
+def _build_profile_header(name: str, latest: dict, latest_matrix: dict[tuple[str, str], str], active_names: list[str], avatars: dict[str, str]) -> dict[str, Any]:
     """Participant data lookup, reaction summaries, given/received details.
 
     Returns a dict with p, roles, rxn_summary, given_summary, given_detail, received_detail.
@@ -1590,14 +1600,14 @@ def _build_profile_header(name, latest, latest_matrix, active_names, avatars):
     }
 
 
-def _build_profile_stats_grid(name, latest_matrix, active_names, relations_pairs,
-                               received_impact, relations_data, power_events,
-                               roles_current, current_cycle_week):
+def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], str], active_names: list[str], relations_pairs: dict,
+                               received_impact: dict, relations_data: dict | list, power_events: list[dict],
+                               roles_current: dict[str, list[str]], current_cycle_week: int | None) -> dict[str, Any]:
     """Relations (allies/enemies/false_friends/blind_targets), risk level, impact, animosity, events.
 
     Returns a dict with relations, risk, impact, animosity, and event data.
     """
-    def pair_sentiment(giver, receiver):
+    def pair_sentiment(giver: str, receiver: str) -> float:
         rel = relations_pairs.get(giver, {}).get(receiver)
         if rel:
             return rel.get("score", 0)
@@ -1760,9 +1770,9 @@ def _build_profile_stats_grid(name, latest_matrix, active_names, relations_pairs
     }
 
 
-def _build_profile_querido_section(name, latest_matrix, sinc_data, sinc_edges_week,
-                                    current_week, votes_received_by_week, current_vote_week,
-                                    revealed_votes, plant_scores, plant_week):
+def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str], str], sinc_data: dict, sinc_edges_week: list[dict],
+                                    current_week: int, votes_received_by_week: dict, current_vote_week: int | None,
+                                    revealed_votes: dict[str, set[str]], plant_scores: dict, plant_week: dict | None) -> dict[str, Any]:
     """Queridômetro section: votes, Sincerão, plant index.
 
     Returns a dict with vote_list, sincerao, sinc_contra, plant_info.
@@ -1787,7 +1797,7 @@ def _build_profile_querido_section(name, latest_matrix, sinc_data, sinc_edges_we
         if target and latest_matrix.get((name, target), "") == "Coração":
             sinc_contra_targets.add(target)
 
-    def aggregate_events(events):
+    def aggregate_events(events: list[dict]) -> list[dict]:
         grouped = defaultdict(lambda: {"count": 0, "actors": []})
         for ev in events:
             etype = ev.get("type")
@@ -1830,9 +1840,9 @@ def _build_profile_querido_section(name, latest_matrix, sinc_data, sinc_edges_we
     }
 
 
-def _build_profile_footer(name, allies, enemies, given_summary, active_set,
-                           paredoes, lookups, vip_days, xepa_days, total_days,
-                           vip_weeks_selected, plant_scores):
+def _build_profile_footer(name: str, allies: list[dict], enemies: list[dict], given_summary: list[dict], active_set: set[str],
+                           paredoes: dict, lookups: dict[str, Any], vip_days: dict[str, int], xepa_days: dict[str, int], total_days: dict[str, int],
+                           vip_weeks_selected: dict[str, int], plant_scores: dict) -> dict[str, Any]:
     """Curiosities and game stats for the profile footer.
 
     Returns a dict with curiosities, paredao_history, bv_escape_list, house_votes_detail.
@@ -2076,7 +2086,7 @@ def _build_profile_footer(name, allies, enemies, given_summary, active_set,
     }
 
 
-def _build_profile_entry(name, ctx, lookups):
+def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]) -> dict[str, Any]:
     """Per-participant profile: allies, enemies, curiosities, game stats."""
     latest = ctx["latest"]
     latest_matrix = ctx["latest_matrix"]
@@ -2191,7 +2201,7 @@ def _build_profile_entry(name, ctx, lookups):
     }
 
 
-def _build_record_holder_curiosities(profiles, ctx):
+def _build_record_holder_curiosities(profiles: list[dict], ctx: dict[str, Any]) -> None:
     """Post-processing: record-holder bullets injected into profiles."""
     active_set = ctx["active_set"]
 
@@ -2248,7 +2258,7 @@ def _build_record_holder_curiosities(profiles, ctx):
             prof["curiosities"] = [{"icon": c["icon"], "text": c["text"]} for c in prof.get("curiosities", [])[:MAX_CURIOSITIES]]
 
 
-def _build_eliminated_list(ctx):
+def _build_eliminated_list(ctx: dict[str, Any]) -> list[dict]:
     """Eliminated/exited participant list."""
     manual_events = ctx["manual_events"]
     avatars = ctx["avatars"]
@@ -2285,7 +2295,7 @@ def _build_eliminated_list(ctx):
 # ── Main orchestrator ─────────────────────────────────────────────────────
 
 
-def build_index_data():
+def build_index_data() -> dict | None:
     snapshots = get_all_snapshots()
     if not snapshots:
         print("No snapshots found. Skipping index data.")
@@ -2325,7 +2335,7 @@ def build_index_data():
     eliminated_list = _build_eliminated_list(ctx)
 
     # Big Fone consensus analysis
-    def pair_sentiment(giver, receiver):
+    def pair_sentiment(giver: str, receiver: str) -> float:
         rel = ctx["relations_pairs"].get(giver, {}).get(receiver)
         if rel:
             return rel.get("score", 0)
@@ -2416,7 +2426,7 @@ def build_index_data():
     return payload
 
 
-def write_index_data():
+def write_index_data() -> None:
     payload = build_index_data()
     if payload is None:
         return
