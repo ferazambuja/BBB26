@@ -84,6 +84,7 @@ All shared constants, functions, and the Plotly theme live in **`scripts/data_ut
 - Analysis descriptions: `ANALYSIS_DESCRIPTIONS` — centralized explanation text for QMD pages (composite score, profiles intro/footer, vulnerability explanation). Single source of truth for scoring descriptions shown to users.
 - Theme colors: `PLOT_BG`, `PAPER_BG`, `GRID_COLOR`, `TEXT_COLOR`, `BBB_COLORWAY`
 - Theme setup: `setup_bbb_dark_theme()` — registers and activates the Plotly dark theme
+- Week boundaries: `PAREDAO_WEEK_ENDS` — paredão result dates that define game week boundaries
 - Shared functions: `calc_sentiment()`, `load_snapshot()`, `get_all_snapshots()`, `utc_to_game_date()`, `parse_roles()`, `build_reaction_matrix()`, `get_week_number()`
 - Data loaders: `load_votalhada_polls()`, `load_sincerao_edges()`, `get_poll_for_paredao()`, `calculate_poll_accuracy()`
 - Timeline rendering: `render_cronologia_html()`, `TIMELINE_CAT_COLORS`, `TIMELINE_CAT_LABELS`
@@ -219,6 +220,23 @@ Sentiment weights: positive = +1, mild_negative = -0.5, strong_negative = -1
 **One-sided (unilateral) hostility**: A gives B negative, but B gives A ❤️ — creates **blind spots** where B may be surprised when A votes against them.
 
 **Vulnerability ratio**: `(hearts given to enemies) / (attacks on friends + 1)` — high ratio = major blind spots.
+
+### Game Week Boundaries
+
+BBB game weeks are **not** calendar 7-day periods. Each week ends when the paredão result is announced (the Barrado no Baile event and paredão resultado happen on the same day, closing that week). Week lengths vary (6–9 days).
+
+`get_week_number(date_str)` uses `PAREDAO_WEEK_ENDS` (a sorted list of paredão result dates) with `bisect_left` to determine the correct week. The paredão result date is **inclusive** — it belongs to the week it ends, not the next.
+
+| Week | End Date | Paredão |
+|------|----------|---------|
+| 1 | 2026-01-21 | 1º (Aline Campos) |
+| 2 | 2026-01-27 | 2º (Matheus) |
+| 3 | 2026-02-03 | 3º (Brigido) |
+| 4 | 2026-02-10 | 4º (Sarah Andrade) |
+| 5 | 2026-02-17 | 5º (Marcelo) |
+| 6 | 2026-02-25 | 6º (Maxiane) |
+
+**When a new paredão is finalized**: add its result date to `PAREDAO_WEEK_ENDS` in `data_utils.py`.
 
 ### Data Update Timing
 

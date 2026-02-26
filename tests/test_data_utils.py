@@ -125,38 +125,47 @@ class TestUtcToGameDate:
 
 
 class TestGetWeekNumber:
-    """Test get_week_number() function."""
+    """Test get_week_number() — paredão-based week boundaries."""
 
     def test_premiere_day(self):
         """Premiere day (2026-01-13) should be week 1."""
-        result = get_week_number("2026-01-13")
-        assert result == 1
+        assert get_week_number("2026-01-13") == 1
 
     def test_day_before_premiere(self):
-        """Day before premiere should be clamped to 1 (max(1, ...))."""
-        result = get_week_number("2026-01-12")
-        # Formula: max(1, ((-1) // 7) + 1) = max(1, -1+1) = max(1, 0) = 1
-        # Actually for negative days: (-1 // 7) = -1, so max(1, 0) = 1
-        assert result >= 1
+        """Day before premiere should be clamped to 1."""
+        assert get_week_number("2026-01-12") == 1
 
-    def test_week_2(self):
-        """One week after premiere should be week 2."""
-        result = get_week_number("2026-01-20")
-        assert result == 2
+    def test_paredao_1_day_is_week_1(self):
+        """1st paredão result day (Jan 21) is the LAST day of week 1."""
+        assert get_week_number("2026-01-21") == 1
 
-    def test_week_5(self):
-        """4 weeks after premiere should be week 5."""
-        result = get_week_number("2026-02-10")
-        assert result == 5
+    def test_day_after_paredao_1_is_week_2(self):
+        """Day after 1st paredão result (Jan 22) starts week 2."""
+        assert get_week_number("2026-01-22") == 2
 
-    def test_end_of_week_1(self):
-        """Last day of week 1 (Jan 19) should still be week 1."""
-        result = get_week_number("2026-01-19")
-        assert result == 1
+    def test_paredao_2_day_is_week_2(self):
+        """2nd paredão result day (Jan 27) is the last day of week 2."""
+        assert get_week_number("2026-01-27") == 2
+
+    def test_paredao_6_day_is_week_6(self):
+        """6th paredão result day (Feb 25) is the last day of week 6."""
+        assert get_week_number("2026-02-25") == 6
+
+    def test_after_last_paredao(self):
+        """Day after last known paredão starts the next week."""
+        assert get_week_number("2026-02-26") == 7
+
+    def test_mid_week(self):
+        """Mid-week dates land in the correct paredão-bounded week."""
+        # Feb 10 = 4th paredão → last day of week 4
+        assert get_week_number("2026-02-10") == 4
+        # Feb 11 = first day of week 5
+        assert get_week_number("2026-02-11") == 5
 
     def test_monotonic_increase(self):
         """Week numbers should be monotonically non-decreasing."""
-        dates = ["2026-01-13", "2026-01-20", "2026-01-27", "2026-02-03"]
+        dates = ["2026-01-13", "2026-01-21", "2026-01-22", "2026-01-27",
+                 "2026-02-03", "2026-02-10", "2026-02-17", "2026-02-25", "2026-02-26"]
         weeks = [get_week_number(d) for d in dates]
         for i in range(1, len(weeks)):
             assert weeks[i] >= weeks[i - 1]

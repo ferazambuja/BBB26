@@ -14,6 +14,7 @@ This module is the SINGLE SOURCE OF TRUTH for:
 from __future__ import annotations
 
 import json
+from bisect import bisect_left
 from datetime import datetime, timedelta, timezone
 from html import escape as _html_escape
 from pathlib import Path
@@ -270,15 +271,34 @@ def setup_bbb_dark_theme() -> None:
 # ══════════════════════════════════════════════════════════════
 
 
-def get_week_number(date_str: str) -> int:
-    """Calculate BBB26 week number from date string (YYYY-MM-DD).
 
-    Week 1 starts on 2026-01-13 (BBB26 premiere).
+# Paredão-based week boundaries.
+# Each BBB game week ends on the paredão result date (inclusive).
+# Week N covers: (previous paredão date + 1) through (Nth paredão date).
+# Week 1 covers premiere (Jan 13) through 1st paredão result (Jan 21).
+PAREDAO_WEEK_ENDS: list[str] = [
+    "2026-01-21",  # Week 1 — 1º Paredão (Aline Campos)
+    "2026-01-27",  # Week 2 — 2º Paredão (Matheus)
+    "2026-02-03",  # Week 3 — 3º Paredão (Brigido)
+    "2026-02-10",  # Week 4 — 4º Paredão (Sarah Andrade)
+    "2026-02-17",  # Week 5 — 5º Paredão (Marcelo)
+    "2026-02-25",  # Week 6 — 6º Paredão (Maxiane)
+]
+
+
+def get_week_number(date_str: str) -> int:
+    """Calculate BBB26 game week number from date string (YYYY-MM-DD).
+
+    Game weeks are bounded by paredão results (not calendar 7-day periods).
+    Week N ends on the Nth paredão result date (inclusive).
+    Dates after the last known paredão get week = len(PAREDAO_WEEK_ENDS) + 1.
+    Dates before premiere are clamped to week 1.
     """
-    start = datetime(2026, 1, 13)
-    date = datetime.strptime(date_str, "%Y-%m-%d")
-    delta = (date - start).days
-    return max(1, (delta // 7) + 1)
+    if date_str < "2026-01-13":
+        return 1
+    # bisect_left: paredão date itself is INCLUDED in the week it ends
+    idx = bisect_left(PAREDAO_WEEK_ENDS, date_str)
+    return idx + 1
 
 
 def calc_sentiment(participant: dict) -> float:
@@ -868,30 +888,33 @@ TIMELINE_CAT_LABELS = {
 
 
 def render_cronologia_html(timeline_events: list[dict]) -> str:
-    """Render game timeline as an HTML table. Returns HTML string."""
+    """Render game timeline as an HTML table with week and date divider rows.
+
+    Layout: 3 columns (Tipo, Evento, Detalhe).
+    Week headers span all columns (gold background).
+    Date divider rows span all columns (dim, subtle separator).
+    """
     if not timeline_events:
         return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
 
-    # Group by week, then reverse: latest week first, latest events first
-    weeks = {}
+    # Group by week → date → events
+    weeks: dict[int, dict[str, list[dict]]] = {}
     for ev in timeline_events:
-        weeks.setdefault(ev.get("week", 0), []).append(ev)
+        w = ev.get("week", 0)
+        d = ev.get("date", "")
+        weeks.setdefault(w, {}).setdefault(d, []).append(ev)
     sorted_weeks = sorted(weeks.items(), key=lambda x: x[0], reverse=True)
 
     parts = [
         '<style>'
         '.cronologia-table { width:100%; border-collapse:collapse; font-size:0.9em; }'
         '.cronologia-table th, .cronologia-table td { padding:6px 8px; }'
-        '.cronologia-table .col-date { white-space:nowrap; color:#aaa; }'
         '.cronologia-table .col-badge { text-align:center; min-width:100px; }'
         '.cronologia-table .col-detail { color:#999; font-size:0.85em; }'
-        '.cronologia-date-inline { display:none; }'
+        '.cron-week { background:#16213e; font-weight:bold; color:#ffc107; padding:6px 8px; }'
+        '.cron-date { background:#1e1e2e; color:#aaa; font-size:0.82em; padding:4px 8px; '
+        'border-bottom:1px solid #333; }'
         '@media (max-width: 640px) {'
-        '  .cronologia-table th:nth-child(4),'
-        '  .cronologia-table td:nth-child(4) { display: none; }'
-        '  .cronologia-table th:nth-child(1),'
-        '  .cronologia-table td:nth-child(1) { display: none; }'
-        '  .cronologia-date-inline { display:block; font-size:0.75em; color:#888; margin-bottom:2px; }'
         '  .cronologia-table { font-size: 0.82em; }'
         '  .cronologia-table td, .cronologia-table th { padding: 5px 6px; }'
         '  .cronologia-table .col-badge { min-width:70px; }'
@@ -906,63 +929,64 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
         '<table class="cronologia-table">'
         '<thead style="position:sticky; top:0; z-index:1;">'
         '<tr style="background:#1a1a2e; color:#eee;">'
-        '<th style="text-align:left;">Data</th>'
         '<th class="col-badge">Tipo</th>'
         '<th style="text-align:left;">Evento</th>'
         '<th style="text-align:left;">Detalhe</th>'
         '</tr></thead><tbody>',
     ]
 
-    for week_num, week_events in sorted_weeks:
+    for week_num, dates_dict in sorted_weeks:
+        # Week header row
         parts.append(
-            f'<tr style="background:#16213e;"><td colspan="4" style="padding:6px 8px;'
-            f' font-weight:bold; color:#ffc107;">Semana {week_num}</td></tr>'
+            f'<tr><td colspan="3" class="cron-week">Semana {week_num}</td></tr>'
         )
-        for ev in reversed(week_events):
-            cat = ev.get("category", "")
-            color = TIMELINE_CAT_COLORS.get(cat, "#666")
-            label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
-            emoji = ev.get("emoji", "")
-            title = safe_html(ev.get("title", ""))
-            detail = safe_html(ev.get("detail", ""))
-            date = ev.get("date", "")
-            is_scheduled = ev.get("status") == "scheduled"
-            time_info = ev.get("time", "")
-
-            if is_scheduled:
-                badge = (
-                    f'<span style="background:transparent; color:{color}; border:1px dashed {color};'
-                    f' padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
-                )
-                time_badge = (
-                    f'<br><span style="background:#ffc107; color:#000; padding:1px 5px;'
-                    f' border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>'
-                    if time_info else ''
-                )
-                row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
-                title_cell = f'{emoji} {title}{time_badge}'
-                date_cell = date
-                detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
-            else:
-                badge = (
-                    f'<span style="background:{color}; color:#fff; padding:2px 6px;'
-                    f' border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
-                )
-                row_style = 'border-bottom:1px solid #333;'
-                title_cell = f'{emoji} {title}'
-                date_cell = date
-                detail_text = detail
-
-            # Mobile: date is hidden as column, shown inline above event title
-            date_inline = f'<span class="cronologia-date-inline">{date_cell}</span>'
+        # Dates within week: reverse chronological
+        sorted_dates = sorted(dates_dict.items(), key=lambda x: x[0], reverse=True)
+        for date_str, date_events in sorted_dates:
+            # Date divider row
             parts.append(
-                f'<tr style="{row_style}">'
-                f'<td class="col-date">{date_cell}</td>'
-                f'<td class="col-badge">{badge}</td>'
-                f'<td>{date_inline}{title_cell}</td>'
-                f'<td class="col-detail">{detail_text}</td>'
-                f'</tr>'
+                f'<tr><td colspan="3" class="cron-date">📅 {date_str}</td></tr>'
             )
+            # Events within date: reverse order (latest first)
+            for ev in reversed(date_events):
+                cat = ev.get("category", "")
+                color = TIMELINE_CAT_COLORS.get(cat, "#666")
+                label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
+                emoji = ev.get("emoji", "")
+                title = safe_html(ev.get("title", ""))
+                detail = safe_html(ev.get("detail", ""))
+                is_scheduled = ev.get("status") == "scheduled"
+                time_info = ev.get("time", "")
+
+                if is_scheduled:
+                    badge = (
+                        f'<span style="background:transparent; color:{color}; border:1px dashed {color};'
+                        f' padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                    )
+                    time_badge = (
+                        f' <span style="background:#ffc107; color:#000; padding:1px 5px;'
+                        f' border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>'
+                        if time_info else ''
+                    )
+                    row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
+                    title_cell = f'{emoji} {title}{time_badge}'
+                    detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
+                else:
+                    badge = (
+                        f'<span style="background:{color}; color:#fff; padding:2px 6px;'
+                        f' border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                    )
+                    row_style = 'border-bottom:1px solid #333;'
+                    title_cell = f'{emoji} {title}'
+                    detail_text = detail
+
+                parts.append(
+                    f'<tr style="{row_style}">'
+                    f'<td class="col-badge">{badge}</td>'
+                    f'<td>{title_cell}</td>'
+                    f'<td class="col-detail">{detail_text}</td>'
+                    f'</tr>'
+                )
 
     parts.append('</tbody></table></div>')
     return ''.join(parts)
