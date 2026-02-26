@@ -116,6 +116,14 @@ def fetch_and_save():
     response = requests.get(API_URL, timeout=30)
     response.raise_for_status()
     new_data = response.json()
+
+    # M-15: Structural validation of API response
+    if not isinstance(new_data, list) or len(new_data) == 0:
+        raise ValueError(f"API returned unexpected structure: expected non-empty list, got {type(new_data).__name__}")
+    sample = new_data[0]
+    if not isinstance(sample, dict) or "name" not in sample or "characteristics" not in sample:
+        raise ValueError(f"API participant missing required fields (name, characteristics): {list(sample.keys()) if isinstance(sample, dict) else type(sample).__name__}")
+
     new_hash = get_data_hash(new_data)
 
     print(f"  Participants: {len(new_data)}")

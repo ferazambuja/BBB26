@@ -1365,6 +1365,94 @@ def _build_cross_table_and_summary(ctx: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _compute_vote_multipliers_for_paredao(
+    par: dict[str, Any], power_events: list[dict[str, Any]], week: Any
+) -> dict[str, int]:
+    """Build {voter_name: multiplier} for a single paredao entry.
+
+    Accounts for votos_anulados, impedidos_votar, voto_duplo, and voto_anulado
+    power events. Returns a defaultdict with default value 1.
+    """
+    multiplier: dict[str, int] = defaultdict(lambda: 1)
+
+    for voter in par.get("votos_anulados", []) or []:
+        multiplier[voter] = 0
+    for voter in par.get("impedidos_votar", []) or []:
+        multiplier[voter] = 0
+
+    for ev in power_events:
+        if week and ev.get("week") == week:
+            if ev.get("type") == "voto_duplo":
+                for a in normalize_actors(ev):
+                    if a:
+                        multiplier[a] = 2
+            if ev.get("type") == "voto_anulado":
+                target = ev.get("target")
+                if target:
+                    multiplier[target] = 0
+
+    return multiplier
+
+
+def _collect_bv_escapes(
+    provas_list: list[dict[str, Any]], paredoes_data: list[dict[str, Any]]
+) -> dict[str, list[dict[str, Any]]]:
+    """Detect Bate e Volta escape winners matched to their paredao.
+
+    Returns {winner_name: [{numero, data}]} by matching BV losers to paredao
+    nominees and picking the closest date.
+    """
+    bv_escapes: dict[str, list[dict[str, Any]]] = defaultdict(list)
+
+    for prova in provas_list:
+        if prova.get("tipo") != "bate_volta":
+            continue
+        winners = prova.get("vencedores") or (
+            [prova["vencedor"]] if prova.get("vencedor") else []
+        )
+        if not winners:
+            continue
+        prova_date = prova.get("date", "")
+        bv_participants: set[str] = set()
+        for fase in prova.get("fases", []):
+            for entry in fase.get("classificacao", []):
+                if "nome" in entry:
+                    bv_participants.add(entry["nome"])
+        bv_losers = bv_participants - set(winners)
+        matched_par = None
+        best_gap = 999
+        for par in paredoes_data:
+            par_names = {
+                (ind.get("nome", "") if isinstance(ind, dict) else ind)
+                for ind in par.get("indicados_finais", [])
+            }
+            if bv_losers & par_names:
+                par_date = par.get("data", "")
+                gap = (
+                    abs(
+                        (
+                            datetime.strptime(par_date, "%Y-%m-%d")
+                            - datetime.strptime(prova_date, "%Y-%m-%d")
+                        ).days
+                    )
+                    if par_date and prova_date
+                    else 999
+                )
+                if gap < best_gap:
+                    best_gap = gap
+                    matched_par = par
+        if matched_par:
+            for vencedor in winners:
+                bv_escapes[vencedor].append(
+                    {
+                        "numero": matched_par.get("numero"),
+                        "data": matched_par.get("data"),
+                    }
+                )
+
+    return bv_escapes
+
+
 def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     """Cartola, provas, streaks, vote history lookups for profiles."""
     paredoes = ctx["paredoes"]
@@ -1389,23 +1477,7 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
         if not votos:
             continue
         week = par.get("semana")
-        multiplier = defaultdict(lambda: 1)
-
-        for voter in par.get("votos_anulados", []) or []:
-            multiplier[voter] = 0
-        for voter in par.get("impedidos_votar", []) or []:
-            multiplier[voter] = 0
-
-        for ev in power_events:
-            if week and ev.get("week") == week:
-                if ev.get("type") == "voto_duplo":
-                    for a in normalize_actors(ev):
-                        if a:
-                            multiplier[a] = 2
-                if ev.get("type") == "voto_anulado":
-                    target = ev.get("target")
-                    if target:
-                        multiplier[target] = 0
+        multiplier = _compute_vote_multipliers_for_paredao(par, power_events, week)
 
         for voter, target in votos.items():
             v = voter.strip()
@@ -1492,41 +1564,11 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
                     survived_paredao.add(nome)
 
     # Bate e Volta escapes: winner escaped the paredão, match BV to paredão via losers + date
-    bv_escapes = defaultdict(list)  # name -> [{numero, data}]
     provas_list = provas_raw.get("provas", [])
-    for prova in provas_list:
-        if prova.get("tipo") != "bate_volta":
-            continue
-        winners = prova.get("vencedores") or ([prova["vencedor"]] if prova.get("vencedor") else [])
-        if not winners:
-            continue
-        prova_date = prova.get("date", "")
-        bv_participants = set()
-        for fase in prova.get("fases", []):
-            for entry in fase.get("classificacao", []):
-                if "nome" in entry:
-                    bv_participants.add(entry["nome"])
-        bv_losers = bv_participants - set(winners)
-        matched_par = None
-        best_gap = 999
-        for par in paredoes.get("paredoes", []):
-            par_names = {
-                (ind.get("nome", "") if isinstance(ind, dict) else ind)
-                for ind in par.get("indicados_finais", [])
-            }
-            if bv_losers & par_names:
-                par_date = par.get("data", "")
-                gap = abs((datetime.strptime(par_date, "%Y-%m-%d") - datetime.strptime(prova_date, "%Y-%m-%d")).days) if par_date and prova_date else 999
-                if gap < best_gap:
-                    best_gap = gap
-                    matched_par = par
-        if matched_par:
-            for vencedor in winners:
-                bv_escapes[vencedor].append({
-                    "numero": matched_par.get("numero"),
-                    "data": matched_par.get("data"),
-                })
-                ever_nominated.add(vencedor)
+    paredoes_list = paredoes.get("paredoes", []) if paredoes else []
+    bv_escapes = _collect_bv_escapes(provas_list, paredoes_list)
+    for vencedor in bv_escapes:
+        ever_nominated.add(vencedor)
 
     # Breaks given/received counts
     breaks_given_count = Counter(b["giver"] for b in streak_breaks_data)

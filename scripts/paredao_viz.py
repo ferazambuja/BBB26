@@ -17,6 +17,33 @@ from data_utils import (
     safe_html,
 )
 
+# ---------------------------------------------------------------------------
+# Module-level constants for Líder prediction rendering
+# ---------------------------------------------------------------------------
+
+_COMP_META: dict[str, tuple[str, str, str]] = {
+    "queridometro": ("🐍", "#e74c3c", "#2ecc71"),
+    "power_event": ("⚔️", "#e74c3c", "#2ecc71"),
+    "sincerao":    ("📢", "#e67e22", "#3498db"),
+    "vote":        ("🗳️", "#e74c3c", "#2ecc71"),
+    "vip":         ("🏠", "#3498db", "#3498db"),
+    "anjo":        ("😇", "#3498db", "#3498db"),
+}
+
+_EDGE_DISPLAY: dict[str, tuple[str, str]] = {
+    "power_event": ("⚔️", "Power Event"),
+    "sincerao": ("📢", "Sincerão"),
+    "vote": ("🗳️", "Voto"),
+    "vip": ("🏠", "VIP"),
+    "anjo": ("😇", "Anjo"),
+}
+
+_EMOJI_MAP: dict[str, str] = {
+    "Coração": "❤️", "Planta": "🌱", "Cobra": "🐍", "Mala": "💼",
+    "Biscoito": "🍪", "Coração partido": "💔", "Alvo": "🎯",
+    "Vômito": "🤮", "Mentiroso": "🤥",
+}
+
 
 def render_nominee_cards_em_andamento(
     participantes: list[dict],
@@ -287,52 +314,19 @@ def render_sincerinho_bar_chart(
     return '\n'.join(lines)
 
 
-def render_lider_prediction(
-    lider_name: str | None,
-    ranked: list[tuple[str, dict]],
-    pairs_daily: dict,
-    rel_edges: list[dict],
+def _render_lider_summary_box(
+    lider_name: str,
+    display_week: str,
+    ranked_top3: list[tuple[str, dict]],
     vip_list: list[str],
     anjo_name: str | None,
     imunizado_nome: str | None,
-    display_week: str,
     avatars: dict[str, str],
-    querido_history: dict[tuple[str, str], list[tuple[str, str]]],
 ) -> str:
-    """Render the full Líder nomination prediction section."""
-    html = ""
-
-    if not lider_name:
-        html += '<div class="tc" style="background:#1a1a2e; border:1px solid #444; border-radius:10px; '
-        html += 'padding:1.5rem; margin:1rem 0; color:#aaa; font-size:1.1em;">'
-        html += '🏠 <strong>Sem líder ativo</strong> — previsão de indicação indisponível.</div>'
-        return html
-
-    _comp_meta = {
-        "queridometro": ("🐍", "#e74c3c", "#2ecc71"),
-        "power_event": ("⚔️", "#e74c3c", "#2ecc71"),
-        "sincerao":    ("📢", "#e67e22", "#3498db"),
-        "vote":        ("🗳️", "#e74c3c", "#2ecc71"),
-        "vip":         ("🏠", "#3498db", "#3498db"),
-        "anjo":        ("😇", "#3498db", "#3498db"),
-    }
-    _edge_display = {
-        "power_event": ("⚔️", "Power Event"),
-        "sincerao": ("📢", "Sincerão"),
-        "vote": ("🗳️", "Voto"),
-        "vip": ("🏠", "VIP"),
-        "anjo": ("😇", "Anjo"),
-    }
-    _emoji_map = {
-        "Coração": "❤️", "Planta": "🌱", "Cobra": "🐍", "Mala": "💼",
-        "Biscoito": "🍪", "Coração partido": "💔", "Alvo": "🎯",
-        "Vômito": "🤮", "Mentiroso": "🤥",
-    }
-
+    """Render the gradient header card with Líder identity, top-3 cards, and Anjo note."""
     _art = artigo(lider_name)
     esc_lider = safe_html(lider_name)
-
-    html += '<h2 id="previsao-indicacao">🎯 Previsão — Indicação do Líder</h2>'
+    html = ""
 
     html += '<div style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); '
     html += 'border:2px solid #e74c3c; border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0;">'
@@ -345,9 +339,8 @@ def render_lider_prediction(
     html += f'<span class="text-muted">— Líder da Semana {display_week}</span></span></div>'
 
     # Top 3 summary cards
-    _top3 = ranked[:3]
     html += '<div style="display:flex; gap:0.8rem; flex-wrap:wrap; margin-bottom:0.8rem;">'
-    for _i, (_tname, _tentry) in enumerate(_top3):
+    for _i, (_tname, _tentry) in enumerate(ranked_top3):
         _sc = _tentry.get("score", 0)
         _color = "#e74c3c" if _sc < -2 else "#e67e22" if _sc < 0 else "#2ecc71"
         _vip_tag = ' <span style="color:#3498db; font-size:0.75em;">VIP</span>' if _tname in vip_list else ""
@@ -371,8 +364,223 @@ def render_lider_prediction(
         html += '<div class="text-muted" style="font-size:0.9em;">😇 Anjo ainda não definido esta semana</div>'
 
     html += '</div>'
+    return html
 
-    # Full ranking table
+
+def _render_ranking_row(
+    rank: int,
+    tname: str,
+    tentry: dict,
+    lider_name: str,
+    pairs_daily: dict,
+    vip_list: list[str],
+    imunizado_nome: str | None,
+    max_abs_score: float,
+    avatars: dict[str, str],
+) -> str:
+    """Render one <tr> for the ranking table per participant."""
+    _sc = tentry.get("score", 0)
+    _comps = tentry.get("components", {})
+    _streak_len = tentry.get("streak_len", 0)
+    _has_break = tentry.get("break", False)
+
+    _sc_color = "#e74c3c" if _sc < -2 else "#e67e22" if _sc < 0 else "#2ecc71"
+    _row_bg = "background:rgba(231,76,60,0.08);" if rank <= 3 else ""
+
+    _is_immune = (tname == imunizado_nome)
+    _immune_tag = ' <span style="background:#3498db; color:#fff; font-size:0.7em; padding:1px 4px; border-radius:3px;">IMUNE</span>' if _is_immune else ""
+
+    html = ""
+    html += f'<tr class="sep-bottom" style="{_row_bg}">'
+    html += f'<td class="cell-compact tc text-muted">{rank}</td>'
+    html += f'<td class="cell-compact" style="white-space:nowrap;">{avatar_img(tname, avatars, size=22)}'
+    html += f'<strong style="color:#eee;">{safe_html(tname)}</strong>{_immune_tag}</td>'
+    html += f'<td class="cell-compact" style="color:{_sc_color}; font-weight:bold; font-family:monospace;">{_sc:+.2f}</td>'
+
+    # Score bar
+    _bar_pct = min(abs(_sc) / max_abs_score * 100, 100)
+    _bar_color = "#e74c3c" if _sc < 0 else "#2ecc71"
+    _bar_dir = "right" if _sc < 0 else "left"
+    html += f'<td class="cell-compact" style="min-width:80px;">'
+    html += f'<div style="width:100%; background:#222; border-radius:3px; height:12px; position:relative;">'
+    html += f'<div style="width:{_bar_pct:.0f}%; background:{_bar_color}; height:100%; border-radius:3px; '
+    html += f'float:{_bar_dir};"></div></div></td>'
+
+    # Components
+    html += f'<td class="cell-compact">'
+    _chips = []
+    for _ck, (_ce, _cneg, _cpos) in _COMP_META.items():
+        _cv = _comps.get(_ck, 0.0)
+        if abs(_cv) < 0.01:
+            continue
+        _cc = _cneg if _cv < 0 else _cpos
+        _chips.append(
+            f'<span style="background:{_cc}22; color:{_cc}; border:1px solid {_cc}44; '
+            f'border-radius:3px; padding:0px 4px; font-size:0.78em; white-space:nowrap;">'
+            f'{_ce} {_cv:+.2f}</span>'
+        )
+    html += " ".join(_chips) if _chips else '<span style="color:#555;">—</span>'
+    html += '</td>'
+
+    # Reciprocity
+    _recip_entry = pairs_daily.get(tname, {}).get(lider_name, {})
+    _recip_score = _recip_entry.get("score", 0) if _recip_entry else 0
+
+    if _sc < 0 and _recip_score < 0:
+        _rl, _rc = "⚔️ Mútua", "#e74c3c"
+    elif _sc < 0 and _recip_score >= 0:
+        _rl, _rc = "🔍 Alvo cego", "#e67e22"
+    elif _sc >= 0 and _recip_score < 0:
+        _rl, _rc = "⚠️ Risco oculto", "#e67e22"
+    else:
+        _rl, _rc = "💚 Aliados", "#2ecc71"
+
+    html += f'<td class="cell-compact" style="white-space:nowrap;">'
+    html += f'<span style="color:{_rc}; font-size:0.85em;">{_rl}</span> '
+    html += f'<span class="text-muted" style="font-size:0.78em;">({_recip_score:+.2f})</span></td>'
+
+    # Streak
+    _si = "🔴" if _has_break else ("🟢" if _streak_len >= 5 else "⚪")
+    _bt = ' <span style="color:#e74c3c; font-size:0.75em;">BREAK</span>' if _has_break else ""
+    html += f'<td class="cell-compact tc" style="white-space:nowrap;">{_si} {_streak_len}d{_bt}</td>'
+
+    # VIP
+    if tname in vip_list:
+        html += '<td class="cell-compact tc">'
+        html += '<span style="background:#3498db33; color:#3498db; border:1px solid #3498db55; '
+        html += 'border-radius:3px; padding:1px 5px; font-size:0.78em;">VIP</span></td>'
+    else:
+        html += '<td class="cell-compact tc" style="color:#555;">—</td>'
+
+    html += '</tr>'
+    return html
+
+
+def _render_detail_row(
+    lider_name: str,
+    tname: str,
+    pair_edges: list[dict],
+    hist_fwd: list[tuple[str, str]],
+    hist_rev: list[tuple[str, str]],
+    row_bg: str,
+    avatars: dict[str, str],
+) -> str:
+    """Render the expandable <details> block with edges sub-table + queridometro timeline."""
+    if not pair_edges and not hist_fwd:
+        return ""
+
+    html = ""
+    html += f'<tr style="{row_bg}"><td colspan="8" style="padding:0;">'
+    html += '<details style="margin:0 0.4rem 0.4rem 1.8rem;">'
+    html += '<summary class="text-muted" style="cursor:pointer; font-size:0.78em; '
+    html += f'padding:0.2rem 0;">📋 {len(pair_edges)} evento(s) · '
+    html += f'{len(hist_fwd)} dia(s) de queridômetro</summary>'
+    html += '<div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.4rem;">'
+
+    # Edges sub-table
+    if pair_edges:
+        html += '<div style="flex:1; min-width:280px;">'
+        html += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;"><strong>Eventos & Edges</strong></div>'
+        html += '<table class="table-full table-sm">'
+        html += '<thead><tr class="sep-bottom">'
+        html += '<th class="text-dim tl" style="padding:2px 4px;">Data</th>'
+        html += '<th class="text-dim tl" style="padding:2px 4px;">Tipo</th>'
+        html += '<th class="text-dim tl" style="padding:2px 4px;">Direção</th>'
+        html += '<th class="text-dim tr" style="padding:2px 4px;">Peso</th>'
+        html += '<th class="text-dim tl" style="padding:2px 4px;">Detalhe</th>'
+        html += '</tr></thead><tbody>'
+        for _edge in pair_edges:
+            _e_type = _edge.get("type", "?")
+            _e_actor = _edge.get("actor", "")
+            _e_weight = _edge.get("weight", 0)
+            _e_date = _edge.get("date", "?")
+            _e_emoji, _e_label = _EDGE_DISPLAY.get(_e_type, ("❓", _e_type))
+            _e_wcolor = "#e74c3c" if _e_weight < 0 else "#2ecc71"
+            _is_backlash = _edge.get("backlash", False)
+            _arrow = f'{safe_html(_e_actor.split()[0])} → {safe_html((tname if _e_actor == lider_name else lider_name).split()[0])}'
+            _detail_parts = []
+            if _edge.get("event_type"):
+                _detail_parts.append(safe_html(_edge["event_type"]))
+            if _edge.get("vote_kind"):
+                _detail_parts.append(safe_html(_edge["vote_kind"]))
+            if _is_backlash:
+                _detail_parts.append('<span style="color:#e67e22;">backlash</span>')
+            _detail_str = " · ".join(_detail_parts) if _detail_parts else "—"
+            html += f'<tr style="border-bottom:1px solid #222;">'
+            html += f'<td class="text-muted" style="padding:2px 4px; white-space:nowrap;">{_e_date}</td>'
+            html += f'<td style="padding:2px 4px; white-space:nowrap;">{_e_emoji} {_e_label}</td>'
+            html += f'<td style="padding:2px 4px; color:#aaa; font-size:0.9em;">{_arrow}</td>'
+            html += f'<td class="tr" style="padding:2px 4px; color:{_e_wcolor}; font-family:monospace;">{_e_weight:+.2f}</td>'
+            html += f'<td class="text-muted" style="padding:2px 4px;">{_detail_str}</td>'
+            html += '</tr>'
+        html += '</tbody></table></div>'
+
+    # Queridômetro timeline
+    if hist_fwd:
+        _all_dates = sorted(set(d for d, _ in hist_fwd) | set(d for d, _ in hist_rev))
+        _fwd_by_date = {d: lbl for d, lbl in hist_fwd}
+        _rev_by_date = {d: lbl for d, lbl in hist_rev}
+        _show_dates = _all_dates[-14:]
+
+        html += '<div style="flex:1; min-width:240px;">'
+        html += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;">'
+        html += f'<strong>Queridômetro</strong> (últimos {len(_show_dates)} dias)</div>'
+        html += '<table class="table-full table-sm">'
+        html += '<thead><tr class="sep-bottom">'
+        html += f'<th class="text-dim tl" style="padding:2px 4px;">Data</th>'
+        html += f'<th class="text-dim tc" style="padding:2px 4px;">{safe_html(lider_name.split()[0])}→</th>'
+        html += f'<th class="text-dim tc" style="padding:2px 4px;">→{safe_html(lider_name.split()[0])}</th>'
+        html += '</tr></thead><tbody>'
+        for _dt in _show_dates:
+            _fwd_lbl = _fwd_by_date.get(_dt, "")
+            _rev_lbl = _rev_by_date.get(_dt, "")
+            _fwd_e = _EMOJI_MAP.get(_fwd_lbl, "")
+            _rev_e = _EMOJI_MAP.get(_rev_lbl, "")
+            _fwd_sent = SENTIMENT_WEIGHTS.get(_fwd_lbl, 0)
+            _rev_sent = SENTIMENT_WEIGHTS.get(_rev_lbl, 0)
+            _fwd_c = "#2ecc71" if _fwd_sent > 0 else "#e74c3c" if _fwd_sent < -0.5 else "#e67e22" if _fwd_sent < 0 else "#555"
+            _rev_c = "#2ecc71" if _rev_sent > 0 else "#e74c3c" if _rev_sent < -0.5 else "#e67e22" if _rev_sent < 0 else "#555"
+            html += f'<tr style="border-bottom:1px solid #222;">'
+            html += f'<td class="text-muted" style="padding:1px 4px; font-size:0.9em;">{_dt[5:]}</td>'
+            html += f'<td class="tc" style="padding:1px 4px; color:{_fwd_c};">{_fwd_e}</td>'
+            html += f'<td class="tc" style="padding:1px 4px; color:{_rev_c};">{_rev_e}</td>'
+            html += '</tr>'
+        html += '</tbody></table></div>'
+
+    html += '</div></details></td></tr>'
+    return html
+
+
+def render_lider_prediction(
+    lider_name: str | None,
+    ranked: list[tuple[str, dict]],
+    pairs_daily: dict,
+    rel_edges: list[dict],
+    vip_list: list[str],
+    anjo_name: str | None,
+    imunizado_nome: str | None,
+    display_week: str,
+    avatars: dict[str, str],
+    querido_history: dict[tuple[str, str], list[tuple[str, str]]],
+) -> str:
+    """Render the full Líder nomination prediction section."""
+    # Early return: no active leader
+    if not lider_name:
+        return (
+            '<div class="tc" style="background:#1a1a2e; border:1px solid #444; border-radius:10px; '
+            'padding:1.5rem; margin:1rem 0; color:#aaa; font-size:1.1em;">'
+            '🏠 <strong>Sem líder ativo</strong> — previsão de indicação indisponível.</div>'
+        )
+
+    html = '<h2 id="previsao-indicacao">🎯 Previsão — Indicação do Líder</h2>'
+
+    # Summary box with Líder identity, top-3 targets, Anjo note
+    html += _render_lider_summary_box(
+        lider_name, display_week, ranked[:3],
+        vip_list, anjo_name, imunizado_nome, avatars,
+    )
+
+    # Full ranking table — header
     html += '<div class="scroll-x" style="margin-top:1.2rem;">'
     html += '<table class="table-full" style="font-size:0.85em;">'
     html += '<thead><tr style="border-bottom:2px solid #444;">'
@@ -382,80 +590,12 @@ def render_lider_prediction(
 
     _max_abs = max((abs(e.get("score", 0)) for _, e in ranked), default=1) or 1
 
+    # Ranking rows + detail rows
     for _rank, (_tname, _tentry) in enumerate(ranked, 1):
-        _sc = _tentry.get("score", 0)
-        _comps = _tentry.get("components", {})
-        _streak_len = _tentry.get("streak_len", 0)
-        _has_break = _tentry.get("break", False)
-
-        _sc_color = "#e74c3c" if _sc < -2 else "#e67e22" if _sc < 0 else "#2ecc71"
-        _row_bg = "background:rgba(231,76,60,0.08);" if _rank <= 3 else ""
-
-        _is_immune = (_tname == imunizado_nome)
-        _immune_tag = ' <span style="background:#3498db; color:#fff; font-size:0.7em; padding:1px 4px; border-radius:3px;">IMUNE</span>' if _is_immune else ""
-
-        html += f'<tr class="sep-bottom" style="{_row_bg}">'
-        html += f'<td class="cell-compact tc text-muted">{_rank}</td>'
-        html += f'<td class="cell-compact" style="white-space:nowrap;">{avatar_img(_tname, avatars, size=22)}'
-        html += f'<strong style="color:#eee;">{safe_html(_tname)}</strong>{_immune_tag}</td>'
-        html += f'<td class="cell-compact" style="color:{_sc_color}; font-weight:bold; font-family:monospace;">{_sc:+.2f}</td>'
-
-        # Score bar
-        _bar_pct = min(abs(_sc) / _max_abs * 100, 100)
-        _bar_color = "#e74c3c" if _sc < 0 else "#2ecc71"
-        _bar_dir = "right" if _sc < 0 else "left"
-        html += f'<td class="cell-compact" style="min-width:80px;">'
-        html += f'<div style="width:100%; background:#222; border-radius:3px; height:12px; position:relative;">'
-        html += f'<div style="width:{_bar_pct:.0f}%; background:{_bar_color}; height:100%; border-radius:3px; '
-        html += f'float:{_bar_dir};"></div></div></td>'
-
-        # Components
-        html += f'<td class="cell-compact">'
-        _chips = []
-        for _ck, (_ce, _cneg, _cpos) in _comp_meta.items():
-            _cv = _comps.get(_ck, 0.0)
-            if abs(_cv) < 0.01:
-                continue
-            _cc = _cneg if _cv < 0 else _cpos
-            _chips.append(
-                f'<span style="background:{_cc}22; color:{_cc}; border:1px solid {_cc}44; '
-                f'border-radius:3px; padding:0px 4px; font-size:0.78em; white-space:nowrap;">'
-                f'{_ce} {_cv:+.2f}</span>'
-            )
-        html += " ".join(_chips) if _chips else '<span style="color:#555;">—</span>'
-        html += '</td>'
-
-        # Reciprocity
-        _recip_entry = pairs_daily.get(_tname, {}).get(lider_name, {})
-        _recip_score = _recip_entry.get("score", 0) if _recip_entry else 0
-
-        if _sc < 0 and _recip_score < 0:
-            _rl, _rc = "⚔️ Mútua", "#e74c3c"
-        elif _sc < 0 and _recip_score >= 0:
-            _rl, _rc = "🔍 Alvo cego", "#e67e22"
-        elif _sc >= 0 and _recip_score < 0:
-            _rl, _rc = "⚠️ Risco oculto", "#e67e22"
-        else:
-            _rl, _rc = "💚 Aliados", "#2ecc71"
-
-        html += f'<td class="cell-compact" style="white-space:nowrap;">'
-        html += f'<span style="color:{_rc}; font-size:0.85em;">{_rl}</span> '
-        html += f'<span class="text-muted" style="font-size:0.78em;">({_recip_score:+.2f})</span></td>'
-
-        # Streak
-        _si = "🔴" if _has_break else ("🟢" if _streak_len >= 5 else "⚪")
-        _bt = ' <span style="color:#e74c3c; font-size:0.75em;">BREAK</span>' if _has_break else ""
-        html += f'<td class="cell-compact tc" style="white-space:nowrap;">{_si} {_streak_len}d{_bt}</td>'
-
-        # VIP
-        if _tname in vip_list:
-            html += '<td class="cell-compact tc">'
-            html += '<span style="background:#3498db33; color:#3498db; border:1px solid #3498db55; '
-            html += 'border-radius:3px; padding:1px 5px; font-size:0.78em;">VIP</span></td>'
-        else:
-            html += '<td class="cell-compact tc" style="color:#555;">—</td>'
-
-        html += '</tr>'
+        html += _render_ranking_row(
+            _rank, _tname, _tentry, lider_name,
+            pairs_daily, vip_list, imunizado_nome, _max_abs, avatars,
+        )
 
         # Expandable detail row: edges + queridômetro history
         _pair_edges = [e for e in rel_edges if
@@ -463,88 +603,13 @@ def render_lider_prediction(
             (e.get("actor") == _tname and e.get("target") == lider_name)]
         _pair_edges.sort(key=lambda e: e.get("date", ""))
 
-        _hist_fwd = querido_history.get((lider_name, _tname), [])
-        _hist_rev = querido_history.get((_tname, lider_name), [])
-
-        if _pair_edges or _hist_fwd:
-            html += f'<tr style="{_row_bg}"><td colspan="8" style="padding:0;">'
-            html += '<details style="margin:0 0.4rem 0.4rem 1.8rem;">'
-            html += '<summary class="text-muted" style="cursor:pointer; font-size:0.78em; '
-            html += f'padding:0.2rem 0;">📋 {len(_pair_edges)} evento(s) · '
-            html += f'{len(_hist_fwd)} dia(s) de queridômetro</summary>'
-            html += '<div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.4rem;">'
-
-            # Edges sub-table
-            if _pair_edges:
-                html += '<div style="flex:1; min-width:280px;">'
-                html += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;"><strong>Eventos & Edges</strong></div>'
-                html += '<table class="table-full table-sm">'
-                html += '<thead><tr class="sep-bottom">'
-                html += '<th class="text-dim tl" style="padding:2px 4px;">Data</th>'
-                html += '<th class="text-dim tl" style="padding:2px 4px;">Tipo</th>'
-                html += '<th class="text-dim tl" style="padding:2px 4px;">Direção</th>'
-                html += '<th class="text-dim tr" style="padding:2px 4px;">Peso</th>'
-                html += '<th class="text-dim tl" style="padding:2px 4px;">Detalhe</th>'
-                html += '</tr></thead><tbody>'
-                for _edge in _pair_edges:
-                    _e_type = _edge.get("type", "?")
-                    _e_actor = _edge.get("actor", "")
-                    _e_weight = _edge.get("weight", 0)
-                    _e_date = _edge.get("date", "?")
-                    _e_emoji, _e_label = _edge_display.get(_e_type, ("❓", _e_type))
-                    _e_wcolor = "#e74c3c" if _e_weight < 0 else "#2ecc71"
-                    _is_backlash = _edge.get("backlash", False)
-                    _arrow = f'{safe_html(_e_actor.split()[0])} → {safe_html((_tname if _e_actor == lider_name else lider_name).split()[0])}'
-                    _detail_parts = []
-                    if _edge.get("event_type"):
-                        _detail_parts.append(safe_html(_edge["event_type"]))
-                    if _edge.get("vote_kind"):
-                        _detail_parts.append(safe_html(_edge["vote_kind"]))
-                    if _is_backlash:
-                        _detail_parts.append('<span style="color:#e67e22;">backlash</span>')
-                    _detail_str = " · ".join(_detail_parts) if _detail_parts else "—"
-                    html += f'<tr style="border-bottom:1px solid #222;">'
-                    html += f'<td class="text-muted" style="padding:2px 4px; white-space:nowrap;">{_e_date}</td>'
-                    html += f'<td style="padding:2px 4px; white-space:nowrap;">{_e_emoji} {_e_label}</td>'
-                    html += f'<td style="padding:2px 4px; color:#aaa; font-size:0.9em;">{_arrow}</td>'
-                    html += f'<td class="tr" style="padding:2px 4px; color:{_e_wcolor}; font-family:monospace;">{_e_weight:+.2f}</td>'
-                    html += f'<td class="text-muted" style="padding:2px 4px;">{_detail_str}</td>'
-                    html += '</tr>'
-                html += '</tbody></table></div>'
-
-            # Queridômetro timeline
-            if _hist_fwd:
-                _all_dates = sorted(set(d for d, _ in _hist_fwd) | set(d for d, _ in _hist_rev))
-                _fwd_by_date = {d: lbl for d, lbl in _hist_fwd}
-                _rev_by_date = {d: lbl for d, lbl in _hist_rev}
-                _show_dates = _all_dates[-14:]
-
-                html += '<div style="flex:1; min-width:240px;">'
-                html += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;">'
-                html += f'<strong>Queridômetro</strong> (últimos {len(_show_dates)} dias)</div>'
-                html += '<table class="table-full table-sm">'
-                html += '<thead><tr class="sep-bottom">'
-                html += f'<th class="text-dim tl" style="padding:2px 4px;">Data</th>'
-                html += f'<th class="text-dim tc" style="padding:2px 4px;">{safe_html(lider_name.split()[0])}→</th>'
-                html += f'<th class="text-dim tc" style="padding:2px 4px;">→{safe_html(lider_name.split()[0])}</th>'
-                html += '</tr></thead><tbody>'
-                for _dt in _show_dates:
-                    _fwd_lbl = _fwd_by_date.get(_dt, "")
-                    _rev_lbl = _rev_by_date.get(_dt, "")
-                    _fwd_e = _emoji_map.get(_fwd_lbl, "")
-                    _rev_e = _emoji_map.get(_rev_lbl, "")
-                    _fwd_sent = SENTIMENT_WEIGHTS.get(_fwd_lbl, 0)
-                    _rev_sent = SENTIMENT_WEIGHTS.get(_rev_lbl, 0)
-                    _fwd_c = "#2ecc71" if _fwd_sent > 0 else "#e74c3c" if _fwd_sent < -0.5 else "#e67e22" if _fwd_sent < 0 else "#555"
-                    _rev_c = "#2ecc71" if _rev_sent > 0 else "#e74c3c" if _rev_sent < -0.5 else "#e67e22" if _rev_sent < 0 else "#555"
-                    html += f'<tr style="border-bottom:1px solid #222;">'
-                    html += f'<td class="text-muted" style="padding:1px 4px; font-size:0.9em;">{_dt[5:]}</td>'
-                    html += f'<td class="tc" style="padding:1px 4px; color:{_fwd_c};">{_fwd_e}</td>'
-                    html += f'<td class="tc" style="padding:1px 4px; color:{_rev_c};">{_rev_e}</td>'
-                    html += '</tr>'
-                html += '</tbody></table></div>'
-
-            html += '</div></details></td></tr>'
+        _row_bg = "background:rgba(231,76,60,0.08);" if _rank <= 3 else ""
+        html += _render_detail_row(
+            lider_name, _tname, _pair_edges,
+            querido_history.get((lider_name, _tname), []),
+            querido_history.get((_tname, lider_name), []),
+            _row_bg, avatars,
+        )
 
     html += '</tbody></table></div>'
 

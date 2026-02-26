@@ -51,13 +51,13 @@
 ### H-5. 7 functions with nesting depth 6-8
 - **Files**: `build_derived_data.py` — `_detect_cartola_roles` (8), `_score_single_prova` (8), `_build_paredao_vote_analysis` (7), `_apply_prediction_boosts` (7), `_build_curiosity_lookups` (6), `build_plant_index` (6), `_build_vote_data` (6)
 - **Fix**: Refactor with early returns, guard clauses, extracted helpers
-- [ ] Fixed
+- [x] Fixed (2026-02-26) — 7 helpers extracted: `_count_cluster_mates_targeting`, `_process_week_reactions`, `_compute_vote_multipliers`, `_resolve_entry_names`, `_collect_current_holders_and_vip` (build_derived_data.py) + `_compute_vote_multipliers_for_paredao`, `_collect_bv_escapes` (build_index_data.py). Max depth reduced from 8 to 5.
 
 ### H-6. `render_lider_prediction` is 274 lines of mixed logic + HTML
 - **File**: `scripts/paredao_viz.py:280-553`
 - **Impact**: Untestable, unmaintainable HTML generation
 - **Fix**: Break into sub-renderers (summary box, ranking table, detail rows)
-- [ ] Fixed
+- [x] Fixed (2026-02-26) — Split into 3 sub-renderers (`_render_lider_summary_box`, `_render_ranking_row`, `_render_detail_row`) + 3 module-level constants. Orchestrator now ~76 lines.
 
 ### H-7. 68/80 functions untested in `build_derived_data.py`
 - **Impact**: 0% coverage on `paredao_viz.py`, `schemas.py`, `build_index_data.py`
@@ -151,7 +151,7 @@
 ### M-13. 14 instances of `to_html(escape=False)` in `relacoes_debug.qmd`
 - **Impact**: Raw HTML injection if data contains `<>`
 - **Fix**: Audit each instance; use `escape=True` where no pre-built HTML needed
-- [ ] Fixed
+- [x] Fixed (2026-02-26) — All instances already removed in prior refactoring (0 remaining in codebase)
 
 ### M-14. No rollback on deploy failure
 - (Same as H-2 — tracked there)
@@ -160,7 +160,7 @@
 ### M-15. API response consumed without structural validation
 - **File**: `scripts/fetch_data.py:116-118`
 - **Fix**: Add basic type/structure check after `response.json()`
-- [ ] Fixed
+- [x] Fixed (2026-02-26) — Added list + dict structure validation with descriptive ValueError after `response.json()`
 
 ### M-16. Scoring weights split across 2 files
 - **Files**: `data_utils.py` + `build_derived_data.py`
@@ -268,10 +268,10 @@
 | Severity | Total | Fixed | Remaining |
 |----------|-------|-------|-----------|
 | Critical | 2 | 2 | 0 |
-| High | 10 | 7 | 3 |
-| Medium | 21 | 8 | 13 |
+| High | 10 | 9 | 1 |
+| Medium | 21 | 10 | 11 |
 | Low | 16 | 0 | 16 |
-| **Total** | **49** | **17** | **32** |
+| **Total** | **49** | **21** | **28** |
 
 ---
 

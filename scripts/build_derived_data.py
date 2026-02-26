@@ -369,6 +369,33 @@ def _resolve_participant_sets(latest_snapshot: dict, daily_snapshots: list[dict]
     }
 
 
+def _compute_vote_multipliers(par: dict, power_events: list[dict], week: int | None) -> dict:
+    """Build per-voter multiplier dict for a single paredao entry.
+
+    Handles votos_anulados, impedidos_votar, voto_duplo, and voto_anulado power events.
+    Returns a defaultdict(lambda: 1) with overrides for affected voters.
+    """
+    multiplier: dict = defaultdict(lambda: 1)
+
+    for voter in par.get("votos_anulados", []) or []:
+        multiplier[voter] = 0
+    for voter in par.get("impedidos_votar", []) or []:
+        multiplier[voter] = 0
+
+    for ev in power_events:
+        if week and ev.get("week") == week:
+            if ev.get("type") == "voto_duplo":
+                for a in normalize_actors(ev):
+                    if a:
+                        multiplier[a] = 2
+            if ev.get("type") == "voto_anulado":
+                target = ev.get("target")
+                if target:
+                    multiplier[target] = 0
+
+    return multiplier
+
+
 def _build_vote_data(paredoes: dict | None, manual_events: dict) -> dict:
     """Parse paredao votes, revealed votes, open vote weeks.
 
@@ -388,23 +415,8 @@ def _build_vote_data(paredoes: dict | None, manual_events: dict) -> dict:
         vote_date = par.get("data_formacao") or par.get("data")
         if week and vote_date:
             vote_week_to_date[week] = vote_date
-        multiplier = defaultdict(lambda: 1)
-
-        for voter in par.get("votos_anulados", []) or []:
-            multiplier[voter] = 0
-        for voter in par.get("impedidos_votar", []) or []:
-            multiplier[voter] = 0
-
-        for ev in (manual_events.get("power_events", []) if manual_events else []):
-            if week and ev.get("week") == week:
-                if ev.get("type") == "voto_duplo":
-                    for a in normalize_actors(ev):
-                        if a:
-                            multiplier[a] = 2
-                if ev.get("type") == "voto_anulado":
-                    target = ev.get("target")
-                    if target:
-                        multiplier[target] = 0
+        power_events = manual_events.get("power_events", []) if manual_events else []
+        multiplier = _compute_vote_multipliers(par, power_events, week)
 
         for voter, target in votos.items():
             v = voter.strip()
@@ -1953,6 +1965,64 @@ def _compute_plant_rolling_averages(weeks_out: list[dict]) -> None:
             rec["rolling"] = round(sum(recent) / len(recent), 1)
 
 
+def _process_week_reactions(week_snaps: list[dict]) -> dict:
+    """Compute per-participant reaction counts for one week's snapshots.
+
+    Returns dict with keys: participants, received, received_planta, received_heart,
+    given, plant_ratio_sum, plant_ratio_days, heart_ratio_sum, heart_ratio_days.
+    """
+    participants: set[str] = set()
+    received: dict[str, int] = defaultdict(int)
+    received_planta: dict[str, int] = defaultdict(int)
+    received_heart: dict[str, int] = defaultdict(int)
+    given: dict[str, int] = defaultdict(int)
+    plant_ratio_sum: dict[str, float] = defaultdict(float)
+    plant_ratio_days: dict[str, int] = defaultdict(int)
+    heart_ratio_sum: dict[str, float] = defaultdict(float)
+    heart_ratio_days: dict[str, int] = defaultdict(int)
+
+    for snap in week_snaps:
+        for p in snap["participants"]:
+            name = p.get("name", "").strip()
+            if not name:
+                continue
+            participants.add(name)
+            day_received = 0
+            day_planta = 0
+            day_heart = 0
+            for rxn in p.get("characteristics", {}).get("receivedReactions", []):
+                amount = rxn.get("amount", 0) or 0
+                received[name] += amount
+                day_received += amount
+                if rxn.get("label") == "Planta":
+                    received_planta[name] += amount
+                    day_planta += amount
+                if rxn.get("label") == "Coração":
+                    received_heart[name] += amount
+                    day_heart += amount
+                for giver in rxn.get("participants", []):
+                    gname = giver.get("name")
+                    if gname:
+                        given[gname] += 1
+            if day_received > 0:
+                plant_ratio_sum[name] += (day_planta / day_received)
+                plant_ratio_days[name] += 1
+                heart_ratio_sum[name] += (day_heart / day_received)
+                heart_ratio_days[name] += 1
+
+    return {
+        "participants": participants,
+        "received": received,
+        "received_planta": received_planta,
+        "received_heart": received_heart,
+        "given": given,
+        "plant_ratio_sum": plant_ratio_sum,
+        "plant_ratio_days": plant_ratio_days,
+        "heart_ratio_sum": heart_ratio_sum,
+        "heart_ratio_days": heart_ratio_days,
+    }
+
+
 def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, auto_events: list[dict] | None, sincerao_edges: dict | None, paredoes: dict | None = None) -> dict:
     weekly = defaultdict(lambda: {"dates": [], "snapshots": []})
     for snap in daily_snapshots:
@@ -2017,44 +2087,16 @@ def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, a
         if not week_snaps:
             continue
 
-        participants = set()
-        received = defaultdict(int)
-        received_planta = defaultdict(int)
-        plant_ratio_sum = defaultdict(float)
-        plant_ratio_days = defaultdict(int)
-        given = defaultdict(int)
-        received_heart = defaultdict(int)
-        heart_ratio_sum = defaultdict(float)
-        heart_ratio_days = defaultdict(int)
-
-        for snap in week_snaps:
-            for p in snap["participants"]:
-                name = p.get("name", "").strip()
-                if not name:
-                    continue
-                participants.add(name)
-                day_received = 0
-                day_planta = 0
-                day_heart = 0
-                for rxn in p.get("characteristics", {}).get("receivedReactions", []):
-                    amount = rxn.get("amount", 0) or 0
-                    received[name] += amount
-                    day_received += amount
-                    if rxn.get("label") == "Planta":
-                        received_planta[name] += amount
-                        day_planta += amount
-                    if rxn.get("label") == "Coração":
-                        received_heart[name] += amount
-                        day_heart += amount
-                    for giver in rxn.get("participants", []):
-                        gname = giver.get("name")
-                        if gname:
-                            given[gname] += 1
-                if day_received > 0:
-                    plant_ratio_sum[name] += (day_planta / day_received)
-                    plant_ratio_days[name] += 1
-                    heart_ratio_sum[name] += (day_heart / day_received)
-                    heart_ratio_days[name] += 1
+        rxn_data = _process_week_reactions(week_snaps)
+        participants = rxn_data["participants"]
+        received = rxn_data["received"]
+        received_planta = rxn_data["received_planta"]
+        received_heart = rxn_data["received_heart"]
+        given = rxn_data["given"]
+        plant_ratio_sum = rxn_data["plant_ratio_sum"]
+        plant_ratio_days = rxn_data["plant_ratio_days"]
+        heart_ratio_sum = rxn_data["heart_ratio_sum"]
+        heart_ratio_days = rxn_data["heart_ratio_days"]
 
         power_counts = defaultdict(int)
         power_activity = defaultdict(float)
@@ -2316,6 +2358,43 @@ def validate_manual_events(participants_index: list[dict], manual_events: dict) 
     return warnings
 
 
+def _collect_current_holders_and_vip(snap_participants: list[dict]) -> tuple[dict, set[str]]:
+    """Iterate snapshot participants to build current role holders dict and VIP set.
+
+    Returns (current_holders, current_vip) where current_holders maps role names
+    to either a single name (Líder, Anjo) or a set of names (Monstro, Imune, Paredão).
+    """
+    current_holders: dict = {
+        'Líder': None, 'Anjo': None,
+        'Monstro': set(), 'Imune': set(), 'Paredão': set(),
+    }
+    current_vip: set[str] = set()
+
+    for p in snap_participants:
+        name = p.get('name', '').strip()
+        if not name:
+            continue
+        roles = parse_roles(p.get('characteristics', {}).get('roles', []))
+        group = p.get('characteristics', {}).get('group', '')
+
+        for role in roles:
+            if role == 'Líder':
+                current_holders['Líder'] = name
+            elif role == 'Anjo':
+                current_holders['Anjo'] = name
+            elif role == 'Monstro':
+                current_holders['Monstro'].add(name)
+            elif role == 'Imune':
+                current_holders['Imune'].add(name)
+            elif role == 'Paredão':
+                current_holders['Paredão'].add(name)
+
+        if group == 'Vip':
+            current_vip.add(name)
+
+    return current_holders, current_vip
+
+
 def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) -> None:
     """Auto-detect roles from API snapshots and populate calculated_points."""
     def has_event(name, week, event_key):
@@ -2333,33 +2412,7 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
         date = snap['date']
         week = get_week_number(date)
 
-        current_holders = {
-            'Líder': None, 'Anjo': None,
-            'Monstro': set(), 'Imune': set(), 'Paredão': set(),
-        }
-        current_vip = set()
-
-        for p in snap['participants']:
-            name = p.get('name', '').strip()
-            if not name:
-                continue
-            roles = parse_roles(p.get('characteristics', {}).get('roles', []))
-            group = p.get('characteristics', {}).get('group', '')
-
-            for role in roles:
-                if role == 'Líder':
-                    current_holders['Líder'] = name
-                elif role == 'Anjo':
-                    current_holders['Anjo'] = name
-                elif role == 'Monstro':
-                    current_holders['Monstro'].add(name)
-                elif role == 'Imune':
-                    current_holders['Imune'].add(name)
-                elif role == 'Paredão':
-                    current_holders['Paredão'].add(name)
-
-            if group == 'Vip':
-                current_vip.add(name)
+        current_holders, current_vip = _collect_current_holders_and_vip(snap['participants'])
 
         # Líder
         if current_holders['Líder'] and current_holders['Líder'] != previous_holders['Líder']:
@@ -2717,6 +2770,20 @@ def build_cartola_data(daily_snapshots: list[dict], manual_events: dict, paredoe
     return _format_cartola_output(all_points, participants_index, manual_events, daily_snapshots)
 
 
+def _resolve_entry_names(entry: dict) -> list[str]:
+    """Extract participant names from a classificacao entry.
+
+    Handles 'nome' (single), 'dupla' (pair), and 'membros' (team) formats.
+    """
+    if "nome" in entry:
+        return [entry["nome"]]
+    elif "dupla" in entry:
+        return list(entry["dupla"])
+    elif "membros" in entry:
+        return list(entry["membros"])
+    return []
+
+
 def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
     """Compute final positions for every participant in a single prova."""
     numero = prova["numero"]
@@ -2751,22 +2818,10 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
 
         phase2_names = set()
         for entry in fase2.get("classificacao", []):
-            if "nome" in entry:
-                phase2_names.add(entry["nome"])
-            elif "dupla" in entry:
-                phase2_names.update(entry["dupla"])
-            elif "membros" in entry:
-                phase2_names.update(entry["membros"])
+            phase2_names.update(_resolve_entry_names(entry))
 
         for entry in fase1.get("classificacao", []):
-            names_in_entry = []
-            if "nome" in entry:
-                names_in_entry = [entry["nome"]]
-            elif "dupla" in entry:
-                names_in_entry = list(entry["dupla"])
-            elif "membros" in entry:
-                names_in_entry = list(entry["membros"])
-
+            names_in_entry = _resolve_entry_names(entry)
             for name in names_in_entry:
                 if name in phase2_names:
                     continue
@@ -2784,13 +2839,7 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
         for phase_idx in range(len(fases) - 1, -1, -1):
             fase = fases[phase_idx]
             for entry in fase.get("classificacao", []):
-                names_in_entry = []
-                if "nome" in entry:
-                    names_in_entry = [entry["nome"]]
-                elif "dupla" in entry:
-                    names_in_entry = list(entry["dupla"])
-                elif "membros" in entry:
-                    names_in_entry = list(entry["membros"])
+                names_in_entry = _resolve_entry_names(entry)
                 for name in names_in_entry:
                     if name in assigned_names or name in excluded_names:
                         continue
@@ -2981,14 +3030,7 @@ def build_prova_rankings(provas_data: dict | None, participants_index: list[dict
 def _assign_phase_positions(positions: dict, fase: dict, excluded_names: set[str]) -> None:
     """Assign positions from a single phase's classificacao to the positions dict."""
     for entry in fase.get("classificacao", []):
-        names_in_entry = []
-        if "nome" in entry:
-            names_in_entry = [entry["nome"]]
-        elif "dupla" in entry:
-            names_in_entry = list(entry["dupla"])
-        elif "membros" in entry:
-            names_in_entry = list(entry["membros"])
-
+        names_in_entry = _resolve_entry_names(entry)
         for name in names_in_entry:
             if name in excluded_names:
                 continue
@@ -4689,6 +4731,24 @@ def _compute_formation_pair_scores(
     return scores
 
 
+def _count_cluster_mates_targeting(
+    voter: str,
+    target: str,
+    voter_cid: Any,
+    base_predictions: dict[str, dict],
+    cluster_map: dict[str, Any],
+) -> int:
+    """Count cluster-mates (excluding *voter*) whose top-1 prediction is *target*."""
+    count = 0
+    for other_voter, other_pred in base_predictions.items():
+        if other_voter == voter:
+            continue
+        if cluster_map.get(other_voter) == voter_cid:
+            if other_pred["top1"][0] == target:
+                count += 1
+    return count
+
+
 def _apply_prediction_boosts(
     voters: list[str],
     base_predictions: dict[str, dict],
@@ -4721,14 +4781,9 @@ def _apply_prediction_boosts(
             if voter_cid is not None and target in top3_targets:
                 n_cluster = cluster_voter_counts.get(voter_cid, 0)
                 if n_cluster > 1:  # need at least 2 in cluster to compute consensus
-                    # Count cluster-mates (excluding this voter) who predict this target
-                    mates_targeting = 0
-                    for other_voter, other_pred in base_predictions.items():
-                        if other_voter == voter:
-                            continue
-                        if cluster_map.get(other_voter) == voter_cid:
-                            if other_pred["top1"][0] == target:
-                                mates_targeting += 1
+                    mates_targeting = _count_cluster_mates_targeting(
+                        voter, target, voter_cid, base_predictions, cluster_map,
+                    )
                     n_mates = n_cluster - 1  # excluding self
                     if n_mates > 0:
                         frac = mates_targeting / n_mates
