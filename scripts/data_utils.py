@@ -880,21 +880,36 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
 
     parts = [
         '<style>'
+        '.cronologia-table { width:100%; border-collapse:collapse; font-size:0.9em; }'
+        '.cronologia-table th, .cronologia-table td { padding:6px 8px; }'
+        '.cronologia-table .col-date { white-space:nowrap; color:#aaa; }'
+        '.cronologia-table .col-badge { text-align:center; min-width:100px; }'
+        '.cronologia-table .col-detail { color:#999; font-size:0.85em; }'
+        '.cronologia-date-inline { display:none; }'
         '@media (max-width: 640px) {'
         '  .cronologia-table th:nth-child(4),'
         '  .cronologia-table td:nth-child(4) { display: none; }'
-        '  .cronologia-table { font-size: 0.8em; }'
-        '  .cronologia-table td, .cronologia-table th { padding: 4px 6px; }'
+        '  .cronologia-table th:nth-child(1),'
+        '  .cronologia-table td:nth-child(1) { display: none; }'
+        '  .cronologia-date-inline { display:block; font-size:0.75em; color:#888; margin-bottom:2px; }'
+        '  .cronologia-table { font-size: 0.82em; }'
+        '  .cronologia-table td, .cronologia-table th { padding: 5px 6px; }'
+        '  .cronologia-table .col-badge { min-width:70px; }'
+        '  .cronologia-table .col-badge span { font-size:0.7em !important; padding:2px 4px !important; }'
+        '}'
+        '@media (max-width: 400px) {'
+        '  .cronologia-table { font-size: 0.75em; }'
+        '  .cronologia-table td, .cronologia-table th { padding: 4px 4px; }'
         '}'
         '</style>'
         '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
-        '<table class="cronologia-table" style="width:100%; border-collapse:collapse; font-size:0.9em;">'
+        '<table class="cronologia-table">'
         '<thead style="position:sticky; top:0; z-index:1;">'
         '<tr style="background:#1a1a2e; color:#eee;">'
-        '<th style="padding:8px; text-align:left;">Data</th>'
-        '<th style="padding:8px; text-align:center; min-width:130px;">Tipo</th>'
-        '<th style="padding:8px; text-align:left;">Evento</th>'
-        '<th style="padding:8px; text-align:left;">Detalhe</th>'
+        '<th style="text-align:left;">Data</th>'
+        '<th class="col-badge">Tipo</th>'
+        '<th style="text-align:left;">Evento</th>'
+        '<th style="text-align:left;">Detalhe</th>'
         '</tr></thead><tbody>',
     ]
 
@@ -938,12 +953,14 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
                 date_cell = date
                 detail_text = detail
 
+            # Mobile: date is hidden as column, shown inline above event title
+            date_inline = f'<span class="cronologia-date-inline">{date_cell}</span>'
             parts.append(
                 f'<tr style="{row_style}">'
-                f'<td style="padding:6px 8px; color:#aaa; white-space:nowrap;">{date_cell}</td>'
-                f'<td style="padding:6px 8px; text-align:center;">{badge}</td>'
-                f'<td style="padding:6px 8px;">{title_cell}</td>'
-                f'<td style="padding:6px 8px; color:#999; font-size:0.85em;">{detail_text}</td>'
+                f'<td class="col-date">{date_cell}</td>'
+                f'<td class="col-badge">{badge}</td>'
+                f'<td>{date_inline}{title_cell}</td>'
+                f'<td class="col-detail">{detail_text}</td>'
                 f'</tr>'
             )
 

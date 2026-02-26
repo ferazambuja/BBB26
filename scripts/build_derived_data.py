@@ -3878,6 +3878,10 @@ def _merge_and_dedup_timeline(
     # Dedup by (date, category): if ANY real event exists for that date+category,
     # the scheduled placeholder is dropped (titles often differ, e.g. "Prova do Anjo"
     # vs "Sarah Andrade → Anjo").
+    # Also drop scheduled events whose date has already passed — these are stale
+    # previews where the real event was recorded under a different category.
+    from datetime import datetime, timezone
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
         date = se.get("date", "")
@@ -3885,6 +3889,8 @@ def _merge_and_dedup_timeline(
         key = (date, se.get("category", ""))
         if key in existing_date_cat:
             continue  # skip — a real event already covers this date+category
+        if date and date < today_str:
+            continue  # skip — past scheduled events are always stale
         events.append({
             "date": date, "week": week, "category": se.get("category", "dinamica"),
             "emoji": se.get("emoji", "🔮"), "title": se.get("title", ""),
