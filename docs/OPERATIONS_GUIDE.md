@@ -2,7 +2,7 @@
 
 > Guia prático para manutenção diária, atualização de dados manuais e sync com GitHub.
 >
-> **Última atualização**: 2026-02-11
+> **Última atualização**: 2026-02-27
 
 ---
 
@@ -68,17 +68,124 @@ git push
 
 ## Weekly Calendar
 
-| Dia | Horário (BRT) | O que acontece | Ação necessária |
-|-----|---------------|----------------|-----------------|
-| **Diário** | ~14h | Queridômetro atualiza na API | Automático (15:00 BRT capture) |
-| **Segunda** | ~22h | Dinâmica / Big Fone | Atualizar `manual_events.json` |
-| **Terça** | ~21h | Votalhada "Consolidados" | Coletar + atualizar `votalhada/polls.json` |
-| **Terça** | ~23h | Eliminação ao vivo | Atualizar `paredoes.json` (resultado) + `votalhada` (resultado_real) |
-| **Quarta** | durante o dia | — | Preencher eventos de Quarta (se houver) |
-| **Quinta** | ~22h | Prova do Líder | Atualizar `provas.json` + `manual_events.json` (se Big Fone) |
-| **Sexta** | ~22h | Anjo / Monstro | Automático (API detecta roles). Manual se houver contragolpe |
-| **Sábado** | ~22h | Prova Bate-Volta (se houver) | Atualizar `provas.json` |
-| **Domingo** | ~22h45 | Formação do Paredão | Atualizar `paredoes.json` (formação + votos_casa) |
+### Standard Week Pattern (Líder Cycle)
+
+Each BBB week follows a predictable pattern anchored to the Líder cycle. The "week dynamic" on Friday is the only thing that varies significantly each week (Sincerão, Big Fone, Exilado, Bloco, etc.).
+
+| Dia | Horário (BRT) | Evento | Ação necessária | Dados afetados |
+|-----|---------------|--------|-----------------|----------------|
+| **Diário** | ~14h | Queridômetro atualiza | Automático (15:00 BRT capture) | `snapshots/` |
+| **Terça** | ~21h | Votalhada "Consolidados" | Coletar `votalhada/polls.json` | `votalhada/polls.json` |
+| **Terça** | ~23h | **Eliminação** ao vivo | `paredoes.json` (resultado) + `votalhada` (resultado_real) | `paredoes.json` |
+| **Terça** | ~23h30 | **Ganha-Ganha** (após eliminação) | `manual_events.json` → `weekly_events[N].ganha_ganha` + `power_events` (veto) | `manual_events.json` |
+| **Quarta** | durante o dia | **Barrado no Baile** | `power_events` (type: `barrado_baile`) | `manual_events.json` |
+| **Quinta** | ~22h | **Prova do Líder** → new week starts | **Líder Transition Checklist** (see below) | `provas.json`, `paredoes.json` |
+| **Sexta** | ~22h | **Week Dynamic** (varies) | `manual_events.json` (see below) | varies |
+| **Sábado** | ~14h-17h | **Prova do Anjo** | Automático (API detecta Anjo). `provas.json` se detalhes disponíveis | `provas.json` |
+| **Sábado** | ~22h | **Monstro** (Anjo escolhe) | Automático (API detecta). Se artigo disponível, atualizar `weekly_events[N].anjo.monstro` | `manual_events.json` |
+| **Domingo** | ~22h45 | **Presente do Anjo** + **Paredão** | `paredoes.json` (formação + votos_casa + contragolpe + bate_volta) | `paredoes.json` |
+
+### Week Dynamic (Friday — varies each week)
+
+The Friday dynamic is the main source of variety between weeks. Past examples:
+
+| Week | Dynamic | Category |
+|------|---------|----------|
+| W1 | — (first week) | — |
+| W2 | Sincerão | `sincerao` |
+| W3 | Sincerão + Big Fone (multiple) | `sincerao` + `big_fone` |
+| W4 | Sincerão + Sincerinho (Duelo de Risco) | `sincerao` + `special_events` |
+| W5 | Bloco do Paredão (Máquina do Poder) | `special_events` |
+| W6 | Sincerinho Paredão Perfeito + Régua de Prioridade + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
+| W7 | O Exilado + Paredão Falso + Quarto Secreto | `special_events` |
+
+**Note**: Sincerão does NOT happen every week. It alternates and is announced in the week's dynamics article.
+
+### Recurring Events Checklist (per week)
+
+When planning `scheduled_events` for a new week, include these recurring items:
+
+- [ ] **Ganha-Ganha** (Tuesday, after elimination) — 3 sorteados, veto + choice
+- [ ] **Barrado no Baile** (Wednesday) — Líder bars someone from next party
+- [ ] **Prova do Líder** (Thursday) — see Líder Transition Checklist
+- [ ] **Week Dynamic** (Friday) — varies, from dynamics article
+- [ ] **Prova do Anjo** (Saturday) — API auto-detects winner
+- [ ] **Monstro** (Saturday) — Anjo's choice, API auto-detects
+- [ ] **Presente do Anjo** (Sunday) — immunity choice
+- [ ] **Paredão Formation** (Sunday) — contragolpe + bate e volta
+- [ ] **Eliminação** (Tuesday) — paredão result
+
+**Scrape the dynamics article** (published Thursday) to know the week-specific events and add all scheduled events at once.
+
+---
+
+## Líder Transition Checklist (Thursday night)
+
+When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps **in order**:
+
+### Immediate (Thursday night / Friday morning)
+
+1. **Scrape articles** — save `.md` copies for provenance:
+   ```bash
+   python scripts/scrape_gshow.py "<prova-do-lider-url>" -o docs/scraped/
+   python scripts/scrape_gshow.py "<vip-xepa-url>" -o docs/scraped/
+   python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/  # if available
+   ```
+
+2. **Update `data/provas.json`** — add Prova do Líder results (phases, scores, placements).
+   Include `fontes` with `{url, arquivo, titulo}` format pointing to scraped files.
+
+3. **Create paredão skeleton in `data/paredoes.json`** — even before formation details.
+   This is **critical** for `leader_periods` to show the correct Líder for the week.
+   ```json
+   {
+     "numero": N,
+     "status": "em_andamento",
+     "data": "YYYY-MM-DD",
+     "data_formacao": "YYYY-MM-DD",
+     "titulo": "Nº Paredão — DD de Mês de YYYY",
+     "semana": N,
+     "total_esperado": 3,
+     "formacao": {"lider": "Líder Name"},
+     "indicados_finais": [],
+     "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+   }
+   ```
+
+4. **Update `data/manual_events.json`** — add scheduled events for the new week (if dynamics article available). Record power events (Big Fone, etc.) if any.
+
+5. **Rebuild + commit + push**:
+   ```bash
+   python scripts/build_derived_data.py
+   git add data/ && git commit -m "data: week N Líder transition (Name)"
+   git push
+   ```
+
+### API auto-detects (no manual action needed)
+
+These are picked up automatically by `build_daily_roles()` from snapshots:
+- **Líder role** — appears in `characteristics.roles` (usually within hours of the ceremony)
+- **VIP/Xepa groups** — appears in `characteristics.group` (same timing)
+- **Roles cleared briefly** during transition (roles empty for a few hours → normal)
+
+### Later (when Líder term ends)
+
+6. **Update `WEEK_END_DATES`** in `scripts/data_utils.py` — add the last day of the completed week (day before next Prova do Líder). Cannot do this until the next Líder is crowned.
+
+### Verification
+
+After rebuilding, verify:
+```bash
+python3 -c "
+import json
+with open('data/derived/index_data.json') as f:
+    idx = json.load(f)
+for lp in idx['leader_periods']:
+    print(f'Week {lp[\"week\"]}: {lp[\"leader\"]} | VIP={lp[\"vip\"][:3]}...')
+"
+```
+
+Check that the new week shows the correct Líder (not `null`) and VIP composition.
 
 ---
 

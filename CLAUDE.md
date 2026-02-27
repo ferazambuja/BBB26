@@ -64,7 +64,8 @@ quarto preview
 - `build_game_timeline()` includes them in `game_timeline.json` with `"status": "scheduled"` and `"source": "scheduled"`.
 - Auto-dedup by `(date, category)`: if a real event already exists with the same date and category, the scheduled entry is automatically skipped (regardless of title differences).
 - Rendered in Cronologia do Jogo (via `render_cronologia_html()` from `data_utils`) with dashed borders, outlined badges, yellow time badge, and 🔮 prefix.
-- **After an event happens**: record the real data normally, rebuild. The scheduled entry is auto-dropped if a matching real event exists. Remove from `scheduled_events` for cleanup, but dedup handles it either way.
+- **After an event happens**: record the real data normally, rebuild. The scheduled entry is auto-dropped if a matching real event exists. Clean up past entries periodically.
+- **Weekly pattern**: See `docs/OPERATIONS_GUIDE.md` → "Standard Week Pattern" for the recurring event schedule (Ganha-Ganha, Barrado, Anjo/Monstro, etc.) and which ones to include as scheduled events each week.
 
 **Votalhada polls (manual):**
 - Update `data/votalhada/polls.json` **Tuesday ~21:00 BRT** (before elimination).
@@ -235,9 +236,10 @@ BBB game weeks are **not** calendar 7-day periods. Each week is defined by a **L
 | 3 | 2026-02-04 | Maxiane | 3º (Feb 3) | Jonas (Feb 5) |
 | 4 | 2026-02-12 | Jonas Sulzbach | 4º (Feb 10) | Jonas (Feb 13) |
 | 5 | 2026-02-18 | Jonas Sulzbach | 5º (Feb 17) | Jonas (?) |
-| 6 | 2026-02-25 | Jonas Sulzbach | 6º (Feb 25) | ??? |
+| 6 | 2026-02-25 | Jonas Sulzbach | 6º (Feb 25) | Samira (Feb 26) |
+| 7 | TBD | Samira | 7º (Mar 3, Falso) | ??? |
 
-**When a new Líder cycle completes**: update `WEEK_END_DATES` in `data_utils.py` with the last day of that week (day before next Prova do Líder).
+**When a new Líder is crowned**: follow the **Líder Transition Checklist** in `docs/OPERATIONS_GUIDE.md` — create paredão skeleton (critical for `leader_periods`), update provas, scrape articles, add scheduled events. **When a Líder cycle completes**: update `WEEK_END_DATES` in `data_utils.py` with the last day of that week (day before next Prova do Líder).
 
 **Consecutive Líder**: When the same person wins multiple Prova do Líder, each term is a separate week with its own `WEEK_END_DATES` entry. The `leader_periods` in `index_data.json` are derived from `WEEK_END_DATES` + `paredoes.json` (not from API role changes), so consecutive same-person terms are correctly separated.
 
@@ -300,6 +302,7 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 | Feb 11 | 17 | Sol Vega **desclassificada** (confronto com Ana Paula Renault) |
 | Feb 14 | 16 | Edilson **desclassificado** (discussão com Leandro Boneco) |
 | Feb 17 | 15 | Marcelo **eliminado** (5º Paredão) |
+| Feb 25 | 14 | Maxiane **eliminada** (6º Paredão) |
 
 ## Scoring & Indexes (summary)
 
@@ -492,6 +495,7 @@ The `votos_casa` dict and all manual data use participant names as keys. These *
 - `Sol Vega` — Desclassificada (confronto, Feb 11)
 - `Edilson` — Desclassificado (discussão com Leandro, Feb 14)
 - `Marcelo` — Eliminado (5º Paredão, Feb 17)
+- `Maxiane` — Eliminada (6º Paredão, Feb 25)
 
 
 **Before adding manual data**, always verify names against the snapshot:

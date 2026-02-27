@@ -3758,9 +3758,10 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
                 "detail": bf.get("consequencia", ""), "participants": [atendeu] if atendeu else [],
                 "source": "weekly_events",
             })
-        # Sincerão
-        sinc = we.get("sincerao")
-        if sinc and isinstance(sinc, dict):
+        # Sincerão (supports single dict or array)
+        sinc_raw = we.get("sincerao")
+        sinc_list = sinc_raw if isinstance(sinc_raw, list) else [sinc_raw] if isinstance(sinc_raw, dict) else []
+        for sinc in sinc_list:
             date = sinc.get("date", "")
             w = get_week_number(date) if date else week
             fmt = sinc.get("format", "")
