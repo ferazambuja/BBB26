@@ -65,7 +65,7 @@ quarto preview
 - Auto-dedup by `(date, category)`: if a real event already exists with the same date and category, the scheduled entry is automatically skipped (regardless of title differences).
 - Rendered in Cronologia do Jogo (via `render_cronologia_html()` from `data_utils`) with dashed borders, outlined badges, yellow time badge, and 🔮 prefix.
 - **After an event happens**: record the real data normally, rebuild. The scheduled entry is auto-dropped if a matching real event exists. Clean up past entries periodically.
-- **Weekly pattern**: See `docs/OPERATIONS_GUIDE.md` → "Standard Week Pattern" for the recurring event schedule (Ganha-Ganha, Barrado, Anjo/Monstro, etc.) and which ones to include as scheduled events each week.
+- **Weekly pattern**: See `docs/OPERATIONS_GUIDE.md` → "Standard Week Pattern" for the full recurring cycle. Key: **Sincerão is every Monday** (~22h live show, format varies weekly), separate from the Friday "Week Dynamic" (Bloco, Exilado, Big Fone, etc.). Checklist includes: Sincerão (Mon), Ganha-Ganha (Tue), Barrado (Wed), Líder (Thu), Dynamic (Fri), Anjo/Monstro (Sat), Paredão (Sun), Eliminação (Tue).
 
 **Votalhada polls (manual):**
 - Update `data/votalhada/polls.json` **Tuesday ~21:00 BRT** (before elimination).

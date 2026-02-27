@@ -70,11 +70,14 @@ git push
 
 ### Standard Week Pattern (Líder Cycle)
 
-Each BBB week follows a predictable pattern anchored to the Líder cycle. The "week dynamic" on Friday is the only thing that varies significantly each week (Sincerão, Big Fone, Exilado, Bloco, etc.).
+Each BBB week follows a predictable pattern anchored to the Líder cycle. Two event types recur:
+- **Sincerão** (Monday live show) — happens every week with a different format/theme
+- **Week Dynamic** (Friday, varies) — the unique dynamic announced in the weekly dynamics article (Bloco do Paredão, Exilado, Big Fone, Duelo de Risco, etc.)
 
 | Dia | Horário (BRT) | Evento | Ação necessária | Dados afetados |
 |-----|---------------|--------|-----------------|----------------|
 | **Diário** | ~14h | Queridômetro atualiza | Automático (15:00 BRT capture) | `snapshots/` |
+| **Segunda** | ~22h | **Sincerão** (ao vivo) | `manual_events.json` → `weekly_events[N].sincerao` (edges + stats) | `manual_events.json` |
 | **Terça** | ~21h | Votalhada "Consolidados" | Coletar `votalhada/polls.json` | `votalhada/polls.json` |
 | **Terça** | ~23h | **Eliminação** ao vivo | `paredoes.json` (resultado) + `votalhada` (resultado_real) | `paredoes.json` |
 | **Terça** | ~23h30 | **Ganha-Ganha** (após eliminação) | `manual_events.json` → `weekly_events[N].ganha_ganha` + `power_events` (veto) | `manual_events.json` |
@@ -85,26 +88,41 @@ Each BBB week follows a predictable pattern anchored to the Líder cycle. The "w
 | **Sábado** | ~22h | **Monstro** (Anjo escolhe) | Automático (API detecta). Se artigo disponível, atualizar `weekly_events[N].anjo.monstro` | `manual_events.json` |
 | **Domingo** | ~22h45 | **Presente do Anjo** + **Paredão** | `paredoes.json` (formação + votos_casa + contragolpe + bate_volta) | `paredoes.json` |
 
+### Sincerão (Monday — recurring weekly)
+
+The Sincerão is a **weekly recurring event** during the Monday live show (~22h BRT). Each week has a different format/theme, but the event consistently happens on Monday. Data goes in `weekly_events[N].sincerao` (can be a single `dict` or a `list` of dicts if multiple rounds).
+
+| Week | Date | Format | Notes |
+|------|------|--------|-------|
+| W1 | Mon Jan 19 | Pódio + quem não ganha | Plateia presente, Pipocômetro |
+| W2 | Mon Jan 26 | Bombas com temas do público | Plateia define planta (Solange) |
+| W3 | Mon Feb 2 | Pior futebol do mundo | Escalação com papéis negativos |
+| W4 | Mon Feb 9 | Quem Sou Eu? (adivinhação) | Plateia define mais apagada (Marciele) |
+| W5 | Mon Feb 16 | **MISSING** — needs data | Done hastily on live show, not yet classified |
+| W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
+| W7 | TBD | TBD | |
+
 ### Week Dynamic (Friday — varies each week)
 
-The Friday dynamic is the main source of variety between weeks. Past examples:
+The Friday dynamic is a separate, week-specific event announced in the dynamics article (published ~Thursday). This is NOT the Sincerão — it's an additional dynamic that varies each week.
 
 | Week | Dynamic | Category |
 |------|---------|----------|
 | W1 | — (first week) | — |
-| W2 | Sincerão | `sincerao` |
-| W3 | Sincerão + Big Fone (multiple) | `sincerao` + `big_fone` |
-| W4 | Sincerão + Sincerinho (Duelo de Risco) | `sincerao` + `special_events` |
+| W2 | — | — |
+| W3 | Big Fone (multiple) | `big_fone` |
+| W4 | Sincerinho / Duelo de Risco | `special_events` |
 | W5 | Bloco do Paredão (Máquina do Poder) | `special_events` |
-| W6 | Sincerinho Paredão Perfeito + Régua de Prioridade + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
+| W6 | Sincerinho Paredão Perfeito + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
 | W7 | O Exilado + Paredão Falso + Quarto Secreto | `special_events` |
 
-**Note**: Sincerão does NOT happen every week. It alternates and is announced in the week's dynamics article.
+**Note**: Some weeks have Sincerão-adjacent dynamics on Friday too (W6 had Paredão Perfeito on Friday + Régua on Monday). The Friday slot is for week-unique dynamics from the article.
 
 ### Recurring Events Checklist (per week)
 
 When planning `scheduled_events` for a new week, include these recurring items:
 
+- [ ] **Sincerão** (Monday, ~22h) — format varies weekly; `weekly_events[N].sincerao` with edges + stats
 - [ ] **Ganha-Ganha** (Tuesday, after elimination) — 3 sorteados, veto + choice
 - [ ] **Barrado no Baile** (Wednesday) — Líder bars someone from next party
 - [ ] **Prova do Líder** (Thursday) — see Líder Transition Checklist
