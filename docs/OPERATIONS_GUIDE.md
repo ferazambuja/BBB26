@@ -1,57 +1,61 @@
 # BBB26 Operations Guide
 
-> Guia prático para manutenção diária, atualização de dados manuais e sync com GitHub.
+> Single source of truth for ALL operational procedures — data updates, event workflows, git sync, and troubleshooting.
 >
-> **Última atualização**: 2026-02-27
+> **For AI agents without context**: Read the Quick Index below to find exactly what you need to do.
+> **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `CLAUDE.md` (architecture).
+> **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
+>
+> **Last updated**: 2026-02-28
 
 ---
 
-## Git Workflow (sync local ↔ GitHub)
+## Quick Index — "I need to..."
 
-The GitHub Actions bot auto-commits `data/` files up to 6× daily (8 on Saturdays). Always pull before working.
+| Task | When | Go to |
+|------|------|-------|
+| **Update after ANY manual edit** | After editing any data file | [Git Workflow](#git-workflow) |
+| **New Líder crowned** (Thursday) | Thursday ~22h | [Líder Transition Checklist](#líder-transition-checklist-thursday-night) |
+| **Prova do Anjo results** (Saturday) | Saturday afternoon | [Anjo / Monstro Checklist](#anjo--monstro-update-checklist-saturday) |
+| **Presente do Anjo + Paredão formation** (Sunday) | Sunday ~22h45 | [Paredão Formation Checklist](#paredão-formation-checklist-sunday) |
+| **Collect Votalhada polls** (Tuesday) | Tuesday ~21h | [Votalhada Collection Checklist](#votalhada-collection-checklist-tuesday) |
+| **Elimination result** (Tuesday) | Tuesday ~23h | [Elimination Result Checklist](#elimination-result-checklist-tuesday) |
+| **Sincerão data** (Monday) | Monday ~22h | [Sincerão Update](#sincerão-update-monday) |
+| **Ganha-Ganha / Barrado / power events** | Various | [Manual Data Files](#manual-data-files--when-and-how) |
+| **Add scheduled events for upcoming week** | After dynamics article | [Scheduled Events](#scheduled-events-upcoming-week) |
+| **Participant exit** (quit/disqualified) | When it happens | [Manual Data Files → manual_events.json](#1-datamanual_eventsjson) |
+| **Workflow failed on GitHub** | After failure | [Troubleshooting](#troubleshooting) |
+| **Push conflict with bot** | After `git push` fails | [Git Workflow → conflict resolution](#handling-push-conflicts) |
+| **Which script to run?** | Any time | [Script Reference](#quick-reference-which-script-when) |
+
+---
+
+## Git Workflow
+
+The GitHub Actions bot auto-commits `data/` files up to 6x daily (8 on Saturdays). **Always pull before working.**
 
 ```bash
 # Before any local work
 git pull
 
-# After manual edits
+# After manual edits (the universal pattern)
 python scripts/build_derived_data.py    # rebuild derived data (hard-fails on errors)
-git add data/ && git commit -m "data: <descrição>"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: <description>"
 git push
 
 # Deploy immediately (instead of waiting for next cron)
 gh workflow run daily-update.yml
-
-# Or wait — permanent cron runs at 00:00, 06:00, 15:00, 18:00 BRT (+ 17:00, 20:00 on Saturdays)
 ```
 
-**Key rule**: The bot only touches `data/` files. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
+**Key rules**:
+- The bot only touches `data/` files. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
+- Bot cron runs at **00:00, 06:00, 15:00, 18:00 BRT** (+ 17:00, 20:00 on Saturdays). Work quickly near those times.
+- Snapshot filenames are **UTC**. Game dates use `utc_to_game_date()` (UTC→BRT with 06:00 BRT cutoff).
 
-**Snapshot filenames are UTC**: Files in `data/snapshots/` use UTC timestamps. Game dates (for daily dedup) are derived by converting UTC→BRT with a 06:00 BRT cutoff (captures before 06:00 BRT → previous game day). See `utc_to_game_date()` in `data_utils.py`.
+### Handling Push Conflicts
 
-### Handling Extraordinary Events (mid-day manual updates)
+If push fails because the bot committed while you were editing:
 
-When something unexpected happens (e.g., surprise disqualification, mid-week dynamic):
-
-```bash
-# 1. Always sync first
-git pull
-
-# 2. Make your edits
-#    - data/manual_events.json (power events, exits)
-#    - data/paredoes.json (formation, votes)
-#    - data/provas.json (competition results)
-
-# 3. Rebuild + commit + push
-python scripts/build_derived_data.py
-git add data/ && git commit -m "data: <what happened>"
-git push
-
-# 4. Deploy immediately
-gh workflow run daily-update.yml
-```
-
-**If push fails** (bot committed while you were editing):
 ```bash
 git pull --rebase
 # If conflicts in data/derived/ (always safe to regenerate):
@@ -62,7 +66,20 @@ git add data/ && git commit -m "data: rebuild derived after merge"
 git push
 ```
 
-**Timing tip**: The bot runs at fixed slots (00:00, 06:00, 15:00, 18:00 BRT). If you're editing near those times, work quickly: `pull → edit → build → push` in one go to minimize the chance of a concurrent bot commit.
+Derived files are always regenerated — the source of truth is the manual files + snapshots.
+
+### Handling Extraordinary Events
+
+Surprise disqualification, mid-week dynamic, or any unplanned event:
+
+```bash
+git pull                                  # 1. Always sync first
+# Edit the relevant data files            # 2. Make your edits
+python scripts/build_derived_data.py      # 3. Rebuild
+git add data/ && git commit -m "data: <what happened>"
+git push                                  # 4. Push
+gh workflow run daily-update.yml          # 5. Deploy immediately
+```
 
 ---
 
@@ -70,27 +87,27 @@ git push
 
 ### Standard Week Pattern (Líder Cycle)
 
-Each BBB week follows a predictable pattern anchored to the Líder cycle. Two event types recur:
+Each BBB week follows a predictable pattern anchored to the Líder cycle. Two recurring event types:
 - **Sincerão** (Monday live show) — happens every week with a different format/theme
-- **Week Dynamic** (Friday, varies) — the unique dynamic announced in the weekly dynamics article (Bloco do Paredão, Exilado, Big Fone, Duelo de Risco, etc.)
+- **Week Dynamic** (Friday, varies) — the unique dynamic from the weekly dynamics article
 
-| Dia | Horário (BRT) | Evento | Ação necessária | Dados afetados |
-|-----|---------------|--------|-----------------|----------------|
+| Dia | Horário (BRT) | Evento | Checklist to follow | Data files affected |
+|-----|---------------|--------|---------------------|---------------------|
 | **Diário** | ~14h | Queridômetro atualiza | Automático (15:00 BRT capture) | `snapshots/` |
-| **Segunda** | ~22h | **Sincerão** (ao vivo) | `manual_events.json` → `weekly_events[N].sincerao` (edges + stats) | `manual_events.json` |
-| **Terça** | ~21h | Votalhada "Consolidados" | Coletar `votalhada/polls.json` | `votalhada/polls.json` |
-| **Terça** | ~23h | **Eliminação** ao vivo | `paredoes.json` (resultado) + `votalhada` (resultado_real) | `paredoes.json` |
-| **Terça** | ~23h30 | **Ganha-Ganha** (após eliminação) | `manual_events.json` → `weekly_events[N].ganha_ganha` + `power_events` (veto) | `manual_events.json` |
-| **Quarta** | durante o dia | **Barrado no Baile** | `power_events` (type: `barrado_baile`) | `manual_events.json` |
-| **Quinta** | ~22h | **Prova do Líder** → new week starts | **Líder Transition Checklist** (see below) | `provas.json`, `paredoes.json` |
-| **Sexta** | ~22h | **Week Dynamic** (varies) | `manual_events.json` (see below) | varies |
-| **Sábado** | ~14h-17h | **Prova do Anjo** | Automático (API detecta Anjo). `provas.json` se detalhes disponíveis | `provas.json` |
-| **Sábado** | ~22h | **Monstro** (Anjo escolhe) | Automático (API detecta). Se artigo disponível, atualizar `weekly_events[N].anjo.monstro` | `manual_events.json` |
-| **Domingo** | ~22h45 | **Presente do Anjo** + **Paredão** | `paredoes.json` (formação + votos_casa + contragolpe + bate_volta) | `paredoes.json` |
+| **Segunda** | ~22h | **Sincerão** (ao vivo) | [Sincerão Update](#sincerão-update-monday) | `manual_events.json` |
+| **Terça** | ~21h | Votalhada "Consolidados" | [Votalhada Checklist](#votalhada-collection-checklist-tuesday) | `votalhada/polls.json` |
+| **Terça** | ~23h | **Eliminação** ao vivo | [Elimination Checklist](#elimination-result-checklist-tuesday) | `paredoes.json` |
+| **Terça** | ~23h30 | **Ganha-Ganha** | [Manual Data Files](#1-datamanual_eventsjson) | `manual_events.json` |
+| **Quarta** | durante o dia | **Barrado no Baile** | [Manual Data Files](#1-datamanual_eventsjson) | `manual_events.json` |
+| **Quinta** | ~22h | **Prova do Líder** | [Líder Checklist](#líder-transition-checklist-thursday-night) | `provas.json`, `paredoes.json` |
+| **Sexta** | ~22h | **Week Dynamic** (varies) | Depends on dynamic | varies |
+| **Sábado** | ~14h-17h | **Prova do Anjo** | [Anjo Checklist](#anjo--monstro-update-checklist-saturday) | `provas.json`, `manual_events.json` |
+| **Sábado** | ~22h | **Monstro** (Anjo escolhe) | [Anjo Checklist](#anjo--monstro-update-checklist-saturday) | `manual_events.json` |
+| **Domingo** | ~22h45 | **Presente do Anjo** + **Paredão** | [Paredão Checklist](#paredão-formation-checklist-sunday) | `paredoes.json` |
 
-### Sincerão (Monday — recurring weekly)
+### Sincerão History (Monday — recurring weekly)
 
-The Sincerão is a **weekly recurring event** during the Monday live show (~22h BRT). Each week has a different format/theme, but the event consistently happens on Monday. Data goes in `weekly_events[N].sincerao` (can be a single `dict` or a `list` of dicts if multiple rounds).
+Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for multiple rounds).
 
 | Week | Date | Format | Notes |
 |------|------|--------|-------|
@@ -102,9 +119,9 @@ The Sincerão is a **weekly recurring event** during the Monday live show (~22h 
 | W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
 | W7 | TBD | TBD | |
 
-### Week Dynamic (Friday — varies each week)
+### Week Dynamic History (Friday — varies each week)
 
-The Friday dynamic is a separate, week-specific event announced in the dynamics article (published ~Thursday). This is NOT the Sincerão — it's an additional dynamic that varies each week.
+Separate from Sincerão. Announced in the dynamics article (published ~Thursday).
 
 | Week | Dynamic | Category |
 |------|---------|----------|
@@ -115,8 +132,6 @@ The Friday dynamic is a separate, week-specific event announced in the dynamics 
 | W5 | Bloco do Paredão (Máquina do Poder) | `special_events` |
 | W6 | Sincerinho Paredão Perfeito + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
 | W7 | O Exilado + Paredão Falso + Quarto Secreto | `special_events` |
-
-**Note**: Some weeks have Sincerão-adjacent dynamics on Friday too (W6 had Paredão Perfeito on Friday + Régua on Monday). The Friday slot is for week-unique dynamics from the article.
 
 ### Recurring Events Checklist (per week)
 
@@ -134,90 +149,6 @@ When planning `scheduled_events` for a new week, include these recurring items:
 - [ ] **Eliminação** (Tuesday) — paredão result
 
 **Scrape the dynamics article** (published Thursday) to know the week-specific events and add all scheduled events at once.
-
----
-
-## Anjo / Monstro Update Checklist (Saturday)
-
-When the Prova do Anjo results are published (typically Saturday afternoon article + Saturday night Monstro choice):
-
-### 1. Scrape article
-
-```bash
-python scripts/scrape_gshow.py "<prova-do-anjo-url>" -o docs/scraped/
-```
-
-### 2. Update `data/provas.json`
-
-Add a new entry. Key fields:
-
-```json
-{
-  "numero": N,
-  "tipo": "anjo",
-  "week": W,
-  "date": "YYYY-MM-DD",
-  "nome": "Nª Prova do Anjo — Description",
-  "formato": "format_type",
-  "vencedor": "Winner Name",
-  "participantes_total": 12,
-  "excluidos": [{"nome": "Name", "motivo": "reason"}],
-  "nota": "Brief description of how the prova worked.",
-  "fases": [
-    {"fase": 1, "tipo": "...", "classificacao": [{"pos": 1, "nome": "..."}, ...]},
-    {"fase": 2, "tipo": "...", "classificacao": [{"pos": 1, "nome": "Winner"}]}
-  ],
-  "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
-}
-```
-
-**Phase rules**: Each phase has its own `classificacao`. For binary-outcome finals (e.g., "correct box"), use **winner only** (no rankings for losers). For timed/scored phases, include all participants with positions.
-
-**Excluded**: Líder always excluded (doesn't play). Others excluded by sorteio, punishment, etc.
-
-### 3. Update `data/manual_events.json` → `weekly_events[N].anjo`
-
-Create or update the week's `weekly_events` entry with:
-
-```json
-{
-  "anjo": {
-    "vencedor": "Winner Name",
-    "prova_date": "YYYY-MM-DD",
-    "almoco_date": null,
-    "almoco_convidados": [],
-    "escolha": null,
-    "imunizado": null,
-    "monstro": "Monstro Name",
-    "monstro_tipo": null,
-    "monstro_motivo": null,
-    "notas": "Brief summary of what happened.",
-    "fontes": ["<article-url>"]
-  }
-}
-```
-
-**Fill-later fields** (Sunday Presente do Anjo): `almoco_date`, `almoco_convidados`, `escolha` (video_familia | segunda_imunidade), `imunizado`. Fill after the live Sunday show.
-
-**Monstro**: API auto-detects the role. Fill `monstro` name here when known (article or API). `monstro_tipo` and `monstro_motivo` when article available.
-
-### 4. Clean up scheduled events
-
-Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the auto-dedup handles timeline, but cleaner to remove.
-
-### 5. Rebuild + commit + push
-
-```bash
-python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Nª Prova do Anjo (Winner Name) + Monstro (Name)"
-git push
-```
-
-### API auto-detects (no manual action needed)
-
-- **Anjo role** — `characteristics.roles` contains `"Anjo"`
-- **Monstro role** — `characteristics.roles` contains `"Monstro"`
-- Both appear in `auto_events.json` and `roles_daily.json` after rebuild
 
 ---
 
@@ -253,13 +184,14 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
      "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
    }
    ```
+   **Note**: `formacao.lider` (nested under `formacao`), NOT top-level `lider`.
 
-4. **Update `data/manual_events.json`** — add scheduled events for the new week (if dynamics article available). Record power events (Big Fone, etc.) if any.
+4. **Update `data/manual_events.json`** — add scheduled events for the new week using the [Recurring Events Checklist](#recurring-events-checklist-per-week). Record power events (Big Fone, etc.) if any.
 
 5. **Rebuild + commit + push**:
    ```bash
    python scripts/build_derived_data.py
-   git add data/ && git commit -m "data: week N Líder transition (Name)"
+   git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: week N Líder transition (Name)"
    git push
    ```
 
@@ -291,26 +223,342 @@ Check that the new week shows the correct Líder (not `null`) and VIP compositio
 
 ---
 
+## Anjo / Monstro Update Checklist (Saturday)
+
+When the Prova do Anjo results are published (typically Saturday afternoon article + Saturday night Monstro choice):
+
+### 1. Scrape article(s)
+
+```bash
+python scripts/scrape_gshow.py "<prova-do-anjo-url>" -o docs/scraped/
+python scripts/scrape_gshow.py "<castigo-do-monstro-url>" -o docs/scraped/  # if separate article
+```
+
+### 2. Update `data/provas.json`
+
+Add a new entry to the `provas` array:
+
+```json
+{
+  "numero": N,
+  "tipo": "anjo",
+  "week": W,
+  "date": "YYYY-MM-DD",
+  "nome": "Nª Prova do Anjo — Description",
+  "formato": "format_type",
+  "vencedor": "Winner Name",
+  "participantes_total": 12,
+  "excluidos": [{"nome": "Name", "motivo": "reason"}],
+  "nota": "Brief description of how the prova worked.",
+  "fases": [
+    {"fase": 1, "tipo": "...", "classificacao": [{"pos": 1, "nome": "..."}, ...]},
+    {"fase": 2, "tipo": "...", "classificacao": [{"pos": 1, "nome": "Winner"}]}
+  ],
+  "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+}
+```
+
+**Phase rules**: Each phase has its own `classificacao`. For binary-outcome finals (e.g., "correct box"), use **winner only** (no rankings for losers). For timed/scored phases, include all participants with positions.
+
+**Excluded**: Líder always excluded (doesn't play). Others excluded by sorteio, punishment, etc.
+
+### 3. Update `data/manual_events.json` → `weekly_events[N].anjo`
+
+Create or update the week's `weekly_events` entry with the `anjo` object:
+
+```json
+{
+  "anjo": {
+    "vencedor": "Winner Name",
+    "prova_date": "YYYY-MM-DD",
+    "almoco_date": null,
+    "almoco_convidados": [],
+    "escolha": null,
+    "imunizado": null,
+    "monstro": "Monstro Name",
+    "monstro_tipo": "Monstro Description",
+    "monstro_motivo": "Why the Anjo chose this person + consequences",
+    "notas": "Brief summary of what happened.",
+    "fontes": ["<article-url>"]
+  }
+}
+```
+
+**Fill-later fields** (Sunday Presente do Anjo): `almoco_date`, `almoco_convidados`, `escolha` (`video_familia` | `segunda_imunidade`), `imunizado`. Fill after the live Sunday show.
+
+**Monstro**: API auto-detects the role. Fill `monstro` name from article or API. `monstro_tipo` and `monstro_motivo` when article available.
+
+**Cartola `monstro_retirado_vip`**: If the Monstro recipient was in VIP, add a `cartola_points_log` entry for the -5 penalty (see [Manual Data Files → cartola_points_log](#cartola_points_log-manual-overrides)).
+
+### 4. Clean up scheduled events
+
+Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the auto-dedup handles timeline, but cleaner to remove.
+
+### 5. Rebuild + commit + push
+
+```bash
+python scripts/build_derived_data.py
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Nª Prova do Anjo (Winner) + Monstro (Name)"
+git push
+```
+
+### API auto-detects (no manual action needed)
+
+- **Anjo role** — `characteristics.roles` contains `"Anjo"`
+- **Monstro role** — `characteristics.roles` contains `"Monstro"`
+- Both appear in `auto_events.json` and `roles_daily.json` after rebuild
+
+---
+
+## Paredão Formation Checklist (Sunday)
+
+When the Paredão formation airs (Sunday ~22h45 BRT live show):
+
+### 1. Scrape the formation article
+
+```bash
+python scripts/scrape_gshow.py "<formacao-paredao-url>" -o docs/scraped/
+```
+
+### 2. Update `data/paredoes.json` (existing skeleton or new entry)
+
+Fill in the formation details. **Key fields** (nested under `formacao`):
+
+```json
+{
+  "numero": N,
+  "status": "em_andamento",
+  "data": "YYYY-MM-DD",
+  "data_formacao": "YYYY-MM-DD",
+  "titulo": "Nº Paredão — DD de Mês de YYYY",
+  "semana": N,
+  "total_esperado": 3,
+  "formacao": {
+    "resumo": "Description of how the paredão was formed",
+    "lider": "Líder Name",
+    "indicado_lider": "Who the Líder nominated",
+    "motivo_indicacao": "Why the Líder chose this person"
+  },
+  "imunizado": {"por": "Who gave immunity", "quem": "Who received"},
+  "indicados_finais": [
+    {"nome": "Name", "grupo": "Pipoca", "como": "Líder"},
+    {"nome": "Name", "grupo": "Camarote", "como": "Mais votado"},
+    {"nome": "Name", "grupo": "Pipoca", "como": "Contragolpe"}
+  ],
+  "votos_casa": {"Voter1": "Target1", "Voter2": "Target2"},
+  "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+}
+```
+
+**Critical**: Use `indicados_finais` (NOT `participantes`). Field `formacao.lider` (nested), NOT top-level `lider`.
+
+### 3. Update `data/manual_events.json`
+
+Add power events for the formation:
+- `indicacao` (Líder → nominee)
+- `contragolpe` (if applicable)
+- `imunidade` (Anjo → imunizado)
+- `bate_volta` (winners who escaped)
+
+Also update `weekly_events[N].anjo.imunizado` and `weekly_events[N].anjo.escolha` with Presente do Anjo results.
+
+### 4. Update `data/provas.json` (if Bate e Volta happened)
+
+Add a Bate e Volta prova entry with the results.
+
+### 5. Rebuild + commit + push
+
+```bash
+python scripts/build_derived_data.py
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Nº Paredão formation"
+git push
+```
+
+---
+
+## Votalhada Collection Checklist (Tuesday)
+
+Before each elimination (~21h BRT), collect poll data from [Votalhada](https://votalhada.blogspot.com/):
+
+### 1. Screenshot the "Consolidados" page
+
+Save screenshot to `data/` folder (will be organized later).
+
+### 2. Process with Claude
+
+Tell Claude: **"Process Votalhada image for paredão N"**
+
+Claude will:
+- Extract consolidado percentages, platform breakdown (Sites, YouTube, Twitter, Instagram), and time series
+- Update `data/votalhada/polls.json` with the extracted data
+- Organize images into `data/votalhada/YYYY_MM_DD/`
+
+### 3. Verify name matching
+
+Votalhada uses short names. Always match to API names:
+
+| Votalhada Shows | Use in polls.json |
+|-----------------|-------------------|
+| "Aline" | "Aline Campos" |
+| "Ana Paula" | "Ana Paula Renault" |
+| "Cowboy" | "Alberto Cowboy" |
+| "Sol" | "Sol Vega" |
+| "Floss" | "Juliano Floss" |
+
+### 4. Rebuild + commit
+
+```bash
+python scripts/build_derived_data.py
+git add data/ && git commit -m "data: votalhada polls paredão N"
+git push
+```
+
+**Full extraction workflow and AI agent instructions**: See `data/votalhada/README.md`.
+
+---
+
+## Elimination Result Checklist (Tuesday)
+
+After the elimination result is announced (~23h BRT):
+
+### 1. Update `data/paredoes.json`
+
+Set the status to `finalizado` and add vote results:
+
+```json
+{
+  "status": "finalizado",
+  "resultado": {
+    "eliminado": "Name",
+    "votos": {
+      "Name1": {"voto_unico": 45.23, "voto_torcida": 50.10, "voto_total": 46.69},
+      "Name2": {"voto_unico": 54.77, "voto_torcida": 49.90, "voto_total": 53.31}
+    }
+  }
+}
+```
+
+**Voting system (BBB 26)**: Voto Único (CPF, 70%) + Voto da Torcida (unlimited, 30%) = Média Final (`voto_total`).
+
+**Where to find data**: Search `BBB 26 Nº paredão porcentagem resultado` or `BBB 26 paredão voto único voto torcida`.
+
+### 2. Update `data/votalhada/polls.json`
+
+Add `resultado_real` to the paredão's poll entry:
+
+```json
+{
+  "resultado_real": {
+    "Name1": 45.23,
+    "Name2": 54.77,
+    "eliminado": "Name2",
+    "predicao_correta": true
+  }
+}
+```
+
+### 3. Record Ganha-Ganha (same night, ~23h30)
+
+Add to `data/manual_events.json`:
+- `weekly_events[N].ganha_ganha` with `date`, `sorteados`, `veto`, `decisao`
+- `power_events` for the veto (`veto_ganha_ganha`) and choice (`ganha_ganha_escolha`)
+
+### 4. Rebuild + commit + push
+
+```bash
+python scripts/build_derived_data.py
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: paredão N result + ganha-ganha"
+git push
+```
+
+---
+
+## Sincerão Update (Monday)
+
+After the Monday live show (~22h BRT):
+
+### 1. Scrape Sincerão article
+
+```bash
+python scripts/scrape_gshow.py "<sincerao-url>" -o docs/scraped/
+```
+
+### 2. Update `data/manual_events.json` → `weekly_events[N].sincerao`
+
+Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
+
+```json
+{
+  "sincerao": {
+    "date": "YYYY-MM-DD",
+    "format": "Description of this week's format",
+    "participacao": "Who participated",
+    "notes": "Summary of what happened, key confrontations",
+    "fontes": ["<sincerao-url>"],
+    "edges": [
+      {"actor": "A", "target": "B", "type": "ataque", "label": "What A said about B"}
+    ]
+  }
+}
+```
+
+**Edges**: Capture directed confrontations (actor → target). Types: `ataque`, `elogio`, `provocacao`. These feed into the relationship scoring system.
+
+**Full Sincerão schema**: See `docs/SCORING_AND_INDEXES.md` → Sincerão Framework.
+
+### 3. Rebuild + commit + push
+
+```bash
+python scripts/build_derived_data.py
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: week N sincerão"
+git push
+```
+
+---
+
+## Scheduled Events (upcoming week)
+
+Future events displayed in the Cronologia do Jogo with dashed borders, 🔮 prefix, and yellow time badge.
+
+### Adding scheduled events
+
+Add to `data/manual_events.json` → `scheduled_events` array:
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "week": N,
+  "category": "paredao_formacao",
+  "emoji": "🗳️",
+  "title": "Event Title",
+  "detail": "Brief description",
+  "time": "Ao Vivo",
+  "fontes": ["<dynamics-article-url>"]
+}
+```
+
+**Common categories**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `bate_volta`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
+
+### Auto-dedup behavior
+
+- `build_game_timeline()` merges scheduled events with real events
+- If a real event with the same `(date, category)` exists, the scheduled entry is auto-skipped
+- Past scheduled events (`date < today`) are dropped from timeline display
+- **Clean up periodically**: remove past entries from `scheduled_events` array
+
+---
+
 ## Manual Data Files — When and How
 
 ### 1. `data/manual_events.json`
 
 **When**: After any power event, Big Fone, Sincerão, special dynamic, exit, or scheduled event.
 
-**Quick workflow**:
-```bash
-git pull
-# Edit data/manual_events.json (see docs/MANUAL_EVENTS_GUIDE.md for schema)
-python scripts/build_derived_data.py    # validates + rebuilds
-git add data/ && git commit -m "data: add week N events"
-git push
-```
-
 **Common entries** (by frequency):
 - `power_events` — contragolpe, veto, imunidade, ganha-ganha, barrado
-- `weekly_events` — Big Fone, Sincerão, confessão de voto, dedo-duro
+- `weekly_events` — Big Fone, Sincerão, Anjo details, confessão de voto, dedo-duro
 - `special_events` — dinâmicas especiais
-- `scheduled_events` — próximos eventos (com dedup automático)
+- `scheduled_events` — upcoming events (with auto-dedup)
 - `participants` — desistências, desclassificações
 
 **Pitfalls**:
@@ -322,69 +570,49 @@ git push
 
 ### 2. `data/paredoes.json`
 
-**When**: At paredão formation (Sunday) and after result (Tuesday).
+**When**: At paredão skeleton creation (Thursday), formation (Sunday), and result (Tuesday).
 
-**Formation (Sunday ~22h45)**:
-```json
-{
-    "numero": 4,
-    "status": "em_andamento",
-    "data": "YYYY-MM-DD",
-    "data_formacao": "YYYY-MM-DD",
-    "titulo": "4º Paredão — DD de Mês de YYYY",
-    "total_esperado": 3,
-    "formacao": "Descrição da formação...",
-    "lider": "Nome do Líder",
-    "indicado_lider": "Indicado pelo Líder",
-    "indicados_finais": [
-        {"nome": "Name", "grupo": "Pipoca", "como": "Líder"},
-        {"nome": "Name", "grupo": "Camarote", "como": "Mais votado"},
-        {"nome": "Name", "grupo": "Pipoca", "como": "Contragolpe"}
-    ],
-    "votos_casa": {"Voter": "Target", "Voter2": "Target2"},
-    "fontes": ["https://..."]
-}
-```
+**Key pitfalls**:
+- Use `indicados_finais` (NOT `participantes`) for nominee list
+- `formacao.lider` is nested under `formacao`, NOT top-level
+- `resultado.votos.{name}.{voto_unico, voto_torcida, voto_total}` — NOT `percentuais`
+- `fontes` are objects: `{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}`
+- For fake eliminations, add `"paredao_falso": true`
 
-**Resultado (Tuesday ~23h)** — add to existing entry:
-```json
-{
-    "status": "finalizado",
-    "resultado": {
-        "eliminado": "Name",
-        "votos": {
-            "Name1": {"voto_unico": 45.23, "voto_torcida": 50.10, "voto_total": 46.69},
-            "Name2": {"voto_unico": 54.77, "voto_torcida": 49.90, "voto_total": 53.31}
-        }
-    }
-}
-```
-
-**After edit**:
-```bash
-python scripts/build_derived_data.py
-git add data/ && git commit -m "data: paredão N formation/result"
-git push
-```
+**Full schema**: See `CLAUDE.md` → Paredão Workflow → Data Schema.
 
 ### 3. `data/provas.json`
 
-**When**: After Prova do Líder (Thursday), Prova do Anjo (Friday), Bate-Volta (Saturday/Sunday).
+**When**: After Prova do Líder (Thursday), Prova do Anjo (Saturday), Bate e Volta (Sunday).
 
-**Workflow**: Add entry to the `provas` array, run `build_derived_data.py`, commit, push.
+**Workflow**: Add entry to the `provas` array with `numero`, `tipo`, `week`, `date`, `vencedor`, `fases`, `fontes`. See [Anjo Checklist](#anjo--monstro-update-checklist-saturday) and [Líder Checklist](#líder-transition-checklist-thursday-night) for templates.
 
 ### 4. `data/votalhada/polls.json`
 
 **When**: Tuesday ~21h (before elimination) and after result.
 
-**Workflow**:
-1. Screenshot Votalhada "Consolidados" page
-2. Use Claude: "Process Votalhada image for paredão N"
-3. Claude extracts data → updates `polls.json`
-4. After elimination: add `resultado_real` to the entry
-5. Run `build_derived_data.py`, commit, push
+**Workflow**: See [Votalhada Collection Checklist](#votalhada-collection-checklist-tuesday).
 
-**Full workflow**: `data/votalhada/README.md`
+**Full extraction workflow**: `data/votalhada/README.md`.
+
+### `cartola_points_log` (manual overrides)
+
+For Cartola events **not auto-detected** from API snapshots. Common use case: `monstro_retirado_vip` (-5) when Monstro recipient was in VIP.
+
+**Schema** (in `data/manual_events.json`):
+```json
+{
+  "participant": "Name",
+  "week": N,
+  "reason": "Why this manual entry is needed",
+  "fonte": "https://...",
+  "events": [
+    {"event": "monstro_retirado_vip", "points": -5}
+  ]
+}
+```
+
+**Auto-guarded types** (will be ignored if added here): `lider`, `anjo`, `monstro`, `emparedado`, `imunizado`, `vip`, `desistente`, `eliminado`, `desclassificado`, `atendeu_big_fone`.
 
 ---
 
@@ -399,6 +627,8 @@ git push
 | Preview with hot reload | `quarto preview` |
 | Check snapshot dedup/integrity | `python scripts/audit_snapshots.py` |
 | Analyze capture timing | `python scripts/analyze_capture_timing.py` |
+| Update PROGRAMA_BBB26.md timeline | `python scripts/update_programa_doc.py` |
+| Scrape a GShow article | `python scripts/scrape_gshow.py "<url>" -o docs/scraped/` |
 
 ---
 
@@ -406,39 +636,34 @@ git push
 
 ### When does the queridômetro actually update?
 
-The Raio-X has **no fixed time** — it depends on when production wakes the participants:
-
 | Source | Observation | Time (BRT) |
 |--------|-------------|------------|
 | **API data observed** | Feb 5 (Wed) — data already updated | ~14:00 |
 | **API first auto capture** | Feb 6 (Thu) — change detected at 15:46 BRT | between 06:37–15:46 |
 | **GShow article** | Feb 5 (Wed) — article published | ~09:00 |
-| **Raio-X wake-up** | Normal days | 09h-10h |
-| **Raio-X wake-up** | Post-party days | 10h-13h |
+| **Raio-X wake-up** | Normal days / Post-party days | 09h-13h |
 
-**Key finding**: GShow publishes the queridômetro article early (~09:00 BRT), but the API data was observed updating around **~14:00 BRT** (Feb 5). First automated day (Feb 6) confirmed: data stale at 06:37 BRT, fresh at 15:46 BRT.
+**Key finding**: API data updates around **~14:00 BRT**. GShow publishes the article earlier (~09:00 BRT).
 
 ### Current cron schedule
 
-**Permanent slots** (4×/day):
+**Permanent slots** (4x/day):
 
 | UTC | BRT | Purpose |
 |-----|-----|---------|
 | 03:00 | 00:00 | Night — post-episode changes (Sun Líder/Anjo, Tue elimination) |
-| 09:00 | 06:00 | Pre-Raio-X baseline — balance/estalecas (punishments, etc.) |
+| 09:00 | 06:00 | Pre-Raio-X baseline — balance/estalecas |
 | 18:00 | 15:00 | Post-Raio-X — **primary capture** |
 | 21:00 | 18:00 | Evening — balance/role changes |
 
-**Saturday extras** (Anjo challenge + Monstro usually Saturday afternoon):
+**Saturday extras** (Anjo + Monstro usually Saturday afternoon):
 
 | UTC | BRT | Purpose |
 |-----|-----|---------|
 | 20:00 | 17:00 | Post-Anjo challenge (runs ~14h-17h) |
-| 23:00 | 20:00 | Post-Monstro pick (Anjo chooses after win) |
+| 23:00 | 20:00 | Post-Monstro pick |
 
 **Total**: 6 runs/day (weekdays), 8 on Saturdays.
-
-**Timing confirmed** (median 15:00 BRT, 2026-02-26). Hourly probes removed; permanent slots sufficient. Run `python scripts/analyze_capture_timing.py` to verify ongoing capture quality.
 
 ---
 
@@ -446,28 +671,15 @@ The Raio-X has **no fixed time** — it depends on when production wakes the par
 
 ### `build_derived_data.py` fails with audit error
 
-The script hard-fails if manual events have issues (duplicate entries, invalid names, missing fields).
-
 ```bash
-# Check what's wrong
-python scripts/audit_manual_events.py
+python scripts/audit_manual_events.py    # check what's wrong
 # Fix data/manual_events.json
-# Re-run
-python scripts/build_derived_data.py
+python scripts/build_derived_data.py     # re-run
 ```
 
 ### Merge conflict on `data/derived/`
 
-The bot rebuilt derived data while you had local changes.
-
-```bash
-git pull --rebase    # or: git pull (accept theirs for derived files)
-python scripts/build_derived_data.py    # regenerate from your local manual data
-git add data/ && git commit -m "data: rebuild derived after merge"
-git push
-```
-
-Derived files are always regenerated — the source of truth is the manual files + snapshots.
+See [Handling Push Conflicts](#handling-push-conflicts).
 
 ### Workflow failed on GitHub
 
@@ -483,11 +695,10 @@ Common causes:
 
 ### Site not updating after push
 
-The workflow only triggers on **cron** and **manual dispatch**, not on push. Either:
+The workflow only triggers on **cron** and **manual dispatch**, not on push:
 ```bash
-gh workflow run daily-update.yml    # manual trigger
+gh workflow run daily-update.yml    # manual trigger, or wait for next cron (max 6h)
 ```
-Or wait for the next cron run (max 6 hours).
 
 ### Name mismatch errors
 
@@ -514,7 +725,7 @@ paredoes.json                   data/latest.json
 provas.json                            ↓
 votalhada/polls.json       build_derived_data.py
        ↓                                    ↓
-build_derived_data.py           data/derived/*.json (20 files)
+build_derived_data.py           data/derived/*.json (21 files)
        ↓                                    ↓
 data/derived/*.json             quarto render → _site/
        ↓                                    ↓
@@ -529,11 +740,12 @@ quarto render → deploy
 
 ## Related Documentation
 
-| Doc | What it covers |
-|-----|----------------|
-| `CLAUDE.md` | Master project guide — architecture, data schema, conventions |
-| `IMPLEMENTATION_PLAN.md` | Deployment infrastructure — Actions, Pages, pipeline |
-| `docs/MANUAL_EVENTS_GUIDE.md` | Full schema + fill rules for `manual_events.json` |
-| `docs/SCORING_AND_INDEXES.md` | Scoring formulas, weights, index specifications |
-| `data/votalhada/README.md` | Screenshot-to-data workflow for poll collection |
-| `data/CHANGELOG.md` | Snapshot history, dedup analysis, API observations |
+| Doc | Purpose |
+|-----|---------|
+| **`CLAUDE.md`** | Master project guide — architecture, data schema, coding conventions |
+| **`docs/MANUAL_EVENTS_GUIDE.md`** | Full schema + fill rules for `manual_events.json` |
+| **`docs/SCORING_AND_INDEXES.md`** | Scoring formulas, weights, index specifications |
+| **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics |
+| **`IMPLEMENTATION_PLAN.md`** | Deployment infrastructure — Actions, Pages, pipeline |
+| **`data/votalhada/README.md`** | Screenshot-to-data extraction workflow |
+| **`data/CHANGELOG.md`** | Snapshot history, dedup analysis, API observations |

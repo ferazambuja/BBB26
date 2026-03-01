@@ -94,15 +94,7 @@ Also supports `workflow_dispatch` for manual triggers.
 
 ### After manual data edits
 
-When you edit `paredoes.json`, `manual_events.json`, `provas.json`, or `votalhada/polls.json` locally:
-
-```bash
-python scripts/build_derived_data.py   # rebuild derived data
-quarto render                          # optional: verify locally
-git add data/ && git commit -m "data: <description>"
-git push origin main                   # push data updates
-gh workflow run daily-update.yml       # deploy now (workflow is cron + manual dispatch)
-```
+See **`docs/OPERATIONS_GUIDE.md`** → [Git Workflow](docs/OPERATIONS_GUIDE.md#git-workflow) for the full procedure (pull → edit → build → push → deploy).
 
 ---
 

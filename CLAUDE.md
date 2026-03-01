@@ -403,11 +403,11 @@ BBB26/
 
 **Voting system (BBB 26)**: Voto Único (CPF, 70%) + Voto da Torcida (unlimited, 30%) = Média Final.
 
-**Update timing**:
-- **Mid-week**: Dinâmica nominates someone → create partial entry in `data/paredoes.json`
-- **Sunday ~22h45**: Full formation → update entry with all nominees + `votos_casa`
-- **Tuesday ~21h**: Collect Votalhada poll data → update `data/votalhada/polls.json`
-- **Tuesday ~23h**: Result announced → set `finalizado`, add vote percentages + `resultado_real` in polls
+**Update timing**: See `docs/OPERATIONS_GUIDE.md` for step-by-step checklists:
+- **Thursday**: Líder Transition Checklist (paredão skeleton)
+- **Sunday ~22h45**: Paredão Formation Checklist (full formation + votos_casa)
+- **Tuesday ~21h**: Votalhada Collection Checklist (poll data)
+- **Tuesday ~23h**: Elimination Result Checklist (resultado + ganha-ganha)
 
 ### Data Schema (data/paredoes.json)
 
@@ -624,14 +624,14 @@ See `IMPLEMENTATION_PLAN.md` for GitHub Actions + Quarto + GitHub Pages automati
 
 All project documentation and their purposes:
 
-| File | Purpose |
-|------|---------|
-| **`CLAUDE.md`** | Master project guide — architecture, data flows, conventions (this file) |
-| **`IMPLEMENTATION_PLAN.md`** | Deployment guide — pipeline, GitHub Actions, Pages setup |
-| **`docs/OPERATIONS_GUIDE.md`** | Daily operations — manual data workflow, git sync, timing analysis |
-| **`docs/SCORING_AND_INDEXES.md`** | Full scoring formulas, weights, and index specs |
-| **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema, fill rules, and update procedures for `manual_events.json` |
-| **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics (non-analytical) |
-| **`docs/MANUAL_EVENTS_AUDIT.md`** | Auto-generated validation report (built by `build_derived_data.py`) |
-| **`data/CHANGELOG.md`** | API data audit — snapshot dedup analysis and timeline |
-| **`data/votalhada/README.md`** | Votalhada screenshot-to-data workflow |
+| File | Type | Purpose |
+|------|------|---------|
+| **`CLAUDE.md`** | Reference | Master project guide — architecture, data flows, conventions (this file) |
+| **`docs/OPERATIONS_GUIDE.md`** | **How-to** | **Single source for ALL operational procedures** — checklists for every event type, git workflow, troubleshooting. Start here for "how do I update X?" |
+| **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema | Field specs, fill rules, and examples for `manual_events.json` |
+| **`docs/SCORING_AND_INDEXES.md`** | Specification | Scoring formulas, weights, and index computation specs |
+| **`docs/PROGRAMA_BBB26.md`** | Reference | TV show reference — rules, format, dynamics (non-analytical) |
+| **`IMPLEMENTATION_PLAN.md`** | Reference | Deployment infrastructure — Actions, Pages, pipeline |
+| **`docs/MANUAL_EVENTS_AUDIT.md`** | Auto-generated | Validation report (built by `build_derived_data.py`) |
+| **`data/CHANGELOG.md`** | Archive | API data audit — snapshot dedup analysis and timeline |
+| **`data/votalhada/README.md`** | How-to | Screenshot-to-data extraction workflow for Votalhada polls |
