@@ -3746,11 +3746,12 @@
         "escolha": null,
         "imunizado": null,
         "monstro": "Ana Paula Renault",
-        "monstro_tipo": null,
-        "monstro_motivo": null,
+        "monstro_tipo": "Monstro Catando Milho",
+        "monstro_motivo": "Alberto Cowboy escolheu Ana Paula Renault para o Castigo do Monstro. Consequência: -300 estalecas + transferida do VIP para a Xepa.",
         "notas": "Alberto Cowboy venceu a 7ª Prova do Anjo (trios + caixas). Trio com Jonas e Marciele foi o mais rápido. Na final, Alberto ficou com a caixa correta. Indicou Ana Paula Renault para o Castigo do Monstro. Presente do Anjo (domingo): pode imunizar 1 aliado + possível 2ª imunidade (abrindo mão do vídeo da família).",
         "fontes": [
-          "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-alberto-cowboy-vence-a-setima-prova.ghtml"
+          "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-alberto-cowboy-vence-a-setima-prova.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/ana-paula-renault-recebe-o-castigo-do-monstro-e-sofre-duas-pontuacoes-negativas-no-cartola-bbb.ghtml"
         ]
       },
       "fontes": [
@@ -5476,7 +5477,20 @@
       "awareness": "known"
     }
   ],
-  "cartola_points_log": [],
+  "cartola_points_log": [
+    {
+      "participant": "Ana Paula Renault",
+      "week": 7,
+      "reason": "Ana Paula estava no VIP da Líder Samira quando recebeu o Castigo do Monstro. Cartola BBB: -10 (Monstro, auto) + -5 (Monstro retirado do VIP, manual).",
+      "fonte": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/ana-paula-renault-recebe-o-castigo-do-monstro-e-sofre-duas-pontuacoes-negativas-no-cartola-bbb.ghtml",
+      "events": [
+        {
+          "event": "monstro_retirado_vip",
+          "points": -5
+        }
+      ]
+    }
+  ],
   "scheduled_events": [
     {
       "date": "2026-03-01",

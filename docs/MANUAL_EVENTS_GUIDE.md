@@ -207,8 +207,22 @@ Each week's `anjo` object records the full Prova do Anjo dynamics. Schema:
 
 ### `cartola_points_log`
 Only events **not inferable** from snapshots or paredões (salvo, não eliminado, etc.).
-- Structure: one entry per participant/week with `events: [{event, points, date, fonte?}]`.
+- Structure: one entry per participant/week with `events: [{event, points}]`.
 - Always include matching `fontes` in `manual_events.json` for the underlying real-world event.
+- **Auto-guarded**: events in `auto_types` (lider, anjo, monstro, emparedado, imunizado, vip, desistente, eliminado, desclassificado, atendeu_big_fone) are blocked — use this only for non-auto events.
+- Common use case: `monstro_retirado_vip` (-5) when Monstro recipient was in VIP.
+
+```json
+{
+  "participant": "Ana Paula Renault",
+  "week": 7,
+  "reason": "Was in VIP when receiving Monstro castigo. -10 auto, -5 manual.",
+  "fonte": "https://gshow.globo.com/...",
+  "events": [
+    {"event": "monstro_retirado_vip", "points": -5}
+  ]
+}
+```
 
 ### `scheduled_events`
 

@@ -137,6 +137,90 @@ When planning `scheduled_events` for a new week, include these recurring items:
 
 ---
 
+## Anjo / Monstro Update Checklist (Saturday)
+
+When the Prova do Anjo results are published (typically Saturday afternoon article + Saturday night Monstro choice):
+
+### 1. Scrape article
+
+```bash
+python scripts/scrape_gshow.py "<prova-do-anjo-url>" -o docs/scraped/
+```
+
+### 2. Update `data/provas.json`
+
+Add a new entry. Key fields:
+
+```json
+{
+  "numero": N,
+  "tipo": "anjo",
+  "week": W,
+  "date": "YYYY-MM-DD",
+  "nome": "Nª Prova do Anjo — Description",
+  "formato": "format_type",
+  "vencedor": "Winner Name",
+  "participantes_total": 12,
+  "excluidos": [{"nome": "Name", "motivo": "reason"}],
+  "nota": "Brief description of how the prova worked.",
+  "fases": [
+    {"fase": 1, "tipo": "...", "classificacao": [{"pos": 1, "nome": "..."}, ...]},
+    {"fase": 2, "tipo": "...", "classificacao": [{"pos": 1, "nome": "Winner"}]}
+  ],
+  "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+}
+```
+
+**Phase rules**: Each phase has its own `classificacao`. For binary-outcome finals (e.g., "correct box"), use **winner only** (no rankings for losers). For timed/scored phases, include all participants with positions.
+
+**Excluded**: Líder always excluded (doesn't play). Others excluded by sorteio, punishment, etc.
+
+### 3. Update `data/manual_events.json` → `weekly_events[N].anjo`
+
+Create or update the week's `weekly_events` entry with:
+
+```json
+{
+  "anjo": {
+    "vencedor": "Winner Name",
+    "prova_date": "YYYY-MM-DD",
+    "almoco_date": null,
+    "almoco_convidados": [],
+    "escolha": null,
+    "imunizado": null,
+    "monstro": "Monstro Name",
+    "monstro_tipo": null,
+    "monstro_motivo": null,
+    "notas": "Brief summary of what happened.",
+    "fontes": ["<article-url>"]
+  }
+}
+```
+
+**Fill-later fields** (Sunday Presente do Anjo): `almoco_date`, `almoco_convidados`, `escolha` (video_familia | segunda_imunidade), `imunizado`. Fill after the live Sunday show.
+
+**Monstro**: API auto-detects the role. Fill `monstro` name here when known (article or API). `monstro_tipo` and `monstro_motivo` when article available.
+
+### 4. Clean up scheduled events
+
+Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the auto-dedup handles timeline, but cleaner to remove.
+
+### 5. Rebuild + commit + push
+
+```bash
+python scripts/build_derived_data.py
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Nª Prova do Anjo (Winner Name) + Monstro (Name)"
+git push
+```
+
+### API auto-detects (no manual action needed)
+
+- **Anjo role** — `characteristics.roles` contains `"Anjo"`
+- **Monstro role** — `characteristics.roles` contains `"Monstro"`
+- Both appear in `auto_events.json` and `roles_daily.json` after rebuild
+
+---
+
 ## Líder Transition Checklist (Thursday night)
 
 When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps **in order**:
