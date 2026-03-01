@@ -908,10 +908,23 @@
       "total_esperado": 3,
       "paredao_falso": true,
       "formacao": {
-        "resumo": "Paredão Falso triplo. Dinâmica: O Exilado (sexta) + Prova do Anjo (sábado). Eliminação falsa terça — eliminado vai ao Quarto Secreto e volta imune.",
-        "lider": "Samira"
+        "resumo": "Paredão Falso triplo. O Exilado (sexta): casa dividida em 2 grupos — Jordana e Alberto Cowboy sorteados como capitães, cada um escolheu 5 aliados; Breno sobrou e foi exilado na área externa. Sábado: Breno indicou Alberto Cowboy ao Paredão (justificativa: 'manipula de forma sutil, usou informação da família da Ana Paula'); Alberto trocou de lugar com Breno no exílio. Domingo: Presente do Anjo + indicação da Líder + votação da casa + contragolpe + Bate e Volta. PAREDÃO FALSO: mais votado pelo público vai ao Quarto Secreto e volta imune.",
+        "lider": "Samira",
+        "exilado": {
+          "dinamica_date": "2026-02-27",
+          "indicacao_date": "2026-02-28",
+          "sobrou": "Breno",
+          "indicado": "Alberto Cowboy",
+          "motivo": "É uma pessoa que, ao meu ver, no jogo tem um jeito de manipular bem sutil. Utilizou informação da família da Ana Paula.",
+          "grupos": {
+            "branco": {"capitao": "Jordana", "membros": ["Jonas Sulzbach", "Gabriela", "Solange Couto", "Juliano Floss", "Ana Paula Renault"]},
+            "preto": {"capitao": "Alberto Cowboy", "membros": ["Marciele", "Chaiany", "Babu Santana", "Leandro", "Milena"]}
+          }
+        }
       },
-      "indicados_finais": [],
+      "indicados_finais": [
+        {"nome": "Alberto Cowboy", "grupo": "Veterano", "como": "Exilado"}
+      ],
       "fontes": [
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-paredao-falso-e-quarto-secreto.ghtml",
@@ -922,6 +935,16 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/lider-samira-faz-divisao-entre-vip-e-xepa-veja-como-ficou-a-casa.ghtml",
           "arquivo": "docs/scraped/lider-samira-faz-divisao-entre-vip-e-xepa-veja-como-ficou-a-casa.md",
           "titulo": "Líder Samira faz divisão entre VIP e Xepa; veja como ficou a casa"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/exilado-breno-indica-e-troca-de-lugar-com-alberto-cowboy-na-dinamica.ghtml",
+          "arquivo": "docs/scraped/exilado-breno-indica-e-troca-de-lugar-com-alberto-cowboy-na-dinamica.md",
+          "titulo": "Exilado, Breno indica Alberto Cowboy e troca de lugar com o emparedado na dinâmica"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/alberto-cowboy-e-indicado-ao-paredao-e-sofre-pontuacao-negativa-no-cartola-bbb.ghtml",
+          "arquivo": "docs/scraped/alberto-cowboy-e-indicado-ao-paredao-e-sofre-pontuacao-negativa-no-cartola-bbb.md",
+          "titulo": "Alberto Cowboy é indicado ao Paredão e sofre pontuação negativa no Cartola BBB"
         }
       ]
     }

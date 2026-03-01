@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-01T02:08:07.346786+00:00",
+    "generated_at": "2026-03-01T03:01:22.909501+00:00",
     "model_version": "enhanced_v1",
     "config": {
       "cluster_consensus_threshold": 0.5,
@@ -1264,16 +1264,16 @@
           ]
         },
         "Breno": {
-          "predicted": "Brigido",
-          "score": -6.6546,
-          "confidence": "Alta",
-          "gap": 3.2054,
+          "predicted": "Alberto Cowboy",
+          "score": -6.8092,
+          "confidence": "Baixa",
+          "gap": 0.1546,
           "top3": [
             {
-              "target": "Brigido",
-              "score": -6.6546,
+              "target": "Alberto Cowboy",
+              "score": -6.8092,
               "components": {
-                "base_sentiment": -6.6546,
+                "base_sentiment": -6.8092,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
@@ -1281,10 +1281,10 @@
               "explanation": null
             },
             {
-              "target": "Alberto Cowboy",
-              "score": -3.4492,
+              "target": "Brigido",
+              "score": -6.6546,
               "components": {
-                "base_sentiment": -3.4492,
+                "base_sentiment": -6.6546,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
@@ -1457,14 +1457,14 @@
             },
             {
               "target": "Alberto Cowboy",
-              "score": -1.74,
+              "score": -2.04,
               "components": {
                 "base_sentiment": -1.74,
                 "cluster_consensus": 0.0,
-                "bloc_history": 0.0,
+                "bloc_history": -0.3,
                 "cluster_protection": 0.0
               },
-              "explanation": null
+              "explanation": "bloco histórico (3 peers)"
             }
           ]
         },
@@ -1961,11 +1961,22 @@
           ]
         },
         "Solange Couto": {
-          "predicted": "Jordana",
-          "score": -3.7192,
-          "confidence": "Média",
-          "gap": 0.2342,
+          "predicted": "Alberto Cowboy",
+          "score": -3.7654,
+          "confidence": "Baixa",
+          "gap": 0.0462,
           "top3": [
+            {
+              "target": "Alberto Cowboy",
+              "score": -3.7654,
+              "components": {
+                "base_sentiment": -3.4654,
+                "cluster_consensus": 0.0,
+                "bloc_history": -0.3,
+                "cluster_protection": 0.0
+              },
+              "explanation": "bloco histórico (3 peers)"
+            },
             {
               "target": "Jordana",
               "score": -3.7192,
@@ -1987,35 +1998,23 @@
                 "cluster_protection": 0.0
               },
               "explanation": null
-            },
-            {
-              "target": "Alberto Cowboy",
-              "score": -3.4654,
-              "components": {
-                "base_sentiment": -3.4654,
-                "cluster_consensus": 0.0,
-                "bloc_history": 0.0,
-                "cluster_protection": 0.0
-              },
-              "explanation": null
             }
           ]
         }
       },
       "aggregate": {
         "vote_concentration": {
-          "Brigido": 3,
+          "Alberto Cowboy": 5,
           "Ana Paula Renault": 3,
           "Sol Vega": 3,
           "Juliano Floss": 3,
-          "Alberto Cowboy": 3,
+          "Brigido": 2,
           "Milena": 1,
           "Solange Couto": 1,
-          "Chaiany": 1,
-          "Jordana": 1
+          "Chaiany": 1
         },
-        "high_confidence_count": 15,
-        "low_confidence_count": 1
+        "high_confidence_count": 14,
+        "low_confidence_count": 3
       },
       "lider_prediction": {
         "predicted": "Jonas Sulzbach",
@@ -2025,17 +2024,17 @@
       },
       "retrospective": {
         "individual": {
-          "correct": 8,
+          "correct": 7,
           "total": 19,
-          "pct": 42.1
+          "pct": 36.8
         },
         "high_confidence": {
-          "correct": 6,
-          "total": 15,
-          "pct": 40.0
+          "correct": 5,
+          "total": 14,
+          "pct": 35.7
         },
         "top2_match": false,
-        "baseline_accuracy": 42.1,
+        "baseline_accuracy": 36.8,
         "errors": [
           {
             "voter": "Alberto Cowboy",
@@ -2043,6 +2042,13 @@
             "actual": "Chaiany",
             "confidence": "Alta",
             "analysis": "voto estratégico/coordenado"
+          },
+          {
+            "voter": "Breno",
+            "predicted": "Alberto Cowboy",
+            "actual": "Brigido",
+            "confidence": "Baixa",
+            "analysis": "gap mínimo (coin flip)"
           },
           {
             "voter": "Brigido",
@@ -2109,10 +2115,10 @@
           },
           {
             "voter": "Solange Couto",
-            "predicted": "Jordana",
+            "predicted": "Alberto Cowboy",
             "actual": "Milena",
-            "confidence": "Média",
-            "analysis": "voto estratégico/coordenado"
+            "confidence": "Baixa",
+            "analysis": "gap mínimo (coin flip)"
           }
         ]
       }
@@ -2294,8 +2300,8 @@
         "Breno": {
           "predicted": "Brigido",
           "score": -7.345,
-          "confidence": "Alta",
-          "gap": 3.62,
+          "confidence": "Média",
+          "gap": 0.26,
           "top3": [
             {
               "target": "Brigido",
@@ -2310,9 +2316,9 @@
             },
             {
               "target": "Alberto Cowboy",
-              "score": -3.725,
+              "score": -7.085,
               "components": {
-                "base_sentiment": -3.425,
+                "base_sentiment": -6.785,
                 "cluster_consensus": 0.0,
                 "bloc_history": -0.3,
                 "cluster_protection": 0.0
@@ -2960,7 +2966,7 @@
           "Marcelo": 1,
           "Chaiany": 1
         },
-        "high_confidence_count": 14,
+        "high_confidence_count": 13,
         "low_confidence_count": 2
       },
       "lider_prediction": {
@@ -2976,9 +2982,9 @@
           "pct": 42.1
         },
         "high_confidence": {
-          "correct": 8,
-          "total": 14,
-          "pct": 57.1
+          "correct": 7,
+          "total": 13,
+          "pct": 53.8
         },
         "top2_match": true,
         "baseline_accuracy": 42.1,
@@ -3237,15 +3243,15 @@
         },
         "Breno": {
           "predicted": "Alberto Cowboy",
-          "score": -3.4133,
+          "score": -6.7733,
           "confidence": "Alta",
-          "gap": 0.8133,
+          "gap": 4.1733,
           "top3": [
             {
               "target": "Alberto Cowboy",
-              "score": -3.4133,
+              "score": -6.7733,
               "components": {
-                "base_sentiment": -3.4133,
+                "base_sentiment": -6.7733,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
@@ -4112,15 +4118,15 @@
         },
         "Breno": {
           "predicted": "Alberto Cowboy",
-          "score": -4.7741,
+          "score": -8.1341,
           "confidence": "Alta",
-          "gap": 1.1153,
+          "gap": 4.4753,
           "top3": [
             {
               "target": "Alberto Cowboy",
-              "score": -4.7741,
+              "score": -8.1341,
               "components": {
-                "base_sentiment": -4.4741,
+                "base_sentiment": -7.8341,
                 "cluster_consensus": 0.0,
                 "bloc_history": -0.3,
                 "cluster_protection": 0.0
@@ -4881,15 +4887,15 @@
         },
         "Breno": {
           "predicted": "Alberto Cowboy",
-          "score": -5.1678,
+          "score": -8.5278,
           "confidence": "Alta",
-          "gap": 1.1093,
+          "gap": 4.4693,
           "top3": [
             {
               "target": "Alberto Cowboy",
-              "score": -5.1678,
+              "score": -8.5278,
               "components": {
-                "base_sentiment": -4.8678,
+                "base_sentiment": -8.2278,
                 "cluster_consensus": 0.0,
                 "bloc_history": -0.3,
                 "cluster_protection": 0.0
@@ -5573,15 +5579,15 @@
         },
         "Breno": {
           "predicted": "Alberto Cowboy",
-          "score": -5.1949,
+          "score": -8.5549,
           "confidence": "Alta",
-          "gap": 1.1055,
+          "gap": 4.4655,
           "top3": [
             {
               "target": "Alberto Cowboy",
-              "score": -5.1949,
+              "score": -8.5549,
               "components": {
-                "base_sentiment": -4.8949,
+                "base_sentiment": -8.2549,
                 "cluster_consensus": 0.0,
                 "bloc_history": -0.3,
                 "cluster_protection": 0.0
@@ -6005,14 +6011,14 @@
   },
   "cumulative": {
     "enhanced": {
-      "correct": 37,
-      "total": 106,
-      "pct": 34.9
-    },
-    "baseline": {
       "correct": 36,
       "total": 106,
       "pct": 34.0
+    },
+    "baseline": {
+      "correct": 35,
+      "total": 106,
+      "pct": 33.0
     }
   }
 }
