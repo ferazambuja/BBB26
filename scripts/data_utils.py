@@ -891,6 +891,7 @@ TIMELINE_CAT_COLORS = {
     "veto_ganha_ganha": "#7f8c8d", "ganha_ganha_escolha": "#2ecc71",
     "veto_prova": "#7f8c8d",
     "ta_com_nada": "#ff4444",
+    "presente_anjo": "#f0c27f",
 }
 
 TIMELINE_CAT_LABELS = {
@@ -907,6 +908,7 @@ TIMELINE_CAT_LABELS = {
     "veto_ganha_ganha": "Veto GG", "ganha_ganha_escolha": "Escolha GG",
     "veto_prova": "Veto Prova",
     "ta_com_nada": "Tá Com Nada",
+    "presente_anjo": "Presente do Anjo",
 }
 
 

@@ -151,6 +151,27 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
                 "detail": gg.get("resultado", ""), "participants": gg.get("participants", []),
                 "source": "weekly_events",
             })
+        # Presente do Anjo (escolha: vídeo da família vs 2ª imunidade)
+        anjo = we.get("anjo")
+        if anjo and isinstance(anjo, dict) and anjo.get("escolha"):
+            almoco_date = anjo.get("almoco_date", "")
+            w = get_week_number(almoco_date) if almoco_date else week
+            vencedor = anjo.get("vencedor", "")
+            escolha = anjo.get("escolha", "")
+            convidados = anjo.get("almoco_convidados", [])
+            if escolha == "video_familia":
+                detail = f"{vencedor} abriu mão da 2ª imunidade para ver vídeo da família"
+                if convidados:
+                    detail += f" com {', '.join(convidados)}"
+            else:
+                detail = f"{vencedor} usou a 2ª imunidade (abriu mão do vídeo da família)"
+            events.append({
+                "date": almoco_date, "week": w, "category": "presente_anjo",
+                "emoji": "🎁", "title": f"Presente do Anjo — {vencedor}",
+                "detail": detail,
+                "participants": [vencedor] + convidados,
+                "source": "weekly_events",
+            })
         # Barrado no Baile — timeline entries come from power_events, not here
         # (weekly_events stores metadata only: lider, alvo, date)
         # Tá Com Nada
@@ -280,7 +301,7 @@ def _merge_and_dedup_timeline(
         "entrada": 0, "saida": 1, "lider": 2, "anjo": 3, "monstro": 4, "imune": 5, "imunidade": 6,
         "big_fone": 7, "paredao_formacao": 8, "indicacao": 9, "contragolpe": 10,
         "bate_volta": 11, "veto": 12, "sincerao": 13, "ganha_ganha": 14,
-        "barrado_baile": 15, "dinamica": 16, "paredao_resultado": 17,
+        "barrado_baile": 15, "presente_anjo": 16, "dinamica": 17, "paredao_resultado": 18,
     }
     events.sort(key=lambda e: (e.get("date", ""), cat_order.get(e.get("category", ""), 99)))
 
