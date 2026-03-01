@@ -288,7 +288,7 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 
 **Monstro**: API auto-detects the role. Fill `monstro` name from article or API. `monstro_tipo` and `monstro_motivo` when article available.
 
-**Cartola `monstro_retirado_vip`**: If the Monstro recipient was in VIP, add a `cartola_points_log` entry for the -5 penalty (see [Manual Data Files → cartola_points_log](#cartola_points_log-manual-overrides)).
+**Cartola `monstro_retirado_vip`**: Auto-detected. If the Monstro recipient was in VIP in the previous snapshot, the -5 penalty is automatically applied. No manual entry needed.
 
 ### 4. Clean up scheduled events
 
@@ -597,7 +597,7 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 
 ### `cartola_points_log` (manual overrides)
 
-For Cartola events **not auto-detected** from API snapshots. Common use case: `monstro_retirado_vip` (-5) when Monstro recipient was in VIP.
+For Cartola events **not auto-detected** from API snapshots or derived data. Rarely needed — most events are now auto-detected.
 
 **Schema** (in `data/manual_events.json`):
 ```json
@@ -607,12 +607,19 @@ For Cartola events **not auto-detected** from API snapshots. Common use case: `m
   "reason": "Why this manual entry is needed",
   "fonte": "https://...",
   "events": [
-    {"event": "monstro_retirado_vip", "points": -5}
+    {"event": "event_type", "points": N}
   ]
 }
 ```
 
-**Auto-guarded types** (will be ignored if added here): `lider`, `anjo`, `monstro`, `emparedado`, `imunizado`, `vip`, `desistente`, `eliminado`, `desclassificado`, `atendeu_big_fone`.
+**Auto-detected types** (will be ignored if added here): `lider`, `anjo`, `monstro`, `emparedado`, `imunizado`, `vip`, `desistente`, `eliminado`, `desclassificado`, `atendeu_big_fone`, `monstro_retirado_vip`, `quarto_secreto`.
+
+**What's auto-detected**:
+- From API snapshots: `lider`, `anjo`, `monstro`, `imunizado`, `emparedado`, `vip`
+- From manual data: `atendeu_big_fone`, `desistente`, `eliminado`, `desclassificado`
+- From paredões: `salvo_paredao`, `nao_eliminado_paredao`, `nao_emparedado`, `nao_recebeu_votos`
+- Cross-checked: `monstro_retirado_vip` (Monstro recipient was in VIP in previous snapshot)
+- Paredão Falso: `quarto_secreto` (+40, from `paredao_falso: true` + finalized result)
 
 ---
 

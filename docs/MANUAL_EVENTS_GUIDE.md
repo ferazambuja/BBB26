@@ -206,20 +206,20 @@ Each week's `anjo` object records the full Prova do Anjo dynamics. Schema:
 **When to fill:** After each Prova do Anjo (usually Saturday), with Almoço details from Sunday.
 
 ### `cartola_points_log`
-Only events **not inferable** from snapshots or paredões (salvo, não eliminado, etc.).
+Rarely needed — for Cartola events **not auto-detected** by any pipeline.
 - Structure: one entry per participant/week with `events: [{event, points}]`.
 - Always include matching `fontes` in `manual_events.json` for the underlying real-world event.
-- **Auto-guarded**: events in `auto_types` (lider, anjo, monstro, emparedado, imunizado, vip, desistente, eliminado, desclassificado, atendeu_big_fone) are blocked — use this only for non-auto events.
-- Common use case: `monstro_retirado_vip` (-5) when Monstro recipient was in VIP.
+- **Auto-guarded**: events in `auto_types` are blocked — these types are ignored if added here: `lider`, `anjo`, `monstro`, `emparedado`, `imunizado`, `vip`, `desistente`, `eliminado`, `desclassificado`, `atendeu_big_fone`, `monstro_retirado_vip`, `quarto_secreto`.
+- All standard events are now auto-detected (see `docs/OPERATIONS_GUIDE.md` → cartola_points_log section for full list).
 
 ```json
 {
-  "participant": "Ana Paula Renault",
-  "week": 7,
-  "reason": "Was in VIP when receiving Monstro castigo. -10 auto, -5 manual.",
+  "participant": "Name",
+  "week": N,
+  "reason": "Why this manual entry is needed",
   "fonte": "https://gshow.globo.com/...",
   "events": [
-    {"event": "monstro_retirado_vip", "points": -5}
+    {"event": "custom_event_type", "points": N}
   ]
 }
 ```

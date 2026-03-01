@@ -2412,6 +2412,7 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
     }
     vip_awarded = defaultdict(set)
     role_awarded = defaultdict(lambda: defaultdict(set))
+    previous_vip: set[str] = set()
 
     for snap in daily_snapshots:
         date = snap['date']
@@ -2439,6 +2440,9 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
             if name not in role_awarded['Monstro'][week]:
                 calculated_points[name][week].append(('monstro', CARTOLA_POINTS['monstro'], date))
                 role_awarded['Monstro'][week].add(name)
+                # Monstro retirado do VIP: if Monstro recipient was in VIP before
+                if name in previous_vip:
+                    calculated_points[name][week].append(('monstro_retirado_vip', CARTOLA_POINTS['monstro_retirado_vip'], date))
 
         # Imune (Líder doesn't accumulate)
         new_imunes = current_holders['Imune'] - previous_holders['Imune']
@@ -2469,6 +2473,7 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
         previous_holders['Monstro'] = current_holders['Monstro'].copy()
         previous_holders['Imune'] = current_holders['Imune'].copy()
         previous_holders['Paredão'] = current_holders['Paredão'].copy()
+        previous_vip = current_vip.copy()
 
 
 def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes_data: dict, daily_snapshots: list[dict]) -> dict:
@@ -2546,10 +2551,14 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                         add_event_points(vencedor_bv, week, 'salvo_paredao',
                                          CARTOLA_POINTS['salvo_paredao'], paredao_date)
 
-        # Não eliminado no paredão
+        # Não eliminado no paredão / Quarto Secreto (Paredão Falso)
         resultado = p.get('resultado') or {}
         eliminado = resultado.get('eliminado')
         if p.get('status') == 'finalizado' and eliminado:
+            if p.get('paredao_falso'):
+                # Paredão Falso: "eliminado" goes to Quarto Secreto (+40)
+                add_event_points(eliminado, week, 'quarto_secreto',
+                                 CARTOLA_POINTS['quarto_secreto'], paredao_date)
             for nome in indicados:
                 if nome != eliminado:
                     add_event_points(nome, week, 'nao_eliminado_paredao',
@@ -2627,7 +2636,8 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
             existing = all_points[participant].get(week, [])
             already_has = any(e[0] == event_type for e in existing)
             auto_types = {'lider', 'anjo', 'monstro', 'emparedado', 'imunizado', 'vip',
-                          'desistente', 'eliminado', 'desclassificado', 'atendeu_big_fone'}
+                          'desistente', 'eliminado', 'desclassificado', 'atendeu_big_fone',
+                          'monstro_retirado_vip', 'quarto_secreto'}
             if not already_has and event_type not in auto_types:
                 all_points[participant][week].append((event_type, points, None))
 
