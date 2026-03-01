@@ -117,7 +117,8 @@ setup_bbb_dark_theme()
 | Location | Purpose | Examples |
 |----------|---------|---------|
 | `scripts/data_utils.py` | Shared constants, functions, theme | `calc_sentiment()`, `REACTION_EMOJI`, `CARTOLA_POINTS` |
-| `scripts/build_derived_data.py` | Heavy computation → JSON | roles_daily, auto_events, daily_metrics, plant_index, cartola_data |
+| `scripts/builders/*.py` | Heavy computation → JSON | relations, cartola, clusters, plant_index, etc. (11 domain modules) |
+| `scripts/build_derived_data.py` | Pipeline orchestrator | Imports from builders/, writes to data/derived/ |
 | `scripts/build_index_data.py` | Precompute index page data → JSON | profiles, rankings, highlights, cross-table |
 | `*.qmd` pages | Load JSON + render visualizations | Charts, tables, HTML output |
 
@@ -362,7 +363,19 @@ BBB26/
 ├── scripts/
 │   ├── data_utils.py        # Single source of truth — constants, functions, theme
 │   ├── fetch_data.py        # Fetch API, save if changed (hash comparison)
-│   ├── build_derived_data.py # Build all derived JSON files
+│   ├── build_derived_data.py # Pipeline orchestrator (imports from builders/)
+│   ├── builders/            # Domain modules for derived data pipeline
+│   │   ├── relations.py     # Pairwise scoring engine (~1,100 lines)
+│   │   ├── daily_analysis.py # Daily metrics, hostility, vulnerability
+│   │   ├── participants.py  # Participant index, roles, auto events
+│   │   ├── plant_index.py   # Weekly visibility index
+│   │   ├── sincerao.py      # Sincerão edges + validation
+│   │   ├── cartola.py       # Cartola BBB points
+│   │   ├── provas.py        # Competition rankings
+│   │   ├── clusters.py      # Affinity cluster detection + evolution
+│   │   ├── timeline.py      # Game timeline + power summary
+│   │   ├── paredao_analysis.py # Paredão analysis + badges
+│   │   └── vote_prediction.py  # Vote prediction model
 │   ├── build_index_data.py  # Precompute index page tables
 │   ├── audit_manual_events.py # Audit manual events for consistency
 │   ├── audit_snapshots.py   # Audit tool for deduplication

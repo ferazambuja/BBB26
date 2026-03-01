@@ -46,7 +46,7 @@
 - **File**: `scripts/build_derived_data.py`
 - **Impact**: 80 functions spanning 10+ domains in one file
 - **Fix**: Split into domain modules (`relations.py`, `plant_index.py`, `cartola.py`, etc.)
-- [ ] Fixed
+- [x] Fixed (2026-03-01) — Split into 11 domain modules under `scripts/builders/`. Orchestrator reduced to 338 lines. Full backwards compatibility via re-exports.
 
 ### H-5. 7 functions with nesting depth 6-8
 - **Files**: `build_derived_data.py` — `_detect_cartola_roles` (8), `_score_single_prova` (8), `_build_paredao_vote_analysis` (7), `_apply_prediction_boosts` (7), `_build_curiosity_lookups` (6), `build_plant_index` (6), `_build_vote_data` (6)
