@@ -6,7 +6,7 @@
 > **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `CLAUDE.md` (architecture).
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 >
-> **Last updated**: 2026-02-28
+> **Last updated**: 2026-03-01
 
 ---
 
@@ -17,7 +17,8 @@
 | **Update after ANY manual edit** | After editing any data file | [Git Workflow](#git-workflow) |
 | **New Líder crowned** (Thursday) | Thursday ~22h | [Líder Transition Checklist](#líder-transition-checklist-thursday-night) |
 | **Prova do Anjo results** (Saturday) | Saturday afternoon | [Anjo / Monstro Checklist](#anjo--monstro-update-checklist-saturday) |
-| **Presente do Anjo + Paredão formation** (Sunday) | Sunday ~22h45 | [Paredão Formation Checklist](#paredão-formation-checklist-sunday) |
+| **Presente do Anjo** (Sunday afternoon) | Sunday ~14h-17h | [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) |
+| **Paredão formation** (Sunday night) | Sunday ~22h45 | [Paredão Formation Checklist](#paredão-formation-checklist-sunday) |
 | **Collect Votalhada polls** (Tuesday) | Tuesday ~21h | [Votalhada Collection Checklist](#votalhada-collection-checklist-tuesday) |
 | **Elimination result** (Tuesday) | Tuesday ~23h | [Elimination Result Checklist](#elimination-result-checklist-tuesday) |
 | **Sincerão data** (Monday) | Monday ~22h | [Sincerão Update](#sincerão-update-monday) |
@@ -103,7 +104,8 @@ Each BBB week follows a predictable pattern anchored to the Líder cycle. Two re
 | **Sexta** | ~22h | **Week Dynamic** (varies) | Depends on dynamic | varies |
 | **Sábado** | ~14h-17h | **Prova do Anjo** | [Anjo Checklist](#anjo--monstro-update-checklist-saturday) | `provas.json`, `manual_events.json` |
 | **Sábado** | ~22h | **Monstro** (Anjo escolhe) | [Anjo Checklist](#anjo--monstro-update-checklist-saturday) | `manual_events.json` |
-| **Domingo** | ~22h45 | **Presente do Anjo** + **Paredão** | [Paredão Checklist](#paredão-formation-checklist-sunday) | `paredoes.json` |
+| **Domingo** | ~14h-17h | **Presente do Anjo** (almoço) | [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) | `manual_events.json` |
+| **Domingo** | ~22h45 | **Paredão Formation** | [Paredão Checklist](#paredão-formation-checklist-sunday) | `paredoes.json` |
 
 ### Sincerão History (Monday — recurring weekly)
 
@@ -144,8 +146,8 @@ When planning `scheduled_events` for a new week, include these recurring items:
 - [ ] **Week Dynamic** (Friday) — varies, from dynamics article
 - [ ] **Prova do Anjo** (Saturday) — API auto-detects winner
 - [ ] **Monstro** (Saturday) — Anjo's choice, API auto-detects
-- [ ] **Presente do Anjo** (Sunday) — immunity choice
-- [ ] **Paredão Formation** (Sunday) — contragolpe + bate e volta
+- [ ] **Presente do Anjo** (Sunday afternoon) — Anjo's family video vs 2nd immunity choice + almoço guests
+- [ ] **Paredão Formation** (Sunday ~22h45) — contragolpe + bate e volta + Anjo immunity
 - [ ] **Eliminação** (Tuesday) — paredão result
 
 **Scrape the dynamics article** (published Thursday) to know the week-specific events and add all scheduled events at once.
@@ -274,6 +276,7 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
     "almoco_date": null,
     "almoco_convidados": [],
     "escolha": null,
+    "usou_extra_poder": null,
     "imunizado": null,
     "monstro": "Monstro Name",
     "monstro_tipo": "Monstro Description",
@@ -284,7 +287,7 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 }
 ```
 
-**Fill-later fields** (Sunday Presente do Anjo): `almoco_date`, `almoco_convidados`, `escolha` (`video_familia` | `segunda_imunidade`), `imunizado`. Fill after the live Sunday show.
+**Fill-later fields** (Sunday [Presente do Anjo](#presente-do-anjo-checklist-sunday-afternoon)): `almoco_date`, `almoco_convidados`, `escolha`, `usou_extra_poder`, `imunizado`. Fill after the Sunday afternoon show.
 
 **Monstro**: API auto-detects the role. Fill `monstro` name from article or API. `monstro_tipo` and `monstro_motivo` when article available.
 
@@ -307,6 +310,87 @@ git push
 - **Anjo role** — `characteristics.roles` contains `"Anjo"`
 - **Monstro role** — `characteristics.roles` contains `"Monstro"`
 - Both appear in `auto_events.json` and `roles_daily.json` after rebuild
+
+---
+
+## Presente do Anjo Checklist (Sunday afternoon)
+
+The Presente do Anjo happens Sunday afternoon (~14h-17h BRT). The Anjo invites 2-3 guests for an Almoço do Anjo and makes a choice: watch a family video OR gain a 2nd immunity to give at formation.
+
+**Key fact**: As of W7, every Anjo has chosen `video_familia` (no one has ever used the 2nd immunity).
+
+### 1. Scrape the Presente do Anjo article
+
+```bash
+python scripts/scrape_gshow.py "<presente-do-anjo-url>" -o docs/scraped/
+```
+
+### 2. Update `data/manual_events.json` → `weekly_events[N].anjo`
+
+Fill the fields that were left `null` on Saturday:
+
+```json
+{
+  "almoco_date": "YYYY-MM-DD",
+  "almoco_convidados": ["Guest1", "Guest2", "Guest3"],
+  "escolha": "video_familia",
+  "usou_extra_poder": false,
+  "imunizado": null
+}
+```
+
+**Field reference**:
+
+| Field | Values | When to fill |
+|-------|--------|-------------|
+| `almoco_date` | `"YYYY-MM-DD"` | Sunday — date of the almoço |
+| `almoco_convidados` | `["Name1", "Name2"]` | Sunday — who the Anjo invited |
+| `escolha` | `"video_familia"` or `"imunidade_extra"` | Sunday — what the Anjo chose |
+| `usou_extra_poder` | `false` (chose video) or `true` (chose immunity) | Sunday — always matches `escolha` |
+| `imunizado` | `"Name"` or `null` | Sunday night (Paredão formation) — who the Anjo immunized |
+
+**Scoring impact**: Each `almoco_convidados` guest gets a `+0.15` positive `almoco_anjo` edge from the Anjo in the relations scoring. These edges appear in `relations_scores.json`.
+
+**Timeline**: A `presente_anjo` (🎁) event is automatically generated in the game timeline from this data. No manual timeline entry needed.
+
+### 3. Update `data/paredoes.json` → `formacao.anjo_escolha`
+
+Add the `anjo_escolha` descriptive field to the current paredão's `formacao`:
+
+```json
+{
+  "formacao": {
+    "anjo": "Anjo Name",
+    "anjo_escolha": "Abriu mão da 2ª imunidade para ver vídeo da família com Guest1, Guest2 e Guest3"
+  }
+}
+```
+
+### 4. Add article to `fontes`
+
+Add the scraped article URL to the anjo's `fontes` array in `weekly_events[N].anjo.fontes`.
+
+### 5. Rebuild + commit + push
+
+```bash
+python scripts/build_derived_data.py
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Presente do Anjo W{N} (Name chose video/immunity)"
+git push
+```
+
+### Presente do Anjo History
+
+| Week | Anjo | Escolha | Convidados | Imunizou |
+|------|------|---------|------------|----------|
+| W1 | Jonas Sulzbach | video_familia | Alberto Cowboy, Aline Campos, Sarah Andrade | Sarah Andrade |
+| W2 | Jonas Sulzbach | video_familia | Sarah Andrade, Maxiane, Marciele | — (autoimune) |
+| W3 | Sarah Andrade | video_familia | Jonas Sulzbach, Sol Vega, Brigido | Sol Vega |
+| W4 | Alberto Cowboy | video_familia | Jonas Sulzbach, Sarah Andrade, Edilson | Edilson |
+| W5 | Gabriela | video_familia | Chaiany, Jordana | Chaiany |
+| W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
+| W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | TBD |
+
+**Pattern**: 7/7 Anjos chose family video. The 2nd immunity has never been used.
 
 ---
 
@@ -337,7 +421,9 @@ Fill in the formation details. **Key fields** (nested under `formacao`):
     "resumo": "Description of how the paredão was formed",
     "lider": "Líder Name",
     "indicado_lider": "Who the Líder nominated",
-    "motivo_indicacao": "Why the Líder chose this person"
+    "motivo_indicacao": "Why the Líder chose this person",
+    "anjo": "Anjo Name",
+    "anjo_escolha": "Abriu mão da 2ª imunidade para ver vídeo da família"
   },
   "imunizado": {"por": "Who gave immunity", "quem": "Who received"},
   "indicados_finais": [
@@ -360,7 +446,7 @@ Add power events for the formation:
 - `imunidade` (Anjo → imunizado)
 - `bate_volta` (winners who escaped)
 
-Also update `weekly_events[N].anjo.imunizado` and `weekly_events[N].anjo.escolha` with Presente do Anjo results.
+Also update `weekly_events[N].anjo.imunizado` with who the Anjo immunized at formation. The `escolha` and other Presente do Anjo fields should already be filled from the [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) (Sunday afternoon).
 
 ### 4. Update `data/provas.json` (if Bate e Volta happened)
 
@@ -537,7 +623,7 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 }
 ```
 
-**Common categories**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `bate_volta`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
+**Common categories**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `presente_anjo`, `bate_volta`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
 
 ### Auto-dedup behavior
 
