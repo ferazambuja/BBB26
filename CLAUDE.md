@@ -372,8 +372,7 @@ BBB26/
 │   ├── MANUAL_EVENTS_GUIDE.md    # Manual events schema and fill rules
 │   ├── MANUAL_EVENTS_AUDIT.md    # Auto-generated audit of manual events
 │   └── PROGRAMA_BBB26.md         # TV show rules, format, dynamics
-├── requirements.txt         # Python dependencies
-└── IMPLEMENTATION_PLAN.md   # GitHub Actions + Quarto + Pages plan
+└── requirements.txt         # Python dependencies
 ```
 
 ## Page Architecture
@@ -616,10 +615,6 @@ Uses the existing **Sentiment Index** (`pairs_daily` from `relations_scores.json
 | Positive | Negative | ⚠️ Risco oculto | Líder unaware of target's hostility |
 | Positive | Positive | 💚 Aliados | Mutual alliance |
 
-## Future Plans
-
-See `IMPLEMENTATION_PLAN.md` for GitHub Actions + Quarto + GitHub Pages automation setup.
-
 ## Documentation Index
 
 All project documentation and their purposes:
@@ -631,7 +626,6 @@ All project documentation and their purposes:
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Schema | Field specs, fill rules, and examples for `manual_events.json` |
 | **`docs/SCORING_AND_INDEXES.md`** | Specification | Scoring formulas, weights, and index computation specs |
 | **`docs/PROGRAMA_BBB26.md`** | Reference | TV show reference — rules, format, dynamics (non-analytical) |
-| **`IMPLEMENTATION_PLAN.md`** | Reference | Deployment infrastructure — Actions, Pages, pipeline |
 | **`docs/MANUAL_EVENTS_AUDIT.md`** | Auto-generated | Validation report (built by `build_derived_data.py`) |
 | **`data/CHANGELOG.md`** | Archive | API data audit — snapshot dedup analysis and timeline |
 | **`data/votalhada/README.md`** | How-to | Screenshot-to-data extraction workflow for Votalhada polls |

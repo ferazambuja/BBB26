@@ -746,6 +746,5 @@ quarto render → deploy
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Full schema + fill rules for `manual_events.json` |
 | **`docs/SCORING_AND_INDEXES.md`** | Scoring formulas, weights, index specifications |
 | **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics |
-| **`IMPLEMENTATION_PLAN.md`** | Deployment infrastructure — Actions, Pages, pipeline |
 | **`data/votalhada/README.md`** | Screenshot-to-data extraction workflow |
 | **`data/CHANGELOG.md`** | Snapshot history, dedup analysis, API observations |

@@ -60,6 +60,7 @@ RELATION_SINC_WEIGHTS = {
     "bomba": -0.8,
     "paredao_perfeito": -0.3,
     "prova_eliminou": -0.15,
+    "quem_sai": -0.15,
 }
 RELATION_SINC_BACKLASH_FACTOR = {
     "regua_fora": 0.3,
@@ -67,6 +68,7 @@ RELATION_SINC_BACKLASH_FACTOR = {
     "bomba": 0.4,
     "paredao_perfeito": 0.2,
     "prova_eliminou": 0.15,
+    "quem_sai": 0.2,
 }
 
 RELATION_VOTE_WEIGHTS = {
