@@ -1,6 +1,6 @@
 {
   "_description": "Competition results and placements for all BBB26 provas.",
-  "_last_updated": "2026-02-21",
+  "_last_updated": "2026-02-28",
   "provas": [
     {
       "numero": 1,
@@ -1612,6 +1612,140 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-samira-vence-a-7a-disputa.ghtml",
           "arquivo": "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-samira-vence-a-7a-disputa.md",
           "titulo": "Quem ganhou a Prova do Líder do BBB 26? Samira vence a 7ª disputa"
+        }
+      ]
+    },
+    {
+      "numero": 19,
+      "tipo": "anjo",
+      "week": 7,
+      "date": "2026-02-28",
+      "nome": "7ª Prova do Anjo — Trios + Caixas (duas etapas)",
+      "formato": "trios_eliminacao",
+      "vencedor": "Alberto Cowboy",
+      "participantes_total": 12,
+      "excluidos": [
+        {
+          "nome": "Samira",
+          "motivo": "Líder da semana, não participa"
+        },
+        {
+          "nome": "Milena",
+          "motivo": "Eliminada por sorteio (Jordana sorteada pela urna)"
+        }
+      ],
+      "nota": "Prova em 2 etapas. Fase 1: 4 trios (memória, agilidade, trabalho em equipe) — escolher 6 produtos, pescar caixas e transferir para caminhão de entregas. Trio mais rápido avança. Fase 2 (final): 3 finalistas escolhem 2 caixas entre 6, com 3 rodadas de troca. Alberto ficou com a caixa correta.",
+      "fases": [
+        {
+          "fase": 1,
+          "tipo": "trios_velocidade",
+          "nota": "4 trios formados com coletes 1-4. Cada trio escolhe 6 produtos, pesca caixas e transfere para caminhão. Menor tempo avança para final.",
+          "trios": [
+            {
+              "colete": 1,
+              "membros": ["Ana Paula Renault", "Breno", "Juliano Floss"]
+            },
+            {
+              "colete": 2,
+              "membros": ["Jordana", "Chaiany", "Gabriela"]
+            },
+            {
+              "colete": 3,
+              "membros": ["Marciele", "Jonas Sulzbach", "Alberto Cowboy"]
+            },
+            {
+              "colete": 4,
+              "membros": ["Babu Santana", "Solange Couto", "Leandro"]
+            }
+          ],
+          "classificacao": [
+            {
+              "pos": 1,
+              "nome": "Alberto Cowboy",
+              "nota": "Trio 3 — menor tempo"
+            },
+            {
+              "pos": 1,
+              "nome": "Jonas Sulzbach",
+              "nota": "Trio 3 — menor tempo"
+            },
+            {
+              "pos": 1,
+              "nome": "Marciele",
+              "nota": "Trio 3 — menor tempo"
+            },
+            {
+              "pos": 4,
+              "nome": "Ana Paula Renault",
+              "nota": "Trio 1 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Breno",
+              "nota": "Trio 1 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Juliano Floss",
+              "nota": "Trio 1 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Jordana",
+              "nota": "Trio 2 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Chaiany",
+              "nota": "Trio 2 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Gabriela",
+              "nota": "Trio 2 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Babu Santana",
+              "nota": "Trio 4 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Solange Couto",
+              "nota": "Trio 4 — eliminado"
+            },
+            {
+              "pos": 4,
+              "nome": "Leandro",
+              "nota": "Trio 4 — eliminado"
+            }
+          ]
+        },
+        {
+          "fase": 2,
+          "tipo": "individual_caixas",
+          "nota": "3 finalistas do trio vencedor. Cada um escolhe 2 caixas entre 6. Em 3 rodadas, trocam caixas entre si. Quem termina com a caixa correta vence.",
+          "classificacao": [
+            {
+              "pos": 1,
+              "nome": "Alberto Cowboy"
+            },
+            {
+              "pos": 2,
+              "nome": "Jonas Sulzbach"
+            },
+            {
+              "pos": 2,
+              "nome": "Marciele"
+            }
+          ]
+        }
+      ],
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-alberto-cowboy-vence-a-setima-prova.ghtml",
+          "arquivo": "docs/scraped/quem-e-o-anjo-do-bbb-26-alberto-cowboy-vence-a-setima-prova.md",
+          "titulo": "Quem é o Anjo do BBB 26? Alberto Cowboy vence a sétima prova"
         }
       ]
     }
