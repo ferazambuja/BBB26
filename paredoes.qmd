@@ -208,7 +208,7 @@ if len(finalized_polls) >= 1:
         _bt_agg = backtest['aggregate']
         _bt_imp = _bt_agg.get('improvement_pct', 0)
         _bt_color = '#00bc8c' if _bt_imp and _bt_imp > 0 else '#f39c12'
-        print(f'<div style="min-width:150px; border-left:3px solid #00bc8c; padding-left:1rem;"><strong>🎯 Modelo Ponderado</strong><br><span style="font-size:2em; color:{_bt_color}; font-weight:bold;">{_bt_agg["model_mae"]:.1f}</span><br><span class="text-muted">p.p. (LOO) — {_bt_imp:+.0f}%</span></div>')
+        print(f'<div style="min-width:150px; border-left:3px solid #00bc8c; padding-left:1rem;"><strong>🧮 Nosso Modelo</strong><br><span style="font-size:2em; color:{_bt_color}; font-weight:bold;">{_bt_agg["model_mae"]:.1f}</span><br><span class="text-muted">p.p. (LOO) — {_bt_imp:+.0f}%</span></div>')
 
     print(f'</div></div>\n')
 
@@ -276,7 +276,7 @@ if len(finalized_polls) >= 1:
 
     # Add consolidado row
     consolidado_errs = [abs(r['enquete'] - r['voto_total']) for r in poll_vs_votes]
-    print(f'<tr style="background:rgba(155,89,182,0.2);"><td><strong>📊 Consolidado</strong></td>')
+    print(f'<tr style="background:rgba(155,89,182,0.2);"><td><strong>📊 Votalhada</strong></td>')
     for err in consolidado_errs:
         err_color = '#3CB44B' if err < 10 else '#f39c12' if err < 20 else '#E6194B'
         print(f'<td class="tc"><span style="color:{err_color};">{err:.1f}</span></td>')
@@ -290,7 +290,7 @@ if len(finalized_polls) >= 1:
         _bt_results = backtest['per_paredao']
         model_errs = [r['model_mae'] for r in _bt_results if r['model_mae'] is not None]
         if model_errs:
-            print(f'<tr style="background:rgba(0,188,140,0.2);"><td><strong>🎯 Modelo</strong></td>')
+            print(f'<tr style="background:rgba(0,188,140,0.2);"><td><strong>🧮 Nosso Modelo</strong></td>')
             for r in _bt_results:
                 if r['model_mae'] is not None:
                     err_color = '#3CB44B' if r['model_mae'] < 10 else '#f39c12' if r['model_mae'] < 20 else '#E6194B'
@@ -308,7 +308,7 @@ if len(finalized_polls) >= 1:
             print('</tr>')
 
     print('</tbody></table>')
-    print('<p class="text-muted small">Erro = diferença em pontos percentuais entre previsão e resultado real (Média Final). Modelo usa leave-one-out cross-validation.</p>\n')
+    print('<p class="text-muted small">Erro = diferença em pontos percentuais entre previsão e resultado real (Média Final). Nosso Modelo usa leave-one-out cross-validation.</p>\n')
 
     # ── Platform Average Error Bar Chart ──
     platform_colors = {'sites': '#3498db', 'youtube': '#e74c3c', 'twitter': '#1da1f2', 'instagram': '#e1306c'}
@@ -326,7 +326,7 @@ if len(finalized_polls) >= 1:
         hovertemplate='%{y}: %{x:.1f} p.p.<extra></extra>',
     ))
     fig_bar.add_vline(x=avg_consol, line_dash='dash', line_width=2, line_color='#9b59b6',
-                      annotation_text=f"Consolidado: {avg_consol:.1f}",
+                      annotation_text=f"Votalhada: {avg_consol:.1f}",
                       annotation_position='top right',
                       annotation_font=dict(size=10, color='#9b59b6'))
     fig_bar.update_layout(
@@ -359,10 +359,10 @@ if len(finalized_polls) >= 1:
         # Add consolidado line
         fig_lines.add_trace(go.Scatter(
             x=paredao_labels, y=consolidado_errs, mode='lines+markers',
-            name='📊 Consolidado',
+            name='📊 Votalhada',
             line=dict(width=2.5, color='#9b59b6', dash='dash'),
             marker=dict(size=8, symbol='diamond'),
-            hovertemplate='Consolidado: %{y:.1f} p.p.<extra></extra>',
+            hovertemplate='Votalhada: %{y:.1f} p.p.<extra></extra>',
         ))
 
         # Add model line (from backtest LOO)
@@ -371,10 +371,10 @@ if len(finalized_polls) >= 1:
             _model_y = [_bt_errs_by_par.get(p['numero'], None) for p in finalized_polls]
             fig_lines.add_trace(go.Scatter(
                 x=paredao_labels, y=_model_y, mode='lines+markers',
-                name='🎯 Modelo',
+                name='🧮 Nosso Modelo',
                 line=dict(width=3, color='#00bc8c', dash='dot'),
                 marker=dict(size=10, symbol='star'),
-                hovertemplate='Modelo: %{y:.1f} p.p.<extra></extra>',
+                hovertemplate='Nosso Modelo: %{y:.1f} p.p.<extra></extra>',
                 connectgaps=True,
             ))
 
@@ -432,14 +432,14 @@ if len(finalized_polls) >= 1:
     # ══════════════════════════════════════════════════════════════
     if backtest and len(backtest['per_paredao']) >= 3:
         _bt_agg = backtest['aggregate']
-        print("\n## 🎯 Modelo de Precisão — Back-test\n")
+        print("\n## 🧮 Nosso Modelo — Back-test\n")
         print(f'<p class="text-muted">{ANALYSIS_DESCRIPTIONS["precision_model_methodology"]}</p>\n')
 
         # Per-paredão LOO table
         print('<table class="table table-striped table-sm" style="max-width:800px;">')
         print('<thead><tr><th>Paredão</th><th>Eliminado</th>')
-        print('<th class="tc">Consolidado (erro)</th>')
-        print('<th class="tc">Modelo LOO (erro)</th>')
+        print('<th class="tc">Votalhada (erro)</th>')
+        print('<th class="tc">Nosso Modelo LOO (erro)</th>')
         print('<th class="tc">Melhoria</th>')
         print('</tr></thead><tbody>')
 
@@ -468,8 +468,8 @@ if len(finalized_polls) >= 1:
         print('</tbody></table>')
 
         print(f'<div style="background:rgba(0,188,140,0.1); border-radius:8px; padding:1rem; margin:1rem 0;">')
-        print(f'<strong>🎯 Resultado:</strong> O modelo ponderado reduz o erro médio de <strong>{_bt_agg["consolidado_mae"]:.1f}</strong> para <strong>{_bt_agg["model_mae"]:.1f}</strong> p.p. (<strong>{_imp:+.0f}%</strong>), usando leave-one-out cross-validation.')
-        print(f'<br><span class="text-muted">Acerto: Consolidado {_bt_agg["consolidado_correct"]}/{_bt_agg["n_paredoes"]} · Modelo {_bt_agg["model_correct"]}/{_bt_agg["n_paredoes"]}</span>')
+        print(f'<strong>🧮 Resultado:</strong> Nosso Modelo reduz o erro médio de <strong>{_bt_agg["consolidado_mae"]:.1f}</strong> para <strong>{_bt_agg["model_mae"]:.1f}</strong> p.p. (<strong>{_imp:+.0f}%</strong>), usando leave-one-out cross-validation.')
+        print(f'<br><span class="text-muted">Acerto: Votalhada {_bt_agg["consolidado_correct"]}/{_bt_agg["n_paredoes"]} · Nosso Modelo {_bt_agg["model_correct"]}/{_bt_agg["n_paredoes"]}</span>')
         print(f'</div>\n')
 
     # ══════════════════════════════════════════════════════════════
@@ -960,15 +960,25 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                 return f'font-weight:bold; color:{color_best};'
             return ''
 
-        # Compact platform table
-        print('<table class="table table-sm" style="max-width: 100%; font-size: 0.85rem;">')
+        # Color scheme: green=best, red=worst, white=middle
+        def _arc_color(val, all_vals):
+            if val == max(all_vals):
+                return 'font-weight:bold; color:#2ecc71;'
+            if val == min(all_vals):
+                return 'font-weight:bold; color:#e74c3c;'
+            return 'color:#ddd;'
+
+        # Compact platform table with avatars
+        print('<div style="overflow-x:auto;">')
+        print('<table class="table table-sm" style="max-width: 100%; font-size: 0.85rem; white-space:nowrap;">')
         print('<thead><tr><th>Fonte</th>')
         for nome in participantes_poll:
-            print(f'<th class="tc">{nome.split()[0]}</th>')
+            _av = avatar_img(nome, AVATARS, 42)
+            print(f'<th class="tc">{_av}<br><span style="font-size:0.7em;">{nome.split()[0]}</span></th>')
         print('</tr></thead><tbody>')
 
         platform_order = ['sites', 'youtube', 'twitter', 'instagram']
-        plat_names = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
+        plat_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
         for plat in platform_order:
             if plat in plataformas:
@@ -977,36 +987,81 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                 _apvals = [pdata.get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = pdata.get(nome, 0)
-                    style = _arc_hl(val, _apvals, '#f39c12')
+                    style = _arc_color(val, _apvals)
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print('</tr>')
 
-        print(f'<tr style="background:rgba(155,89,182,0.2);"><td><strong>Consolidado</strong></td>')
+        print(f'<tr style="background:rgba(155,89,182,0.2);"><td><strong>📊 Votalhada</strong></td>')
+        _cvals = [consolidado.get(n, 0) for n in participantes_poll]
         for nome in participantes_poll:
-            print(f'<td class="tc" style="font-weight:bold;">{consolidado.get(nome, 0):.1f}%</td>')
+            val = consolidado.get(nome, 0)
+            style = _arc_color(val, _cvals)
+            if 'font-weight' not in style:
+                style = 'font-weight:bold;' + style
+            print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
         print('</tr>')
 
         # Model row
         _tab_model = predict_precision_weighted(poll, _prec_all) if _prec_all.get('sufficient') else None
         if _tab_model:
-            print(f'<tr style="background:rgba(0,188,140,0.2);"><td><strong>🎯 Modelo</strong></td>')
+            print(f'<tr style="background:rgba(0,188,140,0.2);"><td><strong>🧮 Nosso Modelo</strong></td>')
             _amvals = [_tab_model['prediction'].get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = _tab_model['prediction'].get(nome, 0)
-                style = _arc_hl(val, _amvals, '#00bc8c')
+                style = _arc_color(val, _amvals)
                 if 'font-weight' not in style:
                     style = 'font-weight:bold;' + style
                 print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print('</tr>')
 
-        print(f'<tr style="background:rgba(52,152,219,0.2);"><td><strong>Resultado</strong></td>')
+        print(f'<tr style="background:rgba(52,152,219,0.2);"><td><strong>✅ Resultado</strong></td>')
         for nome in participantes_poll:
             val = resultado.get(nome, 0)
             is_elim = nome == resultado.get('eliminado')
             style = 'font-weight:bold; color:#E6194B;' if is_elim else 'font-weight:bold; color:#3CB44B;'
             print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
         print('</tr>')
-        print('</tbody></table>\n')
+        print('</tbody></table>')
+        print('</div>\n')
+
+        # ── Curiosities box (archive) ──
+        _arc_curiosities = []
+        # Model vs Votalhada comparison
+        if _tab_model:
+            _model_elim_a = _tab_model['predicao_eliminado']
+            _consol_elim_a = consolidado.get('predicao_eliminado', max(participantes_poll, key=lambda n: consolidado.get(n, 0)))
+            _real_elim = resultado.get('eliminado', '')
+            _model_err_a = abs(_tab_model['prediction'].get(_real_elim, 0) - resultado.get(_real_elim, 0))
+            _consol_err_a = abs(consolidado.get(_real_elim, 0) - resultado.get(_real_elim, 0))
+            if _model_err_a < _consol_err_a:
+                _arc_curiosities.append(f'🧮 <strong>Nosso Modelo</strong> errou menos ({_model_err_a:.1f} p.p.) que o Votalhada ({_consol_err_a:.1f} p.p.) neste paredão')
+            elif _consol_err_a < _model_err_a:
+                _arc_curiosities.append(f'📊 <strong>Votalhada</strong> errou menos ({_consol_err_a:.1f} p.p.) que Nosso Modelo ({_model_err_a:.1f} p.p.) neste paredão')
+            else:
+                _arc_curiosities.append(f'🤝 Ambos os modelos erraram igual ({_consol_err_a:.1f} p.p.)')
+            if _model_elim_a != _consol_elim_a:
+                _arc_curiosities.append(f'🔀 Modelos divergiram: Votalhada apostou em <strong>{_consol_elim_a.split()[0]}</strong>, Nosso Modelo em <strong>{_model_elim_a.split()[0]}</strong>')
+        # Platform accuracy for this paredão
+        _plat_errs_a = {}
+        _plat_names_h = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
+        _real_elim_a = resultado.get('eliminado', '')
+        _real_val_a = resultado.get(_real_elim_a, 0)
+        for plat in ['sites', 'youtube', 'twitter', 'instagram']:
+            if plat in plataformas:
+                _pv = plataformas[plat].get(_real_elim_a, 0)
+                _plat_errs_a[plat] = abs(_pv - _real_val_a)
+        if _plat_errs_a:
+            _best_p = min(_plat_errs_a, key=lambda k: _plat_errs_a[k])
+            _worst_p = max(_plat_errs_a, key=lambda k: _plat_errs_a[k])
+            if _plat_errs_a[_best_p] != _plat_errs_a[_worst_p]:
+                _arc_curiosities.append(f'🏆 Mais precisa: <strong>{_plat_names_h[_best_p]}</strong> (erro {_plat_errs_a[_best_p]:.1f} p.p.) · Menos precisa: <strong>{_plat_names_h[_worst_p]}</strong> ({_plat_errs_a[_worst_p]:.1f} p.p.)')
+
+        if _arc_curiosities:
+            print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.6rem 0.8rem; margin:0.5rem 0 0.8rem 0;">')
+            print(f'<div style="font-size:0.75em; font-weight:bold; color:#f1c40f; margin-bottom:0.3rem;">💡 Curiosidades</div>')
+            for c in _arc_curiosities:
+                print(f'<div style="font-size:0.8em; color:#ddd; margin-bottom:0.2rem;">{c}</div>')
+            print(f'</div>\n')
 
         # Time series chart (archive)
         if poll.get('serie_temporal'):
