@@ -954,18 +954,14 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
         print(f'{status_html} <span class="text-muted" style="font-size:0.9em;">Erro médio: {accuracy["erro_medio"]:.1f} p.p.</span>\n')
 
-        def _arc_hl(val, all_vals, color_best):
-            """Highlight the most-voted participant in platform color."""
-            if val == max(all_vals):
-                return f'font-weight:bold; color:{color_best};'
-            return ''
-
-        # Color scheme: green=best, red=worst, white=middle
+        # Color scheme depends on vote type
+        _color_max_a = '#2ecc71' if _is_save_arc else '#e74c3c'
+        _color_min_a = '#e74c3c' if _is_save_arc else '#2ecc71'
         def _arc_color(val, all_vals):
             if val == max(all_vals):
-                return 'font-weight:bold; color:#2ecc71;'
+                return f'font-weight:bold; color:{_color_max_a};'
             if val == min(all_vals):
-                return 'font-weight:bold; color:#e74c3c;'
+                return f'font-weight:bold; color:{_color_min_a};'
             return 'color:#ddd;'
 
         # Compact platform table with avatars

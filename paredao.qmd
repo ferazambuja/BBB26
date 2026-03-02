@@ -323,13 +323,17 @@ if ultimo:
             print(f'</div>\n')
 
             # ── Platform breakdown table (responsive) ──
-            # Color scheme: green=best, red=worst, white=middle
-            def _poll_highlight(val, all_vals, color_best):
-                """Color-code: best(green) · worst(red) · middle(white)."""
+            # Color scheme depends on vote type:
+            #   Eliminate: highest% = eliminated = red, lowest% = safe = green
+            #   Save: highest% = saved = green, lowest% = danger = red
+            _color_max = '#2ecc71' if _is_save_poll else '#e74c3c'
+            _color_min = '#e74c3c' if _is_save_poll else '#2ecc71'
+            def _poll_highlight(val, all_vals, _unused=None):
+                """Color-code: context-aware best/worst."""
                 if val == max(all_vals):
-                    return f'font-weight:bold; color:#2ecc71;'
+                    return f'font-weight:bold; color:{_color_max};'
                 if val == min(all_vals):
-                    return f'font-weight:bold; color:#e74c3c;'
+                    return f'font-weight:bold; color:{_color_min};'
                 return 'color:#ddd;'
 
             print('<div style="overflow-x:auto;">')
@@ -1343,12 +1347,14 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             # Platform breakdown table
             print("\n### 📱 Por Plataforma\n")
-            # Color scheme: green=best, red=worst, white=middle
+            # Color scheme depends on vote type
+            _color_max_f = '#2ecc71' if _is_save_poll_fin else '#e74c3c'
+            _color_min_f = '#e74c3c' if _is_save_poll_fin else '#2ecc71'
             def _poll_hl_fin(val, all_vals):
                 if val == max(all_vals):
-                    return 'font-weight:bold; color:#2ecc71;'
+                    return f'font-weight:bold; color:{_color_max_f};'
                 if val == min(all_vals):
-                    return 'font-weight:bold; color:#e74c3c;'
+                    return f'font-weight:bold; color:{_color_min_f};'
                 return 'color:#ddd;'
 
             print('<div style="overflow-x:auto;">')
@@ -2283,7 +2289,7 @@ if ultimo and ultimo.get('participantes'):
                 print(f'</tr>')
             print('</tbody></table>\n')
         elif not is_bv_escapee:
-            print(f"*{nome} não recebeu votos da casa — chegou ao paredão por indicação direta.*\n")
+            pass  # Covered in Conclusão below
 
         # ── E. Destaques (conditional) ──
         nominee_betrayals = [v for v in betrayals if v['alvo'] == nome]
