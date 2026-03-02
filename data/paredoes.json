@@ -914,8 +914,24 @@
       "formacao": {
         "resumo": "Paredão Falso triplo. O Exilado (sexta): casa dividida em 2 grupos — Jordana e Alberto Cowboy sorteados como capitães, cada um escolheu 5 aliados; Breno sobrou e foi exilado na área externa. Sábado: Breno indicou Alberto Cowboy ao Paredão (justificativa: 'manipula de forma sutil, usou informação da família da Ana Paula'); Alberto trocou de lugar com Breno no exílio. Domingo: Presente do Anjo + indicação da Líder + votação da casa + contragolpe + Bate e Volta. PAREDÃO FALSO: mais votado pelo público vai ao Quarto Secreto e volta imune.",
         "lider": "Samira",
+        "indicado_lider": "Jordana",
+        "motivo_indicacao": "Não é novidade e estamos sempre nos engalfinhando",
         "anjo": "Alberto Cowboy",
         "anjo_escolha": "Abriu mão da 2ª imunidade para ver vídeo da família com Gabriela, Jordana e Marciele",
+        "imunizado": {
+          "por": "Alberto Cowboy",
+          "quem": "Jonas Sulzbach",
+          "motivo": "É o meu parceiro aqui dentro"
+        },
+        "contragolpe": {
+          "de": "Jordana",
+          "para": "Breno",
+          "motivo": "Eu vou puxar o Breno porque ele já deixou muito claro que somos alvo um do outro aqui"
+        },
+        "bate_volta": {
+          "participantes": ["Alberto Cowboy", "Breno", "Marciele"],
+          "vencedor": "Marciele"
+        },
         "exilado": {
           "dinamica_date": "2026-02-27",
           "indicacao_date": "2026-02-28",
@@ -946,11 +962,36 @@
           }
         }
       },
+      "votos_casa": {
+        "Jonas Sulzbach": "Breno",
+        "Chaiany": "Marciele",
+        "Leandro": "Marciele",
+        "Marciele": "Breno",
+        "Juliano Floss": "Marciele",
+        "Jordana": "Breno",
+        "Babu Santana": "Marciele",
+        "Alberto Cowboy": "Breno",
+        "Solange Couto": "Marciele",
+        "Gabriela": "Breno",
+        "Ana Paula Renault": "Babu Santana",
+        "Breno": "Marciele",
+        "Milena": "Babu Santana"
+      },
       "indicados_finais": [
         {
           "nome": "Alberto Cowboy",
           "grupo": "Veterano",
           "como": "Exilado"
+        },
+        {
+          "nome": "Jordana",
+          "grupo": "Pipoca",
+          "como": "Líder"
+        },
+        {
+          "nome": "Breno",
+          "grupo": "Pipoca",
+          "como": "Contragolpe"
         }
       ],
       "fontes": [
@@ -973,6 +1014,11 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/alberto-cowboy-e-indicado-ao-paredao-e-sofre-pontuacao-negativa-no-cartola-bbb.ghtml",
           "arquivo": "docs/scraped/alberto-cowboy-e-indicado-ao-paredao-e-sofre-pontuacao-negativa-no-cartola-bbb.md",
           "titulo": "Alberto Cowboy é indicado ao Paredão e sofre pontuação negativa no Cartola BBB"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.ghtml",
+          "arquivo": "docs/scraped/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.md",
+          "titulo": "Quem está no Paredão Falso do BBB 26? Alberto Cowboy, Breno e Jordana disputam vaga no Quarto Secreto"
         }
       ]
     }

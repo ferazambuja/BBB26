@@ -1508,7 +1508,11 @@
         "format": "cancelado (Carnaval)",
         "cancelled": true,
         "scoring_mode": "edges_only",
-        "participacao": ["Marcelo", "Samira", "Solange Couto"],
+        "participacao": [
+          "Marcelo",
+          "Samira",
+          "Solange Couto"
+        ],
         "edges": [
           {
             "actor": "Marcelo",
@@ -3800,7 +3804,7 @@
         ],
         "escolha": "video_familia",
         "usou_extra_poder": false,
-        "imunizado": null,
+        "imunizado": "Jonas Sulzbach",
         "monstro": "Ana Paula Renault",
         "monstro_tipo": "Monstro Catando Milho",
         "monstro_motivo": "Alberto Cowboy escolheu Ana Paula Renault para o Castigo do Monstro. Consequência: -300 estalecas + transferida do VIP para a Xepa.",
@@ -3818,8 +3822,26 @@
         "indicado": "Alberto Cowboy",
         "motivo": "É uma pessoa que, ao meu ver, no jogo tem um jeito de manipular bem sutil. Utilizou informação da família da Ana Paula.",
         "grupos": {
-          "branco": {"capitao": "Jordana", "membros": ["Jonas Sulzbach", "Gabriela", "Solange Couto", "Juliano Floss", "Ana Paula Renault"]},
-          "preto": {"capitao": "Alberto Cowboy", "membros": ["Marciele", "Chaiany", "Babu Santana", "Leandro", "Milena"]}
+          "branco": {
+            "capitao": "Jordana",
+            "membros": [
+              "Jonas Sulzbach",
+              "Gabriela",
+              "Solange Couto",
+              "Juliano Floss",
+              "Ana Paula Renault"
+            ]
+          },
+          "preto": {
+            "capitao": "Alberto Cowboy",
+            "membros": [
+              "Marciele",
+              "Chaiany",
+              "Babu Santana",
+              "Leandro",
+              "Milena"
+            ]
+          }
         },
         "notas": "Sexta-feira (27): Samira sorteou Jordana e Alberto como capitães de dois grupos. Cada um escolheu 5 aliados; Breno ficou de fora e foi exilado (área externa + cercadinho na sala + banheiro). Sábado (28): Breno indicou Alberto ao Paredão e trocou de lugar com ele no exílio.",
         "fontes": [
@@ -5565,6 +5587,62 @@
       "origem": "manual",
       "visibility": "public",
       "awareness": "known"
+    },
+    {
+      "date": "2026-03-01",
+      "week": 7,
+      "actor": "Alberto Cowboy",
+      "target": "Jonas Sulzbach",
+      "detail": "Anjo Alberto Cowboy imunizou Jonas Sulzbach: 'É o meu parceiro aqui dentro'",
+      "weight": 0.3,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.ghtml"
+      ],
+      "type": "imunidade",
+      "origem": "manual",
+      "impacto": "positivo"
+    },
+    {
+      "date": "2026-03-01",
+      "week": 7,
+      "actor": "Samira",
+      "target": "Jordana",
+      "detail": "Líder Samira indicou Jordana ao 7º Paredão (Falso): 'Não é novidade e estamos sempre nos engalfinhando'",
+      "weight": -0.4,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.ghtml"
+      ],
+      "type": "indicacao",
+      "origem": "manual",
+      "impacto": "negativo"
+    },
+    {
+      "date": "2026-03-01",
+      "week": 7,
+      "actor": "Jordana",
+      "target": "Breno",
+      "detail": "Jordana contragolpeou Breno: 'Ele já deixou muito claro que somos alvo um do outro aqui'",
+      "weight": -0.3,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.ghtml"
+      ],
+      "type": "contragolpe",
+      "origem": "manual",
+      "impacto": "negativo"
+    },
+    {
+      "date": "2026-03-01",
+      "week": 7,
+      "actor": "Prova Bate e Volta",
+      "target": "Marciele",
+      "detail": "Marciele venceu o Bate e Volta e saiu do Paredão Falso. Disputaram: Alberto Cowboy, Breno e Marciele.",
+      "weight": 0.15,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.ghtml"
+      ],
+      "type": "bate_volta",
+      "origem": "manual",
+      "impacto": "positivo"
     }
   ],
   "cartola_points_log": [],
