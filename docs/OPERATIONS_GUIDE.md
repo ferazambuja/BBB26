@@ -559,6 +559,8 @@ git push
 
 After the elimination result is announced (~23h BRT):
 
+> **Paredão Falso**: The same checklist applies. Set `status: "finalizado"`, fill `resultado` with the "eliminated" name (who goes to Quarto Secreto) and vote percentages as normal. The `paredao_falso: true` flag in `paredoes.json` ensures the pipeline treats it correctly (Cartola awards `quarto_secreto` points instead of elimination).
+
 ### 1. Update `data/paredoes.json`
 
 Set the status to `finalizado` and add vote results:
@@ -594,6 +596,15 @@ Add `resultado_real` to the paredão's poll entry:
   }
 }
 ```
+
+Use `voto_total` (not `voto_unico` or `voto_torcida`) for the percentages — this matches what Votalhada predicted against.
+
+**Model auto-recalibration**: Once `resultado_real` is filled and `build_derived_data.py` runs, the **Modelo Ponderado por Precisão** automatically recalibrates. `calculate_precision_weights()` reads ALL finalized polls at runtime — no manual weight updates needed. The model's RMSE per platform, weights, and backtest results all update to include the new data point. This means:
+- Prediction cards on `paredao.qmd` use the latest weights for the next paredão
+- Accuracy tables on `paredoes.qmd` show updated historical performance
+- The expandable "Como funciona o modelo" section displays current weights
+
+See `docs/SCORING_AND_INDEXES.md` → "Modelo Ponderado por Precisão" for the full formula and validation results.
 
 ### 3. Record Ganha-Ganha (same night, ~23h30)
 

@@ -776,33 +776,36 @@ peso_i = (1 / RMSE_i²) / Σ(1 / RMSE_j²)
 
 O RMSE (Root Mean Square Error) é calculado sobre todos os pares (previsão, resultado real) de todos os paredões finalizados, para cada plataforma separadamente. Usando RMSE² no denominador (ao invés de RMSE linear), plataformas imprecisas são penalizadas quadraticamente — Sites com RMSE 2× maior que YouTube recebem ~4× menos peso.
 
-### Derivação dos pesos (5 paredões finalizados)
+### Derivação dos pesos (6 paredões finalizados)
 
 | Plataforma | RMSE (p.p.) | 1/RMSE² | Peso modelo | Peso Votalhada | Mudança |
 |-----------|:-----------:|:-------:|:-----------:|:--------------:|:-------:|
-| 𝕏 Twitter | 4,82 | 0,04304 | **54,6%** | 5,2% | ×10,4 |
-| 📷 Instagram | 6,24 | 0,02568 | **32,6%** | 13,8% | ×2,4 |
-| ▶️ YouTube | 11,73 | 0,00727 | **9,2%** | 10,6% | ×0,9 |
-| 🌐 Sites | 18,70 | 0,00286 | **3,6%** | 70,3% | ×0,1 |
+| 𝕏 Twitter | 5,14 | 0,03785 | **47,8%** | ~5% | ×9,6 |
+| 📷 Instagram | 5,75 | 0,03025 | **38,1%** | ~14% | ×2,7 |
+| ▶️ YouTube | 11,18 | 0,00800 | **10,1%** | ~11% | ×0,9 |
+| 🌐 Sites | 17,68 | 0,00320 | **4,0%** | ~70% | ×0,1 |
 
-A inversão é dramática: Sites perdem 95% de influência, Twitter ganha 10×.
+A inversão é dramática: Sites perdem 94% de influência, Twitter ganha quase 10×.
+
+> **Nota**: estes pesos são recalculados automaticamente a cada paredão finalizado. A tabela acima reflete o estado após o 6º Paredão.
 
 ### Validação: Leave-One-Out Cross-Validation
 
-Com apenas 5 paredões, validação padrão (train/test split) não funciona. Usamos **leave-one-out (LOO)**: para cada paredão, calculamos pesos usando APENAS os outros 4, depois prevemos este. Nenhum paredão é previsto com dados de si mesmo.
+Com poucos paredões, validação padrão (train/test split) não funciona. Usamos **leave-one-out (LOO)**: para cada paredão, calculamos pesos usando APENAS os outros N-1, depois prevemos este. Nenhum paredão é previsto com dados de si mesmo.
 
-Resultados do back-test LOO:
+Resultados do back-test LOO (6 paredões):
 
 | Paredão | Eliminado | Erro Consolidado | Erro Modelo LOO | Melhoria |
 |:-------:|-----------|:----------------:|:---------------:|:--------:|
-| 1º | Aline Campos | 10,3 p.p. | 6,8 p.p. | +3,5 |
-| 2º | Matheus | 10,3 p.p. | 1,9 p.p. | +8,4 |
-| 3º | Brigido | 16,7 p.p. | 5,7 p.p. | +11,0 |
-| 4º | Sarah Andrade | 7,8 p.p. | 3,7 p.p. | +4,1 |
-| 5º | Marcelo | 3,8 p.p. | 3,3 p.p. | +0,5 |
-| **Média** | | **9,78 p.p.** | **4,29 p.p.** | **−56%** |
+| 1º | Aline Campos | 10,3 p.p. | 7,4 p.p. | +2,9 |
+| 2º | Matheus | 10,3 p.p. | 2,1 p.p. | +8,2 |
+| 3º | Brigido | 16,7 p.p. | 5,6 p.p. | +11,1 |
+| 4º | Sarah Andrade | 7,8 p.p. | 3,6 p.p. | +4,2 |
+| 5º | Marcelo | 3,8 p.p. | 2,4 p.p. | +1,4 |
+| 6º | Maxiane | 6,9 p.p. | 3,2 p.p. | +3,7 |
+| **Média** | | **9,30 p.p.** | **4,04 p.p.** | **−56,5%** |
 
-Ambos os métodos acertaram o eliminado em 5/5 paredões. A diferença está na **precisão das porcentagens**.
+Ambos os métodos acertaram o eliminado em 6/6 paredões. A diferença está na **precisão das porcentagens**.
 
 ### Por que funciona
 
@@ -813,7 +816,7 @@ Ambos os métodos acertaram o eliminado em 5/5 paredões. A diferença está na 
 
 ### Limitações
 
-- **N pequeno**: 5 paredões é suficiente para LOO mas não para intervalos de confiança robustos. Os pesos vão se estabilizar com mais dados.
+- **N pequeno**: 6 paredões é suficiente para LOO mas não para intervalos de confiança robustos. Os pesos vão se estabilizar com mais dados.
 - **Não-estacionário**: a composição de fontes de cada plataforma pode mudar entre paredões (uma nova enquete de Site grande pode alterar o perfil).
 - **Sem modelagem de tendência**: o modelo não usa a série temporal (variação intra-paredão). Usa apenas o snapshot final.
 - **Os pesos são recalculados a cada paredão finalizado** — não são fixos.
