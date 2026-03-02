@@ -208,7 +208,14 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
 def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[dict]:
     """Collect timeline events from paredão formation and results.
 
-    Handles paredão formation + resultado (section 5).
+    Generates ordered sub-steps for each paredão formation (ceremony flow):
+    1. Imunidade — Anjo immunizes (or self-immunity)
+    2. Indicação — Líder nominates
+    3. Votação — House voting result (most voted)
+    4. Contragolpe — if applicable
+    5. Bate e Volta — winner escapes
+    6. Paredão formado — final nominees summary
+    Also generates resultado events.
     """
     events: list[dict] = []
     paredao_list: list[dict] = []
@@ -218,33 +225,115 @@ def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[
         paredao_list = paredoes_data
     for p in paredao_list:
         num = p.get("numero", "?")
-        # Formation
         data_form = p.get("data_formacao", "")
-        if data_form:
-            week = get_week_number(data_form)
-            indicados = [i.get("nome", "") for i in p.get("indicados_finais", [])]
-            detail_parts = []
-            formacao = p.get("formacao", {})
-            if formacao.get("indicado_lider"):
-                detail_parts.append(f"Líder indicou {formacao['indicado_lider']}")
-            cg = formacao.get("contragolpe") or {}
-            if cg.get("de"):
-                detail_parts.append(f"Contragolpe: {cg['de']} → {cg.get('para', '?')}")
-            bv = formacao.get("bate_volta") or {}
-            bv_winners = bv.get("vencedores") or ([bv["vencedor"]] if bv.get("vencedor") else [])
+        if not data_form:
+            continue
+        week = get_week_number(data_form)
+        formacao = p.get("formacao", {})
+        indicados = [i.get("nome", "") for i in p.get("indicados_finais", [])]
+        paredao_falso = p.get("paredao_falso", False)
+        tipo_label = "Paredão Falso" if paredao_falso else "Paredão"
+
+        # --- Step 1: Anjo immunity ---
+        imun = formacao.get("imunizado")
+        anjo = formacao.get("anjo", "")
+        autoimune = formacao.get("anjo_autoimune", False)
+        if autoimune and anjo:
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_imunidade",
+                "emoji": "🛡️", "title": f"{num}º {tipo_label} — {anjo} se autoimunizou",
+                "detail": f"Anjo autoimune — não pôde imunizar outro participante",
+                "participants": [anjo], "source": "paredoes",
+            })
+        elif imun and isinstance(imun, dict) and imun.get("quem"):
+            por = imun.get("por", anjo)
+            quem = imun["quem"]
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_imunidade",
+                "emoji": "🛡️", "title": f"{num}º {tipo_label} — {por} imunizou {quem}",
+                "detail": f"Anjo {por} imuniza {quem}",
+                "participants": [por, quem], "source": "paredoes",
+            })
+
+        # --- Step 2: Líder indication ---
+        indicado_lider = formacao.get("indicado_lider", "")
+        lider = formacao.get("lider", "")
+        if indicado_lider and lider:
+            motivo = formacao.get("motivo_lider") or formacao.get("motivo_indicacao") or ""
+            detail = f"Líder {lider} indicou {indicado_lider}"
+            if motivo:
+                detail += f": {motivo}"
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_indicacao",
+                "emoji": "🎯", "title": f"{num}º {tipo_label} — Líder indicou {indicado_lider}",
+                "detail": detail,
+                "participants": [lider, indicado_lider], "source": "paredoes",
+            })
+
+        # --- Step 3: House voting result ---
+        votos_casa = p.get("votos_casa", {})
+        if votos_casa:
+            # Count votes per target to find most voted
+            vote_counts: dict[str, int] = defaultdict(int)
+            for target in votos_casa.values():
+                vote_counts[target] += 1
+            if vote_counts:
+                max_votes = max(vote_counts.values())
+                most_voted = [n for n, c in vote_counts.items() if c == max_votes]
+                all_voted = sorted(vote_counts.items(), key=lambda x: -x[1])
+                detail_parts = [f"{name} ({count} votos)" for name, count in all_voted[:3]]
+                events.append({
+                    "date": data_form, "week": week, "category": "paredao_votacao",
+                    "emoji": "🗳️", "title": f"{num}º {tipo_label} — Mais votado: {most_voted[0]}",
+                    "detail": "; ".join(detail_parts),
+                    "participants": most_voted, "source": "paredoes",
+                })
+
+        # --- Step 4: Contragolpe ---
+        cg = formacao.get("contragolpe") or {}
+        if cg.get("de") and cg.get("para"):
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_contragolpe",
+                "emoji": "⚔️", "title": f"{num}º {tipo_label} — Contragolpe: {cg['de']} → {cg['para']}",
+                "detail": f"{cg['de']} contragolpeou {cg['para']}",
+                "participants": [cg["de"], cg["para"]], "source": "paredoes",
+            })
+
+        # --- Step 5: Bate e Volta ---
+        bv = formacao.get("bate_volta") or {}
+        bv_players = bv.get("participantes", [])
+        bv_winners = bv.get("vencedores") or ([bv["vencedor"]] if bv.get("vencedor") else [])
+        if bv_players or bv_winners:
             if bv_winners:
-                detail_parts.append(f"Bate-Volta: {', '.join(bv_winners)} escaparam" if len(bv_winners) > 1 else f"Bate-Volta: {bv_winners[0]} escapou")
+                winner_str = ", ".join(bv_winners)
+                verb = "escaparam" if len(bv_winners) > 1 else "escapou"
+                detail = f"{winner_str} {verb} do Paredão"
+                if bv.get("prova"):
+                    detail += f" ({bv['prova']})"
+            else:
+                detail = f"Disputada por {', '.join(bv_players)}" if bv_players else ""
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_bate_volta",
+                "emoji": "🔄", "title": f"{num}º {tipo_label} — Bate e Volta",
+                "detail": detail,
+                "participants": bv_winners or bv_players, "source": "paredoes",
+            })
+
+        # --- Step 6: Final formation summary ---
+        if indicados:
+            nomes = ", ".join(indicados)
             events.append({
                 "date": data_form, "week": week, "category": "paredao_formacao",
-                "emoji": "🗳️", "title": f"{num}º Paredão — Formação",
-                "detail": "; ".join(detail_parts),
+                "emoji": "🔥", "title": f"{num}º {tipo_label} — Formado",
+                "detail": f"Emparedados: {nomes}",
                 "participants": indicados, "source": "paredoes",
             })
-        # Result
+
+        # --- Result ---
         resultado = p.get("resultado", {})
         data_elim = p.get("data", "")
         if resultado and data_elim:
-            week = get_week_number(data_elim)
+            r_week = get_week_number(data_elim)
             eliminado = resultado.get("eliminado", "")
             votos = resultado.get("votos", {})
             pct = ""
@@ -252,7 +341,7 @@ def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[
                 v = votos[eliminado]
                 pct = f" ({v.get('voto_total', v.get('voto_unico', '?'))}%)"
             events.append({
-                "date": data_elim, "week": week, "category": "paredao_resultado",
+                "date": data_elim, "week": r_week, "category": "paredao_resultado",
                 "emoji": "🏁", "title": f"{num}º Paredão — Resultado",
                 "detail": f"{eliminado} eliminado{pct}" if eliminado else "",
                 "participants": [eliminado] if eliminado else [], "source": "paredoes",
@@ -296,12 +385,41 @@ def _merge_and_dedup_timeline(
             "time": se.get("time", ""),
         })
 
+    # --- Suppress power_events that duplicate paredão sub-steps ---
+    # Paredão sub-steps (from paredoes.json) are authoritative.
+    # Map paredao_ categories to the generic power_event categories they replace.
+    _paredao_to_power = {
+        "paredao_imunidade": "imunidade",
+        "paredao_indicacao": "indicacao",
+        "paredao_contragolpe": "contragolpe",
+        "paredao_bate_volta": "bate_volta",
+    }
+    # Collect (date, generic_cat) pairs covered by paredão sub-steps
+    paredao_covers: set[tuple[str, str]] = set()
+    for e in events:
+        generic = _paredao_to_power.get(e.get("category", ""))
+        if generic and e.get("source") == "paredoes":
+            paredao_covers.add((e["date"], generic))
+    # Remove redundant power_events
+    events = [
+        e for e in events
+        if not (
+            e.get("source") == "power_events"
+            and (e["date"], e["category"]) in paredao_covers
+        )
+    ]
+
     # --- Sort by date, then by category priority ---
+    # Paredão ceremony flow: imunidade → indicação → votação → contragolpe → bate-volta → formado
     cat_order = {
-        "entrada": 0, "saida": 1, "lider": 2, "anjo": 3, "monstro": 4, "imune": 5, "imunidade": 6,
-        "big_fone": 7, "paredao_formacao": 8, "indicacao": 9, "contragolpe": 10,
-        "bate_volta": 11, "veto": 12, "sincerao": 13, "ganha_ganha": 14,
-        "barrado_baile": 15, "presente_anjo": 16, "dinamica": 17, "paredao_resultado": 18,
+        "entrada": 0, "saida": 1, "lider": 2, "anjo": 3, "monstro": 4, "imune": 5,
+        "big_fone": 6,
+        "paredao_imunidade": 7, "paredao_indicacao": 8, "paredao_votacao": 9,
+        "paredao_contragolpe": 10, "paredao_bate_volta": 11, "paredao_formacao": 12,
+        "imunidade": 13, "indicacao": 14, "contragolpe": 15, "bate_volta": 16,
+        "veto": 17, "sincerao": 18, "ganha_ganha": 19,
+        "barrado_baile": 20, "presente_anjo": 21, "dinamica": 22,
+        "paredao_resultado": 23,
     }
     events.sort(key=lambda e: (e.get("date", ""), cat_order.get(e.get("category", ""), 99)))
 

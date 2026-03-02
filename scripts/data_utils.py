@@ -892,6 +892,11 @@ TIMELINE_CAT_COLORS = {
     "veto_prova": "#7f8c8d",
     "ta_com_nada": "#ff4444",
     "presente_anjo": "#f0c27f",
+    "paredao_imunidade": "#17a2b8",
+    "paredao_indicacao": "#e67e22",
+    "paredao_votacao": "#e74c3c",
+    "paredao_contragolpe": "#d35400",
+    "paredao_bate_volta": "#f39c12",
 }
 
 TIMELINE_CAT_LABELS = {
@@ -909,6 +914,11 @@ TIMELINE_CAT_LABELS = {
     "veto_prova": "Veto Prova",
     "ta_com_nada": "Tá Com Nada",
     "presente_anjo": "Presente do Anjo",
+    "paredao_imunidade": "Imunidade",
+    "paredao_indicacao": "Indicação",
+    "paredao_votacao": "Votação",
+    "paredao_contragolpe": "Contragolpe",
+    "paredao_bate_volta": "Bate-Volta",
 }
 
 

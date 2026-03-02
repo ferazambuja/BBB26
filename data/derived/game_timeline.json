@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-01T23:45:31.113391+00:00",
+    "generated_at": "2026-03-02T00:18:02.542160+00:00",
     "source": "all_events"
   },
   "events": [
@@ -86,8 +86,8 @@
       "title": "Alberto Cowboy → Milena — Mira do lider",
       "detail": "Escolhida como um dos 5 alvos na Mira do Líder (1 dos 5 seria indicado ao paredão)",
       "participants": [
-        "Alberto Cowboy",
-        "Milena"
+        "Milena",
+        "Alberto Cowboy"
       ],
       "source": "power_events"
     },
@@ -112,8 +112,8 @@
       "title": "Alberto Cowboy → Paulo Augusto — Mira do lider",
       "detail": "Escolhido como um dos 5 alvos na Mira do Líder (1 dos 5 seria indicado ao paredão)",
       "participants": [
-        "Paulo Augusto",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Paulo Augusto"
       ],
       "source": "power_events"
     },
@@ -218,26 +218,50 @@
     {
       "date": "2026-01-18",
       "week": 1,
-      "category": "imunidade",
-      "emoji": "⚡",
-      "title": "Jonas Sulzbach → Sarah Andrade — Imunidade",
-      "detail": "Anjo imuniza",
+      "category": "paredao_imunidade",
+      "emoji": "🛡️",
+      "title": "1º Paredão — Jonas Sulzbach imunizou Sarah Andrade",
+      "detail": "Anjo Jonas Sulzbach imuniza Sarah Andrade",
       "participants": [
         "Jonas Sulzbach",
         "Sarah Andrade"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-01-18",
       "week": 1,
-      "category": "paredao_formacao",
+      "category": "paredao_indicacao",
+      "emoji": "🎯",
+      "title": "1º Paredão — Líder indicou Milena",
+      "detail": "Líder Alberto Cowboy indicou Milena: Indicou Milena sem explicação estratégica clara",
+      "participants": [
+        "Alberto Cowboy",
+        "Milena"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-01-18",
+      "week": 1,
+      "category": "paredao_votacao",
       "emoji": "🗳️",
-      "title": "1º Paredão — Formação",
-      "detail": "Líder indicou Milena; Contragolpe: Aline Campos → Ana Paula Renault; Bate-Volta: Paulo Augusto escapou",
+      "title": "1º Paredão — Mais votado: Paulo Augusto",
+      "detail": "Paulo Augusto (11 votos); Sol Vega (5 votos); Juliano Floss (2 votos)",
+      "participants": [
+        "Paulo Augusto"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-01-18",
+      "week": 1,
+      "category": "paredao_contragolpe",
+      "emoji": "⚔️",
+      "title": "1º Paredão — Contragolpe: Aline Campos → Ana Paula Renault",
+      "detail": "Aline Campos contragolpeou Ana Paula Renault",
       "participants": [
         "Aline Campos",
-        "Milena",
         "Ana Paula Renault"
       ],
       "source": "paredoes"
@@ -245,29 +269,28 @@
     {
       "date": "2026-01-18",
       "week": 1,
-      "category": "indicacao",
-      "emoji": "🎯",
-      "title": "Alberto Cowboy → Milena — Indicacao",
-      "detail": "Indicação do líder ao paredão",
+      "category": "paredao_bate_volta",
+      "emoji": "🔄",
+      "title": "1º Paredão — Bate e Volta",
+      "detail": "Paulo Augusto escapou do Paredão (Jogo de memória)",
       "participants": [
-        "Alberto Cowboy",
-        "Milena"
+        "Paulo Augusto"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-01-18",
       "week": 1,
-      "category": "bate_volta",
-      "emoji": "🔄",
-      "title": "Prova Bate e Volta → Paulo Augusto — Bate volta",
-      "detail": "Venceu a Prova Bate e Volta e escapou do paredão",
+      "category": "paredao_formacao",
+      "emoji": "🔥",
+      "title": "1º Paredão — Formado",
+      "detail": "Emparedados: Aline Campos, Milena, Ana Paula Renault",
       "participants": [
-        "Prova Bate",
-        "Paulo Augusto",
-        "Volta"
+        "Aline Campos",
+        "Milena",
+        "Ana Paula Renault"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-01-18",
@@ -339,8 +362,8 @@
       "title": "Chaiany → Marcelo — Veto ganha ganha",
       "detail": "Foi vetada por Marcelo na dinâmica do Ganha-Ganha.",
       "participants": [
-        "Chaiany",
-        "Marcelo"
+        "Marcelo",
+        "Chaiany"
       ],
       "source": "power_events"
     },
@@ -377,8 +400,8 @@
       "title": "Alberto Cowboy → Leandro — Barrado baile",
       "detail": "Líder escolheu para ficar fora da festa do líder",
       "participants": [
-        "Leandro",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Leandro"
       ],
       "source": "power_events"
     },
@@ -451,8 +474,8 @@
       "detail": "Indicação em consenso via dinâmica das caixas",
       "participants": [
         "Brigido",
-        "Leandro",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Leandro"
       ],
       "source": "power_events"
     },
@@ -488,8 +511,8 @@
       "title": "Sarah Andrade → Ana Paula Renault — Voto anulado",
       "detail": "Poder do veto anulou o voto de Ana Paula",
       "participants": [
-        "Ana Paula Renault",
-        "Sarah Andrade"
+        "Sarah Andrade",
+        "Ana Paula Renault"
       ],
       "source": "power_events"
     },
@@ -508,13 +531,36 @@
     {
       "date": "2026-01-25",
       "week": 2,
-      "category": "paredao_formacao",
-      "emoji": "🗳️",
-      "title": "2º Paredão — Formação",
-      "detail": "Líder indicou Matheus",
+      "category": "paredao_imunidade",
+      "emoji": "🛡️",
+      "title": "2º Paredão — Jonas Sulzbach se autoimunizou",
+      "detail": "Anjo autoimune — não pôde imunizar outro participante",
       "participants": [
-        "Leandro",
-        "Matheus",
+        "Jonas Sulzbach"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-01-25",
+      "week": 2,
+      "category": "paredao_indicacao",
+      "emoji": "🎯",
+      "title": "2º Paredão — Líder indicou Matheus",
+      "detail": "Líder Babu Santana indicou Matheus: Babu acreditava que Matheus seria o mais votado pela casa e preferiu indicá-lo para observar o comportamento dos participantes.",
+      "participants": [
+        "Babu Santana",
+        "Matheus"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-01-25",
+      "week": 2,
+      "category": "paredao_votacao",
+      "emoji": "🗳️",
+      "title": "2º Paredão — Mais votado: Brigido",
+      "detail": "Brigido (6 votos); Chaiany (4 votos); Gabriela (3 votos)",
+      "participants": [
         "Brigido"
       ],
       "source": "paredoes"
@@ -522,15 +568,16 @@
     {
       "date": "2026-01-25",
       "week": 2,
-      "category": "indicacao",
-      "emoji": "🎯",
-      "title": "Babu Santana → Matheus — Indicacao",
-      "detail": "Indicação do líder",
+      "category": "paredao_formacao",
+      "emoji": "🔥",
+      "title": "2º Paredão — Formado",
+      "detail": "Emparedados: Leandro, Matheus, Brigido",
       "participants": [
+        "Leandro",
         "Matheus",
-        "Babu Santana"
+        "Brigido"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-01-25",
@@ -600,8 +647,8 @@
       "title": "Chaiany → Alberto Cowboy — Ganha ganha escolha",
       "detail": "Ficou com a decisão na dinâmica após o veto de Alberto Cowboy em Breno.",
       "participants": [
-        "Chaiany",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Chaiany"
       ],
       "source": "power_events"
     },
@@ -625,8 +672,8 @@
       "title": "Babu Santana → Gabriela — Barrado baile",
       "detail": "Líder escolheu para ficar fora da festa do líder",
       "participants": [
-        "Gabriela",
-        "Babu Santana"
+        "Babu Santana",
+        "Gabriela"
       ],
       "source": "power_events"
     },
@@ -747,9 +794,9 @@
       "title": "Juliano Floss + Babu Santana + Marcelo → Jonas Sulzbach — Indicacao",
       "detail": "Consenso Big Fone: Juliano Floss, Babu Santana e Marcelo indicaram Jonas ao Paredão",
       "participants": [
-        "Jonas Sulzbach",
-        "Juliano Floss",
         "Babu Santana",
+        "Juliano Floss",
+        "Jonas Sulzbach",
         "Marcelo"
       ],
       "source": "power_events"
@@ -757,56 +804,66 @@
     {
       "date": "2026-02-01",
       "week": 3,
-      "category": "imunidade",
-      "emoji": "⚡",
-      "title": "Sarah Andrade → Sol Vega — Imunidade",
-      "detail": "Anjo imuniza Sol Vega no 3º Paredão",
+      "category": "paredao_imunidade",
+      "emoji": "🛡️",
+      "title": "3º Paredão — Sarah Andrade imunizou Sol Vega",
+      "detail": "Anjo Sarah Andrade imuniza Sol Vega",
       "participants": [
-        "Sol Vega",
-        "Sarah Andrade"
-      ],
-      "source": "power_events"
-    },
-    {
-      "date": "2026-02-01",
-      "week": 3,
-      "category": "paredao_formacao",
-      "emoji": "🗳️",
-      "title": "3º Paredão — Formação",
-      "detail": "Líder indicou Ana Paula Renault; Bate-Volta: Jonas Sulzbach escapou",
-      "participants": [
-        "Ana Paula Renault",
-        "Leandro",
-        "Brigido"
+        "Sarah Andrade",
+        "Sol Vega"
       ],
       "source": "paredoes"
     },
     {
       "date": "2026-02-01",
       "week": 3,
-      "category": "indicacao",
+      "category": "paredao_indicacao",
       "emoji": "🎯",
-      "title": "Maxiane → Ana Paula Renault — Indicacao",
-      "detail": "Indicação do líder ao paredão",
+      "title": "3º Paredão — Líder indicou Ana Paula Renault",
+      "detail": "Líder Maxiane indicou Ana Paula Renault",
       "participants": [
         "Maxiane",
         "Ana Paula Renault"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-02-01",
       "week": 3,
-      "category": "bate_volta",
-      "emoji": "🔄",
-      "title": "Prova Bate e Volta → Jonas Sulzbach — Bate volta",
-      "detail": "Venceu a Prova Bate e Volta contra Leandro e escapou do paredão",
+      "category": "paredao_votacao",
+      "emoji": "🗳️",
+      "title": "3º Paredão — Mais votado: Leandro",
+      "detail": "Leandro (10 votos); Brigido (8 votos); Gabriela (1 votos)",
       "participants": [
-        "Prova Bate",
-        "Volta",
+        "Leandro"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-01",
+      "week": 3,
+      "category": "paredao_bate_volta",
+      "emoji": "🔄",
+      "title": "3º Paredão — Bate e Volta",
+      "detail": "Jonas Sulzbach escapou do Paredão",
+      "participants": [
         "Jonas Sulzbach"
       ],
-      "source": "power_events"
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-01",
+      "week": 3,
+      "category": "paredao_formacao",
+      "emoji": "🔥",
+      "title": "3º Paredão — Formado",
+      "detail": "Emparedados: Ana Paula Renault, Leandro, Brigido",
+      "participants": [
+        "Ana Paula Renault",
+        "Leandro",
+        "Brigido"
+      ],
+      "source": "paredoes"
     },
     {
       "date": "2026-02-01",
@@ -901,8 +958,8 @@
       "title": "Alberto Cowboy → Sarah Andrade — Ganha ganha escolha",
       "detail": "Ficou com a decisão após o veto de Sarah Andrade em Solange Couto. Escolheu informação privilegiada (votos de Solange Couto e Sol Vega no 3º Paredão), abrindo mão de R$ 10 mil.",
       "participants": [
-        "Alberto Cowboy",
-        "Sarah Andrade"
+        "Sarah Andrade",
+        "Alberto Cowboy"
       ],
       "source": "power_events"
     },
@@ -961,8 +1018,8 @@
       "title": "Leandro → Alberto Cowboy — Duelo de risco",
       "detail": "manipulador",
       "participants": [
-        "Leandro",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Leandro"
       ],
       "source": "power_events"
     },
@@ -974,8 +1031,8 @@
       "title": "Ana Paula Renault → Sarah Andrade — Duelo de risco",
       "detail": "incoerente",
       "participants": [
-        "Ana Paula Renault",
-        "Sarah Andrade"
+        "Sarah Andrade",
+        "Ana Paula Renault"
       ],
       "source": "power_events"
     },
@@ -1039,8 +1096,8 @@
       "title": "Sol Vega → Juliano Floss — Duelo de risco",
       "detail": "compra briga dos outros",
       "participants": [
-        "Sol Vega",
-        "Juliano Floss"
+        "Juliano Floss",
+        "Sol Vega"
       ],
       "source": "power_events"
     },
@@ -1052,8 +1109,8 @@
       "title": "Sarah Andrade → Babu Santana — Duelo de risco",
       "detail": "prepotente",
       "participants": [
-        "Babu Santana",
-        "Sarah Andrade"
+        "Sarah Andrade",
+        "Babu Santana"
       ],
       "source": "power_events"
     },
@@ -1078,8 +1135,8 @@
       "title": "Alberto Cowboy → Leandro — Duelo de risco",
       "detail": "perdido",
       "participants": [
-        "Leandro",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Leandro"
       ],
       "source": "power_events"
     },
@@ -1091,8 +1148,8 @@
       "title": "Juliano Floss → Alberto Cowboy — Duelo de risco",
       "detail": "falso e manipulador",
       "participants": [
-        "Alberto Cowboy",
-        "Juliano Floss"
+        "Juliano Floss",
+        "Alberto Cowboy"
       ],
       "source": "power_events"
     },
@@ -1104,8 +1161,8 @@
       "title": "Gabriela → Marciele — Duelo de risco",
       "detail": "planta",
       "participants": [
-        "Gabriela",
-        "Marciele"
+        "Marciele",
+        "Gabriela"
       ],
       "source": "power_events"
     },
@@ -1117,8 +1174,8 @@
       "title": "Marciele → Juliano Floss — Duelo de risco",
       "detail": "folgado",
       "participants": [
-        "Juliano Floss",
-        "Marciele"
+        "Marciele",
+        "Juliano Floss"
       ],
       "source": "power_events"
     },
@@ -1143,8 +1200,8 @@
       "title": "Marcelo → Gabriela — Duelo de risco",
       "detail": "chata",
       "participants": [
-        "Gabriela",
-        "Marcelo"
+        "Marcelo",
+        "Gabriela"
       ],
       "source": "power_events"
     },
@@ -1231,9 +1288,9 @@
       "title": "Sol Vega + Juliano Floss → Samira — Indicacao",
       "detail": "Ambos escolheram 'Nós indicamos' no Duelo de Risco. Em consenso, indicaram Samira ao Paredão.",
       "participants": [
-        "Sol Vega",
         "Samira",
-        "Juliano Floss"
+        "Juliano Floss",
+        "Sol Vega"
       ],
       "source": "power_events"
     },
@@ -1254,13 +1311,37 @@
     {
       "date": "2026-02-08",
       "week": 4,
-      "category": "paredao_formacao",
-      "emoji": "🗳️",
-      "title": "4º Paredão — Formação",
-      "detail": "Líder indicou Babu Santana; Contragolpe: Babu Santana → Sarah Andrade; Bate-Volta: Samira escapou",
+      "category": "paredao_imunidade",
+      "emoji": "🛡️",
+      "title": "4º Paredão — Alberto Cowboy imunizou Edilson",
+      "detail": "Anjo Alberto Cowboy imuniza Edilson",
       "participants": [
-        "Babu Santana",
-        "Sarah Andrade",
+        "Alberto Cowboy",
+        "Edilson"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-08",
+      "week": 4,
+      "category": "paredao_indicacao",
+      "emoji": "🎯",
+      "title": "4º Paredão — Líder indicou Babu Santana",
+      "detail": "Líder Jonas Sulzbach indicou Babu Santana: Citou dinâmica do Big Fone e desavenças com Babu",
+      "participants": [
+        "Jonas Sulzbach",
+        "Babu Santana"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-08",
+      "week": 4,
+      "category": "paredao_votacao",
+      "emoji": "🗳️",
+      "title": "4º Paredão — Mais votado: Sol Vega",
+      "detail": "Sol Vega (10 votos); Solange Couto (8 votos)",
+      "participants": [
         "Sol Vega"
       ],
       "source": "paredoes"
@@ -1268,42 +1349,41 @@
     {
       "date": "2026-02-08",
       "week": 4,
-      "category": "indicacao",
-      "emoji": "🎯",
-      "title": "Jonas Sulzbach → Babu Santana — Indicacao",
-      "detail": "Líder Jonas indicou Babu Santana. Justificou citando Big Fone e desavenças.",
-      "participants": [
-        "Jonas Sulzbach",
-        "Babu Santana"
-      ],
-      "source": "power_events"
-    },
-    {
-      "date": "2026-02-08",
-      "week": 4,
-      "category": "contragolpe",
+      "category": "paredao_contragolpe",
       "emoji": "⚔️",
-      "title": "Babu Santana → Sarah Andrade — Contragolpe",
-      "detail": "Indicado do Líder, Babu contragolpeou Sarah Andrade citando prepotência e falta de comunicação.",
+      "title": "4º Paredão — Contragolpe: Babu Santana → Sarah Andrade",
+      "detail": "Babu Santana contragolpeou Sarah Andrade",
       "participants": [
-        "Sarah Andrade",
-        "Babu Santana"
+        "Babu Santana",
+        "Sarah Andrade"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-02-08",
       "week": 4,
-      "category": "bate_volta",
+      "category": "paredao_bate_volta",
       "emoji": "🔄",
-      "title": "Prova Bate e Volta → Samira — Bate volta",
-      "detail": "Venceu a Prova Bate e Volta contra Sol Vega e Sarah Andrade e escapou do paredão",
+      "title": "4º Paredão — Bate e Volta",
+      "detail": "Samira escapou do Paredão",
       "participants": [
-        "Prova Bate",
-        "Samira",
-        "Volta"
+        "Samira"
       ],
-      "source": "power_events"
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-08",
+      "week": 4,
+      "category": "paredao_formacao",
+      "emoji": "🔥",
+      "title": "4º Paredão — Formado",
+      "detail": "Emparedados: Babu Santana, Sarah Andrade, Sol Vega",
+      "participants": [
+        "Babu Santana",
+        "Sarah Andrade",
+        "Sol Vega"
+      ],
+      "source": "paredoes"
     },
     {
       "date": "2026-02-08",
@@ -1389,8 +1469,8 @@
       "title": "Gabriela → Samira — Ganha ganha escolha",
       "detail": "Ficou com a decisão após o veto de Samira em Alberto Cowboy. Escolheu ouvir o segredo (informação privilegiada), abrindo mão de R$ 10 mil extras.",
       "participants": [
-        "Gabriela",
-        "Samira"
+        "Samira",
+        "Gabriela"
       ],
       "source": "power_events"
     },
@@ -1451,9 +1531,9 @@
       "title": "Babu Santana + Juliano Floss → Milena — Imunidade",
       "detail": "Babu Santana e Juliano Floss sortearam as Máscaras Verde e de Madeira. Em consenso, imunizaram Milena no próximo Paredão.",
       "participants": [
+        "Babu Santana",
         "Milena",
-        "Juliano Floss",
-        "Babu Santana"
+        "Juliano Floss"
       ],
       "source": "power_events"
     },
@@ -1486,8 +1566,8 @@
       "title": "Samira → Ana Paula Renault — Troca vip",
       "detail": "Samira escolheu a Máscara Duas Caras e trocou Ana Paula Renault da Xepa para o VIP. Justificou: 'Ela ainda não foi'.",
       "participants": [
-        "Ana Paula Renault",
-        "Samira"
+        "Samira",
+        "Ana Paula Renault"
       ],
       "source": "power_events"
     },
@@ -1512,8 +1592,8 @@
       "title": "Leandro → Alberto Cowboy — Voto anulado",
       "detail": "Leandro escolheu a Cartola Espelhada e vetou o voto de Alberto Cowboy na próxima formação do Paredão. Justificou: 'Ele está muito estrategista e eu sou uma das principais mira dele'.",
       "participants": [
-        "Leandro",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Leandro"
       ],
       "source": "power_events"
     },
@@ -1556,84 +1636,68 @@
     {
       "date": "2026-02-15",
       "week": 5,
-      "category": "imunidade",
-      "emoji": "⚡",
-      "title": "Gabriela → Chaiany — Imunidade",
-      "detail": "Anjo Gabriela imuniza Chaiany no 5º Paredão. Abriu mão da 2ª imunidade para ver vídeo da família.",
+      "category": "paredao_imunidade",
+      "emoji": "🛡️",
+      "title": "5º Paredão — Gabriela imunizou Chaiany",
+      "detail": "Anjo Gabriela imuniza Chaiany",
       "participants": [
-        "Chaiany",
-        "Gabriela"
-      ],
-      "source": "power_events"
-    },
-    {
-      "date": "2026-02-15",
-      "week": 5,
-      "category": "paredao_formacao",
-      "emoji": "🗳️",
-      "title": "5º Paredão — Formação",
-      "detail": "Líder indicou Marcelo; Bate-Volta: Jordana, Alberto Cowboy, Breno escaparam",
-      "participants": [
-        "Marcelo",
-        "Samira",
-        "Solange Couto"
+        "Gabriela",
+        "Chaiany"
       ],
       "source": "paredoes"
     },
     {
       "date": "2026-02-15",
       "week": 5,
-      "category": "indicacao",
+      "category": "paredao_indicacao",
       "emoji": "🎯",
-      "title": "Jonas Sulzbach → Marcelo — Indicacao",
-      "detail": "Líder Jonas indicou Marcelo. Justificou: Marcelo o chamou de falso numa situação que ele nem entendeu direito.",
+      "title": "5º Paredão — Líder indicou Marcelo",
+      "detail": "Líder Jonas Sulzbach indicou Marcelo: Marcelo chamou Jonas de falso numa situação que, segundo Jonas, ele nem entendeu direito",
       "participants": [
         "Jonas Sulzbach",
         "Marcelo"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-02-15",
       "week": 5,
-      "category": "bate_volta",
-      "emoji": "🔄",
-      "title": "Prova Bate e Volta → Jordana — Bate volta",
-      "detail": "Venceu a Prova Bate e Volta (5 participantes) e escapou do paredão",
+      "category": "paredao_votacao",
+      "emoji": "🗳️",
+      "title": "5º Paredão — Mais votado: Jordana",
+      "detail": "Jordana (10 votos); Samira (3 votos); Babu Santana (1 votos)",
       "participants": [
-        "Prova Bate",
-        "Volta",
         "Jordana"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-02-15",
       "week": 5,
-      "category": "bate_volta",
+      "category": "paredao_bate_volta",
       "emoji": "🔄",
-      "title": "Prova Bate e Volta → Alberto Cowboy — Bate volta",
-      "detail": "Escapou da Prova Bate e Volta (5 participantes, 3 escaparam)",
+      "title": "5º Paredão — Bate e Volta",
+      "detail": "Jordana, Alberto Cowboy, Breno escaparam do Paredão",
       "participants": [
-        "Prova Bate",
+        "Jordana",
         "Alberto Cowboy",
-        "Volta"
-      ],
-      "source": "power_events"
-    },
-    {
-      "date": "2026-02-15",
-      "week": 5,
-      "category": "bate_volta",
-      "emoji": "🔄",
-      "title": "Prova Bate e Volta → Breno — Bate volta",
-      "detail": "Escapou da Prova Bate e Volta (5 participantes, 3 escaparam)",
-      "participants": [
-        "Prova Bate",
-        "Volta",
         "Breno"
       ],
-      "source": "power_events"
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-15",
+      "week": 5,
+      "category": "paredao_formacao",
+      "emoji": "🔥",
+      "title": "5º Paredão — Formado",
+      "detail": "Emparedados: Marcelo, Samira, Solange Couto",
+      "participants": [
+        "Marcelo",
+        "Samira",
+        "Solange Couto"
+      ],
+      "source": "paredoes"
     },
     {
       "date": "2026-02-15",
@@ -1838,26 +1902,25 @@
     {
       "date": "2026-02-22",
       "week": 6,
-      "category": "imunidade",
-      "emoji": "⚡",
-      "title": "Chaiany → Gabriela — Imunidade",
-      "detail": "Chaiany (Anjo) imunizou Gabriela com o Presente do Anjo",
+      "category": "paredao_imunidade",
+      "emoji": "🛡️",
+      "title": "6º Paredão — Chaiany imunizou Gabriela",
+      "detail": "Anjo Chaiany imuniza Gabriela",
       "participants": [
         "Chaiany",
         "Gabriela"
       ],
-      "source": "power_events"
+      "source": "paredoes"
     },
     {
       "date": "2026-02-22",
       "week": 6,
-      "category": "paredao_formacao",
-      "emoji": "🗳️",
-      "title": "6º Paredão — Formação",
-      "detail": "Líder indicou Milena; Bate-Volta: Alberto Cowboy escapou",
+      "category": "paredao_indicacao",
+      "emoji": "🎯",
+      "title": "6º Paredão — Líder indicou Milena",
+      "detail": "Líder Jonas Sulzbach indicou Milena: Porque ela já deixou declarado também que eu sou prioridade para ela",
       "participants": [
-        "Chaiany",
-        "Maxiane",
+        "Jonas Sulzbach",
         "Milena"
       ],
       "source": "paredoes"
@@ -1865,15 +1928,40 @@
     {
       "date": "2026-02-22",
       "week": 6,
-      "category": "indicacao",
-      "emoji": "🎯",
-      "title": "Jonas Sulzbach → Milena — Indicacao",
-      "detail": "Indicação do Líder ao Paredão. Justificativa: 'Porque ela já deixou declarado também que eu sou prioridade para ela'",
+      "category": "paredao_votacao",
+      "emoji": "🗳️",
+      "title": "6º Paredão — Mais votado: Alberto Cowboy",
+      "detail": "Alberto Cowboy (8 votos); Juliano Floss (5 votos); Maxiane (1 votos)",
       "participants": [
-        "Milena",
-        "Jonas Sulzbach"
+        "Alberto Cowboy"
       ],
-      "source": "power_events"
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-22",
+      "week": 6,
+      "category": "paredao_bate_volta",
+      "emoji": "🔄",
+      "title": "6º Paredão — Bate e Volta",
+      "detail": "Alberto Cowboy escapou do Paredão",
+      "participants": [
+        "Alberto Cowboy"
+      ],
+      "source": "paredoes"
+    },
+    {
+      "date": "2026-02-22",
+      "week": 6,
+      "category": "paredao_formacao",
+      "emoji": "🔥",
+      "title": "6º Paredão — Formado",
+      "detail": "Emparedados: Chaiany, Maxiane, Milena",
+      "participants": [
+        "Chaiany",
+        "Maxiane",
+        "Milena"
+      ],
+      "source": "paredoes"
     },
     {
       "date": "2026-02-22",
@@ -1885,19 +1973,6 @@
       "participants": [
         "Maxiane",
         "Chaiany"
-      ],
-      "source": "power_events"
-    },
-    {
-      "date": "2026-02-22",
-      "week": 6,
-      "category": "bate_volta",
-      "emoji": "🔄",
-      "title": "Alberto Cowboy → Maxiane — Bate volta",
-      "detail": "Alberto Cowboy venceu a Prova Bate e Volta contra Maxiane e se salvou do Paredão. Maxiane permanece emparedada.",
-      "participants": [
-        "Maxiane",
-        "Alberto Cowboy"
       ],
       "source": "power_events"
     },
@@ -1924,8 +1999,8 @@
       "title": "Alberto Cowboy → Chaiany — Veto prova",
       "detail": "Alberto Cowboy usou o Colar do Poder (comprado na Máquina do Poder) para vetar Chaiany da Prova Bate e Volta. Chaiany vai direto ao Paredão sem chance de escapar.",
       "participants": [
-        "Chaiany",
-        "Alberto Cowboy"
+        "Alberto Cowboy",
+        "Chaiany"
       ],
       "source": "power_events"
     },
@@ -2055,38 +2130,14 @@
     {
       "date": "2026-03-01",
       "week": 7,
-      "category": "anjo",
-      "emoji": "😇",
-      "title": "Presente do Anjo",
-      "detail": "Anjo imuniza aliado. Possível 2ª imunidade se abrir mão do vídeo da família.",
-      "participants": [],
-      "source": "scheduled",
-      "status": "scheduled",
-      "time": "Ao Vivo"
-    },
-    {
-      "date": "2026-03-01",
-      "week": 7,
       "category": "paredao_formacao",
-      "emoji": "🗳️",
-      "title": "7º Paredão — Formação",
-      "detail": "",
+      "emoji": "🔥",
+      "title": "7º Paredão Falso — Formado",
+      "detail": "Emparedados: Alberto Cowboy",
       "participants": [
         "Alberto Cowboy"
       ],
       "source": "paredoes"
-    },
-    {
-      "date": "2026-03-01",
-      "week": 7,
-      "category": "bate_volta",
-      "emoji": "🔄",
-      "title": "Prova Bate e Volta",
-      "detail": "Três participantes disputam. Um se salva do Paredão.",
-      "participants": [],
-      "source": "scheduled",
-      "status": "scheduled",
-      "time": "Ao Vivo"
     },
     {
       "date": "2026-03-01",

@@ -147,7 +147,7 @@ When planning `scheduled_events` for a new week, include these recurring items:
 - [ ] **Prova do Anjo** (Saturday) — API auto-detects winner
 - [ ] **Monstro** (Saturday) — Anjo's choice, API auto-detects
 - [ ] **Presente do Anjo** (Sunday afternoon) — Anjo's family video vs 2nd immunity choice + almoço guests
-- [ ] **Paredão Formation** (Sunday ~22h45) — contragolpe + bate e volta + Anjo immunity
+- [ ] **Paredão Formation** (Sunday ~22h45) — ceremony flow auto-generates timeline sub-steps (see below)
 - [ ] **Eliminação** (Tuesday) — paredão result
 
 **Scrape the dynamics article** (published Thursday) to know the week-specific events and add all scheduled events at once.
@@ -460,6 +460,30 @@ git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Nº Paredão f
 git push
 ```
 
+### Auto-generated Ceremony Sub-Steps in Cronologia
+
+When `build_derived_data.py` runs, the timeline builder reads `paredoes.json` and **automatically generates** up to 6 ordered sub-step events for each paredão formation date. No manual timeline entries are needed — just fill `paredoes.json` correctly.
+
+**Standard ceremony flow** (Sunday ~22h45 live show):
+
+| Order | Category | Emoji | What happens | Data source in `paredoes.json` |
+|-------|----------|-------|--------------|-------------------------------|
+| 1 | `paredao_imunidade` | 🛡️ | Anjo gives immunity (or self-immunizes) | `formacao.imunizado` or `formacao.autoimune` |
+| 2 | `paredao_indicacao` | 🎯 | Líder nominates a participant | `formacao.indicado_lider` + `formacao.lider` |
+| 3 | `paredao_votacao` | 🗳️ | House votes; most-voted announced | `votos_casa` (vote counts computed) |
+| 4 | `paredao_contragolpe` | ⚔️ | Indicado do Líder counter-attacks | `formacao.contragolpe.de` + `.para` |
+| 5 | `paredao_bate_volta` | 🔄 | 3 play; indicado do Líder never plays; winner escapes | `formacao.bate_volta` |
+| 6 | `paredao_formacao` | 🔥 | Final nominees announced | `indicados_finais` |
+
+**Notes**:
+- Steps are only generated when the corresponding data exists (e.g., no `paredao_contragolpe` if `formacao.contragolpe` is empty).
+- When a paredão sub-step covers the same event as a `power_event` entry, the redundant power_event is auto-suppressed (dedup by date + mapped category).
+- Self-immunity (`formacao.autoimune: true`) shows "se autoimunizou" instead of the normal "X imunizou Y".
+- Paredão Falso entries show "Paredão Falso" in the title instead of "Paredão".
+- All previous paredões are backfilled automatically from existing data.
+
+**Scheduling future paredão ceremony**: Add a single `paredao_formacao` scheduled event for Sunday (the summary step). The ceremony sub-steps will be auto-generated once the real formation data is entered — no need to schedule each sub-step.
+
 ---
 
 ## Votalhada Collection Checklist (Tuesday)
@@ -623,7 +647,9 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 }
 ```
 
-**Common categories**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `presente_anjo`, `bate_volta`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
+**Common categories for scheduling**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `presente_anjo`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
+
+**Auto-generated categories** (from `paredoes.json`, do NOT schedule these): `paredao_imunidade`, `paredao_indicacao`, `paredao_votacao`, `paredao_contragolpe`, `paredao_bate_volta`. These ceremony sub-steps are created automatically when formation data is filled. See [Paredão Formation → Auto-generated Ceremony Sub-Steps](#auto-generated-ceremony-sub-steps-in-cronologia).
 
 ### Auto-dedup behavior
 
