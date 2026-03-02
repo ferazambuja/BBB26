@@ -610,7 +610,12 @@ if ultimo:
             consolidado = poll.get('consolidado', {})
             plataformas = poll.get('plataformas', {})
 
-            print("\n## 📊 Previsão das Enquetes\n")
+            _is_save_poll = poll.get('tipo_voto') == 'salvar'
+            _poll_label = 'Quem você quer SALVAR?' if _is_save_poll else 'Previsão das Enquetes'
+            _vote_ctx = 'menos votado p/ salvar' if _is_save_poll else 'com {pct:.1f}% dos votos'
+            print(f"\n## 📊 {_poll_label}\n")
+            if _is_save_poll:
+                print(f'<p class="text-warning small" style="font-weight:bold;">⚠️ Paredão Falso — voto é para SALVAR (mais votado vai ao Quarto Secreto, menos votado sai)</p>\n')
             print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]} {poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""}</p>\n')
 
             # Compute precision model prediction
@@ -622,20 +627,22 @@ if ultimo:
             # Votalhada card
             _consol_elim = consolidado.get("predicao_eliminado", "—")
             _consol_pct = consolidado.get(_consol_elim, 0)
+            _consol_desc = f'apenas {_consol_pct:.1f}% dos votos p/ salvar' if _is_save_poll else f'com {_consol_pct:.1f}% dos votos'
             print(f'<div style="flex:1; min-width:220px; border:2px solid #9b59b6; border-radius:12px; padding:1rem; background:rgba(155,89,182,0.1);">')
             print(f'<div style="font-size:0.8em; color:#9b59b6; font-weight:bold; margin-bottom:0.3rem;">📊 VOTALHADA (CONSOLIDADO)</div>')
             print(f'<div style="font-size:1.3em; font-weight:bold;">{_consol_elim}</div>')
-            print(f'<div class="text-muted">com {_consol_pct:.1f}% dos votos</div>')
+            print(f'<div class="text-muted">{_consol_desc}</div>')
             print(f'</div>')
             # Model card
             if _model_pred:
                 _model_elim = _model_pred['predicao_eliminado']
                 _model_pct = _model_pred['prediction'].get(_model_elim, 0)
+                _model_desc = f'apenas {_model_pct:.1f}% dos votos p/ salvar' if _is_save_poll else f'com {_model_pct:.1f}% dos votos'
                 _agree = '✅ Concordam' if _model_elim == _consol_elim else '⚠️ Divergem'
                 print(f'<div style="flex:1; min-width:220px; border:2px solid #00bc8c; border-radius:12px; padding:1rem; background:rgba(0,188,140,0.1);">')
                 print(f'<div style="font-size:0.8em; color:#00bc8c; font-weight:bold; margin-bottom:0.3rem;">🎯 MODELO PONDERADO</div>')
                 print(f'<div style="font-size:1.3em; font-weight:bold;">{_model_elim}</div>')
-                print(f'<div class="text-muted">com {_model_pct:.1f}% dos votos</div>')
+                print(f'<div class="text-muted">{_model_desc}</div>')
                 print(f'<div class="text-muted" style="margin-top:0.5rem; font-size:0.8em;">{_agree}</div>')
                 print(f'</div>')
             print(f'</div>\n')
@@ -652,16 +659,30 @@ if ultimo:
             platform_order = ['sites', 'youtube', 'twitter', 'instagram']
             platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
+            def _poll_highlight(val, all_vals, color_best, color_worst='#e74c3c'):
+                """Return style for poll value: best/worst depends on save vs eliminate."""
+                best = max(all_vals)
+                worst = min(all_vals)
+                if _is_save_poll:
+                    if val == worst:
+                        return f'font-weight:bold; color:{color_worst};'
+                    elif val == best:
+                        return f'font-weight:bold; color:#00bc8c;'
+                else:
+                    if val == best:
+                        return f'font-weight:bold; color:{color_best};'
+                return ''
+
             for plat in platform_order:
                 if plat in plataformas:
                     pdata = plataformas[plat]
                     votos = pdata.get('votos', 0)
                     votos_str = f"{votos:,.0f}".replace(',', '.')
                     print(f'<tr><td>{platform_names.get(plat, plat)}</td>')
+                    _pvals = [pdata.get(n, 0) for n in participantes_poll]
                     for nome in participantes_poll:
                         val = pdata.get(nome, 0)
-                        is_max = val == max(pdata.get(n, 0) for n in participantes_poll)
-                        style = 'font-weight:bold; color:#f39c12;' if is_max else ''
+                        style = _poll_highlight(val, _pvals, '#f39c12')
                         print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                     print(f'<td class="tc text-muted" style="font-size:0.9em;">{votos_str}</td>')
                     print('</tr>')
@@ -670,10 +691,12 @@ if ultimo:
             total_votos = consolidado.get('total_votos', 0)
             total_str = f"{total_votos:,.0f}".replace(',', '.')
             print(f'<tr style="background:rgba(155,89,182,0.2);"><td style="font-weight:bold;">📊 Consolidado</td>')
+            _cvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
-                is_max = val == max(consolidado.get(n, 0) for n in participantes_poll)
-                style = 'font-weight:bold; color:#9b59b6;' if is_max else 'font-weight:bold;'
+                style = _poll_highlight(val, _cvals, '#9b59b6')
+                if 'font-weight' not in style:
+                    style = 'font-weight:bold;' + style
                 print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print(f'<td class="tc text-muted" style="font-size:0.9em;">{total_str}</td>')
             print('</tr>')
@@ -681,10 +704,12 @@ if ultimo:
             # Model row
             if _model_pred:
                 print(f'<tr style="background:rgba(0,188,140,0.2);"><td style="font-weight:bold;">🎯 Modelo Ponderado</td>')
+                _mvals = [_model_pred['prediction'].get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _model_pred['prediction'].get(nome, 0)
-                    is_max = val == max(_model_pred['prediction'].get(n, 0) for n in participantes_poll)
-                    style = 'font-weight:bold; color:#00bc8c;' if is_max else 'font-weight:bold;'
+                    style = _poll_highlight(val, _mvals, '#00bc8c')
+                    if 'font-weight' not in style:
+                        style = 'font-weight:bold;' + style
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print(f'<td class="tc text-muted" style="font-size:0.8em;">ponderado</td>')
                 print('</tr>')
@@ -1127,6 +1152,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             plataformas = poll.get('plataformas', {})
             resultado = poll['resultado_real']
             accuracy = calculate_poll_accuracy(poll)
+            _is_save_poll_fin = poll.get('tipo_voto') == 'salvar'
 
             # Model prediction (using all finalized data for display)
             _prec_fin = calculate_precision_weights(polls_data)
@@ -1221,16 +1247,30 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
             platform_colors = {'sites': '#3498db', 'youtube': '#e74c3c', 'twitter': '#1da1f2', 'instagram': '#e1306c'}
 
+            def _poll_hl_fin(val, all_vals, color_best, color_worst='#e74c3c'):
+                """Highlight for finalized poll: save vs eliminate."""
+                best = max(all_vals)
+                worst = min(all_vals)
+                if _is_save_poll_fin:
+                    if val == worst:
+                        return f'font-weight:bold; color:{color_worst};'
+                    elif val == best:
+                        return f'font-weight:bold; color:#00bc8c;'
+                else:
+                    if val == best:
+                        return f'font-weight:bold; color:{color_best};'
+                return ''
+
             for plat in platform_order:
                 if plat in plataformas:
                     pdata = plataformas[plat]
                     votos = pdata.get('votos', 0)
                     votos_str = f"{votos:,.0f}".replace(',', '.')
                     print(f'<tr><td style="font-weight:bold; color:{platform_colors.get(plat, "#fff")}">{platform_names.get(plat, plat)}</td>')
+                    _pfvals = [pdata.get(n, 0) for n in participantes_poll]
                     for nome in participantes_poll:
                         val = pdata.get(nome, 0)
-                        is_max = val == max(pdata.get(n, 0) for n in participantes_poll)
-                        style = 'font-weight:bold; color:#f39c12;' if is_max else ''
+                        style = _poll_hl_fin(val, _pfvals, '#f39c12')
                         print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                     print(f'<td class="tc text-muted" style="font-size:0.9em;">{votos_str}</td>')
                     print('</tr>')
@@ -1238,10 +1278,12 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             total_votos = consolidado.get('total_votos', 0)
             total_str = f"{total_votos:,.0f}".replace(',', '.')
             print(f'<tr style="background:rgba(155,89,182,0.2);"><td style="font-weight:bold;">📊 Consolidado</td>')
+            _cfvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
-                is_max = val == max(consolidado.get(n, 0) for n in participantes_poll)
-                style = 'font-weight:bold; color:#9b59b6;' if is_max else 'font-weight:bold;'
+                style = _poll_hl_fin(val, _cfvals, '#9b59b6')
+                if 'font-weight' not in style:
+                    style = 'font-weight:bold;' + style
                 print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print(f'<td class="tc text-muted" style="font-size:0.9em;">{total_str}</td>')
             print('</tr>')
@@ -1249,10 +1291,12 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             # Model row
             if _model_pred_fin:
                 print(f'<tr style="background:rgba(0,188,140,0.2);"><td style="font-weight:bold;">🎯 Modelo</td>')
+                _mfvals = [_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _model_pred_fin['prediction'].get(nome, 0)
-                    is_max = val == max(_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll)
-                    style = 'font-weight:bold; color:#00bc8c;' if is_max else 'font-weight:bold;'
+                    style = _poll_hl_fin(val, _mfvals, '#00bc8c')
+                    if 'font-weight' not in style:
+                        style = 'font-weight:bold;' + style
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print(f'<td class="tc text-muted" style="font-size:0.8em;">ponderado</td>')
                 print('</tr>')

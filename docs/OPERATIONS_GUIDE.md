@@ -488,22 +488,50 @@ When `build_derived_data.py` runs, the timeline builder reads `paredoes.json` an
 
 ## Votalhada Collection Checklist (Tuesday)
 
-Before each elimination (~21h BRT), collect poll data from [Votalhada](https://votalhada.blogspot.com/):
+Before each elimination (~21h BRT), collect poll data from [Votalhada](https://votalhada.blogspot.com/).
 
-### 1. Screenshot the "Consolidados" page
+Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
 
-Save screenshot to `data/` folder (will be organized later).
+### 1. Fetch poll images with the script
 
-### 2. Process with Claude
+```bash
+# By paredão number (derives URL from paredoes.json)
+python scripts/fetch_votalhada_images.py --paredao N --timestamp
 
-Tell Claude: **"Process Votalhada image for paredão N"**
+# Or by direct URL
+python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/YYYY/MM/pesquisaN.html" --timestamp
+```
 
-Claude will:
-- Extract consolidado percentages, platform breakdown (Sites, YouTube, Twitter, Instagram), and time series
-- Update `data/votalhada/polls.json` with the extracted data
-- Organize images into `data/votalhada/YYYY_MM_DD/`
+Images are saved to `data/votalhada/YYYY_MM_DD/`. Use `--timestamp` to keep a history of captures (e.g., `consolidados_2026-03-02_21-05.png`). Without `--timestamp`, files are overwritten on each run.
 
-### 3. Verify name matching
+**Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
+
+### 2. Extract data with Claude
+
+Tell Claude: **"Update votalhada with `<URL>` and get the polls"** or share the fetched images.
+
+Claude will read the images and extract:
+- Consolidado percentages per participant
+- Platform breakdown (Sites, YouTube, Twitter, Instagram) with vote counts
+- Time series data points (hora + percentages)
+- Update `data/votalhada/polls.json`
+
+### 3. Paredão Falso ("Quem SALVAR?") handling
+
+For Paredão Falso polls, set these extra fields in the poll entry:
+
+```json
+{
+  "tipo_voto": "salvar",
+  "paredao_falso": true
+}
+```
+
+- **`tipo_voto: "salvar"`** — inverts prediction logic: least voted = "eliminated" (sent to Quarto Secreto last or leaves). The precision-weighted model handles this automatically.
+- **`predicao_eliminado`** in `consolidado` — set to the **least** voted participant (not the most voted).
+- QMD pages auto-detect `tipo_voto` and display "Quem você quer SALVAR?" with appropriate highlight colors (min = at risk in red, max = safe in green).
+
+### 4. Verify name matching
 
 Votalhada uses short names. Always match to API names:
 
@@ -511,11 +539,11 @@ Votalhada uses short names. Always match to API names:
 |-----------------|-------------------|
 | "Aline" | "Aline Campos" |
 | "Ana Paula" | "Ana Paula Renault" |
-| "Cowboy" | "Alberto Cowboy" |
+| "Cowboy" / "A Cowboy" | "Alberto Cowboy" |
 | "Sol" | "Sol Vega" |
 | "Floss" | "Juliano Floss" |
 
-### 4. Rebuild + commit
+### 5. Rebuild + commit
 
 ```bash
 python scripts/build_derived_data.py

@@ -942,8 +942,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         plataformas = poll.get('plataformas', {})
         resultado = poll['resultado_real']
         accuracy = calculate_poll_accuracy(poll)
+        _is_save_arc = poll.get('tipo_voto') == 'salvar'
 
-        print("\n### Enquetes vs Resultado\n")
+        _arc_title = 'Enquetes vs Resultado (voto p/ SALVAR)' if _is_save_arc else 'Enquetes vs Resultado'
+        print(f"\n### {_arc_title}\n")
 
         if accuracy and accuracy['predicao_correta']:
             status_html = '<span style="background:#3CB44B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px; font-size:0.85em;">✅ Previsão correta</span>'
@@ -951,6 +953,18 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             status_html = '<span style="background:#E6194B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px; font-size:0.85em;">❌ Previsão errada</span>'
 
         print(f'{status_html} <span class="text-muted" style="font-size:0.9em;">Erro médio: {accuracy["erro_medio"]:.1f} p.p.</span>\n')
+
+        def _arc_hl(val, all_vals, color_best, color_worst='#e74c3c'):
+            best, worst = max(all_vals), min(all_vals)
+            if _is_save_arc:
+                if val == worst:
+                    return f'font-weight:bold; color:{color_worst};'
+                elif val == best:
+                    return f'font-weight:bold; color:#00bc8c;'
+            else:
+                if val == best:
+                    return f'font-weight:bold; color:{color_best};'
+            return ''
 
         # Compact platform table
         print('<table class="table table-sm" style="max-width: 100%; font-size: 0.85rem;">')
@@ -966,10 +980,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             if plat in plataformas:
                 pdata = plataformas[plat]
                 print(f'<tr><td>{plat_names.get(plat, plat)}</td>')
+                _apvals = [pdata.get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = pdata.get(nome, 0)
-                    is_max = val == max(pdata.get(n, 0) for n in participantes_poll)
-                    style = 'font-weight:bold; color:#f39c12;' if is_max else ''
+                    style = _arc_hl(val, _apvals, '#f39c12')
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print('</tr>')
 
@@ -982,10 +996,12 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         _tab_model = predict_precision_weighted(poll, _prec_all) if _prec_all.get('sufficient') else None
         if _tab_model:
             print(f'<tr style="background:rgba(0,188,140,0.2);"><td><strong>🎯 Modelo</strong></td>')
+            _amvals = [_tab_model['prediction'].get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = _tab_model['prediction'].get(nome, 0)
-                is_max = val == max(_tab_model['prediction'].get(n, 0) for n in participantes_poll)
-                style = 'font-weight:bold; color:#00bc8c;' if is_max else 'font-weight:bold;'
+                style = _arc_hl(val, _amvals, '#00bc8c')
+                if 'font-weight' not in style:
+                    style = 'font-weight:bold;' + style
                 print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print('</tr>')
 

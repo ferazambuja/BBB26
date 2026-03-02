@@ -740,7 +740,8 @@ def predict_precision_weighted(poll_data: dict, precision_result: dict) -> dict 
         precision_result: Output of calculate_precision_weights().
 
     Returns:
-        Dict with 'prediction', 'predicao_eliminado', 'weights_used', or None.
+        Dict with 'prediction', 'predicao_eliminado', 'weights_used',
+        'tipo_voto' ('eliminar' or 'salvar'), or None.
     """
     if not precision_result or not precision_result.get("sufficient"):
         return None
@@ -775,12 +776,19 @@ def predict_precision_weighted(poll_data: dict, precision_result: dict) -> dict 
         factor = 100.0 / total_pred
         prediction = {k: round(v * factor, 2) for k, v in prediction.items()}
 
-    eliminado = max(prediction, key=lambda k: prediction[k])
+    # For "salvar" polls (Paredão Falso), least voted = eliminated
+    # For normal "eliminar" polls, most voted = eliminated
+    tipo_voto = poll_data.get("tipo_voto", "eliminar")
+    if tipo_voto == "salvar":
+        eliminado = min(prediction, key=lambda k: prediction[k])
+    else:
+        eliminado = max(prediction, key=lambda k: prediction[k])
 
     return {
         "prediction": prediction,
         "predicao_eliminado": eliminado,
         "weights_used": {p: round(w, 4) for p, w in norm_weights.items()},
+        "tipo_voto": tipo_voto,
     }
 
 
