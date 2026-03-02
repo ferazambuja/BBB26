@@ -410,6 +410,7 @@ def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[d
             'fontes': p.get('fontes', []),
             'impedidos_votar': p.get('impedidos_votar', []),
             'votos_anulados': p.get('votos_anulados', []),
+            'paredao_falso': p.get('paredao_falso', False),
         }
         im = p.get('formacao', {}).get('imunizado')
         if im:

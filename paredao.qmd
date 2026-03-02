@@ -241,6 +241,138 @@ if ultimo:
         if participantes:
             print(render_nominee_cards_em_andamento(participantes, esperado_indicados, AVATARS, MEMBER_OF))
 
+        # ── Enquetes do Votalhada (em andamento) — right after nominee cards ──
+        poll = get_poll_for_paredao(polls_data, ultimo['numero'])
+        if poll:
+            participantes_poll = poll.get('participantes', [])
+            consolidado = poll.get('consolidado', {})
+            plataformas = poll.get('plataformas', {})
+
+            _is_save_poll = poll.get('tipo_voto') == 'salvar'
+            _poll_label = 'Quem você quer SALVAR?' if _is_save_poll else 'Previsão das Enquetes'
+            print(f"\n## 📊 {_poll_label}\n")
+            if _is_save_poll:
+                print(f'<p class="text-warning small" style="font-weight:bold;">⚠️ Paredão Falso — voto é para SALVAR (mais votado vai ao Quarto Secreto)</p>\n')
+            print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]} {poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""}</p>\n')
+
+            # Compute precision model prediction
+            _prec = calculate_precision_weights(polls_data)
+            _model_pred = predict_precision_weighted(poll, _prec) if _prec.get('sufficient') else None
+
+            # Side-by-side prediction cards
+            print(f'<div style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">')
+            # Votalhada card
+            _consol_elim = consolidado.get("predicao_eliminado", "—")
+            _consol_pct = consolidado.get(_consol_elim, 0)
+            _consol_desc = f'com {_consol_pct:.1f}% dos votos p/ salvar' if _is_save_poll else f'com {_consol_pct:.1f}% dos votos'
+            print(f'<div style="flex:1; min-width:220px; border:2px solid #9b59b6; border-radius:12px; padding:1rem; background:rgba(155,89,182,0.1);">')
+            print(f'<div style="font-size:0.8em; color:#9b59b6; font-weight:bold; margin-bottom:0.3rem;">📊 VOTALHADA (CONSOLIDADO)</div>')
+            print(f'<div style="font-size:1.3em; font-weight:bold;">{_consol_elim}</div>')
+            print(f'<div class="text-muted">{_consol_desc}</div>')
+            print(f'</div>')
+            # Model card
+            if _model_pred:
+                _model_elim = _model_pred['predicao_eliminado']
+                _model_pct = _model_pred['prediction'].get(_model_elim, 0)
+                _model_desc = f'com {_model_pct:.1f}% dos votos p/ salvar' if _is_save_poll else f'com {_model_pct:.1f}% dos votos'
+                _agree = '✅ Concordam' if _model_elim == _consol_elim else '⚠️ Divergem'
+                print(f'<div style="flex:1; min-width:220px; border:2px solid #00bc8c; border-radius:12px; padding:1rem; background:rgba(0,188,140,0.1);">')
+                print(f'<div style="font-size:0.8em; color:#00bc8c; font-weight:bold; margin-bottom:0.3rem;">🎯 MODELO PONDERADO</div>')
+                print(f'<div style="font-size:1.3em; font-weight:bold;">{_model_elim}</div>')
+                print(f'<div class="text-muted">{_model_desc}</div>')
+                print(f'<div class="text-muted" style="margin-top:0.5rem; font-size:0.8em;">{_agree}</div>')
+                print(f'</div>')
+            print(f'</div>\n')
+
+            # Platform breakdown table
+            print('<table class="table table-striped" style="max-width: 100%; font-size: 1rem;">')
+            print('<thead><tr><th>Plataforma</th>')
+            for nome in participantes_poll:
+                avatar = avatar_img(nome, AVATARS, 28)
+                print(f'<th class="tc">{avatar}</th>')
+            print('<th class="tc text-muted">Votos</th>')
+            print('</tr></thead><tbody>')
+
+            platform_order = ['sites', 'youtube', 'twitter', 'instagram']
+            platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
+
+            def _poll_highlight(val, all_vals, color_best):
+                """Highlight the most-voted participant in platform color."""
+                if val == max(all_vals):
+                    return f'font-weight:bold; color:{color_best};'
+                return ''
+
+            for plat in platform_order:
+                if plat in plataformas:
+                    pdata = plataformas[plat]
+                    votos = pdata.get('votos', 0)
+                    votos_str = f"{votos:,.0f}".replace(',', '.')
+                    print(f'<tr><td>{platform_names.get(plat, plat)}</td>')
+                    _pvals = [pdata.get(n, 0) for n in participantes_poll]
+                    for nome in participantes_poll:
+                        val = pdata.get(nome, 0)
+                        style = _poll_highlight(val, _pvals, '#f39c12')
+                        print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
+                    print(f'<td class="tc text-muted" style="font-size:0.9em;">{votos_str}</td>')
+                    print('</tr>')
+
+            # Consolidado row
+            total_votos = consolidado.get('total_votos', 0)
+            total_str = f"{total_votos:,.0f}".replace(',', '.')
+            print(f'<tr style="background:rgba(155,89,182,0.2);"><td style="font-weight:bold;">📊 Consolidado</td>')
+            _cvals = [consolidado.get(n, 0) for n in participantes_poll]
+            for nome in participantes_poll:
+                val = consolidado.get(nome, 0)
+                style = _poll_highlight(val, _cvals, '#9b59b6')
+                if 'font-weight' not in style:
+                    style = 'font-weight:bold;' + style
+                print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
+            print(f'<td class="tc text-muted" style="font-size:0.9em;">{total_str}</td>')
+            print('</tr>')
+
+            # Model row
+            if _model_pred:
+                print(f'<tr style="background:rgba(0,188,140,0.2);"><td style="font-weight:bold;">🎯 Modelo Ponderado</td>')
+                _mvals = [_model_pred['prediction'].get(n, 0) for n in participantes_poll]
+                for nome in participantes_poll:
+                    val = _model_pred['prediction'].get(nome, 0)
+                    style = _poll_highlight(val, _mvals, '#00bc8c')
+                    if 'font-weight' not in style:
+                        style = 'font-weight:bold;' + style
+                    print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
+                print(f'<td class="tc text-muted" style="font-size:0.8em;">ponderado</td>')
+                print('</tr>')
+
+            print('</tbody></table>')
+
+            # Weight breakdown note (expandable)
+            if _model_pred:
+                _wu = _model_pred['weights_used']
+                _plat_labels = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
+                _weight_parts = [f'{_plat_labels.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
+                _rmse_info = _prec.get('rmse', {})
+                print(f'<details style="margin-top:0.5rem; font-size:0.85em;">')
+                print(f'<summary class="text-muted" style="cursor:pointer;">ℹ️ Pesos do modelo: {" · ".join(_weight_parts)}</summary>')
+                print(f'<div style="padding:0.8rem; margin-top:0.3rem; background:rgba(0,188,140,0.05); border-radius:8px; color:#aaa; font-size:0.95em;">')
+                print(f'<p style="margin:0 0 0.5rem 0;"><strong>Por que esses pesos?</strong> O Votalhada pondera pelo volume de votos — Sites recebem ~70% do peso porque têm os maiores veículos (UOL Splash, CNN). Mas Sites são a plataforma <strong>menos precisa</strong> (RMSE {_rmse_info.get("sites", "?"):.1f} p.p.) porque sobre-representam fanbases organizadas.</p>')
+                print(f'<p style="margin:0 0 0.5rem 0;"><strong>Nosso modelo</strong> usa o inverso do RMSE² (peso = 1/RMSE²). Plataformas mais precisas recebem exponencialmente mais peso:</p>')
+                print(f'<table style="font-size:0.9em; margin:0.3rem 0;">')
+                print(f'<tr><th>Plataforma</th><th class="tc">RMSE</th><th class="tc">Votalhada</th><th class="tc">Modelo</th></tr>')
+                _vol_approx = {'twitter': 5, 'instagram': 14, 'youtube': 11, 'sites': 70}
+                for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
+                    rmse_val = _rmse_info.get(p, 0)
+                    print(f'<tr><td>{_plat_labels.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_approx.get(p,0)}%</td><td class="tc" style="font-weight:bold;">{w*100:.0f}%</td></tr>')
+                print(f'</table>')
+                print(f'<p style="margin:0.5rem 0 0 0;">Validado com leave-one-out (erro cai de 9,8 → 4,3 p.p.). Pesos recalculados a cada paredão finalizado.</p>')
+                print(f'</div></details>')
+            print()
+
+            # Time series chart (em_andamento)
+            if poll.get('serie_temporal'):
+                fig_ts = make_poll_timeseries(poll)
+                if fig_ts:
+                    fig_ts.show()
+
         # ── Setup duelo data (used by Consensus Analysis and Sincerinho later) ──
         _formacao_raw = ultimo.get('formacao_raw', {})
         _duelo = _formacao_raw.get('duelo_de_risco') if isinstance(_formacao_raw, dict) else None
@@ -589,10 +721,11 @@ if ultimo:
                 )
 
                 # Bold nominee names on y-axis
+                _nominee_icon = '🔮' if ultimo.get('paredao_falso') else '🎯'
                 tick_labels = []
                 for _, row in df_sent.iterrows():
                     if row['is_nominee']:
-                        tick_labels.append(f"<b>⚠️ {row['name']}</b>")
+                        tick_labels.append(f"<b>{_nominee_icon} {row['name']}</b>")
                     else:
                         tick_labels.append(row['name'])
                 fig_sent.update_yaxes(
@@ -602,138 +735,6 @@ if ultimo:
 
                 fig_sent.show()
                 print()
-
-        # ── Enquetes do Votalhada (em andamento) ──
-        poll = get_poll_for_paredao(polls_data, ultimo['numero'])
-        if poll:
-            participantes_poll = poll.get('participantes', [])
-            consolidado = poll.get('consolidado', {})
-            plataformas = poll.get('plataformas', {})
-
-            _is_save_poll = poll.get('tipo_voto') == 'salvar'
-            _poll_label = 'Quem você quer SALVAR?' if _is_save_poll else 'Previsão das Enquetes'
-            print(f"\n## 📊 {_poll_label}\n")
-            if _is_save_poll:
-                print(f'<p class="text-warning small" style="font-weight:bold;">⚠️ Paredão Falso — voto é para SALVAR (mais votado vai ao Quarto Secreto)</p>\n')
-            print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]} {poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""}</p>\n')
-
-            # Compute precision model prediction
-            _prec = calculate_precision_weights(polls_data)
-            _model_pred = predict_precision_weighted(poll, _prec) if _prec.get('sufficient') else None
-
-            # Side-by-side prediction cards
-            print(f'<div style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">')
-            # Votalhada card
-            _consol_elim = consolidado.get("predicao_eliminado", "—")
-            _consol_pct = consolidado.get(_consol_elim, 0)
-            _consol_desc = f'com {_consol_pct:.1f}% dos votos p/ salvar' if _is_save_poll else f'com {_consol_pct:.1f}% dos votos'
-            print(f'<div style="flex:1; min-width:220px; border:2px solid #9b59b6; border-radius:12px; padding:1rem; background:rgba(155,89,182,0.1);">')
-            print(f'<div style="font-size:0.8em; color:#9b59b6; font-weight:bold; margin-bottom:0.3rem;">📊 VOTALHADA (CONSOLIDADO)</div>')
-            print(f'<div style="font-size:1.3em; font-weight:bold;">{_consol_elim}</div>')
-            print(f'<div class="text-muted">{_consol_desc}</div>')
-            print(f'</div>')
-            # Model card
-            if _model_pred:
-                _model_elim = _model_pred['predicao_eliminado']
-                _model_pct = _model_pred['prediction'].get(_model_elim, 0)
-                _model_desc = f'com {_model_pct:.1f}% dos votos p/ salvar' if _is_save_poll else f'com {_model_pct:.1f}% dos votos'
-                _agree = '✅ Concordam' if _model_elim == _consol_elim else '⚠️ Divergem'
-                print(f'<div style="flex:1; min-width:220px; border:2px solid #00bc8c; border-radius:12px; padding:1rem; background:rgba(0,188,140,0.1);">')
-                print(f'<div style="font-size:0.8em; color:#00bc8c; font-weight:bold; margin-bottom:0.3rem;">🎯 MODELO PONDERADO</div>')
-                print(f'<div style="font-size:1.3em; font-weight:bold;">{_model_elim}</div>')
-                print(f'<div class="text-muted">{_model_desc}</div>')
-                print(f'<div class="text-muted" style="margin-top:0.5rem; font-size:0.8em;">{_agree}</div>')
-                print(f'</div>')
-            print(f'</div>\n')
-
-            # Platform breakdown table
-            print('<table class="table table-striped" style="max-width: 100%; font-size: 1rem;">')
-            print('<thead><tr><th>Plataforma</th>')
-            for nome in participantes_poll:
-                avatar = avatar_img(nome, AVATARS, 28)
-                print(f'<th class="tc">{avatar}</th>')
-            print('<th class="tc text-muted">Votos</th>')
-            print('</tr></thead><tbody>')
-
-            platform_order = ['sites', 'youtube', 'twitter', 'instagram']
-            platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
-
-            def _poll_highlight(val, all_vals, color_best):
-                """Highlight the most-voted participant in platform color."""
-                if val == max(all_vals):
-                    return f'font-weight:bold; color:{color_best};'
-                return ''
-
-            for plat in platform_order:
-                if plat in plataformas:
-                    pdata = plataformas[plat]
-                    votos = pdata.get('votos', 0)
-                    votos_str = f"{votos:,.0f}".replace(',', '.')
-                    print(f'<tr><td>{platform_names.get(plat, plat)}</td>')
-                    _pvals = [pdata.get(n, 0) for n in participantes_poll]
-                    for nome in participantes_poll:
-                        val = pdata.get(nome, 0)
-                        style = _poll_highlight(val, _pvals, '#f39c12')
-                        print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
-                    print(f'<td class="tc text-muted" style="font-size:0.9em;">{votos_str}</td>')
-                    print('</tr>')
-
-            # Consolidado row
-            total_votos = consolidado.get('total_votos', 0)
-            total_str = f"{total_votos:,.0f}".replace(',', '.')
-            print(f'<tr style="background:rgba(155,89,182,0.2);"><td style="font-weight:bold;">📊 Consolidado</td>')
-            _cvals = [consolidado.get(n, 0) for n in participantes_poll]
-            for nome in participantes_poll:
-                val = consolidado.get(nome, 0)
-                style = _poll_highlight(val, _cvals, '#9b59b6')
-                if 'font-weight' not in style:
-                    style = 'font-weight:bold;' + style
-                print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
-            print(f'<td class="tc text-muted" style="font-size:0.9em;">{total_str}</td>')
-            print('</tr>')
-
-            # Model row
-            if _model_pred:
-                print(f'<tr style="background:rgba(0,188,140,0.2);"><td style="font-weight:bold;">🎯 Modelo Ponderado</td>')
-                _mvals = [_model_pred['prediction'].get(n, 0) for n in participantes_poll]
-                for nome in participantes_poll:
-                    val = _model_pred['prediction'].get(nome, 0)
-                    style = _poll_highlight(val, _mvals, '#00bc8c')
-                    if 'font-weight' not in style:
-                        style = 'font-weight:bold;' + style
-                    print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
-                print(f'<td class="tc text-muted" style="font-size:0.8em;">ponderado</td>')
-                print('</tr>')
-
-            print('</tbody></table>')
-
-            # Weight breakdown note (expandable)
-            if _model_pred:
-                _wu = _model_pred['weights_used']
-                _plat_labels = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
-                _weight_parts = [f'{_plat_labels.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
-                _rmse_info = _prec.get('rmse', {})
-                print(f'<details style="margin-top:0.5rem; font-size:0.85em;">')
-                print(f'<summary class="text-muted" style="cursor:pointer;">ℹ️ Pesos do modelo: {" · ".join(_weight_parts)}</summary>')
-                print(f'<div style="padding:0.8rem; margin-top:0.3rem; background:rgba(0,188,140,0.05); border-radius:8px; color:#aaa; font-size:0.95em;">')
-                print(f'<p style="margin:0 0 0.5rem 0;"><strong>Por que esses pesos?</strong> O Votalhada pondera pelo volume de votos — Sites recebem ~70% do peso porque têm os maiores veículos (UOL Splash, CNN). Mas Sites são a plataforma <strong>menos precisa</strong> (RMSE {_rmse_info.get("sites", "?"):.1f} p.p.) porque sobre-representam fanbases organizadas.</p>')
-                print(f'<p style="margin:0 0 0.5rem 0;"><strong>Nosso modelo</strong> usa o inverso do RMSE² (peso = 1/RMSE²). Plataformas mais precisas recebem exponencialmente mais peso:</p>')
-                print(f'<table style="font-size:0.9em; margin:0.3rem 0;">')
-                print(f'<tr><th>Plataforma</th><th class="tc">RMSE</th><th class="tc">Votalhada</th><th class="tc">Modelo</th></tr>')
-                _vol_approx = {'twitter': 5, 'instagram': 14, 'youtube': 11, 'sites': 70}
-                for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
-                    rmse_val = _rmse_info.get(p, 0)
-                    print(f'<tr><td>{_plat_labels.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_approx.get(p,0)}%</td><td class="tc" style="font-weight:bold;">{w*100:.0f}%</td></tr>')
-                print(f'</table>')
-                print(f'<p style="margin:0.5rem 0 0 0;">Validado com leave-one-out (erro cai de 9,8 → 4,3 p.p.). Pesos recalculados a cada paredão finalizado.</p>')
-                print(f'</div></details>')
-            print()
-
-            # Time series chart (em_andamento)
-            if poll.get('serie_temporal'):
-                fig_ts = make_poll_timeseries(poll)
-                if fig_ts:
-                    fig_ts.show()
 
         # ── Duelo de Risco — Consensus Analysis ──────────────────────────
         if _duelo and _duelo.get('indicado_consenso') and _duelo.get('resultado') == 'nos_indicamos':
