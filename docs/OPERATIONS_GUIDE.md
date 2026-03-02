@@ -527,9 +527,9 @@ For Paredão Falso polls, set these extra fields in the poll entry:
 }
 ```
 
-- **`tipo_voto: "salvar"`** — inverts prediction logic: least voted = "eliminated" (sent to Quarto Secreto last or leaves). The precision-weighted model handles this automatically.
-- **`predicao_eliminado`** in `consolidado` — set to the **least** voted participant (not the most voted).
-- QMD pages auto-detect `tipo_voto` and display "Quem você quer SALVAR?" with appropriate highlight colors (min = at risk in red, max = safe in green).
+- **`tipo_voto: "salvar"`** — marks this as a save poll (vote to save, not eliminate). Most voted goes to Quarto Secreto. Prediction logic is the same (most voted = selected).
+- **`predicao_eliminado`** in `consolidado` — set to the **most** voted participant (same as normal paredões).
+- QMD pages auto-detect `tipo_voto` and display "Quem você quer SALVAR?" header + Paredão Falso warning banner.
 
 ### 4. Verify name matching
 

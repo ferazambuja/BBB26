@@ -954,16 +954,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
         print(f'{status_html} <span class="text-muted" style="font-size:0.9em;">Erro médio: {accuracy["erro_medio"]:.1f} p.p.</span>\n')
 
-        def _arc_hl(val, all_vals, color_best, color_worst='#e74c3c'):
-            best, worst = max(all_vals), min(all_vals)
-            if _is_save_arc:
-                if val == worst:
-                    return f'font-weight:bold; color:{color_worst};'
-                elif val == best:
-                    return f'font-weight:bold; color:#00bc8c;'
-            else:
-                if val == best:
-                    return f'font-weight:bold; color:{color_best};'
+        def _arc_hl(val, all_vals, color_best):
+            """Highlight the most-voted participant in platform color."""
+            if val == max(all_vals):
+                return f'font-weight:bold; color:{color_best};'
             return ''
 
         # Compact platform table
