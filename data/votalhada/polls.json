@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-02-24",
+  "_last_updated": "2026-03-02",
   "paredoes": [
     {
       "numero": 1,
@@ -840,6 +840,63 @@
         "eliminado": "Maxiane",
         "predicao_correta": true
       }
+    },
+    {
+      "numero": 7,
+      "data_paredao": "2026-03-03",
+      "data_coleta": "2026-03-02T01:00:00-03:00",
+      "participantes": [
+        "Alberto Cowboy",
+        "Breno",
+        "Jordana"
+      ],
+      "tipo_voto": "salvar",
+      "paredao_falso": true,
+      "consolidado": {
+        "Alberto Cowboy": 46.6,
+        "Breno": 46.92,
+        "Jordana": 6.48,
+        "total_votos": 1141249,
+        "predicao_eliminado": "Jordana"
+      },
+      "plataformas": {
+        "sites": {
+          "Alberto Cowboy": 61.2,
+          "Breno": 34.62,
+          "Jordana": 4.18,
+          "votos": 344050,
+          "fontes_count": 15
+        },
+        "youtube": {
+          "Alberto Cowboy": 53.38,
+          "Breno": 42.43,
+          "Jordana": 4.21,
+          "votos": 173911,
+          "fontes_count": 21
+        },
+        "twitter": {
+          "Alberto Cowboy": 32.93,
+          "Breno": 55.53,
+          "Jordana": 11.54,
+          "votos": 165306,
+          "fontes_count": 22
+        },
+        "instagram": {
+          "Alberto Cowboy": 38.0,
+          "Breno": 54.75,
+          "Jordana": 7.25,
+          "votos": 457982,
+          "fontes_count": 12
+        }
+      },
+      "serie_temporal": [
+        {
+          "hora": "02/mar 01:00",
+          "Alberto Cowboy": 46.6,
+          "Breno": 46.92,
+          "Jordana": 6.7
+        }
+      ]
     }
   ]
 }
