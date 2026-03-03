@@ -6,7 +6,7 @@
 > **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `CLAUDE.md` (architecture).
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 >
-> **Last updated**: 2026-03-01
+> **Last updated**: 2026-03-02
 
 ---
 
@@ -626,10 +626,16 @@ git push
 
 After the Monday live show (~22h BRT):
 
-### 1. Scrape Sincerão article
+### 1. Scrape Sincerão articles
 
 ```bash
+# Main overview article:
 python scripts/scrape_gshow.py "<sincerao-url>" -o docs/scraped/
+
+# For "Linha Direta" format (one article per participant), scrape all individual articles:
+python scripts/scrape_gshow.py "<url-1>" -o docs/scraped/
+python scripts/scrape_gshow.py "<url-2>" -o docs/scraped/
+# ... repeat for each participant
 ```
 
 ### 2. Update `data/manual_events.json` → `weekly_events[N].sincerao`
@@ -641,17 +647,34 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
   "sincerao": {
     "date": "YYYY-MM-DD",
     "format": "Description of this week's format",
-    "participacao": "Who participated",
-    "notes": "Summary of what happened, key confrontations",
+    "participacao": ["Name1", "Name2"],
+    "protagonistas": [],
+    "notes": "Summary of what happened, key confrontations, target tally",
     "fontes": ["<sincerao-url>"],
+    "stats": {
+      "most_targeted": [{"name": "X", "count": 4}],
+      "not_targeted": ["Y"],
+      "mutual_confrontations": [["A", "B"]]
+    },
     "edges": [
-      {"actor": "A", "target": "B", "type": "ataque", "label": "What A said about B"}
-    ]
+      {"actor": "A", "target": "B", "type": "bomba", "tema": "maior traidor(a)"}
+    ],
+    "edges_notes": "Context about edge extraction"
   }
 }
 ```
 
-**Edges**: Capture directed confrontations (actor → target). Types: `ataque`, `elogio`, `provocacao`. These feed into the relationship scoring system.
+**Edge types** (must match `builders/sincerao.py` weights):
+
+| Type | Weight | When to use |
+|------|--------|-------------|
+| `podio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Participant puts someone on their podium |
+| `nao_ganha` | −0.8 | Participant says someone won't win |
+| `bomba` (+ `tema`) | −0.6 | Directed confrontation: bomb themes, "maior traidor(a)", etc. |
+| `paredao_perfeito` | −0.3 | Participant nominates someone for ideal paredão |
+| `prova_eliminou` | −0.15 | Eliminated someone in a Sincerão sub-game |
+
+**Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `bomba` 0.4.
 
 **Full Sincerão schema**: See `docs/SCORING_AND_INDEXES.md` → Sincerão Framework.
 

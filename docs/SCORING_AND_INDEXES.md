@@ -380,12 +380,14 @@ Store an optional list of **edges**:
 - `sem_podio`: −0.4
 - `planta` (plateia): −0.3
 
-**Per-pair edges (directional)** — used in `build_relations_scores()`:
-- `podio slot 1`: +0.7
-- `podio slot 2`: +0.5
-- `podio slot 3`: +0.3
-- `nao_ganha`: −1.0
-- `bomba/tema`: −0.8
+**Per-pair edges (directional)** — used in `build_relations_scores()` via `builders/sincerao.py`:
+- `podio slot 1`: +0.6
+- `podio slot 2`: +0.4
+- `podio slot 3`: +0.2
+- `nao_ganha`: −0.8
+- `bomba/tema`: −0.6
+- `paredao_perfeito`: −0.3
+- `prova_eliminou`: −0.15
 - Backlash factors: `nao_ganha` 0.3, `bomba` 0.4 (target → actor)
 
 ### Alignment score (Sincerão × Queridômetro)
