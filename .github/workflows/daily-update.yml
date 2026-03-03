@@ -17,8 +17,9 @@ name: BBB26 Daily Update
 # | 23:00| 20:00 | Sat — post-Monstro (Anjo picks Monstro after win) |
 #
 # TEMPORARY PROBES (remove after ~3-5 days):
-# Goal: pinpoint exact queridômetro update time (believed ~14:00 BRT).
-# Every 30 min from 09:30–14:00 BRT = 12:30–17:00 UTC.
+# Goal: pinpoint exact queridômetro update time.
+# Historical first-appearances: 12:16, 12:54, 15:31, 15:40, 15:51 BRT.
+# Every 30 min from 09:30–16:00 BRT = 12:30–19:00 UTC.
 # fetch_data.py saves only if data hash changed, so no duplicate snapshots.
 # Analyze results with: python scripts/analyze_capture_timing.py
 #
@@ -37,10 +38,10 @@ on:
     # ── Saturday extras (Anjo/Monstro) ──
     - cron: '0 20 * * 6'   # 17:00 BRT Sat - Post-Anjo challenge
     - cron: '0 23 * * 6'   # 20:00 BRT Sat - Post-Monstro pick
-    # ── TEMPORARY: queridômetro timing probes (09:30–14:00 BRT) ──
+    # ── TEMPORARY: queridômetro timing probes (09:30–16:00 BRT) ──
     # Remove after confirming update window (~3-5 days)
-    - cron: '30 12-16 * * *'  # 09:30, 10:30, 11:30, 12:30, 13:30 BRT
-    - cron: '0 13-17 * * *'   # 10:00, 11:00, 12:00, 13:00, 14:00 BRT
+    - cron: '30 12-18 * * *'  # 09:30, 10:30, 11:30, 12:30, 13:30, 14:30, 15:30 BRT
+    - cron: '0 13-19 * * *'   # 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00 BRT
   workflow_dispatch:  # Allow manual trigger
 
 concurrency:

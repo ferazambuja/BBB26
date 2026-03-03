@@ -848,20 +848,27 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 
 ### Temporary timing probes (added 2026-03-03)
 
-To pinpoint the exact queridômetro update time, 10 extra probes run every 30 min from **09:30 to 14:00 BRT**:
+To pinpoint the exact queridômetro update time, extra probes run every 30 min from **09:30 to 16:00 BRT**:
 
 | BRT | UTC | Cron expression |
 |-----|-----|-----------------|
-| 09:30 | 12:30 | `30 12-16 * * *` |
-| 10:00 | 13:00 | `0 13-17 * * *` |
-| 10:30 | 13:30 | `30 12-16 * * *` |
-| 11:00 | 14:00 | `0 13-17 * * *` |
-| 11:30 | 14:30 | `30 12-16 * * *` |
-| 12:00 | 15:00 | `0 13-17 * * *` |
-| 12:30 | 15:30 | `30 12-16 * * *` |
-| 13:00 | 16:00 | `0 13-17 * * *` |
-| 13:30 | 16:30 | `30 12-16 * * *` |
-| 14:00 | 17:00 | `0 13-17 * * *` |
+| 09:30 | 12:30 | `30 12-18 * * *` |
+| 10:00 | 13:00 | `0 13-19 * * *` |
+| 10:30 | 13:30 | `30 12-18 * * *` |
+| 11:00 | 14:00 | `0 13-19 * * *` |
+| 11:30 | 14:30 | `30 12-18 * * *` |
+| 12:00 | 15:00 | `0 13-19 * * *` |
+| 12:30 | 15:30 | `30 12-18 * * *` |
+| 13:00 | 16:00 | `0 13-19 * * *` |
+| 13:30 | 16:30 | `30 12-18 * * *` |
+| 14:00 | 17:00 | `0 13-19 * * *` |
+| 14:30 | 17:30 | `30 12-18 * * *` |
+| 15:00 | 18:00 | `0 13-19 * * *` (overlaps permanent slot) |
+| 15:30 | 18:30 | `30 12-18 * * *` |
+| 16:00 | 19:00 | `0 13-19 * * *` |
+
+Historical first-appearances of new reaction data: 12:16, 12:54, 15:31, 15:40, 15:51 BRT.
+API shows **CDN cache oscillation** — different servers return different states, so the same hash can appear, disappear, and reappear within hours.
 
 `fetch_data.py` only saves when data actually changes (hash comparison), so the first new snapshot after the 06:00 BRT baseline reveals the exact update time.
 
