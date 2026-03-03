@@ -29,6 +29,7 @@ from data_utils import (
     load_paredoes_transformed,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted,
+    backtest_precision_model,
     genero, artigo, get_nominee_badge,
     make_poll_timeseries,
     avatar_html, avatar_img,
@@ -39,7 +40,7 @@ from data_utils import (
 from paredao_viz import (
     render_nominee_cards_em_andamento,
     render_nominee_cards_finalized,
-    _build_paredao_history,
+    build_paredao_history,
     render_voting_blocs,
     render_votos_casa_table,
     render_duelo_result_card,
@@ -253,7 +254,7 @@ if ultimo:
 
         # Build paredão history (past appearances)
         _raw_paredoes = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
-        _par_history = _build_paredao_history(_raw_paredoes.get('paredoes', []), ultimo['numero'])
+        _par_history = build_paredao_history(_raw_paredoes.get('paredoes', []), ultimo['numero'])
 
         # Cards dos indicados conhecidos
         if participantes:
@@ -386,7 +387,7 @@ if ultimo:
             #   Save: highest% = saved = green, lowest% = danger = red
             _color_max = '#2ecc71' if _is_save_poll else '#e74c3c'
             _color_min = '#e74c3c' if _is_save_poll else '#2ecc71'
-            def _poll_highlight(val, all_vals, _unused=None):
+            def _poll_highlight(val, all_vals):
                 """Color-code: context-aware best/worst."""
                 if val == max(all_vals):
                     return f'font-weight:bold; color:{_color_max};'
@@ -419,7 +420,7 @@ if ultimo:
                     _plat_leaders[plat] = _plat_leader
                     for nome in participantes_poll:
                         val = pdata.get(nome, 0)
-                        style = _poll_highlight(val, _pvals, '#f39c12')
+                        style = _poll_highlight(val, _pvals)
                         print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                     print(f'<td class="tc text-muted" style="font-size:0.8em;">{votos_str}</td>')
                     print('</tr>')
@@ -429,7 +430,7 @@ if ultimo:
             _cvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
-                style = _poll_highlight(val, _cvals, '#9b59b6')
+                style = _poll_highlight(val, _cvals)
                 if 'font-weight' not in style:
                     style = 'font-weight:bold;' + style
                 print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
@@ -442,7 +443,7 @@ if ultimo:
                 _mvals = [_model_pred['prediction'].get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _model_pred['prediction'].get(nome, 0)
-                    style = _poll_highlight(val, _mvals, '#00bc8c')
+                    style = _poll_highlight(val, _mvals)
                     if 'font-weight' not in style:
                         style = 'font-weight:bold;' + style
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
@@ -455,6 +456,15 @@ if ultimo:
             # ── Curiosidades box ──
             _curiosities = []
             _bt = None  # backtest results, computed in accuracy section below
+
+            # Pre-compute platform volumes (used by multiple curiosities + weight breakdown)
+            _plat_volumes = {}
+            _total_plat_votos = 0
+            for _pl in ['sites', 'youtube', 'twitter', 'instagram']:
+                _pv = plataformas.get(_pl, {}).get('votos', 0)
+                if _pv > 0:
+                    _plat_volumes[_pl] = _pv
+                    _total_plat_votos += _pv
 
             # Pre-compute model sorted list
             _sorted_model_c = None
@@ -608,17 +618,9 @@ if ultimo:
                     if total_votos > _max_hist[1]:
                         _vote_txt += ' — <strong>novo recorde!</strong>'
                     else:
-                        _rank_above = sum(1 for _, v in _hist_votos if v > total_votos)
                         _vote_txt += f' (P{_max_hist[0]}: {_max_hist[1]/1_000_000:.1f}M — recorde)'
                 _curiosities.append(_vote_txt)
-                # Per-platform volume breakdown
-                _plat_volumes = {}
-                _total_plat_votos = 0
-                for _pl in ['sites', 'youtube', 'twitter', 'instagram']:
-                    _pv = plataformas.get(_pl, {}).get('votos', 0)
-                    if _pv > 0:
-                        _plat_volumes[_pl] = _pv
-                        _total_plat_votos += _pv
+                # Per-platform volume breakdown (uses pre-computed _plat_volumes)
                 if _plat_volumes and _total_plat_votos > 0:
                     _plat_label_v = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Insta'}
                     _vol_parts = [f'{_plat_label_v.get(p, p)} {v*100/_total_plat_votos:.0f}%' for p, v in sorted(_plat_volumes.items(), key=lambda x: -x[1])]
@@ -635,20 +637,12 @@ if ultimo:
                 _wu = _model_pred.get('weights_used', {})
                 _rmse_w = _prec.get('rmse', {})
                 _plat_names_w = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
-                # Calculate actual Sites volume share for this paredão
-                _sites_vol_share = 0
-                _tw_vol_share = 0
-                _total_pv = 0
-                for _pl in ['sites', 'youtube', 'twitter', 'instagram']:
-                    _pv = plataformas.get(_pl, {}).get('votos', 0)
-                    _total_pv += _pv
-                    if _pl == 'sites':
-                        _sites_vol_share = _pv
-                    elif _pl == 'twitter':
-                        _tw_vol_share = _pv
-                if _total_pv > 0 and _rmse_w:
-                    _sites_pct = _sites_vol_share * 100 / _total_pv
-                    _tw_pct = _tw_vol_share * 100 / _total_pv
+                # Use pre-computed platform volumes
+                _sites_vol_share = _plat_volumes.get('sites', 0)
+                _tw_vol_share = _plat_volumes.get('twitter', 0)
+                if _total_plat_votos > 0 and _rmse_w:
+                    _sites_pct = _sites_vol_share * 100 / _total_plat_votos
+                    _tw_pct = _tw_vol_share * 100 / _total_plat_votos
                     _sites_rmse = _rmse_w.get('sites', 0)
                     _tw_rmse = _rmse_w.get('twitter', 0)
                     _sites_w = _wu.get('sites', 0) * 100
@@ -672,15 +666,15 @@ if ultimo:
                     _worst_plat = max(_rmse_hist, key=lambda k: _rmse_hist[k])
                     _curiosities.append(f'🏆 Historicamente, <strong>{_plat_names_h[_best_plat]}</strong> é a fonte mais precisa (erro {_rmse_hist[_best_plat]:.1f} p.p.) e <strong>{_plat_names_h[_worst_plat]}</strong> a menos ({_rmse_hist[_worst_plat]:.1f} p.p.) — <a href="paredoes.html#precisão-das-enquetes-votalhada" style="color:#f1c40f; font-size:0.9em;">ver análise completa</a>')
                 _n_finalized = _prec.get('n_paredoes', 0)
-                from data_utils import backtest_precision_model
                 _bt = backtest_precision_model(polls_data)
                 if _bt:
                     _bt_results = _bt.get('per_paredao', [])
-                    _consol_correct = sum(1 for r in _bt_results if r.get('consolidado_correct'))
-                    _model_correct_n = sum(1 for r in _bt_results if r.get('model_correct'))
-                    _consol_avg = sum(r['consolidado_mae'] for r in _bt_results) / len(_bt_results)
-                    _model_avg = sum(r['model_mae'] for r in _bt_results) / len(_bt_results)
-                    _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro {_model_avg:.1f} p.p.) — <a href="paredoes.html#nosso-modelo-back-test" style="color:#f1c40f; font-size:0.9em;">ver back-test</a>')
+                    if _bt_results:
+                        _consol_correct = sum(1 for r in _bt_results if r.get('consolidado_correct'))
+                        _model_correct_n = sum(1 for r in _bt_results if r.get('model_correct'))
+                        _consol_avg = sum(r['consolidado_mae'] for r in _bt_results) / len(_bt_results)
+                        _model_avg = sum(r['model_mae'] for r in _bt_results) / len(_bt_results)
+                        _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro {_model_avg:.1f} p.p.) — <a href="paredoes.html#nosso-modelo-back-test" style="color:#f1c40f; font-size:0.9em;">ver back-test</a>')
 
             if _curiosities:
                 print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.8rem 1rem; margin:0.8rem 0 1rem 0;">')
@@ -698,29 +692,15 @@ if ultimo:
                 print(f'<details style="margin-top:0.3rem; font-size:0.82em;">')
                 print(f'<summary class="text-muted" style="cursor:pointer;">ℹ️ Como funciona o modelo: {" · ".join(_weight_parts)}</summary>')
                 print(f'<div style="padding:0.7rem; margin-top:0.3rem; background:rgba(0,188,140,0.05); border-radius:8px; color:#aaa; font-size:0.95em;">')
-                # Compute actual Sites volume share for the explanation text
-                _sites_vol_exp = 0
-                _total_vol_exp = 0
-                for _pl_exp in ['sites', 'youtube', 'twitter', 'instagram']:
-                    _pv_exp = plataformas.get(_pl_exp, {}).get('votos', 0)
-                    _total_vol_exp += _pv_exp
-                    if _pl_exp == 'sites':
-                        _sites_vol_exp = _pv_exp
-                _sites_share_exp = round(_sites_vol_exp * 100 / _total_vol_exp) if _total_vol_exp > 0 else 70
+                # Use pre-computed platform volumes for explanation text
+                _sites_share_exp = round(_plat_volumes.get('sites', 0) * 100 / _total_plat_votos) if _total_plat_votos > 0 else 0
                 print(f'<p style="margin:0 0 0.5rem 0;">O Votalhada soma votos de todas as fontes — quem tem mais votos pesa mais (Sites ~{_sites_share_exp}%). Mas ter muitos votos não significa acertar o resultado.</p>')
                 print(f'<p style="margin:0 0 0.5rem 0;">Nosso modelo olha para os <strong>{len([p for p in polls_data.get("paredoes", []) if p.get("resultado_real")])} paredões anteriores</strong> e calcula quais plataformas erraram menos. Quem acertou mais ganha mais peso:</p>')
                 print(f'<table style="font-size:0.9em; margin:0.3rem 0;">')
                 print(f'<tr><th>Plataforma</th><th class="tc">Erro médio</th><th class="tc">Peso Votalhada</th><th class="tc">Peso Modelo</th></tr>')
-                # Compute actual Votalhada volume shares for this paredão
-                _vol_actual = {}
-                _total_vol_d = 0
-                for _pl_d in ['sites', 'youtube', 'twitter', 'instagram']:
-                    _pv_d = plataformas.get(_pl_d, {}).get('votos', 0)
-                    _vol_actual[_pl_d] = _pv_d
-                    _total_vol_d += _pv_d
                 for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
                     rmse_val = _rmse_info.get(p, 0)
-                    _vol_pct = round(_vol_actual.get(p, 0) * 100 / _total_vol_d) if _total_vol_d > 0 else 0
+                    _vol_pct = round(_plat_volumes.get(p, 0) * 100 / _total_plat_votos) if _total_plat_votos > 0 else 0
                     print(f'<tr><td>{_plat_labels_d.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_pct}%</td><td class="tc" style="font-weight:bold;">{w*100:.0f}%</td></tr>')
                 print(f'</table>')
                 # Dynamic backtest stats (computed earlier via backtest_precision_model)
@@ -1456,7 +1436,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
         # Build paredão history for finalized view
         _raw_par_fin = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
-        _par_hist_fin = _build_paredao_history(_raw_par_fin.get('paredoes', []), ultimo['numero'])
+        _par_hist_fin = build_paredao_history(_raw_par_fin.get('paredoes', []), ultimo['numero'])
 
         # ── Visual: Cards com fotos e resultado ──
         print(render_nominee_cards_finalized(

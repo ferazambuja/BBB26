@@ -36,6 +36,7 @@ from data_utils import (
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     ANALYSIS_DESCRIPTIONS,
 )
+from paredao_viz import build_paredao_history
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
@@ -806,6 +807,9 @@ print(tabs_html)
 # Precompute precision weights for model rows in tabs
 _prec_all = calculate_precision_weights(polls_data)
 
+# Pre-load raw paredões data for history building (once, not per-loop)
+_raw_paredoes_arc = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8')).get('paredoes', [])
+
 # Generate tab content for each finalized paredão
 print('<div class="tab-content" id="paredaoTabsContent">')
 
@@ -830,23 +834,8 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     # HEADER WITH RESULT CARDS
     # ══════════════════════════════════════════════════════════════
 
-    # Build history for nominees in this paredão
-    _raw_par_arc = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
-    _par_hist_arc = {}
-    for _hp in _raw_par_arc.get('paredoes', []):
-        _hn = _hp.get('numero', 0)
-        if _hn >= par_num:
-            continue
-        _hr = _hp.get('resultado', {})
-        _hv = _hr.get('votos', {})
-        _he = _hr.get('eliminado', '')
-        for _hi in _hp.get('indicados_finais', []):
-            _hname = _hi['nome']
-            _hentry = {'paredao': _hn, 'como': _hi.get('como', '?'), 'falso': _hp.get('paredao_falso', False)}
-            if _hv and _hname in _hv:
-                _hentry['voto_total'] = _hv[_hname].get('voto_total', 0)
-                _hentry['eliminado'] = (_hname == _he)
-            _par_hist_arc.setdefault(_hname, []).append(_hentry)
+    # Build history for nominees in this paredão (using shared function)
+    _par_hist_arc = build_paredao_history(_raw_paredoes_arc, par_num)
 
     _is_par_falso = paredao.get('paredao_falso', False)
 

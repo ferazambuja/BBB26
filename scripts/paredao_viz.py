@@ -45,7 +45,7 @@ _EMOJI_MAP: dict[str, str] = {
 }
 
 
-def _build_paredao_history(
+def build_paredao_history(
     all_paredoes: list[dict],
     current_numero: int,
 ) -> dict[str, list[dict]]:
