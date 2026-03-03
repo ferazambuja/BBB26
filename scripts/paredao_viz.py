@@ -45,44 +45,119 @@ _EMOJI_MAP: dict[str, str] = {
 }
 
 
+def _build_paredao_history(
+    all_paredoes: list[dict],
+    current_numero: int,
+) -> dict[str, list[dict]]:
+    """Build per-participant paredão history from all paredões before the current one."""
+    history: dict[str, list[dict]] = {}
+    for p in all_paredoes:
+        num = p.get('numero', 0)
+        if num >= current_numero:
+            continue  # Only past paredões
+        falso = p.get('paredao_falso', False)
+        resultado = p.get('resultado', {})
+        eliminado = resultado.get('eliminado', '')
+        votos = resultado.get('votos', {})
+        for ind in p.get('indicados_finais', []):
+            nome = ind['nome']
+            como = ind.get('como', '?')
+            entry: dict = {'paredao': num, 'como': como, 'falso': falso}
+            if votos and nome in votos:
+                v = votos[nome]
+                entry['voto_total'] = v.get('voto_total', 0)
+                entry['eliminado'] = (nome == eliminado)
+            history.setdefault(nome, []).append(entry)
+    return history
+
+
 def render_nominee_cards_em_andamento(
     participantes: list[dict],
     esperado_indicados: int,
     avatars: dict[str, str],
     member_of: dict[str, str],
+    *,
+    poll_predictions: dict[str, float] | None = None,
+    is_save_poll: bool = False,
+    paredao_history: dict[str, list[dict]] | None = None,
+    is_paredao_falso: bool = False,
 ) -> str:
-    """Render nominee cards for an in-progress paredão, including placeholder cards."""
+    """Render nominee cards for an in-progress paredão.
+
+    Args:
+        poll_predictions: {name: pct} from our model (or consolidado).
+        is_save_poll: True if vote-to-save (Paredão Falso).
+        paredao_history: {name: [past entries]} for repeat nominees.
+        is_paredao_falso: True if current paredão is fake.
+    """
     lines: list[str] = []
-    lines.append('<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; margin: 2rem 0;">')
-    for p in participantes:
+    lines.append('<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; margin:1.5rem 0;">')
+
+    # Sort by prediction if available (highest first)
+    sorted_parts = list(participantes)
+    if poll_predictions:
+        sorted_parts.sort(key=lambda p: poll_predictions.get(p['nome'], 0), reverse=True)
+
+    for p in sorted_parts:
         nome = p['nome']
-        grupo = p.get('grupo', member_of.get(nome, '?'))
-        cor_grupo = GROUP_COLORS.get(grupo, '#666')
         avatar_url = avatars.get(nome, '')
         como_indicado = p.get('como', '')
         is_auto = como_indicado == 'API'
         esc_nome = safe_html(nome)
-        esc_grupo = safe_html(grupo)
+        first_name = nome.split()[0]
 
-        border_style = f"2px dashed {cor_grupo}" if is_auto else f"2px solid {cor_grupo}"
+        # Determine card accent color from prediction
+        pct = poll_predictions.get(nome, 0) if poll_predictions else 0
+        if poll_predictions and len(poll_predictions) >= 2:
+            max_pct = max(poll_predictions.values())
+            min_pct = min(poll_predictions.values())
+            if pct == max_pct:
+                accent = '#2ecc71' if is_save_poll else '#e74c3c'
+            elif pct == min_pct:
+                accent = '#e74c3c' if is_save_poll else '#2ecc71'
+            else:
+                accent = '#f39c12'
+        else:
+            accent = '#f39c12'
+
+        border_style = f"2px dashed {accent}" if is_auto else f"2px solid {accent}"
         opacity = "0.85" if is_auto else "1"
 
-        lines.append(f'<div class="nominee-card" style="border: {border_style}; opacity: {opacity};">')
+        # History count
+        past = (paredao_history or {}).get(nome, [])
+        n_past = len(past)
+        hist_badge = ''
+        if n_past > 0:
+            hist_badge = f'<div style="position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; width:22px; height:22px; border-radius:50%; font-size:0.7em; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{n_past + 1}x</div>'
+
+        lines.append(f'<div style="border:{border_style}; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.03); opacity:{opacity}; width:140px; text-align:center; position:relative;">')
+        lines.append(hist_badge)
         if avatar_url:
-            lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" class="nominee-avatar" style="border: 3px solid {cor_grupo};">')
-        lines.append(f'<h4 class="tc" style="margin: 0; color: #fff; font-size: 1.1em;">{esc_nome}</h4>')
-        lines.append(f'<span class="group-badge" style="background: {cor_grupo};">{esc_grupo}</span>')
+            lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid {accent}; margin-bottom:0.4rem;">')
+        lines.append(f'<div style="font-weight:bold; color:#fff; font-size:0.95em; margin-bottom:0.2rem;">{first_name}</div>')
+
+        # Prediction percentage + bar
+        if poll_predictions and pct > 0:
+            bar_color = accent
+            lines.append(f'<div style="font-size:1.4em; font-weight:bold; color:{accent}; margin:0.2rem 0;">{pct:.1f}%</div>')
+            lines.append(f'<div style="background:rgba(255,255,255,0.1); border-radius:4px; height:6px; width:100%; margin:0.2rem 0;">')
+            lines.append(f'<div style="background:{bar_color}; height:100%; border-radius:4px; width:{min(pct, 100):.0f}%;"></div>')
+            lines.append(f'</div>')
+
+        # How they got nominated
         if como_indicado and not is_auto:
-            lines.append(f'<div style="color: #aaa; font-size: 0.8em; margin-top: 0.5rem;">via {safe_html(como_indicado)}</div>')
+            lines.append(f'<div style="color:#aaa; font-size:0.72em; margin-top:0.3rem;">via {safe_html(como_indicado)}</div>')
         elif is_auto:
-            lines.append(f'<div style="color: #f39c12; font-size: 0.75em; margin-top: 0.5rem;">⏳ aguardando detalhes</div>')
+            lines.append(f'<div style="color:#f39c12; font-size:0.72em; margin-top:0.3rem;">⏳ aguardando</div>')
+
         lines.append('</div>')
 
+    # Placeholder cards for missing nominees
     n_indicados = len(participantes)
     for _ in range(esperado_indicados - n_indicados):
-        lines.append(f'<div class="nominee-card-placeholder">')
-        lines.append(f'<div style="width: 120px; height: 120px; border-radius: 50%; background: #333; margin: 0 auto 1rem auto; display: flex; align-items: center; justify-content: center; font-size: 2em; color: #555;">?</div>')
-        lines.append(f'<h4 class="tc" style="margin: 0; color: #666; font-size: 1.1em;">Aguardando...</h4>')
+        lines.append(f'<div style="border:2px dashed #444; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.02); width:140px; text-align:center;">')
+        lines.append(f'<div style="width:80px; height:80px; border-radius:50%; background:#333; margin:0 auto 0.4rem auto; display:flex; align-items:center; justify-content:center; font-size:1.8em; color:#555;">?</div>')
+        lines.append(f'<div style="color:#666; font-size:0.9em;">Aguardando...</div>')
         lines.append('</div>')
 
     lines.append('</div>')
@@ -93,41 +168,54 @@ def render_nominee_cards_finalized(
     df_rows: list[dict],
     avatars: dict[str, str],
     member_of: dict[str, str],
+    *,
+    is_paredao_falso: bool = False,
+    paredao_history: dict[str, list[dict]] | None = None,
 ) -> str:
     """Render result cards for a finalized paredão.
 
     Each row dict must have keys: nome, grupo, resultado, voto_total.
     """
     lines: list[str] = []
-    lines.append(f'<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; margin: 1.5rem 0 2rem 0;">')
+    lines.append('<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; margin:1.5rem 0 2rem 0;">')
     for row in df_rows:
         nome = row['nome']
-        grupo = row.get('grupo', member_of.get(nome, '?'))
         resultado = row.get('resultado', '')
         voto_total = row.get('voto_total', 0)
         avatar_url = avatars.get(nome, '')
-        cor_grupo = GROUP_COLORS.get(grupo, '#666')
         esc_nome = safe_html(nome)
-        esc_grupo = safe_html(grupo)
+        first_name = nome.split()[0]
 
         if resultado == 'ELIMINADA':
             border_color = '#E6194B'
             badge_bg = '#E6194B'
-            badge_text = 'ELIMINADO(A)'
+            if is_paredao_falso:
+                badge_text = '🔮 QUARTO SECRETO'
+            else:
+                suf = 'A' if genero(nome) == 'f' else 'O'
+                badge_text = f'ELIMINAD{suf}'
             img_filter = 'grayscale(100%)'
         else:
             border_color = '#3CB44B'
             badge_bg = '#3CB44B'
-            badge_text = 'SALVO(A)'
+            suf = 'A' if genero(nome) == 'f' else 'O'
+            badge_text = f'SALV{suf}'
             img_filter = 'none'
 
-        lines.append(f'<div class="nominee-card" style="width: 160px; border: 3px solid {border_color};">')
+        # History count
+        past = (paredao_history or {}).get(nome, [])
+        n_past = len(past)
+        hist_badge = ''
+        if n_past > 0:
+            hist_badge = f'<div style="position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; width:22px; height:22px; border-radius:50%; font-size:0.7em; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{n_past + 1}x</div>'
+
+        lines.append(f'<div style="width:150px; border:3px solid {border_color}; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.03); text-align:center; position:relative;">')
+        lines.append(hist_badge)
         if avatar_url:
-            lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid {border_color}; margin-bottom: 0.75rem; filter: {img_filter};">')
-        lines.append(f'<h4 class="tc" style="margin: 0 0 0.25rem 0; color: #fff; font-size: 1em;">{esc_nome}</h4>')
-        lines.append(f'<span style="display: block; color: {cor_grupo}; font-size: 0.8em; margin-bottom: 0.5rem;">{esc_grupo}</span>')
-        lines.append(f'<span style="display: inline-block; padding: 0.25rem 0.6rem; background: {badge_bg}; color: #fff; border-radius: 10px; font-size: 0.75em; font-weight: bold;">{badge_text}</span>')
-        lines.append(f'<div style="color: #fff; font-size: 1.3em; font-weight: bold; margin-top: 0.5rem;">{voto_total:.1f}%</div>')
+            lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
+        lines.append(f'<div style="font-weight:bold; color:#fff; font-size:0.95em; margin-bottom:0.3rem;">{first_name}</div>')
+        lines.append(f'<span style="display:inline-block; padding:0.2rem 0.5rem; background:{badge_bg}; color:#fff; border-radius:8px; font-size:0.68em; font-weight:bold;">{badge_text}</span>')
+        lines.append(f'<div style="color:#fff; font-size:1.3em; font-weight:bold; margin-top:0.3rem;">{voto_total:.1f}%</div>')
         lines.append('</div>')
     lines.append('</div>')
     return '\n'.join(lines)

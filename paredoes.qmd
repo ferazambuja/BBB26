@@ -473,6 +473,107 @@ if len(finalized_polls) >= 1:
         print(f'</div>\n')
 
     # ══════════════════════════════════════════════════════════════
+    # CURIOSIDADES HISTÓRICAS (global, cross-paredão)
+    # ══════════════════════════════════════════════════════════════
+    if len(finalized_polls) >= 2:
+        _gc = []  # global curiosities
+
+        # 1. Tightest vs widest margin
+        _margins = []
+        for _fp in finalized_polls:
+            _fp_parts = _fp.get('participantes', [])
+            _fp_consol = _fp.get('consolidado', {})
+            if len(_fp_parts) >= 2:
+                _fp_sorted = sorted([(_n, _fp_consol.get(_n, 0)) for _n in _fp_parts], key=lambda x: -x[1])
+                _fp_margin = abs(_fp_sorted[0][1] - _fp_sorted[1][1])
+                _margins.append((_fp['numero'], _fp_margin, _fp_sorted[0][0].split()[0], _fp_sorted[1][0].split()[0]))
+        if _margins:
+            _tightest = min(_margins, key=lambda x: x[1])
+            _widest = max(_margins, key=lambda x: x[1])
+            if _tightest[0] != _widest[0]:
+                _gc.append(f'📏 Mais acirrado: <strong>P{_tightest[0]}</strong> ({_tightest[1]:.1f} p.p., {_tightest[2]} vs {_tightest[3]}) · Mais folgado: <strong>P{_widest[0]}</strong> ({_widest[1]:.1f} p.p.)')
+
+        # 2. Most/least engagement (total votes)
+        _engagements = []
+        for _fp in finalized_polls:
+            _fp_votos = _fp.get('consolidado', {}).get('total_votos', 0)
+            if _fp_votos > 0:
+                _engagements.append((_fp['numero'], _fp_votos))
+        if len(_engagements) >= 2:
+            _max_eng = max(_engagements, key=lambda x: x[1])
+            _min_eng = min(_engagements, key=lambda x: x[1])
+            if _max_eng[0] != _min_eng[0]:
+                _gc.append(f'🗳️ Mais engajamento: <strong>P{_max_eng[0]}</strong> ({_max_eng[1]/1_000_000:.1f}M votos) · Menos: <strong>P{_min_eng[0]}</strong> ({_min_eng[1]/1_000_000:.1f}M)')
+
+        # 3. Sites systematic bias — does Sites consistently under/overestimate the eliminated?
+        _sites_biases = []
+        for _fp in finalized_polls:
+            _fp_elim = _fp.get('resultado_real', {}).get('eliminado', '')
+            _fp_real = _fp.get('resultado_real', {}).get(_fp_elim, 0)
+            _fp_sites = _fp.get('plataformas', {}).get('sites', {}).get(_fp_elim, 0)
+            if _fp_real > 0 and _fp_sites > 0:
+                _sites_biases.append(_fp_sites - _fp_real)
+        if _sites_biases:
+            _same_dir = sum(1 for b in _sites_biases if b < 0)
+            _avg_bias = sum(_sites_biases) / len(_sites_biases)
+            _direction_w = 'subestima' if _avg_bias < 0 else 'superestima'
+            if _same_dir >= len(_sites_biases) * 0.7:
+                _gc.append(f'⚠️ Sites consistentemente <strong>{_direction_w}</strong> o eliminado: {_same_dir}/{len(_sites_biases)} paredões, média {abs(_avg_bias):.1f} p.p.')
+
+        # 4. Model biggest correction — largest delta between model and Votalhada prediction
+        if backtest:
+            _bt_results = backtest['per_paredao']
+            _biggest_corr = None
+            _biggest_delta = 0
+            for _r in _bt_results:
+                if _r.get('model_mae') is not None and _r.get('consolidado_mae') is not None:
+                    _delta = _r['consolidado_mae'] - _r['model_mae']
+                    if abs(_delta) > abs(_biggest_delta):
+                        _biggest_delta = _delta
+                        _biggest_corr = _r
+            if _biggest_corr and abs(_biggest_delta) > 1:
+                if _biggest_delta > 0:
+                    _gc.append(f'🎯 Maior correção: no <strong>P{_biggest_corr["numero"]}</strong> ({_biggest_corr["eliminado"].split()[0]}), modelo reduziu o erro em <strong>{_biggest_delta:.1f} p.p.</strong> vs Votalhada')
+                else:
+                    _gc.append(f'📉 No <strong>P{_biggest_corr["numero"]}</strong> ({_biggest_corr["eliminado"].split()[0]}), Votalhada superou o modelo por <strong>{abs(_biggest_delta):.1f} p.p.</strong>')
+
+        # 5. Model track record
+        if backtest:
+            _bt_results = backtest['per_paredao']
+            _model_wins = sum(1 for r in _bt_results if r.get('model_mae') is not None and r.get('consolidado_mae') is not None and r['model_mae'] < r['consolidado_mae'])
+            _total_bt = sum(1 for r in _bt_results if r.get('model_mae') is not None)
+            if _total_bt > 0:
+                if _model_wins == _total_bt:
+                    _gc.append(f'🏆 Modelo superou Votalhada em <strong>{_model_wins}/{_total_bt}</strong> paredões testados — invicto!')
+                elif _model_wins > _total_bt / 2:
+                    _gc.append(f'🏆 Modelo superou Votalhada em <strong>{_model_wins}/{_total_bt}</strong> paredões testados')
+                else:
+                    _gc.append(f'📊 Modelo superou Votalhada em apenas <strong>{_model_wins}/{_total_bt}</strong> paredões — margem apertada')
+
+        # 6. Platform trend (first-half vs last-half avg error, if >= 3 finalized)
+        if len(finalized_polls) >= 3:
+            _half = len(finalized_polls) // 2
+            for _pl in ['sites', 'youtube', 'twitter', 'instagram']:
+                if _pl in platform_errors and len(platform_errors[_pl]) >= 3:
+                    _first_half = [e['erro'] for e in platform_errors[_pl][:_half]]
+                    _second_half = [e['erro'] for e in platform_errors[_pl][_half:]]
+                    if _first_half and _second_half:
+                        _avg_first = sum(_first_half) / len(_first_half)
+                        _avg_second = sum(_second_half) / len(_second_half)
+                        _trend_delta = _avg_second - _avg_first
+                        if abs(_trend_delta) > 2:
+                            _trend_dir = 'piorou' if _trend_delta > 0 else 'melhorou'
+                            _pl_name = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}.get(_pl, _pl)
+                            _gc.append(f'📈 {_pl_name} <strong>{_trend_dir}</strong> ao longo da temporada: {_avg_first:.1f} → {_avg_second:.1f} p.p. (Δ{_trend_delta:+.1f})')
+
+        if _gc:
+            print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.8rem 1rem; margin:1rem 0;">')
+            print(f'<div style="font-size:0.85em; font-weight:bold; color:#f1c40f; margin-bottom:0.5rem;">💡 Curiosidades Históricas</div>')
+            for _c in _gc:
+                print(f'<div style="font-size:0.85em; color:#ddd; margin-bottom:0.3rem;">{_c}</div>')
+            print(f'</div>\n')
+
+    # ══════════════════════════════════════════════════════════════
     # IMPACTO DO PESO 70/30 VS CENÁRIO 50/50 (RETROATIVO)
     # ══════════════════════════════════════════════════════════════
     rows_5050 = []
@@ -729,34 +830,89 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     # HEADER WITH RESULT CARDS
     # ══════════════════════════════════════════════════════════════
 
-    print('<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin: 1rem 0 1.5rem 0;">')
+    # Build history for nominees in this paredão
+    _raw_par_arc = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
+    _par_hist_arc = {}
+    for _hp in _raw_par_arc.get('paredoes', []):
+        _hn = _hp.get('numero', 0)
+        if _hn >= par_num:
+            continue
+        _hr = _hp.get('resultado', {})
+        _hv = _hr.get('votos', {})
+        _he = _hr.get('eliminado', '')
+        for _hi in _hp.get('indicados_finais', []):
+            _hname = _hi['nome']
+            _hentry = {'paredao': _hn, 'como': _hi.get('como', '?'), 'falso': _hp.get('paredao_falso', False)}
+            if _hv and _hname in _hv:
+                _hentry['voto_total'] = _hv[_hname].get('voto_total', 0)
+                _hentry['eliminado'] = (_hname == _he)
+            _par_hist_arc.setdefault(_hname, []).append(_hentry)
+
+    _is_par_falso = paredao.get('paredao_falso', False)
+
+    print('<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; margin:1rem 0 1.5rem 0;">')
     for part in paredao['participantes']:
         nome = part['nome']
-        grupo = part.get('grupo', MEMBER_OF.get(nome, '?'))
         resultado = part.get('resultado', '')
         voto_total = part.get('voto_total', 0)
         avatar_url = AVATARS.get(nome, '')
-        cor_grupo = GROUP_COLORS.get(grupo, '#666')
+        first_name = nome.split()[0]
 
         if resultado == 'ELIMINADA':
             border_color = '#E6194B'
             badge_bg = '#E6194B'
-            badge_text = 'ELIMINADO(A)'
+            if _is_par_falso:
+                badge_text = '🔮 Q. SECRETO'
+            else:
+                suf = 'A' if genero(nome) == 'f' else 'O'
+                badge_text = f'ELIMINAD{suf}'
             img_filter = 'grayscale(100%)'
         else:
             border_color = '#3CB44B'
             badge_bg = '#3CB44B'
-            badge_text = 'SALVO(A)'
+            suf = 'A' if genero(nome) == 'f' else 'O'
+            badge_text = f'SALV{suf}'
             img_filter = 'none'
 
-        print(f'<div class="nominee-card-sm" style="border: 2px solid {border_color};">')
+        # History badge
+        _past = _par_hist_arc.get(nome, [])
+        _n_past = len(_past)
+        _hist_badge = ''
+        if _n_past > 0:
+            _hist_badge = f'<div style="position:absolute; top:-5px; right:-5px; background:#e74c3c; color:#fff; width:20px; height:20px; border-radius:50%; font-size:0.65em; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{_n_past + 1}x</div>'
+
+        print(f'<div style="border:2px solid {border_color}; border-radius:12px; padding:0.6rem; background:rgba(255,255,255,0.03); width:130px; text-align:center; position:relative;">')
+        print(_hist_badge)
         if avatar_url:
-            print(f'<img src="{avatar_url}" alt="{nome}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid {border_color}; margin-bottom: 0.5rem; filter: {img_filter};">')
-        print(f'<div style="color: #fff; font-size: 0.9em; font-weight:bold;">{nome.split()[0]}</div>')
-        print(f'<span style="display: inline-block; padding: 0.15rem 0.4rem; background: {badge_bg}; color: #fff; border-radius: 8px; font-size: 0.65em; margin: 0.3rem 0;">{badge_text}</span>')
-        print(f'<div style="color: #fff; font-size: 1.2em; font-weight: bold;">{voto_total:.1f}%</div>')
+            print(f'<img src="{avatar_url}" alt="{nome}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
+        print(f'<div style="color:#fff; font-size:0.9em; font-weight:bold;">{first_name}</div>')
+        print(f'<span style="display:inline-block; padding:0.15rem 0.4rem; background:{badge_bg}; color:#fff; border-radius:8px; font-size:0.62em; font-weight:bold; margin:0.2rem 0;">{badge_text}</span>')
+        print(f'<div style="color:#fff; font-size:1.2em; font-weight:bold;">{voto_total:.1f}%</div>')
         print('</div>')
     print('</div>')
+
+    # Paredão history table (for nominees with past appearances)
+    _arc_nominees_hist = [(part['nome'], _par_hist_arc.get(part['nome'], [])) for part in paredao['participantes'] if _par_hist_arc.get(part['nome'])]
+    if _arc_nominees_hist:
+        print('<details style="margin:0 0 1rem 0;">')
+        print('<summary style="cursor:pointer; font-size:0.85em; color:#aaa;">📋 Histórico em paredões anteriores</summary>')
+        print('<div style="overflow-x:auto; margin-top:0.4rem;">')
+        print('<table class="table table-sm" style="font-size:0.8rem; white-space:nowrap;">')
+        print('<thead><tr><th>Participante</th><th>Par.</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
+        for _h_nome, _h_entries in _arc_nominees_hist:
+            _h_fn = _h_nome.split()[0]
+            _h_av = avatar_img(_h_nome, AVATARS, 22)
+            for _h in _h_entries:
+                _h_pct = f'{_h["voto_total"]:.1f}%' if 'voto_total' in _h else '—'
+                _h_f = ' 🔮' if _h.get('falso') else ''
+                if _h.get('eliminado'):
+                    _h_r = f'<span style="color:#E6194B; font-weight:bold;">Elim.</span>'
+                elif 'voto_total' in _h:
+                    _h_r = f'<span style="color:#2ecc71;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
+                else:
+                    _h_r = '—'
+                print(f'<tr><td>{_h_av} {_h_fn}</td><td>{_h["paredao"]}º{_h_f}</td><td style="font-size:0.9em;">{_h["como"]}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_r}</td></tr>')
+        print('</tbody></table></div></details>\n')
 
     # ══════════════════════════════════════════════════════════════
     # RESULT CHART
@@ -1051,6 +1207,78 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             _worst_p = max(_plat_errs_a, key=lambda k: _plat_errs_a[k])
             if _plat_errs_a[_best_p] != _plat_errs_a[_worst_p]:
                 _arc_curiosities.append(f'🏆 Mais precisa: <strong>{_plat_names_h[_best_p]}</strong> (erro {_plat_errs_a[_best_p]:.1f} p.p.) · Menos precisa: <strong>{_plat_names_h[_worst_p]}</strong> ({_plat_errs_a[_worst_p]:.1f} p.p.)')
+
+        # 4. Vote total + platform volume breakdown
+        _arc_total_votos = consolidado.get('total_votos', 0)
+        if _arc_total_votos > 0:
+            _arc_m = _arc_total_votos / 1_000_000 if _arc_total_votos >= 1_000_000 else _arc_total_votos / 1_000
+            _arc_unit = 'M' if _arc_total_votos >= 1_000_000 else 'mil'
+            _arc_vol_parts = []
+            _arc_total_pv = 0
+            _arc_plat_v = {}
+            for _pl in ['sites', 'youtube', 'twitter', 'instagram']:
+                _pv = plataformas.get(_pl, {}).get('votos', 0)
+                if _pv > 0:
+                    _arc_plat_v[_pl] = _pv
+                    _arc_total_pv += _pv
+            _vote_line = f'🗳️ <strong>{_arc_m:.1f}{_arc_unit} votos</strong>'
+            if _arc_total_pv > 0:
+                _plat_label_a = {'sites': 'Sites', 'youtube': 'YT', 'twitter': 'TW', 'instagram': 'IG'}
+                _vol_strs = [f'{_plat_label_a.get(p, p)} {v*100/_arc_total_pv:.0f}%' for p, v in sorted(_arc_plat_v.items(), key=lambda x: -x[1])]
+                _vote_line += f' ({" · ".join(_vol_strs)})'
+            _arc_curiosities.append(_vote_line)
+
+        # 5. Margin closeness + historical rank
+        _arc_sorted = sorted([(n, consolidado.get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
+        if len(_arc_sorted) >= 2:
+            _arc_margin = abs(_arc_sorted[0][1] - _arc_sorted[1][1])
+            _other_margins = []
+            for _op in all_polls:
+                if _op.get('numero', 0) == poll.get('numero', 0) or not _op.get('resultado_real'):
+                    continue
+                _op_parts = _op.get('participantes', [])
+                _op_consol = _op.get('consolidado', {})
+                if len(_op_parts) >= 2:
+                    _op_sorted = sorted([(_n, _op_consol.get(_n, 0)) for _n in _op_parts], key=lambda x: -x[1])
+                    _other_margins.append((_op['numero'], abs(_op_sorted[0][1] - _op_sorted[1][1])))
+            if _other_margins:
+                _tightest = min(_other_margins, key=lambda x: x[1])
+                _widest = max(_other_margins, key=lambda x: x[1])
+                if _arc_margin <= _tightest[1]:
+                    _arc_curiosities.append(f'📏 Margem de <strong>{_arc_margin:.1f} p.p.</strong> — a mais acirrada de todos os paredões!')
+                elif _arc_margin >= _widest[1]:
+                    _arc_curiosities.append(f'📏 Margem de <strong>{_arc_margin:.1f} p.p.</strong> — a mais folgada de todos os paredões')
+                elif _arc_margin < 5.0:
+                    _arc_curiosities.append(f'📏 Disputa acirrada: apenas <strong>{_arc_margin:.1f} p.p.</strong> entre {_arc_sorted[0][0].split()[0]} e {_arc_sorted[1][0].split()[0]}')
+
+        # 6. Sites penalty — Sites error significantly above average
+        if _plat_errs_a and 'sites' in _plat_errs_a:
+            _sites_err_a = _plat_errs_a['sites']
+            if _sites_err_a > 15:
+                _sites_pred_a = plataformas.get('sites', {}).get(_real_elim_a, 0)
+                _direction_a = 'subestimou' if _sites_pred_a < _real_val_a else 'superestimou'
+                _arc_curiosities.append(f'⚠️ Sites {_direction_a} {_real_elim_a.split()[0]} em <strong>{_sites_err_a:.1f} p.p.</strong> — previsão {_sites_pred_a:.1f}% vs real {_real_val_a:.1f}%')
+
+        # 7. Lead changes from time series
+        _arc_serie = poll.get('serie_temporal', [])
+        if len(_arc_serie) >= 2:
+            _arc_leaders_t = []
+            for _pt in _arc_serie:
+                _pt_vals = {n: _pt.get(n, 0) for n in participantes_poll}
+                if _pt_vals:
+                    _arc_leaders_t.append(max(_pt_vals, key=lambda k: _pt_vals[k]))
+            _arc_lead_changes = sum(1 for i in range(1, len(_arc_leaders_t)) if _arc_leaders_t[i] != _arc_leaders_t[i-1])
+            if _arc_lead_changes >= 1:
+                _arc_curiosities.append(f'🔄 Liderança trocou <strong>{_arc_lead_changes}×</strong> nas enquetes durante a votação')
+            elif len(_arc_serie) >= 3:
+                _arc_curiosities.append(f'📈 {_arc_leaders_t[0].split()[0]} liderou todas as <strong>{len(_arc_serie)}</strong> aferições sem alternar')
+
+        # 8. Volume vs accuracy paradox (Sites vs Twitter)
+        if _plat_errs_a and 'sites' in _plat_errs_a and 'twitter' in _plat_errs_a:
+            _sites_e = _plat_errs_a['sites']
+            _tw_e = _plat_errs_a['twitter']
+            if _sites_e > _tw_e + 5:
+                _arc_curiosities.append(f'⚖️ Neste paredão: Twitter errou {_tw_e:.1f} p.p. · Sites errou {_sites_e:.1f} p.p. — volume ≠ precisão')
 
         if _arc_curiosities:
             print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.6rem 0.8rem; margin:0.5rem 0 0.8rem 0;">')
