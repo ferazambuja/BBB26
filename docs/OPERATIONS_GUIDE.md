@@ -824,7 +824,7 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 | **GShow article** | Feb 5 (Wed) — article published | ~09:00 |
 | **Raio-X wake-up** | Normal days / Post-party days | 09h-13h |
 
-**Key finding**: API data updates around **~14:00 BRT**. GShow publishes the article earlier (~09:00 BRT).
+**Key finding**: API data updates around **~14:00 BRT**. GShow publishes the article earlier (~09:00 BRT). Exact timing not yet confirmed — temporary probes active (see below).
 
 ### Current cron schedule
 
@@ -845,6 +845,40 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 | 23:00 | 20:00 | Post-Monstro pick |
 
 **Total**: 6 runs/day (weekdays), 8 on Saturdays.
+
+### Temporary timing probes (added 2026-03-03)
+
+To pinpoint the exact queridômetro update time, 10 extra probes run every 30 min from **09:30 to 14:00 BRT**:
+
+| BRT | UTC | Cron expression |
+|-----|-----|-----------------|
+| 09:30 | 12:30 | `30 12-16 * * *` |
+| 10:00 | 13:00 | `0 13-17 * * *` |
+| 10:30 | 13:30 | `30 12-16 * * *` |
+| 11:00 | 14:00 | `0 13-17 * * *` |
+| 11:30 | 14:30 | `30 12-16 * * *` |
+| 12:00 | 15:00 | `0 13-17 * * *` |
+| 12:30 | 15:30 | `30 12-16 * * *` |
+| 13:00 | 16:00 | `0 13-17 * * *` |
+| 13:30 | 16:30 | `30 12-16 * * *` |
+| 14:00 | 17:00 | `0 13-17 * * *` |
+
+`fetch_data.py` only saves when data actually changes (hash comparison), so the first new snapshot after the 06:00 BRT baseline reveals the exact update time.
+
+**Analyzing results**:
+
+```bash
+# Check which snapshot times captured the queridômetro change today
+ls -la data/snapshots/ | grep "$(date -u +%Y-%m-%d)"
+
+# Full timing analysis across all captured days
+python scripts/analyze_capture_timing.py
+```
+
+**When to remove**: After 3–5 days of data, run `analyze_capture_timing.py` to confirm the update window. Then:
+1. Remove the two temporary cron lines from `.github/workflows/daily-update.yml`
+2. Adjust the permanent 15:00 BRT slot if the data shows an earlier/later window
+3. Update the "Key finding" above with the confirmed time
 
 ---
 
