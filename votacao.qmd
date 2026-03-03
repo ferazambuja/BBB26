@@ -370,13 +370,15 @@ print('</div>')
 print("### 🩺 Saúde da Votação: quem a torcida tenta eliminar?\n")
 
 print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
-print('Em cada paredão, a batalha real é entre os <strong>dois mais votados</strong> — ')
-print('o terceiro é figurante. Quando o Voto Único (CPF) e o Voto da Torcida ')
-print('apontam na mesma direção, a votação é <strong>saudável</strong>. ')
-print('O sinal de perigo aparece quando a torcida <strong>infla o VT do sobrevivente</strong> — ')
-print('despejando votos para eliminar alguém que o povo, pelo CPF, escolheu manter. ')
-print('É o padrão clássico de má-fé: usar o voto ilimitado para ')
-print('empurrar para fora quem <strong>o CPF protegeria</strong>.</p>')
+print('No BBB, <strong>vota-se para eliminar</strong> — quem recebe mais votos, sai. ')
+print('Em cada paredão, a batalha real é entre os <strong>dois mais votados</strong>; ')
+print('o terceiro é figurante. Quando VU e VT concordam sobre quem deve sair, ')
+print('a votação é <strong>saudável</strong>. O sinal de perigo aparece quando há ')
+print('uma grande <strong>divergência</strong> entre os dois: a torcida despeja votos ')
+print('para forçar a saída de quem <strong>o CPF não priorizou</strong>, ou retém votos ')
+print('para proteger quem o povo escolheu eliminar. ')
+print('É a marca da manipulação: usar o voto ilimitado para tentar ')
+print('<strong>inverter a decisão do CPF</strong>.</p>')
 
 # Health cards per paredão — top-2 directional focus
 # Accumulate danger data for dynamic safety analysis below
@@ -492,7 +494,7 @@ else:
 
 # Legend
 print('<div class="fs-sm" style="color:#888; margin:0.3rem 0 0.8rem 0; text-align:center;">')
-print('🎯 = torcida inflou VT para eliminar (mirado) · 🛡️ = torcida deflou VT para proteger · Gap = VT &minus; VU do sobrevivente')
+print('🎯 = torcida despejou VT além do VU (mirando para eliminar) · 🛡️ = torcida reteve VT abaixo do VU (protegendo) · Perigo = maior divergência VT&minus;VU')
 print('</div>')
 
 # Editorial: the real problem — directional framing
