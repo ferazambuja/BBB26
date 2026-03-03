@@ -483,7 +483,7 @@ def _render_ranking_row(
     html += f'<td class="cell-compact tc text-muted">{rank}</td>'
     html += f'<td class="cell-compact" style="white-space:nowrap;">{avatar_img(tname, avatars, size=22)}'
     html += f'<strong style="color:#eee;">{safe_html(tname)}</strong>{_immune_tag}</td>'
-    html += f'<td class="cell-compact" style="color:{_sc_color}; font-weight:bold; font-family:monospace;">{_sc:+.2f}</td>'
+    html += f'<td class="cell-compact tabnum" style="color:{_sc_color}; font-weight:bold;">{_sc:+.2f}</td>'
 
     # Score bar
     _bar_pct = min(abs(_sc) / max_abs_score * 100, 100)
@@ -598,7 +598,7 @@ def _render_detail_row(
             html += f'<td class="text-muted" style="padding:2px 4px; white-space:nowrap;">{_e_date}</td>'
             html += f'<td style="padding:2px 4px; white-space:nowrap;">{_e_emoji} {_e_label}</td>'
             html += f'<td class="fs-base" style="padding:2px 4px; color:#aaa;">{_arrow}</td>'
-            html += f'<td class="tr" style="padding:2px 4px; color:{_e_wcolor}; font-family:monospace;">{_e_weight:+.2f}</td>'
+            html += f'<td class="tr tabnum" style="padding:2px 4px; color:{_e_wcolor};">{_e_weight:+.2f}</td>'
             html += f'<td class="text-muted" style="padding:2px 4px;">{_detail_str}</td>'
             html += '</tr>'
         html += '</tbody></table></div>'

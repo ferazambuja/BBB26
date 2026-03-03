@@ -13,6 +13,7 @@ project:
     - cartola.qmd
     - provas.qmd
     - clusters.qmd
+    - votacao.qmd
     - planta_debug.qmd
     - relacoes_debug.qmd
 
@@ -34,6 +35,8 @@ website:
         text: "🏅 Provas"
       - href: paredoes.qmd
         text: "📚 Paredões"
+      - href: votacao.qmd
+        text: "⚖️ Voto<br>Único/Torcida"
       - text: "🔬 Mais"
         menu:
           - href: datas.qmd
@@ -69,6 +72,9 @@ format:
       - file: assets/disclaimer.html
     include-in-header:
       - text: |
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap" rel="stylesheet">
           <script data-goatcounter="https://bbb.goatcounter.com/count"
                   async src="//gc.zgo.at/count.js"></script>
     include-after-body:

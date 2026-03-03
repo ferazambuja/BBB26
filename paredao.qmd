@@ -2604,6 +2604,28 @@ else:
 
 ---
 
+::: {.callout-important title="⚖️ Por que 70/30 e não 75/25?" appearance="simple"}
+<div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+<div style="flex:1; min-width:250px;">
+<p class="fs-lg" style="margin-bottom:0.5rem; color:#eee;">A campeã do BBB 25 <strong>perdeu no Voto Único por 9 pontos</strong> — mas venceu pelo Torcida. Pior audiência da história. Campeã menos seguida em 10 anos.</p>
+<p class="fs-base" style="color:#f39c12; margin-bottom:0.5rem;">Qual é o peso <strong>exato</strong> que inverte aquele resultado? Por que a Globo parou em 70% e não foi até 75%?</p>
+<p class="fs-base" style="margin:0;"><strong><a href="votacao.html" style="color:#2ecc71;">→ Ver a simulação completa + retroativo BBB 26</a></strong></p>
+</div>
+<div style="text-align:center; min-width:100px;">
+<div class="fs-4xl" style="color:#f39c12; font-weight:750;">74,3%</div>
+<div class="fs-sm" style="color:#aaa;">limiar de inversão</div>
+</div>
+</div>
+:::
+
+```{python}
+#| label: simulacao-70-30-placeholder
+#| include: false
+pass
+```
+
+---
+
 ::: {.callout-note title="📚 Ver mais" appearance="simple"}
 Quer ver os paredões anteriores? Acesse o **[Arquivo de Paredões](paredoes.html)** com votação da casa, análise de coerência e reações de cada eliminação.
 :::
@@ -2611,10 +2633,10 @@ Quer ver os paredões anteriores? Acesse o **[Arquivo de Paredões](paredoes.htm
 ::: {.callout-caution title="ℹ️ Sobre os dados (limitações e melhorias)" appearance="minimal" collapse="true"}
 - **Data de formação**: a análise usa o queridômetro do **dia da formação** (`data_formacao`). Se faltou snapshot do dia, usamos o mais próximo anterior.
 - **Queridômetro é privado**: contradições não significam falsidade — podem ser **estratégia** (consenso, alvo fácil, proteção de aliados).
-- **Emojis leves** (🌱💼🍪💔) são negativos mas não equivalem a hostilidade forte.  
+- **Emojis leves** (🌱💼🍪💔) são negativos mas não equivalem a hostilidade forte.
   **Melhoria prevista**: ponderar mais forte 🐍🎯🤮🤥 e reduzir peso de negativos leves nas leituras de coerência.
-- **Timing do jogo**: entre eliminação e nova liderança, as relações podem mudar rápido.  
-  **Melhoria prevista**: permitir “média móvel” de 2–3 dias na semana da formação.
+- **Timing do jogo**: entre eliminação e nova liderança, as relações podem mudar rápido.
+  **Melhoria prevista**: permitir "média móvel" de 2–3 dias na semana da formação.
 :::
 
 ::: {.callout-tip title="🧭 Navegação"}

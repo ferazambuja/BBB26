@@ -213,3 +213,165 @@ pre, code {
 .page-footer {
   font-size: var(--fs-base);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * INTER FONT — family, rendering, weight hierarchy, letter-spacing,
+ *              tabular-nums, badge tiers, component typography
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Font family + antialiased rendering ── */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Font-weight hierarchy ── */
+h1, .h1,
+h2, .h2 {
+  font-weight: 700;
+}
+
+h3, .h3 {
+  font-weight: 650;
+}
+
+h4, .h4,
+h5, .h5,
+h6, .h6 {
+  font-weight: 600;
+}
+
+.stat-value,
+.valuebox .value {
+  font-weight: 750;
+}
+
+.stat-label,
+.valuebox .title {
+  font-weight: 500;
+}
+
+.navbar-brand {
+  font-weight: 600;
+}
+
+.nav-link {
+  font-weight: 500;
+}
+
+/* Font-weight utilities */
+.fw-light   { font-weight: 300 !important; }
+.fw-regular { font-weight: 400 !important; }
+.fw-medium  { font-weight: 500 !important; }
+.fw-semi    { font-weight: 600 !important; }
+.fw-bold    { font-weight: 700 !important; }
+.fw-xbold   { font-weight: 800 !important; }
+
+/* ── Letter-spacing ── */
+h1, .h1 {
+  letter-spacing: -0.025em;
+}
+
+h2, .h2 {
+  letter-spacing: -0.02em;
+}
+
+h3, .h3 {
+  letter-spacing: -0.015em;
+}
+
+.stat-value {
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  letter-spacing: 0.06em;
+}
+
+.group-badge {
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 575px) {
+  h1, .h1 {
+    letter-spacing: -0.015em;
+  }
+}
+
+/* Letter-spacing utilities */
+.ls-tight  { letter-spacing: -0.025em !important; }
+.ls-snug   { letter-spacing: -0.015em !important; }
+.ls-normal { letter-spacing: 0 !important; }
+.ls-wide   { letter-spacing: 0.04em !important; }
+.ls-wider  { letter-spacing: 0.08em !important; }
+
+/* ── Tabular numbers ── */
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card .stat-value,
+.text-neg,
+.text-pos {
+  font-variant-numeric: tabular-nums;
+}
+
+.tabnum {
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* ── Badge typography tiers ── */
+.badge-sm {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: var(--fs-xs);
+}
+
+.badge-md {
+  padding: 0.25rem 0.7rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+.badge-lg {
+  padding: 0.3rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: var(--fs-base);
+}
+
+.label-upper {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+/* ── Component typography ── */
+.nominee-card .nome {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.nominee-card .pct {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.cron-week {
+  font-weight: 700;
+}
+
+.cron-date {
+  font-weight: 500;
+}
+
+.dark-card {
+  line-height: 1.5;
+}
