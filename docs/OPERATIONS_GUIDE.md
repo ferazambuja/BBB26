@@ -819,12 +819,13 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 
 | Source | Observation | Time (BRT) |
 |--------|-------------|------------|
+| **Probe data** | Mar 3 — new hash `c143df77` first captured | **10:36** |
 | **API data observed** | Feb 5 (Wed) — data already updated | ~14:00 |
 | **API first auto capture** | Feb 6 (Thu) — change detected at 15:46 BRT | between 06:37–15:46 |
 | **GShow article** | Feb 5 (Wed) — article published | ~09:00 |
 | **Raio-X wake-up** | Normal days / Post-party days | 09h-13h |
 
-**Key finding**: API data updates around **~14:00 BRT**. GShow publishes the article earlier (~09:00 BRT). Exact timing not yet confirmed — temporary probes active (see below).
+**Key finding (updated 2026-03-03)**: The queridômetro updates **much earlier than previously estimated**. First probe data (Mar 3) shows new reactions appearing by **10:36 BRT** — the Raio-X happens in the morning and the API publishes shortly after. Previous estimates of ~14:00 BRT were wrong because our captures had wide gaps (06:00 → 15:00 BRT) that missed the actual update window. Temporary probes active to confirm the pattern over multiple days.
 
 ### Current cron schedule
 
@@ -867,8 +868,18 @@ To pinpoint the exact queridômetro update time, extra probes run every 30 min f
 | 15:30 | 18:30 | `30 12-18 * * *` |
 | 16:00 | 19:00 | `0 13-19 * * *` |
 
-Historical first-appearances of new reaction data: 12:16, 12:54, 15:31, 15:40, 15:51 BRT.
-API shows **CDN cache oscillation** — different servers return different states, so the same hash can appear, disappear, and reappear within hours.
+**First-appearance log** (when genuinely new reaction data was first captured):
+
+| Date | First seen (BRT) | Notes |
+|------|-----------------|-------|
+| Mar 3 | **10:36** | First day with probes — new hash between 08:10 and 10:36 |
+| Feb 28 | 15:31 | No probes — wide gap (06:00→15:00), likely appeared earlier |
+| Feb 27 | 15:40 | Same gap issue |
+| Feb 26 | 15:51 | Same gap issue |
+| Feb 25 | 12:54 | Elimination day — more captures available |
+| Feb 22 | 12:16 | Earliest pre-probe observation |
+
+Note: Pre-probe entries (Feb 22–28) had 9-hour gaps between 06:00 and 15:00 BRT, so the data likely appeared earlier than captured. The API may show different states briefly during the update propagation window.
 
 `fetch_data.py` only saves when data actually changes (hash comparison), so the first new snapshot after the 06:00 BRT baseline reveals the exact update time.
 

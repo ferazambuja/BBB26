@@ -265,7 +265,7 @@ BBB game weeks are **not** calendar 7-day periods. Each week is defined by a **L
 
 | Data Type | Update Time (BRT) | Stability |
 |-----------|-------------------|-----------|
-| **Reactions (Queridômetro)** | ~14h daily | API updates around 14:00 BRT (GShow article earlier ~09h) |
+| **Reactions (Queridômetro)** | ~10h–12h daily | Raio-X in the morning; API publishes shortly after (~10:30 BRT observed Mar 3). Timing probes active to confirm window. |
 | **Balance (Estalecas)** | Any time | Changes with purchases, rewards, punishments |
 | **Roles** | During/after episodes | Líder, Anjo, Monstro, Paredão ceremonies |
 
