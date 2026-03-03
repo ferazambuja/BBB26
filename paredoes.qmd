@@ -599,6 +599,7 @@ if len(finalized_polls) >= 1:
 #| output: asis
 
 # ── Aggregate house votes across all paredões ────────────────────────────────
+# Include ALL paredões with votos_casa (not just finalized — house votes happen live)
 # Load participants_index for active status
 _pi = json.loads(Path("data/derived/participants_index.json").read_text(encoding="utf-8"))
 active_names = {p["name"] for p in _pi["participants"] if p.get("active")}
@@ -606,8 +607,9 @@ active_names = {p["name"] for p in _pi["participants"] if p.get("active")}
 # Tally: target → {paredao_num: [list of voters]}
 target_votes = defaultdict(lambda: defaultdict(list))
 all_voters_set = set()
+paredoes_with_votes = [p for p in paredoes if p.get('votos_casa')]
 
-for p in paredoes_finalizados:
+for p in paredoes_with_votes:
     num = p['numero']
     for voter, target in p.get('votos_casa', {}).items():
         target_votes[target][num].append(voter)
@@ -620,8 +622,9 @@ never_voted = sorted(active_names - set(target_votes.keys()))
 # Reasons a participant can't receive house votes: Líder, already nominated, or immune
 _paredoes_raw = json.loads(Path("data/paredoes.json").read_text(encoding="utf-8")).get("paredoes", [])
 ineligible_map = defaultdict(list)
+n_paredoes_with_votes = len(paredoes_with_votes)
 for pr in _paredoes_raw:
-    if pr.get("status") != "finalizado":
+    if not pr.get("votos_casa"):
         continue
     num = pr["numero"]
     form = pr.get("formacao", {})
@@ -639,27 +642,56 @@ for pr in _paredoes_raw:
     if form.get("anjo_autoimune") and form.get("anjo"):
         ineligible_map[form["anjo"]].append((num, "imune"))
 
-print('<div style="background:rgba(46,204,113,0.10); border:1px solid rgba(46,204,113,0.3); border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0 1.5rem 0;">')
-print(f'<h4 style="margin:0 0 0.8rem 0;">🛡️ Intocáveis — Nunca receberam votos da casa</h4>')
-print(f'<p class="fs-base" style="margin:0 0 0.8rem 0; color:#aaa;">{len(never_voted)} de {len(active_names)} participantes ativos passaram por {len(paredoes_finalizados)} paredões sem receber nenhum voto da casa.</p>')
-print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">')
-for name in never_voted:
-    url = AVATARS.get(name, '')
-    exemptions = ineligible_map.get(name, [])
-    n_eligible = len(paredoes_finalizados) - len(exemptions)
-    print(f'<div class="tc" style="width:90px;">')
-    if url:
-        print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid #2ecc71;" alt="{name}" title="{name}">')
-    print(f'<div class="fs-sm" style="margin-top:4px; line-height:1.2;">{name}</div>')
-    if exemptions:
-        notes = ', '.join([f'{r} no {n}º' for n, r in exemptions])
-        print(f'<div class="fs-2xs" style="color:#f39c12; margin-top:2px; line-height:1.1;">({notes})</div>')
-        print(f'<div class="text-muted fs-2xs" style="margin-top:1px;">elegível {n_eligible}/{len(paredoes_finalizados)}</div>')
-    else:
-        print(f'<div class="fs-2xs" style="color:#2ecc71; margin-top:2px;">elegível {len(paredoes_finalizados)}/{len(paredoes_finalizados)} ✓</div>')
+if never_voted:
+    # Show intocáveis card
+    print('<div style="background:rgba(46,204,113,0.10); border:1px solid rgba(46,204,113,0.3); border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0 1.5rem 0;">')
+    print(f'<h4 style="margin:0 0 0.8rem 0;">🛡️ Intocáveis — Nunca receberam votos da casa</h4>')
+    print(f'<p class="fs-base" style="margin:0 0 0.8rem 0; color:#aaa;">{len(never_voted)} de {len(active_names)} participantes ativos passaram por {n_paredoes_with_votes} paredões sem receber nenhum voto da casa.</p>')
+    print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">')
+    for name in never_voted:
+        url = AVATARS.get(name, '')
+        exemptions = ineligible_map.get(name, [])
+        n_eligible = n_paredoes_with_votes - len(exemptions)
+        print(f'<div class="tc" style="width:90px;">')
+        if url:
+            print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid #2ecc71;" alt="{name}" title="{name}">')
+        print(f'<div class="fs-sm" style="margin-top:4px; line-height:1.2;">{name}</div>')
+        if exemptions:
+            notes = ', '.join([f'{r} no {n}º' for n, r in exemptions])
+            print(f'<div class="fs-2xs" style="color:#f39c12; margin-top:2px; line-height:1.1;">({notes})</div>')
+            print(f'<div class="text-muted fs-2xs" style="margin-top:1px;">elegível {n_eligible}/{n_paredoes_with_votes}</div>')
+        else:
+            print(f'<div class="fs-2xs" style="color:#2ecc71; margin-top:2px;">elegível {n_paredoes_with_votes}/{n_paredoes_with_votes} ✓</div>')
+        print('</div>')
     print('</div>')
-print('</div>')
-print('</div>')
+    print('</div>')
+else:
+    # All active participants received house votes — show least voted
+    vote_totals = {}
+    for name in active_names:
+        vote_totals[name] = sum(len(voters) for voters in target_votes.get(name, {}).values())
+    min_votes = min(vote_totals.values()) if vote_totals else 0
+    least_voted = sorted([n for n, v in vote_totals.items() if v == min_votes])
+
+    print('<div style="background:rgba(241,196,15,0.10); border:1px solid rgba(241,196,15,0.3); border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0 1.5rem 0;">')
+    print(f'<h4 style="margin:0 0 0.8rem 0;">🛡️ Menos Visados — Menos votos da casa recebidos</h4>')
+    print(f'<p class="fs-base" style="margin:0 0 0.8rem 0; color:#aaa;">Todos os {len(active_names)} participantes ativos já receberam votos da casa em {n_paredoes_with_votes} paredões. Os menos visados receberam apenas {min_votes} voto{"s" if min_votes != 1 else ""}.</p>')
+    print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">')
+    for name in least_voted:
+        url = AVATARS.get(name, '')
+        exemptions = ineligible_map.get(name, [])
+        n_eligible = n_paredoes_with_votes - len(exemptions)
+        print(f'<div class="tc" style="width:90px;">')
+        if url:
+            print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid #f1c40f;" alt="{name}" title="{name}">')
+        print(f'<div class="fs-sm" style="margin-top:4px; line-height:1.2;">{name}</div>')
+        print(f'<div class="fs-2xs" style="color:#f1c40f; margin-top:2px;">{min_votes} voto{"s" if min_votes != 1 else ""}</div>')
+        if exemptions:
+            notes = ', '.join([f'{r} no {n}º' for n, r in exemptions])
+            print(f'<div class="fs-2xs" style="color:#f39c12; margin-top:2px; line-height:1.1;">({notes})</div>')
+        print('</div>')
+    print('</div>')
+    print('</div>')
 
 # ── Vote target table (all participants) ─────────────────────────────────────
 # Grayscale helpers for exited participants
@@ -680,7 +712,7 @@ if target_votes:
     # Header with paredão numbers
     print('<thead><tr>')
     print('<th>Alvo</th><th class="tc">Total</th>')
-    for p in paredoes_finalizados:
+    for p in paredoes_with_votes:
         print(f'<th class="tc">{p["numero"]}º</th>')
     print('<th>Votaram nele(a)</th>')
     print('</tr></thead><tbody>')
@@ -696,7 +728,7 @@ if target_votes:
         print(f'<tr style="{row_style}"><td style="white-space:nowrap;">{avatar_html_bw(target, AVATARS, 36, t_active)}</td>')
         print(f'<td class="tc fs-xl" style="font-weight:bold;">{total}</td>')
 
-        for p in paredoes_finalizados:
+        for p in paredoes_with_votes:
             n = len(by_paredao.get(p['numero'], []))
             if n > 0:
                 color = '#e74c3c' if n >= 5 else '#f39c12' if n >= 3 else '#aaa'

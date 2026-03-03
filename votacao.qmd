@@ -421,7 +421,9 @@ for p in paredoes_fin:
     health_data.append({
         'num': num, 'danger': danger,
         'surv_nome': surv_p.get('nome', ''), 'surv_inflation': surv_inflation,
+        'surv_vu': surv_vu, 'surv_vt': surv_vt,
         'elim_nome': elim_p.get('nome', ''), 'elim_gap': elim_gap,
+        'elim_vu': elim_vu, 'elim_vt': elim_vt,
         'povo_decidiu': povo_decidiu,
     })
 
@@ -497,29 +499,84 @@ print('<div class="fs-sm" style="color:#888; margin:0.3rem 0 0.8rem 0; text-alig
 print('🎯 = torcida despejou VT além do VU (mirando para eliminar) · 🛡️ = torcida reteve VT abaixo do VU (protegendo) · Perigo = maior divergência VT&minus;VU')
 print('</div>')
 
-# Editorial: the real problem — directional framing
-print('<div class="v-box" style="background:rgba(231,76,60,0.06); border:1px solid #e74c3c44; border-radius:12px; padding:1.2rem 1.5rem; margin:1.2rem 0;">')
-print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
-print('O <strong>4o Paredão</strong> é o caso mais grave. Pelo CPF, o povo decidiu: ')
-print('<strong>73,53%</strong> votaram para eliminar Sarah Andrade, contra apenas ')
-print('<strong>23,34%</strong> em Babu Santana. Mas a torcida discordou — ')
-print('despejou 40,52% do VT em Babu (<strong>+17,18pp</strong> acima do seu VU), ')
-print('tentando forçar sua eliminação. Na outra ponta, reteve votos em Sarah: ')
-print('apenas 58,86% no VT (<strong>−14,67pp</strong> abaixo do seu VU), ')
-print('tentando protegê-la. O 70/30 preservou a vontade popular — Sarah saiu — ')
-print('mas a divergência de <strong>17pp</strong> mostra a força da campanha ')
-print('organizada contra Babu.</p>')
+# Editorial: the real problem — dynamically generated from health_data
+sorted_health = sorted(health_data, key=lambda x: x['danger'], reverse=True)
 
-print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
-print('O padrão se repete. No <strong>6o Paredão</strong>, a torcida despejou ')
-print('<strong>+10,45pp</strong> de VT além do VU em Milena, tentando forçar ')
-print('sua eliminação, enquanto reteve <strong>−10,00pp</strong> do VT de ')
-print('Maxiane para protegê-la. Leandro foi alvo em <strong>dois paredões ')
-print('consecutivos</strong> (P2: +8,51pp; P3: +5,73pp) — evidência de ')
-print('campanha organizada e sustentada contra o mesmo participante. ')
-print('Apenas o 1o e o 5o Paredão apresentaram votações genuinamente ')
-print('saudáveis, com divergência abaixo de 2pp. Com pressões desse nível ')
-print('em paredões regulares, a pergunta inevitável é:</p>')
+print('<div class="v-box" style="background:rgba(231,76,60,0.06); border:1px solid #e74c3c44; border-radius:12px; padding:1.2rem 1.5rem; margin:1.2rem 0;">')
+
+if sorted_health:
+    w = sorted_health[0]  # worst paredão
+
+    # First paragraph: worst paredão detail
+    print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
+    print(f'O <strong>{w["num"]}o Paredão</strong> é o caso mais grave. Pelo CPF, o povo decidiu: ')
+    print(f'<strong>{w["elim_vu"]:.2f}%</strong> votaram para eliminar {w["elim_nome"]}, contra apenas ')
+    print(f'<strong>{w["surv_vu"]:.2f}%</strong> em {w["surv_nome"]}. ')
+    if w['surv_inflation'] > 2 and -w['elim_gap'] > 2:
+        print(f'Mas a torcida discordou — despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
+        print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
+        print(f'tentando forçar sua eliminação. Na outra ponta, reteve votos em {w["elim_nome"]}: ')
+        print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
+        print(f'tentando proteger quem o povo escolheu eliminar. ')
+    elif w['surv_inflation'] > 2:
+        print(f'Mas a torcida despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
+        print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
+        print(f'tentando forçar sua eliminação. ')
+    elif -w['elim_gap'] > 2:
+        print(f'Mas a torcida reteve votos em {w["elim_nome"]}: ')
+        print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
+        print(f'tentando proteger quem o povo escolheu eliminar. ')
+    if w['povo_decidiu']:
+        print(f'O 70/30 preservou a vontade popular — {w["elim_nome"]} saiu — ')
+    else:
+        print(f'A torcida conseguiu inverter o resultado — ')
+    print(f'mas a divergência de <strong>{w["danger"]:.0f}pp</strong> mostra a força da campanha ')
+    print(f'organizada contra {w["surv_nome"]}.</p>')
+
+    # Second paragraph: patterns
+    print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
+
+    # Notable secondary paredões (danger >= 3)
+    notable = [d for d in sorted_health[1:] if d['danger'] >= 3]
+    if notable:
+        sec = notable[0]
+        print(f'O padrão se repete. No <strong>{sec["num"]}o Paredão</strong>, a torcida ')
+        if sec['surv_inflation'] > 2 and -sec['elim_gap'] > 2:
+            print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
+            print(f'tentando forçar sua eliminação, enquanto reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de ')
+            print(f'{sec["elim_nome"]} para proteger quem o povo queria eliminar. ')
+        elif sec['surv_inflation'] > 2:
+            print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
+            print(f'tentando forçar sua eliminação. ')
+        elif -sec['elim_gap'] > 2:
+            print(f'reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de {sec["elim_nome"]}, ')
+            print(f'tentando proteger quem o povo escolheu eliminar. ')
+
+    # Repeated targeting detection
+    target_paredoes = defaultdict(list)
+    for d in health_data:
+        if d['surv_inflation'] > 3:
+            target_paredoes[d['surv_nome']].append(d)
+    repeated = {name: sorted(dlist, key=lambda x: x['num'])
+                for name, dlist in target_paredoes.items() if len(dlist) >= 2}
+    if repeated:
+        for name, dlist in repeated.items():
+            labels = '; '.join(f'P{d["num"]}: +{d["surv_inflation"]:.2f}pp' for d in dlist)
+            print(f'{name} foi alvo em <strong>{len(dlist)} paredões</strong> ({labels}) — ')
+            print(f'evidência de campanha organizada e sustentada contra o mesmo participante. ')
+
+    # Healthy paredões
+    healthy = sorted([d for d in health_data if d['danger'] < 2], key=lambda x: x['num'])
+    if healthy and len(healthy) < len(health_data):
+        if len(healthy) == 1:
+            print(f'Apenas o {healthy[0]["num"]}o Paredão apresentou votação genuinamente saudável, com divergência abaixo de 2pp. ')
+        else:
+            hlabels = ' e o '.join(f'{d["num"]}o' for d in healthy)
+            print(f'Apenas o {hlabels} Paredão apresentaram votações genuinamente saudáveis, com divergência abaixo de 2pp. ')
+    elif not healthy:
+        print(f'Nenhum paredão apresentou votação genuinamente saudável (divergência abaixo de 2pp). ')
+
+    print('Com pressões desse nível em paredões regulares, a pergunta inevitável é:</p>')
 
 # ── Safety assessment: connecting health data to protection levels ──
 print('<p class="fs-lg" style="color:#e67e22; font-weight:700; margin-bottom:0.5rem;">⚠️ Estamos seguros? O 70/30 aguenta uma final?</p>')
@@ -760,9 +817,23 @@ if rows_5050:
         print('<div style="background:rgba(241,196,15,0.08); border:1px solid #f1c40f; border-radius:10px; padding:1rem 1.2rem; margin:1.2rem 0;">')
         print('<p class="fs-lg" style="color:#f1c40f; font-weight:700; margin-bottom:0.3rem;">⚖️ Nenhum resultado alterado — por enquanto</p>')
         print('<p class="fs-base" style="color:#ddd; margin:0;">')
+        # Compute worst dangers dynamically for this cross-cell reference
+        _hd_retro = []
+        for _p in paredoes_finalizados:
+            _pts = _p.get('participantes', [])
+            if not _pts or _pts[0].get('voto_unico') is None:
+                continue
+            _svu = sorted(_pts, key=lambda x: float(x.get('voto_unico', 0)), reverse=True)[:2]
+            _sv = float(_svu[1].get('voto_torcida', 0)) - float(_svu[1].get('voto_unico', 0))
+            _eg = float(_svu[0].get('voto_torcida', 0)) - float(_svu[0].get('voto_unico', 0))
+            _d = max(max(0, _sv), max(0, -_eg))
+            _hd_retro.append({'num': _p.get('numero', '?'), 'danger': _d})
+        _sorted_retro = sorted(_hd_retro, key=lambda x: x['danger'], reverse=True)
+        _top_labels = ' e '.join(f'{d["danger"]:.0f}pp (P{d["num"]})' for d in _sorted_retro[:2])
+
         print('Até agora, todos os eliminados do BBB 26 teriam sido os mesmos com 50/50. ')
         print('Mas isso não significa que o sistema está funcionando — significa que <strong>ainda ')
-        print('não chegou o teste de estresse</strong>. As disparidades de 17pp (P4) e 10pp (P6) ')
+        print(f'não chegou o teste de estresse</strong>. As disparidades de {_top_labels} ')
         print('mostram que as torcidas estão forçando. Em uma final, com mobilização máxima, ')
         print('o cenário pode ser muito diferente.</p>')
         print('</div>')
@@ -792,7 +863,7 @@ print("## 🎯 A teoria: contenção de danos sem admissão de culpa\n")
 print('<div style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center; margin:0 0 1.2rem 0;">')
 
 impact_stats = [
-    ("🗳️", "3M+", "CPFs votaram", "Recorde histórico no 6o Paredão — o brasileiro está engajado"),
+    ("🗳️", "3M+", "CPFs votaram", "Recorde histórico de votos únicos — o brasileiro está engajado"),
     ("💰", "R$ 1,5 bi", "Faturamento BBB 26", "Recorde de patrocínios — 15 marcas, cota Big a R$ 132M"),
     ("📊", "22%", "da receita publicitária", "BBB representa quase 1/4 do faturamento da Globo com anúncios"),
 ]
@@ -836,8 +907,8 @@ print('testando os limites do novo sistema.</p>')
 
 print('<p class="fs-lg" style="color:#ddd; margin-bottom:0.8rem;">')
 print('Os números do próprio BBB 26 expõem a contradição. De um lado, o brasileiro ')
-print('está mais engajado do que nunca: <strong>mais de 3 milhões de CPFs</strong> votaram no ')
-print('6o Paredão — recorde absoluto da história do programa. Como Tadeu Schmidt ')
+print('está mais engajado do que nunca: <strong>mais de 3 milhões de CPFs</strong> votaram ')
+print('em um único paredão — recorde absoluto da história do programa. Como Tadeu Schmidt ')
 print('celebrou: <em>"Nunca tivemos tantos votos únicos no BBB."</em> ')
 print('Isso prova que o público <strong>quer</strong> participar, quer ser ouvido. ')
 print('Do outro lado, torcidas organizadas com bots, mutirões e tempo ilimitado ')
