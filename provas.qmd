@@ -190,20 +190,20 @@ if leaderboard:
         # Status badge for eliminated/quit
         status_badge = ''
         if not active and status:
-            status_badge = f'<span style="background: #6c757d; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; margin-left: 0.5rem;">{status}</span>'
+            status_badge = f'<span class="fs-xs" style="background: #6c757d; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase; margin-left: 0.5rem;">{status}</span>'
 
         # Group badge
         grupo_color = GROUP_COLORS.get(grupo, '#666')
-        grupo_badge = f'<span style="background: {grupo_color}; color: #fff; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.5rem;">{grupo}</span>'
+        grupo_badge = f'<span class="fs-xs" style="background: {grupo_color}; color: #fff; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.5rem;">{grupo}</span>'
 
         # Tags
         tags = []
         if wins > 0:
-            tags.append(f'<span style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin: 0.15rem; display: inline-block;">🏆 {wins} vitória{"s" if wins > 1 else ""}</span>')
+            tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">🏆 {wins} vitória{"s" if wins > 1 else ""}</span>')
         if top3 > 0:
-            tags.append(f'<span style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin: 0.15rem; display: inline-block;">🥉 {top3} top-3</span>')
-        tags.append(f'<span style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin: 0.15rem; display: inline-block;">📊 avg {avg:.1f} pts</span>')
-        tags.append(f'<span style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin: 0.15rem; display: inline-block;">📋 {participated}/{available} provas</span>')
+            tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">🥉 {top3} top-3</span>')
+        tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">📊 avg {avg:.1f} pts</span>')
+        tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">📋 {participated}/{available} provas</span>')
         tags_html = f'<div style="margin-top: 0.5rem; line-height: 1.8;">{"".join(tags)}</div>'
 
         # Points display
@@ -217,22 +217,22 @@ if leaderboard:
         if avatar_url:
             print(f'<img src="{avatar_url}" alt="{name}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {border_color}; object-fit: cover;">')
         else:
-            print(f'<div style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {border_color}; background: #444; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #888;">?</div>')
+            print(f'<div class="fs-3xl" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {border_color}; background: #444; display: flex; align-items: center; justify-content: center; color: #888;">?</div>')
 
         if rank <= 3:
             rank_emoji = '🥇' if rank == 1 else ('🥈' if rank == 2 else '🥉')
-            print(f'<div style="position: absolute; bottom: -5px; right: -5px; font-size: 1.2rem;">{rank_emoji}</div>')
+            print(f'<div class="fs-xl" style="position: absolute; bottom: -5px; right: -5px;">{rank_emoji}</div>')
 
         print(f'''
 </div>
 <div style="flex: 1; min-width: 0;">
 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;">
 <div>
-<span style="font-weight: bold; color: #fff; font-size: 1.1rem;">{rank_display} {name}</span>
+<span class="fs-xl" style="font-weight: bold; color: #fff;">{rank_display} {name}</span>
 {grupo_badge}
 {status_badge}
 </div>
-<div style="font-size: 1.5rem; font-weight: bold; color: {pts_color};">{total}</div>
+<div class="fs-3xl" style="font-weight: bold; color: {pts_color};">{total}</div>
 </div>
 {tags_html}
 </div>
@@ -285,10 +285,10 @@ if provas_list:
             print(f'<img src="{vencedor_avatar}" alt="{vencedor}" style="width: 55px; height: 55px; border-radius: 50%; border: 3px solid {color}; object-fit: cover;">')
         print(f'''
 <div style="flex: 1; min-width: 200px;">
-<div style="font-size: 1.1rem; font-weight: bold; color: #fff;">{nome}</div>
-<div style="font-size: 0.85rem; color: #aaa; margin-top: 0.2rem;">📅 {date} &middot; {emoji} {label} &middot; Semana {week} &middot; {n_participantes} participantes</div>
+<div class="fs-xl" style="font-weight: bold; color: #fff;">{nome}</div>
+<div class="fs-base" style="color: #aaa; margin-top: 0.2rem;">📅 {date} &middot; {emoji} {label} &middot; Semana {week} &middot; {n_participantes} participantes</div>
 <div style="margin-top: 0.4rem;">
-<span style="background: {color}; color: #fff; padding: 0.2rem 0.6rem; border-radius: 5px; font-size: 0.85rem; font-weight: bold;">🏆 Vencedor: {vencedor}</span>
+<span class="fs-base" style="background: {color}; color: #fff; padding: 0.2rem 0.6rem; border-radius: 5px; font-weight: bold;">🏆 Vencedor: {vencedor}</span>
 </div>
 </div>
 </div>
@@ -315,7 +315,7 @@ if provas_list:
 
             if classificacao:
                 print('<div style="margin: 0.5rem 0 1rem 0;">')
-                print('<table class="table-full" style="font-size: 0.9rem;">')
+                print('<table class="table-full fs-base">')
                 print('<thead><tr style="border-bottom: 1px solid #444;">')
                 print('<th class="tc cell-compact text-muted" style="width: 50px;">Pos</th>')
                 if is_duo:
@@ -383,17 +383,18 @@ if provas_list:
                 print(f'\n**Chave de Duelos — Fase {fase["fase"]}**\n')
 
                 def bracket_cell(name, is_winner=False, is_dq=False, nota=""):
-                    style = "padding: 4px 8px; white-space: nowrap; font-size: 0.85rem;"
+                    style = "padding: 4px 8px; white-space: nowrap;"
+                    css_class = "fs-base"
                     if is_dq:
                         style += " color: #e74c3c; text-decoration: line-through;"
-                        suffix = ' <span style="font-size:0.7rem; color:#e74c3c;">(DQ)</span>'
+                        suffix = ' <span class="fs-xs" style="color:#e74c3c;">(DQ)</span>'
                     elif is_winner:
                         style += " color: #f1c40f; font-weight: bold;"
                         suffix = ""
                     else:
                         style += " color: #aaa;"
                         suffix = ""
-                    return f'<div style="{style}">{name}{suffix}</div>'
+                    return f'<div class="{css_class}" style="{style}">{name}{suffix}</div>'
 
                 def matchup_box(duelo, round_label=""):
                     j = duelo["jogadores"]
@@ -417,25 +418,25 @@ if provas_list:
 
                 # Column 1: Quartas
                 print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
-                print('<div class="tc text-muted" style="font-size: 0.75rem; font-weight: bold; margin-bottom: 4px;">Quartas</div>')
+                print('<div class="tc text-muted fs-sm" style="font-weight: bold; margin-bottom: 4px;">Quartas</div>')
                 for d in quartas:
                     print(matchup_box(d))
                 print('</div>')
 
                 # Column 2: Semis
                 print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
-                print('<div class="tc text-muted" style="font-size: 0.75rem; font-weight: bold; margin-bottom: 4px;">Semis</div>')
+                print('<div class="tc text-muted fs-sm" style="font-weight: bold; margin-bottom: 4px;">Semis</div>')
                 for d in semis:
                     print(matchup_box(d))
                 print('</div>')
 
                 # Column 3: Final
                 print('<div style="display: flex; flex-direction: column; justify-content: center;">')
-                print('<div class="tc text-muted" style="font-size: 0.75rem; font-weight: bold; margin-bottom: 4px;">Final</div>')
+                print('<div class="tc text-muted fs-sm" style="font-weight: bold; margin-bottom: 4px;">Final</div>')
                 for d in final:
                     print(matchup_box(d))
                     winner = d["vencedor"]
-                    print(f'<div class="tc" style="margin-top: 6px; font-size: 1rem;">🏆 <span style="color: #f1c40f; font-weight: bold;">{winner}</span></div>')
+                    print(f'<div class="tc fs-lg" style="margin-top: 6px;">🏆 <span style="color: #f1c40f; font-weight: bold;">{winner}</span></div>')
                 print('</div>')
 
                 print('</div>')
@@ -457,7 +458,7 @@ if provas_list:
         scored_entries.sort(key=lambda x: (0 if isinstance(x["position"], int) else 1, x["position"] if isinstance(x["position"], int) else 999))
 
         if scored_entries:
-            print(f'\n<details style="margin-top: 0.5rem;"><summary style="cursor: pointer; color: #3498db; font-size: 0.9rem;">📊 Pontos atribuídos (multiplicador {label}: {mult_label})</summary>')
+            print(f'\n<details style="margin-top: 0.5rem;"><summary class="fs-base" style="cursor: pointer; color: #3498db;">📊 Pontos atribuídos (multiplicador {label}: {mult_label})</summary>')
             print('<div style="margin: 0.5rem 0;">')
             print('<table class="table-full table-md">')
             print('<thead><tr style="border-bottom: 1px solid #444;">')
@@ -517,7 +518,7 @@ print('''
 
 <div style="background: linear-gradient(180deg, rgba(52, 152, 219, 0.15) 0%, rgba(52, 152, 219, 0.05) 100%); border: 1px solid rgba(52, 152, 219, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #3498db; margin-top: 0; border-bottom: 1px solid rgba(52, 152, 219, 0.3); padding-bottom: 0.5rem;">🏅 Pontos por Posição</h4>
-<table class="table-full" style="font-size: 0.9rem;">
+<table class="table-full fs-base">
 ''')
 
 for pos, pts in sorted(placement_pts.items(), key=lambda x: int(x[0])):
@@ -533,7 +534,7 @@ print('''
 
 <div style="background: linear-gradient(180deg, rgba(241, 196, 15, 0.15) 0%, rgba(241, 196, 15, 0.05) 100%); border: 1px solid rgba(241, 196, 15, 0.3); border-radius: 12px; padding: 1.2rem;">
 <h4 style="color: #f1c40f; margin-top: 0; border-bottom: 1px solid rgba(241, 196, 15, 0.3); padding-bottom: 0.5rem;">⚖️ Multiplicadores por Tipo</h4>
-<table class="table-full" style="font-size: 0.9rem;">
+<table class="table-full fs-base">
 ''')
 
 for tipo, mult in sorted(multipliers.items(), key=lambda x: -x[1]):
@@ -544,7 +545,7 @@ for tipo, mult in sorted(multipliers.items(), key=lambda x: -x[1]):
 
 print('''
 </table>
-<p class="text-muted" style="font-size: 0.8rem; margin-top: 0.8rem; margin-bottom: 0;">Fórmula: <code>pontos_base × multiplicador</code></p>
+<p class="text-muted fs-md" style="margin-top: 0.8rem; margin-bottom: 0;">Fórmula: <code>pontos_base × multiplicador</code></p>
 </div>
 
 </div>

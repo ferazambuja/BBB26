@@ -128,27 +128,27 @@ def render_nominee_cards_em_andamento(
         n_past = len(past)
         hist_badge = ''
         if n_past > 0:
-            hist_badge = f'<div style="position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; width:22px; height:22px; border-radius:50%; font-size:0.7em; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{n_past + 1}x</div>'
+            hist_badge = f'<div class="fs-xs" style="position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; width:22px; height:22px; border-radius:50%; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{n_past + 1}x</div>'
 
         lines.append(f'<div style="border:{border_style}; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.03); opacity:{opacity}; width:140px; text-align:center; position:relative;">')
         lines.append(hist_badge)
         if avatar_url:
             lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid {accent}; margin-bottom:0.4rem;">')
-        lines.append(f'<div style="font-weight:bold; color:#fff; font-size:0.95em; margin-bottom:0.2rem;">{first_name}</div>')
+        lines.append(f'<div class="fs-base" style="font-weight:bold; color:#fff; margin-bottom:0.2rem;">{first_name}</div>')
 
         # Prediction percentage + bar
         if poll_predictions and pct > 0:
             bar_color = accent
-            lines.append(f'<div style="font-size:1.4em; font-weight:bold; color:{accent}; margin:0.2rem 0;">{pct:.1f}%</div>')
+            lines.append(f'<div class="fs-2xl" style="font-weight:bold; color:{accent}; margin:0.2rem 0;">{pct:.1f}%</div>')
             lines.append(f'<div style="background:rgba(255,255,255,0.1); border-radius:4px; height:6px; width:100%; margin:0.2rem 0;">')
             lines.append(f'<div style="background:{bar_color}; height:100%; border-radius:4px; width:{min(pct, 100):.0f}%;"></div>')
             lines.append(f'</div>')
 
         # How they got nominated
         if como_indicado and not is_auto:
-            lines.append(f'<div style="color:#aaa; font-size:0.72em; margin-top:0.3rem;">via {safe_html(como_indicado)}</div>')
+            lines.append(f'<div class="fs-xs" style="color:#aaa; margin-top:0.3rem;">via {safe_html(como_indicado)}</div>')
         elif is_auto:
-            lines.append(f'<div style="color:#f39c12; font-size:0.72em; margin-top:0.3rem;">⏳ aguardando</div>')
+            lines.append(f'<div class="fs-xs" style="color:#f39c12; margin-top:0.3rem;">⏳ aguardando</div>')
 
         lines.append('</div>')
 
@@ -156,8 +156,8 @@ def render_nominee_cards_em_andamento(
     n_indicados = len(participantes)
     for _ in range(esperado_indicados - n_indicados):
         lines.append(f'<div style="border:2px dashed #444; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.02); width:140px; text-align:center;">')
-        lines.append(f'<div style="width:80px; height:80px; border-radius:50%; background:#333; margin:0 auto 0.4rem auto; display:flex; align-items:center; justify-content:center; font-size:1.8em; color:#555;">?</div>')
-        lines.append(f'<div style="color:#666; font-size:0.9em;">Aguardando...</div>')
+        lines.append(f'<div class="fs-4xl" style="width:80px; height:80px; border-radius:50%; background:#333; margin:0 auto 0.4rem auto; display:flex; align-items:center; justify-content:center; color:#555;">?</div>')
+        lines.append(f'<div class="fs-base" style="color:#666;">Aguardando...</div>')
         lines.append('</div>')
 
     lines.append('</div>')
@@ -207,15 +207,15 @@ def render_nominee_cards_finalized(
         n_past = len(past)
         hist_badge = ''
         if n_past > 0:
-            hist_badge = f'<div style="position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; width:22px; height:22px; border-radius:50%; font-size:0.7em; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{n_past + 1}x</div>'
+            hist_badge = f'<div class="fs-xs" style="position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; width:22px; height:22px; border-radius:50%; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{n_past + 1}x</div>'
 
         lines.append(f'<div style="width:150px; border:3px solid {border_color}; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.03); text-align:center; position:relative;">')
         lines.append(hist_badge)
         if avatar_url:
             lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
-        lines.append(f'<div style="font-weight:bold; color:#fff; font-size:0.95em; margin-bottom:0.3rem;">{first_name}</div>')
-        lines.append(f'<span style="display:inline-block; padding:0.2rem 0.5rem; background:{badge_bg}; color:#fff; border-radius:8px; font-size:0.68em; font-weight:bold;">{badge_text}</span>')
-        lines.append(f'<div style="color:#fff; font-size:1.3em; font-weight:bold; margin-top:0.3rem;">{voto_total:.1f}%</div>')
+        lines.append(f'<div class="fs-base" style="font-weight:bold; color:#fff; margin-bottom:0.3rem;">{first_name}</div>')
+        lines.append(f'<span class="fs-2xs" style="display:inline-block; padding:0.2rem 0.5rem; background:{badge_bg}; color:#fff; border-radius:8px; font-weight:bold;">{badge_text}</span>')
+        lines.append(f'<div class="fs-2xl" style="color:#fff; font-weight:bold; margin-top:0.3rem;">{voto_total:.1f}%</div>')
         lines.append('</div>')
     lines.append('</div>')
     return '\n'.join(lines)
@@ -253,8 +253,8 @@ def render_voting_blocs(
         lines.append(f'<div style="background:linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border:2px solid {cor_alvo}; border-radius:12px; padding:1rem; min-width:200px; flex:1; max-width:400px;">')
         lines.append(f'<div class="tc" style="margin-bottom:0.8rem;">')
         lines.append(f'{avatar_img(alvo, avatars, 48)}')
-        lines.append(f'<div style="color:#fff; font-weight:bold; font-size:1.05em; margin-top:0.3rem;">{safe_html(alvo)}</div>')
-        lines.append(f'<div style="color:{cor_alvo}; font-size:1.3em; font-weight:bold;">{n_bl} votos</div>')
+        lines.append(f'<div class="fs-lg" style="color:#fff; font-weight:bold; margin-top:0.3rem;">{safe_html(alvo)}</div>')
+        lines.append(f'<div class="fs-2xl" style="color:{cor_alvo}; font-weight:bold;">{n_bl} votos</div>')
         lines.append(f'</div>')
         lines.append(f'<div style="display:flex; flex-wrap:wrap; gap:0.4rem; justify-content:center;">')
         for vot in votantes:
@@ -266,8 +266,8 @@ def render_voting_blocs(
             if av_url:
                 lines.append(f'<img src="{av_url}" style="width:36px; height:36px; border-radius:50%; border:2px solid {vot_cor};" alt="{esc_vot}" title="{esc_vot}">')
             else:
-                lines.append(f'<div style="width:36px; height:36px; border-radius:50%; background:{vot_cor}; display:flex; align-items:center; justify-content:center; font-size:0.7em; color:#fff;">{esc_vot[:2]}</div>')
-            lines.append(f'<div style="font-size:0.6em; color:#aaa; max-width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{safe_html(vot.split()[0])}</div>')
+                lines.append(f'<div class="fs-xs" style="width:36px; height:36px; border-radius:50%; background:{vot_cor}; display:flex; align-items:center; justify-content:center; color:#fff;">{esc_vot[:2]}</div>')
+            lines.append(f'<div class="fs-2xs" style="color:#aaa; max-width:50px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{safe_html(vot.split()[0])}</div>')
             lines.append(f'</div>')
         lines.append(f'</div>')
         lines.append(f'</div>')
@@ -284,13 +284,13 @@ def render_votos_casa_table(
     ranking = contagem.most_common()
     lines: list[str] = []
     lines.append(f"**Mais votado:** **{safe_html(ranking[0][0])}** ({ranking[0][1]} votos)\n")
-    lines.append('<table class="table table-striped" style="font-size: 1.05rem;">')
+    lines.append('<table class="table table-striped fs-lg">')
     lines.append('<thead><tr><th>Alvo</th><th class="tc">Votos</th><th>Votantes</th></tr></thead>')
     lines.append('<tbody>')
     for alvo, n in ranking:
         votantes = sorted([v for v, a in votos_casa.items() if a == alvo])
         votantes_html = ' '.join([avatar_img(v, avatars, 42) for v in votantes])
-        lines.append(f'<tr><td>{avatar_html(alvo, avatars, 42)}</td><td class="tc" style="font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+        lines.append(f'<tr><td>{avatar_html(alvo, avatars, 42)}</td><td class="tc fs-xl" style="font-weight:bold;">{n}</td><td>{votantes_html}</td></tr>')
     lines.append('</tbody></table>\n')
     return '\n'.join(lines)
 
@@ -316,32 +316,32 @@ def render_duelo_result_card(
     if _av_s:
         lines.append(f'<img src="{_av_s}" style="width:72px; height:72px; border-radius:50%; border:3px solid #9b59b6;" alt="{esc_sorteado}">')
     lines.append(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{esc_sorteado}</div>')
-    lines.append(f'<div style="background:#9b59b6; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">🎲 Sorteada</div>')
+    lines.append(f'<div class="fs-sm" style="background:#9b59b6; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; margin-top:0.2rem;">🎲 Sorteada</div>')
     lines.append('</div>')
     # Arrow + decision
-    lines.append(f'<div class="tc" style="color:#9b59b6; font-size:1.5em; padding:0 0.5rem;">')
+    lines.append(f'<div class="tc fs-3xl" style="color:#9b59b6; padding:0 0.5rem;">')
     lines.append(f'<div>🤝</div>')
-    lines.append(f'<div style="font-size:0.5em; color:#ccc;">Nós indicamos</div>')
+    lines.append(f'<div class="fs-2xs" style="color:#ccc;">Nós indicamos</div>')
     lines.append(f'</div>')
     # Oponente
     lines.append(f'<div class="tc">')
     if _av_o:
         lines.append(f'<img src="{_av_o}" style="width:72px; height:72px; border-radius:50%; border:3px solid #e67e22;" alt="{esc_oponente}">')
     lines.append(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{esc_oponente}</div>')
-    lines.append(f'<div style="background:#e67e22; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">⚔️ Oponente</div>')
+    lines.append(f'<div class="fs-sm" style="background:#e67e22; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; margin-top:0.2rem;">⚔️ Oponente</div>')
     lines.append('</div>')
     # Arrow to target
-    lines.append(f'<div class="tc" style="color:#e74c3c; font-size:1.5em; padding:0 0.5rem;">→</div>')
+    lines.append(f'<div class="tc fs-3xl" style="color:#e74c3c; padding:0 0.5rem;">→</div>')
     # Target
     lines.append(f'<div class="tc">')
     if _av_t:
         lines.append(f'<img src="{_av_t}" style="width:72px; height:72px; border-radius:50%; border:3px solid #e74c3c;" alt="{esc_target}">')
     lines.append(f'<div style="color:#fff; font-weight:bold; margin-top:0.4rem;">{esc_target}</div>')
-    lines.append(f'<div style="background:#e74c3c; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; font-size:0.75em; margin-top:0.2rem;">📌 Emparedada</div>')
+    lines.append(f'<div class="fs-sm" style="background:#e74c3c; color:#fff; padding:0.15rem 0.6rem; border-radius:8px; margin-top:0.2rem;">📌 Emparedada</div>')
     lines.append('</div>')
     lines.append('</div>')
     if resultado_detail:
-        lines.append(f'<p class="tc" style="color:#aaa; font-size:0.85em; margin-top:0.5rem;">{safe_html(resultado_detail)}</p>\n')
+        lines.append(f'<p class="tc fs-base" style="color:#aaa; margin-top:0.5rem;">{safe_html(resultado_detail)}</p>\n')
     return '\n'.join(lines)
 
 
@@ -366,7 +366,7 @@ def render_overlap_box(
         _img_it = f'<img src="{_av_it}" style="width:28px; height:28px; border-radius:50%; vertical-align:middle; margin-right:3px; border:2px solid {color};">' if _av_it else ''
         _mark = ' ⭐' if it["name"] == consenso_target else ''
         esc_it_name = safe_html(it["name"])
-        lines.append(f'<span style="background:rgba(0,0,0,0.3); padding:0.3rem 0.6rem; border-radius:8px; font-size:0.85em;">{_img_it}<strong>{esc_it_name}</strong>{_mark} <span style="color:#888;">({it["bottleneck"]:+.2f})</span></span>')
+        lines.append(f'<span class="fs-base" style="background:rgba(0,0,0,0.3); padding:0.3rem 0.6rem; border-radius:8px;">{_img_it}<strong>{esc_it_name}</strong>{_mark} <span style="color:#888;">({it["bottleneck"]:+.2f})</span></span>')
     lines.append('</div></div>')
     return '\n'.join(lines)
 
@@ -389,14 +389,14 @@ def render_sincerinho_bar_chart(
         color = "#E6194B" if count >= 6 else "#FF8C00" if count >= 3 else "#3CB44B"
         av = avatar_img(name, avatars, 32)
         lines.append(f'<div style="display:flex; align-items:center; margin-bottom:4px;">')
-        lines.append(f'<div style="width:180px; display:flex; align-items:center; gap:6px;">{av} <span style="font-size:0.85rem;">{safe_html(name)}</span></div>')
+        lines.append(f'<div style="width:180px; display:flex; align-items:center; gap:6px;">{av} <span class="fs-base">{safe_html(name)}</span></div>')
         lines.append(f'<div style="flex:1; background:#333; border-radius:4px; height:22px; position:relative;">')
         lines.append(f'<div style="width:{pct}%; background:{color}; height:100%; border-radius:4px; display:flex; align-items:center; justify-content:flex-end; padding-right:6px;">')
-        lines.append(f'<span style="color:#fff; font-weight:bold; font-size:0.8rem;">{count}×</span>')
+        lines.append(f'<span class="fs-md" style="color:#fff; font-weight:bold;">{count}×</span>')
         lines.append('</div></div></div>\n')
     if not_nominated:
         not_html = " ".join([f'{avatar_img(n, avatars, 32)} {safe_html(n)}' for n in not_nominated])
-        lines.append(f'<div style="margin-top:8px; padding:6px 10px; background:#1a3a1a; border:1px solid #3CB44B; border-radius:6px; font-size:0.85rem;">')
+        lines.append(f'<div class="fs-base" style="margin-top:8px; padding:6px 10px; background:#1a3a1a; border:1px solid #3CB44B; border-radius:6px;">')
         lines.append(f'🛡️ <strong>Não indicados:</strong> {not_html}</div>\n')
     lines.append('</div>\n')
     return '\n'.join(lines)
@@ -418,12 +418,12 @@ def _render_lider_summary_box(
 
     html += '<div style="background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); '
     html += 'border:2px solid #e74c3c; border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0;">'
-    html += f'<div style="font-size:1.2em; margin-bottom:0.8rem;">'
+    html += f'<div class="fs-xl" style="margin-bottom:0.8rem;">'
     html += f'🎯 <strong style="color:#e74c3c;">Previsão de Indicação d{_art} Líder</strong></div>'
 
     html += f'<div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">'
     html += f'{avatar_img(lider_name, avatars, size=40)}'
-    html += f'<span style="font-size:1.1em; color:#eee;"><strong>{esc_lider}</strong> '
+    html += f'<span class="fs-xl" style="color:#eee;"><strong>{esc_lider}</strong> '
     html += f'<span class="text-muted">— Líder da Semana {display_week}</span></span></div>'
 
     # Top 3 summary cards
@@ -431,25 +431,25 @@ def _render_lider_summary_box(
     for _i, (_tname, _tentry) in enumerate(ranked_top3):
         _sc = _tentry.get("score", 0)
         _color = "#e74c3c" if _sc < -2 else "#e67e22" if _sc < 0 else "#2ecc71"
-        _vip_tag = ' <span style="color:#3498db; font-size:0.75em;">VIP</span>' if _tname in vip_list else ""
+        _vip_tag = ' <span class="fs-sm" style="color:#3498db;">VIP</span>' if _tname in vip_list else ""
         html += f'<div style="background:#111; border:1px solid {_color}; border-radius:8px; '
         html += f'padding:0.6rem 0.8rem; min-width:140px; flex:1;">'
-        html += f'<div class="text-muted" style="font-size:0.75em;">#{_i+1} mais provável</div>'
+        html += f'<div class="text-muted fs-sm">#{_i+1} mais provável</div>'
         html += f'<div style="display:flex; align-items:center; gap:0.4rem; margin:0.3rem 0;">'
         html += f'{avatar_img(_tname, avatars, size=24)} '
         html += f'<strong style="color:#eee;">{safe_html(_tname)}</strong>{_vip_tag}</div>'
-        html += f'<div style="color:{_color}; font-size:1.1em; font-weight:bold;">{_sc:+.2f}</div>'
+        html += f'<div class="fs-xl" style="color:{_color}; font-weight:bold;">{_sc:+.2f}</div>'
         html += '</div>'
     html += '</div>'
 
     # Anjo note
     if anjo_name:
-        html += f'<div style="color:#3498db; font-size:0.9em;">😇 Anjo: <strong>{safe_html(anjo_name)}</strong>'
+        html += f'<div class="fs-base" style="color:#3498db;">😇 Anjo: <strong>{safe_html(anjo_name)}</strong>'
         if imunizado_nome:
             html += f' — imunizou <strong>{safe_html(imunizado_nome)}</strong> (bloqueado como alvo)'
         html += '</div>'
     else:
-        html += '<div class="text-muted" style="font-size:0.9em;">😇 Anjo ainda não definido esta semana</div>'
+        html += '<div class="text-muted fs-base">😇 Anjo ainda não definido esta semana</div>'
 
     html += '</div>'
     return html
@@ -476,7 +476,7 @@ def _render_ranking_row(
     _row_bg = "background:rgba(231,76,60,0.08);" if rank <= 3 else ""
 
     _is_immune = (tname == imunizado_nome)
-    _immune_tag = ' <span style="background:#3498db; color:#fff; font-size:0.7em; padding:1px 4px; border-radius:3px;">IMUNE</span>' if _is_immune else ""
+    _immune_tag = ' <span class="fs-xs" style="background:#3498db; color:#fff; padding:1px 4px; border-radius:3px;">IMUNE</span>' if _is_immune else ""
 
     html = ""
     html += f'<tr class="sep-bottom" style="{_row_bg}">'
@@ -503,8 +503,8 @@ def _render_ranking_row(
             continue
         _cc = _cneg if _cv < 0 else _cpos
         _chips.append(
-            f'<span style="background:{_cc}22; color:{_cc}; border:1px solid {_cc}44; '
-            f'border-radius:3px; padding:0px 4px; font-size:0.78em; white-space:nowrap;">'
+            f'<span class="fs-sm" style="background:{_cc}22; color:{_cc}; border:1px solid {_cc}44; '
+            f'border-radius:3px; padding:0px 4px; white-space:nowrap;">'
             f'{_ce} {_cv:+.2f}</span>'
         )
     html += " ".join(_chips) if _chips else '<span style="color:#555;">—</span>'
@@ -524,19 +524,19 @@ def _render_ranking_row(
         _rl, _rc = "💚 Aliados", "#2ecc71"
 
     html += f'<td class="cell-compact" style="white-space:nowrap;">'
-    html += f'<span style="color:{_rc}; font-size:0.85em;">{_rl}</span> '
-    html += f'<span class="text-muted" style="font-size:0.78em;">({_recip_score:+.2f})</span></td>'
+    html += f'<span class="fs-base" style="color:{_rc};">{_rl}</span> '
+    html += f'<span class="text-muted fs-sm">({_recip_score:+.2f})</span></td>'
 
     # Streak
     _si = "🔴" if _has_break else ("🟢" if _streak_len >= 5 else "⚪")
-    _bt = ' <span style="color:#e74c3c; font-size:0.75em;">BREAK</span>' if _has_break else ""
+    _bt = ' <span class="fs-sm" style="color:#e74c3c;">BREAK</span>' if _has_break else ""
     html += f'<td class="cell-compact tc" style="white-space:nowrap;">{_si} {_streak_len}d{_bt}</td>'
 
     # VIP
     if tname in vip_list:
         html += '<td class="cell-compact tc">'
-        html += '<span style="background:#3498db33; color:#3498db; border:1px solid #3498db55; '
-        html += 'border-radius:3px; padding:1px 5px; font-size:0.78em;">VIP</span></td>'
+        html += '<span class="fs-sm" style="background:#3498db33; color:#3498db; border:1px solid #3498db55; '
+        html += 'border-radius:3px; padding:1px 5px;">VIP</span></td>'
     else:
         html += '<td class="cell-compact tc" style="color:#555;">—</td>'
 
@@ -560,7 +560,7 @@ def _render_detail_row(
     html = ""
     html += f'<tr style="{row_bg}"><td colspan="8" style="padding:0;">'
     html += '<details style="margin:0 0.4rem 0.4rem 1.8rem;">'
-    html += '<summary class="text-muted" style="cursor:pointer; font-size:0.78em; '
+    html += '<summary class="text-muted fs-sm" style="cursor:pointer; '
     html += f'padding:0.2rem 0;">📋 {len(pair_edges)} evento(s) · '
     html += f'{len(hist_fwd)} dia(s) de queridômetro</summary>'
     html += '<div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.4rem;">'
@@ -568,7 +568,7 @@ def _render_detail_row(
     # Edges sub-table
     if pair_edges:
         html += '<div style="flex:1; min-width:280px;">'
-        html += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;"><strong>Eventos & Edges</strong></div>'
+        html += '<div class="fs-sm" style="color:#aaa; margin-bottom:0.3rem;"><strong>Eventos & Edges</strong></div>'
         html += '<table class="table-full table-sm">'
         html += '<thead><tr class="sep-bottom">'
         html += '<th class="text-dim tl" style="padding:2px 4px;">Data</th>'
@@ -597,7 +597,7 @@ def _render_detail_row(
             html += f'<tr style="border-bottom:1px solid #222;">'
             html += f'<td class="text-muted" style="padding:2px 4px; white-space:nowrap;">{_e_date}</td>'
             html += f'<td style="padding:2px 4px; white-space:nowrap;">{_e_emoji} {_e_label}</td>'
-            html += f'<td style="padding:2px 4px; color:#aaa; font-size:0.9em;">{_arrow}</td>'
+            html += f'<td class="fs-base" style="padding:2px 4px; color:#aaa;">{_arrow}</td>'
             html += f'<td class="tr" style="padding:2px 4px; color:{_e_wcolor}; font-family:monospace;">{_e_weight:+.2f}</td>'
             html += f'<td class="text-muted" style="padding:2px 4px;">{_detail_str}</td>'
             html += '</tr>'
@@ -611,7 +611,7 @@ def _render_detail_row(
         _show_dates = _all_dates[-14:]
 
         html += '<div style="flex:1; min-width:240px;">'
-        html += '<div style="color:#aaa; font-size:0.78em; margin-bottom:0.3rem;">'
+        html += '<div class="fs-sm" style="color:#aaa; margin-bottom:0.3rem;">'
         html += f'<strong>Queridômetro</strong> (últimos {len(_show_dates)} dias)</div>'
         html += '<table class="table-full table-sm">'
         html += '<thead><tr class="sep-bottom">'
@@ -629,7 +629,7 @@ def _render_detail_row(
             _fwd_c = "#2ecc71" if _fwd_sent > 0 else "#e74c3c" if _fwd_sent < -0.5 else "#e67e22" if _fwd_sent < 0 else "#555"
             _rev_c = "#2ecc71" if _rev_sent > 0 else "#e74c3c" if _rev_sent < -0.5 else "#e67e22" if _rev_sent < 0 else "#555"
             html += f'<tr style="border-bottom:1px solid #222;">'
-            html += f'<td class="text-muted" style="padding:1px 4px; font-size:0.9em;">{_dt[5:]}</td>'
+            html += f'<td class="text-muted fs-base" style="padding:1px 4px;">{_dt[5:]}</td>'
             html += f'<td class="tc" style="padding:1px 4px; color:{_fwd_c};">{_fwd_e}</td>'
             html += f'<td class="tc" style="padding:1px 4px; color:{_rev_c};">{_rev_e}</td>'
             html += '</tr>'
@@ -655,8 +655,8 @@ def render_lider_prediction(
     # Early return: no active leader
     if not lider_name:
         return (
-            '<div class="tc" style="background:#1a1a2e; border:1px solid #444; border-radius:10px; '
-            'padding:1.5rem; margin:1rem 0; color:#aaa; font-size:1.1em;">'
+            '<div class="tc fs-xl" style="background:#1a1a2e; border:1px solid #444; border-radius:10px; '
+            'padding:1.5rem; margin:1rem 0; color:#aaa;">'
             '🏠 <strong>Sem líder ativo</strong> — previsão de indicação indisponível.</div>'
         )
 
@@ -670,7 +670,7 @@ def render_lider_prediction(
 
     # Full ranking table — header
     html += '<div class="scroll-x" style="margin-top:1.2rem;">'
-    html += '<table class="table-full" style="font-size:0.85em;">'
+    html += '<table class="table-full fs-base">'
     html += '<thead><tr style="border-bottom:2px solid #444;">'
     for _hdr in ["#", "Participante", "Score", "Barra", "Componentes", "Reciprocidade", "Streak", "VIP"]:
         html += f'<th style="padding:0.5rem 0.4rem; text-align:left; color:#aaa; white-space:nowrap;">{_hdr}</th>'
@@ -702,8 +702,8 @@ def render_lider_prediction(
     html += '</tbody></table></div>'
 
     # Methodology note
-    html += '<div class="text-muted" style="background:#111; border:1px solid #333; border-radius:8px; '
-    html += 'padding:0.8rem 1rem; margin:1rem 0; font-size:0.82em;">'
+    html += '<div class="text-muted fs-md" style="background:#111; border:1px solid #333; border-radius:8px; '
+    html += 'padding:0.8rem 1rem; margin:1rem 0;">'
     html += '<strong style="color:#aaa;">📐 Metodologia</strong><br>'
     html += 'A previsão é baseada no <strong>score acumulado do Líder → cada participante</strong>, '
     html += 'calculado pelo sistema de Sentiment Index (queridômetro com memória de streak + '

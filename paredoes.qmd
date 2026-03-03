@@ -196,20 +196,20 @@ if len(finalized_polls) >= 1:
 
     pct = 100 * total_correct / total_polls
     color = '#3CB44B' if pct >= 75 else '#f39c12' if pct >= 50 else '#E6194B'
-    print(f'<div style="min-width:120px;"><strong>Taxa de acerto</strong><br><span style="font-size:2em; color:{color}; font-weight:bold;">{total_correct}/{total_polls}</span><br><span class="text-muted">({pct:.0f}%)</span></div>')
+    print(f'<div style="min-width:120px;"><strong>Taxa de acerto</strong><br><span class="fs-4xl" style="color:{color}; font-weight:bold;">{total_correct}/{total_polls}</span><br><span class="text-muted">({pct:.0f}%)</span></div>')
 
-    print(f'<div style="min-width:120px;"><strong>Erro médio</strong><br><span style="font-size:2em; color:#f39c12; font-weight:bold;">{avg_errors["enquete_vs_total"]:.1f}</span><br><span class="text-muted">p.p. vs Média Final</span></div>')
+    print(f'<div style="min-width:120px;"><strong>Erro médio</strong><br><span class="fs-4xl" style="color:#f39c12; font-weight:bold;">{avg_errors["enquete_vs_total"]:.1f}</span><br><span class="text-muted">p.p. vs Média Final</span></div>')
 
-    print(f'<div style="min-width:150px;"><strong>Mais próximo de</strong><br><span style="font-size:1.3em; font-weight:bold;">{best_vote_label[best_vote_type]}</span><br><span class="text-muted">erro: {avg_errors[best_vote_type]:.1f} p.p.</span></div>')
+    print(f'<div style="min-width:150px;"><strong>Mais próximo de</strong><br><span class="fs-2xl" style="font-weight:bold;">{best_vote_label[best_vote_type]}</span><br><span class="text-muted">erro: {avg_errors[best_vote_type]:.1f} p.p.</span></div>')
 
     if best_platform:
-        print(f'<div style="min-width:150px;"><strong>Plataforma mais precisa</strong><br><span style="font-size:1.3em;">{platform_names.get(best_platform, best_platform)}</span><br><span class="text-muted">erro: {platform_avg[best_platform]:.1f} p.p.</span></div>')
+        print(f'<div style="min-width:150px;"><strong>Plataforma mais precisa</strong><br><span class="fs-2xl">{platform_names.get(best_platform, best_platform)}</span><br><span class="text-muted">erro: {platform_avg[best_platform]:.1f} p.p.</span></div>')
 
     if backtest:
         _bt_agg = backtest['aggregate']
         _bt_imp = _bt_agg.get('improvement_pct', 0)
         _bt_color = '#00bc8c' if _bt_imp and _bt_imp > 0 else '#f39c12'
-        print(f'<div style="min-width:150px; border-left:3px solid #00bc8c; padding-left:1rem;"><strong>🧮 Nosso Modelo</strong><br><span style="font-size:2em; color:{_bt_color}; font-weight:bold;">{_bt_agg["model_mae"]:.1f}</span><br><span class="text-muted">p.p. (LOO) — {_bt_imp:+.0f}%</span></div>')
+        print(f'<div style="min-width:150px; border-left:3px solid #00bc8c; padding-left:1rem;"><strong>🧮 Nosso Modelo</strong><br><span class="fs-4xl" style="color:{_bt_color}; font-weight:bold;">{_bt_agg["model_mae"]:.1f}</span><br><span class="text-muted">p.p. (LOO) — {_bt_imp:+.0f}%</span></div>')
 
     print(f'</div></div>\n')
 
@@ -235,7 +235,7 @@ if len(finalized_polls) >= 1:
         # Highlight cells based on error
         for val, err in [(r['voto_unico'], err_unico), (r['voto_torcida'], err_torcida), (r['voto_total'], err_total)]:
             cell_color = '#3CB44B' if err < 10 else '#f39c12' if err < 20 else '#E6194B'
-            print(f'<td class="tc">{val:.1f}% <span style="color:{cell_color}; font-size:0.8em;">({err:+.1f})</span></td>')
+            print(f'<td class="tc">{val:.1f}% <span class="fs-md" style="color:{cell_color};">({err:+.1f})</span></td>')
 
         print(f'<td class="tc" style="font-weight:bold;">🎯 {best}</td>')
         print('</tr>')
@@ -569,9 +569,9 @@ if len(finalized_polls) >= 1:
 
         if _gc:
             print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.8rem 1rem; margin:1rem 0;">')
-            print(f'<div style="font-size:0.85em; font-weight:bold; color:#f1c40f; margin-bottom:0.5rem;">💡 Curiosidades Históricas</div>')
+            print(f'<div class="fs-base" style="font-weight:bold; color:#f1c40f; margin-bottom:0.5rem;">💡 Curiosidades Históricas</div>')
             for _c in _gc:
-                print(f'<div style="font-size:0.85em; color:#ddd; margin-bottom:0.3rem;">{_c}</div>')
+                print(f'<div class="fs-base" style="color:#ddd; margin-bottom:0.3rem;">{_c}</div>')
             print(f'</div>\n')
 
     # ══════════════════════════════════════════════════════════════
@@ -697,7 +697,7 @@ for pr in _paredoes_raw:
 
 print('<div style="background:rgba(46,204,113,0.10); border:1px solid rgba(46,204,113,0.3); border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0 1.5rem 0;">')
 print(f'<h4 style="margin:0 0 0.8rem 0;">🛡️ Intocáveis — Nunca receberam votos da casa</h4>')
-print(f'<p style="margin:0 0 0.8rem 0; color:#aaa; font-size:0.9em;">{len(never_voted)} de {len(active_names)} participantes ativos passaram por {len(paredoes_finalizados)} paredões sem receber nenhum voto da casa.</p>')
+print(f'<p class="fs-base" style="margin:0 0 0.8rem 0; color:#aaa;">{len(never_voted)} de {len(active_names)} participantes ativos passaram por {len(paredoes_finalizados)} paredões sem receber nenhum voto da casa.</p>')
 print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">')
 for name in never_voted:
     url = AVATARS.get(name, '')
@@ -706,13 +706,13 @@ for name in never_voted:
     print(f'<div class="tc" style="width:90px;">')
     if url:
         print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid #2ecc71;" alt="{name}" title="{name}">')
-    print(f'<div style="font-size:0.75em; margin-top:4px; line-height:1.2;">{name}</div>')
+    print(f'<div class="fs-sm" style="margin-top:4px; line-height:1.2;">{name}</div>')
     if exemptions:
         notes = ', '.join([f'{r} no {n}º' for n, r in exemptions])
-        print(f'<div style="font-size:0.65em; color:#f39c12; margin-top:2px; line-height:1.1;">({notes})</div>')
-        print(f'<div class="text-muted" style="font-size:0.65em; margin-top:1px;">elegível {n_eligible}/{len(paredoes_finalizados)}</div>')
+        print(f'<div class="fs-2xs" style="color:#f39c12; margin-top:2px; line-height:1.1;">({notes})</div>')
+        print(f'<div class="text-muted fs-2xs" style="margin-top:1px;">elegível {n_eligible}/{len(paredoes_finalizados)}</div>')
     else:
-        print(f'<div style="font-size:0.65em; color:#2ecc71; margin-top:2px;">elegível {len(paredoes_finalizados)}/{len(paredoes_finalizados)} ✓</div>')
+        print(f'<div class="fs-2xs" style="color:#2ecc71; margin-top:2px;">elegível {len(paredoes_finalizados)}/{len(paredoes_finalizados)} ✓</div>')
     print('</div>')
 print('</div>')
 print('</div>')
@@ -730,8 +730,8 @@ if target_votes:
     ranked = sorted(target_votes.items(), key=lambda x: sum(len(v) for v in x[1].values()), reverse=True)
 
     print('<h4 style="margin:1.5rem 0 0.8rem 0;">🗳️ Mapa de Votos — Quem votou em quem</h4>')
-    print('<p style="color:#aaa; font-size:0.9em; margin-bottom:0.8rem;">Todos os alvos de votos da casa. Participantes eliminados/desclassificados aparecem em preto e branco.</p>')
-    print('<table class="table table-striped" style="font-size:0.95rem;">')
+    print('<p class="fs-base" style="color:#aaa; margin-bottom:0.8rem;">Todos os alvos de votos da casa. Participantes eliminados/desclassificados aparecem em preto e branco.</p>')
+    print('<table class="table table-striped fs-base">')
 
     # Header with paredão numbers
     print('<thead><tr>')
@@ -750,7 +750,7 @@ if target_votes:
         t_active = target in active_names
         row_style = '' if t_active else 'opacity:0.85;'
         print(f'<tr style="{row_style}"><td style="white-space:nowrap;">{avatar_html_bw(target, AVATARS, 36, t_active)}</td>')
-        print(f'<td class="tc" style="font-weight:bold; font-size:1.1em;">{total}</td>')
+        print(f'<td class="tc fs-xl" style="font-weight:bold;">{total}</td>')
 
         for p in paredoes_finalizados:
             n = len(by_paredao.get(p['numero'], []))
@@ -868,15 +868,15 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         _n_past = len(_past)
         _hist_badge = ''
         if _n_past > 0:
-            _hist_badge = f'<div style="position:absolute; top:-5px; right:-5px; background:#e74c3c; color:#fff; width:20px; height:20px; border-radius:50%; font-size:0.65em; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{_n_past + 1}x</div>'
+            _hist_badge = f'<div class="fs-2xs" style="position:absolute; top:-5px; right:-5px; background:#e74c3c; color:#fff; width:20px; height:20px; border-radius:50%; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{_n_past + 1}x</div>'
 
         print(f'<div style="border:2px solid {border_color}; border-radius:12px; padding:0.6rem; background:rgba(255,255,255,0.03); width:130px; text-align:center; position:relative;">')
         print(_hist_badge)
         if avatar_url:
             print(f'<img src="{avatar_url}" alt="{nome}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
-        print(f'<div style="color:#fff; font-size:0.9em; font-weight:bold;">{first_name}</div>')
-        print(f'<span style="display:inline-block; padding:0.15rem 0.4rem; background:{badge_bg}; color:#fff; border-radius:8px; font-size:0.62em; font-weight:bold; margin:0.2rem 0;">{badge_text}</span>')
-        print(f'<div style="color:#fff; font-size:1.2em; font-weight:bold;">{voto_total:.1f}%</div>')
+        print(f'<div class="fs-base" style="color:#fff; font-weight:bold;">{first_name}</div>')
+        print(f'<span class="fs-2xs" style="display:inline-block; padding:0.15rem 0.4rem; background:{badge_bg}; color:#fff; border-radius:8px; font-weight:bold; margin:0.2rem 0;">{badge_text}</span>')
+        print(f'<div class="fs-xl" style="color:#fff; font-weight:bold;">{voto_total:.1f}%</div>')
         print('</div>')
     print('</div>')
 
@@ -884,9 +884,9 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     _arc_nominees_hist = [(part['nome'], _par_hist_arc.get(part['nome'], [])) for part in paredao['participantes'] if _par_hist_arc.get(part['nome'])]
     if _arc_nominees_hist:
         print('<details style="margin:0 0 1rem 0;">')
-        print('<summary style="cursor:pointer; font-size:0.85em; color:#aaa;">📋 Histórico em paredões anteriores</summary>')
+        print('<summary class="fs-base" style="cursor:pointer; color:#aaa;">📋 Histórico em paredões anteriores</summary>')
         print('<div style="overflow-x:auto; margin-top:0.4rem;">')
-        print('<table class="table table-sm" style="font-size:0.8rem; white-space:nowrap;">')
+        print('<table class="table table-sm fs-md" style="white-space:nowrap;">')
         print('<thead><tr><th>Participante</th><th>Par.</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
         for _h_nome, _h_entries in _arc_nominees_hist:
             _h_fn = _h_nome.split()[0]
@@ -900,7 +900,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                     _h_r = f'<span style="color:#2ecc71;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
                 else:
                     _h_r = '—'
-                print(f'<tr><td>{_h_av} {_h_fn}</td><td>{_h["paredao"]}º{_h_f}</td><td style="font-size:0.9em;">{_h["como"]}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_r}</td></tr>')
+                print(f'<tr><td>{_h_av} {_h_fn}</td><td>{_h["paredao"]}º{_h_f}</td><td class="fs-base">{_h["como"]}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_r}</td></tr>')
         print('</tbody></table></div></details>\n')
 
     # ══════════════════════════════════════════════════════════════
@@ -989,10 +989,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     contrad_pct = vote_align["contraditorio"] / total_votes * 100
 
     print("<h4 style='margin-top:1.2rem;'>🧭 Coerência social</h4>")
-    print(f"<p style='font-size:0.98rem;'>Votos: <strong>{aligned_pct:.0f}% alinhados</strong> vs <strong>{contrad_pct:.0f}% contraditórios</strong> com o queridômetro da formação.</p>")
+    print(f"<p class='fs-lg'>Votos: <strong>{aligned_pct:.0f}% alinhados</strong> vs <strong>{contrad_pct:.0f}% contraditórios</strong> com o queridômetro da formação.</p>")
     if indicacoes:
         total_ind = len(indicacoes)
-        print(f"<p style='font-size:0.95rem;'>Indicações públicas coerentes: {ind_align['alinhado']}/{total_ind}.</p>")
+        print(f"<p class='fs-base'>Indicações públicas coerentes: {ind_align['alinhado']}/{total_ind}.</p>")
 
     # Badge vs realidade (contradições)
         if paredao.get('votos_casa'):
@@ -1060,7 +1060,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
         if vuln_no_votes or prot_with_votes:
             print("<div style='margin-top:0.6rem;'>")
-            print("<p style='font-size:0.95rem;'><strong>Contradições (badge vs realidade)</strong></p>")
+            print("<p class='fs-base'><strong>Contradições (badge vs realidade)</strong></p>")
             if vuln_no_votes:
                 print("<p class='text-muted'>Vulneráveis sem votos (surpresa não se confirmou):</p>")
                 print('<ul>')
@@ -1093,11 +1093,11 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         print(f"\n### {_arc_title}\n")
 
         if accuracy and accuracy['predicao_correta']:
-            status_html = '<span style="background:#3CB44B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px; font-size:0.85em;">✅ Previsão correta</span>'
+            status_html = '<span class="fs-base" style="background:#3CB44B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px;">✅ Previsão correta</span>'
         else:
-            status_html = '<span style="background:#E6194B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px; font-size:0.85em;">❌ Previsão errada</span>'
+            status_html = '<span class="fs-base" style="background:#E6194B; color:#fff; padding:0.2rem 0.6rem; border-radius:10px;">❌ Previsão errada</span>'
 
-        print(f'{status_html} <span class="text-muted" style="font-size:0.9em;">Erro médio: {accuracy["erro_medio"]:.1f} p.p.</span>\n')
+        print(f'{status_html} <span class="text-muted fs-base">Erro médio: {accuracy["erro_medio"]:.1f} p.p.</span>\n')
 
         # Color scheme depends on vote type
         _color_max_a = '#2ecc71' if _is_save_arc else '#e74c3c'
@@ -1111,11 +1111,11 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
         # Compact platform table with avatars
         print('<div style="overflow-x:auto;">')
-        print('<table class="table table-sm" style="max-width: 100%; font-size: 0.85rem; white-space:nowrap;">')
+        print('<table class="table table-sm fs-base" style="max-width: 100%; white-space:nowrap;">')
         print('<thead><tr><th>Fonte</th>')
         for nome in participantes_poll:
             _av = avatar_img(nome, AVATARS, 42)
-            print(f'<th class="tc">{_av}<br><span style="font-size:0.7em;">{nome.split()[0]}</span></th>')
+            print(f'<th class="tc">{_av}<br><span class="fs-xs">{nome.split()[0]}</span></th>')
         print('</tr></thead><tbody>')
 
         platform_order = ['sites', 'youtube', 'twitter', 'instagram']
@@ -1271,9 +1271,9 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
 
         if _arc_curiosities:
             print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.6rem 0.8rem; margin:0.5rem 0 0.8rem 0;">')
-            print(f'<div style="font-size:0.75em; font-weight:bold; color:#f1c40f; margin-bottom:0.3rem;">💡 Curiosidades</div>')
+            print(f'<div class="fs-sm" style="font-weight:bold; color:#f1c40f; margin-bottom:0.3rem;">💡 Curiosidades</div>')
             for c in _arc_curiosities:
-                print(f'<div style="font-size:0.8em; color:#ddd; margin-bottom:0.2rem;">{c}</div>')
+                print(f'<div class="fs-md" style="color:#ddd; margin-bottom:0.2rem;">{c}</div>')
             print(f'</div>\n')
 
         # Time series chart (archive)
@@ -1305,13 +1305,13 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         print(f"### Votação da Casa\n")
         print(f"**Mais votado:** {ranking[0][0]} ({ranking[0][1]} votos)\n")
 
-        print('<table class="table table-striped" style="font-size: 1.05rem;">')
+        print('<table class="table table-striped fs-lg">')
         print('<thead><tr><th>Alvo</th><th class="tc">Votos</th><th>Votantes</th></tr></thead>')
         print('<tbody>')
         for alvo, n in ranking:
             votantes = sorted([v for v, a in votos.items() if a == alvo])
             votantes_html = ' '.join([avatar_img(v, AVATARS, 42) for v in votantes])
-            print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td class="tc" style="font-weight:bold; font-size:1.1em;">{n}</td><td>{votantes_html}</td></tr>')
+            print(f'<tr><td>{avatar_html(alvo, AVATARS, 42)}</td><td class="tc fs-xl" style="font-weight:bold;">{n}</td><td>{votantes_html}</td></tr>')
         print('</tbody></table>\n')
 
     # ══════════════════════════════════════════════════════════════
@@ -1505,7 +1505,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             print(f'<div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">')
             print(f'{avatar_img(nome, AVATARS, 48)}')
             print(f'<div>')
-            print(f'<span style="background:{badge_color}; color:#fff; padding:3px 10px; border-radius:5px; font-weight:bold; font-size:0.9em;">{badge_text}</span>')
+            print(f'<span class="fs-base" style="background:{badge_color}; color:#fff; padding:3px 10px; border-radius:5px; font-weight:bold;">{badge_text}</span>')
             print(f' <span style="color:{grupo_color}; font-weight:500; margin-left:6px;">{grupo}</span>')
             print(f'</div></div>\n')
 
@@ -1602,7 +1602,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                         print(f"Modelo previa {vp_predicted_votes_for} votos (real: {n_votes}) — {vp_surprise_votes} surpresa(s).\n")
 
                 has_vp = bool(vp_predictions)
-                print('<table class="table table-striped" style="font-size:0.9rem;">')
+                print('<table class="table table-striped fs-base">')
                 print('<thead><tr><th>Votante</th><th class="tc">Deu</th><th class="tc">Recebeu</th><th>Tipo</th><th>Histórico</th>', end="")
                 if has_vp:
                     print('<th class="tc">Prev.</th>', end="")
@@ -1619,15 +1619,15 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                             vp_cell = '<td class="tc text-dim">—</td>'
                         elif pred.get('predicted') == nome:
                             conf = pred.get('confidence', '')
-                            vp_cell = f'<td class="tc" style="color:#3CB44B; font-size:0.8em;">✅ {conf}</td>'
+                            vp_cell = f'<td class="tc fs-md" style="color:#3CB44B;">✅ {conf}</td>'
                         else:
                             short = pred.get('predicted', '?').split()[0]
-                            vp_cell = f'<td class="tc" style="color:#E6194B; font-size:0.8em;">❌→{short}</td>'
+                            vp_cell = f'<td class="tc fs-md" style="color:#E6194B;">❌→{short}</td>'
                     print(f'<tr><td>{avatar_html(v["votante"], AVATARS, 24)}</td>'
-                          f'<td class="tc" style="font-size:1.1em;">{v.get("emoji_dado","?")}</td>'
-                          f'<td class="tc" style="font-size:1.1em;">{v.get("emoji_recebido","?")}</td>'
+                          f'<td class="tc fs-xl">{v.get("emoji_dado","?")}</td>'
+                          f'<td class="tc fs-xl">{v.get("emoji_recebido","?")}</td>'
                           f'<td class="table-md">{v.get("label","?")}</td>'
-                          f'<td style="font-size:0.8em;">{he} {v.get("hist_narrative","")}</td>'
+                          f'<td class="fs-md">{he} {v.get("hist_narrative","")}</td>'
                           f'{vp_cell}</tr>')
                 print('</tbody></table>\n')
 

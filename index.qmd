@@ -198,7 +198,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
 .cross-table {{
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 0.85rem;
+    font-size: var(--fs-base);
     width: max-content;
 }}
 .cross-table th, .cross-table td {{
@@ -227,7 +227,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
     z-index: 3;
     left: 0;
 }}
-.cross-table td {{ font-size: 1.1rem; }}
+.cross-table td {{ font-size: var(--fs-xl); }}
 .cross-table td:hover {{ outline: 2px solid #fff; }}
 </style>
 <table class="cross-table">
@@ -293,7 +293,7 @@ def make_reaction_summary_html(summary_data, collapsed_rows=5):
 <style>
 .summary-table {{
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: var(--fs-base);
     width: 100%;
 }}
 .summary-table th, .summary-table td {{
@@ -327,7 +327,7 @@ def make_reaction_summary_html(summary_data, collapsed_rows=5):
     border-radius: 6px;
     color: #ccc;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: var(--fs-base);
 }}
 .expand-btn:hover {{ background: #333; }}
 </style>
@@ -425,14 +425,14 @@ def av(name, size=48, border_color="#555"):
 def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
     """Card header with icon, title, optional link, badge, data source tag, and subtitle."""
     title_html = title
-    link_html = f' <a href="{link}" style="color:#888;font-size:0.7rem;text-decoration:none;vertical-align:middle;">ver mais ↗</a>' if link else ""
-    badge_html = f' <span style="background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:500;">{badge}</span>' if badge else ""
-    source_html = f' <span style="font-size:0.6rem;color:#888;padding:1px 6px;border:1px solid #555;border-radius:4px;vertical-align:middle;">{source_tag}</span>' if source_tag else ""
-    subtitle_html = f'<div style="font-size:0.75rem;color:#999;margin-top:2px;line-height:1.3;">{subtitle}</div>' if subtitle else ""
+    link_html = f' <a href="{link}" class="fs-xs" style="color:#888;text-decoration:none;vertical-align:middle;">ver mais ↗</a>' if link else ""
+    badge_html = f' <span class="fs-xs" style="background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:10px;font-weight:500;">{badge}</span>' if badge else ""
+    source_html = f' <span class="fs-2xs" style="color:#888;padding:1px 6px;border:1px solid #555;border-radius:4px;vertical-align:middle;">{source_tag}</span>' if source_tag else ""
+    subtitle_html = f'<div class="fs-sm" style="color:#999;margin-top:2px;line-height:1.3;">{subtitle}</div>' if subtitle else ""
     return (f'<div style="margin-bottom:0.6rem;">'
             f'<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">'
-            f'<span style="font-size:1.3rem;">{icon}</span>'
-            f'<span style="font-weight:700;font-size:0.95rem;color:#fff;text-transform:uppercase;letter-spacing:0.03em;">{title_html}</span>'
+            f'<span class="fs-2xl">{icon}</span>'
+            f'<span class="fs-base" style="font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.03em;">{title_html}</span>'
             f'{badge_html}{source_html}{link_html}'
             f'</div>'
             f'{subtitle_html}</div>')
@@ -441,8 +441,8 @@ def stat_chip(value, label, color="#888"):
     """Small stat chip."""
     return (f'<span style="display:inline-flex;flex-direction:column;align-items:center;'
             f'background:rgba(255,255,255,0.06);padding:0.3rem 0.6rem;border-radius:8px;min-width:55px;">'
-            f'<span style="font-size:1.1rem;font-weight:700;color:{color};">{value}</span>'
-            f'<span style="font-size:0.65rem;color:#999;text-transform:uppercase;">{label}</span></span>')
+            f'<span class="fs-xl" style="font-weight:700;color:{color};">{value}</span>'
+            f'<span class="fs-2xs" style="color:#999;text-transform:uppercase;">{label}</span></span>')
 
 def progress_bar(value, max_val, color="#3498db", height=6):
     """Mini progress bar."""
@@ -463,9 +463,9 @@ else:
 
     # Section header with context stats
     print(f'''<div style="margin:1.5rem 0 1rem 0;">
-<h2 style="margin:0 0 0.2rem 0;font-size:1.3rem;color:#fff;">📋 Destaques do Dia <span style="color:#888;font-weight:400;font-size:0.85rem;">({date_display_pt})</span></h2>
+<h2 class="fs-2xl" style="margin:0 0 0.2rem 0;color:#fff;">📋 Destaques do Dia <span class="fs-base" style="color:#888;font-weight:400;">({date_display_pt})</span></h2>
 <div style="height:3px;background:linear-gradient(90deg,#f1c40f,#e74c3c,#3498db,#2ecc71);border-radius:2px;margin-bottom:0.4rem;"></div>
-<div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:0.85rem;color:#999;">
+<div class="fs-base" style="display:flex;gap:1.2rem;flex-wrap:wrap;color:#999;">
 <span>📅 <b class="text-light">Semana {ctx_week}</b></span>
 <span>{ctx_days} dias de dados</span>
 <span>{ctx_active} participantes ativos</span>
@@ -498,7 +498,7 @@ else:
             medals = ["🥇", "🥈", "🥉", "4º", "5º", "6º"]
             medal_borders = ["#f1c40f", "#c0c0c0", "#cd7f32", "#27ae60", "#27ae60", "#27ae60"]
             podium_html = '<div>'
-            podium_html += '<div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬆ Mais queridos</div>'
+            podium_html += '<div class="fs-2xs" style="color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬆ Mais queridos</div>'
             podium_html += '<div style="display:flex;flex-direction:column;gap:4px;">'
             for i, p in enumerate(podium[:6]):
                 name = p["name"]
@@ -508,7 +508,7 @@ else:
                 podium_html += (
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(39,174,96,0.08);padding:4px 10px;border-radius:8px;">'
                     f'{av(name, 42, border)}'
-                    f'<span style="font-size:0.8rem;color:#27ae60;font-weight:700;">{label} {name.split()[0]} {score:+.1f}</span>'
+                    f'<span class="fs-md" style="color:#27ae60;font-weight:700;">{label} {name.split()[0]} {score:+.1f}</span>'
                     f'</div>'
                 )
             podium_html += '</div></div>'
@@ -517,7 +517,7 @@ else:
             bottom_html = ""
             if bottom3:
                 bottom_html = '<div>'
-                bottom_html += '<div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬇ Menos queridos</div>'
+                bottom_html += '<div class="fs-2xs" style="color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬇ Menos queridos</div>'
                 bottom_html += '<div style="display:flex;flex-direction:column;gap:4px;">'
                 for p in bottom3[:6]:
                     name = p["name"]
@@ -526,7 +526,7 @@ else:
                     bottom_html += (
                         f'<div style="display:flex;align-items:center;gap:5px;background:rgba(231,76,60,0.08);padding:4px 10px;border-radius:8px;">'
                         f'{av(name, 42, "#e74c3c")}'
-                        f'<span style="font-size:0.8rem;color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
+                        f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                         f'</div>'
                     )
                 bottom_html += '</div></div>'
@@ -537,19 +537,19 @@ else:
             mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
             if mup_list or mdown_list:
                 movers_html = '<div>'
-                movers_html += '<div style="font-size:0.65rem;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">📅 Variação vs ontem</div>'
+                movers_html += '<div class="fs-2xs" style="color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">📅 Variação vs ontem</div>'
                 movers_html += '<div style="display:flex;flex-direction:column;gap:4px;">'
                 for mu in mup_list:
                     movers_html += (
                         f'<div style="display:flex;align-items:center;gap:5px;background:rgba(39,174,96,0.1);padding:4px 10px;border-radius:8px;">'
                         f'{av(mu["name"], 42, "#27ae60")}'
-                        f'<span style="font-size:0.8rem;color:#27ae60;font-weight:700;">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
+                        f'<span class="fs-md" style="color:#27ae60;font-weight:700;">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
                         f'</div>')
                 for md in mdown_list:
                     movers_html += (
                         f'<div style="display:flex;align-items:center;gap:5px;background:rgba(231,76,60,0.1);padding:4px 10px;border-radius:8px;">'
                         f'{av(md["name"], 42, "#e74c3c")}'
-                        f'<span class="text-neg" style="font-size:0.8rem;">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
+                        f'<span class="text-neg fs-md">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
                         f'</div>')
                 movers_html += '</div></div>'
 
@@ -577,15 +577,15 @@ else:
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Reações do queridômetro que mudaram de ontem para hoje. Melhorias = score subiu, pioras = score caiu.")}
 <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.6rem;">
-<span style="font-size:2rem;font-weight:800;color:#fff;">{total}</span>
-<span style="font-size:0.85rem;color:#aaa;">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
+<span class="fs-4xl" style="font-weight:800;color:#fff;">{total}</span>
+<span class="fs-base" style="color:#aaa;">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
 <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
 {stat_chip(imp, "melhorias", "#27ae60")}
 {stat_chip(wor, "pioras", "#e74c3c")}
 {stat_chip(lat, "laterais", "#888")}
 </div>
-<div style="display:flex;gap:0.6rem;font-size:0.8rem;color:#aaa;">
+<div class="fs-md" style="display:flex;gap:0.6rem;color:#aaa;">
 <span style="color:#27ae60;">+{hg} ❤️ ganhados</span> <span style="color:#e74c3c;">-{hl_lost} ❤️ perdidos</span>
 </div>
 </div>''')
@@ -625,14 +625,14 @@ else:
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
                     f'padding:5px 8px;border-radius:8px;" title="{g} → {r}">'
                     f'{av(g, 42, g_color)}'
-                    f'<span style="font-size:0.8rem;color:#ccc;">{label}</span>'
+                    f'<span class="fs-md" style="color:#ccc;">{label}</span>'
                     f'{av(r, 42, r_color)}'
                     f'</div>'
                 )
             extra = total - 4
             if extra > 0:
                 link = card.get("link", "#")
-                pairs_html += f'<a href="{link}" style="display:flex;align-items:center;padding:4px 10px;background:rgba(255,255,255,0.08);border-radius:8px;color:#aaa;font-size:0.75rem;text-decoration:none;">+{extra} mais ↗</a>'
+                pairs_html += f'<a href="{link}" class="fs-sm" style="display:flex;align-items:center;padding:4px 10px;background:rgba(255,255,255,0.08);border-radius:8px;color:#aaa;text-decoration:none;">+{extra} mais ↗</a>'
             pairs_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
@@ -653,12 +653,12 @@ else:
                 rows_html += (
                     f'<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);padding:5px 8px;border-radius:8px;">'
                     f'{av(ator, 42, "#e67e22")}'
-                    f'<span style="font-size:0.8rem;color:#ccc;">{ator.split()[0]}</span>'
-                    f'<span style="font-size:0.7rem;color:#888;">disse <b style="color:#e67e22;">{tipo}</b> mas dá</span>'
-                    f'<span style="font-size:1.1rem;">{emoji}</span>'
-                    f'<span style="font-size:0.7rem;color:#888;">para</span>'
+                    f'<span class="fs-md" style="color:#ccc;">{ator.split()[0]}</span>'
+                    f'<span class="fs-xs" style="color:#888;">disse <b style="color:#e67e22;">{tipo}</b> mas dá</span>'
+                    f'<span class="fs-xl">{emoji}</span>'
+                    f'<span class="fs-xs" style="color:#888;">para</span>'
                     f'{av(alvo, 42, "#27ae60")}'
-                    f'<span style="font-size:0.8rem;color:#ccc;">{alvo.split()[0]}</span>'
+                    f'<span class="fs-md" style="color:#ccc;">{alvo.split()[0]}</span>'
                     f'</div>'
                 )
             rows_html += '</div>'
@@ -676,7 +676,7 @@ else:
                 avatars_html += (
                     f'<div style="display:flex;flex-direction:column;align-items:center;">'
                     f'{av(name, 60, "#e74c3c")}'
-                    f'<span style="font-size:0.7rem;color:#ccc;margin-top:3px;max-width:70px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{name.split()[0]}</span>'
+                    f'<span class="fs-xs" style="color:#ccc;margin-top:3px;max-width:70px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{name.split()[0]}</span>'
                     f'</div>'
                 )
             avatars_html += '</div>'
@@ -701,8 +701,8 @@ else:
                     f'{av(name, 42, "#c0392b")}'
                     f'<div style="flex:1;min-width:0;">'
                     f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-                    f'<span style="font-size:0.8rem;font-weight:600;color:#fff;">{name.split()[0]}</span>'
-                    f'<span class="text-neg" style="font-size:0.75rem;">{neg:.1f}</span>'
+                    f'<span class="fs-md" style="font-weight:600;color:#fff;">{name.split()[0]}</span>'
+                    f'<span class="text-neg fs-sm">{neg:.1f}</span>'
                     f'</div>'
                     f'<div style="background:rgba(255,255,255,0.08);border-radius:3px;height:5px;margin-top:2px;overflow:hidden;">'
                     f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
@@ -711,7 +711,7 @@ else:
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<div class="tc" style="font-size:0.75rem;color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+                rows_html += f'<div class="tc fs-sm" style="color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto negativo acumulado por eventos de poder, votos, Sincerão e VIP. Quem mais sofre ao longo do jogo.")}
@@ -737,19 +737,19 @@ else:
                     f'{av(name, 42, level_color)}'
                     f'<div style="flex:1;min-width:0;">'
                     f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
-                    f'<span style="font-size:0.85rem;font-weight:600;color:#fff;">{name.split()[0]}</span>'
-                    f'<span style="font-size:0.6rem;padding:2px 6px;border-radius:4px;background:{level_color};color:#fff;font-weight:700;">{level_label}</span>'
-                    f'<span style="font-size:0.75rem;color:{level_color};font-weight:600;">{count} falsos amigos</span>'
+                    f'<span class="fs-base" style="font-weight:600;color:#fff;">{name.split()[0]}</span>'
+                    f'<span class="fs-2xs" style="padding:2px 6px;border-radius:4px;background:{level_color};color:#fff;font-weight:700;">{level_label}</span>'
+                    f'<span class="fs-sm" style="color:{level_color};font-weight:600;">{count} falsos amigos</span>'
                     f'</div>'
                     f'<div style="display:flex;gap:2px;margin-top:3px;align-items:center;">'
-                    f'<span style="font-size:0.65rem;color:#888;margin-right:4px;">Quem:</span>'
+                    f'<span class="fs-2xs" style="color:#888;margin-right:4px;">Quem:</span>'
                     f'{enemy_avatars}'
-                    f'{f"<span style=&quot;font-size:0.65rem;color:#888;&quot;>+{extra_enemies}</span>" if extra_enemies > 0 else ""}'
+                    f'{f"<span class=&quot;fs-2xs&quot; style=&quot;color:#888;&quot;>+{extra_enemies}</span>" if extra_enemies > 0 else ""}'
                     f'</div></div></div>'
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<div class="tc" style="font-size:0.75rem;color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+                rows_html += f'<div class="tc fs-sm" style="color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Composto", subtitle="Falsos amigos: dá ❤️ a quem tem score negativo contra si (queridômetro + votos + eventos). Risco de voto surpresa.")}
@@ -776,16 +776,16 @@ else:
                     f'padding:5px 8px;border-radius:8px;border-left:3px solid {sev_border};">'
                     f'{av(g, 42, sev_border)}'
                     f'<div style="display:flex;flex-direction:column;align-items:center;">'
-                    f'<span style="font-size:0.7rem;color:#aaa;">{streak}d ❤️</span>'
-                    f'<span style="font-size:0.9rem;">→ {new_e}</span>'
+                    f'<span class="fs-xs" style="color:#aaa;">{streak}d ❤️</span>'
+                    f'<span class="fs-base">→ {new_e}</span>'
                     f'</div>'
                     f'{av(r, 42, sev_border)}'
-                    f'{"<span style=&quot;font-size:0.7rem;color:#e74c3c;font-weight:700;&quot;>🚨</span>" if sev == "strong" else ""}'
+                    f'{"<span class=&quot;fs-xs&quot; style=&quot;color:#e74c3c;font-weight:700;&quot;>🚨</span>" if sev == "strong" else ""}'
                     f'</div>'
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<a href="{card.get("link", "#")}" style="display:flex;align-items:center;padding:5px 10px;background:rgba(255,255,255,0.06);border-radius:8px;color:#aaa;font-size:0.75rem;text-decoration:none;">+{extra} mais ↗</a>'
+                rows_html += f'<a href="{card.get("link", "#")}" class="fs-sm" style="display:flex;align-items:center;padding:5px 10px;background:rgba(255,255,255,0.06);border-radius:8px;color:#aaa;text-decoration:none;">+{extra} mais ↗</a>'
             rows_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
@@ -803,8 +803,8 @@ else:
                 strat_html += (
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:8px;">'
                     f'{av(p["name"], 42, "#9b59b6")}'
-                    f'<span style="font-size:0.8rem;color:#ccc;">{_medals3[i]} {p["name"].split()[0]}</span>'
-                    f'<span style="font-size:0.8rem;color:#9b59b6;font-weight:700;">{p["score"]:+.2f}</span>'
+                    f'<span class="fs-md" style="color:#ccc;">{_medals3[i]} {p["name"].split()[0]}</span>'
+                    f'<span class="fs-md" style="color:#9b59b6;font-weight:700;">{p["score"]:+.2f}</span>'
                     f'</div>'
                 )
             strat_html += '</div>'
@@ -840,8 +840,8 @@ else:
                 f'{av(name, 42, cor)}'
                 f'<div style="flex:1;min-width:0;">'
                 f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-                f'<span style="font-size:0.8rem;font-weight:600;color:#fff;">{label} {name.split()[0]}</span>'
-                f'<span style="font-size:0.85rem;color:{bal_color};font-weight:700;">{bal:,}</span>'
+                f'<span class="fs-md" style="font-weight:600;color:#fff;">{label} {name.split()[0]}</span>'
+                f'<span class="fs-base" style="color:{bal_color};font-weight:700;">{bal:,}</span>'
                 f'</div>'
                 f'<div style="background:rgba(255,255,255,0.08);border-radius:3px;height:5px;margin-top:2px;overflow:hidden;">'
                 f'<div style="width:{bar_pct:.0f}%;height:100%;background:{bal_color};border-radius:3px;"></div>'
@@ -867,25 +867,25 @@ if paredao_names:
     status_color = "#e74c3c"
     status_icon = "🗳️"
     names_display = ", ".join(sorted(paredao_names))
-    detail_html = f'<div style="color: #ccc; font-size: 0.95rem;">Emparedados: <strong>{names_display}</strong></div>'
+    detail_html = f'<div class="fs-lg" style="color: #ccc;">Emparedados: <strong>{names_display}</strong></div>'
 else:
     status_text = "Aguardando formação"
     status_color = "#6c757d"
     status_icon = "⏳"
-    detail_html = '<div style="color: #888; font-size: 0.9rem;">Nenhum paredão ativo no momento</div>'
+    detail_html = '<div class="fs-base" style="color: #888;">Nenhum paredão ativo no momento</div>'
 
 print(f'''
 <div class="info-panel" style="padding: 1rem 1.2rem; margin: 1rem 0 1.5rem 0; border-left-color: {status_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
 <div>
-<div style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 0.3rem;">
+<div class="fs-xl" style="font-weight: bold; color: #fff; margin-bottom: 0.3rem;">
 {status_icon} Paredão: <span style="color: {status_color};">{status_text}</span>
 </div>
 {detail_html}
-<div style="font-size: 0.85rem; color: #999; margin-top: 0.4rem;">
+<div class="fs-base" style="color: #999; margin-top: 0.4rem;">
 <a href="paredao.html" style="color:#3498db;">Paredão atual</a> · <a href="paredoes.html" style="color:#3498db;">Arquivo de paredões</a>
 </div>
 </div>
-<a href="paredao.html" style="background: {status_color}; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.9rem; white-space: nowrap;">
+<a href="paredao.html" class="fs-base" style="background: {status_color}; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500; white-space: nowrap;">
 Ver análise →
 </a>
 </div>
@@ -1380,7 +1380,7 @@ print("""
 .status-detail summary::-webkit-details-marker { display: none; }
 .status-detail[open] .status-breakdown {
     padding: 0.5rem 0.8rem;
-    font-size: 0.75rem;
+    font-size: var(--fs-sm);
 }
 .status-breakdown .sb-row {
     display: flex;
@@ -1390,7 +1390,7 @@ print("""
     border-bottom: 1px solid #333;
 }
 .status-breakdown .sb-row:last-child { border-bottom: none; }
-.status-breakdown .sb-muted { color: #999; font-size: 0.7rem; margin-top: 0.3rem; }
+.status-breakdown .sb-muted { color: #999; font-size: var(--fs-xs); margin-top: 0.3rem; }
 
 /* Reactions grid */
 .profile-reactions-grid {
@@ -1408,7 +1408,7 @@ print("""
     background: #2f2f2f;
     padding: 0.2rem 0.5rem;
     border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: var(--fs-md);
     color: #ddd;
 }
 
@@ -1418,12 +1418,12 @@ print("""
     list-style: none;
     margin: 0;
     padding: 0.2rem 0.5rem;
-    font-size: 0.8rem;
+    font-size: var(--fs-md);
     line-height: 1.4;
 }
 .stat-row details > summary.rxn-chip::-webkit-details-marker { display: none; }
 .stat-row details > summary.rxn-chip::marker { display: none; content: ""; }
-.stat-row .rxn-chip { line-height: 1.4; font-size: 0.8rem; }
+.stat-row .rxn-chip { line-height: 1.4; font-size: var(--fs-md); }
 .rxn-detail[open] summary .rxn-hint { display: none; }
 
 /* Relations grid */
@@ -1439,7 +1439,7 @@ print("""
 .relation-section:last-child { margin-bottom: 0; }
 .relation-label {
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: var(--fs-md);
     margin-bottom: 0.35rem;
 }
 .avatar-row {
@@ -1454,14 +1454,14 @@ print("""
     cursor: pointer;
     font-weight: 700;
     color: #fff;
-    font-size: 0.9rem;
+    font-size: var(--fs-base);
     padding: 0.6rem 0;
     list-style: none;
 }
 .game-dynamics-detail summary::-webkit-details-marker { display: none; }
 .game-dynamics-detail summary::before {
     content: '▶ ';
-    font-size: 0.7rem;
+    font-size: var(--fs-xs);
     color: #888;
 }
 .game-dynamics-detail[open] summary::before {
@@ -1474,10 +1474,10 @@ print("""
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.3rem 0;
-    font-size: 0.82rem;
+    font-size: var(--fs-base);
     color: #ccc;
 }
-.curiosity-icon { font-size: 1rem; flex-shrink: 0; }
+.curiosity-icon { font-size: var(--fs-lg); flex-shrink: 0; }
 
 /* Mobile responsive */
 @media (max-width: 600px) {
@@ -1534,7 +1534,7 @@ def render_actor_avatars(actors, border_color="#666", color_lookup=None, size=24
                 continue
             if icon and skip_icons and icon in skip_icons:
                 continue
-            parts.append(f'<span style="font-size: 0.9rem;">{icon or "🎬"}</span>')
+            parts.append(f'<span class="fs-base">{icon or "🎬"}</span>')
     return ''.join(parts)
 
 
@@ -1561,7 +1561,7 @@ def make_event_chips(events, border_color, color_lookup=None):
         chips.append(
             f"<span style='display:inline-flex; align-items:center; gap:0.25rem; background:#2f2f2f; "
             f"border:1px solid {chip_border}; color:#ddd; border-radius:8px; padding:0.2rem 0.5rem; "
-            f"font-size:0.8rem; margin:0.1rem; line-height:1.4;' title='{title}'>"
+            f"margin:0.1rem; line-height:1.4;' title='{title}' class='fs-md'>"
             f"{count_prefix}{emoji} {label} {actor_html}</span>"
         )
     return ' '.join(chips)
@@ -1575,9 +1575,9 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
         return (
             f'<details class="status-detail">'
             f'<summary style="background:{bg};border-left:3px solid {color};">'
-            f'<span style="font-size:1rem;">{emoji}</span>'
-            f'<div><div style="font-size:0.75rem;font-weight:700;color:{color};">{level}</div>'
-            f'<div style="font-size:0.65rem;color:#999;">{label}</div></div>'
+            f'<span class="fs-lg">{emoji}</span>'
+            f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
+            f'<div class="fs-2xs" style="color:#999;">{label}</div></div>'
             f'</summary>'
             f'<div class="status-breakdown" style="color:#aaa;">{detail_html}</div>'
             f'</details>'
@@ -1585,16 +1585,16 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
     return (
         f'<div style="display:flex;align-items:center;gap:0.4rem;background:{bg};'
         f'padding:0.4rem 0.8rem;border-radius:8px;border-left:3px solid {color};flex:1;min-width:140px;">'
-        f'<span style="font-size:1rem;">{emoji}</span>'
-        f'<div><div style="font-size:0.75rem;font-weight:700;color:{color};">{level}</div>'
-        f'<div style="font-size:0.65rem;color:#999;">{label}</div></div>'
+        f'<span class="fs-lg">{emoji}</span>'
+        f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
+        f'<div class="fs-2xs" style="color:#999;">{label}</div></div>'
         f'</div>'
     )
 
 def render_avatar_row(items, border_color, max_show=999):
     """Row of avatars with name + score under each. Shows ALL by default."""
     if not items:
-        return '<span style="color:#777;font-size:0.8rem;">—</span>'
+        return '<span class="fs-md" style="color:#777;">—</span>'
     html = '<div class="avatar-row">'
     for item in items:
         if isinstance(item, str):
@@ -1607,17 +1607,17 @@ def render_avatar_row(items, border_color, max_show=999):
             ms = item.get("my_score")
             if ts is not None:
                 sc_color = "#28a745" if ts >= 0 else "#dc3545"
-                score_html = f'<div style="font-size:0.65rem;color:{sc_color};font-weight:600;">{ts:+.1f}</div>'
+                score_html = f'<div class="fs-2xs" style="color:{sc_color};font-weight:600;">{ts:+.1f}</div>'
             elif ms is not None:
                 sc_color = "#28a745" if ms >= 0 else "#dc3545"
-                score_html = f'<div style="font-size:0.65rem;color:{sc_color};font-weight:600;">{ms:+.1f}</div>'
+                score_html = f'<div class="fs-2xs" style="color:{sc_color};font-weight:600;">{ms:+.1f}</div>'
             else:
                 score_html = ""
         first_name = n.split()[0] if n else ""
         html += (
             f'<div style="display:flex;flex-direction:column;align-items:center;width:60px;">'
             f'{av(n, 48, border_color)}'
-            f'<div style="font-size:0.65rem;color:#bbb;margin-top:2px;text-align:center;'
+            f'<div class="fs-2xs" style="color:#bbb;margin-top:2px;text-align:center;'
             f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px;">{first_name}</div>'
             f'{score_html}'
             f'</div>'
@@ -1682,16 +1682,16 @@ for p in profiles:
             voter = v.get("voter")
             count = v.get("count", 1)
             is_revealed = v.get("revealed", False)
-            count_badge = f'<span style="background:#555;color:#fff;border-radius:50%;font-size:0.65rem;padding:1px 5px;margin-left:0.3rem;">{count}×</span>' if count > 1 else ""
+            count_badge = f'<span class="fs-2xs" style="background:#555;color:#fff;border-radius:50%;padding:1px 5px;margin-left:0.3rem;">{count}×</span>' if count > 1 else ""
             border = relation_colors.get(voter, "#666")
-            reveal_badge = ' <span style="color:#17a2b8;font-size:0.75rem;">👁️</span>' if is_revealed else ""
+            reveal_badge = ' <span class="fs-sm" style="color:#17a2b8;">👁️</span>' if is_revealed else ""
             voter_avatar = av(voter, 36, border) if voter in AVATARS else ""
             voter_first = voter.split()[0] if voter else ""
             vote_rows.append(
                 f"<div style='display:flex;align-items:center;gap:0.5rem;background:rgba(255,255,255,0.05);"
                 f"padding:0.3rem 0.6rem;border-radius:8px;margin:0.15rem 0;'>"
                 f"{voter_avatar}"
-                f"<span style='font-size:0.82rem;color:#ddd;'>{voter_first}</span>"
+                f"<span class='fs-base' style='color:#ddd;'>{voter_first}</span>"
                 f"{count_badge}{reveal_badge}</div>"
             )
         votes_html = ''.join(vote_rows)
@@ -1704,14 +1704,14 @@ for p in profiles:
         chips.append(
             f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
             f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
-            f"font-size:0.72rem; margin:0.15rem;'>{reason}</span>"
+            f"margin:0.15rem;' class='fs-xs'>{reason}</span>"
         )
     for tema, count in (sinc.get("bombas", {}) or {}).items():
         prefix = f"{count}x " if count > 1 else ""
         chips.append(
             f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
             f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
-            f"font-size:0.72rem; margin:0.15rem;'>💣 {prefix}{tema}</span>"
+            f"margin:0.15rem;' class='fs-xs'>💣 {prefix}{tema}</span>"
         )
     sincerao_html = " ".join(chips) if chips else ""
 
@@ -1741,11 +1741,11 @@ for p in profiles:
 
     group_pill = (
         f'<span style="display:inline-block;background:{cor_grupo};color:#fff;'
-        f'padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;">{member_of}</span>'
+        f'padding:2px 8px;border-radius:10px;font-weight:600;" class="fs-xs">{member_of}</span>'
     )
     role_pill = (
         f' <span style="display:inline-block;background:rgba(255,255,255,0.1);color:#ddd;'
-        f'padding:2px 8px;border-radius:10px;font-size:0.7rem;">{role_text}</span>'
+        f'padding:2px 8px;border-radius:10px;" class="fs-xs">{role_text}</span>'
     ) if role_text else ""
 
     vip_w = p.get("vip_weeks", 0)
@@ -1777,7 +1777,7 @@ for p in profiles:
             f'<summary class="rxn-chip" style="border:1px solid #e74c3c;cursor:pointer;list-style:none;">'
             f'🗳️ <b>{n_votes}</b> {"voto" if n_votes == 1 else "votos"}</summary>'
             f'<div style="position:absolute;z-index:10;background:#1a1a2e;border:1px solid #444;'
-            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:200px;font-size:0.78rem;'
+            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:200px;font-size:var(--fs-sm);'
             f'color:#ddd;box-shadow:0 4px 12px rgba(0,0,0,0.5);">'
             f'{votes_detail_rows}</div></details>'
         )
@@ -1806,7 +1806,7 @@ for p in profiles:
             f'<summary class="rxn-chip" style="border:1px solid #e67e22;cursor:pointer;list-style:none;">'
             f'🏛️ <b>{n_paredoes}</b> {"paredão" if n_paredoes == 1 else "paredões"}</summary>'
             f'<div style="position:absolute;z-index:10;background:#1a1a2e;border:1px solid #444;'
-            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:220px;font-size:0.78rem;'
+            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:220px;font-size:var(--fs-sm);'
             f'color:#ddd;box-shadow:0 4px 12px rgba(0,0,0,0.5);">'
             f'{paredao_detail_rows}</div></details>'
         )
@@ -1943,14 +1943,14 @@ for p in profiles:
             avatars_html = "".join(
                 f'<div style="display:flex;flex-direction:column;align-items:center;width:50px;">'
                 f'{av(n, 36, "#555")}'
-                f'<div style="font-size:0.6rem;color:#aaa;margin-top:1px;text-align:center;'
+                f'<div class="fs-2xs" style="color:#aaa;margin-top:1px;text-align:center;'
                 f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px;">{n.split()[0]}</div>'
                 f'</div>'
                 for n in names_list
             )
             rows.append(
                 f'<div style="margin-bottom:0.4rem;">'
-                f'<div style="font-size:0.8rem;margin-bottom:0.2rem;">{emoji} ({len(names_list)})</div>'
+                f'<div class="fs-md" style="margin-bottom:0.2rem;">{emoji} ({len(names_list)})</div>'
                 f'<div style="display:flex;flex-wrap:wrap;gap:6px;">{avatars_html}</div>'
                 f'</div>'
             )
@@ -1961,7 +1961,7 @@ for p in profiles:
 
     # ═══ [4] RELATIONS GRID ═══
     relations_html = (
-        '<div style="color:#6c757d;font-size:0.7rem;margin-bottom:0.5rem;">'
+        '<div class="fs-xs" style="color:#6c757d;margin-bottom:0.5rem;">'
         'Score = queridômetro + eventos acumulados (votos, poder, Sincerão). '
         'Positivo = relação boa · Negativo = hostilidade.'
         '</div>'
@@ -1971,7 +1971,7 @@ for p in profiles:
             f'<div class="relation-section" style="background:rgba(40,167,69,0.08);border-left:3px solid #28a745;">'
             f'<div class="relation-label" style="color:#28a745;">✅ Aliados ({n_allies})</div>'
             f'{render_avatar_row(allies, "#28a745")}'
-            f'<div style="color:#6c757d;font-size:0.75rem;margin-top:0.25rem;">Score positivo mútuo. Votos seguros.</div>'
+            f'<div class="fs-sm" style="color:#6c757d;margin-top:0.25rem;">Score positivo mútuo. Votos seguros.</div>'
             f'</div>'
         )
     if enemies:
@@ -1983,8 +1983,8 @@ for p in profiles:
             f'<div class="relation-section" style="background:rgba(220,53,69,0.08);border-left:3px solid #dc3545;">'
             f'<div class="relation-label" style="color:#dc3545;">⚔️ Inimigos ({n_enemies})</div>'
             f'{render_avatar_row(enemies, "#dc3545")}'
-            f'<div style="color:#888;font-size:0.75rem;margin-top:0.25rem;">{enemy_emoji_text}</div>'
-            f'<div style="color:#6c757d;font-size:0.75rem;">Score negativo mútuo. Votos contra esperados.</div>'
+            f'<div class="fs-sm" style="color:#888;margin-top:0.25rem;">{enemy_emoji_text}</div>'
+            f'<div class="fs-sm" style="color:#6c757d;">Score negativo mútuo. Votos contra esperados.</div>'
             f'</div>'
         )
     if false_friends:
@@ -1996,8 +1996,8 @@ for p in profiles:
             f'<div class="relation-section" style="background:rgba(255,193,7,0.1);border-left:3px solid #ffc107;">'
             f'<div class="relation-label" style="color:#ffc107;">⚠️ Falsos Amigos ({n_false_friends}) — PERIGO</div>'
             f'{render_avatar_row(false_friends, "#ffc107")}'
-            f'<div style="font-size:0.75rem;margin-top:0.25rem;">{ff_emoji_text}</div>'
-            f'<div style="color:#6c757d;font-size:0.75rem;">Seu score é positivo, o deles negativo. Votam contra 2-3×.</div>'
+            f'<div class="fs-sm" style="margin-top:0.25rem;">{ff_emoji_text}</div>'
+            f'<div class="fs-sm" style="color:#6c757d;">Seu score é positivo, o deles negativo. Votam contra 2-3×.</div>'
             f'</div>'
         )
     if blind_targets:
@@ -2009,8 +2009,8 @@ for p in profiles:
             f'<div class="relation-section" style="background:rgba(111,66,193,0.08);border-left:3px solid #6f42c1;">'
             f'<div class="relation-label" style="color:#6f42c1;">🗡️ Alvos Ocultos ({len(blind_targets)})</div>'
             f'{render_avatar_row(blind_targets, "#6f42c1")}'
-            f'<div style="font-size:0.75rem;margin-top:0.25rem;">{bt_emoji_text}</div>'
-            f'<div style="color:#6c757d;font-size:0.75rem;">Seu score é negativo, o deles positivo. Não sabem.</div>'
+            f'<div class="fs-sm" style="margin-top:0.25rem;">{bt_emoji_text}</div>'
+            f'<div class="fs-sm" style="color:#6c757d;">Seu score é negativo, o deles positivo. Não sabem.</div>'
             f'</div>'
         )
 
@@ -2024,34 +2024,34 @@ for p in profiles:
             dynamics_inner += (
                 f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.4rem;"
                 f"background:rgba(40,167,69,0.06);padding:0.4rem 0.6rem;border-radius:8px;'>"
-                f"<strong style='color:#28a745;font-size:0.85rem;'>+ Benefícios</strong> {pos_html}</div>"
+                f"<strong class='fs-base' style='color:#28a745;'>+ Benefícios</strong> {pos_html}</div>"
             )
         if events.get('neg_week'):
             dynamics_inner += (
                 f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.4rem;"
                 f"background:rgba(220,53,69,0.06);padding:0.4rem 0.6rem;border-radius:8px;'>"
-                f"<strong style='color:#dc3545;font-size:0.85rem;'>− Prejuízos</strong> {neg_html}</div>"
+                f"<strong class='fs-base' style='color:#dc3545;'>− Prejuízos</strong> {neg_html}</div>"
             )
         if votes:
             dynamics_inner += (
                 f"<div style='margin-bottom:0.4rem;'>"
-                f"<strong style='color:#ffc107;font-size:0.85rem;display:block;margin-bottom:0.25rem;'>🗳️ Votos recebidos</strong>"
+                f"<strong class='fs-base' style='color:#ffc107;display:block;margin-bottom:0.25rem;'>🗳️ Votos recebidos</strong>"
                 f"<div style='display:flex;flex-direction:column;gap:0.1rem;'>{votes_html}</div></div>"
             )
         if sincerao_html:
             dynamics_inner += (
                 f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.4rem;'>"
-                f"<strong style='color:#17a2b8;font-size:0.85rem;'>🔥 Sincerão</strong> {sincerao_html}</div>"
+                f"<strong class='fs-base' style='color:#17a2b8;'>🔥 Sincerão</strong> {sincerao_html}</div>"
             )
         if events.get('pos_hist') or events.get('neg_hist'):
             dynamics_inner += (
                 f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;'>"
-                f"<strong style='color:#999;font-size:0.85rem;'>📜 Histórico</strong> {hist_html}</div>"
+                f"<strong class='fs-base' style='color:#999;'>📜 Histórico</strong> {hist_html}</div>"
             )
         dynamics_html = (
             f'<div style="padding:0.6rem 1rem;border-bottom:1px solid #444;background:#2a2a2a;">'
-            f'<div style="font-weight:700;font-size:0.85rem;color:#ccc;margin-bottom:0.4rem;">⚡ Dinâmicas do Jogo</div>'
-            f'<div style="font-size:0.9em;">{dynamics_inner}</div>'
+            f'<div class="fs-base" style="font-weight:700;color:#ccc;margin-bottom:0.4rem;">⚡ Dinâmicas do Jogo</div>'
+            f'<div class="fs-base">{dynamics_inner}</div>'
             f'</div>'
         )
 
@@ -2067,7 +2067,7 @@ for p in profiles:
         )
         curiosities_html = (
             f'<div style="padding:0.6rem 1rem;background:#2a2a2a;">'
-            f'<div style="font-weight:700;font-size:0.85rem;color:#f1c40f;margin-bottom:0.3rem;">💡 Curiosidades</div>'
+            f'<div class="fs-base" style="font-weight:700;color:#f1c40f;margin-bottom:0.3rem;">💡 Curiosidades</div>'
             f'{items_html}</div>'
         )
 
@@ -2080,7 +2080,7 @@ for p in profiles:
 <div class="profile-hero-inner">
 {avatar_img}
 <div>
-<h3 style="margin:0 0 0.25rem 0;color:#fff;font-size:1.3em;">{name}</h3>
+<h3 class="fs-2xl" style="margin:0 0 0.25rem 0;color:#fff;">{name}</h3>
 <div style="display:flex;flex-wrap:wrap;gap:0.3rem;align-items:center;">
 {group_pill}{role_pill}
 </div>
@@ -2099,7 +2099,7 @@ for p in profiles:
 <div>
 <details class="rxn-detail">
 <summary style="cursor:pointer;list-style:none;">
-<div style="font-weight:600;color:#888;font-size:0.75rem;margin-bottom:0.3rem;">RECEBEU <span class="rxn-hint" style="font-weight:400;color:#666;font-size:0.65rem;">▶ clique p/ detalhes</span></div>
+<div class="fs-sm" style="font-weight:600;color:#888;margin-bottom:0.3rem;">RECEBEU <span class="rxn-hint fs-2xs" style="font-weight:400;color:#666;">▶ clique p/ detalhes</span></div>
 {rxn_received_chips}
 </summary>
 <div style="padding-top:0.5rem;">{received_detail_html}</div>
@@ -2108,7 +2108,7 @@ for p in profiles:
 <div>
 <details class="rxn-detail">
 <summary style="cursor:pointer;list-style:none;">
-<div style="font-weight:600;color:#888;font-size:0.75rem;margin-bottom:0.3rem;">DEU <span class="rxn-hint" style="font-weight:400;color:#666;font-size:0.65rem;">▶ clique p/ detalhes</span></div>
+<div class="fs-sm" style="font-weight:600;color:#888;margin-bottom:0.3rem;">DEU <span class="rxn-hint fs-2xs" style="font-weight:400;color:#666;">▶ clique p/ detalhes</span></div>
 {rxn_given_chips}
 </summary>
 <div style="padding-top:0.5rem;">{given_detail_html}</div>
@@ -2121,7 +2121,7 @@ for p in profiles:
 
 <!-- [5] Relations -->
 <div class="profile-relations">
-{relations_html if relations_html else '<div style="color:#777;font-size:0.85rem;">Sem relações classificadas.</div>'}
+{relations_html if relations_html else '<div class="fs-base" style="color:#777;">Sem relações classificadas.</div>'}
 </div>
 
 <!-- [6] Curiosidades -->
@@ -2171,22 +2171,22 @@ if eliminated:
             f'border:3px solid {cor};flex-shrink:0;filter:grayscale(100%);opacity:0.7;">'
         ) if avatar_url else ""
 
-        reason_html = f'<div style="font-size:0.8rem;color:#999;margin-top:0.3rem;">{reason}</div>' if reason else ""
+        reason_html = f'<div class="fs-md" style="color:#999;margin-top:0.3rem;">{reason}</div>' if reason else ""
 
         cards_html += f'''
 <div style="display:flex;align-items:center;gap:1rem;padding:0.8rem 1rem;
     background:#1e1e1e;border-left:4px solid {cor};border-radius:8px;margin-bottom:0.5rem;">
 {av_img}
 <div>
-<div style="font-weight:700;color:#ccc;font-size:1rem;">{name}</div>
-<div style="font-size:0.85rem;color:#aaa;">{subtitle}</div>
+<div class="fs-lg" style="font-weight:700;color:#ccc;">{name}</div>
+<div class="fs-base" style="color:#aaa;">{subtitle}</div>
 {reason_html}
 </div>
 </div>'''
 
     print(f'''
 <div style="margin-top:2rem;">
-<h3 style="color:#999;font-size:1.1rem;margin-bottom:0.8rem;">🖤 Participantes que saíram</h3>
+<h3 class="fs-xl" style="color:#999;margin-bottom:0.8rem;">🖤 Participantes que saíram</h3>
 {cards_html}
 </div>''')
 ```

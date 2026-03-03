@@ -945,21 +945,21 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
 
     parts = [
         '<style>'
-        '.cronologia-table { width:100%; border-collapse:collapse; font-size:0.9em; }'
+        '.cronologia-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }'
         '.cronologia-table th, .cronologia-table td { padding:6px 8px; }'
         '.cronologia-table .col-badge { text-align:center; min-width:100px; }'
-        '.cronologia-table .col-detail { color:#999; font-size:0.85em; }'
+        '.cronologia-table .col-detail { color:#999; font-size:var(--fs-base); }'
         '.cron-week { background:#16213e; font-weight:bold; color:#ffc107; padding:6px 8px; }'
-        '.cron-date { background:#1e1e2e; color:#aaa; font-size:0.82em; padding:4px 8px; '
+        '.cron-date { background:#1e1e2e; color:#aaa; font-size:var(--fs-md); padding:4px 8px; '
         'border-bottom:1px solid #333; }'
         '@media (max-width: 640px) {'
-        '  .cronologia-table { font-size: 0.82em; }'
+        '  .cronologia-table { font-size: var(--fs-md); }'
         '  .cronologia-table td, .cronologia-table th { padding: 5px 6px; }'
         '  .cronologia-table .col-badge { min-width:70px; }'
-        '  .cronologia-table .col-badge span { font-size:0.7em !important; padding:2px 4px !important; }'
+        '  .cronologia-table .col-badge span { font-size:var(--fs-xs) !important; padding:2px 4px !important; }'
         '}'
         '@media (max-width: 400px) {'
-        '  .cronologia-table { font-size: 0.75em; }'
+        '  .cronologia-table { font-size: var(--fs-sm); }'
         '  .cronologia-table td, .cronologia-table th { padding: 4px 4px; }'
         '}'
         '</style>'
@@ -998,12 +998,12 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
 
                 if is_scheduled:
                     badge = (
-                        f'<span style="background:transparent; color:{color}; border:1px dashed {color};'
-                        f' padding:2px 6px; border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                        f'<span class="fs-md" style="background:transparent; color:{color}; border:1px dashed {color};'
+                        f' padding:2px 6px; border-radius:4px; white-space:nowrap;">{label}</span>'
                     )
                     time_badge = (
-                        f' <span style="background:#ffc107; color:#000; padding:1px 5px;'
-                        f' border-radius:3px; font-size:0.75em; white-space:nowrap;">{time_info}</span>'
+                        f' <span class="fs-sm" style="background:#ffc107; color:#000; padding:1px 5px;'
+                        f' border-radius:3px; white-space:nowrap;">{time_info}</span>'
                         if time_info else ''
                     )
                     row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
@@ -1011,8 +1011,8 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
                     detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
                 else:
                     badge = (
-                        f'<span style="background:{color}; color:#fff; padding:2px 6px;'
-                        f' border-radius:4px; font-size:0.8em; white-space:nowrap;">{label}</span>'
+                        f'<span class="fs-md" style="background:{color}; color:#fff; padding:2px 6px;'
+                        f' border-radius:4px; white-space:nowrap;">{label}</span>'
                     )
                     row_style = 'border-bottom:1px solid #333;'
                     title_cell = f'{emoji} {title}'

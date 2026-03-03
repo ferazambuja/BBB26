@@ -201,7 +201,7 @@ events_vs_df = pd.DataFrame(event_rows)
   display: inline-block;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   border: 1px solid rgba(255,255,255,0.2);
 }
@@ -407,7 +407,7 @@ if contradictions:
 
     ctx = contradictions.get("context_notes", {})
     if ctx.get("week_1"):
-        print(f"<div class='text-muted' style='margin-top:0.3rem;font-size:0.85rem;'>⚠️ Semana 1: {ctx['week_1']}</div>")
+        print(f"<div class='text-muted fs-base' style='margin-top:0.3rem;'>⚠️ Semana 1: {ctx['week_1']}</div>")
 
     entries = contradictions.get("vote_vs_queridometro", [])
     if entries:
@@ -786,7 +786,7 @@ else:
 
 ## Observações sobre timing
 
-<div class="text-muted" style="font-size: 0.9rem; line-height: 1.6;">
+<div class="text-muted fs-base" style="line-height: 1.6;">
 <ul>
 <li><strong>Queridômetro</strong> atualiza ~10h-12h BRT (após o Raio-X). Líder é decidido domingo à noite → primeira mudança visível aparece na terça.</li>
 <li><strong>Anjo</strong> tem ciclo curto (~1-2 dias), tornando as janelas "antes/depois" mais ruidosas.</li>
@@ -898,13 +898,13 @@ else:
         verdict_color, verdict = "#e74c3c", f"ERROU — Jonas era #{rank_score}" if rank_score else "Não previsto"
 
     html += f'<div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem; flex-wrap:wrap;">'
-    html += f'<span style="background:{verdict_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.9em;">{verdict}</span>'
-    html += f'<span style="color:#aaa; font-size:0.85em;">Alvo real: <strong style="color:#eee;">{ACTUAL_TARGET}</strong></span>'
+    html += f'<span class="fs-base" style="background:{verdict_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">{verdict}</span>'
+    html += f'<span class="fs-base" style="color:#aaa;">Alvo real: <strong style="color:#eee;">{ACTUAL_TARGET}</strong></span>'
     html += '</div>'
 
     # --- Main table: all consensus targets ranked, with per-attendee breakdown ---
     html += '<h4 style="color:#f0c040; margin:1rem 0 0.5rem;">Alvos viáveis: quem os 3 atacavam no queridômetro</h4>'
-    html += '<p class="text-muted" style="font-size:0.8em; margin-bottom:0.5rem;">Somente alvos que <em>todos os 3</em> davam reação negativa. Ordenado pelo score combinado (soma dos 3 pair scores).</p>'
+    html += '<p class="text-muted fs-md" style="margin-bottom:0.5rem;">Somente alvos que <em>todos os 3</em> davam reação negativa. Ordenado pelo score combinado (soma dos 3 pair scores).</p>'
 
     html += '<div class="scroll-x">'
     html += '<table class="table-full table-md">'
@@ -946,7 +946,7 @@ else:
     # --- Component decomposition: what drove each attendee→Jonas score? ---
     if actual:
         html += '<h4 style="color:#f0c040; margin:1.2rem 0 0.5rem;">O que compõe cada score → Jonas</h4>'
-        html += '<p class="text-muted" style="font-size:0.8em; margin-bottom:0.5rem;">Decomposição do pair score de cada atendente para Jonas. Queridômetro é o emoji diário; os demais são eventos acumulados.</p>'
+        html += '<p class="text-muted fs-md" style="margin-bottom:0.5rem;">Decomposição do pair score de cada atendente para Jonas. Queridômetro é o emoji diário; os demais são eventos acumulados.</p>'
 
         html += '<table class="table-full table-md">'
         html += '<tr class="sep-bottom" style="border-color:#555;">'
@@ -1074,7 +1074,7 @@ else:
     html += '</div>'
 
     # --- Nota sobre consensus_pct ---
-    html += '<div class="text-muted" style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#222; border:1px solid #444; border-radius:6px; font-size:0.82em;">'
+    html += '<div class="text-muted fs-md" style="margin-top:0.8rem; padding:0.6rem 0.8rem; background:#222; border:1px solid #444; border-radius:6px;">'
     html += '<strong style="color:#aaa;">Nota sobre consensus %:</strong> '
     html += 'Jonas era #3 por consensus_pct (54% vs 64% de Brigido/Gabriela). '
     html += 'Essa métrica mede "qual % de hipotéticos 3ºs atendentes concordariam" — útil como análise de robustez, '
@@ -1235,10 +1235,10 @@ for par in paredoes_file.get("paredoes", []):
     exact_color = "#2ecc71" if exact_pct >= 40 else ("#f39c12" if exact_pct >= 20 else "#e74c3c")
     top3_color = "#2ecc71" if top3_pct >= 60 else ("#f39c12" if top3_pct >= 40 else "#e74c3c")
     html_retro += '<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:0.8rem;">'
-    html_retro += f'<span style="background:{exact_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.9em;">Exato: {exact}/{total_voters} ({exact_pct:.0f}%)</span>'
-    html_retro += f'<span style="background:{top3_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.9em;">Top-3: {top3}/{total_voters} ({top3_pct:.0f}%)</span>'
+    html_retro += f'<span class="fs-base" style="background:{exact_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">Exato: {exact}/{total_voters} ({exact_pct:.0f}%)</span>'
+    html_retro += f'<span class="fs-base" style="background:{top3_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">Top-3: {top3}/{total_voters} ({top3_pct:.0f}%)</span>'
     if no_score_voters > 0:
-        html_retro += f'<span style="background:#555; color:#eee; padding:4px 12px; border-radius:6px; font-size:0.85em;">Excl. eliminados: {exact}/{scorable_voters} ({exact_scorable_pct:.0f}%)</span>'
+        html_retro += f'<span class="fs-base" style="background:#555; color:#eee; padding:4px 12px; border-radius:6px;">Excl. eliminados: {exact}/{scorable_voters} ({exact_scorable_pct:.0f}%)</span>'
     html_retro += '</div>'
 
     # Detail table
@@ -1313,9 +1313,9 @@ else:
         html_vp += '<div style="background:#1a2a1a; border:1px solid #2ecc71; border-radius:12px; padding:1.2rem; margin:1rem 0;">'
         html_vp += '<h4 style="color:#2ecc71; margin:0 0 0.8rem;">📊 Acurácia acumulada (todos os paredões com votos)</h4>'
         html_vp += '<div style="display:flex; gap:16px; flex-wrap:wrap;">'
-        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div style="color:#aaa; font-size:0.8em;">Modelo Aprimorado</div><div class="text-pos" style="font-size:1.8em;">{enh_pct:.1f}%</div><div class="text-muted table-md">{enh["correct"]}/{enh["total"]}</div></div>'
-        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div style="color:#aaa; font-size:0.8em;">Baseline (sentimento)</div><div style="color:#f39c12; font-size:1.8em; font-weight:bold;">{base_pct:.1f}%</div><div class="text-muted table-md">{base["correct"]}/{base["total"]}</div></div>'
-        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div style="color:#aaa; font-size:0.8em;">Diferença</div><div style="color:{diff_color}; font-size:1.8em; font-weight:bold;">{diff_str}</div><div class="text-muted table-md">aprimorado vs baseline</div></div>'
+        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div class="fs-md" style="color:#aaa;">Modelo Aprimorado</div><div class="text-pos fs-4xl">{enh_pct:.1f}%</div><div class="text-muted table-md">{enh["correct"]}/{enh["total"]}</div></div>'
+        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div class="fs-md" style="color:#aaa;">Baseline (sentimento)</div><div class="fs-4xl" style="color:#f39c12; font-weight:bold;">{base_pct:.1f}%</div><div class="text-muted table-md">{base["correct"]}/{base["total"]}</div></div>'
+        html_vp += f'<div class="tc" style="background:#222; padding:12px 20px; border-radius:8px;"><div class="fs-md" style="color:#aaa;">Diferença</div><div class="fs-4xl" style="color:{diff_color}; font-weight:bold;">{diff_str}</div><div class="text-muted table-md">aprimorado vs baseline</div></div>'
         html_vp += '</div></div>'
 
     # ══════════════════════════════════════════════════════════════
@@ -1356,7 +1356,7 @@ else:
         if lider_pred:
             lider_mark = "✅" if lider_pred.get("correct") else "❌"
             lider_actual = lider_pred.get("actual", "?")
-            html_vp += f'<div class="text-light" style="font-size:0.9em; margin-bottom:0.5rem;">{lider_mark} Indicação do Líder: previu <strong>{lider_pred["predicted"]}</strong> ({lider_pred["score"]:+.2f}), real: <strong>{lider_actual}</strong></div>'
+            html_vp += f'<div class="text-light fs-base" style="margin-bottom:0.5rem;">{lider_mark} Indicação do Líder: previu <strong>{lider_pred["predicted"]}</strong> ({lider_pred["score"]:+.2f}), real: <strong>{lider_actual}</strong></div>'
 
         # Retrospective accuracy badges
         if retro:
@@ -1370,10 +1370,10 @@ else:
             top2_color = "#2ecc71" if top2 else "#e74c3c"
 
             html_vp += '<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:0.8rem;">'
-            html_vp += f'<span style="background:{acc_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.85em;">Voto a voto: {ind["correct"]}/{ind["total"]} ({ind["pct"]:.0f}%)</span>'
-            html_vp += f'<span style="background:{hc_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.85em;">Alta confiança: {hc["correct"]}/{hc["total"]} ({hc["pct"]:.0f}%)</span>'
-            html_vp += f'<span style="background:{top2_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold; font-size:0.85em;">Top-2: {"✅" if top2 else "❌"}</span>'
-            html_vp += f'<span style="background:#555; color:#eee; padding:4px 12px; border-radius:6px; font-size:0.85em;">Baseline: {baseline_acc:.0f}%</span>'
+            html_vp += f'<span class="fs-base" style="background:{acc_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">Voto a voto: {ind["correct"]}/{ind["total"]} ({ind["pct"]:.0f}%)</span>'
+            html_vp += f'<span class="fs-base" style="background:{hc_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">Alta confiança: {hc["correct"]}/{hc["total"]} ({hc["pct"]:.0f}%)</span>'
+            html_vp += f'<span class="fs-base" style="background:{top2_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">Top-2: {"✅" if top2 else "❌"}</span>'
+            html_vp += f'<span class="fs-base" style="background:#555; color:#eee; padding:4px 12px; border-radius:6px;">Baseline: {baseline_acc:.0f}%</span>'
             html_vp += '</div>'
 
         # Vote concentration (predicted vs real)
@@ -1384,12 +1384,12 @@ else:
 
         # Predicted concentration
         html_vp += '<div style="flex:1; min-width:250px;">'
-        html_vp += '<h5 style="color:#aaa; margin:0 0 0.3rem; font-size:0.85em;">Previsão</h5>'
+        html_vp += '<h5 class="fs-base" style="color:#aaa; margin:0 0 0.3rem;">Previsão</h5>'
         max_v = sorted_conc[0][1] if sorted_conc else 1
         for i, (target, votes) in enumerate(sorted_conc[:5]):
             bar_w = int(votes / max_v * 120)
             bar_c = "#e74c3c" if i < 2 else "#555"
-            html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span class="tc" style="min-width:20px; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
+            html_vp += f'<div class="fs-base" style="display:flex; align-items:center; gap:6px; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span class="tc" style="min-width:20px; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
         html_vp += '</div>'
 
         # Real concentration
@@ -1397,19 +1397,19 @@ else:
             real_count = Counter(real_votes.values())
             real_ranking = real_count.most_common()
             html_vp += '<div style="flex:1; min-width:250px;">'
-            html_vp += '<h5 style="color:#aaa; margin:0 0 0.3rem; font-size:0.85em;">Real</h5>'
+            html_vp += '<h5 class="fs-base" style="color:#aaa; margin:0 0 0.3rem;">Real</h5>'
             max_r = real_ranking[0][1] if real_ranking else 1
             for i, (target, votes) in enumerate(real_ranking):
                 bar_w = int(votes / max_r * 120)
                 bar_c = "#2ecc71" if i < 2 else "#555"
-                html_vp += f'<div style="display:flex; align-items:center; gap:6px; font-size:0.85em; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span class="tc" style="min-width:20px; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
+                html_vp += f'<div class="fs-base" style="display:flex; align-items:center; gap:6px; padding:2px 0;"><span style="min-width:120px; color:#eee;"><strong>{target}</strong></span><span class="tc" style="min-width:20px; font-weight:bold;">{votes}</span><div style="background:{bar_c}; height:12px; width:{bar_w}px; border-radius:3px;"></div></div>'
             html_vp += '</div>'
 
         html_vp += '</div>'
 
         # Detailed vote table
         if real_votes:
-            html_vp += '<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#f0c040; font-size:0.9em;">🗳️ Detalhe voto a voto</summary>'
+            html_vp += '<details style="margin:0.5rem 0;"><summary class="fs-base" style="cursor:pointer; color:#f0c040;">🗳️ Detalhe voto a voto</summary>'
             html_vp += '<div class="scroll-x" style="margin-top:0.5rem;">'
 
             vote_rows = []
@@ -1453,8 +1453,8 @@ else:
         # Error analysis
         if retro and retro.get("errors"):
             errors = retro["errors"]
-            html_vp += f'<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#e74c3c; font-size:0.9em;">💡 Análise dos {len(errors)} erros</summary>'
-            html_vp += '<div class="text-light" style="font-size:0.9em; line-height:1.8; margin-top:0.5rem;">'
+            html_vp += f'<details style="margin:0.5rem 0;"><summary class="fs-base" style="cursor:pointer; color:#e74c3c;">💡 Análise dos {len(errors)} erros</summary>'
+            html_vp += '<div class="text-light fs-base" style="line-height:1.8; margin-top:0.5rem;">'
             for err in errors:
                 icon = "🎲" if err["analysis"] == "gap mínimo (coin flip)" else "🤝"
                 html_vp += f'<p style="margin:0.3rem 0;">{icon} <strong>{err["voter"]}</strong>: previu <span style="color:#e74c3c;">{err["predicted"]}</span> → votou <strong style="color:#2ecc71;">{err["actual"]}</strong> ({err["confidence"]}) — {err["analysis"]}</p>'
@@ -1468,7 +1468,7 @@ else:
             for pred in predictions.values()
         )
         if has_adjustments:
-            html_vp += '<details style="margin:0.5rem 0;"><summary style="cursor:pointer; color:#aaa; font-size:0.9em;">🔧 Ajustes do modelo aprimorado</summary>'
+            html_vp += '<details style="margin:0.5rem 0;"><summary class="fs-base" style="cursor:pointer; color:#aaa;">🔧 Ajustes do modelo aprimorado</summary>'
             html_vp += '<div class="text-light table-md" style="margin-top:0.5rem;">'
             for voter in sorted(predictions.keys()):
                 pred = predictions[voter]

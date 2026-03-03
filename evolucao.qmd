@@ -344,12 +344,12 @@ def make_difference_table_html(changes_list, common_names, prev_date, curr_date)
 <div style="overflow-x: auto; max-width: 100%;">
 <p class="text-muted small">Mudanças: {prev_date} → {curr_date} | ⭐ = mudança dramática</p>
 <style>
-.diff-table {{ border-collapse: separate; border-spacing: 0; font-size: 0.8rem; width: max-content; }}
+.diff-table {{ border-collapse: separate; border-spacing: 0; font-size: var(--fs-md); width: max-content; }}
 .diff-table th, .diff-table td {{ padding: 3px 5px; text-align: center; border: 1px solid #555; min-width: 40px; white-space: nowrap; }}
-.diff-table thead th {{ position: sticky; top: 0; background: #222; z-index: 2; font-weight: bold; font-size: 0.75rem; }}
-.diff-table tbody th {{ position: sticky; left: 0; background: #222; z-index: 1; font-weight: bold; text-align: right; font-size: 0.75rem; }}
+.diff-table thead th {{ position: sticky; top: 0; background: #222; z-index: 2; font-weight: bold; font-size: var(--fs-sm); }}
+.diff-table tbody th {{ position: sticky; left: 0; background: #222; z-index: 1; font-weight: bold; text-align: right; font-size: var(--fs-sm); }}
 .diff-table thead th:first-child {{ z-index: 3; left: 0; }}
-.diff-table td {{ font-size: 0.9rem; }}
+.diff-table td {{ font-size: var(--fs-base); }}
 .diff-table td:hover {{ outline: 2px solid #fff; }}
 </style>
 <table class="diff-table"><thead><tr><th style="background: #222;">↓ / →</th>''']
@@ -902,7 +902,7 @@ html.append("""
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
-    font-size: 0.95rem;
+    font-size: var(--fs-base);
 }
 .saldo-table th, .saldo-table td {
     padding: 8px 12px;
@@ -914,7 +914,7 @@ html.append("""
     color: #aaa;
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.8rem;
+    font-size: var(--fs-md);
     letter-spacing: 0.5px;
     border-bottom: 2px solid #555;
 }
@@ -923,7 +923,7 @@ html.append("""
 }
 .saldo-table .saldo-pos { color: #888; font-weight: 600; width: 30px; text-align: center; }
 .saldo-table .saldo-name { font-weight: 500; }
-.saldo-table .saldo-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+.saldo-table .saldo-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: var(--fs-lg); }
 </style>
 <table class="saldo-table">
 <thead><tr>
@@ -1122,7 +1122,7 @@ else:
 
         print(f"""
 <div style="background:#1a1a2e; border:1px solid #f1c40f33; border-radius:8px; padding:12px; margin-bottom:12px">
-<h4 style="margin:0 0 8px">{leader_av}👑 {leader} <span style="color:#888;font-size:0.85em">({start} → {end})</span></h4>
+<h4 style="margin:0 0 8px">{leader_av}👑 {leader} <span class="fs-base" style="color:#888;">({start} → {end})</span></h4>
 
 **VIP ({len(lp['vip'])}):** {', '.join(lp['vip'])}
 
@@ -1243,7 +1243,7 @@ else:
         return f'<div style="display:flex; align-items:center; gap:0.4rem;"><span>{icon}</span>{value}</div>'
 
     print('<div style="overflow-x:auto; margin: 0.5rem 0 1rem 0;">')
-    print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
+    print('<table class="fs-base" style="width: 100%; border-collapse: collapse;">')
     print('<thead><tr style="text-align: left; border-bottom: 1px solid #444;">'
           '<th style="padding: 0.5rem;">Data</th><th style="padding: 0.5rem;">Dinâmica</th>'
           '<th style="padding: 0.5rem;">Tipo</th><th style="padding: 0.5rem;">Quem deu</th>'
@@ -1261,8 +1261,8 @@ else:
         actor_html = render_person_cell(row["actor"], border)
         target_html = render_person_cell(row["target"], border)
         context_html = render_context_cell(row.get("Dinâmica"))
-        badge = (f'<span style="display:inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; '
-                 f'background: {bg}; color: {border}; border: 1px solid {border}; font-size: 0.75rem;">{label}</span>')
+        badge = (f'<span class="fs-sm" style="display:inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; '
+                 f'background: {bg}; color: {border}; border: 1px solid {border};">{label}</span>')
         print(f'<tr style="border-left: 4px solid {border}; background: {bg};">'
               f'<td style="padding: 0.45rem 0.5rem;">{row["date"]}</td>'
               f'<td style="padding: 0.45rem 0.5rem;">{context_html}</td>'

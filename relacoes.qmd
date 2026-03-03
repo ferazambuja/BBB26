@@ -134,16 +134,16 @@ n_breaks = len(streak_breaks) if streak_breaks else 0
 print(f"""
 <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
 <div style="background: #1a5228; border-radius: 8px; padding: 0.8rem 1.2rem; text-align: center;">
-<div style="font-size: 1.8rem; font-weight: bold; color: #2ecc71;">{mutual_heart_today}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">❤️ Alianças</div>
+<div class="fs-4xl" style="font-weight: bold; color: #2ecc71;">{mutual_heart_today}</div>
+<div class="fs-sm" style="color: rgba(255,255,255,0.7);">❤️ Alianças</div>
 </div>
 <div style="background: #5a1a1a; border-radius: 8px; padding: 0.8rem 1.2rem; text-align: center;">
-<div style="font-size: 1.8rem; font-weight: bold; color: #e74c3c;">{mutual_neg_today}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">⚔️ Rivalidades</div>
+<div class="fs-4xl" style="font-weight: bold; color: #e74c3c;">{mutual_neg_today}</div>
+<div class="fs-sm" style="color: rgba(255,255,255,0.7);">⚔️ Rivalidades</div>
 </div>
 <div style="background: #4a2a5a; border-radius: 8px; padding: 0.8rem 1.2rem; text-align: center;">
-<div style="font-size: 1.8rem; font-weight: bold; color: #9b59b6;">{n_breaks}</div>
-<div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">💔 Rupturas</div>
+<div class="fs-4xl" style="font-weight: bold; color: #9b59b6;">{n_breaks}</div>
+<div class="fs-sm" style="color: rgba(255,255,255,0.7);">💔 Rupturas</div>
 </div>
 </div>
 """)
@@ -243,9 +243,9 @@ if daily_changes:
     def _stat_card(emoji, value, label, color):
         return (f'<div style="flex:1; min-width:100px; background:#2a2a2a; border-radius:8px; '
                 f'padding:0.6rem; text-align:center; border-top:3px solid {color};">'
-                f'<div style="font-size:1.6rem;">{emoji}</div>'
-                f'<div style="font-size:1.4rem; font-weight:bold; color:{color};">{value}</div>'
-                f'<div style="font-size:0.75rem; color:#aaa;">{label}</div></div>')
+                f'<div class="fs-4xl">{emoji}</div>'
+                f'<div class="fs-2xl" style="font-weight:bold; color:{color};">{value}</div>'
+                f'<div class="fs-sm" style="color:#aaa;">{label}</div></div>')
 
     cards = [
         _stat_card("💔", hl, "Corações perdidos", "#e74c3c"),
@@ -275,7 +275,7 @@ if daily_changes:
         parts.append(f"<strong>{n_breaks}</strong> rupturas de aliança ({', '.join(break_names[:3])}{'…' if len(break_names) > 3 else ''})")
 
     if parts:
-        print(f'<div style="font-size:0.9rem; color:#ccc; line-height:1.6;">🔗 {" → ".join(parts)}</div>')
+        print(f'<div class="fs-base" style="color:#ccc; line-height:1.6;">🔗 {" → ".join(parts)}</div>')
 
     # Resolutions
     if r_mut > 0 or r_blind > 0:
@@ -284,10 +284,10 @@ if daily_changes:
             res_parts.append(f"{r_mut} rivalidade(s) mútua(s)")
         if r_blind > 0:
             res_parts.append(f"{r_blind} ponto(s) cego(s)")
-        print(f'<div style="font-size:0.85rem; color:#91cf60; margin-top:0.5rem;">✅ Resolvidos: {", ".join(res_parts)}</div>')
+        print(f'<div class="fs-base" style="color:#91cf60; margin-top:0.5rem;">✅ Resolvidos: {", ".join(res_parts)}</div>')
 
     if not parts and r_mut == 0 and r_blind == 0:
-        print('<div style="font-size:0.9rem; color:#888;">Sem mudanças significativas nas dinâmicas sociais.</div>')
+        print('<div class="fs-base" style="color:#888;">Sem mudanças significativas nas dinâmicas sociais.</div>')
 
     print('</div>')
 else:
@@ -400,7 +400,7 @@ if streak_breaks:
     _novo_note = f" (<span style='color:#e74c3c;'>{_n_new} nova(s) hoje</span>)" if _n_new > 0 else ""
     print(f"**{len(streak_breaks)} rupturas** de aliança detectadas na temporada.{_novo_note}\n")
     print('<div style="overflow-x:auto;">')
-    print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
+    print('<table class="fs-base" style="width: 100%; border-collapse: collapse;">')
     print('<thead><tr style="border-bottom: 1px solid #444;">'
           '<th style="padding: 0.4rem; width: 3rem;"></th>'
           '<th style="padding: 0.4rem;">Emissor</th><th style="padding: 0.4rem;">Receptor</th>'
@@ -414,7 +414,7 @@ if streak_breaks:
         sev_color = "#e74c3c" if severity == "strong" else "#f39c12"
         sev_label = "Forte" if severity == "strong" else "Leve"
         is_new = (sb["giver"], sb["receiver"]) in _new_sb_set
-        novo_badge = ('<span style="background:#e74c3c; color:white; font-size:0.7rem; '
+        novo_badge = ('<span class="fs-xs" style="background:#e74c3c; color:white; '
                       'padding:0.1rem 0.4rem; border-radius:4px; font-weight:bold;">NOVO</span>') if is_new else ""
         print(f'<tr style="border-left: 3px solid {sev_color};">'
               f'<td style="padding: 0.4rem; text-align: center;">{novo_badge}</td>'
@@ -815,7 +815,7 @@ if contradictions:
     rate_pct = f"{contradiction_rate * 100:.0f}" if contradiction_rate else "?"
     print(f"**{len(contradictions)} contradição(ões)** detectadas: votou contra alguém a quem dava ❤️ (taxa: {rate_pct}%).\n")
     print('<div style="overflow-x:auto;">')
-    print('<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">')
+    print('<table class="fs-base" style="width: 100%; border-collapse: collapse;">')
     print('<thead><tr style="border-bottom: 1px solid #444;">'
           '<th style="padding: 0.4rem;">Votante</th>'
           '<th style="padding: 0.4rem;">Alvo do voto</th>'

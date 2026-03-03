@@ -25,13 +25,13 @@
 }
 
 .stat-card .stat-value {
-  font-size: 2rem;
+  font-size: var(--fs-4xl);
   font-weight: bold;
   color: #fff;
 }
 
 .stat-card .stat-label {
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   color: rgba(255,255,255,0.85);
   text-transform: uppercase;
 }
@@ -99,7 +99,7 @@
   padding: 0.25rem 0.75rem;
   color: #fff;
   border-radius: 12px;
-  font-size: 0.85em;
+  font-size: var(--fs-base);
 }
 
 /* ── Table utilities ── */
@@ -108,8 +108,8 @@
 .tl { text-align: left; }
 .cell-compact { padding: 0.4rem; }
 .table-full { width: 100%; border-collapse: collapse; }
-.table-sm { font-size: 0.78em; }
-.table-md { font-size: 0.85em; }
+.table-sm { font-size: var(--fs-sm); }
+.table-md { font-size: var(--fs-md); }
 
 /* ── Text colors (dark theme) ── */
 .text-muted { color: #888; }
