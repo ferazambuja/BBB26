@@ -39,6 +39,7 @@ from data_utils import (
 from paredao_viz import (
     render_nominee_cards_em_andamento,
     render_nominee_cards_finalized,
+    _build_paredao_history,
     render_voting_blocs,
     render_votos_casa_table,
     render_duelo_result_card,
@@ -237,18 +238,64 @@ if ultimo:
 </div>
 """)
 
+        # ── Pre-compute poll predictions for cards ──
+        poll = get_poll_for_paredao(polls_data, ultimo['numero'])
+        _card_preds = None
+        _is_save_poll = False
+        if poll:
+            _is_save_poll = poll.get('tipo_voto') == 'salvar'
+            _prec_card = calculate_precision_weights(polls_data)
+            _model_card = predict_precision_weighted(poll, _prec_card) if _prec_card.get('sufficient') else None
+            if _model_card:
+                _card_preds = _model_card['prediction']
+            elif poll.get('consolidado'):
+                _card_preds = {n: poll['consolidado'].get(n, 0) for n in poll.get('participantes', [])}
+
+        # Build paredão history (past appearances)
+        _raw_paredoes = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
+        _par_history = _build_paredao_history(_raw_paredoes.get('paredoes', []), ultimo['numero'])
+
         # Cards dos indicados conhecidos
         if participantes:
-            print(render_nominee_cards_em_andamento(participantes, esperado_indicados, AVATARS, MEMBER_OF))
+            print(render_nominee_cards_em_andamento(
+                participantes, esperado_indicados, AVATARS, MEMBER_OF,
+                poll_predictions=_card_preds,
+                is_save_poll=_is_save_poll,
+                paredao_history=_par_history,
+                is_paredao_falso=ultimo.get('paredao_falso', False),
+            ))
+
+        # ── Paredão history for nominees with past appearances ──
+        _nominees_with_history = [(p['nome'], _par_history.get(p['nome'], [])) for p in participantes if _par_history.get(p['nome'])]
+        if _nominees_with_history:
+            print('\n<details style="margin:0.5rem 0 1rem 0;">')
+            print('<summary style="cursor:pointer; font-size:0.9em; color:#aaa;">📋 Histórico em paredões anteriores</summary>')
+            print('<div style="overflow-x:auto; margin-top:0.5rem;">')
+            print('<table class="table table-sm" style="font-size:0.82rem; white-space:nowrap;">')
+            print('<thead><tr><th>Participante</th><th>Paredão</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
+            for _h_nome, _h_entries in _nominees_with_history:
+                first_name = _h_nome.split()[0]
+                _av = avatar_img(_h_nome, AVATARS, 24)
+                for _h in _h_entries:
+                    _h_num = _h['paredao']
+                    _h_como = _h.get('como', '?')
+                    _h_pct = f'{_h["voto_total"]:.1f}%' if 'voto_total' in _h else '—'
+                    _h_falso = ' 🔮' if _h.get('falso') else ''
+                    if _h.get('eliminado'):
+                        _h_res = f'<span style="color:#E6194B; font-weight:bold;">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
+                    elif 'voto_total' in _h:
+                        _h_res = f'<span style="color:#2ecc71;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
+                    else:
+                        _h_res = '—'
+                    print(f'<tr><td>{_av} {first_name}</td><td>{_h_num}º{_h_falso}</td><td>{_h_como}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_res}</td></tr>')
+            print('</tbody></table></div></details>\n')
 
         # ── Enquetes do Votalhada (em andamento) — right after nominee cards ──
-        poll = get_poll_for_paredao(polls_data, ultimo['numero'])
         if poll:
             participantes_poll = poll.get('participantes', [])
             consolidado = poll.get('consolidado', {})
             plataformas = poll.get('plataformas', {})
 
-            _is_save_poll = poll.get('tipo_voto') == 'salvar'
             _poll_label = 'Quem você quer SALVAR?' if _is_save_poll else 'Previsão das Enquetes'
             print(f"\n## 📊 {_poll_label}\n")
             if _is_save_poll:
@@ -266,7 +313,7 @@ if ultimo:
             print(f'<strong style="color:#9b59b6;">📊 Votalhada</strong> reúne enquetes de 70+ fontes (sites, redes sociais) e faz uma média <em>pelo número de votos</em> de cada fonte.')
             print(f'</div>')
             print(f'<div style="background:rgba(0,188,140,0.08); border-left:3px solid #00bc8c; padding:0.6rem 0.8rem; border-radius:0 6px 6px 0;">')
-            print(f'<strong style="color:#00bc8c;">🧮 Nosso Modelo</strong> usa as mesmas enquetes, mas dá <em>mais peso para quem acertou mais</em> nos paredões anteriores.')
+            print(f'<strong style="color:#00bc8c;">🧮 Nosso Modelo</strong> usa as mesmas enquetes, mas dá <em>mais peso para quem acertou mais</em> nos paredões anteriores. <a href="paredoes.html#nosso-modelo-back-test" style="color:#00bc8c; font-size:0.9em;">Ver back-test →</a>')
             print(f'</div>')
             print(f'</div>\n')
 
@@ -304,20 +351,31 @@ if ultimo:
             _tie_tag = '<span style="background:#f39c12;color:#000;font-size:0.65em;padding:0.15em 0.5em;border-radius:8px;margin-left:0.3em;">EMPATE TÉCNICO</span>' if _is_tie else ''
             print(f'<div style="border:2px solid #9b59b6; border-radius:12px; padding:0.8rem; background:rgba(155,89,182,0.08);">')
             print(f'<div style="font-size:0.75em; color:#9b59b6; font-weight:bold;">📊 VOTALHADA</div>')
-            print(f'<div style="font-size:1.2em; font-weight:bold; margin:0.2rem 0;">{_consol_elim}{_tie_tag}</div>')
-            print(f'<div class="text-muted" style="font-size:0.85em;">com {_consol_pct:.1f}%{_save_label}</div>')
+            if _is_tie and len(_sorted_consol) >= 2:
+                _v1, _v2 = _sorted_consol[0], _sorted_consol[1]
+                _v_diff = abs(_v1[1] - _v2[1])
+                print(f'<div style="font-size:1.1em; font-weight:bold; margin:0.2rem 0;">{_v1[0].split()[0]} vs {_v2[0].split()[0]}{_tie_tag}</div>')
+                print(f'<div class="text-muted" style="font-size:0.85em;">{_v1[1]:.1f}% vs {_v2[1]:.1f}%{_save_label} · Δ {_v_diff:.1f} p.p.</div>')
+            else:
+                print(f'<div style="font-size:1.2em; font-weight:bold; margin:0.2rem 0;">{_consol_elim}{_tie_tag}</div>')
+                print(f'<div class="text-muted" style="font-size:0.85em;">com {_consol_pct:.1f}%{_save_label}</div>')
             print(f'</div>')
 
             # Model card
             if _model_pred:
-                _m_tie_tag = ''
                 _sorted_model = sorted([(n, _model_pred['prediction'].get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
-                if len(_sorted_model) >= 2 and abs(_sorted_model[0][1] - _sorted_model[1][1]) < 2.0:
-                    _m_tie_tag = '<span style="background:#f39c12;color:#000;font-size:0.65em;padding:0.15em 0.5em;border-radius:8px;margin-left:0.3em;">EMPATE TÉCNICO</span>'
+                _m_is_tie = len(_sorted_model) >= 2 and abs(_sorted_model[0][1] - _sorted_model[1][1]) < 2.0
+                _m_tie_tag = '<span style="background:#f39c12;color:#000;font-size:0.65em;padding:0.15em 0.5em;border-radius:8px;margin-left:0.3em;">EMPATE TÉCNICO</span>' if _m_is_tie else ''
                 print(f'<div style="border:2px solid #00bc8c; border-radius:12px; padding:0.8rem; background:rgba(0,188,140,0.08);">')
                 print(f'<div style="font-size:0.75em; color:#00bc8c; font-weight:bold;">🧮 NOSSO MODELO</div>')
-                print(f'<div style="font-size:1.2em; font-weight:bold; margin:0.2rem 0;">{_model_elim}{_m_tie_tag}</div>')
-                print(f'<div class="text-muted" style="font-size:0.85em;">com {_model_pct:.1f}%{_save_label}</div>')
+                if _m_is_tie:
+                    _m1, _m2 = _sorted_model[0], _sorted_model[1]
+                    _m_diff_top = abs(_m1[1] - _m2[1])
+                    print(f'<div style="font-size:1.1em; font-weight:bold; margin:0.2rem 0;">{_m1[0].split()[0]} vs {_m2[0].split()[0]}{_m_tie_tag}</div>')
+                    print(f'<div class="text-muted" style="font-size:0.85em;">{_m1[1]:.1f}% vs {_m2[1]:.1f}%{_save_label} · Δ {_m_diff_top:.1f} p.p.</div>')
+                else:
+                    print(f'<div style="font-size:1.2em; font-weight:bold; margin:0.2rem 0;">{_model_elim}{_m_tie_tag}</div>')
+                    print(f'<div class="text-muted" style="font-size:0.85em;">com {_model_pct:.1f}%{_save_label}</div>')
                 print(f'<div style="margin-top:0.4rem; font-size:0.8em; color:{_agree_color}; font-weight:600;">{_agree_label}</div>')
                 print(f'</div>')
             print(f'</div>\n')
@@ -396,21 +454,112 @@ if ultimo:
 
             # ── Curiosidades box ──
             _curiosities = []
-            # 1. Tie detection per model
+            _bt = None  # backtest results, computed in accuracy section below
+
+            # Pre-compute model sorted list
+            _sorted_model_c = None
+            _diff_m = 0
+            if _model_pred:
+                _sorted_model_c = sorted([(n, _model_pred['prediction'].get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
+                _diff_m = abs(_sorted_model_c[0][1] - _sorted_model_c[1][1]) if len(_sorted_model_c) >= 2 else 0
+
+            # 1. Per-participant model comparison (Votalhada vs Nosso Modelo side-by-side)
+            if _model_pred:
+                _comp_parts = []
+                for n in participantes_poll:
+                    _cv = consolidado.get(n, 0)
+                    _mv = _model_pred['prediction'].get(n, 0)
+                    _delta = _mv - _cv
+                    _arrow = '↑' if _delta > 0.5 else '↓' if _delta < -0.5 else '≈'
+                    _comp_parts.append(f'{n.split()[0]} {_cv:.1f}→<strong>{_mv:.1f}%</strong> ({_arrow}{abs(_delta):.1f})')
+                _curiosities.append(f'🧮 <strong><a href="paredoes.html#nosso-modelo-back-test" style="color:#00bc8c;">Nosso Modelo</a></strong> vs Votalhada: {" · ".join(_comp_parts)}')
+
+            # 2. Tie detection per model
             if _is_tie:
                 _diff_v = abs(_sorted_consol[0][1] - _sorted_consol[1][1])
                 _curiosities.append(f'🔥 <strong>Votalhada</strong>: diferença de apenas <strong>{_diff_v:.1f} p.p.</strong> entre {_sorted_consol[0][0].split()[0]} e {_sorted_consol[1][0].split()[0]}')
+            if _sorted_model_c and _diff_m < 2.0:
+                _curiosities.append(f'🔥 <strong>Nosso Modelo</strong>: diferença de apenas <strong>{_diff_m:.1f} p.p.</strong> entre {_sorted_model_c[0][0].split()[0]} e {_sorted_model_c[1][0].split()[0]}')
+
+            # 2b. Historical smallest margin comparison (Votalhada)
+            _curr_margin = abs(_sorted_consol[0][1] - _sorted_consol[1][1]) if len(_sorted_consol) >= 2 else 999
+            _hist_margins = []
+            for _hp in polls_data.get('paredoes', []):
+                if _hp.get('numero', 0) >= poll.get('numero', 999):
+                    continue
+                _hp_parts = _hp.get('participantes', [])
+                _hp_consol = _hp.get('consolidado', {})
+                if len(_hp_parts) >= 2:
+                    _hp_sorted = sorted([(_n, _hp_consol.get(_n, 0)) for _n in _hp_parts], key=lambda x: -x[1])
+                    _hp_margin = abs(_hp_sorted[0][1] - _hp_sorted[1][1])
+                    _hp_p1, _hp_p2 = _hp_sorted[0][0].split()[0], _hp_sorted[1][0].split()[0]
+                    _hist_margins.append((_hp.get('numero'), _hp_margin, _hp_p1, _hp_p2))
+            if _hist_margins:
+                _prev_smallest = min(_hist_margins, key=lambda x: x[1])
+                if _curr_margin < _prev_smallest[1]:
+                    _curiosities.append(f'📏 Margem atual de <strong>{_curr_margin:.1f} p.p.</strong> é a <strong>menor de todos os paredões</strong>! (recorde anterior: P{_prev_smallest[0]} com {_prev_smallest[1]:.1f} p.p. — {_prev_smallest[2]} vs {_prev_smallest[3]})')
+                elif _curr_margin < 3.0:
+                    _curiosities.append(f'📏 Margem de <strong>{_curr_margin:.1f} p.p.</strong> — a menor já foi P{_prev_smallest[0]} com {_prev_smallest[1]:.1f} p.p. ({_prev_smallest[2]} vs {_prev_smallest[3]})')
+
+            # 3. Model agreement/divergence + confidence comparison
             if _model_pred:
-                _sorted_model_c = sorted([(n, _model_pred['prediction'].get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
-                _diff_m = abs(_sorted_model_c[0][1] - _sorted_model_c[1][1])
-                if _diff_m < 2.0:
-                    _curiosities.append(f'🔥 <strong>Nosso Modelo</strong>: diferença de apenas <strong>{_diff_m:.1f} p.p.</strong> entre {_sorted_model_c[0][0].split()[0]} e {_sorted_model_c[1][0].split()[0]}')
-                # Model vs Votalhada difference
+                _diff_v_top2 = abs(_sorted_consol[0][1] - _sorted_consol[1][1]) if len(_sorted_consol) >= 2 else 0
                 if _model_elim != _consol_elim:
                     _curiosities.append(f'🔀 Modelos divergem: Votalhada aposta em <strong>{_consol_elim.split()[0]}</strong>, Nosso Modelo em <strong>{_model_elim.split()[0]}</strong>')
                 elif _is_tie:
-                    _curiosities.append(f'🤝 Ambos os modelos apontam <strong>{_consol_elim.split()[0]}</strong>, mas a margem é mínima')
-            # 2. Platform split
+                    _curiosities.append(f'🤝 Ambos apontam <strong>{_consol_elim.split()[0]}</strong>, mas a margem é mínima')
+                # Which model is more confident?
+                if abs(_diff_m - _diff_v_top2) > 1.0:
+                    if _diff_m > _diff_v_top2:
+                        _curiosities.append(f'🎯 Nosso Modelo está mais confiante (margem de <strong>{_diff_m:.1f}</strong> vs {_diff_v_top2:.1f} p.p. do Votalhada)')
+                    else:
+                        _curiosities.append(f'🎯 Votalhada está mais confiante (margem de <strong>{_diff_v_top2:.1f}</strong> vs {_diff_m:.1f} p.p. do Nosso Modelo)')
+
+            # 4. Biggest model correction (where model disagrees most with Votalhada)
+            if _model_pred:
+                _deltas = [(n, _model_pred['prediction'].get(n, 0) - consolidado.get(n, 0)) for n in participantes_poll]
+                _biggest = max(_deltas, key=lambda x: abs(x[1]))
+                if abs(_biggest[1]) > 1.5:
+                    _direction = 'mais' if _biggest[1] > 0 else 'menos'
+                    # Build a specific explanation: which platforms push this person up/down
+                    _corr_name = _biggest[0]
+                    _corr_short = _corr_name.split()[0]
+                    _plat_label_c = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
+                    _wu_c = _model_pred.get('weights_used', {})
+                    # Find platforms where this person is above vs below consolidado
+                    _above_plats = []  # platforms where person scores higher than consolidado
+                    _below_plats = []
+                    _consol_val = consolidado.get(_corr_name, 0)
+                    for _pl_c in ['sites', 'youtube', 'twitter', 'instagram']:
+                        _pl_val = plataformas.get(_pl_c, {}).get(_corr_name, 0)
+                        _pl_w = _wu_c.get(_pl_c, 0)
+                        if _pl_val > _consol_val + 1:
+                            _above_plats.append((_plat_label_c[_pl_c], _pl_val, _pl_w))
+                        elif _pl_val < _consol_val - 1:
+                            _below_plats.append((_plat_label_c[_pl_c], _pl_val, _pl_w))
+                    # Build explanation based on correction direction
+                    _reason_parts = []
+                    if _biggest[1] < 0:  # model says LESS than Votalhada
+                        # Person is high on low-weight platforms, low on high-weight ones
+                        if _above_plats:
+                            _high_low_w = [f'{p} ({v:.0f}%, peso {w*100:.0f}%)' for p, v, w in sorted(_above_plats, key=lambda x: x[2])]
+                            _reason_parts.append(f'forte em {", ".join(_high_low_w)}')
+                        if _below_plats:
+                            _low_hi_w = [f'{p} ({v:.0f}%, peso {w*100:.0f}%)' for p, v, w in sorted(_below_plats, key=lambda x: -x[2])]
+                            _reason_parts.append(f'fraco em {", ".join(_low_hi_w)}')
+                    else:  # model says MORE than Votalhada
+                        if _below_plats:
+                            _reason_parts.append(f'fraco em plataformas de baixo peso')
+                        if _above_plats:
+                            _hi_w = [f'{p} ({v:.0f}%, peso {w*100:.0f}%)' for p, v, w in sorted(_above_plats, key=lambda x: -x[2])]
+                            _reason_parts.append(f'forte em {", ".join(_hi_w)}')
+                    _reason = ' mas '.join(_reason_parts) if _reason_parts else ''
+                    _corr_txt = f'🔍 Maior correção do modelo: <strong>{_corr_short}</strong> está {abs(_biggest[1]):.1f} p.p. {_direction} que no Votalhada'
+                    if _reason:
+                        _corr_txt += f' — {_reason}'
+                    _curiosities.append(_corr_txt)
+
+            # 5. Platform split
             _unique_leaders = set(_plat_leaders.values())
             if len(_unique_leaders) > 1:
                 _plat_label = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
@@ -420,12 +569,19 @@ if ultimo:
                     _by_leader.setdefault(first, []).append(_plat_label.get(pl, pl))
                 _parts = [f'<strong>{name}</strong> lidera em {", ".join(plats)}' for name, plats in _by_leader.items()]
                 _curiosities.append(f'📱 Plataformas divididas: {" · ".join(_parts)}')
-            # 3. Low vote outlier
+
+            # 6. Low vote outlier
             _min_voter = min(participantes_poll, key=lambda n: consolidado.get(n, 0))
             _min_pct = consolidado.get(_min_voter, 0)
             if _min_pct < 10:
-                _curiosities.append(f'📉 {_min_voter.split()[0]} tem apenas <strong>{_min_pct:.1f}%</strong> — distância enorme para os outros dois')
-            # 4. Time series trend (lead changes)
+                _model_min = _model_pred['prediction'].get(_min_voter, 0) if _model_pred else 0
+                _outlier_txt = f'📉 {_min_voter.split()[0]} tem apenas <strong>{_min_pct:.1f}%</strong> no Votalhada'
+                if _model_pred and abs(_model_min - _min_pct) > 0.5:
+                    _outlier_txt += f' ({_model_min:.1f}% no Nosso Modelo)'
+                _outlier_txt += ' — distância enorme para os outros'
+                _curiosities.append(_outlier_txt)
+
+            # 7. Time series trend (lead changes)
             _serie = poll.get('serie_temporal', [])
             if len(_serie) >= 2:
                 _leaders_over_time = []
@@ -434,19 +590,87 @@ if ultimo:
                     _leaders_over_time.append(max(_pt_vals, key=lambda k: _pt_vals[k]))
                 _lead_changes = sum(1 for i in range(1, len(_leaders_over_time)) if _leaders_over_time[i] != _leaders_over_time[i-1])
                 if _lead_changes >= 1:
-                    _curiosities.append(f'🔄 Liderança trocou <strong>{_lead_changes}×</strong> desde o início da votação — disputa acirrada!')
-            # 5. Total votes milestone
+                    _curiosities.append(f'🔄 Liderança trocou <strong>{_lead_changes}×</strong> nas enquetes (Votalhada) desde o início da votação — disputa acirrada!')
+
+            # 8. Total votes milestone (with historical rank + platform breakdown)
             if total_votos > 1_000_000:
                 _m = total_votos / 1_000_000
-                _curiosities.append(f'🗳️ Já são <strong>{_m:.1f} milhões</strong> de votos contabilizados')
-            # 6. Historical accuracy (best/worst platform + model track record)
+                # Historical comparison
+                _hist_votos = []
+                for _hp in polls_data.get('paredoes', []):
+                    if _hp.get('numero', 0) != poll.get('numero', 999):
+                        _hv = _hp.get('consolidado', {}).get('total_votos', 0)
+                        if _hv > 0:
+                            _hist_votos.append((_hp['numero'], _hv))
+                _vote_txt = f'🗳️ <strong>{_m:.1f}M votos</strong> contabilizados'
+                if _hist_votos:
+                    _max_hist = max(_hist_votos, key=lambda x: x[1])
+                    if total_votos > _max_hist[1]:
+                        _vote_txt += ' — <strong>novo recorde!</strong>'
+                    else:
+                        _rank_above = sum(1 for _, v in _hist_votos if v > total_votos)
+                        _vote_txt += f' (P{_max_hist[0]}: {_max_hist[1]/1_000_000:.1f}M — recorde)'
+                _curiosities.append(_vote_txt)
+                # Per-platform volume breakdown
+                _plat_volumes = {}
+                _total_plat_votos = 0
+                for _pl in ['sites', 'youtube', 'twitter', 'instagram']:
+                    _pv = plataformas.get(_pl, {}).get('votos', 0)
+                    if _pv > 0:
+                        _plat_volumes[_pl] = _pv
+                        _total_plat_votos += _pv
+                if _plat_volumes and _total_plat_votos > 0:
+                    _plat_label_v = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Insta'}
+                    _vol_parts = [f'{_plat_label_v.get(p, p)} {v*100/_total_plat_votos:.0f}%' for p, v in sorted(_plat_volumes.items(), key=lambda x: -x[1])]
+                    _curiosities.append(f'📊 Volume por plataforma: {" · ".join(_vol_parts)}')
+                    # Sites volume vs accuracy (when precision data available)
+                    if _prec and _prec.get('sufficient') and 'sites' in _plat_volumes:
+                        _sites_share = _plat_volumes['sites'] * 100 / _total_plat_votos
+                        _sites_rmse = _prec.get('rmse', {}).get('sites', 0)
+                        if _sites_share > 25 and _sites_rmse > 10:
+                            _curiosities.append(f'⚠️ Sites tem <strong>{_sites_share:.0f}%</strong> dos votos mas é a menos precisa (erro {_sites_rmse:.1f} p.p.)')
+
+            # 9. Model weight insight — expose Sites volume-vs-accuracy paradox
+            if _model_pred and _prec and _prec.get('sufficient'):
+                _wu = _model_pred.get('weights_used', {})
+                _rmse_w = _prec.get('rmse', {})
+                _plat_names_w = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
+                # Calculate actual Sites volume share for this paredão
+                _sites_vol_share = 0
+                _tw_vol_share = 0
+                _total_pv = 0
+                for _pl in ['sites', 'youtube', 'twitter', 'instagram']:
+                    _pv = plataformas.get(_pl, {}).get('votos', 0)
+                    _total_pv += _pv
+                    if _pl == 'sites':
+                        _sites_vol_share = _pv
+                    elif _pl == 'twitter':
+                        _tw_vol_share = _pv
+                if _total_pv > 0 and _rmse_w:
+                    _sites_pct = _sites_vol_share * 100 / _total_pv
+                    _tw_pct = _tw_vol_share * 100 / _total_pv
+                    _sites_rmse = _rmse_w.get('sites', 0)
+                    _tw_rmse = _rmse_w.get('twitter', 0)
+                    _sites_w = _wu.get('sites', 0) * 100
+                    _tw_w = _wu.get('twitter', 0) * 100
+                    # Show the paradox narrative
+                    _paradox_parts = []
+                    if _sites_pct > 20:
+                        _paradox_parts.append(f'Sites: {_sites_pct:.0f}% do volume, erro {_sites_rmse:.1f} p.p.')
+                    if _tw_pct > 0:
+                        _paradox_parts.append(f'Twitter: {_tw_pct:.0f}% do volume, erro {_tw_rmse:.1f} p.p.')
+                    if _paradox_parts:
+                        _model_weights = ' · '.join([f'{_plat_names_w.get(p, p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])])
+                        _curiosities.append(f'⚖️ Paradoxo do volume: {" · ".join(_paradox_parts)}. Modelo inverte: {_model_weights}')
+
+            # 10. Historical accuracy (best/worst platform + model track record)
             if _prec and _prec.get('sufficient'):
                 _rmse_hist = _prec.get('rmse', {})
                 _plat_names_h = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
                 if _rmse_hist:
                     _best_plat = min(_rmse_hist, key=lambda k: _rmse_hist[k])
                     _worst_plat = max(_rmse_hist, key=lambda k: _rmse_hist[k])
-                    _curiosities.append(f'🏆 Historicamente, <strong>{_plat_names_h[_best_plat]}</strong> é a fonte mais precisa (erro {_rmse_hist[_best_plat]:.1f} p.p.) e <strong>{_plat_names_h[_worst_plat]}</strong> a menos ({_rmse_hist[_worst_plat]:.1f} p.p.)')
+                    _curiosities.append(f'🏆 Historicamente, <strong>{_plat_names_h[_best_plat]}</strong> é a fonte mais precisa (erro {_rmse_hist[_best_plat]:.1f} p.p.) e <strong>{_plat_names_h[_worst_plat]}</strong> a menos ({_rmse_hist[_worst_plat]:.1f} p.p.) — <a href="paredoes.html#precisão-das-enquetes-votalhada" style="color:#f1c40f; font-size:0.9em;">ver análise completa</a>')
                 _n_finalized = _prec.get('n_paredoes', 0)
                 from data_utils import backtest_precision_model
                 _bt = backtest_precision_model(polls_data)
@@ -456,7 +680,7 @@ if ultimo:
                     _model_correct_n = sum(1 for r in _bt_results if r.get('model_correct'))
                     _consol_avg = sum(r['consolidado_mae'] for r in _bt_results) / len(_bt_results)
                     _model_avg = sum(r['model_mae'] for r in _bt_results) / len(_bt_results)
-                    _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro médio {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro médio {_model_avg:.1f} p.p.)')
+                    _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro {_model_avg:.1f} p.p.) — <a href="paredoes.html#nosso-modelo-back-test" style="color:#f1c40f; font-size:0.9em;">ver back-test</a>')
 
             if _curiosities:
                 print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.8rem 1rem; margin:0.8rem 0 1rem 0;">')
@@ -474,16 +698,39 @@ if ultimo:
                 print(f'<details style="margin-top:0.3rem; font-size:0.82em;">')
                 print(f'<summary class="text-muted" style="cursor:pointer;">ℹ️ Como funciona o modelo: {" · ".join(_weight_parts)}</summary>')
                 print(f'<div style="padding:0.7rem; margin-top:0.3rem; background:rgba(0,188,140,0.05); border-radius:8px; color:#aaa; font-size:0.95em;">')
-                print(f'<p style="margin:0 0 0.5rem 0;">O Votalhada soma votos de todas as fontes — quem tem mais votos pesa mais (Sites ~70%). Mas ter muitos votos não significa acertar o resultado.</p>')
+                # Compute actual Sites volume share for the explanation text
+                _sites_vol_exp = 0
+                _total_vol_exp = 0
+                for _pl_exp in ['sites', 'youtube', 'twitter', 'instagram']:
+                    _pv_exp = plataformas.get(_pl_exp, {}).get('votos', 0)
+                    _total_vol_exp += _pv_exp
+                    if _pl_exp == 'sites':
+                        _sites_vol_exp = _pv_exp
+                _sites_share_exp = round(_sites_vol_exp * 100 / _total_vol_exp) if _total_vol_exp > 0 else 70
+                print(f'<p style="margin:0 0 0.5rem 0;">O Votalhada soma votos de todas as fontes — quem tem mais votos pesa mais (Sites ~{_sites_share_exp}%). Mas ter muitos votos não significa acertar o resultado.</p>')
                 print(f'<p style="margin:0 0 0.5rem 0;">Nosso modelo olha para os <strong>{len([p for p in polls_data.get("paredoes", []) if p.get("resultado_real")])} paredões anteriores</strong> e calcula quais plataformas erraram menos. Quem acertou mais ganha mais peso:</p>')
                 print(f'<table style="font-size:0.9em; margin:0.3rem 0;">')
                 print(f'<tr><th>Plataforma</th><th class="tc">Erro médio</th><th class="tc">Peso Votalhada</th><th class="tc">Peso Modelo</th></tr>')
-                _vol_approx = {'twitter': 5, 'instagram': 14, 'youtube': 11, 'sites': 70}
+                # Compute actual Votalhada volume shares for this paredão
+                _vol_actual = {}
+                _total_vol_d = 0
+                for _pl_d in ['sites', 'youtube', 'twitter', 'instagram']:
+                    _pv_d = plataformas.get(_pl_d, {}).get('votos', 0)
+                    _vol_actual[_pl_d] = _pv_d
+                    _total_vol_d += _pv_d
                 for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
                     rmse_val = _rmse_info.get(p, 0)
-                    print(f'<tr><td>{_plat_labels_d.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_approx.get(p,0)}%</td><td class="tc" style="font-weight:bold;">{w*100:.0f}%</td></tr>')
+                    _vol_pct = round(_vol_actual.get(p, 0) * 100 / _total_vol_d) if _total_vol_d > 0 else 0
+                    print(f'<tr><td>{_plat_labels_d.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_pct}%</td><td class="tc" style="font-weight:bold;">{w*100:.0f}%</td></tr>')
                 print(f'</table>')
-                print(f'<p style="margin:0.5rem 0 0 0;">Resultado: o erro médio cai de 9,8 para 4,3 p.p. comparado ao consolidado do Votalhada.</p>')
+                # Dynamic backtest stats (computed earlier via backtest_precision_model)
+                _bt_agg = _bt.get('aggregate', {}) if _bt else {}
+                _bt_consol_mae = _bt_agg.get('consolidado_mae', 0)
+                _bt_model_mae = _bt_agg.get('model_mae', 0)
+                if _bt_consol_mae > 0 and _bt_model_mae > 0:
+                    print(f'<p style="margin:0.5rem 0 0 0;">Resultado: o erro médio cai de {_bt_consol_mae:.1f} para {_bt_model_mae:.1f} p.p. comparado ao consolidado do Votalhada.</p>')
+                else:
+                    print(f'<p style="margin:0.5rem 0 0 0;">Resultado: o modelo pondera pela precisão histórica de cada plataforma.</p>')
                 print(f'</div></details>')
             print()
 
@@ -1207,9 +1454,15 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
         df_p = pd.DataFrame(ultimo['participantes'])
         has_breakdown = 'voto_unico' in df_p.columns and df_p['voto_unico'].notna().all()
 
+        # Build paredão history for finalized view
+        _raw_par_fin = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
+        _par_hist_fin = _build_paredao_history(_raw_par_fin.get('paredoes', []), ultimo['numero'])
+
         # ── Visual: Cards com fotos e resultado ──
         print(render_nominee_cards_finalized(
-            df_p.to_dict('records'), AVATARS, MEMBER_OF
+            df_p.to_dict('records'), AVATARS, MEMBER_OF,
+            is_paredao_falso=ultimo.get('paredao_falso', False),
+            paredao_history=_par_hist_fin,
         ))
 
         fig = go.Figure()
