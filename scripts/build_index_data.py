@@ -1584,6 +1584,25 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     # Total leader periods available
     n_leader_periods = len(leader_periods)
 
+    # House vote eligibility per participant (all paredões with votos_casa)
+    paredoes_with_votes = [p for p in paredoes_list if p.get("votos_casa")]
+    n_paredoes_with_votes = len(paredoes_with_votes)
+    house_vote_ineligible = defaultdict(list)  # name → [(num, reason)]
+    for par in paredoes_with_votes:
+        num = par.get("numero", 0)
+        form = par.get("formacao", {})
+        if form.get("lider"):
+            house_vote_ineligible[form["lider"]].append((num, "Líder"))
+        for ind in par.get("indicados_finais", []):
+            n = ind.get("nome", "") if isinstance(ind, dict) else ind
+            if n:
+                house_vote_ineligible[n].append((num, "no Paredão"))
+        im = form.get("imunizado")
+        if im and im.get("quem"):
+            house_vote_ineligible[im["quem"]].append((num, "imune"))
+        if form.get("anjo_autoimune") and form.get("anjo"):
+            house_vote_ineligible[form["anjo"]].append((num, "imune"))
+
     return {
         "votes_received_by_week": votes_received_by_week,
         "revealed_votes": revealed_votes,
@@ -1602,6 +1621,8 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
         "breaks_given_count": breaks_given_count,
         "breaks_received_count": breaks_received_count,
         "n_leader_periods": n_leader_periods,
+        "house_vote_ineligible": house_vote_ineligible,
+        "n_paredoes_with_votes": n_paredoes_with_votes,
     }
 
 
@@ -1911,6 +1932,8 @@ def _build_profile_footer(name: str, allies: list[dict], enemies: list[dict], gi
     sentiment_history = lookups["sentiment_history"]
     votes_received_by_week = lookups["votes_received_by_week"]
     revealed_votes = lookups["revealed_votes"]
+    house_vote_ineligible = lookups["house_vote_ineligible"]
+    n_paredoes_with_votes = lookups["n_paredoes_with_votes"]
     current_vote_week = lookups["current_vote_week"]
 
     # -- Build curiosities --
@@ -1964,11 +1987,25 @@ def _build_profile_footer(name: str, allies: list[dict], enemies: list[dict], gi
     if n_allies >= 5 and n_enemies_count >= 5:
         curiosities.append({"icon": "⚡", "text": f"Polarizador: {n_allies} aliados vs {n_enemies_count} inimigos", "priority": 5})
 
-    # 9. Untouchable (0 house votes, present in 2+ paredões)
-    n_paredoes_present = sum(1 for par in paredoes.get("paredoes", [])
-                              if par.get("votos_casa") and name in {v.strip() for v in par["votos_casa"].keys()})
-    if n_house_votes == 0 and n_paredoes_present >= 2:
+    # 9. Untouchable / Shielded from house votes
+    inelig_list = house_vote_ineligible.get(name, [])
+    n_eligible = n_paredoes_with_votes - len(inelig_list)
+    if n_house_votes == 0 and n_eligible >= 2:
         curiosities.append({"icon": "🛡️", "text": "Intocável: nunca recebeu voto da casa", "priority": 5})
+    if n_paredoes_with_votes >= 4 and n_eligible <= n_paredoes_with_votes * 0.5:
+        # Eligible in less than half of paredões — structurally protected
+        reasons = defaultdict(int)
+        for _, reason in inelig_list:
+            reasons[reason] += 1
+        reason_parts = []
+        if reasons.get("Líder"):
+            reason_parts.append(f"{reasons['Líder']}x Líder")
+        if reasons.get("imune"):
+            reason_parts.append(f"{reasons['imune']}x imune")
+        if reasons.get("no Paredão"):
+            reason_parts.append(f"{reasons['no Paredão']}x no Paredão")
+        reason_str = ", ".join(reason_parts) if reason_parts else ""
+        curiosities.append({"icon": "🔒", "text": f"Blindado: elegível para voto da casa em apenas {n_eligible} de {n_paredoes_with_votes} paredões ({reason_str})", "priority": 4})
 
     # 10. Survived paredão
     if name in survived_paredao:

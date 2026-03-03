@@ -666,29 +666,45 @@ if never_voted:
     print('</div>')
     print('</div>')
 else:
-    # All active participants received house votes — show least voted
-    vote_totals = {}
+    # All have received votes — show most shielded (lowest eligibility ratio)
+    eligibility = {}
     for name in active_names:
-        vote_totals[name] = sum(len(voters) for voters in target_votes.get(name, {}).values())
-    min_votes = min(vote_totals.values()) if vote_totals else 0
-    least_voted = sorted([n for n, v in vote_totals.items() if v == min_votes])
-
-    print('<div style="background:rgba(241,196,15,0.10); border:1px solid rgba(241,196,15,0.3); border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0 1.5rem 0;">')
-    print(f'<h4 style="margin:0 0 0.8rem 0;">🛡️ Menos Visados — Menos votos da casa recebidos</h4>')
-    print(f'<p class="fs-base" style="margin:0 0 0.8rem 0; color:#aaa;">Todos os {len(active_names)} participantes ativos já receberam votos da casa em {n_paredoes_with_votes} paredões. Os menos visados receberam apenas {min_votes} voto{"s" if min_votes != 1 else ""}.</p>')
-    print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">')
-    for name in least_voted:
-        url = AVATARS.get(name, '')
         exemptions = ineligible_map.get(name, [])
         n_eligible = n_paredoes_with_votes - len(exemptions)
-        print(f'<div class="tc" style="width:90px;">')
+        votes = sum(len(voters) for voters in target_votes.get(name, {}).values())
+        eligibility[name] = {'eligible': n_eligible, 'total': n_paredoes_with_votes,
+                             'ratio': n_eligible / n_paredoes_with_votes if n_paredoes_with_votes else 1,
+                             'votes': votes, 'exemptions': exemptions}
+
+    # Show participants eligible in ≤ 50% of paredões, or top 3 least eligible
+    shielded = sorted(eligibility.items(), key=lambda x: (x[1]['ratio'], x[1]['votes']))
+    min_ratio = shielded[0][1]['ratio'] if shielded else 1
+    # Show all at minimum ratio, or anyone ≤ 50%
+    display = [(n, d) for n, d in shielded if d['ratio'] <= 0.5]
+    if not display:
+        display = [(n, d) for n, d in shielded if d['ratio'] == min_ratio]
+
+    print('<div style="background:rgba(52,152,219,0.10); border:1px solid rgba(52,152,219,0.3); border-radius:12px; padding:1.2rem 1.5rem; margin:1rem 0 1.5rem 0;">')
+    print(f'<h4 style="margin:0 0 0.8rem 0;">🔒 Mais Blindados — Menor exposição a votos da casa</h4>')
+    print(f'<p class="fs-base" style="margin:0 0 0.8rem 0; color:#aaa;">Todos os {len(active_names)} participantes já receberam votos da casa. Abaixo, quem esteve protegido (Líder, imune ou já no Paredão) com mais frequência.</p>')
+    print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center;">')
+    for name, data in display:
+        url = AVATARS.get(name, '')
+        pct = data['ratio'] * 100
+        color = '#3498db' if pct <= 40 else '#f1c40f' if pct <= 60 else '#aaa'
+        print(f'<div class="tc" style="width:110px;">')
         if url:
-            print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid #f1c40f;" alt="{name}" title="{name}">')
+            print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid {color};" alt="{name}" title="{name}">')
         print(f'<div class="fs-sm" style="margin-top:4px; line-height:1.2;">{name}</div>')
-        print(f'<div class="fs-2xs" style="color:#f1c40f; margin-top:2px;">{min_votes} voto{"s" if min_votes != 1 else ""}</div>')
-        if exemptions:
-            notes = ', '.join([f'{r} no {n}º' for n, r in exemptions])
-            print(f'<div class="fs-2xs" style="color:#f39c12; margin-top:2px; line-height:1.1;">({notes})</div>')
+        print(f'<div class="fs-base tabnum" style="color:{color}; font-weight:700; margin-top:2px;">{data["eligible"]}/{data["total"]}</div>')
+        print(f'<div class="fs-2xs" style="color:#aaa;">elegível ({pct:.0f}%)</div>')
+        if data['exemptions']:
+            # Group reasons
+            from collections import Counter as _Ctr
+            reason_counts = _Ctr(r for _, r in data['exemptions'])
+            reason_str = ', '.join(f'{c}x {r}' for r, c in reason_counts.items())
+            print(f'<div class="fs-2xs" style="color:#f39c12; margin-top:2px; line-height:1.1;">({reason_str})</div>')
+        print(f'<div class="fs-2xs" style="color:#888; margin-top:1px;">{data["votes"]} voto{"s" if data["votes"] != 1 else ""} recebido{"s" if data["votes"] != 1 else ""}</div>')
         print('</div>')
     print('</div>')
     print('</div>')
