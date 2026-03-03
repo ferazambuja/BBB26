@@ -3849,9 +3849,90 @@
           "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/breno-e-exilado-em-dinamica-do-bbb-26-e-devera-ficar-na-area-externa-da-casa.ghtml"
         ]
       },
+      "sincerao": {
+        "date": "2026-03-02",
+        "format": "Linha Direta — cada participante liga para quem considera o maior traidor(a) da casa",
+        "participacao": [
+          "Alberto Cowboy",
+          "Ana Paula Renault",
+          "Babu Santana",
+          "Breno",
+          "Chaiany",
+          "Gabriela",
+          "Jonas Sulzbach",
+          "Jordana",
+          "Juliano Floss",
+          "Leandro",
+          "Marciele",
+          "Milena",
+          "Samira",
+          "Solange Couto"
+        ],
+        "protagonistas": [],
+        "notes": "6º Sincerão (Linha Direta): todos os 14 participantes ligam para quem consideram o maior traidor(a) da casa. Breno foi o mais apontado (4×: Alberto Cowboy, Jordana, Marciele, Jonas Sulzbach). Jordana segunda (3×: Breno, Samira, Chaiany). Babu Santana terceiro (2×: Ana Paula Renault, Milena). Confrontos mútuos: Breno↔Jordana e Ana Paula Renault↔Babu Santana. Temas recorrentes: quebra de alianças, falta de empatia, manipulação, dois-caras.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-linha-direta-do-bbb-26-participantes-apontam-quem-e-o-maior-traidor-da-casa.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/alberto-cowboy-aponta-breno-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/breno-aponta-jordana-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/jordana-aponta-breno-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/samira-aponta-jordana-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/marciele-aponta-breno-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/ana-paula-renault-aponta-babu-santana-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/milena-aponta-babu-santana-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/juliano-floss-aponta-marciele-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/solange-couto-aponta-samira-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/leandro-aponta-gabriela-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/babu-santana-aponta-ana-paula-renault-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/chaiany-aponta-jordana-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/jonas-sulzbach-aponta-breno-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/gabriela-aponta-milena-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml"
+        ],
+        "stats": {
+          "most_targeted": [
+            {"name": "Breno", "count": 4},
+            {"name": "Jordana", "count": 3},
+            {"name": "Babu Santana", "count": 2},
+            {"name": "Ana Paula Renault", "count": 1},
+            {"name": "Marciele", "count": 1},
+            {"name": "Samira", "count": 1},
+            {"name": "Gabriela", "count": 1},
+            {"name": "Milena", "count": 1}
+          ],
+          "not_targeted": [
+            "Alberto Cowboy",
+            "Chaiany",
+            "Jonas Sulzbach",
+            "Juliano Floss",
+            "Leandro",
+            "Solange Couto"
+          ],
+          "mutual_confrontations": [
+            ["Breno", "Jordana"],
+            ["Ana Paula Renault", "Babu Santana"]
+          ]
+        },
+        "edges": [
+          {"actor": "Alberto Cowboy", "target": "Breno", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Breno", "target": "Jordana", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Jordana", "target": "Breno", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Samira", "target": "Jordana", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Marciele", "target": "Breno", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Ana Paula Renault", "target": "Babu Santana", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Milena", "target": "Babu Santana", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Juliano Floss", "target": "Marciele", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Solange Couto", "target": "Samira", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Leandro", "target": "Gabriela", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Babu Santana", "target": "Ana Paula Renault", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Chaiany", "target": "Jordana", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Jonas Sulzbach", "target": "Breno", "type": "bomba", "tema": "maior traidor(a)"},
+          {"actor": "Gabriela", "target": "Milena", "type": "bomba", "tema": "maior traidor(a)"}
+        ],
+        "edges_notes": "Todos os 14 participantes fizeram exatamente 1 ligação cada. Tipo 'bomba' com tema único 'maior traidor(a)' da dinâmica Linha Direta."
+      },
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-alberto-cowboy-vence-a-setima-prova.ghtml",
-        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/exilado-breno-indica-e-troca-de-lugar-com-alberto-cowboy-na-dinamica.ghtml"
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/exilado-breno-indica-e-troca-de-lugar-com-alberto-cowboy-na-dinamica.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-linha-direta-do-bbb-26-participantes-apontam-quem-e-o-maior-traidor-da-casa.ghtml"
       ]
     }
   ],
