@@ -504,6 +504,16 @@ python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/Y
 
 **URL pattern**: Votalhada always uses `https://votalhada.blogspot.com/{year}/{month}/pesquisa{N}.html`. The script derives this automatically from `paredoes.json` when the skeleton exists. If no skeleton exists yet (e.g., new paredão not created), the script falls back to the **current BRT month/year** — so `--paredao 8` works immediately without needing a `paredoes.json` entry.
 
+Quick URL generation for any paredão:
+
+```bash
+# Generate the Votalhada URL for paredão N (replace N with the number)
+N=8; echo "https://votalhada.blogspot.com/$(date -u -d '-3 hours' +%Y/%m)/pesquisa${N}.html"
+
+# macOS (BSD date)
+N=8; echo "https://votalhada.blogspot.com/$(TZ=America/Sao_Paulo date +%Y/%m)/pesquisa${N}.html"
+```
+
 Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures. Use `--no-timestamp` to overwrite instead.
 
 **Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
