@@ -587,9 +587,17 @@ After the elimination result is announced (~23h BRT):
 
 > **Paredão Falso**: The same checklist applies. Set `status: "finalizado"`, fill `resultado` with the "eliminated" name (who goes to Quarto Secreto) and vote percentages as normal. The `paredao_falso: true` flag in `paredoes.json` ensures the pipeline treats it correctly (Cartola awards `quarto_secreto` points instead of elimination).
 
+### 0. Scrape the result article
+
+```bash
+python scripts/scrape_gshow.py "<resultado-paredao-url>" -o docs/scraped/
+```
+
+The article contains exact vote percentages (Voto Único, Voto Torcida, Média) for all nominees.
+
 ### 1. Update `data/paredoes.json`
 
-Set the status to `finalizado` and add vote results:
+Set the status to `finalizado`, add vote results, and add the article to `fontes`:
 
 ```json
 {
@@ -600,13 +608,16 @@ Set the status to `finalizado` and add vote results:
       "Name1": {"voto_unico": 45.23, "voto_torcida": 50.10, "voto_total": 46.69},
       "Name2": {"voto_unico": 54.77, "voto_torcida": 49.90, "voto_total": 53.31}
     }
-  }
+  },
+  "fontes": [
+    {"url": "...", "arquivo": "docs/scraped/...", "titulo": "Result article title"}
+  ]
 }
 ```
 
 **Voting system (BBB 26)**: Voto Único (CPF, 70%) + Voto da Torcida (unlimited, 30%) = Média Final (`voto_total`).
 
-**Where to find data**: Search `BBB 26 Nº paredão porcentagem resultado` or `BBB 26 paredão voto único voto torcida`.
+**Where to find data**: The scraped article, or search `BBB 26 Nº paredão porcentagem resultado`.
 
 ### 2. Update `data/votalhada/polls.json`
 
@@ -623,14 +634,9 @@ Add `resultado_real` to the paredão's poll entry:
 }
 ```
 
-Use `voto_total` (not `voto_unico` or `voto_torcida`) for the percentages — this matches what Votalhada predicted against.
-
-**Model auto-recalibration**: Once `resultado_real` is filled and `build_derived_data.py` runs, the **Modelo Ponderado por Precisão** automatically recalibrates. `calculate_precision_weights()` reads ALL finalized polls at runtime — no manual weight updates needed. The model's RMSE per platform, weights, and backtest results all update to include the new data point. This means:
-- Prediction cards on `paredao.qmd` use the latest weights for the next paredão
-- Accuracy tables on `paredoes.qmd` show updated historical performance
-- The expandable "Como funciona o modelo" section displays current weights
-
-See `docs/SCORING_AND_INDEXES.md` → "Modelo Ponderado por Precisão" for the full formula and validation results.
+- Use `voto_total` (not `voto_unico` or `voto_torcida`) for the percentages — this matches what Votalhada predicted against.
+- Set `predicao_correta` to `true` if `consolidado.predicao_eliminado` matches `resultado_real.eliminado`, otherwise `false`.
+- For Paredão Falso: "eliminado" = who went to Quarto Secreto (most voted to save).
 
 ### 3. Record Ganha-Ganha (same night, ~23h30)
 
@@ -724,6 +730,23 @@ git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: paredão N res
 git push
 gh workflow run daily-update.yml
 ```
+
+### What auto-updates after rebuild + deploy
+
+Once `build_derived_data.py` runs and the site deploys, the following update **automatically** — no manual action needed:
+
+| What | Where | Details |
+|------|-------|---------|
+| **Cartola BBB points** | `cartola_data.json` → `cartola.qmd` | `eliminado` (+15 for survivors) or `quarto_secreto` (+40) points awarded. All auto-detected from `paredoes.json` status + `paredao_falso` flag. |
+| **Paredão archival** | `paredao_analysis.json` → `paredoes.qmd` | Finalized paredão moves to the archive page with full analysis (votos da casa, reaction heatmap, formation timeline). |
+| **Prediction model recalibration** | `vote_prediction.json` → `paredao.qmd` | The **Modelo Ponderado por Precisão** recalculates weights using all finalized `resultado_real` entries. RMSE per platform, weights, and backtest results update automatically. |
+| **Votação page** | `votacao.qmd` | Voto Único vs Voto Torcida analysis updates with the new paredão's voting breakdown. |
+| **Current paredão page** | `paredao.qmd` | Switches from "EM VOTAÇÃO" to result display. Shows "Enquetes vs Resultado" comparison instead of prediction cards. |
+| **Elimination detection** | `eliminations_detected.json` | Participant disappearance from API triggers auto-detection (for real eliminations). For Paredão Falso, participant stays in API. |
+| **Game timeline** | `game_timeline.json` → `index.qmd`, `evolucao.qmd` | `paredao_resultado` event auto-generated from finalized paredão. |
+| **Relations scores** | `relations_scores.json` | Paredão-anchored scores frozen at formation date snapshot. |
+
+**No manual action needed for any of the above** — just rebuild, push, and deploy.
 
 ---
 

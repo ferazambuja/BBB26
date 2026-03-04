@@ -904,7 +904,7 @@
     },
     {
       "numero": 7,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-03-03",
       "data_formacao": "2026-03-01",
       "titulo": "7º Paredão — 3 de Março de 2026",
@@ -929,7 +929,11 @@
           "motivo": "Eu vou puxar o Breno porque ele já deixou muito claro que somos alvo um do outro aqui"
         },
         "bate_volta": {
-          "participantes": ["Alberto Cowboy", "Breno", "Marciele"],
+          "participantes": [
+            "Alberto Cowboy",
+            "Breno",
+            "Marciele"
+          ],
           "vencedor": "Marciele"
         },
         "exilado": {
@@ -1019,8 +1023,33 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.ghtml",
           "arquivo": "docs/scraped/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.md",
           "titulo": "Quem está no Paredão Falso do BBB 26? Alberto Cowboy, Breno e Jordana disputam vaga no Quarto Secreto"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-venceu-o-paredao-falso-do-bbb-26-breno-vai-para-quarto-secreto.ghtml",
+          "arquivo": "docs/scraped/quem-venceu-o-paredao-falso-do-bbb-26-breno-vai-para-quarto-secreto.md",
+          "titulo": "Quem venceu o Paredão Falso do BBB 26? Breno vai para Quarto Secreto"
         }
-      ]
+      ],
+      "resultado": {
+        "eliminado": "Breno",
+        "votos": {
+          "Breno": {
+            "voto_unico": 57.68,
+            "voto_torcida": 47.61,
+            "voto_total": 54.66
+          },
+          "Alberto Cowboy": {
+            "voto_unico": 39.43,
+            "voto_torcida": 51.72,
+            "voto_total": 43.12
+          },
+          "Jordana": {
+            "voto_unico": 2.89,
+            "voto_torcida": 0.67,
+            "voto_total": 2.22
+          }
+        }
+      }
     }
   ]
 }
