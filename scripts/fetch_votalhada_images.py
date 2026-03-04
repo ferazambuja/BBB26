@@ -38,19 +38,34 @@ def _load_paredoes():
 
 
 def get_post_url_for_paredao(numero: int) -> tuple[str, str]:
-    """Return (url, folder_YYYY_MM_DD) for the Votalhada pesquisa post."""
+    """Return (url, folder_YYYY_MM_DD) for the Votalhada pesquisa post.
+
+    If the paredão exists in paredoes.json, uses data_formacao for the URL
+    month/year and folder name. Otherwise falls back to the current month/year
+    (the URL pattern is predictable: /YYYY/MM/pesquisaN.html).
+    """
     data = _load_paredoes()
     for p in data["paredoes"]:
         if p["numero"] == numero:
             data_formacao = p.get("data_formacao") or p.get("data")
             if not data_formacao:
-                raise ValueError(f"Paredão {numero}: no data_formacao/data in paredoes.json")
-            # Votalhada URL pattern: /YYYY/MM/pesquisaN.html
+                break  # fall through to fallback
             year, month, _ = data_formacao.split("-")
             url = f"https://votalhada.blogspot.com/{year}/{month}/pesquisa{numero}.html"
             folder = data_formacao.replace("-", "_")
             return url, folder
-    raise ValueError(f"Paredão {numero} not found in paredoes.json")
+
+    # Fallback: paredão not in paredoes.json yet — derive from current date
+    now = datetime.now(timezone.utc)
+    # BRT = UTC-3; use BRT date for month derivation
+    from datetime import timedelta
+    brt_now = now - timedelta(hours=3)
+    year = brt_now.strftime("%Y")
+    month = brt_now.strftime("%m")
+    url = f"https://votalhada.blogspot.com/{year}/{month}/pesquisa{numero}.html"
+    folder = brt_now.strftime("%Y_%m_%d")
+    print(f"  (P{numero} not in paredoes.json — using current month: {year}/{month})")
+    return url, folder
 
 
 def extract_image_urls(html: str) -> list[str]:

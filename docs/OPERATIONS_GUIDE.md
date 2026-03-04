@@ -495,12 +495,14 @@ Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:0
 ### 1. Fetch poll images with the script
 
 ```bash
-# By paredão number (derives URL from paredoes.json)
+# By paredão number (auto-derives URL from paredoes.json or current month)
 python scripts/fetch_votalhada_images.py --paredao N
 
 # Or by direct URL
 python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/YYYY/MM/pesquisaN.html"
 ```
+
+**URL pattern**: Votalhada always uses `https://votalhada.blogspot.com/{year}/{month}/pesquisa{N}.html`. The script derives this automatically from `paredoes.json` when the skeleton exists. If no skeleton exists yet (e.g., new paredão not created), the script falls back to the **current BRT month/year** — so `--paredao 8` works immediately without needing a `paredoes.json` entry.
 
 Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures. Use `--no-timestamp` to overwrite instead.
 
