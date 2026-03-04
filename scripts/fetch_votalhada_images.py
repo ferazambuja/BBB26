@@ -9,10 +9,10 @@ Votalhada updates consolidados/platform screenshots at roughly:
 Usage:
   python scripts/fetch_votalhada_images.py --paredao 6
   python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/2026/02/pesquisa6.html"
-  python scripts/fetch_votalhada_images.py --paredao 6 --timestamp   # keep timestamped copies
+  python scripts/fetch_votalhada_images.py --paredao 6 --no-timestamp   # overwrite previous captures
 
-By default, images overwrite the last capture (consolidados.png, consolidados_2.png, ...).
-Use --timestamp to save with a datetime suffix so you keep a history of captures.
+By default, images are saved with a datetime suffix (e.g. consolidados_2026-03-04_00-25.png)
+to keep a history of captures. Use --no-timestamp to overwrite instead.
 """
 
 from __future__ import annotations
@@ -89,9 +89,9 @@ def main() -> None:
     g.add_argument("--paredao", type=int, metavar="N", help="Paredão number (e.g. 6)")
     g.add_argument("--url", type=str, metavar="URL", help="Full Votalhada post URL")
     parser.add_argument(
-        "--timestamp",
+        "--no-timestamp",
         action="store_true",
-        help="Add datetime to filenames (e.g. consolidados_2026-02-24_21-05.png) to keep history",
+        help="Overwrite files without datetime suffix (default: keep timestamped history)",
     )
     parser.add_argument(
         "--out-dir",
@@ -140,7 +140,7 @@ def main() -> None:
     print(f"Found {len(urls)} image(s).")
 
     suffix = ""
-    if args.timestamp:
+    if not args.no_timestamp:
         suffix = "_" + datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M")
 
     saved = 0

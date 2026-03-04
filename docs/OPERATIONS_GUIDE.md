@@ -496,25 +496,40 @@ Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:0
 
 ```bash
 # By paredão number (derives URL from paredoes.json)
-python scripts/fetch_votalhada_images.py --paredao N --timestamp
+python scripts/fetch_votalhada_images.py --paredao N
 
 # Or by direct URL
-python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/YYYY/MM/pesquisaN.html" --timestamp
+python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/YYYY/MM/pesquisaN.html"
 ```
 
-Images are saved to `data/votalhada/YYYY_MM_DD/`. Use `--timestamp` to keep a history of captures (e.g., `consolidados_2026-03-02_21-05.png`). Without `--timestamp`, files are overwritten on each run.
+Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures. Use `--no-timestamp` to overwrite instead.
 
 **Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
 
-### 2. Extract data with Claude
+### 2. Extract data from images with Claude
 
-Tell Claude: **"Update votalhada with `<URL>` and get the polls"** or share the fetched images.
+Tell Claude: **"Update votalhada for paredão N"** — Claude will read the fetched images and update `data/votalhada/polls.json`.
 
-Claude will read the images and extract:
-- Consolidado percentages per participant
-- Platform breakdown (Sites, YouTube, Twitter, Instagram) with vote counts
-- Time series data points (hora + percentages)
-- Update `data/votalhada/polls.json`
+The script downloads **6 images** from the Votalhada blog post. Each contains different data:
+
+| Image | Content | What to extract |
+|-------|---------|-----------------|
+| `consolidados.png` | **Média Proporcional** — weighted average across all platforms | `consolidado`: percentages per participant + `total_votos` |
+| `consolidados_2.png` | **Variação das Médias** — time series chart | `serie_temporal`: hourly data points (hora + percentages + total) |
+| `consolidados_3.png` | **Sites** breakdown — individual poll sources | `plataformas.sites`: average %, vote count, number of sources |
+| `consolidados_4.png` | **YouTube** breakdown — community polls | `plataformas.youtube`: average %, vote count, number of sources |
+| `consolidados_5.png` | **Twitter/X** breakdown — polls | `plataformas.twitter`: average %, vote count, number of sources |
+| `consolidados_6.png` | **Instagram** breakdown — polls | `plataformas.instagram`: average %, vote count, number of sources |
+
+**Extraction process**:
+1. Claude reads each image using vision
+2. Extracts percentages (2 decimal places), vote counts, and source counts
+3. For `serie_temporal`: **appends** new time points (does not overwrite existing ones)
+4. For `consolidado`/`plataformas`/`data_coleta`: **overwrites** with the latest values
+5. Sets `predicao_eliminado` to the participant with the highest % in consolidado
+6. Updates `data/votalhada/polls.json`
+
+**AI Agent Instructions**: See `data/votalhada/README.md` → "AI Agent Instructions" for detailed reading rules.
 
 ### 3. Paredão Falso ("Quem SALVAR?") handling
 
@@ -543,12 +558,23 @@ Votalhada uses short names. Always match to API names:
 | "Sol" | "Sol Vega" |
 | "Floss" | "Juliano Floss" |
 
-### 5. Rebuild + commit
+### 5. Rebuild, commit, push + deploy
 
 ```bash
+# Rebuild derived data (updates prediction model weights)
 python scripts/build_derived_data.py
+
+# Commit and push
 git add data/ && git commit -m "data: votalhada polls paredão N"
 git push
+
+# Deploy immediately (site only updates on cron or manual dispatch, NOT on push)
+gh workflow run daily-update.yml
+```
+
+**Verify locally** (optional):
+```bash
+quarto render paredao.qmd    # Check "Enquetes" section renders correctly
 ```
 
 **Full extraction workflow and AI agent instructions**: See `data/votalhada/README.md`.

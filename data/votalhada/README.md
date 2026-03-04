@@ -13,7 +13,7 @@
 python scripts/fetch_votalhada_images.py --paredao 6
 ```
 
-Images are saved to `data/votalhada/YYYY_MM_DD/` (e.g. `2026_02_22/`). By default the script **overwrites** the previous capture (consolidados.png, consolidados_2.png, …), so you always keep the latest. Use `--timestamp` to keep a history of captures instead.
+Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g. `consolidados_2026-03-02_21-05.png`), preserving a history of captures. Use `--no-timestamp` to overwrite instead.
 
 **Option B — Manual screenshot**
 
@@ -128,7 +128,7 @@ data/votalhada/
 └── ...
 ```
 
-**Naming convention**: The script saves the first image as `consolidados.png` (overwrites each run so you “keep the last one”). Additional images from the post are `consolidados_2.png`, etc. Use `--timestamp` to keep dated copies (e.g. `consolidados_2026-02-24_21-05.png`).
+**Naming convention**: The script saves images with a datetime suffix by default (e.g. `consolidados_2026-02-24_21-05.png`, `consolidados_2_2026-02-24_21-05.png`), preserving all captures. Use `--no-timestamp` to overwrite without suffix.
 
 Only `consolidados.png` (or `_final.png`) is needed for data extraction.
 
