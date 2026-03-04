@@ -45,11 +45,13 @@ setup_bbb_dark_theme()
 # ── Mobile-first responsive styles ──
 print('<style>')
 print('@media (max-width: 575px) {')
-print('  .v-card { max-width: 100% !important; min-width: 0 !important; }')
+print('  .v-card { flex: 0 0 calc(50% - 0.4rem) !important; max-width: calc(50% - 0.4rem) !important; min-width: 0 !important; }')
 print('  .v-box { padding: 0.8rem !important; }')
 print('  .v-table th, .v-table td { padding: 0.25rem 0.3rem !important; font-size: 0.82rem !important; }')
 print('  .v-hdr-full { display: none !important; }')
 print('  .v-hdr-short { display: inline !important; }')
+print('  .v-flex-stack { gap: 0.5rem !important; }')
+print('  .v-flex-stack > div { flex: 0 0 calc(50% - 0.3rem) !important; min-width: 0 !important; max-width: calc(50% - 0.3rem) !important; }')
 print('}')
 print('.v-hdr-short { display: none; }')
 print('</style>')
@@ -73,7 +75,7 @@ print('O resultado é <strong>consenso entre especialistas</strong> como um dos 
 print('</p>')
 
 # Impact stats
-print('<div style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center; margin:0.8rem 0 1rem 0;">')
+print('<div class="v-flex-stack" style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center; margin:0.8rem 0 1rem 0;">')
 
 stats = [
     ("📺", "17 pts", "Pior audiência", "da história do BBB — queda de 37% vs BBB 24"),
@@ -166,7 +168,7 @@ w_break = d_vt / (d_vt - d_vu)  # 0.7427
 print("### Votação da Final — BBB 25\n")
 
 # Summary cards
-print('<div style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; margin:1.2rem 0;">')
+print('<div class="v-flex-stack" style="display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; margin:1.2rem 0;">')
 for name, color, emoji in [("Renata", "#9b59b6", "👑"), ("Guilherme", "#3498db", "🥈"), ("Joao Pedro", "#95a5a6", "🥉")]:
     d = bbb25[name]
     print(f'<div class="v-card" style="background:#111; border:1px solid {color}; border-radius:10px; padding:0.8rem 1rem; min-width:160px; flex:1; max-width:220px; text-align:center;">')
@@ -385,7 +387,7 @@ print('<strong>inverter a decisão do CPF</strong>.</p>')
 # Accumulate danger data for dynamic safety analysis below
 health_data = []
 
-print('<div style="display:flex; flex-wrap:wrap; gap:0.6rem; justify-content:center; margin:1rem 0;">')
+print('<div class="v-flex-stack" style="display:flex; flex-wrap:wrap; gap:0.6rem; justify-content:center; margin:1rem 0;">')
 
 for p in paredoes_fin:
     parts = p.get('participantes', [])
@@ -680,7 +682,7 @@ print('"Anula" = vantagem máxima no CPF que a inflação consegue virar. Quanto
 print('</p>')
 
 # Verdict cards: current vs recommended
-print('<div style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center; margin:1rem 0;">')
+print('<div class="v-flex-stack" style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center; margin:1rem 0;">')
 
 print('<div class="v-card" style="background:rgba(231,76,60,0.08); border:2px solid #e74c3c; border-radius:10px; padding:0.8rem 1rem; flex:1; min-width:200px; max-width:300px; text-align:center;">')
 print('<div class="fs-sm" style="color:#e74c3c; font-weight:600;">SISTEMA ATUAL</div>')
@@ -911,7 +913,7 @@ else:
 print("## 🎯 A teoria: contenção de danos sem admissão de culpa\n")
 
 # 3M CPF + R$1.5B impact cards
-print('<div style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center; margin:0 0 1.2rem 0;">')
+print('<div class="v-flex-stack" style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center; margin:0 0 1.2rem 0;">')
 
 impact_stats = [
     ("🗳️", "3M+", "CPFs votaram", "Recorde histórico de votos únicos — o brasileiro está engajado"),
