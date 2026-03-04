@@ -2193,6 +2193,21 @@ if eliminated:
 
 ---
 
-<div class="alert alert-info" role="alert">
-<strong>💡 Sobre este painel:</strong> Análise estratégica do BBB 26 combinando <strong>queridômetro</strong> (reações diárias), <strong>eventos de poder</strong> (indicações, contragolpes, monstro), <strong>votos da casa</strong>, <strong>Sincerão</strong> e <strong>dinâmicas semanais</strong>. Os scores compostos usam pesos calibrados sem decay — todos os eventos acumulam. Acertou <strong>68% dos votos</strong> nos 2 primeiros paredões. Acompanhamento desde 13 de janeiro de 2026.
-</div>
+```{python}
+#| label: footer-info
+#| output: asis
+
+from data_utils import BBB26_PREMIERE
+_premiere_dt = datetime.strptime(BBB26_PREMIERE, "%Y-%m-%d")
+_meses_pt = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"]
+_premiere_fmt = f'{_premiere_dt.day} de {_meses_pt[_premiere_dt.month - 1]} de {_premiere_dt.year}'
+
+# Count finalized paredões
+_raw_par = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8')).get('paredoes', [])
+_n_finalized = sum(1 for p in _raw_par if p.get('status') == 'finalizado')
+_n_par_text = f' {_n_finalized} paredões finalizados.' if _n_finalized else ''
+
+print(f'''<div class="alert alert-info" role="alert">
+<strong>💡 Sobre este painel:</strong> Análise estratégica do BBB 26 combinando <strong>queridômetro</strong> (reações diárias), <strong>eventos de poder</strong> (indicações, contragolpes, monstro), <strong>votos da casa</strong>, <strong>Sincerão</strong> e <strong>dinâmicas semanais</strong>. Os scores compostos usam pesos calibrados sem decay — todos os eventos acumulam.{_n_par_text} Acompanhamento desde {_premiere_fmt}.
+</div>''')
+```

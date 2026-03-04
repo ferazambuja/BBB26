@@ -6,7 +6,7 @@
 > **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `CLAUDE.md` (architecture).
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 >
-> **Last updated**: 2026-03-02
+> **Last updated**: 2026-03-04
 
 ---
 
@@ -518,32 +518,80 @@ Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by defau
 
 **Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
 
-### 2. Extract data from images with Claude
+### 2. Run OCR parser (Consolidado-only)
 
-Tell Claude: **"Update votalhada for paredão N"** — Claude will read the fetched images and update `data/votalhada/polls.json`.
+Use the OCR parser on the fetched folder:
 
-The script downloads **6 images** from the Votalhada blog post. Each contains different data:
+```bash
+python scripts/votalhada_ocr_feasibility.py \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --paredao N \
+  --debug \
+  --output tmp/votalhada_ocr/paredao_N_latest.json
+```
 
-| Image | Content | What to extract |
-|-------|---------|-----------------|
-| `consolidados.png` | **Média Proporcional** — weighted average across all platforms | `consolidado`: percentages per participant + `total_votos` |
-| `consolidados_2.png` | **Variação das Médias** — time series chart | `serie_temporal`: hourly data points (hora + percentages + total) |
-| `consolidados_3.png` | **Sites** breakdown — individual poll sources | `plataformas.sites`: average %, vote count, number of sources |
-| `consolidados_4.png` | **YouTube** breakdown — community polls | `plataformas.youtube`: average %, vote count, number of sources |
-| `consolidados_5.png` | **Twitter/X** breakdown — polls | `plataformas.twitter`: average %, vote count, number of sources |
-| `consolidados_6.png` | **Instagram** breakdown — polls | `plataformas.instagram`: average %, vote count, number of sources |
+The parser is **content-based**:
+- It scans all PNGs and selects the best `consolidado_data` image by OCR signature.
+- It does **not** rely on fixed filename index (`consolidados_5`, `consolidados_6`, etc.).
+- It uses only the selected consolidado card (top+bottom crops from the same file), not platform cards.
 
-**Extraction process**:
-1. Claude reads each image using vision
-2. Extracts percentages (2 decimal places), vote counts, and source counts
-3. For `serie_temporal`: **appends** new time points (does not overwrite existing ones)
-4. For `consolidado`/`plataformas`/`data_coleta`: **overwrites** with the latest values
-5. Sets `predicao_eliminado` to the participant with the highest % in consolidado
-6. Updates `data/votalhada/polls.json`
+The parser supports dynamic top-table schemas seen across BBB25/BBB26:
+- 3-platform: `Sites`, `YouTube`, `Twitter`
+- 4-platform with `Instagram`
+- 4-platform with `Outras Redes`
+- split rows `Média Threads` + `Média Instagram`
 
-**AI Agent Instructions**: See `data/votalhada/README.md` → "AI Agent Instructions" for detailed reading rules.
+### 3. Validation gate (must pass before update)
 
-### 3. Paredão Falso ("Quem SALVAR?") handling
+From the OCR output JSON:
+- `validation_errors` must be empty
+- `parsed.serie_temporal` must be non-empty
+- `parsed.capture_hora` must exist
+
+If any validation error appears, stop and inspect with vision before editing `data/votalhada/polls.json`.
+
+### 4. Historical series handling (critical for next week)
+
+`serie_temporal` in consolidado is cumulative: each new capture adds rows over time.
+
+Rules when applying OCR results:
+- `serie_temporal`: append only new `hora` entries; never delete existing past rows
+- `consolidado` and `plataformas`: overwrite with latest snapshot
+- `data_coleta`: overwrite with latest capture timestamp
+
+Quick regression check between two OCR outputs (`prev.json` and `curr.json`):
+
+```bash
+python - <<'PY'
+import json
+from pathlib import Path
+
+prev = json.loads(Path("tmp/votalhada_ocr/prev.json").read_text())
+curr = json.loads(Path("tmp/votalhada_ocr/curr.json").read_text())
+
+prev_rows = prev["parsed"]["serie_temporal"]
+curr_rows = curr["parsed"]["serie_temporal"]
+print("prev_rows:", len(prev_rows), "curr_rows:", len(curr_rows))
+print("prev_capture:", prev["parsed"]["capture_hora"])
+print("curr_capture:", curr["parsed"]["capture_hora"])
+PY
+```
+
+Expected behavior:
+- `curr_rows >= prev_rows` in most captures
+- If `curr_capture_hora` is newer, the latest vote total should not decrease
+
+### 5. Apply to `data/votalhada/polls.json`
+
+After OCR validation passes:
+1. append new series rows by `hora`
+2. overwrite latest `consolidado` and `plataformas`
+3. set `predicao_eliminado` to participant with highest consolidado %
+4. update `data_coleta`
+
+**AI Agent Instructions**: See `data/votalhada/README.md` → "AI Agent Instructions" for detailed parsing rules.
+
+### 6. Paredão Falso ("Quem SALVAR?") handling
 
 For Paredão Falso polls, set these extra fields in the poll entry:
 
@@ -558,7 +606,7 @@ For Paredão Falso polls, set these extra fields in the poll entry:
 - **`predicao_eliminado`** in `consolidado` — set to the **most** voted participant (same as normal paredões).
 - QMD pages auto-detect `tipo_voto` and display "Quem você quer SALVAR?" header + Paredão Falso warning banner.
 
-### 4. Verify name matching
+### 7. Verify name matching
 
 Votalhada uses short names. Always match to API names:
 
@@ -570,7 +618,7 @@ Votalhada uses short names. Always match to API names:
 | "Sol" | "Sol Vega" |
 | "Floss" | "Juliano Floss" |
 
-### 5. Rebuild, commit, push + deploy
+### 8. Rebuild, commit, push + deploy
 
 ```bash
 # Rebuild derived data (updates prediction model weights)
@@ -759,6 +807,28 @@ Once `build_derived_data.py` runs and the site deploys, the following update **a
 | **Relations scores** | `relations_scores.json` | Paredão-anchored scores frozen at formation date snapshot. |
 
 **No manual action needed for any of the above** — just rebuild, push, and deploy.
+
+### Paredão Falso display handling
+
+When `paredao_falso: true` is set in `paredoes.json`, the entire display layer automatically adapts:
+
+| Component | Regular Paredão | Paredão Falso |
+|-----------|----------------|---------------|
+| **Timeline** (`game_timeline.json`) | "Breno eliminado (54.66%)" 🏁 | "Breno → Quarto Secreto (54.66%)" 🔮 |
+| **Transformed resultado** (`load_paredoes_transformed`) | `ELIMINADA` | `QUARTO_SECRETO` |
+| **Nominee badge** (`get_nominee_badge()`) | "ELIMINADO" 🔴 red | "🔮 Q. SECRETO" 🔮 purple |
+| **paredoes.qmd summary table** | Column: "Eliminado(a)" | Column: "→ Q. Secreto" |
+| **paredoes.qmd tab label** | "7º Paredão (Breno)" | "7º Paredão Falso (Breno)" |
+| **paredoes.qmd history rows** | "Elim." red | "🔮 Q. Secreto" purple |
+| **paredao.qmd precision label** | "(eliminado)" | "(→ quarto secreto)" |
+| **paredao.qmd result cards** | "ELIMINADO" red border | "🔮 Q. SECRETO" red border |
+| **votacao.qmd health cards** | 🎯/🛡️ icons, "eliminação" language | ⬆️/⬇️ icons, "salvação" language |
+| **votacao.qmd editorial** | "forçar eliminação" | "forçar salvação" |
+| **Cartola points** | `eliminado` (−20) | `quarto_secreto` (+40) |
+
+Generic analytical text uses "mais votado" instead of "eliminado" across all pattern/accuracy displays (works for both types).
+
+**No manual overrides needed** — the `paredao_falso: true` flag drives all display logic.
 
 ---
 

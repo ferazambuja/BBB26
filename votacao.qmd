@@ -794,17 +794,15 @@ if rows_5050:
     print(f'<div class="fs-base" style="color:#ccc;">Diferença média no percentual do mais votado: <strong>{avg_delta:.2f} p.p.</strong></div>')
     print('</div>')
 
-    # Detailed table with full breakdown per participant
-    print('<div class="scroll-x">')
+    # Detailed table — paredão number as group header row (saves one column for mobile)
     print('<table class="table-full fs-base v-table">')
     print('<thead><tr style="border-bottom:2px solid #444;">')
-    print('<th style="padding:0.5rem;"><span class="v-hdr-full">Paredão</span><span class="v-hdr-short">#</span></th>')
     print('<th style="padding:0.5rem;">Nome</th>')
     print('<th class="tr tabnum" style="padding:0.5rem;"><span class="v-hdr-full">Voto Único</span><span class="v-hdr-short">VU</span></th>')
     print('<th class="tr tabnum" style="padding:0.5rem;"><span class="v-hdr-full">Voto Torcida</span><span class="v-hdr-short">VT</span></th>')
     print('<th class="tr tabnum" style="padding:0.5rem;">70/30</th>')
     print('<th class="tr tabnum" style="padding:0.5rem;">50/50</th>')
-    print('<th class="tr tabnum" style="padding:0.5rem;"><span class="v-hdr-full">Delta</span><span class="v-hdr-short">&Delta;</span></th>')
+    print('<th class="tr tabnum" style="padding:0.5rem;">&Delta;</th>')
     print('<th class="tc" style="padding:0.5rem;">Status</th>')
     print('</tr></thead><tbody>')
 
@@ -813,10 +811,18 @@ if rows_5050:
         _rf = row.get('is_falso', False)
         parts_sorted = sorted(row['parts'], key=lambda x: x['v7030'], reverse=True)
         mudou = row['mudou']
-        n_parts = len(parts_sorted)
 
         # Badge labels: "SALVO" for Paredão Falso (most voted = saved), "ELIM" for regular
         _top_label = 'SALVO' if _rf else 'ELIM'
+
+        # Group header row — full-width paredão label
+        _p_label = f'{num}o Paredão Falso' if _rf else f'{num}o Paredão'
+        _p_badge = ''
+        if mudou:
+            _p_badge = ' <span class="fs-sm" style="background:#f39c12; color:#fff; padding:1px 5px; border-radius:4px;">resultado muda</span>'
+        elif not mudou:
+            _p_badge = ' <span class="fs-sm" style="color:#2ecc71;">✓ mesmo resultado</span>'
+        print(f'<tr style="background:rgba(255,255,255,0.04);"><td colspan="7" style="padding:0.5rem; font-weight:700; border-bottom:1px solid #555;">{_p_label}{_p_badge}</td></tr>')
 
         for i, pt in enumerate(parts_sorted):
             is_elim_7030 = pt['nome'] == row['elim_7030']['nome']
@@ -842,28 +848,22 @@ if rows_5050:
                 _others_label = 'não salvo' if _rf else 'salvo'
                 badges.append(f'<span style="color:#888;">{_others_label}</span>')
 
-            # Paredão number only on first row of group
-            _num_label = f'{num}o<br><span class="fs-xs" style="color:#f1c40f;">Falso</span>' if _rf else f'{num}o'
-            paredao_cell = f'<td rowspan="{n_parts}" style="padding:0.4rem 0.5rem; font-weight:700; vertical-align:middle; border-right:2px solid #333;">{_num_label}</td>' if i == 0 else ''
-
             delta_color = "#e74c3c" if delta > 0 else "#2ecc71" if delta < 0 else "#888"
 
-            # Bottom border only on last row of group
-            row_border = " border-bottom:2px solid #444;" if i == n_parts - 1 else ""
+            # Bottom border on last row of group
+            row_border = " border-bottom:2px solid #444;" if i == len(parts_sorted) - 1 else ""
 
             print(f'<tr style="{bg}{row_border}">')
-            print(paredao_cell)
-            print(f'<td style="padding:0.4rem 0.5rem;">{pt["nome"]}</td>')
-            print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem;">{pt["vu"]:.2f}%</td>')
-            print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem;">{pt["vt"]:.2f}%</td>')
-            print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem; font-weight:600;">{pt["v7030"]:.2f}%</td>')
-            print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem;">{pt["v5050"]:.2f}%</td>')
-            print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem; color:{delta_color};">{delta:+.2f}</td>')
-            print(f'<td class="tc" style="padding:0.4rem 0.5rem;">{" ".join(badges)}</td>')
+            print(f'<td style="padding:0.3rem 0.5rem;">{pt["nome"]}</td>')
+            print(f'<td class="tr tabnum" style="padding:0.3rem 0.5rem;">{pt["vu"]:.2f}%</td>')
+            print(f'<td class="tr tabnum" style="padding:0.3rem 0.5rem;">{pt["vt"]:.2f}%</td>')
+            print(f'<td class="tr tabnum" style="padding:0.3rem 0.5rem; font-weight:600;">{pt["v7030"]:.2f}%</td>')
+            print(f'<td class="tr tabnum" style="padding:0.3rem 0.5rem;">{pt["v5050"]:.2f}%</td>')
+            print(f'<td class="tr tabnum" style="padding:0.3rem 0.5rem; color:{delta_color};">{delta:+.2f}</td>')
+            print(f'<td class="tc" style="padding:0.3rem 0.5rem;">{" ".join(badges)}</td>')
             print('</tr>')
 
     print('</tbody></table>')
-    print('</div>')
 
     # Interpretation
     if n_changed == 0:

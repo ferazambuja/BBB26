@@ -422,7 +422,13 @@ def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[d
                     part['voto_unico'] = votos.get('voto_unico', 0)
                     part['voto_torcida'] = votos.get('voto_torcida', 0)
                     part['voto_total'] = votos.get('voto_total', 0)
-                    part['resultado'] = 'ELIMINADA' if ind['nome'] == p['resultado'].get('eliminado') else 'Salva'
+                    is_elim = ind['nome'] == p['resultado'].get('eliminado')
+                    if is_elim and p.get('paredao_falso', False):
+                        part['resultado'] = 'QUARTO_SECRETO'
+                    elif is_elim:
+                        part['resultado'] = 'ELIMINADA'
+                    else:
+                        part['resultado'] = 'Salva'
                 entry['participantes'].append(part)
         else:
             entry['participantes'] = [
@@ -885,7 +891,7 @@ def build_precision_methodology_text(polls_data: dict) -> str:
         bt_text = (
             f"O erro médio cai de {agg['consolidado_mae']:.1f} para {agg['model_mae']:.1f} p.p. "
             f"({agg['improvement_pct']:+.0f}%), "
-            f"e o modelo acertou o eliminado em {agg['model_correct']}/{agg['n_paredoes']} paredões "
+            f"e o modelo acertou o mais votado em {agg['model_correct']}/{agg['n_paredoes']} paredões "
             f"vs Votalhada {agg['consolidado_correct']}/{agg['n_paredoes']}."
         )
 
@@ -1678,6 +1684,8 @@ def get_nominee_badge(nome: str, paredao_entry: dict, bate_volta_survivors: set[
     eliminado = resultado.get('eliminado', '')
 
     if nome == eliminado:
+        if paredao_entry.get('paredao_falso', False):
+            return ('🔮 Q. SECRETO', '#9b59b6', '🔮')
         sufixo = 'A' if genero(nome) == 'f' else 'O'
         return (f'ELIMINAD{sufixo}', '#e74c3c', '🔴')
 

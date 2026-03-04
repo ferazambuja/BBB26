@@ -340,10 +340,19 @@ def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[
             if eliminado and eliminado in votos:
                 v = votos[eliminado]
                 pct = f" ({v.get('voto_total', v.get('voto_unico', '?'))}%)"
+            is_falso = p.get("paredao_falso", False)
+            if eliminado:
+                if is_falso:
+                    detail = f"{eliminado} → Quarto Secreto{pct}"
+                else:
+                    detail = f"{eliminado} eliminado{pct}"
+            else:
+                detail = ""
             events.append({
                 "date": data_elim, "week": r_week, "category": "paredao_resultado",
-                "emoji": "🏁", "title": f"{num}º Paredão — Resultado",
-                "detail": f"{eliminado} eliminado{pct}" if eliminado else "",
+                "emoji": "🔮" if is_falso else "🏁",
+                "title": f"{num}º Paredão Falso — Resultado" if is_falso else f"{num}º Paredão — Resultado",
+                "detail": detail,
                 "participants": [eliminado] if eliminado else [], "source": "paredoes",
             })
 
