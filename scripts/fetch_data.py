@@ -11,13 +11,13 @@ Key behaviors:
 - Detects what type of change occurred (reactions, balance, roles)
 
 Data Update Patterns (BRT = UTC-3):
-- Reactions (Queridômetro): Update daily ~10h-12h during Raio-X, stable rest of day
+- Reactions (Queridômetro): update window can vary; track with timing probes
 - Balance: Can change any time (purchases, rewards, punishments)
 - Roles: Change during/after episodes (Líder, Anjo, Monstro, Paredão)
 
-Recommended capture times:
+Current permanent capture schedule in GitHub Actions:
 - 09:00 UTC (06:00 BRT) - Pre-Raio-X check
-- 15:00 UTC (12:00 BRT) - Post-Raio-X, captures today's reactions
+- 18:00 UTC (15:00 BRT) - Post-Raio-X (primary, under timing review)
 - 21:00 UTC (18:00 BRT) - Evening, catches afternoon changes
 - 03:00 UTC (00:00 BRT) - Night, catches post-episode changes (Sun/Tue)
 """
