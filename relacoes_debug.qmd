@@ -1551,19 +1551,12 @@ _rd_latest = _rd_daily[-1] if _rd_daily else {}
 _lider_list = _rd_latest.get("roles", {}).get("Líder", [])
 _anjo_list = _rd_latest.get("roles", {}).get("Anjo", [])
 _vip_list = _rd_latest.get("vip", [])
-_lider_name = _lider_list[0] if _lider_list else None
 
 # ── Load avatars from participants_index.json ──────────────────────────
 _pix = json.loads(Path("data/derived/participants_index.json").read_text(encoding="utf-8"))
 _pix_list = _pix.get("participants", _pix) if isinstance(_pix, dict) else _pix
 _avatars = {p["name"]: p.get("avatar", "") for p in _pix_list}
 _active_names = {p["name"] for p in _pix_list if p.get("active", True)}
-
-# ── Líder's scores toward all participants ─────────────────────────────
-_lider_scores = relations_pairs_daily.get(_lider_name, {}) if _lider_name else {}
-_eligible = {name: entry for name, entry in _lider_scores.items()
-             if name in _active_names and name != _lider_name}
-_ranked = sorted(_eligible.items(), key=lambda x: x[1].get("score", 0))
 
 # ── Anjo immunity info ────────────────────────────────────────────────
 _anjo_name = _anjo_list[0] if _anjo_list else None
@@ -1575,25 +1568,33 @@ if _par_active:
     _imun = _par_active[-1].get("imunizado", {})
     _imunizado_nome = _imun.get("quem") if _imun else None
 
-# ── Build queridômetro history per pair (Líder ↔ each target) ─────────
-_querido_history = {}
-if _lider_name:
-    _snap_files = get_all_snapshots()
-    _by_date = {}
-    for _fp, _ds in _snap_files:
-        _by_date[_ds] = _fp
-    for _date, _fp in sorted(_by_date.items()):
-        _parts, _ = load_snapshot(_fp)
-        _mat = _get_matrix_for_date(_date, _parts)
-        for (g, r), lbl in _mat.items():
-            if g == _lider_name or r == _lider_name:
-                _querido_history.setdefault((g, r), []).append((_date, lbl))
-
 _rel_edges = relations.get("edges", [])
 _display_week = meta.get("effective_week_daily") or meta.get("week") or "?"
 
-print(render_lider_prediction(
-    _lider_name, _ranked, relations_pairs_daily, _rel_edges, _vip_list,
-    _anjo_name, _imunizado_nome, _display_week, _avatars, _querido_history,
-))
+# ── Render prediction for each Líder (supports dual leadership) ──────
+_lider_names = _lider_list if _lider_list else [None]
+for _lider_name in _lider_names:
+    _lider_scores = relations_pairs_daily.get(_lider_name, {}) if _lider_name else {}
+    _all_leaders_set = set(_lider_list)
+    _eligible = {name: entry for name, entry in _lider_scores.items()
+                 if name in _active_names and name not in _all_leaders_set}
+    _ranked = sorted(_eligible.items(), key=lambda x: x[1].get("score", 0))
+
+    _querido_history = {}
+    if _lider_name:
+        _snap_files = get_all_snapshots()
+        _by_date = {}
+        for _fp, _ds in _snap_files:
+            _by_date[_ds] = _fp
+        for _date, _fp in sorted(_by_date.items()):
+            _parts, _ = load_snapshot(_fp)
+            _mat = _get_matrix_for_date(_date, _parts)
+            for (g, r), lbl in _mat.items():
+                if g == _lider_name or r == _lider_name:
+                    _querido_history.setdefault((g, r), []).append((_date, lbl))
+
+    print(render_lider_prediction(
+        _lider_name, _ranked, relations_pairs_daily, _rel_edges, _vip_list,
+        _anjo_name, _imunizado_nome, _display_week, _avatars, _querido_history,
+    ))
 ```

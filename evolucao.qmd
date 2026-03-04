@@ -1013,7 +1013,7 @@ else:
         text_vals.append(text_row)
 
     col_labels = [
-        f"👑 {lp['leader'].split()[0]}<br><sub>{lp['start'][5:]}</sub>"
+        f"👑 {' + '.join(n.split()[0] for n in lp.get('leaders', [lp['leader']]))}<br><sub>{lp['start'][5:]}</sub>"
         if lp.get('leader')
         else f"🏠 Sem Líder<br><sub>{lp['start'][5:]}</sub>"
         for lp in leader_periods

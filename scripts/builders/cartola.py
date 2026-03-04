@@ -12,10 +12,11 @@ def _collect_current_holders_and_vip(snap_participants: list[dict]) -> tuple[dic
     """Iterate snapshot participants to build current role holders dict and VIP set.
 
     Returns (current_holders, current_vip) where current_holders maps role names
-    to either a single name (Líder, Anjo) or a set of names (Monstro, Imune, Paredão).
+    to a set of names. Líder/Anjo are typically single-holder but may have multiple
+    (e.g., dual leadership in Week 8).
     """
     current_holders: dict = {
-        'Líder': None, 'Anjo': None,
+        'Líder': set(), 'Anjo': set(),
         'Monstro': set(), 'Imune': set(), 'Paredão': set(),
     }
     current_vip: set[str] = set()
@@ -29,9 +30,9 @@ def _collect_current_holders_and_vip(snap_participants: list[dict]) -> tuple[dic
 
         for role in roles:
             if role == 'Líder':
-                current_holders['Líder'] = name
+                current_holders['Líder'].add(name)
             elif role == 'Anjo':
-                current_holders['Anjo'] = name
+                current_holders['Anjo'].add(name)
             elif role == 'Monstro':
                 current_holders['Monstro'].add(name)
             elif role == 'Imune':
@@ -52,7 +53,7 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
         return any(e[0] == event_key for e in week_events)
 
     previous_holders = {
-        'Líder': None, 'Anjo': None,
+        'Líder': set(), 'Anjo': set(),
         'Monstro': set(), 'Imune': set(), 'Paredão': set(),
     }
     vip_awarded = defaultdict(set)
@@ -65,17 +66,17 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
 
         current_holders, current_vip = _collect_current_holders_and_vip(snap['participants'])
 
-        # Líder
-        if current_holders['Líder'] and current_holders['Líder'] != previous_holders['Líder']:
-            name = current_holders['Líder']
-            if week not in role_awarded['Líder'] or name not in role_awarded['Líder'][week]:
+        # Líder (may have multiple for dual leadership)
+        new_lideres = current_holders['Líder'] - previous_holders['Líder']
+        for name in new_lideres:
+            if name not in role_awarded['Líder'][week]:
                 calculated_points[name][week].append(('lider', CARTOLA_POINTS['lider'], date))
                 role_awarded['Líder'][week].add(name)
 
-        # Anjo
-        if current_holders['Anjo'] and current_holders['Anjo'] != previous_holders['Anjo']:
-            name = current_holders['Anjo']
-            if week not in role_awarded['Anjo'] or name not in role_awarded['Anjo'][week]:
+        # Anjo (may have multiple in theory)
+        new_anjos = current_holders['Anjo'] - previous_holders['Anjo']
+        for name in new_anjos:
+            if name not in role_awarded['Anjo'][week]:
                 calculated_points[name][week].append(('anjo', CARTOLA_POINTS['anjo'], date))
                 role_awarded['Anjo'][week].add(name)
 
@@ -89,10 +90,10 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
                 if name in previous_vip:
                     calculated_points[name][week].append(('monstro_retirado_vip', CARTOLA_POINTS['monstro_retirado_vip'], date))
 
-        # Imune (Líder doesn't accumulate)
+        # Imune (Líderes don't accumulate)
         new_imunes = current_holders['Imune'] - previous_holders['Imune']
         for name in new_imunes:
-            if name == current_holders['Líder'] or has_event(name, week, 'lider'):
+            if name in current_holders['Líder'] or has_event(name, week, 'lider'):
                 continue
             if name not in role_awarded['Imune'][week]:
                 calculated_points[name][week].append(('imunizado', CARTOLA_POINTS['imunizado'], date))
@@ -105,16 +106,16 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
                 calculated_points[name][week].append(('emparedado', CARTOLA_POINTS['emparedado'], date))
                 role_awarded['Paredão'][week].add(name)
 
-        # VIP (Líder doesn't accumulate)
+        # VIP (Líderes don't accumulate)
         for name in current_vip:
-            if name == current_holders['Líder'] or has_event(name, week, 'lider'):
+            if name in current_holders['Líder'] or has_event(name, week, 'lider'):
                 continue
             if name not in vip_awarded[week]:
                 calculated_points[name][week].append(('vip', CARTOLA_POINTS['vip'], date))
                 vip_awarded[week].add(name)
 
-        previous_holders['Líder'] = current_holders['Líder']
-        previous_holders['Anjo'] = current_holders['Anjo']
+        previous_holders['Líder'] = current_holders['Líder'].copy()
+        previous_holders['Anjo'] = current_holders['Anjo'].copy()
         previous_holders['Monstro'] = current_holders['Monstro'].copy()
         previous_holders['Imune'] = current_holders['Imune'].copy()
         previous_holders['Paredão'] = current_holders['Paredão'].copy()
@@ -214,7 +215,10 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
         if snap:
             ativos = {pp.get('name', '').strip() for pp in snap['participants']}
             formacao_dict = p.get('formacao', {}) if isinstance(p.get('formacao', {}), dict) else {}
+            # Support dual leaders: lideres array or single lider string
+            _lideres_arr = formacao_dict.get('lideres', [])
             lider_form = (formacao_dict.get('lider') or '').strip()
+            lider_names_form = set(n.strip() for n in _lideres_arr) if _lideres_arr else ({lider_form} if lider_form else set())
             anjo_form = (formacao_dict.get('anjo') or '').strip()
             imune_form = ''
             if isinstance(formacao_dict.get('imunizado'), dict):
@@ -229,8 +233,7 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                     extra_imunes.add(ev['target'].strip())
 
             elegiveis = set(ativos)
-            if lider_form:
-                elegiveis.discard(lider_form)
+            elegiveis -= lider_names_form
             if anjo_form:
                 elegiveis.discard(anjo_form)
             if imune_form:
@@ -368,14 +371,14 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
             elif evt['event'] == 'monstro' and entry['name'] not in seen_roles['Monstro']:
                 seen_roles['Monstro'].append(entry['name'])
 
-    current_roles = {'Líder': None, 'Anjo': None, 'Monstro': [], 'Paredão': []}
+    current_roles = {'Líder': [], 'Anjo': None, 'Monstro': [], 'Paredão': []}
     if daily_snapshots:
         latest = daily_snapshots[-1]
         for p_data in latest['participants']:
             name = p_data.get('name', '').strip()
             roles = parse_roles(p_data.get('characteristics', {}).get('roles', []))
             if 'Líder' in roles:
-                current_roles['Líder'] = name
+                current_roles['Líder'].append(name)
             if 'Anjo' in roles:
                 current_roles['Anjo'] = name
             if 'Monstro' in roles:

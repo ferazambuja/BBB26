@@ -103,11 +103,10 @@ def build_auto_events(daily_roles: list[dict]) -> list[dict]:
             current = set(roles.get(role, []))
             previous = set(prev.get(role, []))
 
-            # single-holder roles: add event when changed
+            # single-holder roles (may have multiple for dual Líder): add event for each new holder
             if role in ["Líder", "Anjo"]:
-                curr_name = next(iter(current), None)
-                prev_name = next(iter(previous), None)
-                if curr_name and curr_name != prev_name:
+                new_holders = sorted(current - previous)
+                for curr_name in new_holders:
                     events.append({
                         "date": date,
                         "week": week,

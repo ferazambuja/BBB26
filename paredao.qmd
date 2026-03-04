@@ -1142,7 +1142,7 @@ if ultimo:
             _dr_rd_latest = _dr_rd_daily[-1] if _dr_rd_daily else {}
             _dr_vip = _dr_rd_latest.get("vip", [])
             _dr_lider = _dr_rd_latest.get("roles", {}).get("Líder", [])
-            _dr_lider_name = _dr_lider[0] if _dr_lider else None
+            _dr_lider_names = set(_dr_lider)
 
             # Active participants
             _dr_pix = json.loads(Path("data/derived/participants_index.json").read_text(encoding="utf-8"))
@@ -1164,8 +1164,8 @@ if ultimo:
                 for target, entry in actor_scores.items():
                     if target not in _dr_active or target == actor_name:
                         continue
-                    # Skip Líder and the two duelists as targets
-                    if target == _dr_lider_name or target == _sorteado or target == _oponente:
+                    # Skip Líder(es) and the two duelists as targets
+                    if target in _dr_lider_names or target == _sorteado or target == _oponente:
                         continue
                     score = entry.get("score", 0)
                     comps = dict(entry.get("components", {}))
@@ -2018,26 +2018,11 @@ if _show_prediction:
     _lider_list = _rd_latest.get("roles", {}).get("Líder", [])
     _anjo_list = _rd_latest.get("roles", {}).get("Anjo", [])
     _vip_list = _rd_latest.get("vip", [])
-    _lider_name = _lider_list[0] if _lider_list else None
 
     # ── Active participant set ────────────────────────────────────────
     _pix = json.loads(Path("data/derived/participants_index.json").read_text(encoding="utf-8"))
     _pix_list = _pix.get("participants", _pix) if isinstance(_pix, dict) else _pix
     _active_names = {p["name"] for p in _pix_list if p.get("active", True)}
-
-    # ── Líder's scores toward all participants ────────────────────
-    _lider_scores = _pairs_daily.get(_lider_name, {}) if _lider_name else {}
-
-    # Eligible targets: active participants minus the Líder and already-nominated
-    _already_nominated = set()
-    if ultimo and ultimo.get('status') == 'em_andamento':
-        _already_nominated = {p['nome'] for p in ultimo.get('participantes', [])}
-    _eligible = {name: entry for name, entry in _lider_scores.items()
-                 if name in _active_names and name != _lider_name
-                 and name not in _already_nominated}
-
-    # Rank by score ascending (most negative = most likely target)
-    _ranked = sorted(_eligible.items(), key=lambda x: x[1].get("score", 0))
 
     # ── Anjo immunity info ────────────────────────────────────────
     _anjo_name = _anjo_list[0] if _anjo_list else None
@@ -2046,20 +2031,33 @@ if _show_prediction:
         _imun = ultimo.get('imunizado', {})
         _imunizado_nome = _imun.get('quem') if _imun else None
 
-    # ── Build queridômetro history (reuse already-loaded snapshots) ──
-    _querido_history = {}
-    if _lider_name:
-        for _i_snap, _snap_d in enumerate(daily_snapshots):
-            _mat = daily_matrices[_i_snap]
-            _dt = _snap_d['date']
-            for (g, r), lbl in _mat.items():
-                if g == _lider_name or r == _lider_name:
-                    _querido_history.setdefault((g, r), []).append((_dt, lbl))
+    _already_nominated = set()
+    if ultimo and ultimo.get('status') == 'em_andamento':
+        _already_nominated = {p['nome'] for p in ultimo.get('participantes', [])}
 
-    print(render_lider_prediction(
-        _lider_name, _ranked, _pairs_daily, _rel_edges, _vip_list,
-        _anjo_name, _imunizado_nome, _display_week, AVATARS, _querido_history,
-    ))
+    # ── Render prediction for each Líder (supports dual leadership) ──
+    _lider_names = _lider_list if _lider_list else [None]
+    for _lider_name in _lider_names:
+        _lider_scores = _pairs_daily.get(_lider_name, {}) if _lider_name else {}
+        _all_leaders_set = set(_lider_list)
+        _eligible = {name: entry for name, entry in _lider_scores.items()
+                     if name in _active_names and name not in _all_leaders_set
+                     and name not in _already_nominated}
+        _ranked = sorted(_eligible.items(), key=lambda x: x[1].get("score", 0))
+
+        _querido_history = {}
+        if _lider_name:
+            for _i_snap, _snap_d in enumerate(daily_snapshots):
+                _mat = daily_matrices[_i_snap]
+                _dt = _snap_d['date']
+                for (g, r), lbl in _mat.items():
+                    if g == _lider_name or r == _lider_name:
+                        _querido_history.setdefault((g, r), []).append((_dt, lbl))
+
+        print(render_lider_prediction(
+            _lider_name, _ranked, _pairs_daily, _rel_edges, _vip_list,
+            _anjo_name, _imunizado_nome, _display_week, AVATARS, _querido_history,
+        ))
 ```
 
 ---

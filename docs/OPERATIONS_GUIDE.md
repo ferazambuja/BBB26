@@ -181,12 +181,20 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
      "titulo": "Nº Paredão — DD de Mês de YYYY",
      "semana": N,
      "total_esperado": 3,
-     "formacao": {"lider": "Líder Name"},
+     "formacao": {"lider": "Líder Name", "lideres": ["Líder Name"]},
      "indicados_finais": [],
      "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
    }
    ```
    **Note**: `formacao.lider` (nested under `formacao`), NOT top-level `lider`.
+
+   **Dual Leadership**: When two Líderes share power (e.g., Week 8 "Liderança em Dobro"):
+   ```json
+   "formacao": {"lider": "Name A + Name B", "lideres": ["Name A", "Name B"]}
+   ```
+   - `lider` — display string (joined with ` + `)
+   - `lideres` — array of individual names (used for iteration in scoring, Cartola, prediction)
+   - The pipeline auto-handles: Cartola points for both, VIP edges from both, prediction per Líder
 
 4. **Update `data/manual_events.json`** — add scheduled events for the new week using the [Recurring Events Checklist](#recurring-events-checklist-per-week). Record power events (Big Fone, etc.) if any.
 

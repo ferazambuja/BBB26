@@ -433,7 +433,8 @@ Each entry in the `paredoes` array:
     'titulo': 'Nº Paredão — DD de Mês de YYYY',
     'total_esperado': 3,                        # Expected nominees (for placeholder cards)
     'formacao': 'Description of formation...',
-    'lider': 'Leader Name',
+    'lider': 'Leader Name',                      # Display string (for dual: "A + B")
+    'lideres': ['Leader Name'],                   # Array of leader names (for dual: ["A", "B"])
     'indicado_lider': 'Who the leader nominated',
     'imunizado': {'por': 'Who gave immunity', 'quem': 'Who received'},
     'indicados_finais': [                       # NOTE: use indicados_finais, NOT participantes

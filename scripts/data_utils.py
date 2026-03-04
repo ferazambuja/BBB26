@@ -385,6 +385,7 @@ def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[d
             'data_formacao': p.get('data_formacao'),
             'titulo': p['titulo'],
             'lider': p.get('formacao', {}).get('lider'),
+            'lideres': p.get('formacao', {}).get('lideres', []),
             'indicado_lider': p.get('formacao', {}).get('indicado_lider'),
             'motivo_lider': p.get('formacao', {}).get('motivo_lider'),
             'anjo': p.get('formacao', {}).get('anjo'),

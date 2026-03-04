@@ -657,29 +657,31 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
         seen_leaders = set()
         prev_participants = set()
         for entry in daily_roles:
-            leader = next(iter(entry.get("roles", {}).get("Líder", [])), None)
+            leaders = entry.get("roles", {}).get("Líder", [])
             current_participants = set(entry.get("participants", []))
-            if leader and leader not in seen_leaders and leader in all_names_set:
-                seen_leaders.add(leader)
-                vip_names = entry.get("vip", [])
-                entry_date = entry.get("date")
-                entry_week = get_week_number(entry_date) if entry_date else effective_week_daily
-                # New entrants = participants today that weren't in the previous snapshot
-                new_entrants = current_participants - prev_participants if prev_participants else set()
-                for vip_name in vip_names:
-                    if vip_name == leader or vip_name not in all_names_set:
-                        continue
-                    # Skip new entrants who got auto-VIP from the program
-                    if vip_name in new_entrants:
-                        continue
-                    add_edge_raw(
-                        "vip",
-                        leader,
-                        vip_name,
-                        RELATION_VIP_WEIGHT,
-                        week=entry_week,
-                        date=entry_date,
-                    )
+            leaders_set = set(leaders)
+            for leader in leaders:
+                if leader and leader not in seen_leaders and leader in all_names_set:
+                    seen_leaders.add(leader)
+                    vip_names = entry.get("vip", [])
+                    entry_date = entry.get("date")
+                    entry_week = get_week_number(entry_date) if entry_date else effective_week_daily
+                    # New entrants = participants today that weren't in the previous snapshot
+                    new_entrants = current_participants - prev_participants if prev_participants else set()
+                    for vip_name in vip_names:
+                        if vip_name in leaders_set or vip_name not in all_names_set:
+                            continue
+                        # Skip new entrants who got auto-VIP from the program
+                        if vip_name in new_entrants:
+                            continue
+                        add_edge_raw(
+                            "vip",
+                            leader,
+                            vip_name,
+                            RELATION_VIP_WEIGHT,
+                            week=entry_week,
+                            date=entry_date,
+                        )
             prev_participants = current_participants
 
     # Anjo dynamics edges (almoco_anjo, duo_anjo, anjo_nao_imunizou)
