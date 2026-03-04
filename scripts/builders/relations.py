@@ -46,6 +46,7 @@ RELATION_POWER_WEIGHTS = {
     "duelo_de_risco": -0.5,
     "troca_vip": 0.4,
     "troca_xepa": -0.4,
+    "quarto_secreto_convite": 0.20,  # QS winner → chosen guest (strong personal trust signal)
 }
 
 RELATION_SINC_WEIGHTS = {
