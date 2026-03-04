@@ -367,16 +367,17 @@ print('</div>')
 print('</div>')
 
 # ── Saude da Votação: top-2 focus, directional analysis ──
-print("### 🩺 Saúde da Votação: quem a torcida tenta eliminar?\n")
+print("### 🩺 Saúde da Votação: quem a torcida tenta forçar?\n")
 
 print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
 print('No BBB, <strong>vota-se para eliminar</strong> — quem recebe mais votos, sai. ')
-print('Em cada paredão, a batalha real é entre os <strong>dois mais votados</strong>; ')
-print('o terceiro é figurante. Quando VU e VT concordam sobre quem deve sair, ')
+print('No Paredão Falso, a lógica inverte: <strong>vota-se para salvar</strong>, e o mais votado vai para o Quarto Secreto. ')
+print('Em ambos os casos, a batalha real é entre os <strong>dois mais votados</strong>; ')
+print('o terceiro é figurante. Quando VU e VT concordam sobre o resultado, ')
 print('a votação é <strong>saudável</strong>. O sinal de perigo aparece quando há ')
 print('uma grande <strong>divergência</strong> entre os dois: a torcida despeja votos ')
-print('para forçar a saída de quem <strong>o CPF não priorizou</strong>, ou retém votos ')
-print('para proteger quem o povo escolheu eliminar. ')
+print('para forçar um resultado que <strong>o CPF não priorizou</strong>, ou retém votos ')
+print('de quem o povo escolheu. ')
 print('É a marca da manipulação: usar o voto ilimitado para tentar ')
 print('<strong>inverter a decisão do CPF</strong>.</p>')
 
@@ -392,26 +393,27 @@ for p in paredoes_fin:
         continue
 
     num = p.get('numero', '?')
+    is_falso = p.get('paredao_falso', False)
 
     # Sort by VU desc — top 2 are the real battle
     sorted_by_vu = sorted(parts, key=lambda x: float(x.get('voto_unico', 0)), reverse=True)
     top2 = sorted_by_vu[:2]
-    elim_p = top2[0]   # highest VU = people's choice to eliminate
-    surv_p = top2[1]    # 2nd highest VU = people chose to keep
+    elim_p = top2[0]   # highest VU = people's choice (to eliminate in regular, to save in falso)
+    surv_p = top2[1]    # 2nd highest VU = torcida's preferred target
 
     # Who was actually eliminated (highest voto_total)
     actual_elim = max(parts, key=lambda x: float(x.get('voto_total', 0)))
     povo_decidiu = elim_p.get('nome') == actual_elim.get('nome')
 
-    # Survivor: VT - VU (positive = torcida targeting → bad faith)
+    # 2nd by VU: VT - VU (positive = torcida boosting → divergence from CPF)
     surv_vu = float(surv_p.get('voto_unico', 0))
     surv_vt = float(surv_p.get('voto_torcida', 0))
-    surv_inflation = surv_vt - surv_vu  # >0 = targeted
+    surv_inflation = surv_vt - surv_vu  # >0 = torcida boosting beyond CPF
 
-    # Eliminated: VT - VU (negative = torcida protecting → bad faith)
+    # 1st by VU: VT - VU (negative = torcida deflecting → divergence from CPF)
     elim_vu = float(elim_p.get('voto_unico', 0))
     elim_vt = float(elim_p.get('voto_torcida', 0))
-    elim_gap = elim_vt - elim_vu  # <0 = protected by torcida
+    elim_gap = elim_vt - elim_vu  # <0 = torcida reducing CPF's choice
 
     # Danger = max bad-direction gap
     bad_surv = max(0, surv_inflation)    # targeting survivor
@@ -419,7 +421,7 @@ for p in paredoes_fin:
     danger = max(bad_surv, bad_elim)
 
     health_data.append({
-        'num': num, 'danger': danger,
+        'num': num, 'danger': danger, 'is_falso': is_falso,
         'surv_nome': surv_p.get('nome', ''), 'surv_inflation': surv_inflation,
         'surv_vu': surv_vu, 'surv_vt': surv_vt,
         'elim_nome': elim_p.get('nome', ''), 'elim_gap': elim_gap,
@@ -442,9 +444,9 @@ for p in paredoes_fin:
     surv_nome = surv_p.get('nome', '')
     elim_nome = elim_p.get('nome', '')
 
-    # Survivor line styling
+    # Line styling — icons differ for Paredão Falso
     if surv_inflation > 2:
-        surv_icon = "🎯"
+        surv_icon = "⬆️" if is_falso else "🎯"
         surv_txt_color = "#e74c3c" if surv_inflation > 7 else "#e67e22"
         surv_txt = f'<strong>+{surv_inflation:.1f}pp</strong>'
     else:
@@ -452,9 +454,8 @@ for p in paredoes_fin:
         surv_txt_color = "#888"
         surv_txt = f'{surv_inflation:+.1f}pp'
 
-    # Eliminated line styling
     if elim_gap < -2:
-        elim_icon = "🛡️"
+        elim_icon = "⬇️" if is_falso else "🛡️"
         elim_txt_color = "#e67e22" if elim_gap < -7 else "#f1c40f"
         elim_txt = f'<strong>{elim_gap:+.1f}pp</strong>'
     else:
@@ -465,8 +466,9 @@ for p in paredoes_fin:
     badge = "✅ Povo decidiu" if povo_decidiu else "🚨 Torcida venceu"
     badge_color = "#2ecc71" if povo_decidiu else "#e74c3c"
 
+    paredao_label = f'{num}o Paredão Falso' if is_falso else f'{num}o Paredão'
     print(f'<div class="v-card" style="background:#111; border:1px solid {health_color}44; border-radius:8px; padding:0.6rem 0.8rem; flex:1; min-width:175px; max-width:240px;">')
-    print(f'<div class="fs-sm" style="color:#aaa;">{num}o Paredão</div>')
+    print(f'<div class="fs-sm" style="color:#aaa;">{paredao_label}</div>')
     print(f'<div class="fs-2xl tabnum" style="color:{health_color}; font-weight:750;">{danger:.1f}<span class="fs-sm">pp</span></div>')
     print(f'<div class="fs-sm" style="color:{health_color}; font-weight:600;">{health_icon} {health_label}</div>')
     print(f'<div class="fs-xs" style="color:{surv_txt_color}; margin-top:0.3rem;">{surv_icon} {surv_nome} {surv_txt}</div>')
@@ -496,7 +498,8 @@ else:
 
 # Legend
 print('<div class="fs-sm" style="color:#888; margin:0.3rem 0 0.8rem 0; text-align:center;">')
-print('🎯 = torcida despejou VT além do VU (mirando para eliminar) · 🛡️ = torcida reteve VT abaixo do VU (protegendo) · Perigo = maior divergência VT&minus;VU')
+print('🎯 = torcida despejou VT além do VU (mirando para eliminar) · 🛡️ = torcida reteve VT abaixo do VU (protegendo) · Perigo = maior divergência VT&minus;VU<br>')
+print('No Paredão Falso (⬆️/⬇️): mesma lógica, mas vota-se para <strong>salvar</strong> — divergência indica torcida forçando salvação contra a escolha do CPF')
 print('</div>')
 
 # Editorial: the real problem — dynamically generated from health_data
@@ -508,30 +511,56 @@ if sorted_health:
     w = sorted_health[0]  # worst paredão
 
     # First paragraph: worst paredão detail
+    _wf = w.get('is_falso', False)
+    _wlabel = f'{w["num"]}o Paredão Falso' if _wf else f'{w["num"]}o Paredão'
+    _w_acao = 'salvar' if _wf else 'eliminar'
+
     print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
-    print(f'O <strong>{w["num"]}o Paredão</strong> é o caso mais grave. Pelo CPF, o povo decidiu: ')
-    print(f'<strong>{w["elim_vu"]:.2f}%</strong> votaram para eliminar {w["elim_nome"]}, contra apenas ')
+    print(f'O <strong>{_wlabel}</strong> é o caso mais grave. Pelo CPF, o povo decidiu: ')
+    print(f'<strong>{w["elim_vu"]:.2f}%</strong> votaram para {_w_acao} {w["elim_nome"]}, contra apenas ')
     print(f'<strong>{w["surv_vu"]:.2f}%</strong> em {w["surv_nome"]}. ')
-    if w['surv_inflation'] > 2 and -w['elim_gap'] > 2:
-        print(f'Mas a torcida discordou — despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
-        print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
-        print(f'tentando forçar sua eliminação. Na outra ponta, reteve votos em {w["elim_nome"]}: ')
-        print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
-        print(f'tentando proteger quem o povo escolheu eliminar. ')
-    elif w['surv_inflation'] > 2:
-        print(f'Mas a torcida despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
-        print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
-        print(f'tentando forçar sua eliminação. ')
-    elif -w['elim_gap'] > 2:
-        print(f'Mas a torcida reteve votos em {w["elim_nome"]}: ')
-        print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
-        print(f'tentando proteger quem o povo escolheu eliminar. ')
+    if _wf:
+        # Paredão Falso: torcida tried to SAVE surv_nome over elim_nome
+        if w['surv_inflation'] > 2 and -w['elim_gap'] > 2:
+            print(f'Mas a torcida discordou — despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
+            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
+            print(f'tentando forçar sua salvação. Na outra ponta, reteve votos de {w["elim_nome"]}: ')
+            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
+            print(f'reduzindo o suporte ao escolhido do CPF. ')
+        elif w['surv_inflation'] > 2:
+            print(f'Mas a torcida despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
+            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
+            print(f'tentando forçar sua salvação. ')
+        elif -w['elim_gap'] > 2:
+            print(f'Mas a torcida reteve votos de {w["elim_nome"]}: ')
+            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
+            print(f'reduzindo o suporte ao escolhido do CPF. ')
+    else:
+        # Regular paredão: torcida tried to ELIMINATE surv_nome
+        if w['surv_inflation'] > 2 and -w['elim_gap'] > 2:
+            print(f'Mas a torcida discordou — despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
+            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
+            print(f'tentando forçar sua eliminação. Na outra ponta, reteve votos em {w["elim_nome"]}: ')
+            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
+            print(f'tentando proteger quem o povo escolheu eliminar. ')
+        elif w['surv_inflation'] > 2:
+            print(f'Mas a torcida despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
+            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
+            print(f'tentando forçar sua eliminação. ')
+        elif -w['elim_gap'] > 2:
+            print(f'Mas a torcida reteve votos em {w["elim_nome"]}: ')
+            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
+            print(f'tentando proteger quem o povo escolheu eliminar. ')
     if w['povo_decidiu']:
-        print(f'O 70/30 preservou a vontade popular — {w["elim_nome"]} saiu — ')
+        if _wf:
+            print(f'O 70/30 preservou a vontade popular — {w["elim_nome"]} foi salvo — ')
+        else:
+            print(f'O 70/30 preservou a vontade popular — {w["elim_nome"]} saiu — ')
     else:
         print(f'A torcida conseguiu inverter o resultado — ')
+    _w_alvo = f'a favor de {w["surv_nome"]}' if _wf else f'contra {w["surv_nome"]}'
     print(f'mas a divergência de <strong>{w["danger"]:.0f}pp</strong> mostra a força da campanha ')
-    print(f'organizada contra {w["surv_nome"]}.</p>')
+    print(f'organizada {_w_alvo}.</p>')
 
     # Second paragraph: patterns
     print('<p class="fs-lg" style="color:#eee; margin-bottom:0.8rem;">')
@@ -540,22 +569,36 @@ if sorted_health:
     notable = [d for d in sorted_health[1:] if d['danger'] >= 3]
     if notable:
         sec = notable[0]
-        print(f'O padrão se repete. No <strong>{sec["num"]}o Paredão</strong>, a torcida ')
-        if sec['surv_inflation'] > 2 and -sec['elim_gap'] > 2:
-            print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
-            print(f'tentando forçar sua eliminação, enquanto reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de ')
-            print(f'{sec["elim_nome"]} para proteger quem o povo queria eliminar. ')
-        elif sec['surv_inflation'] > 2:
-            print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
-            print(f'tentando forçar sua eliminação. ')
-        elif -sec['elim_gap'] > 2:
-            print(f'reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de {sec["elim_nome"]}, ')
-            print(f'tentando proteger quem o povo escolheu eliminar. ')
+        _sf = sec.get('is_falso', False)
+        _slabel = f'{sec["num"]}o Paredão Falso' if _sf else f'{sec["num"]}o Paredão'
+        print(f'O padrão se repete. No <strong>{_slabel}</strong>, a torcida ')
+        if _sf:
+            if sec['surv_inflation'] > 2 and -sec['elim_gap'] > 2:
+                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
+                print(f'tentando forçar sua salvação, enquanto reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de ')
+                print(f'{sec["elim_nome"]}, o escolhido do CPF. ')
+            elif sec['surv_inflation'] > 2:
+                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
+                print(f'tentando forçar sua salvação. ')
+            elif -sec['elim_gap'] > 2:
+                print(f'reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de {sec["elim_nome"]}, ')
+                print(f'reduzindo o suporte ao escolhido do CPF. ')
+        else:
+            if sec['surv_inflation'] > 2 and -sec['elim_gap'] > 2:
+                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
+                print(f'tentando forçar sua eliminação, enquanto reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de ')
+                print(f'{sec["elim_nome"]} para proteger quem o povo queria eliminar. ')
+            elif sec['surv_inflation'] > 2:
+                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
+                print(f'tentando forçar sua eliminação. ')
+            elif -sec['elim_gap'] > 2:
+                print(f'reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de {sec["elim_nome"]}, ')
+                print(f'tentando proteger quem o povo escolheu eliminar. ')
 
-    # Repeated targeting detection
+    # Repeated targeting detection (only regular paredões — falso has different semantics)
     target_paredoes = defaultdict(list)
     for d in health_data:
-        if d['surv_inflation'] > 3:
+        if d['surv_inflation'] > 3 and not d.get('is_falso', False):
             target_paredoes[d['surv_nome']].append(d)
     repeated = {name: sorted(dlist, key=lambda x: x['num'])
                 for name, dlist in target_paredoes.items() if len(dlist) >= 2}
@@ -725,6 +768,7 @@ for p in paredoes_finalizados:
         'elim_7030': elim_7030,
         'elim_5050': elim_5050,
         'mudou': mudou,
+        'is_falso': p.get('paredao_falso', False),
     })
 
 if rows_5050:
@@ -732,7 +776,7 @@ if rows_5050:
 
     print('<p class="fs-lg" style="color:#eee; margin-bottom:1rem;">')
     print('Se o BBB 26 usasse o sistema antigo <strong>50/50</strong> (igual ao BBB 25), ')
-    print('algum eliminado teria sido diferente? A tabela abaixo recalcula cada paredão ')
+    print('algum resultado teria sido diferente? A tabela abaixo recalcula cada paredão ')
     print('finalizado com pesos iguais entre Voto Único e Voto da Torcida.</p>')
 
     # Summary box
@@ -744,8 +788,8 @@ if rows_5050:
     summary_color = "#2ecc71" if n_changed == 0 else "#e74c3c"
     print(f'<div style="background:rgba(241,196,15,0.12); border:1px solid rgba(241,196,15,0.35); border-radius:10px; padding:0.9rem 1rem; margin:0.8rem 0 1.2rem 0;">')
     print(f'<div class="fs-lg" style="font-weight:700; margin-bottom:0.3rem;">')
-    print(f'<span style="color:{summary_color};">{n_changed}/{len(rows_5050)}</span> paredões mudariam de eliminado com 50/50</div>')
-    print(f'<div class="fs-base" style="color:#ccc;">Diferença média no percentual do eliminado: <strong>{avg_delta:.2f} p.p.</strong></div>')
+    print(f'<span style="color:{summary_color};">{n_changed}/{len(rows_5050)}</span> paredões mudariam de resultado com 50/50</div>')
+    print(f'<div class="fs-base" style="color:#ccc;">Diferença média no percentual do mais votado: <strong>{avg_delta:.2f} p.p.</strong></div>')
     print('</div>')
 
     # Detailed table with full breakdown per participant
@@ -764,9 +808,13 @@ if rows_5050:
 
     for row in rows_5050:
         num = row['paredao']
+        _rf = row.get('is_falso', False)
         parts_sorted = sorted(row['parts'], key=lambda x: x['v7030'], reverse=True)
         mudou = row['mudou']
         n_parts = len(parts_sorted)
+
+        # Badge labels: "SALVO" for Paredão Falso (most voted = saved), "ELIM" for regular
+        _top_label = 'SALVO' if _rf else 'ELIM'
 
         for i, pt in enumerate(parts_sorted):
             is_elim_7030 = pt['nome'] == row['elim_7030']['nome']
@@ -782,16 +830,19 @@ if rows_5050:
                 bg = ""
 
             # Status badges
+            _top_bg = '#2ecc71' if _rf else '#e74c3c'
             badges = []
             if is_elim_7030:
-                badges.append('<span class="fs-sm" style="background:#e74c3c; color:#fff; padding:1px 6px; border-radius:4px;">ELIM 70/30</span>')
+                badges.append(f'<span class="fs-sm" style="background:{_top_bg}; color:#fff; padding:1px 6px; border-radius:4px;">{_top_label} 70/30</span>')
             if is_elim_5050 and not is_elim_7030:
-                badges.append('<span class="fs-sm" style="background:#f39c12; color:#fff; padding:1px 6px; border-radius:4px;">ELIM 50/50</span>')
+                badges.append(f'<span class="fs-sm" style="background:#f39c12; color:#fff; padding:1px 6px; border-radius:4px;">{_top_label} 50/50</span>')
             if not badges:
-                badges.append('<span style="color:#2ecc71;">salvo</span>')
+                _others_label = 'não salvo' if _rf else 'salvo'
+                badges.append(f'<span style="color:#888;">{_others_label}</span>')
 
             # Paredão number only on first row of group
-            paredao_cell = f'<td rowspan="{n_parts}" style="padding:0.4rem 0.5rem; font-weight:700; vertical-align:middle; border-right:2px solid #333;">{num}o</td>' if i == 0 else ''
+            _num_label = f'{num}o<br><span class="fs-xs" style="color:#f1c40f;">Falso</span>' if _rf else f'{num}o'
+            paredao_cell = f'<td rowspan="{n_parts}" style="padding:0.4rem 0.5rem; font-weight:700; vertical-align:middle; border-right:2px solid #333;">{_num_label}</td>' if i == 0 else ''
 
             delta_color = "#e74c3c" if delta > 0 else "#2ecc71" if delta < 0 else "#888"
 
@@ -831,7 +882,7 @@ if rows_5050:
         _sorted_retro = sorted(_hd_retro, key=lambda x: x['danger'], reverse=True)
         _top_labels = ' e '.join(f'{d["danger"]:.0f}pp (P{d["num"]})' for d in _sorted_retro[:2])
 
-        print('Até agora, todos os eliminados do BBB 26 teriam sido os mesmos com 50/50. ')
+        print('Até agora, todos os resultados do BBB 26 teriam sido os mesmos com 50/50. ')
         print('Mas isso não significa que o sistema está funcionando — significa que <strong>ainda ')
         print(f'não chegou o teste de estresse</strong>. As disparidades de {_top_labels} ')
         print('mostram que as torcidas estão forçando. Em uma final, com mobilização máxima, ')
@@ -841,7 +892,7 @@ if rows_5050:
         print(f'<div style="background:rgba(231,76,60,0.08); border:1px solid #e74c3c; border-radius:10px; padding:1rem 1.2rem; margin:1.2rem 0;">')
         print(f'<p class="fs-lg" style="color:#e74c3c; font-weight:700; margin-bottom:0.3rem;">🔁 {n_changed} resultado(s) diferente(s)</p>')
         print(f'<p class="fs-base" style="color:#ddd; margin:0;">')
-        print(f'Em {n_changed} paredão(oes), o sistema 50/50 teria eliminado uma pessoa diferente. ')
+        print(f'Em {n_changed} paredão(ões), o sistema 50/50 teria produzido um resultado diferente. ')
         print(f'O peso 70/30 já fez diferença prática no BBB 26.</p>')
         print('</div>')
 
