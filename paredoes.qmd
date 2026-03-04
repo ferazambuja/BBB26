@@ -265,6 +265,18 @@ if len(finalized_polls) >= 1:
 
         print(f'</div></div>\n')
 
+    # Glossary box — explain jargon used in cards above
+    print('<details style="margin:0.5rem 0 1rem 0;">')
+    print('<summary class="fs-sm" style="color:#888; cursor:pointer;">📝 O que significam essas siglas? (MAE, LOO, RMSE, p.p.)</summary>')
+    print('<div style="background:rgba(255,255,255,0.03); border:1px solid #333; border-radius:8px; padding:0.8rem 1rem; margin-top:0.4rem;">')
+    print('<ul class="fs-sm" style="color:#ccc; margin:0; padding-left:1.2rem; line-height:1.7;">')
+    print('<li><strong>MAE</strong> (Mean Absolute Error) — Erro médio absoluto: a média das diferenças (em pontos percentuais) entre a previsão e o resultado real. Quanto menor, melhor.</li>')
+    print('<li><strong>LOO</strong> (Leave-One-Out) — Método de validação: para prever cada paredão, o modelo é treinado usando <em>apenas os outros paredões</em>, como se não soubesse o resultado. Isso evita que o modelo "decore" os dados.</li>')
+    print('<li><strong>RMSE</strong> (Root Mean Square Error) — Similar ao MAE, mas penaliza erros grandes com mais severidade. Usado para calcular os pesos do modelo (plataformas com menor RMSE ganham mais peso).</li>')
+    print('<li><strong>p.p.</strong> (pontos percentuais) — Unidade de diferença entre percentuais. Ex.: previsão de 45% vs resultado de 50% = erro de 5 p.p.</li>')
+    print('</ul>')
+    print('</div></details>\n')
+
     # Detailed comparison table: Enquete vs Vote Types
     print("\n### 📊 Enquetes vs Tipos de Voto\n")
     print('<table class="table table-striped table-sm" style="max-width:900px;">')
