@@ -202,18 +202,7 @@ ANALYSIS_DESCRIPTIONS = {
         "O Votalhada pesa por volume de votos (Sites ~70%), mas Sites têm o maior erro. "
         "Nosso modelo inverte: Twitter 55% · Instagram 33% · YouTube 9% · Sites 4%."
     ),
-    "precision_model_methodology": (
-        "O Votalhada pondera as plataformas implicitamente pelo **volume de votos** — "
-        "Sites recebem ~70% do peso porque têm os maiores veículos (UOL Splash, CNN). "
-        "Porém, Sites são a plataforma menos precisa (RMSE 18,7 p.p.) porque sobre-representam "
-        "fanbases organizadas que votam em massa. "
-        "Nosso modelo usa o **inverso do RMSE²** histórico como peso: "
-        "peso_i = (1/RMSE_i²) / Σ(1/RMSE_j²). "
-        "Resultado: Twitter (RMSE 4,8) recebe 55%, Instagram (6,2) 33%, YouTube (11,7) 9%, Sites (18,7) 4%. "
-        "A validação usa **leave-one-out cross-validation**: para cada paredão, os pesos são calculados "
-        "usando APENAS os outros paredões, evitando overfitting. "
-        "O erro médio cai de 9,8 para 4,3 p.p. (−56%)."
-    ),
+    "precision_model_methodology": "dynamic",  # Built at runtime — see build_precision_methodology_text()
 }
 
 
@@ -874,6 +863,45 @@ def backtest_precision_model(polls_data: dict) -> dict | None:
             "model_correct": sum(1 for r in valid_model if r["model_correct"]),
         },
     }
+
+
+def build_precision_methodology_text(polls_data: dict) -> str:
+    """Build the methodology explanation with live numbers from the model."""
+    prec = calculate_precision_weights(polls_data)
+    bt = backtest_precision_model(polls_data)
+
+    weights = prec.get("weights", {})
+    rmses = prec.get("rmse", {})
+    n = prec.get("n_paredoes", 0)
+
+    # Sort platforms by weight descending
+    plat_names = {"sites": "Sites", "youtube": "YouTube", "twitter": "Twitter", "instagram": "Instagram"}
+    sorted_plats = sorted(weights.items(), key=lambda x: -x[1])
+    weight_parts = [f"{plat_names.get(p, p)} (RMSE {rmses.get(p, 0):.1f}) recebe {w:.0%}" for p, w in sorted_plats]
+
+    bt_text = ""
+    if bt:
+        agg = bt["aggregate"]
+        bt_text = (
+            f"O erro médio cai de {agg['consolidado_mae']:.1f} para {agg['model_mae']:.1f} p.p. "
+            f"({agg['improvement_pct']:+.0f}%), "
+            f"e o modelo acertou o eliminado em {agg['model_correct']}/{agg['n_paredoes']} paredões "
+            f"vs Votalhada {agg['consolidado_correct']}/{agg['n_paredoes']}."
+        )
+
+    return (
+        "**Como funciona?** O Votalhada pondera as plataformas pelo **volume de votos** — "
+        "Sites recebem ~70% do peso porque têm os maiores veículos (UOL Splash, CNN). "
+        f"Porém, Sites são a plataforma menos precisa (RMSE {rmses.get('sites', 0):.1f} p.p.) "
+        "porque sobre-representam fanbases organizadas que votam em massa.\n\n"
+        "Nosso modelo usa o **inverso do RMSE²** (erro quadrático médio ao quadrado) "
+        "histórico como peso: peso = (1/RMSE²) / soma de todos (1/RMSE²). "
+        "Plataformas com menor erro ganham mais peso.\n\n"
+        f"**Resultado ({n} paredões):** {', '.join(weight_parts)}.\n\n"
+        "A validação usa **leave-one-out** (LOO): para cada paredão, os pesos são calculados "
+        "usando APENAS os outros paredões — como se não soubéssemos o resultado. "
+        f"Isso evita que o modelo \"decore\" os dados. {bt_text}"
+    )
 
 
 # ══════════════════════════════════════════════════════════════
