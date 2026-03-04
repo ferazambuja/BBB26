@@ -1,7 +1,7 @@
 # Manual Events Guide — Full Reference
 
 This document contains the complete schema, fill rules, and update procedures for `data/manual_events.json`.
-Referenced from `CLAUDE.md` — read this when adding or modifying manual events.
+Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read this when adding or modifying manual events.
 
 ## Overview
 

@@ -68,8 +68,6 @@ format:
       - assets/toc-offcanvas.css
       - assets/accessibility.css
       - assets/cards.css
-    include-before-body:
-      - file: assets/disclaimer.html
     include-in-header:
       - text: |
           <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -78,6 +76,7 @@ format:
           <script data-goatcounter="https://bbb.goatcounter.com/count"
                   async src="//gc.zgo.at/count.js"></script>
     include-after-body:
+      - file: assets/disclaimer.html
       - text: |
           <script src="assets/plotly-fullscreen.js"></script>
           <script src="assets/toc-offcanvas.js"></script>

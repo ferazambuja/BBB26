@@ -3,8 +3,9 @@
 > Single source of truth for ALL operational procedures — data updates, event workflows, git sync, and troubleshooting.
 >
 > **For AI agents without context**: Read the Quick Index below to find exactly what you need to do.
-> **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `CLAUDE.md` (architecture).
+> **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `docs/ARCHITECTURE.md` (architecture).
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
+> **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
 > **Last updated**: 2026-03-04
 
@@ -27,9 +28,25 @@
 | **Participant exit** (quit/disqualified) | When it happens | [Manual Data Files → manual_events.json](#1-datamanual_eventsjson) |
 | **Workflow failed on GitHub** | After failure | [Troubleshooting](#troubleshooting) |
 | **Push conflict with bot** | After `git push` fails | [Git Workflow → conflict resolution](#handling-push-conflicts) |
+| **Check public/private doc policy** | Before commit/push | [Public vs Private Docs Policy](#public-vs-private-documentation-policy-agents) |
 | **Which script to run?** | Any time | [Script Reference](#quick-reference-which-script-when) |
 
 ---
+
+## Public vs Private Documentation Policy (Agents)
+
+This repository is public. Agents must enforce a strict documentation boundary:
+
+- Public docs: only approved pillar docs (see `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`).
+- Private docs: local-only and never pushed (`.private/**`, `CLAUDE.md`, WIP/review/planning docs).
+- If visibility is unclear, default to private and place under `.private/docs/`.
+
+Pre-push checklist:
+
+1. Confirm current branch is pushable public branch (`main`), not `local/*`.
+2. Check staged files: `git diff --cached --name-only`.
+3. Confirm no private-denylist paths are staged/tracked for push.
+4. If needed, install/use `.githooks/pre-push` to block accidental exposure.
 
 ## Git Workflow
 
@@ -954,7 +971,7 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `participants` — desistências, desclassificações
 
 **Pitfalls**:
-- Names must match API exactly (see `CLAUDE.md` → Name Matching)
+- Names must match API exactly (see `docs/ARCHITECTURE.md` → data contracts)
 - Consensus events: use `"actor": "A + B + C"` + `"actors": ["A","B","C"]`
 - `build_derived_data.py` hard-fails on audit issues — fix before pushing
 
@@ -971,7 +988,7 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `fontes` are objects: `{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}`
 - For fake eliminations, add `"paredao_falso": true`
 
-**Full schema**: See `CLAUDE.md` → Paredão Workflow → Data Schema.
+**Full schema**: See `docs/ARCHITECTURE.md` (data contracts) + templates in this guide.
 
 ### 3. `data/provas.json`
 
@@ -1193,9 +1210,11 @@ quarto render → deploy
 
 | Doc | Purpose |
 |-----|---------|
-| **`CLAUDE.md`** | Master project guide — architecture, data schema, coding conventions |
+| **`docs/ARCHITECTURE.md`** | Public technical architecture and data-flow reference |
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Full schema + fill rules for `manual_events.json` |
 | **`docs/SCORING_AND_INDEXES.md`** | Scoring formulas, weights, index specifications |
 | **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics |
+| **`docs/PUBLIC_PRIVATE_DOCS_POLICY.md`** | Public/private documentation boundaries + push checklist |
+| **`docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md`** | Dual-branch workflow (local private branch + public branch) |
 | **`data/votalhada/README.md`** | Screenshot-to-data extraction workflow |
 | **`data/CHANGELOG.md`** | Snapshot history, dedup analysis, API observations |

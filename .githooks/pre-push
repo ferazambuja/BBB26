@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+current_branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [[ "$current_branch" == local/* ]]; then
+  echo "[BLOCKED] Refusing push from local/private branch: $current_branch"
+  echo "Use: git checkout main && cherry-pick only public commits."
+  exit 1
+fi
+
+# Private docs that must never be tracked on the public branch tip
+forbidden_regex='^(CLAUDE\.md|TODO\.md|docs/TODO_WORKFLOW\.md|docs/TODO_DONE_LOG\.md|docs/CODE_REVIEW_.*\.md|docs/TECH_DEBT\.md|docs/MOBILE_LAYOUT_AUDIT_.*\.md|docs/plans/|\.private/)'
+
+if git ls-tree -r --name-only HEAD | grep -Eq "$forbidden_regex"; then
+  echo "[BLOCKED] Private documentation paths are tracked on this branch tip."
+  echo "Remove private files from tracking before pushing."
+  git ls-tree -r --name-only HEAD | grep -E "$forbidden_regex" || true
+  exit 1
+fi
+
+exit 0

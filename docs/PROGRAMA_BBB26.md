@@ -1,7 +1,7 @@
 # Big Brother Brasil 26 — Guia do Programa
 
 Este documento reúne **informações do programa** (formato, dinâmica, seleção e regras gerais) para **uso interno** do projeto.
-Ele é separado do `CLAUDE.md`, que foca em **análise de dados** e decisões técnicas.
+Ele é separado de `docs/ARCHITECTURE.md`, que foca em **análise de dados** e decisões técnicas.
 **Não é conteúdo para o site** — serve apenas para contextualizar agentes e análises internas.
 
 > Aviso: trata-se de um reality em exibição; informações podem mudar com frequência.

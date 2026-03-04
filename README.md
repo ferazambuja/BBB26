@@ -106,6 +106,27 @@ Alternativa para páginas muito longas no mobile (captura em fatias: topo/meio/f
 python scripts/capture_mobile_slices.py --output-dir tmp/page_screenshots/mobile-slices
 ```
 
+## Governança de documentação (público vs privado)
+
+Este repositório é público. A documentação é separada em:
+
+- **Pública** (pode ir para GitHub): pilares técnicos e operacionais
+- **Privada/local** (não publicar): notas de desenvolvimento, reviews, planos e guias internos de agente
+
+Referências:
+
+- `docs/PUBLIC_PRIVATE_DOCS_POLICY.md` — política oficial de classificação e checklist de push
+- `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md` — fluxo de branch local privada + branch pública
+- `docs/ARCHITECTURE.md` — referência técnica pública (substitui dependência pública de docs privados)
+
+Hook opcional de segurança:
+
+```bash
+mkdir -p .git/hooks
+cp .githooks/pre-push .git/hooks/pre-push
+chmod +x .git/hooks/pre-push
+```
+
 ## Aviso
 
 Projeto independente de análise de dados, **sem vínculo com a TV Globo ou o programa BBB**. Os dados são coletados da API pública do GloboPlay e complementados com registros manuais — podem conter erros, atrasos ou imprecisões.

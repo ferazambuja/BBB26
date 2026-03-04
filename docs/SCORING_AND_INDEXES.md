@@ -1,7 +1,7 @@
 # Scoring & Indexes — Full Specification
 
 This document contains all scoring formulas, weights, and index specifications for the BBB26 project.
-Referenced from `CLAUDE.md` — read this when implementing or modifying scoring logic.
+Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read this when implementing or modifying scoring logic.
 
 ## Participant Data Points
 
