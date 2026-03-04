@@ -634,16 +634,95 @@ See `docs/SCORING_AND_INDEXES.md` → "Modelo Ponderado por Precisão" for the f
 
 ### 3. Record Ganha-Ganha (same night, ~23h30)
 
-Add to `data/manual_events.json`:
-- `weekly_events[N].ganha_ganha` with `date`, `sorteados`, `veto`, `decisao`
-- `power_events` for the veto (`veto_ganha_ganha`) and choice (`ganha_ganha_escolha`)
+The Ganha-Ganha happens right after elimination. Three participants are drawn by lot. One gets the veto power (eliminates one of the other two from the dynamic). The remaining participant chooses between a cash prize or privileged information.
 
-### 4. Rebuild + commit + push
+#### 0. Scrape the article
+
+```bash
+python scripts/scrape_gshow.py "<ganha-ganha-url>" -o docs/scraped/
+```
+
+The article contains all the details: who was drawn, who vetoed whom, and what the remaining participant chose. Use it as the source for filling the fields below.
+
+Add **two things** to `data/manual_events.json`:
+
+#### A. `weekly_events[N].ganha_ganha`
+
+```json
+{
+  "ganha_ganha": {
+    "date": "YYYY-MM-DD",
+    "sorteados": ["Name1", "Name2", "Name3"],
+    "cartas": "Description of what happened with the cards/draw",
+    "veto": {
+      "por": "Who had veto power",
+      "quem": "Who was vetoed (eliminated from the dynamic)"
+    },
+    "decisao": {
+      "quem": "Who made the final choice",
+      "escolha": "informação privilegiada",
+      "abriu_mao": "R$ 10 mil (dobrar para R$ 20 mil)"
+    },
+    "informacao": "Content of the privileged information revealed (if chosen)",
+    "fontes": ["<article-url>"]
+  }
+}
+```
+
+**Field reference**:
+
+| Field | Values | Notes |
+|-------|--------|-------|
+| `sorteados` | `["A", "B", "C"]` | Always 3 participants drawn by lot |
+| `veto.por` | Name | Person who had veto power |
+| `veto.quem` | Name | Person removed from the dynamic |
+| `decisao.quem` | Name | Person who chose between prize and info |
+| `decisao.escolha` | `"informação privilegiada"` or `"R$ X mil"` | What they picked |
+| `decisao.abriu_mao` | String | What they gave up |
+| `informacao` | String or `null` | Content of privileged info (if chosen) |
+
+#### B. Two `power_events` entries
+
+```json
+[
+  {
+    "date": "YYYY-MM-DD",
+    "week": N,
+    "type": "veto_ganha_ganha",
+    "actor": "Vetoed person",
+    "target": "Person who vetoed",
+    "source": "Ganha-Ganha",
+    "detail": "Foi vetado(a) por X na dinâmica do Ganha-Ganha.",
+    "impacto": "negativo",
+    "origem": "manual",
+    "visibility": "public",
+    "awareness": "known"
+  },
+  {
+    "date": "YYYY-MM-DD",
+    "week": N,
+    "type": "ganha_ganha_escolha",
+    "actor": "Person who chose",
+    "target": "Person who vetoed",
+    "source": "Ganha-Ganha",
+    "detail": "Ficou com a decisão na dinâmica após o veto de X em Y.",
+    "impacto": "positivo",
+    "origem": "manual",
+    "visibility": "public",
+    "awareness": "known"
+  }
+]
+```
+
+**Note on `actor`/`target` in veto**: The `actor` is the **vetoed person** (they receive the negative impact), `target` is the person who did the veto. This matches the relations scoring direction (impact flows toward the actor).
+
+### 4. Rebuild, commit, push + deploy
 
 ```bash
 python scripts/build_derived_data.py
 git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: paredão N result + ganha-ganha"
 git push
+gh workflow run daily-update.yml
 ```
 
 ---
