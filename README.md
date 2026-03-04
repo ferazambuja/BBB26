@@ -64,6 +64,48 @@ quarto render
 quarto preview
 ```
 
+## Captura de screenshots (desktop + mobile)
+
+Para revisão completa de layout e plots em todas as páginas Quarto:
+
+```bash
+./scripts/capture_layout_screenshots.sh
+```
+
+O comando acima:
+- executa captura **página por página** com logs verbosos (evita parecer travado)
+- por padrão faz retake rápido (sem `quarto render` e sem reinstall do browser)
+- captura screenshots full-page em `desktop` e `mobile`
+- salva em `tmp/page_screenshots/<timestamp>/`
+- gera `manifest.json` com sucesso/falhas
+
+Para forçar render completo antes da captura:
+
+```bash
+./scripts/capture_layout_screenshots.sh --render
+```
+
+Para instalar/atualizar o browser Playwright uma vez:
+
+```bash
+./scripts/capture_layout_screenshots.sh --install-browser
+```
+
+Uso direto (mais opções):
+
+```bash
+python scripts/capture_quarto_screenshots.py --render --profiles desktop,mobile
+python scripts/capture_quarto_screenshots.py --page paredao.html --profiles mobile --verbose
+```
+
+Alternativa para páginas muito longas no mobile (captura em fatias: topo/meio/fim):
+
+```bash
+./scripts/capture_mobile_slices.sh
+# ou
+python scripts/capture_mobile_slices.py --output-dir tmp/page_screenshots/mobile-slices
+```
+
 ## Aviso
 
 Projeto independente de análise de dados, **sem vínculo com a TV Globo ou o programa BBB**. Os dados são coletados da API pública do GloboPlay e complementados com registros manuais — podem conter erros, atrasos ou imprecisões.
