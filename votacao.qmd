@@ -407,6 +407,11 @@ for p in paredoes_fin:
     actual_elim = max(parts, key=lambda x: float(x.get('voto_total', 0)))
     povo_decidiu = elim_p.get('nome') == actual_elim.get('nome')
 
+    # Ranking inversion: VT's #1 ≠ VU's #1
+    sorted_by_vt = sorted(parts, key=lambda x: float(x.get('voto_torcida', 0)), reverse=True)
+    vt_top = sorted_by_vt[0]
+    ranking_invertido = elim_p.get('nome') != vt_top.get('nome')
+
     # 2nd by VU: VT - VU (positive = torcida boosting → divergence from CPF)
     surv_vu = float(surv_p.get('voto_unico', 0))
     surv_vt = float(surv_p.get('voto_torcida', 0))
@@ -429,6 +434,10 @@ for p in paredoes_fin:
         'elim_nome': elim_p.get('nome', ''), 'elim_gap': elim_gap,
         'elim_vu': elim_vu, 'elim_vt': elim_vt,
         'povo_decidiu': povo_decidiu,
+        'ranking_invertido': ranking_invertido,
+        'vt_top_nome': vt_top.get('nome', ''),
+        'vt_top_pct': float(vt_top.get('voto_torcida', 0)),
+        'vt_top_vu': float(vt_top.get('voto_unico', 0)),
     })
 
     # Health color — based on danger level
@@ -473,6 +482,8 @@ for p in paredoes_fin:
     print(f'<div class="fs-sm u-s001">{paredao_label}</div>')
     print(f'<div class="fs-2xl tabnum" style="color:{health_color}; font-weight:750;">{danger:.1f}<span class="fs-sm">pp</span></div>')
     print(f'<div class="fs-sm" style="color:{health_color}; font-weight:600;">{health_icon} {health_label}</div>')
+    if ranking_invertido:
+        print(f'<div class="fs-xs" style="color:#e74c3c; font-weight:700;">⚡ VT inverteu ranking</div>')
     print(f'<div class="fs-xs" style="color:{surv_txt_color}; margin-top:0.3rem;">{surv_icon} {surv_nome} {surv_txt}</div>')
     print(f'<div class="fs-xs" style="color:{elim_txt_color};">{elim_icon} {elim_nome} {elim_txt}</div>')
     print(f'<div class="fs-xs" style="color:{badge_color}; margin-top:0.2rem; font-weight:600;">{badge}</div>')
@@ -563,6 +574,37 @@ if sorted_health:
     _w_alvo = f'a favor de {w["surv_nome"]}' if _wf else f'contra {w["surv_nome"]}'
     print(f'mas a divergência de <strong>{w["danger"]:.0f}pp</strong> mostra a força da campanha ')
     print(f'organizada {_w_alvo}.</p>')
+
+    # Milestone: first ranking inversion
+    any_inversions = [d for d in health_data if d.get('ranking_invertido')]
+    if any_inversions:
+        first_inv = min(any_inversions, key=lambda x: x['num'])
+        inv_label = f'{first_inv["num"]}o Paredão Falso' if first_inv.get('is_falso') else f'{first_inv["num"]}o Paredão'
+
+        print(f'<p class="fs-lg u-s008" style="border-left:3px solid #e74c3c; padding-left:0.8rem;">')
+        print(f'<strong>⚡ Marco inédito no {inv_label}:</strong> ')
+        print(f'pela primeira vez no BBB 26, o Voto da Torcida e o Voto Único ')
+        print(f'elegeram alvos diferentes — evidência direta de manipulação ')
+        print(f'do componente ilimitado contra a vontade popular. ')
+
+        if first_inv.get('is_falso'):
+            # Paredão Falso: audience knew — voted to give QS advantage
+            print(f'Pelo CPF, o povo escolheu dar a vantagem do Quarto Secreto ')
+            print(f'a {first_inv["elim_nome"]} ({first_inv["elim_vu"]:.2f}%). ')
+            print(f'Mas os fãs de {first_inv["vt_top_nome"]} ')
+            print(f'(apenas {first_inv["vt_top_vu"]:.2f}% no VU) usaram o voto ilimitado ')
+            print(f'para tentar redirecionar a vantagem ao seu favorito: ')
+            print(f'{first_inv["vt_top_pct"]:.2f}% do VT — ')
+        else:
+            # Regular paredão: minority wants someone out
+            print(f'Pelo CPF, o povo escolheu {first_inv["elim_nome"]} ({first_inv["elim_vu"]:.2f}%). ')
+            print(f'Mas a minoria que queria {first_inv["vt_top_nome"]} fora ')
+            print(f'(apenas {first_inv["vt_top_vu"]:.2f}% no VU) usou o voto ilimitado ')
+            print(f'para inflar sua escolha: {first_inv["vt_top_pct"]:.2f}% do VT — ')
+
+        print(f'uma amplificação de {first_inv["vt_top_pct"] - first_inv["vt_top_vu"]:.2f}pp ')
+        print(f'que inverteu completamente o ranking.')
+        print(f'</p>')
 
     # Second paragraph: patterns
     print('<p class="fs-lg u-s008">')
