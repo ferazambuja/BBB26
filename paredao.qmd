@@ -10,45 +10,6 @@ execute:
   warning: false
 ---
 
-```{=html}
-<script>
-(() => {
-  const maxCols = 4;
-  const isMobile = () => window.matchMedia("(max-width: 575px)").matches;
-
-  const pruneWideTables = () => {
-    if (!isMobile()) return;
-    document.querySelectorAll("table").forEach((table) => {
-      if (table.dataset.mobilePruned === "1") return;
-      const firstRow = table.rows[0];
-      if (!firstRow) return;
-      const colCount = firstRow.cells.length;
-      if (colCount <= maxCols) return;
-
-      table.dataset.mobilePruned = "1";
-      table.classList.add("mobile-pruned-table");
-      Array.from(table.rows).forEach((row) => {
-        Array.from(row.cells).forEach((cell, idx) => {
-          if (idx >= maxCols) cell.classList.add("mobile-pruned-hidden");
-        });
-      });
-
-      const note = document.createElement("div");
-      note.className = "mobile-pruned-note fs-2xs";
-      note.textContent = `Mobile compacto: mostrando ${maxCols} de ${colCount} colunas.`;
-      table.insertAdjacentElement("afterend", note);
-    });
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", pruneWideTables, { once: true });
-  } else {
-    pruneWideTables();
-  }
-})();
-</script>
-```
-
 ```{python}
 #| label: setup
 #| include: false

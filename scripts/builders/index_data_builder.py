@@ -1637,6 +1637,275 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _compute_blindados_leaders(
+    active_names: list[str],
+    house_vote_ineligible: dict[str, list[tuple[int, str]]],
+    n_paredoes_with_votes: int,
+    total_house_votes: Counter,
+) -> list[dict[str, Any]]:
+    """Compute active participants with lowest house-vote eligibility ratio (tie-safe)."""
+    if not active_names or n_paredoes_with_votes <= 0:
+        return []
+
+    rows = []
+    for name in sorted(active_names):
+        inelig_list = house_vote_ineligible.get(name, [])
+        eligible = max(0, n_paredoes_with_votes - len(inelig_list))
+        ratio = eligible / n_paredoes_with_votes
+        reason_counts = Counter(reason for _, reason in inelig_list)
+        reasons = []
+        for reason_key in ("Líder", "imune", "no Paredão"):
+            count = reason_counts.get(reason_key, 0)
+            if count:
+                reasons.append(f"{count}x {reason_key}")
+        for reason_key, count in sorted(reason_counts.items()):
+            if reason_key in {"Líder", "imune", "no Paredão"}:
+                continue
+            reasons.append(f"{count}x {reason_key}")
+
+        rows.append({
+            "name": name,
+            "eligible": eligible,
+            "total": n_paredoes_with_votes,
+            "pct": round(ratio * 100),
+            "ratio": ratio,
+            "votes_received": int(total_house_votes.get(name, 0)),
+            "reasons": reasons,
+        })
+
+    min_ratio = min(row["ratio"] for row in rows)
+    leaders = [row for row in rows if abs(row["ratio"] - min_ratio) < 1e-12]
+    leaders.sort(key=lambda row: (row["eligible"], row["votes_received"], row["name"]))
+    for row in leaders:
+        row.pop("ratio", None)
+    return leaders
+
+
+def _compute_vip_xepa_extremes(
+    active_names: list[str],
+    vip_days: dict[str, int],
+    xepa_days: dict[str, int],
+    total_days: dict[str, int],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Compute active participants with max VIP days and min Xepa days (tie-safe)."""
+    if not active_names:
+        return [], []
+
+    rows = []
+    for name in sorted(active_names):
+        total = max(0, int(total_days.get(name, 0)))
+        vip = max(0, int(vip_days.get(name, 0)))
+        xepa = max(0, int(xepa_days.get(name, 0)))
+        vip_pct = round((vip / total) * 100) if total > 0 else 0
+        xepa_pct = round((xepa / total) * 100) if total > 0 else 0
+        rows.append({
+            "name": name,
+            "vip_days": vip,
+            "xepa_days": xepa,
+            "days_total": total,
+            "vip_pct": vip_pct,
+            "xepa_pct": xepa_pct,
+        })
+
+    max_vip = max(row["vip_days"] for row in rows)
+    min_xepa = min(row["xepa_days"] for row in rows)
+
+    most_vip = [row for row in rows if row["vip_days"] == max_vip]
+    least_xepa = [row for row in rows if row["xepa_days"] == min_xepa]
+    most_vip.sort(key=lambda row: (-row["vip_days"], row["name"]))
+    least_xepa.sort(key=lambda row: (row["xepa_days"], row["name"]))
+    return most_vip, least_xepa
+
+
+def _build_frontpage_insights(
+    ctx: dict[str, Any],
+    lookups: dict[str, Any],
+    hl_data: dict[str, Any],
+) -> dict[str, Any]:
+    """Build homepage insight cards focused on hidden dynamics (fixed lineup)."""
+    active_names = ctx["active_names"]
+    active_set = ctx["active_set"]
+    avatars = ctx["avatars"]
+    relations_pairs = ctx["relations_pairs"]
+    received_impact = ctx["received_impact"]
+    vip_days = ctx["vip_days"]
+    xepa_days = ctx["xepa_days"]
+    total_days = ctx["total_days"]
+
+    pair_contradictions = hl_data.get("pair_contradictions", [])
+    house_vote_ineligible = lookups["house_vote_ineligible"]
+    n_paredoes_with_votes = lookups["n_paredoes_with_votes"]
+    total_house_votes = lookups["total_house_votes"]
+
+    def _empty_card(card_type: str, title: str, icon: str, link: str, message: str) -> dict[str, Any]:
+        return {
+            "type": card_type,
+            "title": title,
+            "icon": icon,
+            "link": link,
+            "empty": True,
+            "message": message,
+            "items": [],
+        }
+
+    # 1) Sincerão ↔ Queridômetro contradictions.
+    if pair_contradictions:
+        sinc_items = [{
+            "actor": row["ator"],
+            "target": row["alvo"],
+            "tipo_label": row.get("tipo_label", row.get("tipo", "?")),
+            "emoji": row.get("emoji", "?"),
+            "actor_avatar": avatars.get(row["ator"], ""),
+            "target_avatar": avatars.get(row["alvo"], ""),
+        } for row in pair_contradictions[:6]]
+        sinc_card = {
+            "type": "sincerao_contradictions",
+            "title": "Sincerão × Queridômetro",
+            "icon": "⚡",
+            "link": "relacoes.html#contradicoes",
+            "empty": False,
+            "total": len(pair_contradictions),
+            "items": sinc_items,
+        }
+    else:
+        sinc_card = _empty_card(
+            "sincerao_contradictions",
+            "Sincerão × Queridômetro",
+            "⚡",
+            "relacoes.html#contradicoes",
+            "Sem contradições detectadas nesta semana.",
+        )
+
+    # 2) Blindados (lowest eligibility to house vote, tie-safe).
+    blindados_leaders = _compute_blindados_leaders(
+        active_names,
+        house_vote_ineligible,
+        n_paredoes_with_votes,
+        total_house_votes,
+    )
+    if blindados_leaders:
+        blindados_card = {
+            "type": "blindados",
+            "title": "Mais Blindados",
+            "icon": "🔒",
+            "link": "paredoes.html#raio-x-votacao-da-casa",
+            "empty": False,
+            "n_paredoes_with_votes": n_paredoes_with_votes,
+            "leaders": blindados_leaders,
+        }
+    else:
+        blindados_card = _empty_card(
+            "blindados",
+            "Mais Blindados",
+            "🔒",
+            "paredoes.html#raio-x-votacao-da-casa",
+            "Sem paredões com votos da casa suficientes para calcular blindagem.",
+        )
+
+    # 3) VIP/Xepa extremes (tie-safe).
+    most_vip_days, least_xepa_days = _compute_vip_xepa_extremes(
+        active_names,
+        vip_days,
+        xepa_days,
+        total_days,
+    )
+    if most_vip_days or least_xepa_days:
+        vip_xepa_card = {
+            "type": "vip_xepa_extremos",
+            "title": "VIP/Xepa Extremos",
+            "icon": "🍽️",
+            "link": "evolucao.html#vip-xepa",
+            "empty": False,
+            "most_vip_days": most_vip_days,
+            "least_xepa_days": least_xepa_days,
+        }
+    else:
+        vip_xepa_card = _empty_card(
+            "vip_xepa_extremos",
+            "VIP/Xepa Extremos",
+            "🍽️",
+            "evolucao.html#vip-xepa",
+            "Dados insuficientes para comparar permanência em VIP/Xepa.",
+        )
+
+    # 4) Hidden risk (false friends).
+    hidden_risk_items = []
+    for name in active_names:
+        false_friends = []
+        my_pairs = relations_pairs.get(name, {})
+        for other in active_names:
+            if other == name:
+                continue
+            my_score = my_pairs.get(other, {}).get("score", 0)
+            their_score = relations_pairs.get(other, {}).get(name, {}).get("score", 0)
+            if my_score > 0 and their_score < 0:
+                false_friends.append(other)
+        if false_friends:
+            hidden_risk_items.append({
+                "name": name,
+                "false_friend_count": len(false_friends),
+                "examples": sorted(false_friends)[:4],
+                "avatar": avatars.get(name, ""),
+            })
+    hidden_risk_items.sort(key=lambda row: (-row["false_friend_count"], row["name"]))
+    hidden_risk_items = [row for row in hidden_risk_items if row["false_friend_count"] >= 2] or hidden_risk_items[:5]
+
+    if hidden_risk_items:
+        hidden_risk_card = {
+            "type": "hidden_risk",
+            "title": "Risco Oculto",
+            "icon": "🎭",
+            "link": "#perfis",
+            "empty": False,
+            "items": hidden_risk_items[:5],
+            "total": len(hidden_risk_items),
+        }
+    else:
+        hidden_risk_card = _empty_card(
+            "hidden_risk",
+            "Risco Oculto",
+            "🎭",
+            "#perfis",
+            "Sem falsos amigos relevantes no recorte atual.",
+        )
+
+    # 5) Negative impact.
+    impact_rows = [
+        (name, data) for name, data in received_impact.items()
+        if name in active_set and data.get("negative", 0) < 0
+    ]
+    impact_rows.sort(key=lambda pair: pair[1].get("negative", 0))
+    impact_items = [{
+        "name": name,
+        "negative": round(data.get("negative", 0), 1),
+        "positive": round(data.get("positive", 0), 1),
+        "net": round(data.get("negative", 0) + data.get("positive", 0), 1),
+        "avatar": avatars.get(name, ""),
+    } for name, data in impact_rows[:6]]
+
+    if impact_items:
+        impact_card = {
+            "type": "impacto_negativo",
+            "title": "Impacto Negativo",
+            "icon": "🎯",
+            "link": "evolucao.html#impacto",
+            "empty": False,
+            "items": impact_items,
+            "total": len(impact_rows),
+        }
+    else:
+        impact_card = _empty_card(
+            "impacto_negativo",
+            "Impacto Negativo",
+            "🎯",
+            "evolucao.html#impacto",
+            "Sem impacto negativo acumulado relevante entre os participantes ativos.",
+        )
+
+    cards = [sinc_card, blindados_card, vip_xepa_card, hidden_risk_card, impact_card]
+    return {"cards": cards}
+
+
 def _build_profile_header(name: str, latest: dict, latest_matrix: dict[tuple[str, str], str], active_names: list[str], avatars: dict[str, str]) -> dict[str, Any]:
     """Participant data lookup, reaction summaries, given/received details.
 
@@ -2419,16 +2688,19 @@ def build_index_data() -> dict | None:
     # 6. Curiosity lookups
     lookups = _build_curiosity_lookups(ctx)
 
-    # 7. Build profiles
+    # 7. Homepage insights (fixed hidden-dynamics lineup)
+    frontpage_insights = _build_frontpage_insights(ctx, lookups, hl)
+
+    # 8. Build profiles
     active = ctx["active"]
     profiles = []
     for p in sorted(active, key=lambda x: x["name"]):
         profiles.append(_build_profile_entry(p["name"], ctx, lookups))
 
-    # 8. Record-holder curiosities (post-processing)
+    # 9. Record-holder curiosities (post-processing)
     _build_record_holder_curiosities(profiles, ctx)
 
-    # 9. Eliminated list
+    # 10. Eliminated list
     eliminated_list = _build_eliminated_list(ctx)
 
     # Big Fone consensus analysis
@@ -2466,6 +2738,7 @@ def build_index_data() -> dict | None:
             "items": hl["highlights"],
             "cards": hl["cards"],
         },
+        "frontpage_insights": frontpage_insights,
         "contradictions": hl["pair_contradictions"],
         "overview": {
             "n_active": len(active),
