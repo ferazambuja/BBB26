@@ -1079,9 +1079,128 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 | Verify site rendering locally | `quarto render` (~3 min) |
 | Preview with hot reload | `quarto preview` |
 | Check snapshot dedup/integrity | `python scripts/audit_snapshots.py` |
+| Retake full layout screenshots (desktop+mobile, page-by-page verbose) | `./scripts/capture_layout_screenshots.sh --output-dir tmp/page_screenshots/<label>` |
+| Retake with fresh render first | `./scripts/capture_layout_screenshots.sh --render --output-dir tmp/page_screenshots/<label>` |
+| Install/update chromium once for captures | `./scripts/capture_layout_screenshots.sh --install-browser --output-dir tmp/page_screenshots/<label>` |
+| Capture one page with verbose diagnostics | `python scripts/capture_quarto_screenshots.py --profiles mobile --page index.html --verbose --output-dir tmp/page_screenshots/<label>` |
+| Capture mobile slices (top/mid/bottom) for long pages | `python scripts/capture_mobile_slices.py --output-dir tmp/page_screenshots/<label>-slices` |
 | Analyze capture timing | `python scripts/analyze_capture_timing.py` |
 | Update PROGRAMA_BBB26.md timeline | `python scripts/update_programa_doc.py` |
 | Scrape a GShow article | `python scripts/scrape_gshow.py "<url>" -o docs/scraped/` |
+
+---
+
+## Screenshot Pipeline (Layout/Plot Review)
+
+Use this pipeline when reviewing responsive layout, spacing, alignment, plots, and readability across all Quarto pages.
+
+### Prerequisites
+
+```bash
+pip install -r requirements.txt
+quarto --version
+npx --version
+```
+
+If needed, install Playwright chromium once:
+
+```bash
+./scripts/capture_layout_screenshots.sh --install-browser --output-dir tmp/page_screenshots/bootstrap
+```
+
+### Recommended run sequence
+
+1. Render site if data/templates changed:
+```bash
+quarto render
+```
+2. Run page-by-page full-page capture (desktop + mobile):
+```bash
+./scripts/capture_layout_screenshots.sh --output-dir tmp/page_screenshots/<label>
+```
+3. For very long pages or suspected mobile blank segments, run slice captures:
+```bash
+python scripts/capture_mobile_slices.py --output-dir tmp/page_screenshots/<label>-slices
+```
+4. Inspect manifests:
+```bash
+cat tmp/page_screenshots/<label>/manifest.json
+cat tmp/page_screenshots/<label>-slices/manifest.json
+```
+
+### Core commands
+
+Wrapper (recommended, page-by-page progress logs):
+
+```bash
+./scripts/capture_layout_screenshots.sh --render --output-dir tmp/page_screenshots/<label>
+```
+
+Direct script (fine-grained control):
+
+```bash
+python scripts/capture_quarto_screenshots.py \
+  --render \
+  --profiles desktop,mobile \
+  --output-dir tmp/page_screenshots/<label>
+```
+
+Single page debug (helps detect slow/hanging perception):
+
+```bash
+python scripts/capture_quarto_screenshots.py \
+  --profiles mobile \
+  --page index.html \
+  --verbose \
+  --fail-fast \
+  --output-dir tmp/page_screenshots/<label>
+```
+
+### Key flags
+
+- `--render`: render Quarto before captures.
+- `--install-browser`: wrapper option to install/update Playwright chromium.
+- `--profiles desktop,mobile`: choose capture profiles.
+- `--page <name>`: limit to a single page (`index.html`, `paredao.html`, etc.).
+- `--verbose`: print per-page command and stitch diagnostics.
+- `--fail-fast`: stop on first failure instead of finishing the whole run.
+- `--mobile-stitch-threshold N`: enable/disable stitched fallback for very tall mobile captures (`0` disables).
+- `--mobile-stitch-viewport-height N`: larger stitch viewport to reduce tile count/time.
+
+### Expected outputs
+
+- Full-page run:
+  - `tmp/page_screenshots/<label>/desktop/*.png`
+  - `tmp/page_screenshots/<label>/mobile/*.png`
+  - `tmp/page_screenshots/<label>/manifest.json`
+- Slice run:
+  - `tmp/page_screenshots/<label>-slices/*_{top,mid,bottom}.png`
+  - `tmp/page_screenshots/<label>-slices/manifest.json`
+
+`manifest.json` is the canonical evidence for counts, failures, and capture mode (`full-page`, `stitched-scroll`, etc.).
+
+### Troubleshooting
+
+- "Looks stuck" on long pages:
+  - Run one page first with `--page ... --verbose`.
+  - Use slice captures as primary review artifact for extremely tall pages.
+- Port in use:
+  - Script auto-selects another local port; no manual action needed.
+- Browser/tool missing:
+  - Use `--install-browser` and verify `npx` exists.
+- Blank/full-page artifacts on very tall mobile pages:
+  - Prefer slice captures and/or stitched fallback output reported in manifest.
+
+### Repository hygiene
+
+- Capture outputs under `tmp/page_screenshots/` are review artifacts and should not be committed.
+- Before commit/push:
+
+```bash
+git status --short
+```
+
+Ensure no `tmp/` capture artifacts are staged.
 
 ---
 
