@@ -14,7 +14,6 @@ execute:
 #| label: setup
 #| include: false
 
-import json
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -26,6 +25,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
     load_relations_scores, load_participants_index,
+    load_clusters_data, load_cluster_evolution,
 )
 
 require_clean_manual_events()
@@ -43,8 +43,7 @@ from scipy.spatial import ConvexHull
 # DATA LOADING — all precomputed by build_derived_data.py
 # ══════════════════════════════════════════════════════════════════════════════
 
-with open("data/derived/clusters_data.json") as f:
-    clusters = json.load(f)
+clusters = load_clusters_data()
 
 rel_data = load_relations_scores()
 
@@ -136,9 +135,9 @@ if n_contradictions > 0:
     highlights.append(f"**{n_contradictions}** contradições voto vs. queridômetro detectadas")
 
 print(f'''
-<div class="info-panel" style="border-left-color: #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
-<div style="font-weight: 700; margin-bottom: 0.5rem;">Destaques — Semana {current_week}</div>
-<ul style="margin: 0; padding-left: 1.2rem;">
+<div class="info-panel u-s050">
+<div class="u-s035">Destaques — Semana {current_week}</div>
+<ul class="u-s073">
 ''')
 for h in highlights:
     print(f"<li>{h}</li>")
@@ -179,12 +178,12 @@ else:
 print(f'''
 <div class="stat-row">
 
-<div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+<div class="stat-card u-s004">
 <div class="stat-value">{n_clusters}</div>
 <div class="stat-label">Comunidades</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+<div class="stat-card u-s120">
 <div class="stat-value">{overall_cohesion:+.2f}</div>
 <div class="stat-label">Coesão Média</div>
 </div>
@@ -194,19 +193,19 @@ print(f'''
 <div class="stat-label">Silhouette ({sil_quality})</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+<div class="stat-card u-s005">
 <div class="stat-value">{n_tensions}</div>
 <div class="stat-label">Tensões</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+<div class="stat-card u-s045">
 <div class="stat-value">{n_contradictions}</div>
 <div class="stat-label">Contradições</div>
 </div>
 
 </div>
 
-<p class="text-muted small" style="margin-top: 0.3rem;">Baseado em scores compostos (queridômetro + votos + eventos de poder + Sincerão + VIP). Referência: {ref_date}. Resolução Louvain: {resolution_val}.</p>
+<p class="text-muted small u-s038">Baseado em scores compostos (queridômetro + votos + eventos de poder + Sincerão + VIP). Referência: {ref_date}. Resolução Louvain: {resolution_val}.</p>
 ''')
 ```
 
@@ -378,13 +377,13 @@ for comm in communities:
     ext_rivalry = f"{worst_ext['name']} ({worst_ext['score']:+.2f})" if worst_ext else "—"
 
     card_html = f'<div style="background:#2a2a2a;border-left:4px solid {color};border-radius:8px;padding:1rem;margin:1rem 0;">'
-    card_html += f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">'
+    card_html += f'<div class="u-s367">'
     card_html += f'<div class="fs-xl" style="display:inline;font-weight:700;color:{color};">{name}</div>'
-    card_html += f' <div class="fs-base" style="display:inline;color:#aaa;margin-left:0.5rem;">{len(members)} membros · {comp_str}</div>'
-    card_html += f' <div class="fs-sm" style="display:inline;background:#333;padding:2px 8px;border-radius:12px;margin-left:auto;">Coesão: {cohesion:+.2f}</div>'
+    card_html += f' <div class="fs-base u-s375">{len(members)} membros · {comp_str}</div>'
+    card_html += f' <div class="fs-sm u-s374">Coesão: {cohesion:+.2f}</div>'
     card_html += '</div>'
-    card_html += f'<div style="margin:0.6rem 0;">{members_html}</div>'
-    card_html += f'<div class="fs-base" style="color:#ccc;">🤝 Aliança externa: <b>{ext_alliance}</b> &nbsp;·&nbsp; ⚔️ Rivalidade externa: <b>{ext_rivalry}</b></div>'
+    card_html += f'<div class="u-s440">{members_html}</div>'
+    card_html += f'<div class="fs-base u-s017">🤝 Aliança externa: <b>{ext_alliance}</b> &nbsp;·&nbsp; ⚔️ Rivalidade externa: <b>{ext_rivalry}</b></div>'
     card_html += '</div>'
     print(card_html)
 ```
@@ -473,7 +472,7 @@ Blocos de votação se tornam mais confiáveis com mais paredões. Os padrões a
 #| label: vote-caveat
 #| output: asis
 print(f'''
-<div class="info-panel fs-base" style="border-left-color: #3498db; border-radius: 8px; padding: 0.6rem 1rem; margin: 0.5rem 0;">
+<div class="info-panel fs-base u-s197">
 ℹ️ Dados baseados em <b>{n_paredoes} paredões</b> finalizados. Os blocos abaixo mostram quem votou no mesmo alvo em cada semana.
 </div>
 ''')
@@ -542,19 +541,19 @@ else:
         for v in voters:
             short = v.split()[0]
             if v in multi_bloc:
-                voter_tags.append(f'<b class="fs-md" style="background:#f39c12;color:#000;padding:1px 6px;border-radius:10px;font-weight:600;">{short}</b>')
+                voter_tags.append(f'<b class="fs-md u-s156">{short}</b>')
             else:
-                voter_tags.append(f'<b class="fs-md" style="background:#444;padding:1px 6px;border-radius:10px;font-weight:normal;">{short}</b>')
+                voter_tags.append(f'<b class="fs-md u-s147">{short}</b>')
 
-        bloc_html = f'<div style="background:#2a2a2a;border-left:4px solid #e74c3c;border-radius:8px;padding:0.8rem 1rem;margin:0.5rem 0;">'
-        bloc_html += f'<div style="font-weight:600;">Semana {week} — Alvo: <b style="color:#e74c3c;">{target}</b> <b style="color:#888;">({count} votos)</b></div>'
-        bloc_html += f'<div style="margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:4px;">{" ".join(voter_tags)}</div>'
+        bloc_html = f'<div class="u-s142">'
+        bloc_html += f'<div class="u-s066">Semana {week} — Alvo: <b class="u-s005">{target}</b> <b class="u-s009">({count} votos)</b></div>'
+        bloc_html += f'<div class="u-s416">{" ".join(voter_tags)}</div>'
         bloc_html += '</div>'
         print(bloc_html)
 
     if multi_bloc:
         multi_names = ", ".join(f"**{v.split()[0]}**" for v in sorted(multi_bloc))
-        print(f'\n<p class="text-muted small" style="margin-top: 0.5rem;">Votantes em múltiplos blocos (destaque amarelo): {multi_names}</p>')
+        print(f'\n<p class="text-muted small u-s072">Votantes em múltiplos blocos (destaque amarelo): {multi_names}</p>')
 ```
 
 ## Contradições Voto vs. Queridômetro
@@ -575,16 +574,16 @@ else:
     sorted_contras = sorted(contradictions_list, key=lambda c: -(c.get("queridometro", 0) - c.get("vote_weight", 0)))
 
     print('''
-<div class="scroll-x" style="margin: 1rem 0;">
+<div class="scroll-x u-s083">
 <table class="table-full fs-base">
 <thead>
-<tr style="border-bottom: 2px solid #555;">
-  <th class="tl" style="padding: 8px;">Ator</th>
-  <th class="tl" style="padding: 8px;">Alvo</th>
-  <th class="tc" style="padding: 8px;">Queridômetro</th>
-  <th class="tc" style="padding: 8px;">Voto</th>
-  <th class="tc" style="padding: 8px;">Tipo</th>
-  <th class="tc" style="padding: 8px;">Semana</th>
+<tr class="u-s196">
+  <th class="tl u-s020">Ator</th>
+  <th class="tl u-s020">Alvo</th>
+  <th class="tc u-s020">Queridômetro</th>
+  <th class="tc u-s020">Voto</th>
+  <th class="tc u-s020">Tipo</th>
+  <th class="tc u-s020">Semana</th>
 </tr>
 </thead>
 <tbody>
@@ -610,12 +609,12 @@ else:
         vcolor = "#e74c3c" if vote_w < 0 else "#2ecc71" if vote_w > 0 else "#888"
 
         print(f'''<tr class="sep-bottom" style="background: {row_color};">
-  <td style="padding: 6px 8px;">{actor}</td>
-  <td style="padding: 6px 8px;">{target}</td>
+  <td class="u-s043">{actor}</td>
+  <td class="u-s043">{target}</td>
   <td class="tc" style="padding: 6px 8px; color: {qcolor}; font-weight: 600;">{qscore:+.1f}</td>
   <td class="tc" style="padding: 6px 8px; color: {vcolor}; font-weight: 600;">{vote_w:+.1f}</td>
-  <td class="tc" style="padding: 6px 8px;">{kind}</td>
-  <td class="tc" style="padding: 6px 8px;">{week}</td>
+  <td class="tc u-s043">{kind}</td>
+  <td class="tc u-s043">{week}</td>
 </tr>''')
 
     print('</tbody></table></div>')
@@ -765,7 +764,7 @@ fig.show()
 
 top3 = sorted(polarization, key=lambda d: -d['std_received'])[:3]
 
-print('<div style="display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0;">')
+print('<div class="u-s049">')
 
 for entry in top3:
     name = entry['name']
@@ -778,12 +777,12 @@ for entry in top3:
     avatar_img_html = f'<img src="{avatar}" style="width:48px;height:48px;border-radius:50%;border:2px solid {cluster_colors[cl]};" />' if avatar else ""
 
     p_html = f'<div style="flex:1 1 250px;background:#2a2a2a;border-radius:8px;padding:1rem;border-top:3px solid {cluster_colors[cl]};">'
-    p_html += f'<div style="display:flex;gap:0.7rem;align-items:center;margin-bottom:0.5rem;">{avatar_img_html}<div><div style="font-weight:700;">{name}</div><div class="fs-md" style="color:#aaa;">{entry["grupo"]} · {cluster_names[cl]}</div></div></div>'
+    p_html += f'<div class="u-s364">{avatar_img_html}<div><div class="u-s387">{name}</div><div class="fs-md u-s001">{entry["grupo"]} · {cluster_names[cl]}</div></div></div>'
     p_html += f'<div class="fs-base">'
-    p_html += f'<div style="color:#aaa;">Dispersão: <b>{entry["std_received"]:.2f}</b> · Média: <b>{entry["avg_received"]:+.2f}</b></div>'
-    p_html += f'<div style="margin-top:0.3rem;">💚 Mais positivos: {love_str}</div>'
+    p_html += f'<div class="u-s001">Dispersão: <b>{entry["std_received"]:.2f}</b> · Média: <b>{entry["avg_received"]:+.2f}</b></div>'
+    p_html += f'<div class="u-s024">💚 Mais positivos: {love_str}</div>'
     p_html += f'<div>🔴 Mais negativos: {hate_str}</div>'
-    p_html += f'<div style="color:#f39c12;margin-top:0.2rem;">⚡ Contradições: {entry["contradictions"]}</div>'
+    p_html += f'<div class="u-s292">⚡ Contradições: {entry["contradictions"]}</div>'
     p_html += '</div></div>'
     print(p_html)
 
@@ -802,11 +801,8 @@ Acompanhamento de como a estrutura de comunidades mudou ao longo das semanas.
 # CLUSTER EVOLUTION — temporal tracking of community changes
 # ══════════════════════════════════════════════════════════════════════════════
 
-evolution_path = Path("data/derived/cluster_evolution.json")
-if evolution_path.exists():
-    with open(evolution_path) as f:
-        evolution = json.load(f)
-
+evolution = load_cluster_evolution()
+if evolution:
     timeline = evolution.get("timeline", [])
     all_transitions = evolution.get("all_transitions", [])
     most_mobile = evolution.get("most_mobile", [])
@@ -820,9 +816,9 @@ if evolution_path.exists():
         avg_sil = np.mean(silhouettes) if silhouettes else None
 
         print(f'''
-<div class="info-panel" style="border-left-color: #9b59b6; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
-<div style="font-weight: 700; margin-bottom: 0.5rem;">Resumo da Evolução ({n_weeks} semanas)</div>
-<div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+<div class="info-panel u-s198">
+<div class="u-s035">Resumo da Evolução ({n_weeks} semanas)</div>
+<div class="u-s307">
 <div><strong>{total_trans}</strong> transições detectadas</div>
 <div><strong>{avg_clusters:.1f}</strong> clusters em média</div>
 {"<div><strong>" + f"{avg_sil:.2f}" + "</strong> silhouette médio</div>" if avg_sil else ""}
@@ -898,23 +894,23 @@ if evolution_path.exists():
         if most_mobile:
             print("\n### 🔄 Participantes Mais Móveis\n")
             print("Quem mudou de cluster com mais frequência:\n")
-            print('<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">')
+            print('<div class="u-s305">')
             for item in most_mobile:
                 name = item["name"]
                 moves = item["moves"]
                 avatar_url = AVATARS.get(name, "")
                 if avatar_url:
-                    print(f'<div style="background:#2a2a2a;padding:8px 12px;border-radius:8px;display:flex;align-items:center;gap:8px;">')
-                    print(f'<img src="{avatar_url}" style="width:32px;height:32px;border-radius:50%;">')
+                    print(f'<div class="u-s144">')
+                    print(f'<img src="{avatar_url}" class="u-s490">')
                     print(f'<span><strong>{name.split()[0]}</strong> ({moves}×)</span></div>')
                 else:
-                    print(f'<span style="background:#2a2a2a;padding:4px 10px;border-radius:6px;margin:2px;"><strong>{name.split()[0]}</strong> ({moves}×)</span>')
+                    print(f'<span class="u-s143"><strong>{name.split()[0]}</strong> ({moves}×)</span>')
             print('</div>\n')
 
         # ── Transitions table ──
         if all_transitions:
             print("\n### 📋 Registro de Transições\n")
-            print('<table class="table table-sm fs-base" style="max-width: 600px;">')
+            print('<table class="table table-sm fs-base u-s093">')
             print('<thead><tr><th>Semana</th><th>Participante</th><th>De</th><th>Para</th></tr></thead>')
             print('<tbody>')
             for t in sorted(all_transitions, key=lambda x: (x.get("week", 0), x.get("name", "")))[:15]:

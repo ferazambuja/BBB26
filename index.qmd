@@ -14,7 +14,6 @@ execute:
 #| label: setup
 #| include: false
 
-import json
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -27,7 +26,7 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
-    load_paredoes_raw,
+    load_paredoes_raw, load_index_data, load_game_timeline,
     avatar_html as _avatar_html,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
@@ -38,18 +37,12 @@ from data_utils import (
 require_clean_manual_events()
 setup_bbb_dark_theme()
 
-# Diretórios
-DERIVED_DIR = Path("data/derived")
-INDEX_DATA_FILE = DERIVED_DIR / "index_data.json"
 ```
 
 ```{python}
 #| label: load-data
 
-index_data = {}
-if INDEX_DATA_FILE.exists():
-    with open(INDEX_DATA_FILE, encoding="utf-8") as f:
-        index_data = json.load(f)
+index_data = load_index_data()
 
 if not index_data:
     raise RuntimeError("index_data.json não encontrado. Execute scripts/build_derived_data.py")
@@ -233,7 +226,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
 <table class="cross-table">
 <thead>
 <tr>
-<th style="background: #222;">→ deu / ↓ recebeu</th>
+<th class="u-s001">→ deu / ↓ recebeu</th>
 ''')
 
     # Header row with receiver names
@@ -246,7 +239,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
         html.append(f'<tr><th>{short_names[i]}</th>')
         for j, receiver in enumerate(active_names):
             if giver == receiver:
-                html.append('<td style="background: #333; color: #666;">—</td>')
+                html.append('<td class="u-s117">—</td>')
             else:
                 rxn = matrix[i][j] if i < len(matrix) and j < len(matrix[i]) else ""
                 emoji = REACTION_EMOJI.get(rxn, '?') if rxn else '?'
@@ -399,10 +392,8 @@ Linha do tempo dos eventos da temporada — próximos eventos e histórico recen
 #| label: timeline-events-index
 #| output: asis
 
-timeline_path = Path("data/derived/game_timeline.json")
-if timeline_path.exists():
-    with open(timeline_path, encoding="utf-8") as f:
-        timeline_events = json.load(f).get("events", [])
+timeline_events = load_game_timeline().get("events", [])
+if timeline_events:
     print(render_cronologia_html(timeline_events))
 else:
     print("<p class='text-muted'>Nenhum evento na cronologia.</p>")
@@ -425,24 +416,23 @@ def av(name, size=48, border_color="#555"):
 def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
     """Card header with icon, title, optional link, badge, data source tag, and subtitle."""
     title_html = title
-    link_html = f' <a href="{link}" class="fs-xs" style="color:#888;text-decoration:none;vertical-align:middle;">ver mais ↗</a>' if link else ""
-    badge_html = f' <span class="fs-xs" style="background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:10px;font-weight:500;">{badge}</span>' if badge else ""
-    source_html = f' <span class="fs-2xs" style="color:#888;padding:1px 6px;border:1px solid #555;border-radius:4px;vertical-align:middle;">{source_tag}</span>' if source_tag else ""
-    subtitle_html = f'<div class="fs-sm" style="color:#999;margin-top:2px;line-height:1.3;">{subtitle}</div>' if subtitle else ""
-    return (f'<div style="margin-bottom:0.6rem;">'
-            f'<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">'
+    link_html = f' <a href="{link}" class="fs-xs u-s254">ver mais ↗</a>' if link else ""
+    badge_html = f' <span class="fs-xs u-s187">{badge}</span>' if badge else ""
+    source_html = f' <span class="fs-2xs u-s253">{source_tag}</span>' if source_tag else ""
+    subtitle_html = f'<div class="fs-sm u-s258">{subtitle}</div>' if subtitle else ""
+    return (f'<div class="u-s073">'
+            f'<div class="u-s333">'
             f'<span class="fs-2xl">{icon}</span>'
-            f'<span class="fs-base" style="font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.03em;">{title_html}</span>'
+            f'<span class="fs-base u-s392">{title_html}</span>'
             f'{badge_html}{source_html}{link_html}'
             f'</div>'
             f'{subtitle_html}</div>')
 
 def stat_chip(value, label, color="#888"):
     """Small stat chip."""
-    return (f'<span style="display:inline-flex;flex-direction:column;align-items:center;'
-            f'background:rgba(255,255,255,0.06);padding:0.3rem 0.6rem;border-radius:8px;min-width:55px;">'
+    return (f'<span class="u-s373">'
             f'<span class="fs-xl" style="font-weight:700;color:{color};">{value}</span>'
-            f'<span class="fs-2xs" style="color:#999;text-transform:uppercase;">{label}</span></span>')
+            f'<span class="fs-2xs u-s259">{label}</span></span>')
 
 def progress_bar(value, max_val, color="#3498db", height=6):
     """Mini progress bar."""
@@ -452,7 +442,7 @@ def progress_bar(value, max_val, color="#3498db", height=6):
 
 
 if not hl_cards:
-    print(f'''<div class="dark-card tc" style="padding:1.5rem;margin:1rem 0;color:#aaa;">
+    print(f'''<div class="dark-card tc u-s468">
 📅 Primeiro dia de dados — sem comparações disponíveis ainda.</div>''')
 else:
     # Extract context card data for the header
@@ -462,17 +452,17 @@ else:
     ctx_active = ctx.get("active", 0)
 
     # Section header with context stats
-    print(f'''<div style="margin:1.5rem 0 1rem 0;">
-<h2 class="fs-2xl" style="margin:0 0 0.2rem 0;color:#fff;">📋 Destaques do Dia <span class="fs-base" style="color:#888;font-weight:400;">({date_display_pt})</span></h2>
-<div style="height:3px;background:linear-gradient(90deg,#f1c40f,#e74c3c,#3498db,#2ecc71);border-radius:2px;margin-bottom:0.4rem;"></div>
-<div class="fs-base" style="display:flex;gap:1.2rem;flex-wrap:wrap;color:#999;">
+    print(f'''<div class="u-s442">
+<h2 class="fs-2xl u-s435">📋 Destaques do Dia <span class="fs-base u-s250">({date_display_pt})</span></h2>
+<div class="u-s399"></div>
+<div class="fs-base u-s365">
 <span>📅 <b class="text-light">Semana {ctx_week}</b></span>
 <span>{ctx_days} dias de dados</span>
 <span>{ctx_active} participantes ativos</span>
 </div>
 </div>''')
 
-    print('<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:0.8rem;margin-bottom:1.5rem;">')
+    print('<div class="u-s371">')
 
     for card in hl_cards:
         ctype = card.get("type")
@@ -498,17 +488,17 @@ else:
             medals = ["🥇", "🥈", "🥉", "4º", "5º", "6º"]
             medal_borders = ["#f1c40f", "#c0c0c0", "#cd7f32", "#27ae60", "#27ae60", "#27ae60"]
             podium_html = '<div>'
-            podium_html += '<div class="fs-2xs" style="color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬆ Mais queridos</div>'
-            podium_html += '<div style="display:flex;flex-direction:column;gap:4px;">'
+            podium_html += '<div class="fs-2xs u-s060">⬆ Mais queridos</div>'
+            podium_html += '<div class="u-s065">'
             for i, p in enumerate(podium[:6]):
                 name = p["name"]
                 score = p["score"]
                 border = medal_borders[i] if i < len(medal_borders) else "#27ae60"
                 label = medals[i] if i < len(medals) else f"{i+1}º"
                 podium_html += (
-                    f'<div style="display:flex;align-items:center;gap:5px;background:rgba(39,174,96,0.08);padding:4px 10px;border-radius:8px;">'
+                    f'<div class="u-s344">'
                     f'{av(name, 42, border)}'
-                    f'<span class="fs-md" style="color:#27ae60;font-weight:700;">{label} {name.split()[0]} {score:+.1f}</span>'
+                    f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
                     f'</div>'
                 )
             podium_html += '</div></div>'
@@ -517,14 +507,14 @@ else:
             bottom_html = ""
             if bottom3:
                 bottom_html = '<div>'
-                bottom_html += '<div class="fs-2xs" style="color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">⬇ Menos queridos</div>'
-                bottom_html += '<div style="display:flex;flex-direction:column;gap:4px;">'
+                bottom_html += '<div class="fs-2xs u-s060">⬇ Menos queridos</div>'
+                bottom_html += '<div class="u-s065">'
                 for p in bottom3[:6]:
                     name = p["name"]
                     score = p["score"]
                     score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
                     bottom_html += (
-                        f'<div style="display:flex;align-items:center;gap:5px;background:rgba(231,76,60,0.08);padding:4px 10px;border-radius:8px;">'
+                        f'<div class="u-s340">'
                         f'{av(name, 42, "#e74c3c")}'
                         f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                         f'</div>'
@@ -537,17 +527,17 @@ else:
             mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
             if mup_list or mdown_list:
                 movers_html = '<div>'
-                movers_html += '<div class="fs-2xs" style="color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.3rem;">📅 Variação vs ontem</div>'
-                movers_html += '<div style="display:flex;flex-direction:column;gap:4px;">'
+                movers_html += '<div class="fs-2xs u-s060">📅 Variação vs ontem</div>'
+                movers_html += '<div class="u-s065">'
                 for mu in mup_list:
                     movers_html += (
-                        f'<div style="display:flex;align-items:center;gap:5px;background:rgba(39,174,96,0.1);padding:4px 10px;border-radius:8px;">'
+                        f'<div class="u-s345">'
                         f'{av(mu["name"], 42, "#27ae60")}'
-                        f'<span class="fs-md" style="color:#27ae60;font-weight:700;">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
+                        f'<span class="fs-md u-s026">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
                         f'</div>')
                 for md in mdown_list:
                     movers_html += (
-                        f'<div style="display:flex;align-items:center;gap:5px;background:rgba(231,76,60,0.1);padding:4px 10px;border-radius:8px;">'
+                        f'<div class="u-s341">'
                         f'{av(md["name"], 42, "#e74c3c")}'
                         f'<span class="text-neg fs-md">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
                         f'</div>')
@@ -556,7 +546,7 @@ else:
             # 3-column grid on desktop, stacks on mobile
             print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
 {header}
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:0.6rem;align-items:start;">
+<div class="u-s370">
 {podium_html}
 {bottom_html}
 {movers_html}
@@ -576,17 +566,17 @@ else:
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Reações do queridômetro que mudaram de ontem para hoje. Melhorias = score subiu, pioras = score caiu.")}
-<div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.6rem;">
-<span class="fs-4xl" style="font-weight:800;color:#fff;">{total}</span>
-<span class="fs-base" style="color:#aaa;">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
+<div class="u-s332">
+<span class="fs-4xl u-s393">{total}</span>
+<span class="fs-base u-s001">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
-<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+<div class="u-s361">
 {stat_chip(imp, "melhorias", "#27ae60")}
 {stat_chip(wor, "pioras", "#e74c3c")}
 {stat_chip(lat, "laterais", "#888")}
 </div>
-<div class="fs-md" style="display:flex;gap:0.6rem;color:#aaa;">
-<span style="color:#27ae60;">+{hg} ❤️ ganhados</span> <span style="color:#e74c3c;">-{hl_lost} ❤️ perdidos</span>
+<div class="fs-md u-s362">
+<span class="u-s054">+{hg} ❤️ ganhados</span> <span class="u-s005">-{hl_lost} ❤️ perdidos</span>
 </div>
 </div>''')
 
@@ -606,7 +596,7 @@ else:
                     source_tag="📅 Ontem → Hoje",
                     subtitle="Trocas extremas: de ❤️ para negativo ou vice-versa. Quanto maior o salto, mais dramática."
                 )
-            pairs_html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.4rem;">'
+            pairs_html = '<div class="u-s358">'
             for it in items[:4]:
                 g = it["giver"]
                 r = it["receiver"]
@@ -622,17 +612,16 @@ else:
                     g_color = "#e74c3c" if new_e == "❤️" else "#666"
                     r_color = "#27ae60" if new_e == "❤️" else "#e74c3c"
                 pairs_html += (
-                    f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
-                    f'padding:5px 8px;border-radius:8px;" title="{g} → {r}">'
+                    f'<div class="u-s342" title="{g} → {r}">'
                     f'{av(g, 42, g_color)}'
-                    f'<span class="fs-md" style="color:#ccc;">{label}</span>'
+                    f'<span class="fs-md u-s017">{label}</span>'
                     f'{av(r, 42, r_color)}'
                     f'</div>'
                 )
             extra = total - 4
             if extra > 0:
                 link = card.get("link", "#")
-                pairs_html += f'<a href="{link}" class="fs-sm" style="display:flex;align-items:center;padding:4px 10px;background:rgba(255,255,255,0.08);border-radius:8px;color:#aaa;text-decoration:none;">+{extra} mais ↗</a>'
+                pairs_html += f'<a href="{link}" class="fs-sm u-s349">+{extra} mais ↗</a>'
             pairs_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
@@ -644,21 +633,21 @@ else:
         elif ctype == "sincerao":
             items = card.get("items", [])
             total = card.get("total", len(items))
-            rows_html = '<div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.3rem;">'
+            rows_html = '<div class="u-s354">'
             for it in items[:3]:
                 ator = it["ator"]
                 alvo = it["alvo"]
                 tipo = it.get("tipo_label", it.get("tipo", "?"))
                 emoji = it.get("emoji", "?")
                 rows_html += (
-                    f'<div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.05);padding:5px 8px;border-radius:8px;">'
+                    f'<div class="u-s346">'
                     f'{av(ator, 42, "#e67e22")}'
-                    f'<span class="fs-md" style="color:#ccc;">{ator.split()[0]}</span>'
-                    f'<span class="fs-xs" style="color:#888;">disse <b style="color:#e67e22;">{tipo}</b> mas dá</span>'
+                    f'<span class="fs-md u-s017">{ator.split()[0]}</span>'
+                    f'<span class="fs-xs u-s009">disse <b class="u-s037">{tipo}</b> mas dá</span>'
                     f'<span class="fs-xl">{emoji}</span>'
-                    f'<span class="fs-xs" style="color:#888;">para</span>'
+                    f'<span class="fs-xs u-s009">para</span>'
                     f'{av(alvo, 42, "#27ae60")}'
-                    f'<span class="fs-md" style="color:#ccc;">{alvo.split()[0]}</span>'
+                    f'<span class="fs-md u-s017">{alvo.split()[0]}</span>'
                     f'</div>'
                 )
             rows_html += '</div>'
@@ -671,12 +660,12 @@ else:
         # ── 🗳️ Paredão ──
         elif ctype == "paredao":
             nominees = card.get("nominees", [])
-            avatars_html = '<div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.4rem;justify-content:center;">'
+            avatars_html = '<div class="u-s363">'
             for name in nominees:
                 avatars_html += (
-                    f'<div style="display:flex;flex-direction:column;align-items:center;">'
+                    f'<div class="u-s057">'
                     f'{av(name, 60, "#e74c3c")}'
-                    f'<span class="fs-xs" style="color:#ccc;margin-top:3px;max-width:70px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{name.split()[0]}</span>'
+                    f'<span class="fs-xs u-s270">{name.split()[0]}</span>'
                     f'</div>'
                 )
             avatars_html += '</div>'
@@ -690,28 +679,28 @@ else:
             items = card.get("items", [])
             total = card.get("total", len(items))
             worst_neg = abs(items[0]["negative"]) if items else 1
-            rows_html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.3rem;">'
+            rows_html = '<div class="u-s058">'
             for it in items[:4]:
                 name = it["name"]
                 neg = it["negative"]
                 net = it["net"]
                 bar_pct = min(100, abs(neg) / worst_neg * 100)
                 rows_html += (
-                    f'<div style="display:flex;align-items:center;gap:8px;">'
+                    f'<div class="u-s056">'
                     f'{av(name, 42, "#c0392b")}'
-                    f'<div style="flex:1;min-width:0;">'
-                    f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-                    f'<span class="fs-md" style="font-weight:600;color:#fff;">{name.split()[0]}</span>'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'<span class="fs-md u-s068">{name.split()[0]}</span>'
                     f'<span class="text-neg fs-sm">{neg:.1f}</span>'
                     f'</div>'
-                    f'<div style="background:rgba(255,255,255,0.08);border-radius:3px;height:5px;margin-top:2px;overflow:hidden;">'
+                    f'<div class="u-s014">'
                     f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
                     f'</div>'
                     f'</div></div>'
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<div class="tc fs-sm" style="color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+                rows_html += f'<div class="tc fs-sm u-s009"><a href="{card.get("link", "#")}" class="u-s035">+{extra} mais ↗</a></div>'
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto negativo acumulado por eventos de poder, votos, Sincerão e VIP. Quem mais sofre ao longo do jogo.")}
@@ -722,7 +711,7 @@ else:
         elif ctype == "vulnerability":
             items = card.get("items", [])
             total = card.get("total", len(items))
-            rows_html = '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.3rem;">'
+            rows_html = '<div class="u-s058">'
             for it in items[:4]:
                 name = it["name"]
                 count = it["count"]
@@ -733,23 +722,23 @@ else:
                 enemy_avatars = ''.join(av(e, 34, level_color) for e in enemies[:4])
                 extra_enemies = len(enemies) - 4
                 rows_html += (
-                    f'<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:8px;">'
+                    f'<div class="u-s348">'
                     f'{av(name, 42, level_color)}'
-                    f'<div style="flex:1;min-width:0;">'
-                    f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
-                    f'<span class="fs-base" style="font-weight:600;color:#fff;">{name.split()[0]}</span>'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s347">'
+                    f'<span class="fs-base u-s068">{name.split()[0]}</span>'
                     f'<span class="fs-2xs" style="padding:2px 6px;border-radius:4px;background:{level_color};color:#fff;font-weight:700;">{level_label}</span>'
                     f'<span class="fs-sm" style="color:{level_color};font-weight:600;">{count} falsos amigos</span>'
                     f'</div>'
-                    f'<div style="display:flex;gap:2px;margin-top:3px;align-items:center;">'
-                    f'<span class="fs-2xs" style="color:#888;margin-right:4px;">Quem:</span>'
+                    f'<div class="u-s366">'
+                    f'<span class="fs-2xs u-s251">Quem:</span>'
                     f'{enemy_avatars}'
                     f'{f"<span class=&quot;fs-2xs&quot; style=&quot;color:#888;&quot;>+{extra_enemies}</span>" if extra_enemies > 0 else ""}'
                     f'</div></div></div>'
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<div class="tc fs-sm" style="color:#888;"><a href="{card.get("link", "#")}" style="color:#aaa;text-decoration:none;">+{extra} mais ↗</a></div>'
+                rows_html += f'<div class="tc fs-sm u-s009"><a href="{card.get("link", "#")}" class="u-s035">+{extra} mais ↗</a></div>'
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Composto", subtitle="Falsos amigos: dá ❤️ a quem tem score negativo contra si (queridômetro + votos + eventos). Risco de voto surpresa.")}
@@ -763,7 +752,7 @@ else:
             strong_count = card.get("strong_count", 0)
             severity_badge = f"{strong_count} graves" if strong_count else None
 
-            rows_html = '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.3rem;">'
+            rows_html = '<div class="u-s357">'
             for it in items[:4]:
                 g = it["giver"]
                 r = it["receiver"]
@@ -775,8 +764,8 @@ else:
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
                     f'padding:5px 8px;border-radius:8px;border-left:3px solid {sev_border};">'
                     f'{av(g, 42, sev_border)}'
-                    f'<div style="display:flex;flex-direction:column;align-items:center;">'
-                    f'<span class="fs-xs" style="color:#aaa;">{streak}d ❤️</span>'
+                    f'<div class="u-s057">'
+                    f'<span class="fs-xs u-s001">{streak}d ❤️</span>'
                     f'<span class="fs-base">→ {new_e}</span>'
                     f'</div>'
                     f'{av(r, 42, sev_border)}'
@@ -785,7 +774,7 @@ else:
                 )
             extra = total - 4
             if extra > 0:
-                rows_html += f'<a href="{card.get("link", "#")}" class="fs-sm" style="display:flex;align-items:center;padding:5px 10px;background:rgba(255,255,255,0.06);border-radius:8px;color:#aaa;text-decoration:none;">+{extra} mais ↗</a>'
+                rows_html += f'<a href="{card.get("link", "#")}" class="fs-sm u-s350">+{extra} mais ↗</a>'
             rows_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
@@ -798,13 +787,13 @@ else:
             podium = card.get("podium", [])
             leader = card.get("leader", "?")
             _medals3 = ["🥇", "🥈", "🥉"]
-            strat_html = '<div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">'
+            strat_html = '<div class="u-s360">'
             for i, p in enumerate(podium[:3]):
                 strat_html += (
-                    f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:8px;">'
+                    f'<div class="u-s343">'
                     f'{av(p["name"], 42, "#9b59b6")}'
-                    f'<span class="fs-md" style="color:#ccc;">{_medals3[i]} {p["name"].split()[0]}</span>'
-                    f'<span class="fs-md" style="color:#9b59b6;font-weight:700;">{p["score"]:+.2f}</span>'
+                    f'<span class="fs-md u-s017">{_medals3[i]} {p["name"].split()[0]}</span>'
+                    f'<span class="fs-md u-s261">{p["score"]:+.2f}</span>'
                     f'</div>'
                 )
             strat_html += '</div>'
@@ -825,7 +814,7 @@ else:
     if saldo_profiles:
         top_n = min(5, len(saldo_profiles))
         max_bal = max(abs(p.get("balance", 0)) for p in saldo_profiles) or 1
-        saldo_rows = '<div style="display:flex;flex-direction:column;gap:4px;margin-top:0.3rem;">'
+        saldo_rows = '<div class="u-s355">'
         medals = ["🥇", "🥈", "🥉", "4º", "5º"]
         for i, p in enumerate(saldo_profiles[:top_n]):
             name = p["name"]
@@ -836,20 +825,20 @@ else:
             label = medals[i] if i < len(medals) else f"{i+1}º"
             bar_pct = min(100, abs(bal) / max_bal * 100) if max_bal > 0 else 0
             saldo_rows += (
-                f'<div style="display:flex;align-items:center;gap:8px;">'
+                f'<div class="u-s056">'
                 f'{av(name, 42, cor)}'
-                f'<div style="flex:1;min-width:0;">'
-                f'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-                f'<span class="fs-md" style="font-weight:600;color:#fff;">{label} {name.split()[0]}</span>'
+                f'<div class="u-s066">'
+                f'<div class="u-s059">'
+                f'<span class="fs-md u-s068">{label} {name.split()[0]}</span>'
                 f'<span class="fs-base" style="color:{bal_color};font-weight:700;">{bal:,}</span>'
                 f'</div>'
-                f'<div style="background:rgba(255,255,255,0.08);border-radius:3px;height:5px;margin-top:2px;overflow:hidden;">'
+                f'<div class="u-s014">'
                 f'<div style="width:{bar_pct:.0f}%;height:100%;background:{bal_color};border-radius:3px;"></div>'
                 f'</div>'
                 f'</div></div>'
             )
         saldo_rows += '</div>'
-        print(f'''<div class="info-panel" style="border-left-color:#f1c40f;">
+        print(f'''<div class="info-panel u-s199">
 {card_header("💰", "Saldo de Estalecas", "evolucao.html#saldo", source_tag="📸 Dado do dia", subtitle="Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.")}
 {saldo_rows}
 </div>''')
@@ -867,22 +856,22 @@ if paredao_names:
     status_color = "#e74c3c"
     status_icon = "🗳️"
     names_display = ", ".join(sorted(paredao_names))
-    detail_html = f'<div class="fs-lg" style="color: #ccc;">Emparedados: <strong>{names_display}</strong></div>'
+    detail_html = f'<div class="fs-lg u-s022">Emparedados: <strong>{names_display}</strong></div>'
 else:
     status_text = "Aguardando formação"
     status_color = "#6c757d"
     status_icon = "⏳"
-    detail_html = '<div class="fs-base" style="color: #888;">Nenhum paredão ativo no momento</div>'
+    detail_html = '<div class="fs-base u-s020">Nenhum paredão ativo no momento</div>'
 
 print(f'''
 <div class="info-panel" style="padding: 1rem 1.2rem; margin: 1rem 0 1.5rem 0; border-left-color: {status_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
 <div>
-<div class="fs-xl" style="font-weight: bold; color: #fff; margin-bottom: 0.3rem;">
+<div class="fs-xl u-s385">
 {status_icon} Paredão: <span style="color: {status_color};">{status_text}</span>
 </div>
 {detail_html}
-<div class="fs-base" style="color: #999; margin-top: 0.4rem;">
-<a href="paredao.html" style="color:#3498db;">Paredão atual</a> · <a href="paredoes.html" style="color:#3498db;">Arquivo de paredões</a>
+<div class="fs-base u-s217">
+<a href="paredao.html" class="u-s027">Paredão atual</a> · <a href="paredoes.html" class="u-s027">Arquivo de paredões</a>
 </div>
 </div>
 <a href="paredao.html" class="fs-base" style="background: {status_color}; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 500; white-space: nowrap;">
@@ -1064,12 +1053,12 @@ def render_mobile_queridometro_summary(today_rows, change_week):
     week_up_html = _render_list(
         week_up,
         "Sem subidas relevantes na semana.",
-        lambda r: f"<span style='color:#27ae60;'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>"
+        lambda r: f"<span class='u-s054'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>"
     )
     week_down_html = _render_list(
         week_down,
         "Sem quedas relevantes na semana.",
-        lambda r: f"<span style='color:#e74c3c;'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>"
+        lambda r: f"<span class='u-s005'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>"
     )
 
     pressure_html = _render_list(
@@ -1087,13 +1076,13 @@ def render_mobile_queridometro_summary(today_rows, change_week):
         f'<div class="ranking-mobile-kpi"><span class="v">{kpi_neutros}</span><span class="l">zona cinza</span></div>\n'
         f'<div class="ranking-mobile-kpi"><span class="v">{kpi_alerta}</span><span class="l">alerta (≤-2)</span></div>\n'
         '</div>\n'
-        '<p class="ranking-mobile-note" style="margin-top:0.5rem;">Resumo diferente do card do topo: foco em risco e concentração, não em pódio.</p>\n'
+        '<p class="ranking-mobile-note u-s013">Resumo diferente do card do topo: foco em risco e concentração, não em pódio.</p>\n'
         '</div>\n'
         '<div class="ranking-mobile-card">\n'
         '<h4>🗓️ Viradas da semana</h4>\n'
-        '<p class="ranking-mobile-note" style="margin:0;">Maior alta</p>\n'
+        '<p class="ranking-mobile-note u-s011">Maior alta</p>\n'
         f'{week_up_html}\n'
-        '<p class="ranking-mobile-note" style="margin:0.45rem 0 0;">Maior queda</p>\n'
+        '<p class="ranking-mobile-note u-s089">Maior queda</p>\n'
         f'{week_down_html}\n'
         '</div>\n'
         '<div class="ranking-mobile-card">\n'
@@ -1102,7 +1091,7 @@ def render_mobile_queridometro_summary(today_rows, change_week):
         '</div>\n'
         '<div class="ranking-mobile-cta ranking-mobile-note">\n'
         'Gráfico completo no desktop ou na página dedicada:\n'
-        '<a href="evolucao.html#sentimento" style="color:#7cb7ff;">ver evolução do queridômetro ↗</a>\n'
+        '<a href="evolucao.html#sentimento" class="u-s059">ver evolução do queridômetro ↗</a>\n'
         '</div>\n'
         '</div>'
     )
@@ -1155,7 +1144,7 @@ def render_mobile_strategic_summary(today_rows, strategic_rows):
         hidden_risk,
         "Sem risco oculto forte agora.",
         lambda r: (
-            f"estratégico <span style='color:#e74c3c;'>{_fmt_signed(r.get('score', 0), 2)}</span> "
+            f"estratégico <span class='u-s005'>{_fmt_signed(r.get('score', 0), 2)}</span> "
             f"(queridômetro {r.get('queridometro_score', 0):+.1f})"
         )
     )
@@ -1163,7 +1152,7 @@ def render_mobile_strategic_summary(today_rows, strategic_rows):
         hidden_power,
         "Sem influência subestimada detectada.",
         lambda r: (
-            f"estratégico <span style='color:#27ae60;'>{_fmt_signed(r.get('score', 0), 2)}</span> "
+            f"estratégico <span class='u-s054'>{_fmt_signed(r.get('score', 0), 2)}</span> "
             f"(queridômetro {r.get('queridometro_score', 0):+.1f})"
         )
     )
@@ -1172,7 +1161,7 @@ def render_mobile_strategic_summary(today_rows, strategic_rows):
         '<div class="ranking-mobile-summary">\n'
         '<div class="ranking-mobile-card">\n'
         '<h4>🧭 Desalinhamento de leitura</h4>\n'
-        '<p class="ranking-mobile-note" style="margin:0;">Quem muda mais de posição entre popularidade e jogo.</p>\n'
+        '<p class="ranking-mobile-note u-s011">Quem muda mais de posição entre popularidade e jogo.</p>\n'
         f'{gap_html}\n'
         '</div>\n'
         '<div class="ranking-mobile-card">\n'
@@ -1185,7 +1174,7 @@ def render_mobile_strategic_summary(today_rows, strategic_rows):
         '</div>\n'
         '<div class="ranking-mobile-cta ranking-mobile-note">\n'
         'Gráfico estratégico completo:\n'
-        '<a href="evolucao.html#estrategico" style="color:#7cb7ff;">abrir evolução estratégica ↗</a>\n'
+        '<a href="evolucao.html#estrategico" class="u-s059">abrir evolução estratégica ↗</a>\n'
         '</div>\n'
         '</div>'
     )
@@ -1259,15 +1248,15 @@ def render_mobile_evolution_summary(data_rows, score_key, section_title, cta_hre
         '<div class="ranking-mobile-summary">\n'
         '<div class="ranking-mobile-card">\n'
         f'<h4>📈 {section_title} — últimos 7 dias</h4>\n'
-        f'<p class="ranking-mobile-note" style="margin:0;">Janela: {date_window}</p>\n'
-        '<p class="ranking-mobile-note" style="margin:0.35rem 0 0;">Subidas</p>\n'
+        f'<p class="ranking-mobile-note u-s011">Janela: {date_window}</p>\n'
+        '<p class="ranking-mobile-note u-s439">Subidas</p>\n'
         f'{up_html}\n'
-        '<p class="ranking-mobile-note" style="margin:0.45rem 0 0;">Quedas</p>\n'
+        '<p class="ranking-mobile-note u-s089">Quedas</p>\n'
         f'{down_html}\n'
         '</div>\n'
         '<div class="ranking-mobile-cta ranking-mobile-note">\n'
         'Série completa:\n'
-        f'<a href="{cta_href}" style="color:#7cb7ff;">abrir gráficos detalhados ↗</a>\n'
+        f'<a href="{cta_href}" class="u-s059">abrir gráficos detalhados ↗</a>\n'
         '</div>\n'
         '</div>'
     )
@@ -1361,7 +1350,7 @@ if strategic_rows:
     if divergences:
         divergences.sort(key=lambda x: -abs(x[3]))
         print("<details class='ranking-desktop-only'><summary><strong>Maiores divergências entre rankings</strong> (≥3 posições)</summary>")
-        print("<div class='table-md' style='margin-top: 0.5rem;'>")
+        print("<div class='table-md u-s072'>")
         for name, qr, sr, delta, cs, qs in divergences:
             if delta > 0:
                 icon = "📈"
@@ -1371,7 +1360,7 @@ if strategic_rows:
                 icon = "📉"
                 desc = f"cai {abs(delta)} posições"
                 color = "#e74c3c"
-            print(f"<div class='sep-bottom' style='padding: 0.3rem 0;'>"
+            print(f"<div class='sep-bottom u-s019'>"
                   f"{icon} <strong>{name}</strong>: Queridômetro #{qr} ({qs:+.1f}) → "
                   f"Estratégico #{sr} ({cs:+.2f}) — "
                   f"<span style='color: {color};'>{desc}</span></div>")
@@ -1575,7 +1564,7 @@ fig_evo_q = make_evolution_chart(
 )
 if fig_evo_q:
     fig_evo_q.show()
-    print("<p class='text-muted small' style='margin-top: 0.3rem;'>Score = soma ponderada de reações recebidas (❤️ +1, leves −0.5, fortes −1). Use os botões acima para alternar entre presets.</p>")
+    print("<p class='text-muted small u-s038'>Score = soma ponderada de reações recebidas (❤️ +1, leves −0.5, fortes −1). Use os botões acima para alternar entre presets.</p>")
 else:
     print("<p class='text-muted'>Dados insuficientes para gráfico de evolução.</p>")
 ```
@@ -1602,7 +1591,7 @@ fig_evo_s = make_evolution_chart(
 )
 if fig_evo_s:
     fig_evo_s.show()
-    print(f"<p class='text-muted small' style='margin-top: 0.3rem;'>{ANALYSIS_DESCRIPTIONS['strategic_evolution_caption']}</p>")
+    print(f"<p class='text-muted small u-s038'>{ANALYSIS_DESCRIPTIONS['strategic_evolution_caption']}</p>")
 else:
     print("<p class='text-muted'>Dados de relações não disponíveis para evolução estratégica.</p>")
 ```
@@ -1643,11 +1632,11 @@ print(make_reaction_summary_html(summary_data, collapsed_rows=5))
 print(ANALYSIS_DESCRIPTIONS["profiles_intro"])
 ```
 
-<details style="margin: 1.5rem 0;">
-<summary class="info-panel" style="cursor: pointer; color: #fff; font-weight: 600; padding: 0.9rem 1.2rem; border-left-color: #17a2b8;">
+<details class="u-s433">
+<summary class="info-panel u-s296">
 ℹ️ Como calculamos Vulnerabilidade, Impacto Negativo e Hostilidade Gerada (clique para expandir)
 </summary>
-<div class="info-panel" style="padding: 1.2rem; margin-top: 0.8rem; border-left-color: #17a2b8;">
+<div class="info-panel u-s456">
 
 **🎯 Vulnerabilidade a Votos Surpresa**
 
@@ -1926,7 +1915,7 @@ def render_actor_avatars(actors, border_color="#666", color_lookup=None, size=24
 
 def make_event_chips(events, border_color, color_lookup=None):
     if not events:
-        return "<span style='color:#777;'>—</span>"
+        return "<span class='u-s058'>—</span>"
     chips = []
     for ev in events:
         emoji = ev.get("emoji", "•")
@@ -1963,9 +1952,9 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
             f'<summary style="background:{bg};border-left:3px solid {color};">'
             f'<span class="fs-lg">{emoji}</span>'
             f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
-            f'<div class="fs-2xs" style="color:#999;">{label}</div></div>'
+            f'<div class="fs-2xs u-s061">{label}</div></div>'
             f'</summary>'
-            f'<div class="status-breakdown" style="color:#aaa;">{detail_html}</div>'
+            f'<div class="status-breakdown u-s001">{detail_html}</div>'
             f'</details>'
         )
     return (
@@ -1973,14 +1962,14 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
         f'padding:0.4rem 0.8rem;border-radius:8px;border-left:3px solid {color};flex:1;min-width:140px;">'
         f'<span class="fs-lg">{emoji}</span>'
         f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
-        f'<div class="fs-2xs" style="color:#999;">{label}</div></div>'
+        f'<div class="fs-2xs u-s061">{label}</div></div>'
         f'</div>'
     )
 
 def render_avatar_row(items, border_color, max_show=999):
     """Row of avatars with name + score under each. Shows ALL by default."""
     if not items:
-        return '<span class="fs-md" style="color:#777;">—</span>'
+        return '<span class="fs-md u-s058">—</span>'
     html = '<div class="avatar-row">'
     for item in items:
         if isinstance(item, str):
@@ -2001,10 +1990,9 @@ def render_avatar_row(items, border_color, max_show=999):
                 score_html = ""
         first_name = n.split()[0] if n else ""
         html += (
-            f'<div style="display:flex;flex-direction:column;align-items:center;width:60px;">'
+            f'<div class="u-s352">'
             f'{av(n, 48, border_color)}'
-            f'<div class="fs-2xs" style="color:#bbb;margin-top:2px;text-align:center;'
-            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px;">{first_name}</div>'
+            f'<div class="fs-2xs u-s266">{first_name}</div>'
             f'{score_html}'
             f'</div>'
         )
@@ -2057,9 +2045,9 @@ for p in profiles:
     neg_hist_html = make_event_chips(events.get("neg_hist", []), "#e74c3c", relation_colors) if events.get("neg_hist") else ""
     hist_html = ""
     if events.get("pos_hist"):
-        hist_html += f"<span style='color:#28a745;'>{pos_hist_html}</span>"
+        hist_html += f"<span class='u-s055'>{pos_hist_html}</span>"
     if events.get("neg_hist"):
-        hist_html += f"<span style='color:#dc3545; margin-left:0.35rem;'>{neg_hist_html}</span>"
+        hist_html += f"<span class='u-s271'>{neg_hist_html}</span>"
 
     votes = p.get("votes_received", [])
     if votes:
@@ -2068,16 +2056,15 @@ for p in profiles:
             voter = v.get("voter")
             count = v.get("count", 1)
             is_revealed = v.get("revealed", False)
-            count_badge = f'<span class="fs-2xs" style="background:#555;color:#fff;border-radius:50%;padding:1px 5px;margin-left:0.3rem;">{count}×</span>' if count > 1 else ""
+            count_badge = f'<span class="fs-2xs u-s148">{count}×</span>' if count > 1 else ""
             border = relation_colors.get(voter, "#666")
-            reveal_badge = ' <span class="fs-sm" style="color:#17a2b8;">👁️</span>' if is_revealed else ""
+            reveal_badge = ' <span class="fs-sm u-s025">👁️</span>' if is_revealed else ""
             voter_avatar = av(voter, 36, border) if voter in AVATARS else ""
             voter_first = voter.split()[0] if voter else ""
             vote_rows.append(
-                f"<div style='display:flex;align-items:center;gap:0.5rem;background:rgba(255,255,255,0.05);"
-                f"padding:0.3rem 0.6rem;border-radius:8px;margin:0.15rem 0;'>"
+                f"<div class='u-s334'>"
                 f"{voter_avatar}"
-                f"<span class='fs-base' style='color:#ddd;'>{voter_first}</span>"
+                f"<span class='fs-base u-s272'>{voter_first}</span>"
                 f"{count_badge}{reveal_badge}</div>"
             )
         votes_html = ''.join(vote_rows)
@@ -2088,16 +2075,12 @@ for p in profiles:
     chips = []
     for reason in sinc.get("reasons", []):
         chips.append(
-            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
-            f"margin:0.15rem;' class='fs-xs'>{reason}</span>"
+            f"<span class='u-s060' class='fs-xs'>{reason}</span>"
         )
     for tema, count in (sinc.get("bombas", {}) or {}).items():
         prefix = f"{count}x " if count > 1 else ""
         chips.append(
-            f"<span style='display:inline-flex; align-items:center; gap:0.3rem; background:#2f2f2f; "
-            f"border:1px solid #17a2b8; color:#ddd; border-radius:10px; padding:0.18rem 0.5rem; "
-            f"margin:0.15rem;' class='fs-xs'>💣 {prefix}{tema}</span>"
+            f"<span class='u-s060' class='fs-xs'>💣 {prefix}{tema}</span>"
         )
     sincerao_html = " ".join(chips) if chips else ""
 
@@ -2130,8 +2113,7 @@ for p in profiles:
         f'padding:2px 8px;border-radius:10px;font-weight:600;" class="fs-xs">{member_of}</span>'
     )
     role_pill = (
-        f' <span style="display:inline-block;background:rgba(255,255,255,0.1);color:#ddd;'
-        f'padding:2px 8px;border-radius:10px;" class="fs-xs">{role_text}</span>'
+        f' <span class="fs-xs u-s372">{role_text}</span>'
     ) if role_text else ""
 
     vip_w = p.get("vip_weeks", 0)
@@ -2153,23 +2135,21 @@ for p in profiles:
     for vd in gs.get("house_votes_detail", []):
         voters_str = ", ".join(vd.get("voters", []))
         votes_detail_rows += (
-            f"<div style='margin-bottom:0.3rem;'>"
+            f"<div class='u-s072'>"
             f"<b>{vd.get('numero', '?')}º Paredão</b> ({vd.get('data', '')})<br>"
-            f"<span style='color:#aaa;'>Votaram: {voters_str}</span></div>"
+            f"<span class='u-s001'>Votaram: {voters_str}</span></div>"
         )
     if votes_detail_rows:
         votos_chip = (
-            f'<details style="display:inline;">'
-            f'<summary class="rxn-chip" style="border:1px solid #e74c3c;cursor:pointer;list-style:none;">'
+            f'<details class="u-s061">'
+            f'<summary class="rxn-chip u-s208">'
             f'🗳️ <b>{n_votes}</b> {"voto" if n_votes == 1 else "votos"}</summary>'
-            f'<div style="position:absolute;z-index:10;background:#1a1a2e;border:1px solid #444;'
-            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:200px;font-size:var(--fs-sm);'
-            f'color:#ddd;box-shadow:0 4px 12px rgba(0,0,0,0.5);">'
+            f'<div class="u-s472">'
             f'{votes_detail_rows}</div></details>'
         )
     else:
         votos_chip = (
-            f'<span class="rxn-chip" style="border:1px solid #555;">'
+            f'<span class="rxn-chip u-s019">'
             f'🗳️ <b>{n_votes}</b> votos</span>'
         )
 
@@ -2181,31 +2161,29 @@ for p in profiles:
         vt = ph.get("voto_total")
         vt_str = f" — {vt:.2f}%" if vt is not None else ""
         paredao_detail_rows += (
-            f"<div style='margin-bottom:0.3rem;'>"
+            f"<div class='u-s072'>"
             f"<b>{ph.get('numero', '?')}º Paredão</b> ({ph.get('data', '')})<br>"
-            f"<span style='color:#aaa;'>Como: {ph.get('como', '?')}</span> · "
+            f"<span class='u-s001'>Como: {ph.get('como', '?')}</span> · "
             f"<span style='color:{res_color};'>{res}{vt_str}</span></div>"
         )
     if n_paredoes > 0 and paredao_detail_rows:
         paredoes_chip = (
-            f'<details style="display:inline;">'
-            f'<summary class="rxn-chip" style="border:1px solid #e67e22;cursor:pointer;list-style:none;">'
+            f'<details class="u-s061">'
+            f'<summary class="rxn-chip u-s207">'
             f'🏛️ <b>{n_paredoes}</b> {"paredão" if n_paredoes == 1 else "paredões"}</summary>'
-            f'<div style="position:absolute;z-index:10;background:#1a1a2e;border:1px solid #444;'
-            f'border-radius:8px;padding:0.5rem;margin-top:0.3rem;min-width:220px;font-size:var(--fs-sm);'
-            f'color:#ddd;box-shadow:0 4px 12px rgba(0,0,0,0.5);">'
+            f'<div class="u-s473">'
             f'{paredao_detail_rows}</div></details>'
         )
     else:
         paredoes_chip = (
-            f'<span class="rxn-chip" style="border:1px solid #555;">'
+            f'<span class="rxn-chip u-s019">'
             f'🏛️ <b>0</b> paredões</span>'
         )
 
     # Cartola chip
     rank_str = f" ({cartola_rank}º)" if cartola_rank else ""
     cartola_chip = (
-        f'<span class="rxn-chip" style="border:1px solid #9b59b6;">'
+        f'<span class="rxn-chip u-s206">'
         f'🏆 <b>{cartola_pts}</b> pts{rank_str}</span>'
     )
 
@@ -2213,7 +2191,7 @@ for p in profiles:
     prova_chip = ""
     if prova_wins > 0:
         prova_chip = (
-            f'<span class="rxn-chip" style="border:1px solid #2ecc71;">'
+            f'<span class="rxn-chip u-s203">'
             f'🥇 <b>{prova_wins}</b> {"vitória" if prova_wins == 1 else "vitórias"}</span>'
         )
 
@@ -2222,7 +2200,7 @@ for p in profiles:
     bv_chip = ""
     if n_bv > 0:
         bv_chip = (
-            f'<span class="rxn-chip" style="border:1px solid #3498db;">'
+            f'<span class="rxn-chip u-s204">'
             f'🔄 <b>{n_bv}</b> Bate e Volta</span>'
         )
 
@@ -2230,7 +2208,7 @@ for p in profiles:
         f'<div class="stat-row">'
         f'<span class="rxn-chip" style="border:1px solid {score_color};">'
         f'<span style="font-weight:700;color:{score_color};">{score:+.1f}</span> Sentimento</span>'
-        f'<span class="rxn-chip" style="border:1px solid #888;">'
+        f'<span class="rxn-chip u-s205">'
         f'{balance:,} Saldo</span>'
         f'<span class="rxn-chip" style="border:1px solid {group_chip_color};">'
         f'<span style="font-weight:700;color:{group_chip_color};">{group_label}</span>'
@@ -2327,17 +2305,16 @@ for p in profiles:
         rows = []
         for emoji, names_list in groups.items():
             avatars_html = "".join(
-                f'<div style="display:flex;flex-direction:column;align-items:center;width:50px;">'
+                f'<div class="u-s351">'
                 f'{av(n, 36, "#555")}'
-                f'<div class="fs-2xs" style="color:#aaa;margin-top:1px;text-align:center;'
-                f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50px;">{n.split()[0]}</div>'
+                f'<div class="fs-2xs u-s265">{n.split()[0]}</div>'
                 f'</div>'
                 for n in names_list
             )
             rows.append(
-                f'<div style="margin-bottom:0.4rem;">'
-                f'<div class="fs-md" style="margin-bottom:0.2rem;">{emoji} ({len(names_list)})</div>'
-                f'<div style="display:flex;flex-wrap:wrap;gap:6px;">{avatars_html}</div>'
+                f'<div class="u-s037">'
+                f'<div class="fs-md u-s405">{emoji} ({len(names_list)})</div>'
+                f'<div class="u-s359">{avatars_html}</div>'
                 f'</div>'
             )
         return "".join(rows)
@@ -2347,17 +2324,17 @@ for p in profiles:
 
     # ═══ [4] RELATIONS GRID ═══
     relations_html = (
-        '<div class="fs-xs" style="color:#6c757d;margin-bottom:0.5rem;">'
+        '<div class="fs-xs u-s244">'
         'Score = queridômetro + eventos acumulados (votos, poder, Sincerão). '
         'Positivo = relação boa · Negativo = hostilidade.'
         '</div>'
     )
     if allies:
         relations_html += (
-            f'<div class="relation-section" style="background:rgba(40,167,69,0.08);border-left:3px solid #28a745;">'
-            f'<div class="relation-label" style="color:#28a745;">✅ Aliados ({n_allies})</div>'
+            f'<div class="relation-section u-s188">'
+            f'<div class="relation-label u-s055">✅ Aliados ({n_allies})</div>'
             f'{render_avatar_row(allies, "#28a745")}'
-            f'<div class="fs-sm" style="color:#6c757d;margin-top:0.25rem;">Score positivo mútuo. Votos seguros.</div>'
+            f'<div class="fs-sm u-s245">Score positivo mútuo. Votos seguros.</div>'
             f'</div>'
         )
     if enemies:
@@ -2366,37 +2343,37 @@ for p in profiles:
             for e in enemies[:6]
         )
         relations_html += (
-            f'<div class="relation-section" style="background:rgba(220,53,69,0.08);border-left:3px solid #dc3545;">'
-            f'<div class="relation-label" style="color:#dc3545;">⚔️ Inimigos ({n_enemies})</div>'
+            f'<div class="relation-section u-s169">'
+            f'<div class="relation-label u-s062">⚔️ Inimigos ({n_enemies})</div>'
             f'{render_avatar_row(enemies, "#dc3545")}'
-            f'<div class="fs-sm" style="color:#888;margin-top:0.25rem;">{enemy_emoji_text}</div>'
-            f'<div class="fs-sm" style="color:#6c757d;">Score negativo mútuo. Votos contra esperados.</div>'
+            f'<div class="fs-sm u-s252">{enemy_emoji_text}</div>'
+            f'<div class="fs-sm u-s057">Score negativo mútuo. Votos contra esperados.</div>'
             f'</div>'
         )
     if false_friends:
         ff_emoji_text = ", ".join(
-            f'<span style="color:#dc3545;">{f["name"].split()[0]} ({f.get("their_emoji","?")})</span>'
+            f'<span class="u-s062">{f["name"].split()[0]} ({f.get("their_emoji","?")})</span>'
             for f in false_friends[:6]
         )
         relations_html += (
-            f'<div class="relation-section" style="background:rgba(255,193,7,0.1);border-left:3px solid #ffc107;">'
-            f'<div class="relation-label" style="color:#ffc107;">⚠️ Falsos Amigos ({n_false_friends}) — PERIGO</div>'
+            f'<div class="relation-section u-s184">'
+            f'<div class="relation-label u-s293">⚠️ Falsos Amigos ({n_false_friends}) — PERIGO</div>'
             f'{render_avatar_row(false_friends, "#ffc107")}'
-            f'<div class="fs-sm" style="margin-top:0.25rem;">{ff_emoji_text}</div>'
-            f'<div class="fs-sm" style="color:#6c757d;">Seu score é positivo, o deles negativo. Votam contra 2-3×.</div>'
+            f'<div class="fs-sm u-s079">{ff_emoji_text}</div>'
+            f'<div class="fs-sm u-s057">Seu score é positivo, o deles negativo. Votam contra 2-3×.</div>'
             f'</div>'
         )
     if blind_targets:
         bt_emoji_text = ", ".join(
-            f'<span style="color:#6f42c1;">{b["name"].split()[0]} ({b.get("my_emoji","?")})</span>'
+            f'<span class="u-s028">{b["name"].split()[0]} ({b.get("my_emoji","?")})</span>'
             for b in blind_targets[:6]
         )
         relations_html += (
-            f'<div class="relation-section" style="background:rgba(111,66,193,0.08);border-left:3px solid #6f42c1;">'
-            f'<div class="relation-label" style="color:#6f42c1;">🗡️ Alvos Ocultos ({len(blind_targets)})</div>'
+            f'<div class="relation-section u-s165">'
+            f'<div class="relation-label u-s028">🗡️ Alvos Ocultos ({len(blind_targets)})</div>'
             f'{render_avatar_row(blind_targets, "#6f42c1")}'
-            f'<div class="fs-sm" style="margin-top:0.25rem;">{bt_emoji_text}</div>'
-            f'<div class="fs-sm" style="color:#6c757d;">Seu score é negativo, o deles positivo. Não sabem.</div>'
+            f'<div class="fs-sm u-s079">{bt_emoji_text}</div>'
+            f'<div class="fs-sm u-s057">Seu score é negativo, o deles positivo. Não sabem.</div>'
             f'</div>'
         )
 
@@ -2408,35 +2385,33 @@ for p in profiles:
         dynamics_inner = ""
         if events.get('pos_week'):
             dynamics_inner += (
-                f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.4rem;"
-                f"background:rgba(40,167,69,0.06);padding:0.4rem 0.6rem;border-radius:8px;'>"
-                f"<strong class='fs-base' style='color:#28a745;'>+ Benefícios</strong> {pos_html}</div>"
+                f"<div class='u-s338'>"
+                f"<strong class='fs-base u-s055'>+ Benefícios</strong> {pos_html}</div>"
             )
         if events.get('neg_week'):
             dynamics_inner += (
-                f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.4rem;"
-                f"background:rgba(220,53,69,0.06);padding:0.4rem 0.6rem;border-radius:8px;'>"
-                f"<strong class='fs-base' style='color:#dc3545;'>− Prejuízos</strong> {neg_html}</div>"
+                f"<div class='u-s337'>"
+                f"<strong class='fs-base u-s062'>− Prejuízos</strong> {neg_html}</div>"
             )
         if votes:
             dynamics_inner += (
-                f"<div style='margin-bottom:0.4rem;'>"
-                f"<strong class='fs-base' style='color:#ffc107;display:block;margin-bottom:0.25rem;'>🗳️ Votos recebidos</strong>"
-                f"<div style='display:flex;flex-direction:column;gap:0.1rem;'>{votes_html}</div></div>"
+                f"<div class='u-s037'>"
+                f"<strong class='fs-base u-s294'>🗳️ Votos recebidos</strong>"
+                f"<div class='u-s353'>{votes_html}</div></div>"
             )
         if sincerao_html:
             dynamics_inner += (
-                f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.4rem;'>"
-                f"<strong class='fs-base' style='color:#17a2b8;'>🔥 Sincerão</strong> {sincerao_html}</div>"
+                f"<div class='u-s336'>"
+                f"<strong class='fs-base u-s025'>🔥 Sincerão</strong> {sincerao_html}</div>"
             )
         if events.get('pos_hist') or events.get('neg_hist'):
             dynamics_inner += (
-                f"<div style='display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;'>"
-                f"<strong class='fs-base' style='color:#999;'>📜 Histórico</strong> {hist_html}</div>"
+                f"<div class='u-s335'>"
+                f"<strong class='fs-base u-s061'>📜 Histórico</strong> {hist_html}</div>"
             )
         dynamics_html = (
-            f'<div style="padding:0.6rem 1rem;border-bottom:1px solid #444;background:#2a2a2a;">'
-            f'<div class="fs-base" style="font-weight:700;color:#ccc;margin-bottom:0.4rem;">⚡ Dinâmicas do Jogo</div>'
+            f'<div class="u-s465">'
+            f'<div class="fs-base u-s390">⚡ Dinâmicas do Jogo</div>'
             f'<div class="fs-base">{dynamics_inner}</div>'
             f'</div>'
         )
@@ -2452,22 +2427,22 @@ for p in profiles:
             for c in curiosities
         )
         curiosities_html = (
-            f'<div style="padding:0.6rem 1rem;background:#2a2a2a;">'
-            f'<div class="fs-base" style="font-weight:700;color:#f1c40f;margin-bottom:0.3rem;">💡 Curiosidades</div>'
+            f'<div class="u-s464">'
+            f'<div class="fs-base u-s391">💡 Curiosidades</div>'
             f'{items_html}</div>'
         )
 
     # ═══ ASSEMBLE CARD ═══
     print(f'''
-<div id="perfil-{name_slug}" class="profile-card" style="margin-top:1.5rem;">
+<div id="perfil-{name_slug}" class="profile-card u-s039">
 
 <!-- [1] Hero Header -->
 <div style="background:linear-gradient(90deg,rgba(48,48,48,0.9),rgba(48,48,48,0.3));border-left:5px solid {cor_grupo};">
 <div class="profile-hero-inner">
 {avatar_img}
 <div>
-<h3 class="fs-2xl" style="margin:0 0 0.25rem 0;color:#fff;">{name}</h3>
-<div style="display:flex;flex-wrap:wrap;gap:0.3rem;align-items:center;">
+<h3 class="fs-2xl u-s434">{name}</h3>
+<div class="u-s356">
 {group_pill}{role_pill}
 </div>
 {stat_chips}
@@ -2484,20 +2459,20 @@ for p in profiles:
 <div class="profile-reactions-grid">
 <div>
 <details class="rxn-detail">
-<summary style="cursor:pointer;list-style:none;">
-<div class="fs-sm" style="font-weight:600;color:#888;margin-bottom:0.3rem;">RECEBEU <span class="rxn-hint fs-2xs" style="font-weight:400;color:#666;">▶ clique p/ detalhes</span></div>
+<summary class="u-s046">
+<div class="fs-sm u-s068">RECEBEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>
 {rxn_received_chips}
 </summary>
-<div style="padding-top:0.5rem;">{received_detail_html}</div>
+<div class="u-s103">{received_detail_html}</div>
 </details>
 </div>
 <div>
 <details class="rxn-detail">
-<summary style="cursor:pointer;list-style:none;">
-<div class="fs-sm" style="font-weight:600;color:#888;margin-bottom:0.3rem;">DEU <span class="rxn-hint fs-2xs" style="font-weight:400;color:#666;">▶ clique p/ detalhes</span></div>
+<summary class="u-s046">
+<div class="fs-sm u-s068">DEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>
 {rxn_given_chips}
 </summary>
-<div style="padding-top:0.5rem;">{given_detail_html}</div>
+<div class="u-s103">{given_detail_html}</div>
 </details>
 </div>
 </div>
@@ -2507,7 +2482,7 @@ for p in profiles:
 
 <!-- [5] Relations -->
 <div class="profile-relations">
-{relations_html if relations_html else '<div class="fs-base" style="color:#777;">Sem relações classificadas.</div>'}
+{relations_html if relations_html else '<div class="fs-base u-s058">Sem relações classificadas.</div>'}
 </div>
 
 <!-- [6] Curiosidades -->
@@ -2557,22 +2532,22 @@ if eliminated:
             f'border:3px solid {cor};flex-shrink:0;filter:grayscale(100%);opacity:0.7;">'
         ) if avatar_url else ""
 
-        reason_html = f'<div class="fs-md" style="color:#999;margin-top:0.3rem;">{reason}</div>' if reason else ""
+        reason_html = f'<div class="fs-md u-s257">{reason}</div>' if reason else ""
 
         cards_html += f'''
 <div style="display:flex;align-items:center;gap:1rem;padding:0.8rem 1rem;
     background:#1e1e1e;border-left:4px solid {cor};border-radius:8px;margin-bottom:0.5rem;">
 {av_img}
 <div>
-<div class="fs-lg" style="font-weight:700;color:#ccc;">{name}</div>
-<div class="fs-base" style="color:#aaa;">{subtitle}</div>
+<div class="fs-lg u-s389">{name}</div>
+<div class="fs-base u-s001">{subtitle}</div>
 {reason_html}
 </div>
 </div>'''
 
     print(f'''
-<div style="margin-top:2rem;">
-<h3 class="fs-xl" style="color:#999;margin-bottom:0.8rem;">🖤 Participantes que saíram</h3>
+<div class="u-s081">
+<h3 class="fs-xl u-s256">🖤 Participantes que saíram</h3>
 {cards_html}
 </div>''')
 ```
@@ -2589,7 +2564,7 @@ _meses_pt = ["janeiro","fevereiro","março","abril","maio","junho","julho","agos
 _premiere_fmt = f'{_premiere_dt.day} de {_meses_pt[_premiere_dt.month - 1]} de {_premiere_dt.year}'
 
 # Count finalized paredões
-_raw_par = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8')).get('paredoes', [])
+_raw_par = load_paredoes_raw().get('paredoes', [])
 _n_finalized = sum(1 for p in _raw_par if p.get('status') == 'finalizado')
 _n_par_text = f' {_n_finalized} paredões finalizados.' if _n_finalized else ''
 

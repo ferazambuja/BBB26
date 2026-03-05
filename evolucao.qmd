@@ -14,7 +14,6 @@ execute:
 #| label: setup
 #| include: false
 
-import json
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -28,6 +27,7 @@ from data_utils import (
     load_snapshots_full,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     load_daily_metrics, load_relations_scores, load_paredoes_raw, load_roles_daily,
+    load_index_data, load_manual_events, load_auto_events, load_game_timeline,
     avatar_img,
     REACTION_EMOJI, SENTIMENT_WEIGHTS,
     GROUP_COLORS,
@@ -60,30 +60,18 @@ received_impact = relations_data.get("received_impact", {})
 streak_breaks = relations_data.get("streak_breaks", [])
 
 # Index data (strategic timeline)
-index_data = {}
-IDX_FILE = Path("data/derived/index_data.json")
-if IDX_FILE.exists():
-    with open(IDX_FILE, encoding="utf-8") as f:
-        index_data = json.load(f)
+index_data = load_index_data()
 
 strategic_timeline = index_data.get("strategic_timeline", [])
 
 # Manual + auto events
-MANUAL_EVENTS_FILE = Path("data/manual_events.json")
-manual_events = {}
-if MANUAL_EVENTS_FILE.exists():
-    with open(MANUAL_EVENTS_FILE, encoding="utf-8") as f:
-        manual_events = json.load(f)
+manual_events = load_manual_events()
 power_events_manual = manual_events.get("power_events", [])
 weekly_events = manual_events.get("weekly_events", [])
 
-AUTO_EVENTS_FILE = Path("data/derived/auto_events.json")
-auto_payload = {}
+auto_payload = load_auto_events()
 power_events_auto = []
-if AUTO_EVENTS_FILE.exists():
-    with open(AUTO_EVENTS_FILE, encoding="utf-8") as f:
-        auto_payload = json.load(f)
-    power_events_auto = auto_payload.get("events", [])
+power_events_auto = auto_payload.get("events", [])
 power_events = power_events_manual + power_events_auto
 
 # Roles daily
@@ -121,10 +109,8 @@ Linha do tempo completa dos eventos da temporada — eventos mais recentes prime
 #| label: timeline-events
 #| output: asis
 
-timeline_path = Path("data/derived/game_timeline.json")
-if timeline_path.exists():
-    with open(timeline_path, encoding="utf-8") as f:
-        timeline_events = json.load(f).get("events", [])
+timeline_events = load_game_timeline().get("events", [])
+if timeline_events:
     print(render_cronologia_html(timeline_events))
 else:
     print("<p class='text-muted'>Nenhum evento na cronologia.</p>")
@@ -341,7 +327,7 @@ def make_difference_table_html(changes_list, common_names, prev_date, curr_date)
         return "background: #ffffbf; color: #000;"
 
     html = [f'''
-<div style="overflow-x: auto; max-width: 100%;">
+<div class="u-s102">
 <p class="text-muted small">Mudanças: {prev_date} → {curr_date} | ⭐ = mudança dramática</p>
 <style>
 .diff-table {{ border-collapse: separate; border-spacing: 0; font-size: var(--fs-md); width: max-content; }}
@@ -352,7 +338,7 @@ def make_difference_table_html(changes_list, common_names, prev_date, curr_date)
 .diff-table td {{ font-size: var(--fs-base); }}
 .diff-table td:hover {{ outline: 2px solid #fff; }}
 </style>
-<table class="diff-table"><thead><tr><th style="background: #222;">↓ / →</th>''']
+<table class="diff-table"><thead><tr><th class="u-s001">↓ / →</th>''']
     for short in short_names:
         html.append(f'<th>{short}</th>')
     html.append('</tr></thead><tbody>')
@@ -360,7 +346,7 @@ def make_difference_table_html(changes_list, common_names, prev_date, curr_date)
         html.append(f'<tr><th>{short_names[i]}</th>')
         for j, receiver in enumerate(active_names_sorted):
             if giver == receiver:
-                html.append('<td style="background: #333; color: #555;">—</td>')
+                html.append('<td class="u-s116">—</td>')
             else:
                 key = (giver, receiver)
                 if key in change_lookup:
@@ -370,7 +356,7 @@ def make_difference_table_html(changes_list, common_names, prev_date, curr_date)
                     tooltip = f"{giver} → {receiver}: {c['Antes']}→{c['Depois']} (Δ{c['Delta']:+.1f})"
                     html.append(f'<td style="{style}" title="{tooltip}">{c["Antes"]}→{c["Depois"]}{star}</td>')
                 else:
-                    html.append('<td style="background: #2a2a2a; color: #555;">·</td>')
+                    html.append('<td class="u-s114">·</td>')
         html.append('</tr>')
     html.append('</tbody></table></div>')
     return '\n'.join(html)
@@ -894,7 +880,7 @@ active_saldo.sort(key=lambda x: x.get("balance", 0), reverse=True)
 
 html = []
 html.append("""
-<div style="overflow-x: auto; max-width: 100%;">
+<div class="u-s102">
 <style>
 .saldo-table {
     border-collapse: separate;
@@ -927,9 +913,9 @@ html.append("""
 </style>
 <table class="saldo-table">
 <thead><tr>
-<th style="text-align:center;">#</th>
+<th class="u-s475">#</th>
 <th>Participante</th>
-<th style="text-align:right;">Estalecas</th>
+<th class="u-s478">Estalecas</th>
 </tr></thead>
 <tbody>
 """)
@@ -954,7 +940,7 @@ for i, p in enumerate(active_saldo, 1):
 
     html.append(f"""<tr>
 <td class="saldo-pos">{i}</td>
-<td class="saldo-name" style="display:flex;align-items:center;gap:10px;">{avatar} <span>{name}</span></td>
+<td class="saldo-name u-s339">{avatar} <span>{name}</span></td>
 <td class="saldo-val" style="color:{val_color};">{balance:,}</td>
 </tr>""")
 
@@ -1121,8 +1107,8 @@ else:
         leader_av = avatar_img(leader, AVATARS, size=32) if avatar else ""
 
         print(f"""
-<div style="background:#1a1a2e; border:1px solid #f1c40f33; border-radius:8px; padding:12px; margin-bottom:12px">
-<h4 style="margin:0 0 8px">{leader_av}👑 {leader} <span class="fs-base" style="color:#888;">({start} → {end})</span></h4>
+<div class="u-s132">
+<h4 class="u-s436">{leader_av}👑 {leader} <span class="fs-base u-s009">({start} → {end})</span></h4>
 
 **VIP ({len(lp['vip'])}):** {', '.join(lp['vip'])}
 
@@ -1228,27 +1214,27 @@ else:
                     avatar_htmls.append(
                         f'<img src="{AVATARS[name]}" style="width: 24px; height: 24px; border-radius: 50%; '
                         f'border: 2px solid {border}; object-fit: cover; margin-right: -6px;">')
-            return f'<div style="display: flex; align-items: center; gap: 0.4rem;">{"".join(avatar_htmls)}<span>{" + ".join(items)}</span></div>'
+            return f'<div class="u-s047">{"".join(avatar_htmls)}<span>{" + ".join(items)}</span></div>'
         label = value or '—'
         if label in AVATARS and AVATARS[label]:
-            return (f'<div style="display: flex; align-items: center;">'
+            return (f'<div class="u-s302">'
                     f'<img src="{AVATARS[label]}" style="width: 28px; height: 28px; border-radius: 50%; '
                     f'border: 2px solid {border}; object-fit: cover; margin-right: 0.4rem;">{label}</div>')
         icon = next((v for k, v in _DYNAMIC_ICON_MAP.items() if k in label.lower()), '🎬')
-        return f'<div style="display: flex; align-items: center; gap: 0.4rem;"><span>{icon}</span>{label}</div>'
+        return f'<div class="u-s047"><span>{icon}</span>{label}</div>'
 
     def render_context_cell(value):
         if not value or value == '—': return '—'
         icon = next((v for k, v in _DYNAMIC_ICON_MAP.items() if k in value.lower()), '🎬')
-        return f'<div style="display:flex; align-items:center; gap:0.4rem;"><span>{icon}</span>{value}</div>'
+        return f'<div class="u-s310"><span>{icon}</span>{value}</div>'
 
-    print('<div style="overflow-x:auto; margin: 0.5rem 0 1rem 0;">')
-    print('<table class="fs-base" style="width: 100%; border-collapse: collapse;">')
-    print('<thead><tr style="text-align: left; border-bottom: 1px solid #444;">'
-          '<th style="padding: 0.5rem;">Data</th><th style="padding: 0.5rem;">Dinâmica</th>'
-          '<th style="padding: 0.5rem;">Tipo</th><th style="padding: 0.5rem;">Quem deu</th>'
-          '<th style="padding: 0.5rem;">Quem recebeu</th><th style="padding: 0.5rem;">Consequência</th>'
-          '<th style="padding: 0.5rem;">Impacto</th></tr></thead><tbody>')
+    print('<div class="u-s454">')
+    print('<table class="fs-base u-s077">')
+    print('<thead><tr class="u-s474">'
+          '<th class="u-s016">Data</th><th class="u-s016">Dinâmica</th>'
+          '<th class="u-s016">Tipo</th><th class="u-s016">Quem deu</th>'
+          '<th class="u-s016">Quem recebeu</th><th class="u-s016">Consequência</th>'
+          '<th class="u-s016">Impacto</th></tr></thead><tbody>')
 
     for _, row in df_show.iterrows():
         impacto = row.get('impacto', 'neutro')
@@ -1264,13 +1250,13 @@ else:
         badge = (f'<span class="fs-sm" style="display:inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; '
                  f'background: {bg}; color: {border}; border: 1px solid {border};">{label}</span>')
         print(f'<tr style="border-left: 4px solid {border}; background: {bg};">'
-              f'<td style="padding: 0.45rem 0.5rem;">{row["date"]}</td>'
-              f'<td style="padding: 0.45rem 0.5rem;">{context_html}</td>'
-              f'<td style="padding: 0.45rem 0.5rem;">{row["Tipo"]}</td>'
-              f'<td style="padding: 0.45rem 0.5rem;">{actor_html}</td>'
-              f'<td style="padding: 0.45rem 0.5rem;">{target_html}</td>'
-              f'<td style="padding: 0.45rem 0.5rem;">{row["detail"]}</td>'
-              f'<td style="padding: 0.45rem 0.5rem;">{badge}</td></tr>')
+              f'<td class="u-s014">{row["date"]}</td>'
+              f'<td class="u-s014">{context_html}</td>'
+              f'<td class="u-s014">{row["Tipo"]}</td>'
+              f'<td class="u-s014">{actor_html}</td>'
+              f'<td class="u-s014">{target_html}</td>'
+              f'<td class="u-s014">{row["detail"]}</td>'
+              f'<td class="u-s014">{badge}</td></tr>')
     print('</tbody></table></div>')
 ```
 

@@ -561,17 +561,17 @@ else:
         plateia_flag = " (plateia)" if planta_plateia_target == name else ""
         power_detail = power_events_by_person.get(name, [])
 
-        print(f"<details style='margin: 0.6rem 0; background:#2a2a2a; border-radius:8px; padding:0.5rem 0.8rem;'>")
-        print(f"<summary style='cursor:pointer; font-weight:600;'>🌱 {name} — Planta Index {info.get('rolling', info.get('score'))}</summary>")
-        print("<div class='fs-base' style='margin-top:0.5rem;'>")
+        print(f"<details class='u-s432'>")
+        print(f"<summary class='u-s300'>🌱 {name} — Planta Index {info.get('rolling', info.get('score'))}</summary>")
+        print("<div class='fs-base u-s013'>")
         print("<strong>Componentes e pontos:</strong>")
         print("<ul>")
         for item in breakdown:
             print(f"<li>{item.get('label')}: +{item.get('points', 0)}</li>")
         print("</ul>")
         comps = info.get("components", {})
-        print("<div style='margin-top:0.4rem;'><strong>Componentes (0–1):</strong></div>")
-        print("<div style='margin-left:1rem; color:#bbb;'>"
+        print("<div class='u-s415'><strong>Componentes (0–1):</strong></div>")
+        print("<div class='u-s071'>"
               f"Invisibilidade {comps.get('invisibility', 0)} · "
               f"Baixa atividade {comps.get('low_power_events', 0)} · "
               f"Baixa exposição Sincerão {comps.get('low_sincerao', 0)} · "
@@ -581,27 +581,27 @@ else:
         hu_raw = raw.get("heart_uniformity_raw", 0)
         hu_eff = raw.get("heart_uniformity_effective", 0)
         lp = comps.get("low_power_events", 0)
-        print(f"<div class='fs-base' style='margin-left:1rem; color:#aaa;'>"
+        print(f"<div class='fs-base u-s077'>"
               f"Consenso ❤️: ratio={hr*100:.1f}%, raw={hu_raw:.3f}, efetivo={hu_eff:.3f} (gated by low_power={lp:.3f})</div>")
         print(f"<div><strong>Atividade de poder:</strong> {raw.get('power_activity', 0)} (eventos: {raw.get('power_events', 0)})</div>")
         if power_list:
-            print("<div style='margin-left:1rem; color:#bbb;'>" + " · ".join(power_list) + "</div>")
+            print("<div class='u-s071'>" + " · ".join(power_list) + "</div>")
         else:
-            print("<div style='margin-left:1rem; color:#777;'>Nenhum evento de poder na semana.</div>")
+            print("<div class='u-s076'>Nenhum evento de poder na semana.</div>")
         if power_detail:
-            print("<div class='fs-base' style='margin-left:1rem; color:#aaa;'><strong>Pesos por evento:</strong></div>")
+            print("<div class='fs-base u-s077'><strong>Pesos por evento:</strong></div>")
             for evd in power_detail:
                 other = f" → {evd.get('other')}" if evd.get("other") else ""
-                print(f"<div class='fs-md' style='margin-left:1.6rem; color:#999;'>+{evd.get('weight',0)} {evd.get('label')} ({evd.get('role')}){other}</div>")
+                print(f"<div class='fs-md u-s070'>+{evd.get('weight',0)} {evd.get('label')} ({evd.get('role')}){other}</div>")
         print(f"<div><strong>Sincerão:</strong> {sinc_label}{plateia_flag} (edges: {raw.get('sincerao_edges', 0)}, atividade: {raw.get('sincerao_activity', 0)})</div>")
         if sinc_list:
-            print("<div style='margin-left:1rem; color:#bbb;'>" + " · ".join(sinc_list) + "</div>")
+            print("<div class='u-s071'>" + " · ".join(sinc_list) + "</div>")
         else:
-            print("<div style='margin-left:1rem; color:#777;'>Nenhum edge registrado.</div>")
+            print("<div class='u-s076'>Nenhum edge registrado.</div>")
         if sinc_part:
-            print("<div class='fs-md' style='margin-left:1.6rem; color:#999;'>+1.0 participação</div>")
+            print("<div class='fs-md u-s070'>+1.0 participação</div>")
         for _ in range(raw.get('sincerao_edges', 0)):
-            print("<div class='fs-md' style='margin-left:1.6rem; color:#999;'>+0.5 edge</div>")
+            print("<div class='fs-md u-s070'>+0.5 edge</div>")
         print(f"<div><strong>Emoji 🌱 recebidos:</strong> {raw.get('plant_received', 0)}</div>")
         print("</div></details>")
 ```

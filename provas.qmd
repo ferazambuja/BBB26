@@ -53,13 +53,13 @@ execute:
 #| label: setup
 #| include: false
 
-import json
 from pathlib import Path
 import sys
 
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme, load_participants_index,
+    load_prova_rankings, load_provas_raw,
     GROUP_COLORS,
 )
 
@@ -67,16 +67,14 @@ require_clean_manual_events()
 setup_bbb_dark_theme()
 
 # Load derived rankings
-with open("data/derived/prova_rankings.json") as f:
-    rankings = json.load(f)
+rankings = load_prova_rankings()
 
 leaderboard = rankings["leaderboard"]
 provas_summary = rankings["provas_summary"]
 scoring = rankings["_metadata"]["scoring"]
 
 # Load raw provas (phase-by-phase detail)
-with open("data/provas.json") as f:
-    provas_raw = json.load(f)
+provas_raw = load_provas_raw()
 
 provas_list = provas_raw["provas"]
 
@@ -136,9 +134,9 @@ if eligible:
 
 if highlights:
     print('''
-<div class="info-panel" style="border-left-color: #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
-<div style="font-weight: 700; margin-bottom: 0.5rem;">Destaques — Provas</div>
-<ul style="margin: 0; padding-left: 1.2rem;">
+<div class="info-panel u-s050">
+<div class="u-s035">Destaques — Provas</div>
+<ul class="u-s073">
 ''')
     for h in highlights:
         print(f"<li>{h}</li>")
@@ -162,17 +160,17 @@ best_avg_p = max(eligible_avg, key=lambda p: p["avg_points"]) if eligible_avg el
 print(f'''
 <div class="stat-row">
 
-<div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+<div class="stat-card u-s045">
 <div class="stat-value">{total_provas}</div>
 <div class="stat-label">📋 Provas</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #f1c40f, #d4ac0d);">
+<div class="stat-card u-s006">
 <div class="stat-value">{unique_winners}</div>
 <div class="stat-label">🏆 Vencedores únicos</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #27ae60, #1e8449);">
+<div class="stat-card u-s003">
 <div class="stat-value">{best_avg_p["avg_points"]:.1f}</div>
 <div class="stat-label">📊 Melhor média ({best_avg_p["name"].split()[0]})</div>
 </div>
@@ -194,7 +192,7 @@ Ranking baseado em pontos ponderados: posição na prova gera pontos-base, multi
 # ══════════════════════════════════════════════════════════════════════════════
 
 if leaderboard:
-    print('<div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem;">')
+    print('<div class="info-grid u-s071">')
 
     for i, p in enumerate(leaderboard):
         rank = i + 1
@@ -229,7 +227,7 @@ if leaderboard:
         # Status badge for eliminated/quit
         status_badge = ''
         if not active and status:
-            status_badge = f'<span class="fs-xs" style="background: #6c757d; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase; margin-left: 0.5rem;">{status}</span>'
+            status_badge = f'<span class="fs-xs u-s002">{status}</span>'
 
         # Group badge
         grupo_color = GROUP_COLORS.get(grupo, '#666')
@@ -238,12 +236,12 @@ if leaderboard:
         # Tags
         tags = []
         if wins > 0:
-            tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">🏆 {wins} vitória{"s" if wins > 1 else ""}</span>')
+            tags.append(f'<span class="fs-sm u-s021">🏆 {wins} vitória{"s" if wins > 1 else ""}</span>')
         if top3 > 0:
-            tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">🥉 {top3} top-3</span>')
-        tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">📊 avg {avg:.1f} pts</span>')
-        tags.append(f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">📋 {participated}/{available} provas</span>')
-        tags_html = f'<div style="margin-top: 0.5rem; line-height: 1.8;">{"".join(tags)}</div>'
+            tags.append(f'<span class="fs-sm u-s021">🥉 {top3} top-3</span>')
+        tags.append(f'<span class="fs-sm u-s021">📊 avg {avg:.1f} pts</span>')
+        tags.append(f'<span class="fs-sm u-s021">📋 {participated}/{available} provas</span>')
+        tags_html = f'<div class="u-s078">{"".join(tags)}</div>'
 
         # Points display
         pts_color = '#f1c40f' if rank == 1 else ('#27ae60' if total > 0 else '#888')
@@ -251,7 +249,7 @@ if leaderboard:
 
         print(f'''
 <div style="background: #2a2a2a; border-radius: 12px; border-left: 5px solid {border_color}; padding: 1rem; display: flex; gap: 1rem; align-items: flex-start;">
-<div style="flex-shrink: 0; position: relative;">
+<div class="u-s062">
 ''')
         if avatar_url:
             print(f'<img src="{avatar_url}" alt="{name}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {border_color}; object-fit: cover;">')
@@ -260,14 +258,14 @@ if leaderboard:
 
         if rank <= 3:
             rank_emoji = '🥇' if rank == 1 else ('🥈' if rank == 2 else '🥉')
-            print(f'<div class="fs-xl" style="position: absolute; bottom: -5px; right: -5px;">{rank_emoji}</div>')
+            print(f'<div class="fs-xl u-s106">{rank_emoji}</div>')
 
         print(f'''
 </div>
-<div style="flex: 1; min-width: 0;">
-<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;">
+<div class="u-s063">
+<div class="u-s050">
 <div>
-<span class="fs-xl" style="font-weight: bold; color: #fff;">{rank_display} {name}</span>
+<span class="fs-xl u-s010">{rank_display} {name}</span>
 {grupo_badge}
 {status_badge}
 </div>
@@ -323,10 +321,10 @@ if provas_list:
         if vencedor_avatar:
             print(f'<img src="{vencedor_avatar}" alt="{vencedor}" style="width: 55px; height: 55px; border-radius: 50%; border: 3px solid {color}; object-fit: cover;">')
         print(f'''
-<div style="flex: 1; min-width: 200px;">
-<div class="fs-xl" style="font-weight: bold; color: #fff;">{nome}</div>
-<div class="fs-base" style="color: #aaa; margin-top: 0.2rem;">📅 {date} &middot; {emoji} {label} &middot; Semana {week} &middot; {n_participantes} participantes</div>
-<div style="margin-top: 0.4rem;">
+<div class="u-s381">
+<div class="fs-xl u-s010">{nome}</div>
+<div class="fs-base u-s219">📅 {date} &middot; {emoji} {label} &middot; Semana {week} &middot; {n_participantes} participantes</div>
+<div class="u-s411">
 <span class="fs-base" style="background: {color}; color: #fff; padding: 0.2rem 0.6rem; border-radius: 5px; font-weight: bold;">🏆 Vencedor: {vencedor}</span>
 </div>
 </div>
@@ -336,7 +334,7 @@ if provas_list:
         # Excluded list
         if excluidos:
             nomes_exc = ", ".join([f"**{e['nome']}** ({e['motivo']})" for e in excluidos])
-            print(f'\n<div class="table-md" style="background: #333; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1rem; color: #aaa;">🚫 Não participaram: {nomes_exc}</div>\n')
+            print(f'\n<div class="table-md u-s115">🚫 Não participaram: {nomes_exc}</div>\n')
 
         # Phase breakdown
         for fase in fases:
@@ -353,10 +351,10 @@ if provas_list:
             print()
 
             if classificacao:
-                print('<div style="margin: 0.5rem 0 1rem 0;">')
+                print('<div class="u-s430">')
                 print('<table class="table-full fs-base">')
-                print('<thead><tr style="border-bottom: 1px solid #444;">')
-                print('<th class="tc cell-compact text-muted" style="width: 50px;">Pos</th>')
+                print('<thead><tr class="u-s028">')
+                print('<th class="tc cell-compact text-muted u-s483">Pos</th>')
                 if is_duo:
                     print('<th class="tl cell-compact text-muted">Dupla</th>')
                 else:
@@ -374,20 +372,20 @@ if provas_list:
 
                     # Position styling
                     if is_dq:
-                        pos_display = '<span style="color: #e74c3c;">DQ</span>'
-                        row_style = 'color: #e74c3c; text-decoration: line-through;'
+                        pos_display = '<span class="u-s223">DQ</span>'
+                        row_class = 'u-s227'
                     elif pos == 1:
-                        pos_display = f'<span style="color: #f1c40f; font-weight: bold;">🥇 {pos}º</span>'
-                        row_style = 'color: #f1c40f;'
+                        pos_display = f'<span class="u-s024">🥇 {pos}º</span>'
+                        row_class = 'u-s229'
                     elif pos == 2:
-                        pos_display = f'<span style="color: #ccc; font-weight: bold;">🥈 {pos}º</span>'
-                        row_style = 'color: #ccc;'
+                        pos_display = f'<span class="u-s220">🥈 {pos}º</span>'
+                        row_class = 'u-s022'
                     elif pos == 3:
-                        pos_display = f'<span style="color: #cd7f32; font-weight: bold;">🥉 {pos}º</span>'
-                        row_style = 'color: #cd7f32;'
+                        pos_display = f'<span class="u-s222">🥉 {pos}º</span>'
+                        row_class = 'u-s221'
                     else:
                         pos_display = f'{pos}º'
-                        row_style = 'color: #aaa;'
+                        row_class = 'u-s021'
 
                     tied_icon = ' <span class="text-muted table-sm">= empate</span>' if is_tied else ''
 
@@ -401,9 +399,9 @@ if provas_list:
                     pontuacao_cell = ""
                     if has_scores:
                         score = entry.get("pontuacao")
-                        pontuacao_cell = f'<td class="tr cell-compact" style="color: #3498db; font-weight: bold;">{score if score is not None else "—"}</td>'
+                        pontuacao_cell = f'<td class="tr cell-compact u-s213">{score if score is not None else "—"}</td>'
 
-                    print(f'<tr class="sep-bottom" style="{row_style}">')
+                    print(f'<tr class="sep-bottom {row_class}">')
                     print(f'<td class="tc cell-compact">{pos_display}{tied_icon}</td>')
                     print(f'<td class="tl cell-compact" style="font-weight: {"bold" if pos <= 3 and not is_dq else "normal"};">{name_display}</td>')
                     if pontuacao_cell:
@@ -426,7 +424,7 @@ if provas_list:
                     css_class = "fs-base"
                     if is_dq:
                         style += " color: #e74c3c; text-decoration: line-through;"
-                        suffix = ' <span class="fs-xs" style="color:#e74c3c;">(DQ)</span>'
+                        suffix = ' <span class="fs-xs u-s005">(DQ)</span>'
                     elif is_winner:
                         style += " color: #f1c40f; font-weight: bold;"
                         suffix = ""
@@ -447,35 +445,35 @@ if provas_list:
                     cells = ""
                     for name in j:
                         cells += bracket_cell(name, is_winner=(name == v), is_dq=(name in dq_names))
-                    box = f'<div style="border: 1px solid #555; border-radius: 6px; background: #2a2a2a; margin: 4px 0; min-width: 160px;">'
+                    box = f'<div class="u-s202">'
                     box += cells
                     box += f'</div>'
                     return box
 
                 # Build the bracket as a 3-column flex layout
-                print('<div style="display: flex; gap: 1.5rem; align-items: stretch; overflow-x: auto; margin: 0.5rem 0 1.5rem 0;">')
+                print('<div class="u-s308">')
 
                 # Column 1: Quartas
-                print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
-                print('<div class="tc text-muted fs-sm" style="font-weight: bold; margin-bottom: 4px;">Quartas</div>')
+                print('<div class="u-s048">')
+                print('<div class="tc text-muted fs-sm u-s067">Quartas</div>')
                 for d in quartas:
                     print(matchup_box(d))
                 print('</div>')
 
                 # Column 2: Semis
-                print('<div style="display: flex; flex-direction: column; justify-content: space-around; gap: 0.5rem;">')
-                print('<div class="tc text-muted fs-sm" style="font-weight: bold; margin-bottom: 4px;">Semis</div>')
+                print('<div class="u-s048">')
+                print('<div class="tc text-muted fs-sm u-s067">Semis</div>')
                 for d in semis:
                     print(matchup_box(d))
                 print('</div>')
 
                 # Column 3: Final
-                print('<div style="display: flex; flex-direction: column; justify-content: center;">')
-                print('<div class="tc text-muted fs-sm" style="font-weight: bold; margin-bottom: 4px;">Final</div>')
+                print('<div class="u-s304">')
+                print('<div class="tc text-muted fs-sm u-s067">Final</div>')
                 for d in final:
                     print(matchup_box(d))
                     winner = d["vencedor"]
-                    print(f'<div class="tc fs-lg" style="margin-top: 6px;">🏆 <span style="color: #f1c40f; font-weight: bold;">{winner}</span></div>')
+                    print(f'<div class="tc fs-lg u-s414">🏆 <span class="u-s024">{winner}</span></div>')
                 print('</div>')
 
                 print('</div>')
@@ -497,22 +495,22 @@ if provas_list:
         scored_entries.sort(key=lambda x: (0 if isinstance(x["position"], int) else 1, x["position"] if isinstance(x["position"], int) else 999))
 
         if scored_entries:
-            print(f'\n<details style="margin-top: 0.5rem;"><summary class="fs-base" style="cursor: pointer; color: #3498db;">📊 Pontos atribuídos (multiplicador {label}: {mult_label})</summary>')
-            print('<div style="margin: 0.5rem 0;">')
+            print(f'\n<details class="u-s072"><summary class="fs-base u-s295">📊 Pontos atribuídos (multiplicador {label}: {mult_label})</summary>')
+            print('<div class="u-s431">')
             print('<table class="table-full table-md">')
-            print('<thead><tr style="border-bottom: 1px solid #444;">')
-            print('<th class="tl text-muted" style="padding: 0.3rem;">Participante</th>')
-            print('<th class="tc text-muted" style="padding: 0.3rem;">Pos</th>')
-            print('<th class="tr text-muted" style="padding: 0.3rem;">Base</th>')
-            print(f'<th class="tr text-muted" style="padding: 0.3rem;">× {mult_label}</th>')
+            print('<thead><tr class="u-s028">')
+            print('<th class="tl text-muted u-s026">Participante</th>')
+            print('<th class="tc text-muted u-s026">Pos</th>')
+            print('<th class="tr text-muted u-s026">Base</th>')
+            print(f'<th class="tr text-muted u-s026">× {mult_label}</th>')
             print('</tr></thead><tbody>')
             for se in scored_entries:
                 pos_str = "DQ" if se["position"] == "dq" else f'{se["position"]}º'
                 pts_color = '#27ae60' if se["weighted_pts"] > 0 else '#888'
                 print(f'<tr class="sep-bottom">')
-                print(f'<td class="text-light" style="padding: 0.3rem;">{se["name"]}</td>')
-                print(f'<td class="tc" style="padding: 0.3rem; color: #aaa;">{pos_str}</td>')
-                print(f'<td class="tr" style="padding: 0.3rem; color: #aaa;">{se["base_pts"]}</td>')
+                print(f'<td class="text-light u-s026">{se["name"]}</td>')
+                print(f'<td class="tc u-s104">{pos_str}</td>')
+                print(f'<td class="tr u-s104">{se["base_pts"]}</td>')
                 print(f'<td class="tr" style="padding: 0.3rem; color: {pts_color}; font-weight: bold;">{se["weighted_pts"]}</td>')
                 print('</tr>')
             print('</tbody></table>')
@@ -527,7 +525,7 @@ else:
 
 # Sistema de Pontuação {#pontuacao}
 
-<div class="info-panel" style="border-left-color: #17a2b8; padding: 1.2rem; margin: 1rem 0;">
+<div class="info-panel u-s018">
 
 **Como funciona o ranking de provas**
 
@@ -555,24 +553,24 @@ multipliers = scoring["type_multipliers"]
 print('''
 <div class="info-grid">
 
-<div style="background: linear-gradient(180deg, rgba(52, 152, 219, 0.15) 0%, rgba(52, 152, 219, 0.05) 100%); border: 1px solid rgba(52, 152, 219, 0.3); border-radius: 12px; padding: 1.2rem;">
-<h4 style="color: #3498db; margin-top: 0; border-bottom: 1px solid rgba(52, 152, 219, 0.3); padding-bottom: 0.5rem;">🏅 Pontos por Posição</h4>
+<div class="u-s124">
+<h4 class="u-s215">🏅 Pontos por Posição</h4>
 <table class="table-full fs-base">
 ''')
 
 for pos, pts in sorted(placement_pts.items(), key=lambda x: int(x[0])):
     medal = '🥇' if pos == '1' else ('🥈' if pos == '2' else ('🥉' if pos == '3' else ''))
-    print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{medal} {pos}º lugar</td><td class="tr" style="color: #3498db; font-weight: bold; padding: 0.3rem 0;">{pts}</td></tr>')
+    print(f'<tr><td class="text-light u-s019">{medal} {pos}º lugar</td><td class="tr u-s214">{pts}</td></tr>')
 
-print(f'<tr><td class="text-muted" style="padding: 0.3rem 0;">9º+ lugar</td><td class="tr text-muted" style="font-weight: bold; padding: 0.3rem 0;">{default_pts}</td></tr>')
-print(f'<tr><td style="color: #e74c3c; padding: 0.3rem 0;">DQ (desclassificado)</td><td class="tr" style="color: #e74c3c; font-weight: bold; padding: 0.3rem 0;">0</td></tr>')
+print(f'<tr><td class="text-muted u-s019">9º+ lugar</td><td class="tr text-muted u-s386">{default_pts}</td></tr>')
+print(f'<tr><td class="u-s226">DQ (desclassificado)</td><td class="tr u-s023">0</td></tr>')
 
 print('''
 </table>
 </div>
 
-<div style="background: linear-gradient(180deg, rgba(241, 196, 15, 0.15) 0%, rgba(241, 196, 15, 0.05) 100%); border: 1px solid rgba(241, 196, 15, 0.3); border-radius: 12px; padding: 1.2rem;">
-<h4 style="color: #f1c40f; margin-top: 0; border-bottom: 1px solid rgba(241, 196, 15, 0.3); padding-bottom: 0.5rem;">⚖️ Multiplicadores por Tipo</h4>
+<div class="u-s122">
+<h4 class="u-s230">⚖️ Multiplicadores por Tipo</h4>
 <table class="table-full fs-base">
 ''')
 
@@ -580,11 +578,11 @@ for tipo, mult in sorted(multipliers.items(), key=lambda x: -x[1]):
     emoji = TIPO_EMOJI.get(tipo, "🏅")
     label = TIPO_LABEL.get(tipo, tipo.title())
     color = TIPO_COLOR.get(tipo, "#888")
-    print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{emoji} {label}</td><td class="tr" style="color: {color}; font-weight: bold; padding: 0.3rem 0;">{mult:.2f}×</td></tr>')
+    print(f'<tr><td class="text-light u-s019">{emoji} {label}</td><td class="tr" style="color: {color}; font-weight: bold; padding: 0.3rem 0;">{mult:.2f}×</td></tr>')
 
 print('''
 </table>
-<p class="text-muted fs-md" style="margin-top: 0.8rem; margin-bottom: 0;">Fórmula: <code>pontos_base × multiplicador</code></p>
+<p class="text-muted fs-md u-s412">Fórmula: <code>pontos_base × multiplicador</code></p>
 </div>
 
 </div>
