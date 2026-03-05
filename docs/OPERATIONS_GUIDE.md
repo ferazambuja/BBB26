@@ -1083,7 +1083,6 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 | Retake with fresh render first | `./scripts/capture_layout_screenshots.sh --render --output-dir tmp/page_screenshots/<label>` |
 | Install/update chromium once for captures | `./scripts/capture_layout_screenshots.sh --install-browser --output-dir tmp/page_screenshots/<label>` |
 | Capture one page with verbose diagnostics | `python scripts/capture_quarto_screenshots.py --profiles mobile --page index.html --verbose --output-dir tmp/page_screenshots/<label>` |
-| Force extra settle time for heavy JS pages | `python scripts/capture_quarto_screenshots.py --profiles mobile --page relacoes_debug.html --wait-ms 12000 --verbose --output-dir tmp/page_screenshots/<label>` |
 | Capture mobile slices (top/mid/bottom) for long pages | `python scripts/capture_mobile_slices.py --output-dir tmp/page_screenshots/<label>-slices` |
 | Analyze capture timing | `python scripts/analyze_capture_timing.py` |
 | Update PROGRAMA_BBB26.md timeline | `python scripts/update_programa_doc.py` |
@@ -1152,7 +1151,6 @@ Single page debug (helps detect slow/hanging perception):
 python scripts/capture_quarto_screenshots.py \
   --profiles mobile \
   --page index.html \
-  --wait-ms 12000 \
   --verbose \
   --fail-fast \
   --output-dir tmp/page_screenshots/<label>
@@ -1166,7 +1164,6 @@ python scripts/capture_quarto_screenshots.py \
 - `--page <name>`: limit to a single page (`index.html`, `paredao.html`, etc.).
 - `--verbose`: print per-page command and stitch diagnostics.
 - `--fail-fast`: stop on first failure instead of finishing the whole run.
-- `--wait-ms N`: wait time before each screenshot (`9000` default; increase for heavy debug pages).
 - `--mobile-stitch-threshold N`: enable/disable stitched fallback for very tall mobile captures (`0` disables).
 - `--mobile-stitch-viewport-height N`: larger stitch viewport to reduce tile count/time.
 

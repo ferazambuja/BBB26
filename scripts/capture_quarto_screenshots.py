@@ -386,8 +386,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--host", type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=4444)
-    # Keep a higher default so mobile-adapt transformations finish on dense pages.
-    parser.add_argument("--wait-ms", type=int, default=9000)
+    parser.add_argument("--wait-ms", type=int, default=3500)
     parser.add_argument("--timeout-ms", type=int, default=120000)
     parser.add_argument("--playwright-package", type=str, default="playwright@latest")
     parser.add_argument("--browser", type=str, default="chromium")
