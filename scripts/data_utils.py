@@ -18,7 +18,7 @@ from bisect import bisect_left
 from datetime import datetime, timedelta, timezone
 from html import escape as _html_escape
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import plotly.graph_objects as go
@@ -353,13 +353,18 @@ def load_snapshot(filepath: str | Path) -> tuple[list[dict], dict]:
 # Centralized Data Loaders (derived + manual JSON files)
 # ══════════════════════════════════════════════════════════════
 
+def _load_json_file(path: str | Path, default: Any) -> Any:
+    """Load JSON file or return default when file is missing."""
+    file_path = Path(path)
+    if not file_path.exists():
+        return default
+    with open(file_path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def load_paredoes_raw() -> dict:
     """Load data/paredoes.json. Returns dict with 'paredoes' key."""
-    p = Path("data/paredoes.json")
-    if not p.exists():
-        return {"paredoes": []}
-    with open(p, encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json_file("data/paredoes.json", {"paredoes": []})
 
 
 # Keep backward-compatible alias for callers that use the raw dict format
@@ -443,47 +448,77 @@ def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[d
 
 def load_participants_index() -> dict:
     """Load data/derived/participants_index.json. Returns dict with 'participants' key."""
-    p = Path("data/derived/participants_index.json")
-    if not p.exists():
-        return {"participants": []}
-    with open(p, encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json_file("data/derived/participants_index.json", {"participants": []})
 
 
 def load_relations_scores() -> dict:
     """Load data/derived/relations_scores.json. Returns full dict."""
-    p = Path("data/derived/relations_scores.json")
-    if not p.exists():
-        return {}
-    with open(p, encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json_file("data/derived/relations_scores.json", {})
 
 
 def load_daily_metrics() -> dict:
     """Load data/derived/daily_metrics.json. Returns full dict."""
-    p = Path("data/derived/daily_metrics.json")
-    if not p.exists():
-        return {}
-    with open(p, encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json_file("data/derived/daily_metrics.json", {})
 
 
 def load_roles_daily() -> dict:
     """Load data/derived/roles_daily.json. Returns full dict."""
-    p = Path("data/derived/roles_daily.json")
-    if not p.exists():
-        return {}
-    with open(p, encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json_file("data/derived/roles_daily.json", {})
+
+
+def load_index_data() -> dict:
+    """Load data/derived/index_data.json."""
+    return _load_json_file("data/derived/index_data.json", {})
+
+
+def load_clusters_data() -> dict:
+    """Load data/derived/clusters_data.json."""
+    return _load_json_file("data/derived/clusters_data.json", {})
+
+
+def load_cluster_evolution() -> dict:
+    """Load data/derived/cluster_evolution.json."""
+    return _load_json_file("data/derived/cluster_evolution.json", {})
+
+
+def load_cartola_data() -> dict:
+    """Load data/derived/cartola_data.json."""
+    return _load_json_file("data/derived/cartola_data.json", {})
+
+
+def load_prova_rankings() -> dict:
+    """Load data/derived/prova_rankings.json."""
+    return _load_json_file("data/derived/prova_rankings.json", {})
+
+
+def load_provas_raw() -> dict:
+    """Load data/provas.json."""
+    return _load_json_file("data/provas.json", {"provas": []})
+
+
+def load_manual_events() -> dict:
+    """Load data/manual_events.json."""
+    return _load_json_file("data/manual_events.json", {})
+
+
+def load_auto_events() -> dict:
+    """Load data/derived/auto_events.json."""
+    return _load_json_file("data/derived/auto_events.json", {"events": []})
+
+
+def load_game_timeline() -> dict:
+    """Load data/derived/game_timeline.json."""
+    return _load_json_file("data/derived/game_timeline.json", {"events": []})
+
+
+def load_paredao_analysis() -> dict:
+    """Load data/derived/paredao_analysis.json."""
+    return _load_json_file("data/derived/paredao_analysis.json", {})
 
 
 def load_reaction_matrices() -> dict:
     """Load precomputed reaction matrices from data/derived/reaction_matrices.json."""
-    p = Path("data/derived/reaction_matrices.json")
-    if not p.exists():
-        return {}
-    with open(p, encoding="utf-8") as f:
-        return json.load(f)
+    return _load_json_file("data/derived/reaction_matrices.json", {})
 
 
 def deserialize_matrix(serialized: dict[str, str]) -> dict[tuple[str, str], str]:

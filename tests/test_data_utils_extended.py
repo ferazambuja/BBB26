@@ -18,6 +18,16 @@ from data_utils import (
     load_relations_scores,
     load_daily_metrics,
     load_roles_daily,
+    load_index_data,
+    load_clusters_data,
+    load_cluster_evolution,
+    load_cartola_data,
+    load_prova_rankings,
+    load_provas_raw,
+    load_manual_events,
+    load_auto_events,
+    load_game_timeline,
+    load_paredao_analysis,
     load_reaction_matrices,
     deserialize_matrix,
     load_votalhada_polls,
@@ -452,6 +462,78 @@ class TestLoadRolesDaily:
         monkeypatch.chdir(tmp_path)
         result = load_roles_daily()
         assert result == {}
+
+
+class TestAdditionalCentralizedLoaders:
+    """Test additional JSON loaders used by QMD pages."""
+
+    @staticmethod
+    def _write(path: Path, payload: dict) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+    def test_load_index_data(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "index_data.json", {"latest": {"date": "2026-01-20"}})
+        monkeypatch.chdir(tmp_path)
+        assert load_index_data().get("latest", {}).get("date") == "2026-01-20"
+
+    def test_load_clusters_data(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "clusters_data.json", {"_metadata": {"week": 1}})
+        monkeypatch.chdir(tmp_path)
+        assert load_clusters_data().get("_metadata", {}).get("week") == 1
+
+    def test_load_cluster_evolution(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "cluster_evolution.json", {"weekly": []})
+        monkeypatch.chdir(tmp_path)
+        assert load_cluster_evolution().get("weekly") == []
+
+    def test_load_cartola_data(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "cartola_data.json", {"leaderboard": []})
+        monkeypatch.chdir(tmp_path)
+        assert load_cartola_data().get("leaderboard") == []
+
+    def test_load_prova_rankings(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "prova_rankings.json", {"leaderboard": []})
+        monkeypatch.chdir(tmp_path)
+        assert load_prova_rankings().get("leaderboard") == []
+
+    def test_load_provas_raw(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "provas.json", {"provas": [{"tipo": "lider"}]})
+        monkeypatch.chdir(tmp_path)
+        assert load_provas_raw().get("provas", [])[0].get("tipo") == "lider"
+
+    def test_load_manual_events(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "manual_events.json", {"weekly_events": []})
+        monkeypatch.chdir(tmp_path)
+        assert load_manual_events().get("weekly_events") == []
+
+    def test_load_auto_events(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "auto_events.json", {"events": [{"type": "lider"}]})
+        monkeypatch.chdir(tmp_path)
+        assert load_auto_events().get("events", [])[0].get("type") == "lider"
+
+    def test_load_game_timeline(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "game_timeline.json", {"events": [{"date": "2026-01-20"}]})
+        monkeypatch.chdir(tmp_path)
+        assert load_game_timeline().get("events", [])[0].get("date") == "2026-01-20"
+
+    def test_load_paredao_analysis(self, tmp_path, monkeypatch):
+        self._write(tmp_path / "data" / "derived" / "paredao_analysis.json", {"by_paredao": {"1": {}}})
+        monkeypatch.chdir(tmp_path)
+        assert "1" in load_paredao_analysis().get("by_paredao", {})
+
+    def test_missing_files_return_defaults(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        assert load_index_data() == {}
+        assert load_clusters_data() == {}
+        assert load_cluster_evolution() == {}
+        assert load_cartola_data() == {}
+        assert load_prova_rankings() == {}
+        assert load_provas_raw() == {"provas": []}
+        assert load_manual_events() == {}
+        assert load_auto_events() == {"events": []}
+        assert load_game_timeline() == {"events": []}
+        assert load_paredao_analysis() == {}
 
 
 class TestLoadReactionMatricesAndDeserialize:
