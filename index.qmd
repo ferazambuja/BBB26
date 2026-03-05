@@ -165,82 +165,92 @@ def make_cross_table_heatmap(participants, matrix, title_suffix=""):
 
 
 def make_cross_table_html(cross_data, title_suffix=""):
-    """Retorna HTML da matriz de reações com alternativa compacta para mobile."""
+    """Retorna HTML string com tabela cruzada de reações (sticky header/column)."""
     active_names = cross_data.get("names", [])
     matrix = cross_data.get("matrix", [])
-    if not active_names or not matrix:
-        return "<p class='text-muted'>Dados insuficientes para matriz de reações.</p>"
-
     short_names = [n.split()[0] if len(n) > 10 else n for n in active_names]
 
-    def get_cell_class(rxn):
+    # Color mapping based on sentiment
+    def get_cell_style(rxn):
         if not rxn:
-            return "cross-cell-none"
+            return "background: #444; color: #888;"
         weight = SENTIMENT_WEIGHTS.get(rxn, 0)
-        if weight == 1:
-            return "cross-cell-pos"
-        if weight == -0.5:
-            return "cross-cell-neg-mild"
-        if weight == -1:
-            return "cross-cell-neg-strong"
-        return "cross-cell-neutral"
+        if weight == 1:  # Positive
+            return "background: #1a9850; color: #fff;"
+        elif weight == -0.5:  # Mild negative
+            return "background: #fc8d59; color: #000;"
+        elif weight == -1:  # Strong negative
+            return "background: #d73027; color: #fff;"
+        return "background: #ffffbf; color: #000;"
 
-    def summarize_row(giver_idx):
-        positives = []
-        negatives = []
-        for recv_idx, receiver in enumerate(active_names):
-            if giver_idx == recv_idx:
-                continue
-            rxn = matrix[giver_idx][recv_idx] if giver_idx < len(matrix) and recv_idx < len(matrix[giver_idx]) else ""
-            weight = SENTIMENT_WEIGHTS.get(rxn, 0)
-            if weight > 0:
-                positives.append(receiver)
-            elif weight < 0:
-                negatives.append(receiver)
-        return positives, negatives
+    # Build HTML table
+    html = []
+    html.append(f'''
+<div class="scroll-x">
+<style>
+.cross-table {{
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--fs-base);
+    width: max-content;
+}}
+.cross-table th, .cross-table td {{
+    padding: 4px 6px;
+    text-align: center;
+    border: 1px solid #555;
+    min-width: 36px;
+    white-space: nowrap;
+}}
+.cross-table thead th {{
+    position: sticky;
+    top: 0;
+    background: #222;
+    z-index: 2;
+    font-weight: bold;
+}}
+.cross-table tbody th {{
+    position: sticky;
+    left: 0;
+    background: #222;
+    z-index: 1;
+    font-weight: bold;
+    text-align: right;
+}}
+.cross-table thead th:first-child {{
+    z-index: 3;
+    left: 0;
+}}
+.cross-table td {{ font-size: var(--fs-xl); }}
+.cross-table td:hover {{ outline: 2px solid #fff; }}
+</style>
+<table class="cross-table">
+<thead>
+<tr>
+<th class="u-s001">→ deu / ↓ recebeu</th>
+''')
 
-    table_html = []
-    table_html.append('<div class="cross-table-wrap"><table class="cross-table"><thead><tr><th class="u-s001">→ deu / ↓ recebeu</th>')
-
+    # Header row with receiver names
     for short in short_names:
-        table_html.append(f"<th>{short}</th>")
-    table_html.append("</tr></thead><tbody>")
+        html.append(f'<th>{short}</th>')
+    html.append('</tr></thead><tbody>')
 
+    # Data rows
     for i, giver in enumerate(active_names):
-        table_html.append(f"<tr><th>{short_names[i]}</th>")
+        html.append(f'<tr><th>{short_names[i]}</th>')
         for j, receiver in enumerate(active_names):
             if giver == receiver:
-                table_html.append('<td class="u-s117">—</td>')
+                html.append('<td class="u-s117">—</td>')
             else:
                 rxn = matrix[i][j] if i < len(matrix) and j < len(matrix[i]) else ""
                 emoji = REACTION_EMOJI.get(rxn, '?') if rxn else '?'
-                css_class = get_cell_class(rxn)
+                style = get_cell_style(rxn)
                 tooltip = f"{giver} → {receiver}: {rxn or 'N/A'}"
-                table_html.append(f'<td class="{css_class}" title="{tooltip}">{emoji}</td>')
-        table_html.append("</tr>")
+                html.append(f'<td style=\"{style}\" title=\"{tooltip}\">{emoji}</td>')
+        html.append('</tr>')
 
-    table_html.append("</tbody></table></div>")
-    table_block = "".join(table_html)
+    html.append('</tbody></table></div>')
 
-    mobile_html = ['<div class="cross-mobile-grid mobile-only">']
-    for i, name in enumerate(active_names):
-        positives, negatives = summarize_row(i)
-        pos_short = ", ".join(n.split()[0] for n in positives[:4]) if positives else "—"
-        neg_short = ", ".join(n.split()[0] for n in negatives[:4]) if negatives else "—"
-        mobile_html.append(
-            f"""
-<div class="cross-mobile-card">
-  <div class="cross-mobile-title">{name}</div>
-  <div class="cross-mobile-meta">❤️ {len(positives)} · Negativas {len(negatives)}</div>
-  <div class="cross-mobile-meta">Top ❤️: {pos_short}</div>
-  <div class="cross-mobile-meta">Top negativas: {neg_short}</div>
-</div>
-"""
-        )
-    mobile_html.append("</div>")
-    mobile_html.append("<p class='mobile-only ranking-mobile-note'>Matriz completa disponível na versão desktop.</p>")
-    mobile_html.append(f'<div class="desktop-only">{table_block}</div>')
-    return "\n".join(mobile_html)
+    return '\n'.join(html)
 
 
 def make_reaction_summary_html(summary_data, collapsed_rows=5):
@@ -950,12 +960,6 @@ Ver análise →
   #cell-evolution-queridometro,
   #cell-evolution-strategic {
     display: none;
-  }
-
-  #ranking-sentimento .plotly-graph-div,
-  #ranking-sentimento .js-plotly-plot,
-  #ranking-sentimento .plot-container {
-    display: none !important;
   }
 
   #tabset-1-1 > div:not(.ranking-mobile-summary),
