@@ -282,7 +282,6 @@ def _load_and_parse_snapshots(snapshots: list[dict]) -> dict[str, Any]:
         snap["label"] = label
 
     latest = snapshots[-1]
-    latest_matrix = build_reaction_matrix(latest["participants"])
     latest_date = latest["date"]
     current_week = get_week_number(latest_date)
 
@@ -322,7 +321,6 @@ def _load_and_parse_snapshots(snapshots: list[dict]) -> dict[str, Any]:
 
     return {
         "latest": latest,
-        "latest_matrix": latest_matrix,
         "latest_date": latest_date,
         "current_week": current_week,
         "member_of": member_of,
@@ -533,10 +531,29 @@ def _build_shared_context(snapshots: list[dict], daily_snapshots: list[dict], da
     parsed = _load_and_parse_snapshots(snapshots)
     aggregated = _aggregate_latest_state(parsed, daily_snapshots)
 
+    # Use the most recent daily matrix that has complete reaction data.
+    # When the API is broken (e.g. Breno/Quarto Secreto gap), the latest
+    # daily snapshot may have missing reactions. Walk backwards through
+    # daily snapshots to find one with a full set (N*(N-1) pairs for N
+    # active participants). Synthetic snapshots built from GShow articles
+    # provide this when the API fails.
+    latest_matrix = {}
+    if daily_matrices:
+        n_active = len([p for p in parsed["latest"]["participants"]
+                        if not p.get("characteristics", {}).get("eliminated")])
+        expected_pairs = n_active * (n_active - 1)
+        for mat in reversed(daily_matrices):
+            if len(mat) >= expected_pairs:
+                latest_matrix = mat
+                break
+        if not latest_matrix:
+            latest_matrix = daily_matrices[-1]
+
     ctx = {
         "snapshots": snapshots,
         "daily_snapshots": daily_snapshots,
         "daily_matrices": daily_matrices,
+        "latest_matrix": latest_matrix,
     }
     ctx.update(parsed)
     ctx.update(aggregated)
@@ -1363,17 +1380,23 @@ def _build_cross_table_and_summary(ctx: dict[str, Any]) -> dict[str, Any]:
                 row.append(latest_matrix.get((giver, receiver), ""))
         cross_matrix.append(row)
 
-    # Reaction summary table
+    # Reaction summary table — built from latest_matrix (handles synthetic snapshots)
     summary_rows = []
-    for p in sorted(active, key=lambda x: calc_sentiment(x), reverse=True):
-        name = p["name"]
-        rxn_counts = {}
-        for rxn in p.get("characteristics", {}).get("receivedReactions", []):
-            emoji = REACTION_EMOJI.get(rxn["label"], rxn["label"])
-            rxn_counts[emoji] = rxn.get("amount", 0)
+    for name in active_names:
+        rxn_counts: dict[str, int] = {}
+        for giver in active_names:
+            if giver == name:
+                continue
+            label = latest_matrix.get((giver, name), "")
+            if label:
+                emoji = REACTION_EMOJI.get(label, label)
+                rxn_counts[emoji] = rxn_counts.get(emoji, 0) + 1
+        hearts = rxn_counts.get("❤️", 0)
+        neg_sum = sum(v for k, v in rxn_counts.items() if k != "❤️")
+        score = hearts - neg_sum  # simplified sentiment from matrix
         summary_rows.append({
             "name": name,
-            "hearts": rxn_counts.get("❤️", 0),
+            "hearts": hearts,
             "planta": rxn_counts.get("🌱", 0),
             "mala": rxn_counts.get("💼", 0),
             "biscoito": rxn_counts.get("🍪", 0),
@@ -1382,8 +1405,9 @@ def _build_cross_table_and_summary(ctx: dict[str, Any]) -> dict[str, Any]:
             "vomito": rxn_counts.get("🤮", 0),
             "mentiroso": rxn_counts.get("🤥", 0),
             "coracao_partido": rxn_counts.get("💔", 0),
-            "score": calc_sentiment(p),
+            "score": score,
         })
+    summary_rows.sort(key=lambda r: r["score"], reverse=True)
 
     max_hearts = max((r["hearts"] for r in summary_rows), default=1)
     max_neg = max((r["cobra"] + r["alvo"] + r["vomito"] + r["mentiroso"] for r in summary_rows), default=1)

@@ -1089,6 +1089,7 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 | Analyze capture timing | `python scripts/analyze_capture_timing.py` |
 | Update PROGRAMA_BBB26.md timeline | `python scripts/update_programa_doc.py` |
 | Scrape a GShow article | `python scripts/scrape_gshow.py "<url>" -o docs/scraped/` |
+| Scrape BBB 26 agenda (programação do dia) | `python scripts/scrape_gshow_agenda.py YYYY-MM-DD -o docs/scraped/agenda/` |
 
 ---
 
