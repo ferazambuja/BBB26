@@ -538,16 +538,23 @@ def _build_shared_context(snapshots: list[dict], daily_snapshots: list[dict], da
     # active participants). Synthetic snapshots built from GShow articles
     # provide this when the API fails.
     latest_matrix = {}
+    matrix_date = parsed["latest_date"]
     if daily_matrices:
         n_active = len([p for p in parsed["latest"]["participants"]
                         if not p.get("characteristics", {}).get("eliminated")])
         expected_pairs = n_active * (n_active - 1)
-        for mat in reversed(daily_matrices):
+        for i, mat in enumerate(reversed(daily_matrices)):
             if len(mat) >= expected_pairs:
                 latest_matrix = mat
+                matrix_date = daily_snapshots[len(daily_matrices) - 1 - i]["date"]
                 break
         if not latest_matrix:
             latest_matrix = daily_matrices[-1]
+
+    # If the matrix came from an earlier day (API gap), update latest_date
+    # so that display labels reflect the actual data date, not today.
+    if matrix_date != parsed["latest_date"]:
+        parsed["latest_date"] = matrix_date
 
     ctx = {
         "snapshots": snapshots,
@@ -2539,7 +2546,7 @@ def build_index_data() -> dict | None:
         "_metadata": {"generated_at": datetime.now(timezone.utc).isoformat()},
         "latest": {
             "date": ctx["latest_date"],
-            "label": ctx["latest"].get("label", ctx["latest_date"]),
+            "label": ctx["latest_date"],
         },
         "current_week": ctx["current_week"],
         "current_cycle_week": ctx["current_cycle_week"],
