@@ -2072,17 +2072,43 @@ for p in profiles:
         votes_html = ""
 
     sinc = p.get("sincerao", {})
-    chips = []
-    for reason in sinc.get("reasons", []):
-        chips.append(
-            f"<span class='u-s060' class='fs-xs'>{reason}</span>"
-        )
-    for tema, count in (sinc.get("bombas", {}) or {}).items():
-        prefix = f"{count}x " if count > 1 else ""
-        chips.append(
-            f"<span class='u-s060' class='fs-xs'>💣 {prefix}{tema}</span>"
-        )
-    sincerao_html = " ".join(chips) if chips else ""
+    SINC_EMOJI = {"podio": "🏆", "bomba": "💣", "nao_ganha": "🚫",
+                  "paredao_perfeito": "🏛️", "regua": "📏", "regua_fora": "❌",
+                  "quem_sai": "🚪", "prova_eliminou": "⚡"}
+    all_interactions = sinc.get("all_interactions", [])
+    sinc_summary = sinc.get("summary", {})
+    sinc_total = sinc_summary.get("total_positive", 0) + sinc_summary.get("total_negative", 0)
+    sincerao_html = ""
+    if all_interactions:
+        sinc_rows = []
+        for wi, week_data in enumerate(all_interactions):
+            wk = week_data.get("week", "?")
+            ints = week_data.get("interactions", [])
+            chips_html = ""
+            for ix in ints:
+                etype = ix.get("type", "")
+                emoji = SINC_EMOJI.get(etype, "•")
+                actor_first = ix.get("actor", "").split()[0] if ix.get("actor") else ""
+                tema = ix.get("tema", etype)
+                valence = ix.get("valence", "neg")
+                border_color = "#2d8659" if valence == "pos" else "#b33"
+                chips_html += (
+                    f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
+                    f"{emoji} {actor_first} <span style='opacity:0.7'>{tema}</span></span> "
+                )
+            week_label = f"<span class='fs-2xs' style='opacity:0.6;min-width:24px'>S{wk}</span>"
+            row = f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>{week_label}{chips_html}</div>"
+            sinc_rows.append((wi, row))
+        # Show most recent 2 weeks inline, rest in <details>
+        visible = [r for i, r in sinc_rows if i < 2]
+        hidden = [r for i, r in sinc_rows if i >= 2]
+        sincerao_html = "".join(visible)
+        if hidden:
+            sincerao_html += (
+                f"<details style='margin-top:2px'><summary class='fs-2xs' style='cursor:pointer;opacity:0.6'>"
+                f"+ {len(hidden)} semana{'s' if len(hidden) > 1 else ''} anterior{'es' if len(hidden) > 1 else ''}</summary>"
+                f"{''.join(hidden)}</details>"
+            )
 
     sinc_contra = p.get("sinc_contra", {})
     sinc_contra_count = sinc_contra.get("count", 0)
@@ -2400,9 +2426,10 @@ for p in profiles:
                 f"<div class='u-s353'>{votes_html}</div></div>"
             )
         if sincerao_html:
+            sinc_count_label = f" ({sinc_total})" if sinc_total else ""
             dynamics_inner += (
-                f"<div class='u-s336'>"
-                f"<strong class='fs-base u-s025'>🔥 Sincerão</strong> {sincerao_html}</div>"
+                f"<div style='display:flex;flex-direction:column;gap:2px'>"
+                f"<strong class='fs-base u-s025'>🔥 Sincerão{sinc_count_label}</strong>{sincerao_html}</div>"
             )
         if events.get('pos_hist') or events.get('neg_hist'):
             dynamics_inner += (

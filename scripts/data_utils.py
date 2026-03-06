@@ -275,6 +275,7 @@ WEEK_END_DATES: list[str] = [
     "2026-02-12",  # Week 4 — Jonas Sulzbach Líder; 4º Paredão Feb 10; barrado Feb 11; Jonas Líder Feb 13
     "2026-02-18",  # Week 5 — Jonas Sulzbach Líder; 5º Paredão Feb 17; barrado Feb 18
     "2026-02-25",  # Week 6 — Jonas Sulzbach Líder; 6º Paredão Feb 25; barrado Feb 25
+    "2026-03-05",  # Week 7 — Samira Líder; 7º Paredão Falso Mar 3 (Breno → Quarto Secreto); Liderança Dupla Mar 5
 ]
 
 

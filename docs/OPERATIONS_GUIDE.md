@@ -173,7 +173,8 @@ Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for m
 | W4 | Mon Feb 9 | Quem Sou Eu? (adivinhação) | Plateia define mais apagada (Marciele) |
 | W5 | Mon Feb 16 | **MISSING** — needs data | Done hastily on live show, not yet classified |
 | W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
-| W7 | TBD | TBD | |
+| W7 | Mon Mar 2 | Linha Direta — maior traidor(a) | Each participant calls one person they consider the biggest traitor |
+| W8 | TBD | TBD | |
 
 ### Week Dynamic History (Friday — varies each week)
 
@@ -188,6 +189,7 @@ Separate from Sincerão. Announced in the dynamics article (published ~Thursday)
 | W5 | Bloco do Paredão (Máquina do Poder) | `special_events` |
 | W6 | Sincerinho Paredão Perfeito + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
 | W7 | O Exilado + Paredão Falso + Quarto Secreto | `special_events` |
+| W8 | Liderança Dupla + Consenso Anjo/Monstro + Contragolpe | `special_events` |
 
 ### Recurring Events Checklist (per week)
 

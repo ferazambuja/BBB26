@@ -18,12 +18,14 @@ from data_utils import (
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
+    genero,
 )
 
-DATA_DIR = Path(__file__).parent.parent / "data" / "snapshots"
-DERIVED_DIR = Path(__file__).parent.parent / "data" / "derived"
+_PROJECT_ROOT = Path(__file__).parent.parent.parent
+DATA_DIR = _PROJECT_ROOT / "data" / "snapshots"
+DERIVED_DIR = _PROJECT_ROOT / "data" / "derived"
 
-MANUAL_EVENTS_FILE = Path(__file__).parent.parent / "data" / "manual_events.json"
+MANUAL_EVENTS_FILE = _PROJECT_ROOT / "data" / "manual_events.json"
 AUTO_EVENTS_FILE = DERIVED_DIR / "auto_events.json"
 SINCERAO_FILE = DERIVED_DIR / "sincerao_edges.json"
 DAILY_METRICS_FILE = DERIVED_DIR / "daily_metrics.json"
@@ -31,10 +33,10 @@ ROLES_DAILY_FILE = DERIVED_DIR / "roles_daily.json"
 PARTICIPANTS_INDEX_FILE = DERIVED_DIR / "participants_index.json"
 PLANT_INDEX_FILE = DERIVED_DIR / "plant_index.json"
 RELATIONS_FILE = DERIVED_DIR / "relations_scores.json"
-PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
+PAREDOES_FILE = _PROJECT_ROOT / "data" / "paredoes.json"
 CARTOLA_FILE = DERIVED_DIR / "cartola_data.json"
 PROVA_FILE = DERIVED_DIR / "prova_rankings.json"
-PROVAS_RAW_FILE = Path(__file__).parent.parent / "data" / "provas.json"
+PROVAS_RAW_FILE = _PROJECT_ROOT / "data" / "provas.json"
 
 ROLE_TYPES = {
     "Líder": "lider",
@@ -43,6 +45,19 @@ ROLE_TYPES = {
     "Imune": "imunidade",
     "Paredão": "emparedado",
 }
+
+SINC_VALENCE: dict[str, str] = {
+    "podio": "pos", "regua": "pos",
+    "bomba": "neg", "nao_ganha": "neg", "paredao_perfeito": "neg",
+    "regua_fora": "neg", "quem_sai": "neg", "prova_eliminou": "neg",
+}
+
+
+def _resolve_gendered_tema(tema: str, target: str) -> str:
+    """Resolve '(a)' suffix based on target gender."""
+    if '(a)' not in tema:
+        return tema
+    return tema.replace('(a)', 'a') if genero(target) == 'f' else tema.replace('(a)', '')
 
 
 def load_json(path: Path, default: Any) -> Any:
@@ -1525,6 +1540,11 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     # Sincerao edges (current week) used for contradictions/insights
     sinc_data = ctx["sinc_data"]
     sinc_edges_week = [e for e in sinc_data.get("edges", []) if e.get("week") == current_week]
+    sinc_weeks_meta = {}
+    for w in sinc_data.get("weeks", []):
+        wk = w.get("week")
+        if wk is not None:
+            sinc_weeks_meta[wk] = w.get("format", "")
 
     # Cartola: name -> {total, rank}
     cartola_lb = cartola_data.get("leaderboard", [])
@@ -1619,6 +1639,7 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
         "revealed_votes": revealed_votes,
         "current_vote_week": current_vote_week,
         "sinc_edges_week": sinc_edges_week,
+        "sinc_weeks_meta": sinc_weeks_meta,
         "cartola_by_name": cartola_by_name,
         "prova_by_name": prova_by_name,
         "sentiment_history": sentiment_history,
@@ -1853,11 +1874,14 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
 
 def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str], str], sinc_data: dict, sinc_edges_week: list[dict],
                                     current_week: int, votes_received_by_week: dict, current_vote_week: int | None,
-                                    revealed_votes: dict[str, set[str]], plant_scores: dict, plant_week: dict | None) -> dict[str, Any]:
+                                    revealed_votes: dict[str, set[str]], plant_scores: dict, plant_week: dict | None,
+                                    sinc_weeks_meta: dict[int, str] | None = None) -> dict[str, Any]:
     """Queridômetro section: votes, Sincerão, plant index.
 
-    Returns a dict with vote_list, sincerao, sinc_contra, plant_info.
+    Returns a dict with vote_list, sincerao, sinc_contra, plant_info, all_interactions.
     """
+    if sinc_weeks_meta is None:
+        sinc_weeks_meta = {}
     vote_map = votes_received_by_week.get(current_vote_week, {}).get(name, {})
 
     sinc_agg = next((a for a in sinc_data.get("aggregates", []) if a.get("week") == current_week), None)
@@ -1911,6 +1935,37 @@ def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str
         plant_info["week"] = plant_week.get("week")
         plant_info["date_range"] = plant_week.get("date_range", {})
 
+    # All-weeks Sincerão interactions targeting this participant
+    all_edges_for_target = [e for e in sinc_data.get("edges", []) if e.get("target") == name]
+    by_week: dict[int, list[dict]] = defaultdict(list)
+    total_pos = 0
+    total_neg = 0
+    for edge in all_edges_for_target:
+        wk = edge.get("week")
+        if wk is None:
+            continue
+        etype = edge.get("type", "")
+        tema_raw = edge.get("tema") or etype
+        tema = _resolve_gendered_tema(tema_raw, name)
+        valence = SINC_VALENCE.get(etype, "neg")
+        by_week[wk].append({
+            "type": etype,
+            "actor": edge.get("actor", ""),
+            "tema": tema,
+            "valence": valence,
+        })
+        if valence == "pos":
+            total_pos += 1
+        else:
+            total_neg += 1
+    all_interactions = []
+    for wk in sorted(by_week.keys(), reverse=True):
+        all_interactions.append({
+            "week": wk,
+            "format_short": sinc_weeks_meta.get(wk, ""),
+            "interactions": by_week[wk],
+        })
+
     return {
         "aggregate_events": aggregate_events,
         "vote_list": vote_list,
@@ -1918,6 +1973,9 @@ def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str
         "bombs": bombs,
         "sinc_contra_targets": sinc_contra_targets,
         "plant_info": plant_info,
+        "all_interactions": all_interactions,
+        "total_pos": total_pos,
+        "total_neg": total_neg,
     }
 
 
@@ -2220,7 +2278,8 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
     querido = _build_profile_querido_section(
         name, latest_matrix, sinc_data, lookups["sinc_edges_week"],
         current_week, lookups["votes_received_by_week"], lookups["current_vote_week"],
-        lookups["revealed_votes"], plant_scores, plant_week)
+        lookups["revealed_votes"], plant_scores, plant_week,
+        sinc_weeks_meta=lookups.get("sinc_weeks_meta"))
 
     # 4. Footer: curiosities, game stats
     footer = _build_profile_footer(
@@ -2264,6 +2323,8 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
         "sincerao": {
             "reasons": querido["sinc_reasons"],
             "bombas": querido["bombs"],
+            "all_interactions": querido["all_interactions"],
+            "summary": {"total_positive": querido["total_pos"], "total_negative": querido["total_neg"]},
         },
         "sinc_contra": {
             "count": len(querido["sinc_contra_targets"]),
