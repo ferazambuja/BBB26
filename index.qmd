@@ -600,22 +600,31 @@ else:
             for it in items[:4]:
                 g = it["giver"]
                 r = it["receiver"]
+                g_slug = g.lower().replace(" ", "-")
+                r_slug = r.lower().replace(" ", "-")
                 if is_hostile:
                     emoji = it.get("emoji", "?")
+                    date_str = it.get("date", "")
+                    try:
+                        date_fmt = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
+                    except Exception:
+                        date_fmt = ""
                     label = f'{g.split()[0]} {emoji} {r.split()[0]}'
+                    date_badge = f' <span class="fs-2xs" style="opacity:0.5">{date_fmt}</span>' if date_fmt else ""
                     g_color = "#f39c12"
                     r_color = "#e74c3c"
                 else:
                     old_e = it.get("old_emoji", "?")
                     new_e = it.get("new_emoji", "?")
                     label = f'{old_e}→{new_e}'
+                    date_badge = ""
                     g_color = "#e74c3c" if new_e == "❤️" else "#666"
                     r_color = "#27ae60" if new_e == "❤️" else "#e74c3c"
                 pairs_html += (
                     f'<div class="u-s342" title="{g} → {r}">'
-                    f'{av(g, 42, g_color)}'
-                    f'<span class="fs-md u-s017">{label}</span>'
-                    f'{av(r, 42, r_color)}'
+                    f'<a href="#perfil-{g_slug}" style="text-decoration:none">{av(g, 42, g_color)}</a>'
+                    f'<span class="fs-md u-s017">{label}{date_badge}</span>'
+                    f'<a href="#perfil-{r_slug}" style="text-decoration:none">{av(r, 42, r_color)}</a>'
                     f'</div>'
                 )
             extra = total - 4
@@ -629,32 +638,109 @@ else:
 {pairs_html}
 </div>''')
 
-        # ── ⚡ Sincerão ──
+        # ── 🔥 Sincerão (unified: radar + contradictions) ──
         elif ctype == "sincerao":
-            items = card.get("items", [])
-            total = card.get("total", len(items))
-            rows_html = '<div class="u-s354">'
-            for it in items[:3]:
-                ator = it["ator"]
-                alvo = it["alvo"]
-                tipo = it.get("tipo_label", it.get("tipo", "?"))
-                emoji = it.get("emoji", "?")
-                rows_html += (
-                    f'<div class="u-s346">'
-                    f'{av(ator, 42, "#e67e22")}'
-                    f'<span class="fs-md u-s017">{ator.split()[0]}</span>'
-                    f'<span class="fs-xs u-s009">disse <b class="u-s037">{tipo}</b> mas dá</span>'
-                    f'<span class="fs-xl">{emoji}</span>'
-                    f'<span class="fs-xs u-s009">para</span>'
-                    f'{av(alvo, 42, "#27ae60")}'
-                    f'<span class="fs-md u-s017">{alvo.split()[0]}</span>'
+            radar = card.get("radar", {})
+            contras = card.get("contradictions", [])
+            aligned_neg = card.get("aligned_neg", [])
+            fmt = card.get("format", "")
+            neg_ranked = radar.get("neg_ranked", [])
+            pos_ranked = radar.get("pos_ranked", [])
+            not_targeted = radar.get("not_targeted", [])
+
+            # Format subtitle
+            fmt_short = fmt.split("—")[0].strip() if "—" in fmt else (fmt[:50] if fmt else "")
+            subtitle = fmt if fmt else "Resumo semanal do Sincerão × Queridômetro."
+
+            body_html = '<div style="display:flex;flex-direction:column;gap:8px;padding:4px 0">'
+
+            # -- Most targeted (negative) -- show full ranked list
+            if neg_ranked:
+                neg_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
+                neg_html += '<span class="fs-sm" style="opacity:0.6;min-width:80px">💣 Atacados</span>'
+                for entry in neg_ranked:
+                    n = entry["name"].split()[0]
+                    slug = entry["name"].lower().replace(" ", "-")
+                    c = entry["count"]
+                    is_top = entry["count"] == neg_ranked[0]["count"]
+                    weight = "font-weight:700" if is_top else "opacity:0.8"
+                    neg_html += f'<a href="#perfil-{slug}" class="fs-sm" style="{weight};text-decoration:none;color:inherit">{n} <b>({c}x)</b></a>'
+                neg_html += '</div>'
+                body_html += neg_html
+
+            # -- Most praised (positive) -- show full ranked list
+            if pos_ranked:
+                pos_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
+                pos_html += '<span class="fs-sm" style="opacity:0.6;min-width:80px">🏆 Elogiados</span>'
+                for entry in pos_ranked:
+                    n = entry["name"].split()[0]
+                    slug = entry["name"].lower().replace(" ", "-")
+                    c = entry["count"]
+                    is_top = entry["count"] == pos_ranked[0]["count"]
+                    weight = "font-weight:700" if is_top else "opacity:0.8"
+                    pos_html += f'<a href="#perfil-{slug}" class="fs-sm" style="{weight};text-decoration:none;color:inherit">{n} <b>({c}x)</b></a>'
+                pos_html += '</div>'
+                body_html += pos_html
+
+            # -- Not targeted (safe) -- participou mas ninguém citou
+            if not_targeted:
+                safe_links = ", ".join(
+                    f'<a href="#perfil-{n.lower().replace(" ", "-")}" style="text-decoration:none;color:inherit">{n.split()[0]}</a>'
+                    for n in not_targeted
+                )
+                safe_html = (
+                    f'<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
+                    f'<span class="fs-sm" style="opacity:0.6;min-width:80px">🛡️ Poupados</span>'
+                    f'<span class="fs-sm" style="opacity:0.8">{safe_links}</span>'
                     f'</div>'
                 )
-            rows_html += '</div>'
+                body_html += safe_html
+
+            # -- Contradictions (neg sincerao + ❤️ queridometro)
+            if contras:
+                contra_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
+                contra_html += f'<span class="fs-sm" style="opacity:0.6;min-width:80px">⚡ Contradiz</span>'
+                for c in contras[:5]:
+                    ator_slug = c["ator"].lower().replace(" ", "-")
+                    alvo_slug = c["alvo"].lower().replace(" ", "-")
+                    contra_html += (
+                        f'<span class="fs-sm">'
+                        f'<a href="#perfil-{ator_slug}" style="text-decoration:none;color:inherit">{c["ator"].split()[0]}</a>'
+                        f'→<a href="#perfil-{alvo_slug}" style="text-decoration:none;color:inherit">{c["alvo"].split()[0]}</a> '
+                        f'<span style="opacity:0.6">({c.get("tipo_label", "?")} mas dá {c.get("emoji", "?")})</span>'
+                        f'</span>'
+                    )
+                if len(contras) > 5:
+                    contra_html += f'<span class="fs-sm" style="opacity:0.5">+{len(contras)-5} mais</span>'
+                contra_html += '</div>'
+                body_html += contra_html
+
+            # -- Aligned negative (confirmed hostility)
+            if aligned_neg:
+                align_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
+                align_html += f'<span class="fs-sm" style="opacity:0.6;min-width:80px">🎯 Confirmado</span>'
+                for a in aligned_neg[:5]:
+                    ator_slug = a["ator"].lower().replace(" ", "-")
+                    alvo_slug = a["alvo"].lower().replace(" ", "-")
+                    align_html += (
+                        f'<span class="fs-sm">'
+                        f'<a href="#perfil-{ator_slug}" style="text-decoration:none;color:inherit">{a["ator"].split()[0]}</a>'
+                        f'→<a href="#perfil-{alvo_slug}" style="text-decoration:none;color:inherit">{a["alvo"].split()[0]}</a> '
+                        f'<span style="opacity:0.6">({a.get("tipo_label", "?")} + {a.get("emoji", "?")})</span>'
+                        f'</span>'
+                    )
+                if len(aligned_neg) > 5:
+                    align_html += f'<span class="fs-sm" style="opacity:0.5">+{len(aligned_neg)-5} mais</span>'
+                align_html += '</div>'
+                body_html += align_html
+
+            body_html += '</div>'
+
+            count_txt = f"{len(neg_ranked) + len(pos_ranked)}" if (neg_ranked or pos_ranked) else ""
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📸 Sincerão + Queridômetro", subtitle="No Sincerão disse negativo (bomba/não ganha) mas no queridômetro dá ❤️. Discurso contradiz reação.")}
-{rows_html}
+{card_header(card["icon"], card["title"], card.get("link"), count_txt, source_tag="📸 Sincerão", subtitle=subtitle)}
+{body_html}
 </div>''')
 
         # ── 🗳️ Paredão ──
@@ -756,20 +842,29 @@ else:
             for it in items[:4]:
                 g = it["giver"]
                 r = it["receiver"]
+                g_slug = g.lower().replace(" ", "-")
+                r_slug = r.lower().replace(" ", "-")
                 streak = it["streak"]
                 new_e = it.get("new_emoji", "?")
                 sev = it.get("severity", "mild")
                 sev_border = "#e74c3c" if sev == "strong" else "#8e44ad"
+                date_str = it.get("date", "")
+                try:
+                    date_fmt = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
+                except Exception:
+                    date_fmt = ""
+                date_badge = f'<span class="fs-2xs" style="opacity:0.5;margin-left:auto">{date_fmt}</span>' if date_fmt else ""
                 rows_html += (
                     f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
                     f'padding:5px 8px;border-radius:8px;border-left:3px solid {sev_border};">'
-                    f'{av(g, 42, sev_border)}'
+                    f'<a href="#perfil-{g_slug}" style="text-decoration:none">{av(g, 42, sev_border)}</a>'
                     f'<div class="u-s057">'
                     f'<span class="fs-xs u-s001">{streak}d ❤️</span>'
                     f'<span class="fs-base">→ {new_e}</span>'
                     f'</div>'
-                    f'{av(r, 42, sev_border)}'
+                    f'<a href="#perfil-{r_slug}" style="text-decoration:none">{av(r, 42, sev_border)}</a>'
                     f'{"<span class=&quot;fs-xs&quot; style=&quot;color:#e74c3c;font-weight:700;&quot;>🚨</span>" if sev == "strong" else ""}'
+                    f'{date_badge}'
                     f'</div>'
                 )
             extra = total - 4
@@ -1690,6 +1785,8 @@ print(ANALYSIS_DESCRIPTIONS["profiles_footer"])
 #| label: individual-profiles
 #| output: asis
 
+from IPython.display import display, HTML as IPyHTML
+
 profiles = index_data.get("profiles", [])
 
 source_icons = {
@@ -2072,46 +2169,129 @@ for p in profiles:
         votes_html = ""
 
     sinc = p.get("sincerao", {})
-    SINC_EMOJI = {"podio": "🏆", "bomba": "💣", "nao_ganha": "🚫",
-                  "paredao_perfeito": "🏛️", "regua": "📏", "regua_fora": "❌",
-                  "quem_sai": "🚪", "prova_eliminou": "⚡"}
-    all_interactions = sinc.get("all_interactions", [])
     sinc_summary = sinc.get("summary", {})
-    sinc_total = sinc_summary.get("total_positive", 0) + sinc_summary.get("total_negative", 0)
+    sinc_current = sinc.get("current", {})
+    sinc_season = sinc.get("season", {})
+    sinc_total = sinc_summary.get("received_total", 0) + sinc_summary.get("given_total", 0)
+
+    # Build sincerao HTML: Recebeu + Fez for current week, then season history
     sincerao_html = ""
-    if all_interactions:
-        sinc_rows = []
-        for wi, week_data in enumerate(all_interactions):
-            wk = week_data.get("week", "?")
-            ints = week_data.get("interactions", [])
-            chips_html = ""
-            for ix in ints:
-                etype = ix.get("type", "")
-                emoji = SINC_EMOJI.get(etype, "•")
+    if sinc_total > 0:
+        sinc_parts = []
+
+        # -- Current week: Recebeu --
+        current_received = sinc_current.get("received", [])
+        if current_received:
+            chips = ""
+            for ix in current_received:
+                emoji = ix.get("emoji", "")
                 actor_first = ix.get("actor", "").split()[0] if ix.get("actor") else ""
-                tema = ix.get("tema", etype)
+                label = ix.get("label", "")
                 valence = ix.get("valence", "neg")
                 border_color = "#2d8659" if valence == "pos" else "#b33"
-                chips_html += (
+                chips += (
                     f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
-                    f"{emoji} {actor_first} <span style='opacity:0.7'>{tema}</span></span> "
+                    f"{emoji} {actor_first} <span style='opacity:0.7'>{label}</span></span> "
                 )
-            week_label = f"<span class='fs-2xs' style='opacity:0.6;min-width:24px'>S{wk}</span>"
-            row = f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>{week_label}{chips_html}</div>"
-            sinc_rows.append((wi, row))
-        # Show most recent 2 weeks inline, rest in <details>
-        visible = [r for i, r in sinc_rows if i < 2]
-        hidden = [r for i, r in sinc_rows if i >= 2]
-        sincerao_html = "".join(visible)
-        if hidden:
-            sincerao_html += (
-                f"<details style='margin-top:2px'><summary class='fs-2xs' style='cursor:pointer;opacity:0.6'>"
-                f"+ {len(hidden)} semana{'s' if len(hidden) > 1 else ''} anterior{'es' if len(hidden) > 1 else ''}</summary>"
-                f"{''.join(hidden)}</details>"
+            sinc_parts.append(
+                f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
+                f"<span class='fs-2xs' style='opacity:0.6;min-width:50px'>Recebeu</span>{chips}</div>"
             )
 
-    sinc_contra = p.get("sinc_contra", {})
-    sinc_contra_count = sinc_contra.get("count", 0)
+        # -- Current week: Fez --
+        current_given = sinc_current.get("given", [])
+        if current_given:
+            chips = ""
+            for ix in current_given:
+                emoji = ix.get("emoji", "")
+                target_first = ix.get("target", "").split()[0] if ix.get("target") else ""
+                label = ix.get("label", "")
+                valence = ix.get("valence", "neg")
+                border_color = "#2d8659" if valence == "pos" else "#b33"
+                chips += (
+                    f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
+                    f"{emoji} {target_first} <span style='opacity:0.7'>{label}</span></span> "
+                )
+            sinc_parts.append(
+                f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
+                f"<span class='fs-2xs' style='opacity:0.6;min-width:50px'>Fez</span>{chips}</div>"
+            )
+
+        # -- Season history (collapsed): both received AND given per past week --
+        received_by_week = sinc_season.get("received_by_week", [])
+        given_by_week = sinc_season.get("given_by_week", [])
+        current_wk = sinc.get("current_week")
+
+        past_weeks_set = set()
+        for w in received_by_week:
+            if w.get("week") != current_wk:
+                past_weeks_set.add(w["week"])
+        for w in given_by_week:
+            if w.get("week") != current_wk:
+                past_weeks_set.add(w["week"])
+
+        if past_weeks_set:
+            recv_lookup = {w["week"]: w["interactions"] for w in received_by_week}
+            given_lookup = {w["week"]: w["interactions"] for w in given_by_week}
+            history_rows = []
+            for wk in sorted(past_weeks_set, reverse=True):
+                week_label = f"<span class='fs-2xs' style='opacity:0.6;min-width:24px'>S{wk}</span>"
+                week_parts = []
+
+                # Received sub-row
+                recv_ints = recv_lookup.get(wk, [])
+                if recv_ints:
+                    chips_html = ""
+                    for ix in recv_ints:
+                        emoji = ix.get("emoji", "")
+                        actor_first = ix.get("actor", "").split()[0] if ix.get("actor") else ""
+                        label = ix.get("label", "")
+                        valence = ix.get("valence", "neg")
+                        border_color = "#2d8659" if valence == "pos" else "#b33"
+                        chips_html += (
+                            f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
+                            f"{emoji} {actor_first} <span style='opacity:0.7'>{label}</span></span> "
+                        )
+                    week_parts.append(
+                        f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
+                        f"{week_label}<span class='fs-2xs' style='opacity:0.5'>Recebeu</span>{chips_html}</div>"
+                    )
+
+                # Given sub-row
+                given_ints = given_lookup.get(wk, [])
+                if given_ints:
+                    chips_html = ""
+                    for ix in given_ints:
+                        emoji = ix.get("emoji", "")
+                        target_first = ix.get("target", "").split()[0] if ix.get("target") else ""
+                        label = ix.get("label", "")
+                        valence = ix.get("valence", "neg")
+                        border_color = "#2d8659" if valence == "pos" else "#b33"
+                        chips_html += (
+                            f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
+                            f"{emoji} {target_first} <span style='opacity:0.7'>{label}</span></span> "
+                        )
+                    given_label = f"<span style='min-width:24px'></span>" if recv_ints else week_label
+                    week_parts.append(
+                        f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
+                        f"{given_label}<span class='fs-2xs' style='opacity:0.5'>Fez</span>{chips_html}</div>"
+                    )
+
+                history_rows.extend(week_parts)
+
+            if history_rows:
+                n_past = len(past_weeks_set)
+                sinc_parts.append(
+                    f"<details style='margin-top:2px'><summary class='fs-2xs' style='cursor:pointer;opacity:0.6'>"
+                    f"+ {n_past} semana{'s' if n_past > 1 else ''} anterior{'es' if n_past > 1 else ''}</summary>"
+                    f"{''.join(history_rows)}</details>"
+                )
+
+        sincerao_html = "".join(sinc_parts)
+
+    # Contradiction data (now inside sincerao.summary)
+    sinc_contra_count = sinc_summary.get("contradiction_count", 0)
+    sinc_contra_targets = sinc_summary.get("contradiction_targets", [])
 
     risk_level = p.get("risk_level")
     risk_color = p.get("risk_color")
@@ -2296,7 +2476,7 @@ for p in profiles:
 
     contra_chip = ""
     if sinc_contra_count:
-        targets_txt = ", ".join(sinc_contra.get("targets", []))
+        targets_txt = ", ".join(sinc_contra_targets)
         contra_detail = f"<div class='sb-muted'>Diz que não gosta no Sincerão, mas dá ❤️ para: {targets_txt}</div>"
         contra_chip = render_status_chip("⚡", "Contradição", f"{sinc_contra_count}x", "#6f42c1", contra_detail)
 
@@ -2460,62 +2640,52 @@ for p in profiles:
         )
 
     # ═══ ASSEMBLE CARD ═══
-    print(f'''
-<div id="perfil-{name_slug}" class="profile-card u-s039">
-
-<!-- [1] Hero Header -->
-<div style="background:linear-gradient(90deg,rgba(48,48,48,0.9),rgba(48,48,48,0.3));border-left:5px solid {cor_grupo};">
-<div class="profile-hero-inner">
-{avatar_img}
-<div>
-<h3 class="fs-2xl u-s434">{name}</h3>
-<div class="u-s356">
-{group_pill}{role_pill}
-</div>
-{stat_chips}
-</div>
-</div>
-</div>
-
-<!-- [2] Status Strip -->
-<div class="profile-status-strip">
-{status_chips}
-</div>
-
-<!-- [3] Reactions -->
-<div class="profile-reactions-grid">
-<div>
-<details class="rxn-detail">
-<summary class="u-s046">
-<div class="fs-sm u-s068">RECEBEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>
-{rxn_received_chips}
-</summary>
-<div class="u-s103">{received_detail_html}</div>
-</details>
-</div>
-<div>
-<details class="rxn-detail">
-<summary class="u-s046">
-<div class="fs-sm u-s068">DEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>
-{rxn_given_chips}
-</summary>
-<div class="u-s103">{given_detail_html}</div>
-</details>
-</div>
-</div>
-
-<!-- [4] Game Dynamics -->
-{dynamics_html}
-
-<!-- [5] Relations -->
-<div class="profile-relations">
-{relations_html if relations_html else '<div class="fs-base u-s058">Sem relações classificadas.</div>'}
-</div>
-
-<!-- [6] Curiosidades -->
-{curiosities_html}
-
-</div>''')
+    relations_content = relations_html if relations_html else '<div class="fs-base u-s058">Sem relações classificadas.</div>'
+    card_html = (
+        f'<div id="perfil-{name_slug}" class="profile-card u-s039">'
+        f'<div style="background:linear-gradient(90deg,rgba(48,48,48,0.9),rgba(48,48,48,0.3));border-left:5px solid {cor_grupo};">'
+        f'<div class="profile-hero-inner">'
+        f'{avatar_img}'
+        f'<div>'
+        f'<h3 class="fs-2xl u-s434">{name}</h3>'
+        f'<div class="u-s356">'
+        f'{group_pill}{role_pill}'
+        f'</div>'
+        f'{stat_chips}'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+        f'<div class="profile-status-strip">'
+        f'{status_chips}'
+        f'</div>'
+        f'<div class="profile-reactions-grid">'
+        f'<div>'
+        f'<details class="rxn-detail">'
+        f'<summary class="u-s046">'
+        f'<div class="fs-sm u-s068">RECEBEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>'
+        f'{rxn_received_chips}'
+        f'</summary>'
+        f'<div class="u-s103">{received_detail_html}</div>'
+        f'</details>'
+        f'</div>'
+        f'<div>'
+        f'<details class="rxn-detail">'
+        f'<summary class="u-s046">'
+        f'<div class="fs-sm u-s068">DEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>'
+        f'{rxn_given_chips}'
+        f'</summary>'
+        f'<div class="u-s103">{given_detail_html}</div>'
+        f'</details>'
+        f'</div>'
+        f'</div>'
+        f'{dynamics_html}'
+        f'<div class="profile-relations">'
+        f'{relations_content}'
+        f'</div>'
+        f'{curiosities_html}'
+        f'</div>'
+    )
+    display(IPyHTML(card_html))
 ```
 
 ```{python}

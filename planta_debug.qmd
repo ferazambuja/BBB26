@@ -422,15 +422,15 @@ else:
 
 sinc_meta = index_data.get("sincerao", {}) if isinstance(index_data, dict) else {}
 pairs = sinc_meta.get("pairs", {}) if isinstance(sinc_meta, dict) else {}
-aligned_pos = pairs.get("aligned_pos") or []
-aligned_neg = pairs.get("aligned_neg") or []
-if not sinc_meta.get("week"):
+aligned_pos = pairs.get("aligned_positive") or []
+aligned_neg = pairs.get("aligned_negative") or []
+if not sinc_meta.get("current_week"):
     print("<p class='text-muted'>Sem dados de Sincerão agregados nesta semana.</p>")
 else:
     if not aligned_pos and not aligned_neg:
         print("<p class='text-muted'>Sem alinhamentos registrados nesta semana.</p>")
     else:
-        print(f"<p class='text-muted'>Semana usada: {sinc_meta.get('week')}</p>")
+        print(f"<p class='text-muted'>Semana usada: {sinc_meta.get('current_week')}</p>")
         if aligned_pos:
             rows = []
             for item in aligned_pos[:5]:

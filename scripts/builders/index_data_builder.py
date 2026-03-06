@@ -46,11 +46,19 @@ ROLE_TYPES = {
     "Paredão": "emparedado",
 }
 
-SINC_VALENCE: dict[str, str] = {
-    "podio": "pos", "regua": "pos",
-    "bomba": "neg", "nao_ganha": "neg", "paredao_perfeito": "neg",
-    "regua_fora": "neg", "quem_sai": "neg", "prova_eliminou": "neg",
+SINC_TYPE_META: dict[str, dict[str, str]] = {
+    "podio":             {"label": "podio",              "emoji": "🏆", "valence": "pos"},
+    "regua":             {"label": "regua",              "emoji": "📏", "valence": "pos"},
+    "bomba":             {"label": "bomba",              "emoji": "💣", "valence": "neg"},
+    "nao_ganha":         {"label": "nao ganha",          "emoji": "🚫", "valence": "neg"},
+    "paredao_perfeito":  {"label": "paredao perfeito",   "emoji": "🏛️", "valence": "neg"},
+    "regua_fora":        {"label": "fora da regua",      "emoji": "❌", "valence": "neg"},
+    "quem_sai":          {"label": "quem sai",           "emoji": "🚪", "valence": "neg"},
+    "prova_eliminou":    {"label": "eliminado na prova", "emoji": "⚡", "valence": "neg"},
 }
+
+# Derived view for downstream code that only needs valence
+SINC_VALENCE: dict[str, str] = {k: v["valence"] for k, v in SINC_TYPE_META.items()}
 
 
 def _resolve_gendered_tema(tema: str, target: str) -> str:
@@ -58,6 +66,181 @@ def _resolve_gendered_tema(tema: str, target: str) -> str:
     if '(a)' not in tema:
         return tema
     return tema.replace('(a)', 'a') if genero(target) == 'f' else tema.replace('(a)', '')
+
+
+def resolve_sinc_label(edge_type: str, tema: str | None, target: str) -> str:
+    """Produce a human-readable label for a Sincerao interaction.
+
+    If the edge has a tema (e.g. bomba themes), use it with gender resolution.
+    Otherwise, fall back to SINC_TYPE_META label. Unknown types are humanized
+    (underscores replaced with spaces) and a warning is logged.
+    """
+    if tema:
+        return _resolve_gendered_tema(tema, target)
+    meta = SINC_TYPE_META.get(edge_type)
+    if meta:
+        return meta["label"]
+    import sys
+    print(f"WARNING: Unknown Sincerao edge type '{edge_type}' — add it to SINC_TYPE_META", file=sys.stderr)
+    return edge_type.replace("_", " ")
+
+
+def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
+                             latest_matrix: dict[tuple[str, str], str],
+                             sinc_weeks_meta: dict[int, str]) -> dict[str, Any]:
+    """Build the complete sincerao view-model for a participant profile.
+
+    Returns dict with: current_week, summary, current, season.
+    """
+    all_edges = sinc_data.get("edges", [])
+
+    # Partition edges into received (target==name) and given (actor==name)
+    received_edges = [e for e in all_edges if e.get("target") == name]
+    given_edges = [e for e in all_edges if e.get("actor") == name]
+
+    def _build_interaction(edge: dict, perspective: str) -> dict:
+        etype = edge.get("type", "")
+        target_for_gender = name if perspective == "received" else edge.get("target", "")
+        label = resolve_sinc_label(etype, edge.get("tema"), target_for_gender)
+        meta = SINC_TYPE_META.get(etype, {})
+        item: dict[str, Any] = {
+            "type": etype,
+            "label": label,
+            "emoji": meta.get("emoji", ""),
+            "valence": meta.get("valence", "neg"),
+        }
+        if perspective == "received":
+            item["actor"] = edge.get("actor", "")
+        else:
+            item["target"] = edge.get("target", "")
+        return item
+
+    def _group_by_week(edges: list[dict], perspective: str) -> list[dict]:
+        by_week: dict[int, list[dict]] = defaultdict(list)
+        for edge in edges:
+            wk = edge.get("week")
+            if wk is None:
+                continue
+            by_week[wk].append(_build_interaction(edge, perspective))
+        result = []
+        for wk in sorted(by_week.keys(), reverse=True):
+            result.append({
+                "week": wk,
+                "format_short": sinc_weeks_meta.get(wk, ""),
+                "interactions": by_week[wk],
+            })
+        return result
+
+    # Current week interactions
+    current_received = [_build_interaction(e, "received")
+                        for e in received_edges if e.get("week") == current_week]
+    current_given = [_build_interaction(e, "given")
+                     for e in given_edges if e.get("week") == current_week]
+
+    # Season: all weeks grouped
+    season_received = _group_by_week(received_edges, "received")
+    season_given = _group_by_week(given_edges, "given")
+
+    # Summary counts
+    def _count_valence(interactions: list[dict]) -> tuple[int, int]:
+        pos = sum(1 for i in interactions if i.get("valence") == "pos")
+        neg = len(interactions) - pos
+        return pos, neg
+
+    all_received_items = [i for wg in season_received for i in wg["interactions"]]
+    all_given_items = [i for wg in season_given for i in wg["interactions"]]
+    r_pos, r_neg = _count_valence(all_received_items)
+    g_pos, g_neg = _count_valence(all_given_items)
+
+    # Contradiction detection: current-week edges where actor==name gave negative
+    # but latest_matrix shows Coracao for that pair
+    contradiction_targets: set[str] = set()
+    for edge in given_edges:
+        if edge.get("week") != current_week:
+            continue
+        etype = edge.get("type", "")
+        if SINC_VALENCE.get(etype) != "neg":
+            continue
+        target = edge.get("target")
+        if target and latest_matrix.get((name, target)) == "Coracao":
+            contradiction_targets.add(target)
+
+    return {
+        "current_week": current_week,
+        "summary": {
+            "received_total": len(all_received_items),
+            "received_pos": r_pos,
+            "received_neg": r_neg,
+            "given_total": len(all_given_items),
+            "given_pos": g_pos,
+            "given_neg": g_neg,
+            "contradiction_count": len(contradiction_targets),
+            "contradiction_targets": sorted(contradiction_targets),
+        },
+        "current": {
+            "received": current_received,
+            "given": current_given,
+        },
+        "season": {
+            "received_by_week": season_received,
+            "given_by_week": season_given,
+        },
+    }
+
+
+def _compute_sincerao_radar(week_edges: list[dict], week: int,
+                             latest_matrix: dict[tuple[str, str], str]) -> dict:
+    """Compute weekly Sincerao radar: ranked targets, praised, contradictions, not-targeted."""
+    neg_counts: dict[str, int] = defaultdict(int)
+    pos_counts: dict[str, int] = defaultdict(int)
+    contradiction_counts: dict[str, int] = defaultdict(int)
+    actors: set[str] = set()
+
+    for edge in week_edges:
+        if edge.get("week") != week:
+            continue
+        etype = edge.get("type", "")
+        actor = edge.get("actor", "")
+        target = edge.get("target", "")
+        valence = SINC_VALENCE.get(etype, "neg")
+        if actor:
+            actors.add(actor)
+
+        if valence == "neg":
+            neg_counts[target] += 1
+            if latest_matrix.get((actor, target)) == "Coracao":
+                contradiction_counts[actor] += 1
+        else:
+            pos_counts[target] += 1
+
+    def _ranked(counts: dict[str, int]) -> list[dict]:
+        """Return all entries sorted by count descending, then name."""
+        return sorted(
+            [{"name": n, "count": c} for n, c in counts.items()],
+            key=lambda x: (-x["count"], x["name"]),
+        )
+
+    def _top(counts: dict[str, int]) -> dict:
+        if not counts:
+            return {"names": [], "count": 0}
+        max_val = max(counts.values())
+        names = sorted(n for n, c in counts.items() if c == max_val)
+        return {"names": names, "count": max_val}
+
+    # "Not targeted" = participated (is an actor) but nobody targeted them negatively
+    all_targeted = set(neg_counts.keys()) | set(pos_counts.keys())
+    not_targeted = sorted(actors - all_targeted)
+
+    return {
+        "most_targeted_neg": _top(neg_counts),
+        "most_praised": _top(pos_counts),
+        "most_contradictions": _top(contradiction_counts),
+        "neg_ranked": _ranked(neg_counts),
+        "pos_ranked": _ranked(pos_counts),
+        "not_targeted": not_targeted,
+        "n_actors": len(actors),
+        "week": week,
+    }
 
 
 def load_json(path: Path, default: Any) -> Any:
@@ -773,6 +956,7 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             new_hostilities.append({
                 "giver": giver, "receiver": receiver,
                 "emoji": REACTION_EMOJI.get(new_rxn, "?"),
+                "date": today["date"],
             })
 
     if new_hostilities:
@@ -795,11 +979,11 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
     return highlights, cards
 
 
-def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matrix: dict[tuple[str, str], str]) -> tuple[list[str], list[dict], list[dict], list[dict], list[dict], int, list[int]]:
-    """Sincerão x Queridômetro contradictions and alignments.
+def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matrix: dict[tuple[str, str], str]) -> tuple[list[str], list[dict], list[dict], list[dict], list[dict], int, list[int], dict]:
+    """Sincerão x Queridômetro contradictions, alignments, and radar.
 
     Returns (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
-             sinc_week_used, available_weeks).
+             sinc_week_used, available_weeks, radar).
     """
     highlights = []
     cards = []
@@ -846,13 +1030,6 @@ def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matri
             pair_aligned_neg.append(row)
 
     if pair_contradictions:
-        cards.append({
-            "type": "sincerao",
-            "icon": "⚡", "title": "Sincerão × Queridômetro",
-            "color": "#e67e22", "link": "relacoes.html#contradicoes",
-            "total": len(pair_contradictions),
-            "items": pair_contradictions[:5],
-        })
         lines = [f"{r['ator']}→{r['alvo']} ({r['tipo_label']}, mas dá {r['emoji']})" for r in pair_contradictions[:4]]
         extra = len(pair_contradictions) - 4
         highlights.append(
@@ -863,8 +1040,32 @@ def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matri
         sample_txt = ", ".join([f"{r['ator']}→{r['alvo']}" for r in pair_aligned_pos[:3]])
         highlights.append(f"🤝 Alinhamentos positivos Sincerão×Queridômetro: {sample_txt}")
 
+    # Compute radar for the week used
+    week_edges_for_radar = [e for e in (sinc_data.get("edges", []) if sinc_data else [])
+                            if e.get("week") == sinc_week_used]
+    radar = _compute_sincerao_radar(week_edges_for_radar, sinc_week_used, latest_matrix)
+
+    # Get week format name
+    sinc_week_format = ""
+    for w in sinc_data.get("weeks", []) if sinc_data else []:
+        if w.get("week") == sinc_week_used:
+            sinc_week_format = w.get("format", "")
+            break
+
+    # Unified Sincerão card: radar + contradictions merged
+    if available_weeks and (radar.get("neg_ranked") or radar.get("pos_ranked") or pair_contradictions):
+        cards.append({
+            "type": "sincerao",
+            "icon": "🔥", "title": f"Sincerão S{sinc_week_used}",
+            "color": "#e67e22", "link": "relacoes.html#sincer%C3%A3o-%C3%97-querid%C3%B4metro",
+            "format": sinc_week_format,
+            "radar": radar,
+            "contradictions": pair_contradictions,
+            "aligned_neg": pair_aligned_neg,
+        })
+
     return (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
-            sinc_week_used, available_weeks)
+            sinc_week_used, available_weeks, radar)
 
 
 def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_set: set[str], received_impact: dict, relations_pairs: dict) -> tuple[list[str], list[dict], list[str]]:
@@ -981,6 +1182,7 @@ def _compute_breaks_and_context_cards(relations_data: dict | list, active_set: s
                 "streak": b.get("previous_streak", 0),
                 "new_emoji": REACTION_EMOJI.get(b.get("new_emoji", ""), "❓"),
                 "severity": b.get("severity", "mild"),
+                "date": b.get("date", ""),
             })
         cards.append({
             "type": "breaks",
@@ -1042,7 +1244,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
 
     # Sincerão x Queridômetro
     (sinc_hl, sinc_cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
-     sinc_week_used, available_weeks) = _compute_sincerao_highlight(
+     sinc_week_used, available_weeks, sinc_radar) = _compute_sincerao_highlight(
         sinc_data, current_week, latest_matrix)
     highlights.extend(sinc_hl)
     cards.extend(sinc_cards)
@@ -1067,6 +1269,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
         "pair_aligned_neg": pair_aligned_neg,
         "sinc_week_used": sinc_week_used,
         "available_weeks": available_weeks,
+        "sinc_radar": sinc_radar,
         "paredao_names": paredao_names,
     }
 
@@ -1907,31 +2110,14 @@ def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str
                                     current_week: int, votes_received_by_week: dict, current_vote_week: int | None,
                                     revealed_votes: dict[str, set[str]], plant_scores: dict, plant_week: dict | None,
                                     sinc_weeks_meta: dict[int, str] | None = None) -> dict[str, Any]:
-    """Queridômetro section: votes, Sincerão, plant index.
+    """Queridômetro section: votes, plant index.
 
-    Returns a dict with vote_list, sincerao, sinc_contra, plant_info, all_interactions.
+    Returns a dict with vote_list, aggregate_events, plant_info.
+    Sincerao data is now built by _build_profile_sincerao() separately.
     """
     if sinc_weeks_meta is None:
         sinc_weeks_meta = {}
     vote_map = votes_received_by_week.get(current_vote_week, {}).get(name, {})
-
-    sinc_agg = next((a for a in sinc_data.get("aggregates", []) if a.get("week") == current_week), None)
-    sinc_reasons = sinc_agg.get("reasons", {}).get(name, []) if sinc_agg else []
-    bombs = {}
-    for edge in sinc_edges_week:
-        if edge.get("type") == "bomba" and edge.get("target") == name:
-            tema = edge.get("tema") or "bomba"
-            bombs[tema] = bombs.get(tema, 0) + 1
-
-    sinc_contra_targets = set()
-    for edge in sinc_edges_week:
-        if edge.get("actor") != name:
-            continue
-        if edge.get("type") not in ["nao_ganha", "bomba"]:
-            continue
-        target = edge.get("target")
-        if target and latest_matrix.get((name, target), "") == "Coração":
-            sinc_contra_targets.add(target)
 
     def aggregate_events(events: list[dict]) -> list[dict]:
         grouped = defaultdict(lambda: {"count": 0, "actors": []})
@@ -1966,47 +2152,10 @@ def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str
         plant_info["week"] = plant_week.get("week")
         plant_info["date_range"] = plant_week.get("date_range", {})
 
-    # All-weeks Sincerão interactions targeting this participant
-    all_edges_for_target = [e for e in sinc_data.get("edges", []) if e.get("target") == name]
-    by_week: dict[int, list[dict]] = defaultdict(list)
-    total_pos = 0
-    total_neg = 0
-    for edge in all_edges_for_target:
-        wk = edge.get("week")
-        if wk is None:
-            continue
-        etype = edge.get("type", "")
-        tema_raw = edge.get("tema") or etype
-        tema = _resolve_gendered_tema(tema_raw, name)
-        valence = SINC_VALENCE.get(etype, "neg")
-        by_week[wk].append({
-            "type": etype,
-            "actor": edge.get("actor", ""),
-            "tema": tema,
-            "valence": valence,
-        })
-        if valence == "pos":
-            total_pos += 1
-        else:
-            total_neg += 1
-    all_interactions = []
-    for wk in sorted(by_week.keys(), reverse=True):
-        all_interactions.append({
-            "week": wk,
-            "format_short": sinc_weeks_meta.get(wk, ""),
-            "interactions": by_week[wk],
-        })
-
     return {
         "aggregate_events": aggregate_events,
         "vote_list": vote_list,
-        "sinc_reasons": sinc_reasons,
-        "bombs": bombs,
-        "sinc_contra_targets": sinc_contra_targets,
         "plant_info": plant_info,
-        "all_interactions": all_interactions,
-        "total_pos": total_pos,
-        "total_neg": total_neg,
     }
 
 
@@ -2305,12 +2454,17 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
         received_impact, relations_data, power_events,
         roles_current, current_cycle_week)
 
-    # 3. Queridômetro section: votes, Sincerão, plant index
+    # 3. Queridômetro section: votes, plant index
     querido = _build_profile_querido_section(
         name, latest_matrix, sinc_data, lookups["sinc_edges_week"],
         current_week, lookups["votes_received_by_week"], lookups["current_vote_week"],
         lookups["revealed_votes"], plant_scores, plant_week,
         sinc_weeks_meta=lookups.get("sinc_weeks_meta"))
+
+    # 3a. Sincerao model (received/given)
+    sincerao_model = _build_profile_sincerao(
+        name, sinc_data, current_week, latest_matrix,
+        sinc_weeks_meta=lookups.get("sinc_weeks_meta", {}))
 
     # 4. Footer: curiosities, game stats
     footer = _build_profile_footer(
@@ -2351,16 +2505,7 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
             "neg_hist": aggregate_events(stats["neg_events_hist"]),
         },
         "votes_received": querido["vote_list"],
-        "sincerao": {
-            "reasons": querido["sinc_reasons"],
-            "bombas": querido["bombs"],
-            "all_interactions": querido["all_interactions"],
-            "summary": {"total_positive": querido["total_pos"], "total_negative": querido["total_neg"]},
-        },
-        "sinc_contra": {
-            "count": len(querido["sinc_contra_targets"]),
-            "targets": sorted(querido["sinc_contra_targets"]),
-        },
+        "sincerao": sincerao_model,
         "vip_days": vip_days.get(name, 0),
         "xepa_days": xepa_days.get(name, 0),
         "days_total": total_days.get(name, 0),
@@ -2593,10 +2738,12 @@ def build_index_data() -> dict | None:
             "max_neg": ct["max_neg"],
         },
         "sincerao": {
-            "week": hl["sinc_week_used"] if hl["available_weeks"] else None,
+            "current_week": hl["sinc_week_used"] if hl["available_weeks"] else None,
+            "available_weeks": hl["available_weeks"],
+            "radar": hl["sinc_radar"],
             "pairs": {
-                "aligned_pos": hl["pair_aligned_pos"],
-                "aligned_neg": hl["pair_aligned_neg"],
+                "aligned_positive": hl["pair_aligned_pos"],
+                "aligned_negative": hl["pair_aligned_neg"],
                 "contradictions": hl["pair_contradictions"],
             },
         },
