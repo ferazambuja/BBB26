@@ -1,0 +1,97 @@
+/* Unified bottom page navigation component (mobile-first). */
+
+.page-nav-global {
+  margin: 2.2rem 0 0.8rem;
+  padding: 1rem;
+  border: 1px solid #333;
+  border-left: 4px solid #00bc8c;
+  border-radius: 12px;
+  background: #1f1f1f;
+}
+
+.page-nav-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+}
+
+.page-nav-subtitle {
+  margin: 0.25rem 0 0;
+  color: #a4a9af;
+  font-size: var(--fs-sm);
+}
+
+.page-nav-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.page-nav-action {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid #3a3a3a;
+  background: #2a2a2a;
+  color: #e3e7eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.page-nav-action:hover,
+.page-nav-action:focus {
+  color: #fff;
+  border-color: #00bc8c;
+  background: rgba(0, 188, 140, 0.12);
+}
+
+.page-nav-action-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.page-nav-section-label {
+  margin: 0.85rem 0 0.35rem;
+  color: #a4a9af;
+  font-size: var(--fs-sm);
+}
+
+.page-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.page-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid #3a3a3a;
+  background: #2a2a2a;
+  color: #d9dde1;
+  text-decoration: none;
+  padding: 0.2rem 0.7rem;
+  font-size: var(--fs-sm);
+}
+
+.page-nav-chip:hover,
+.page-nav-chip:focus {
+  color: #fff;
+  border-color: #00bc8c;
+}
+
+.page-nav-chip-active {
+  color: #fff;
+  border-color: #00bc8c;
+  background: rgba(0, 188, 140, 0.18);
+}
+
+@media (min-width: 768px) {
+  .page-nav-actions {
+    grid-template-columns: repeat(2, minmax(190px, 280px));
+    justify-content: start;
+  }
+}

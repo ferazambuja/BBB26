@@ -19,40 +19,45 @@ project:
 
 website:
   title: "BBB 26 — Painel de Reações"
+  site-url: https://ferazambuja.github.io/BBB26/
+  open-graph: true
+  twitter-card: true
+  image: assets/social-preview.jpg
+  search: false
   navbar:
+    title: "BBB26"
     left:
       - href: index.qmd
-        text: "📊 Painel"
+        text: "Painel"
       - href: evolucao.qmd
-        text: "📈 Evolução"
+        text: "Evolução"
       - href: relacoes.qmd
-        text: "🤝 Relações"
+        text: "Relações"
       - href: paredao.qmd
-        text: "🗳️ Paredão (Atual)"
+        text: "Paredão"
       - href: cartola.qmd
-        text: "🏆 Cartola"
+        text: "Cartola"
       - href: provas.qmd
-        text: "🏅 Provas"
+        text: "Provas"
       - href: paredoes.qmd
-        text: "📚 Paredões"
+        text: "Paredões"
       - href: votacao.qmd
-        text: "⚖️ Voto<br>Único/Torcida"
-      - text: "🔬 Mais"
+        text: "Votação"
+      - text: "Mais"
         menu:
           - href: datas.qmd
-            text: "🗓️ Datas"
+            text: "Datas"
           - href: clusters.qmd
-            text: "🧪 Clusters"
+            text: "Clusters"
           - href: planta_debug.qmd
-            text: "🌱 Planta (debug)"
+            text: "Planta (debug)"
           - href: relacoes_debug.qmd
-            text: "🧭 Relações (debug)"
+            text: "Relações (debug)"
   page-footer:
     center: |
-      Dados: [GloboPlay API](https://www.globoplay.com.br/) · Projeto independente, sem vínculo com a TV Globo · [Reportar problema](https://github.com/ferazambuja/BBB26/issues)
+      Projeto independente de análise de dados, sem vínculo com a TV Globo ou o BBB · Dados da API pública do GloboPlay + registros manuais (podem conter erros ou atrasos) · [Reportar problema](https://github.com/ferazambuja/BBB26/issues)
     background: dark
   repo-url: https://github.com/ferazambuja/BBB26
-  repo-actions: [issue]
 
 format:
   html:
@@ -64,9 +69,9 @@ format:
     lang: pt-BR
     css:
       - assets/typography.css
+      - assets/navbar.css
       - assets/plotly-fullscreen.css
-      - assets/toc-offcanvas.css
-      - assets/accessibility.css
+      - assets/page-nav.css
       - assets/cards.css
     include-in-header:
       - text: |
@@ -76,8 +81,6 @@ format:
           <script data-goatcounter="https://bbb.goatcounter.com/count"
                   async src="//gc.zgo.at/count.js"></script>
     include-after-body:
-      - file: assets/disclaimer.html
       - text: |
           <script src="assets/plotly-fullscreen.js"></script>
-          <script src="assets/toc-offcanvas.js"></script>
-          <script src="assets/accessibility.js"></script>
+          <script src="assets/page-nav.js"></script>
