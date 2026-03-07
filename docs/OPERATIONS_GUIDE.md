@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-04
+> **Last updated**: 2026-03-06
 
 ---
 
@@ -271,6 +271,9 @@ These are picked up automatically by `build_daily_roles()` from snapshots:
 ### Later (when Líder term ends)
 
 6. **Update `WEEK_END_DATES`** in `scripts/data_utils.py` — add the last day of the completed week (day before next Prova do Líder). Cannot do this until the next Líder is crowned.
+   - Keep the current week open while leadership is unresolved, even if a provisional date is known from schedule pages.
+   - Example: if week 7 should end on `2026-03-05`, only add `2026-03-05` after the week-8 Líder is actually confirmed.
+   - Why: adding boundaries early makes dashboards jump to the next week before the leadership cycle truly turns over.
 
 ### Verification
 
