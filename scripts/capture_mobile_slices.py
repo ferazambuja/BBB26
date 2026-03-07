@@ -164,7 +164,31 @@ def main() -> int:
                     ],
                 )
                 file_path = output_dir / f"{page_slug(page)}_{label}.png"
-                run_pwcli(pwcli, ["screenshot", "--filename", str(file_path)])
+                try:
+                    run_pwcli(pwcli, ["screenshot", "--filename", str(file_path)])
+                except RuntimeError as exc:
+                    if "not open" in str(exc).lower():
+                        # Recover when playwright-cli loses the persisted session.
+                        run_pwcli(pwcli, ["close-all"], check=False)
+                        run_pwcli(pwcli, ["open", page_url])
+                        run_pwcli(pwcli, ["resize", str(args.viewport_width), str(args.viewport_height)])
+                        run_pwcli(
+                            pwcli,
+                            [
+                                "eval",
+                                f"async () => {{ await new Promise(r => setTimeout(r, {args.wait_ms})); return true; }}",
+                            ],
+                        )
+                        run_pwcli(
+                            pwcli,
+                            [
+                                "eval",
+                                f"async () => {{ window.scrollTo(0, {y}); await new Promise(r => setTimeout(r, 200)); return window.scrollY; }}",
+                            ],
+                        )
+                        run_pwcli(pwcli, ["screenshot", "--filename", str(file_path)])
+                    else:
+                        raise
                 captures.append(
                     {
                         "page": page,

@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-04
+> **Last updated**: 2026-03-06
 
 ---
 
@@ -48,40 +48,71 @@ Pre-push checklist:
 3. Confirm no private-denylist paths are staged/tracked for push.
 4. If needed, install/use `.githooks/pre-push` to block accidental exposure.
 
-## Git Workflow
+## Git Workflow (Dual-Branch)
 
-The GitHub Actions bot auto-commits `data/` files up to 6x daily (8 on Saturdays). **Always pull before working.**
+This repo uses a **dual-branch system**. See `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md` for full details.
+
+| Branch | Purpose | Push? |
+|--------|---------|-------|
+| `local/private-main` | Daily work (private + public mixed) | **NEVER** push |
+| `main` | Public branch on GitHub | Push only `public:` commits |
+
+**Commit prefixes** (required): `private:` (local-only) | `public:` (safe to publish)
+
+The GitHub Actions bot auto-commits `data/` files at permanent slots (6x daily, 8 on Saturdays) plus any temporary probes that are active for timing audits.
+
+### Daily Work (on `local/private-main`)
 
 ```bash
-# Before any local work
-git pull
+# Before any local work — sync public changes into your working branch
+git checkout local/private-main
+git pull origin main --rebase
 
 # After manual edits (the universal pattern)
 python scripts/build_derived_data.py    # rebuild derived data (hard-fails on errors)
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: <description>"
-git push
+git add data/ docs/MANUAL_EVENTS_AUDIT.md
+git commit -m "public: data: <description>"
+```
 
-# Deploy immediately (instead of waiting for next cron)
+### Publishing to GitHub (cherry-pick to `main`)
+
+```bash
+# 1. Switch to public branch
+git checkout main
+git pull --rebase origin main
+
+# 2. Cherry-pick only public: commits from local branch
+git cherry-pick <public-commit-sha-1> <public-commit-sha-2>
+
+# 3. Push
+git push origin main
+
+# 4. Deploy immediately (instead of waiting for next cron)
 gh workflow run daily-update.yml
+
+# 5. Return to working branch
+git checkout local/private-main
 ```
 
 **Key rules**:
-- The bot only touches `data/` files. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
-- Bot cron runs at **00:00, 06:00, 15:00, 18:00 BRT** (+ 17:00, 20:00 on Saturdays). Work quickly near those times.
+- The bot only touches `data/` files on `main`. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
+- Bot cron runs at **00:00, 06:00, 15:00, 18:00 BRT** (+ 17:00, 20:00 on Saturdays).
 - Snapshot filenames are **UTC**. Game dates use `utc_to_game_date()` (UTC→BRT with 06:00 BRT cutoff).
+- **Pre-push hook** (`.githooks/pre-push`) blocks pushes from `local/*` branches and private denylist files.
 
 ### Handling Push Conflicts
 
-If push fails because the bot committed while you were editing:
+If push to `main` fails because the bot committed while you were publishing:
 
 ```bash
-git pull --rebase
+git checkout main
+git pull --rebase origin main
 # If conflicts in data/derived/ (always safe to regenerate):
 git checkout --theirs data/derived/
 git add data/derived/ && git rebase --continue
 python scripts/build_derived_data.py
-git add data/ && git commit -m "data: rebuild derived after merge"
-git push
+git add data/ && git commit -m "public: data: rebuild derived after merge"
+git push origin main
 ```
 
 Derived files are always regenerated — the source of truth is the manual files + snapshots.
@@ -91,12 +122,18 @@ Derived files are always regenerated — the source of truth is the manual files
 Surprise disqualification, mid-week dynamic, or any unplanned event:
 
 ```bash
-git pull                                  # 1. Always sync first
+git checkout local/private-main
+git pull origin main --rebase             # 1. Sync first
 # Edit the relevant data files            # 2. Make your edits
 python scripts/build_derived_data.py      # 3. Rebuild
-git add data/ && git commit -m "data: <what happened>"
-git push                                  # 4. Push
+git add data/ && git commit -m "public: data: <what happened>"
+
+# 4. Publish
+git checkout main && git pull --rebase origin main
+git cherry-pick <sha>
+git push origin main
 gh workflow run daily-update.yml          # 5. Deploy immediately
+git checkout local/private-main
 ```
 
 ---
@@ -111,7 +148,7 @@ Each BBB week follows a predictable pattern anchored to the Líder cycle. Two re
 
 | Dia | Horário (BRT) | Evento | Checklist to follow | Data files affected |
 |-----|---------------|--------|---------------------|---------------------|
-| **Diário** | ~14h | Queridômetro atualiza | Automático (15:00 BRT capture) | `snapshots/` |
+| **Diário** | manhã/tarde (janela em validação) | Queridômetro atualiza | Automático (multi-captura + probes 09:30–16:00 BRT) | `snapshots/` |
 | **Segunda** | ~22h | **Sincerão** (ao vivo) | [Sincerão Update](#sincerão-update-monday) | `manual_events.json` |
 | **Terça** | ~21h | Votalhada "Consolidados" | [Votalhada Checklist](#votalhada-collection-checklist-tuesday) | `votalhada/polls.json` |
 | **Terça** | ~23h | **Eliminação** ao vivo | [Elimination Checklist](#elimination-result-checklist-tuesday) | `paredoes.json` |
@@ -136,7 +173,8 @@ Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for m
 | W4 | Mon Feb 9 | Quem Sou Eu? (adivinhação) | Plateia define mais apagada (Marciele) |
 | W5 | Mon Feb 16 | **MISSING** — needs data | Done hastily on live show, not yet classified |
 | W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
-| W7 | TBD | TBD | |
+| W7 | Mon Mar 2 | Linha Direta — maior traidor(a) | Each participant calls one person they consider the biggest traitor |
+| W8 | TBD | TBD | |
 
 ### Week Dynamic History (Friday — varies each week)
 
@@ -151,6 +189,7 @@ Separate from Sincerão. Announced in the dynamics article (published ~Thursday)
 | W5 | Bloco do Paredão (Máquina do Poder) | `special_events` |
 | W6 | Sincerinho Paredão Perfeito + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
 | W7 | O Exilado + Paredão Falso + Quarto Secreto | `special_events` |
+| W8 | Liderança Dupla + Consenso Anjo/Monstro + Contragolpe | `special_events` |
 
 ### Recurring Events Checklist (per week)
 
@@ -218,7 +257,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 5. **Rebuild + commit + push**:
    ```bash
    python scripts/build_derived_data.py
-   git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: week N Líder transition (Name)"
+   git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: week N Líder transition (Name)"
    git push
    ```
 
@@ -326,7 +365,7 @@ Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the au
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Nª Prova do Anjo (Winner) + Monstro (Name)"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
 git push
 ```
 
@@ -399,7 +438,7 @@ Add the scraped article URL to the anjo's `fontes` array in `weekly_events[N].an
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Presente do Anjo W{N} (Name chose video/immunity)"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
 git push
 ```
 
@@ -481,7 +520,7 @@ Add a Bate e Volta prova entry with the results.
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: Nº Paredão formation"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Nº Paredão formation"
 git push
 ```
 
@@ -650,7 +689,7 @@ Votalhada uses short names. Always match to API names:
 python scripts/build_derived_data.py
 
 # Commit and push
-git add data/ && git commit -m "data: votalhada polls paredão N"
+git add data/ && git commit -m "public: data: votalhada polls paredão N"
 git push
 
 # Deploy immediately (site only updates on cron or manual dispatch, NOT on push)
@@ -811,7 +850,7 @@ Add **two things** to `data/manual_events.json`:
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: paredão N result + ganha-ganha"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: paredão N result + ganha-ganha"
 git push
 gh workflow run daily-update.yml
 ```
@@ -899,15 +938,26 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 }
 ```
 
-**Edge types** (must match `builders/sincerao.py` weights):
+**Edge types** (must match Sincerão builders):
 
 | Type | Weight | When to use |
 |------|--------|-------------|
 | `podio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Participant puts someone on their podium |
+| `regua` | +0.25 (aggregate mention) | Participant places someone in Top-3 priority/régua |
 | `nao_ganha` | −0.8 | Participant says someone won't win |
+| `regua_fora` | −0.5 (aggregate mention) | Participant leaves someone out of the régua |
 | `bomba` (+ `tema`) | −0.6 | Directed confrontation: bomb themes, "maior traidor(a)", etc. |
 | `paredao_perfeito` | −0.3 | Participant nominates someone for ideal paredão |
 | `prova_eliminou` | −0.15 | Eliminated someone in a Sincerão sub-game |
+| `quem_sai` | contextual (negative signal) | Explicit “quem sai hoje” indication |
+
+After rebuild, verify type coverage and unknown types:
+
+```bash
+jq '.sincerao.type_coverage' data/derived/index_data.json
+```
+
+If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py` before publishing.
 
 **Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `bomba` 0.4.
 
@@ -917,7 +967,7 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "data: week N sincerão"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: week N sincerão"
 git push
 ```
 
@@ -1042,25 +1092,175 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 | Verify site rendering locally | `quarto render` (~3 min) |
 | Preview with hot reload | `quarto preview` |
 | Check snapshot dedup/integrity | `python scripts/audit_snapshots.py` |
+| Retake full layout screenshots (desktop+mobile, page-by-page verbose) | `./scripts/capture_layout_screenshots.sh --output-dir tmp/page_screenshots/<label>` |
+| Retake with fresh render first | `./scripts/capture_layout_screenshots.sh --render --output-dir tmp/page_screenshots/<label>` |
+| Install/update chromium once for captures | `./scripts/capture_layout_screenshots.sh --install-browser --output-dir tmp/page_screenshots/<label>` |
+| Capture one page with verbose diagnostics | `python scripts/capture_quarto_screenshots.py --profiles mobile --page index.html --verbose --output-dir tmp/page_screenshots/<label>` |
+| Capture mobile slices (top/mid/bottom) for long pages | `python scripts/capture_mobile_slices.py --output-dir tmp/page_screenshots/<label>-slices` |
 | Analyze capture timing | `python scripts/analyze_capture_timing.py` |
 | Update PROGRAMA_BBB26.md timeline | `python scripts/update_programa_doc.py` |
 | Scrape a GShow article | `python scripts/scrape_gshow.py "<url>" -o docs/scraped/` |
+| Scrape BBB 26 agenda (programação do dia) | `python scripts/scrape_gshow_agenda.py YYYY-MM-DD -o docs/scraped/agenda/` |
+
+---
+
+## Screenshot Pipeline (Layout/Plot Review)
+
+Use this pipeline when reviewing responsive layout, spacing, alignment, plots, and readability across all Quarto pages.
+
+### Prerequisites
+
+```bash
+pip install -r requirements.txt
+quarto --version
+npx --version
+```
+
+If needed, install Playwright chromium once:
+
+```bash
+./scripts/capture_layout_screenshots.sh --install-browser --output-dir tmp/page_screenshots/bootstrap
+```
+
+### Recommended run sequence
+
+1. Render site if data/templates changed:
+```bash
+quarto render
+```
+2. Run page-by-page full-page capture (desktop + mobile):
+```bash
+./scripts/capture_layout_screenshots.sh --output-dir tmp/page_screenshots/<label>
+```
+3. For very long pages or suspected mobile blank segments, run slice captures:
+```bash
+python scripts/capture_mobile_slices.py --output-dir tmp/page_screenshots/<label>-slices
+```
+4. Inspect manifests:
+```bash
+cat tmp/page_screenshots/<label>/manifest.json
+cat tmp/page_screenshots/<label>-slices/manifest.json
+```
+
+### Sincerão QA checklist (mobile + desktop)
+
+Run this checklist page-by-page after each capture cycle (`index`, `relacoes`, debug pages where applicable):
+
+- Dense week (many Sincerão events): top entries are readable without horizontal scroll; overflow is accessible through `<details>`/expanded blocks.
+- Sparse week (few events): no empty/broken containers; layout remains balanced.
+- One-sided week (only positive or only negative): missing lanes show neutral empty-state text instead of blank space.
+- Mixed week: `Atacados`, `Elogiados`, and `Contradições` are all visible and legible.
+- Profile cards (`Recebeu`/`Fez`): chips wrap naturally on mobile; no clipped labels or forced horizontal swipe.
+- Contradiction consistency: contradiction values in profile summaries and top-level radar/pairs are coherent for the same week.
+- Visual density: desktop remains compact/scannable; mobile remains tappable with clear hierarchy.
+
+### Core commands
+
+Wrapper (recommended, page-by-page progress logs):
+
+```bash
+./scripts/capture_layout_screenshots.sh --render --output-dir tmp/page_screenshots/<label>
+```
+
+Direct script (fine-grained control):
+
+```bash
+python scripts/capture_quarto_screenshots.py \
+  --render \
+  --profiles desktop,mobile \
+  --output-dir tmp/page_screenshots/<label>
+```
+
+Single page debug (helps detect slow/hanging perception):
+
+```bash
+python scripts/capture_quarto_screenshots.py \
+  --profiles mobile \
+  --page index.html \
+  --verbose \
+  --fail-fast \
+  --output-dir tmp/page_screenshots/<label>
+```
+
+### Key flags
+
+- `--render`: render Quarto before captures.
+- `--install-browser`: wrapper option to install/update Playwright chromium.
+- `--profiles desktop,mobile`: choose capture profiles.
+- `--page <name>`: limit to a single page (`index.html`, `paredao.html`, etc.).
+- `--verbose`: print per-page command and stitch diagnostics.
+- `--fail-fast`: stop on first failure instead of finishing the whole run.
+- `--mobile-stitch-threshold N`: enable/disable stitched fallback for very tall mobile captures (`0` disables).
+- `--mobile-stitch-viewport-height N`: larger stitch viewport to reduce tile count/time.
+
+### Expected outputs
+
+- Full-page run:
+  - `tmp/page_screenshots/<label>/desktop/*.png`
+  - `tmp/page_screenshots/<label>/mobile/*.png`
+  - `tmp/page_screenshots/<label>/manifest.json`
+- Slice run:
+  - `tmp/page_screenshots/<label>-slices/*_{top,mid,bottom}.png`
+  - `tmp/page_screenshots/<label>-slices/manifest.json`
+
+`manifest.json` is the canonical evidence for counts, failures, and capture mode (`full-page`, `stitched-scroll`, etc.).
+
+### Troubleshooting
+
+- "Looks stuck" on long pages:
+  - Run one page first with `--page ... --verbose`.
+  - Use slice captures as primary review artifact for extremely tall pages.
+- Intermittent stitch drop (`browser 'default' is not open`):
+  - The script now auto-recovers by reopening the page at the current tile.
+  - In verbose mode you may see `stitch recover: reopening browser at tile ...`.
+- Port in use:
+  - Script auto-selects another local port; no manual action needed.
+- Browser/tool missing:
+  - Use `--install-browser` and verify `npx` exists.
+- Blank/full-page artifacts on very tall mobile pages:
+  - Prefer slice captures and/or stitched fallback output reported in manifest.
+
+### Repository hygiene
+
+- Capture outputs under `tmp/page_screenshots/` are review artifacts and should not be committed.
+- Before commit/push:
+
+```bash
+git status --short
+```
+
+Ensure no `tmp/` capture artifacts are staged.
 
 ---
 
 ## Capture Timing Analysis
 
-### When does the queridômetro actually update?
+### Current status (as of 2026-03-04)
 
-| Source | Observation | Time (BRT) |
-|--------|-------------|------------|
-| **Probe data** | Mar 3 — new hash `c143df77` first captured | **10:36** |
-| **API data observed** | Feb 5 (Wed) — data already updated | ~14:00 |
-| **API first auto capture** | Feb 6 (Thu) — change detected at 15:46 BRT | between 06:37–15:46 |
-| **GShow article** | Feb 5 (Wed) — article published | ~09:00 |
-| **Raio-X wake-up** | Normal days / Post-party days | 09h-13h |
+- Temporary probes are **active** and the timing review is still open.
+- Do **not** treat "median 15:00 BRT" as confirmed while probe validation is running.
+- Review closure target: **2026-03-08 (BRT)**.
 
-**Key finding (updated 2026-03-03)**: The queridômetro updates **much earlier than previously estimated**. First probe data (Mar 3) shows new reactions appearing by **10:36 BRT** — the Raio-X happens in the morning and the API publishes shortly after. Previous estimates of ~14:00 BRT were wrong because our captures had wide gaps (06:00 → 15:00 BRT) that missed the actual update window. Temporary probes active to confirm the pattern over multiple days.
+### What probes are checking
+
+The probes are validating when new queridômetro data first appears after the morning baseline:
+
+- Source of truth: `_metadata.reactions_hash` in each snapshot.
+- Detection method: compare consecutive snapshots; a hash change means reactions changed.
+- Collector behavior: `fetch_data.py` only saves when the full payload hash changes (no duplicate snapshots).
+
+Quick verification commands:
+
+```bash
+# Probe crons exist and are enabled
+rg -n "cron: '30 12-18|cron: '0 13-19" .github/workflows/daily-update.yml
+
+# Probe-era analysis (default start: 2026-03-03)
+python scripts/analyze_capture_timing.py
+
+# Historical comparison (all snapshots)
+python scripts/analyze_capture_timing.py --full-history
+```
 
 ### Current cron schedule
 
@@ -1082,7 +1282,7 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 
 **Total**: 6 runs/day (weekdays), 8 on Saturdays.
 
-### Temporary timing probes (added 2026-03-03)
+### Temporary timing probes (active since 2026-03-03)
 
 To pinpoint the exact queridômetro update time, extra probes run every 30 min from **09:30 to 16:00 BRT**:
 
@@ -1103,35 +1303,24 @@ To pinpoint the exact queridômetro update time, extra probes run every 30 min f
 | 15:30 | 18:30 | `30 12-18 * * *` |
 | 16:00 | 19:00 | `0 13-19 * * *` |
 
-**First-appearance log** (when genuinely new reaction data was first captured):
-
-| Date | First seen (BRT) | Notes |
-|------|-----------------|-------|
-| Mar 3 | **10:36** | First day with probes — new hash between 08:10 and 10:36 |
-| Feb 28 | 15:31 | No probes — wide gap (06:00→15:00), likely appeared earlier |
-| Feb 27 | 15:40 | Same gap issue |
-| Feb 26 | 15:51 | Same gap issue |
-| Feb 25 | 12:54 | Elimination day — more captures available |
-| Feb 22 | 12:16 | Earliest pre-probe observation |
-
-Note: Pre-probe entries (Feb 22–28) had 9-hour gaps between 06:00 and 15:00 BRT, so the data likely appeared earlier than captured. The API may show different states briefly during the update propagation window.
-
-`fetch_data.py` only saves when data actually changes (hash comparison), so the first new snapshot after the 06:00 BRT baseline reveals the exact update time.
+Probe-era captures already include morning and early-afternoon updates (examples: **10:36 BRT** on Mar 3; **11:50**, **12:45**, **13:52 BRT** on Mar 4), confirming that the old "only around 15:00" assumption was incorrect.
 
 **Analyzing results**:
 
 ```bash
-# Check which snapshot times captured the queridômetro change today
-ls -la data/snapshots/ | grep "$(date -u +%Y-%m-%d)"
-
-# Full timing analysis across all captured days
+# Probe-era decision view (default)
 python scripts/analyze_capture_timing.py
+
+# Full history (for context only; mixes pre-probe and probe eras)
+python scripts/analyze_capture_timing.py --full-history
 ```
 
-**When to remove**: After 3–5 days of data, run `analyze_capture_timing.py` to confirm the update window. Then:
+### End-of-week closure checklist (2026-03-08 BRT)
+
+After the review checkpoint:
 1. Remove the two temporary cron lines from `.github/workflows/daily-update.yml`
-2. Adjust the permanent 15:00 BRT slot if the data shows an earlier/later window
-3. Update the "Key finding" above with the confirmed time
+2. Keep or move the permanent 15:00 BRT slot based on probe-era evidence
+3. Update timing statements in all related docs (`README.md`, `CLAUDE.md`, this guide, and timing comments in scripts/workflow)
 
 ---
 

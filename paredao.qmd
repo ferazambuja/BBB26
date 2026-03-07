@@ -65,7 +65,7 @@ from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_reaction_matrices, deserialize_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
-    load_paredoes_transformed,
+    load_paredoes_transformed, load_paredao_analysis,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted,
     backtest_precision_model,
@@ -252,9 +252,9 @@ if ultimo:
 
         # Header
         print(f"""
-<div class="tc" style="margin-bottom: 2rem;">
+<div class="tc u-s404">
 <h2 style="color: {cor_titulo}; margin-bottom: 0.5rem;">🗳️ {titulo}</h2>
-<p class="fs-xl" style="color: #aaa;">{subtitulo}</p>
+<p class="fs-xl u-s021">{subtitulo}</p>
 </div>
 """)
 
@@ -271,10 +271,10 @@ if ultimo:
 
             missing_text = ' · '.join(missing) if missing else "Detalhes da formação"
             print(f"""
-<div class="tc" style="background: rgba(243, 156, 18, 0.15); border: 1px solid rgba(243, 156, 18, 0.4); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-<span style="color: #f39c12;">⚠️ <strong>Dados parciais</strong></span>
-<p class="text-light fs-base" style="margin: 0.5rem 0 0 0;">Participantes detectados da API. Informações adicionais serão preenchidas manualmente.</p>
-<p class="text-muted fs-md" style="margin: 0.3rem 0 0 0;">Pendente: {missing_text}</p>
+<div class="tc u-s126">
+<span class="u-s232">⚠️ <strong>Dados parciais</strong></span>
+<p class="text-light fs-base u-s429">Participantes detectados da API. Informações adicionais serão preenchidas manualmente.</p>
+<p class="text-muted fs-md u-s427">Pendente: {missing_text}</p>
 </div>
 """)
 
@@ -308,10 +308,10 @@ if ultimo:
         # ── Paredão history for nominees with past appearances ──
         _nominees_with_history = [(p['nome'], _par_history.get(p['nome'], [])) for p in participantes if _par_history.get(p['nome'])]
         if _nominees_with_history:
-            print('\n<details style="margin:0.5rem 0 1rem 0;">')
-            print('<summary class="fs-base" style="cursor:pointer; color:#aaa;">📋 Histórico em paredões anteriores</summary>')
-            print('<div style="overflow-x:auto; margin-top:0.5rem;">')
-            print('<table class="table table-sm fs-md" style="white-space:nowrap;">')
+            print('\n<details class="u-s091">')
+            print('<summary class="fs-base u-s064">📋 Histórico em paredões anteriores</summary>')
+            print('<div class="u-s453">')
+            print('<table class="table table-sm fs-md u-s044">')
             print('<thead><tr><th>Participante</th><th>Paredão</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
             for _h_nome, _h_entries in _nominees_with_history:
                 first_name = _h_nome.split()[0]
@@ -322,9 +322,9 @@ if ultimo:
                     _h_pct = f'{_h["voto_total"]:.1f}%' if 'voto_total' in _h else '—'
                     _h_falso = ' 🔮' if _h.get('falso') else ''
                     if _h.get('eliminado'):
-                        _h_res = f'<span style="color:#E6194B; font-weight:bold;">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
+                        _h_res = f'<span class="u-s031">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
                     elif 'voto_total' in _h:
-                        _h_res = f'<span style="color:#2ecc71;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
+                        _h_res = f'<span class="u-s007">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
                     else:
                         _h_res = '—'
                     print(f'<tr><td>{_av} {first_name}</td><td>{_h_num}º{_h_falso}</td><td>{_h_como}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_res}</td></tr>')
@@ -339,7 +339,7 @@ if ultimo:
             _poll_label = 'Quem você quer SALVAR?' if _is_save_poll else 'Previsão das Enquetes'
             print(f"\n## 📊 {_poll_label}\n")
             if _is_save_poll:
-                print(f'<p class="text-warning small" style="font-weight:bold;">⚠️ Paredão Falso — voto é para SALVAR (mais votado vai ao Quarto Secreto)</p>\n')
+                print(f'<p class="text-warning small u-s002">⚠️ Paredão Falso — voto é para SALVAR (mais votado vai ao Quarto Secreto)</p>\n')
 
             _coleta_date = poll.get("data_coleta", "?")[:10]
             _coleta_time = poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""
@@ -348,12 +348,12 @@ if ultimo:
             print(f'<p class="text-muted fs-base">Coleta: {_coleta_date} {_coleta_time} · {total_str} votos · Fonte: <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a></p>\n')
 
             # ── How it works (brief, audience-friendly) ──
-            print(f'<div class="fs-md" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1.2rem;">')
-            print(f'<div style="background:rgba(155,89,182,0.08); border-left:3px solid #9b59b6; padding:0.6rem 0.8rem; border-radius:0 6px 6px 0;">')
-            print(f'<strong style="color:#9b59b6;">📊 Votalhada</strong> reúne enquetes de 70+ fontes (sites, redes sociais) e faz uma média <em>pelo número de votos</em> de cada fonte.')
+            print(f'<div class="fs-md u-s368">')
+            print(f'<div class="u-s166">')
+            print(f'<strong class="u-s029">📊 Votalhada</strong> reúne enquetes de 70+ fontes (sites, redes sociais) e faz uma média <em>pelo número de votos</em> de cada fonte.')
             print(f'</div>')
-            print(f'<div style="background:rgba(0,188,140,0.08); border-left:3px solid #00bc8c; padding:0.6rem 0.8rem; border-radius:0 6px 6px 0;">')
-            print(f'<strong style="color:#00bc8c;">🧮 Nosso Modelo</strong> usa as mesmas enquetes, mas dá <em>mais peso para quem acertou mais</em> nos paredões anteriores. <a href="paredoes.html#nosso-modelo-back-test" class="fs-base" style="color:#00bc8c;">Ver back-test →</a>')
+            print(f'<div class="u-s162">')
+            print(f'<strong class="u-s053">🧮 Nosso Modelo</strong> usa as mesmas enquetes, mas dá <em>mais peso para quem acertou mais</em> nos paredões anteriores. <a href="paredoes.html#nosso-modelo-back-test" class="fs-base u-s053">Ver back-test →</a>')
             print(f'</div>')
             print(f'</div>\n')
 
@@ -385,19 +385,19 @@ if ultimo:
                     _agree_label = f'🔀 Apostas diferentes'
                     _agree_color = '#e67e22'
 
-            print(f'<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; margin-bottom:1rem;">')
+            print(f'<div class="u-s369">')
 
             # Votalhada card
-            _tie_tag = '<span class="fs-2xs" style="background:#f39c12;color:#000;padding:0.15em 0.5em;border-radius:8px;margin-left:0.3em;">EMPATE TÉCNICO</span>' if _is_tie else ''
-            print(f'<div style="border:2px solid #9b59b6; border-radius:12px; padding:0.8rem; background:rgba(155,89,182,0.08);">')
-            print(f'<div class="fs-sm" style="color:#9b59b6; font-weight:bold;">📊 VOTALHADA</div>')
+            _tie_tag = '<span class="fs-2xs u-s010">EMPATE TÉCNICO</span>' if _is_tie else ''
+            print(f'<div class="u-s210">')
+            print(f'<div class="fs-sm u-s030">📊 VOTALHADA</div>')
             if _is_tie and len(_sorted_consol) >= 2:
                 _v1, _v2 = _sorted_consol[0], _sorted_consol[1]
                 _v_diff = abs(_v1[1] - _v2[1])
-                print(f'<div class="fs-xl" style="font-weight:bold; margin:0.2rem 0;">{_v1[0].split()[0]} vs {_v2[0].split()[0]}{_tie_tag}</div>')
+                print(f'<div class="fs-xl u-s036">{_v1[0].split()[0]} vs {_v2[0].split()[0]}{_tie_tag}</div>')
                 print(f'<div class="text-muted fs-base">{_v1[1]:.1f}% vs {_v2[1]:.1f}%{_save_label} · Δ {_v_diff:.1f} p.p.</div>')
             else:
-                print(f'<div class="fs-xl" style="font-weight:bold; margin:0.2rem 0;">{_consol_elim}{_tie_tag}</div>')
+                print(f'<div class="fs-xl u-s036">{_consol_elim}{_tie_tag}</div>')
                 print(f'<div class="text-muted fs-base">com {_consol_pct:.1f}%{_save_label}</div>')
             print(f'</div>')
 
@@ -405,16 +405,16 @@ if ultimo:
             if _model_pred:
                 _sorted_model = sorted([(n, _model_pred['prediction'].get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
                 _m_is_tie = len(_sorted_model) >= 2 and abs(_sorted_model[0][1] - _sorted_model[1][1]) < 2.0
-                _m_tie_tag = '<span class="fs-2xs" style="background:#f39c12;color:#000;padding:0.15em 0.5em;border-radius:8px;margin-left:0.3em;">EMPATE TÉCNICO</span>' if _m_is_tie else ''
-                print(f'<div style="border:2px solid #00bc8c; border-radius:12px; padding:0.8rem; background:rgba(0,188,140,0.08);">')
-                print(f'<div class="fs-sm" style="color:#00bc8c; font-weight:bold;">🧮 NOSSO MODELO</div>')
+                _m_tie_tag = '<span class="fs-2xs u-s010">EMPATE TÉCNICO</span>' if _m_is_tie else ''
+                print(f'<div class="u-s209">')
+                print(f'<div class="fs-sm u-s234">🧮 NOSSO MODELO</div>')
                 if _m_is_tie:
                     _m1, _m2 = _sorted_model[0], _sorted_model[1]
                     _m_diff_top = abs(_m1[1] - _m2[1])
-                    print(f'<div class="fs-xl" style="font-weight:bold; margin:0.2rem 0;">{_m1[0].split()[0]} vs {_m2[0].split()[0]}{_m_tie_tag}</div>')
+                    print(f'<div class="fs-xl u-s036">{_m1[0].split()[0]} vs {_m2[0].split()[0]}{_m_tie_tag}</div>')
                     print(f'<div class="text-muted fs-base">{_m1[1]:.1f}% vs {_m2[1]:.1f}%{_save_label} · Δ {_m_diff_top:.1f} p.p.</div>')
                 else:
-                    print(f'<div class="fs-xl" style="font-weight:bold; margin:0.2rem 0;">{_model_elim}{_m_tie_tag}</div>')
+                    print(f'<div class="fs-xl u-s036">{_model_elim}{_m_tie_tag}</div>')
                     print(f'<div class="text-muted fs-base">com {_model_pct:.1f}%{_save_label}</div>')
                 print(f'<div class="fs-md" style="margin-top:0.4rem; color:{_agree_color}; font-weight:600;">{_agree_label}</div>')
                 print(f'</div>')
@@ -434,8 +434,8 @@ if ultimo:
                     return f'font-weight:bold; color:{_color_min};'
                 return 'color:#ddd;'
 
-            print('<div style="overflow-x:auto;">')
-            print('<table class="table table-striped fs-base" style="max-width:100%; white-space:nowrap;">')
+            print('<div class="u-s025">')
+            print('<table class="table table-striped fs-base u-s095">')
             print('<thead><tr><th>Fonte</th>')
             for nome in participantes_poll:
                 avatar = avatar_img(nome, AVATARS, 42)
@@ -465,7 +465,7 @@ if ultimo:
                     print('</tr>')
 
             # Votalhada consolidado row
-            print(f'<tr style="background:rgba(155,89,182,0.15);"><td class="fs-base" style="font-weight:bold;">📊 Votalhada</td>')
+            print(f'<tr class="u-s168"><td class="fs-base u-s002">📊 Votalhada</td>')
             _cvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
@@ -478,7 +478,7 @@ if ultimo:
 
             # Our model row
             if _model_pred:
-                print(f'<tr style="background:rgba(0,188,140,0.15);"><td class="fs-base" style="font-weight:bold;">🧮 Nosso Modelo</td>')
+                print(f'<tr class="u-s012"><td class="fs-base u-s002">🧮 Nosso Modelo</td>')
                 _mvals = [_model_pred['prediction'].get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _model_pred['prediction'].get(nome, 0)
@@ -521,7 +521,7 @@ if ultimo:
                     _delta = _mv - _cv
                     _arrow = '↑' if _delta > 0.5 else '↓' if _delta < -0.5 else '≈'
                     _comp_parts.append(f'{n.split()[0]} {_cv:.1f}→<strong>{_mv:.1f}%</strong> ({_arrow}{abs(_delta):.1f})')
-                _curiosities.append(f'🧮 <strong><a href="paredoes.html#nosso-modelo-back-test" style="color:#00bc8c;">Nosso Modelo</a></strong> vs Votalhada: {" · ".join(_comp_parts)}')
+                _curiosities.append(f'🧮 <strong><a href="paredoes.html#nosso-modelo-back-test" class="u-s053">Nosso Modelo</a></strong> vs Votalhada: {" · ".join(_comp_parts)}')
 
             # 2. Tie detection per model
             if _is_tie:
@@ -703,7 +703,7 @@ if ultimo:
                 if _rmse_hist:
                     _best_plat = min(_rmse_hist, key=lambda k: _rmse_hist[k])
                     _worst_plat = max(_rmse_hist, key=lambda k: _rmse_hist[k])
-                    _curiosities.append(f'🏆 Historicamente, <strong>{_plat_names_h[_best_plat]}</strong> é a fonte mais precisa (erro {_rmse_hist[_best_plat]:.1f} p.p.) e <strong>{_plat_names_h[_worst_plat]}</strong> a menos ({_rmse_hist[_worst_plat]:.1f} p.p.) — <a href="paredoes.html#precisão-das-enquetes-votalhada" class="fs-base" style="color:#f1c40f;">ver análise completa</a>')
+                    _curiosities.append(f'🏆 Historicamente, <strong>{_plat_names_h[_best_plat]}</strong> é a fonte mais precisa (erro {_rmse_hist[_best_plat]:.1f} p.p.) e <strong>{_plat_names_h[_worst_plat]}</strong> a menos ({_rmse_hist[_worst_plat]:.1f} p.p.) — <a href="paredoes.html#precisão-das-enquetes-votalhada" class="fs-base u-s023">ver análise completa</a>')
                 _n_finalized = _prec.get('n_paredoes', 0)
                 _bt = backtest_precision_model(polls_data)
                 if _bt:
@@ -713,13 +713,13 @@ if ultimo:
                         _model_correct_n = sum(1 for r in _bt_results if r.get('model_correct'))
                         _consol_avg = sum(r['consolidado_mae'] for r in _bt_results) / len(_bt_results)
                         _model_avg = sum(r['model_mae'] for r in _bt_results) / len(_bt_results)
-                        _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro {_model_avg:.1f} p.p.) — <a href="paredoes.html#nosso-modelo-back-test" class="fs-base" style="color:#f1c40f;">ver back-test</a>')
+                        _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro {_model_avg:.1f} p.p.) — <a href="paredoes.html#nosso-modelo-back-test" class="fs-base u-s023">ver back-test</a>')
 
             if _curiosities:
-                print(f'<div style="background:rgba(241,196,15,0.08); border:1px solid rgba(241,196,15,0.25); border-radius:10px; padding:0.8rem 1rem; margin:0.8rem 0 1rem 0;">')
-                print(f'<div class="fs-md" style="font-weight:bold; color:#f1c40f; margin-bottom:0.4rem;">💡 Curiosidades</div>')
+                print(f'<div class="u-s179">')
+                print(f'<div class="fs-md u-s396">💡 Curiosidades</div>')
                 for c in _curiosities:
-                    print(f'<div class="fs-base" style="color:#ddd; margin-bottom:0.3rem;">{c}</div>')
+                    print(f'<div class="fs-base u-s036">{c}</div>')
                 print(f'</div>\n')
 
             # ── Weight breakdown (expandable details) ──
@@ -728,28 +728,28 @@ if ultimo:
                 _plat_labels_d = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
                 _weight_parts = [f'{_plat_labels_d.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
                 _rmse_info = _prec.get('rmse', {})
-                print(f'<details class="fs-md" style="margin-top:0.3rem;">')
-                print(f'<summary class="text-muted" style="cursor:pointer;">ℹ️ Como funciona o modelo: {" · ".join(_weight_parts)}</summary>')
-                print(f'<div class="fs-base" style="padding:0.7rem; margin-top:0.3rem; background:rgba(0,188,140,0.05); border-radius:8px; color:#aaa;">')
+                print(f'<details class="fs-md u-s024">')
+                print(f'<summary class="text-muted u-s297">ℹ️ Como funciona o modelo: {" · ".join(_weight_parts)}</summary>')
+                print(f'<div class="fs-base u-s467">')
                 # Use pre-computed platform volumes for explanation text
                 _sites_share_exp = round(_plat_volumes.get('sites', 0) * 100 / _total_plat_votos) if _total_plat_votos > 0 else 0
-                print(f'<p style="margin:0 0 0.5rem 0;">O Votalhada soma votos de todas as fontes — quem tem mais votos pesa mais (Sites ~{_sites_share_exp}%). Mas ter muitos votos não significa acertar o resultado.</p>')
-                print(f'<p style="margin:0 0 0.5rem 0;">Nosso modelo olha para os <strong>{len([p for p in polls_data.get("paredoes", []) if p.get("resultado_real")])} paredões anteriores</strong> e calcula quais plataformas erraram menos. Quem acertou mais ganha mais peso:</p>')
-                print(f'<table class="fs-base" style="margin:0.3rem 0;">')
+                print(f'<p class="u-s084">O Votalhada soma votos de todas as fontes — quem tem mais votos pesa mais (Sites ~{_sites_share_exp}%). Mas ter muitos votos não significa acertar o resultado.</p>')
+                print(f'<p class="u-s084">Nosso modelo olha para os <strong>{len([p for p in polls_data.get("paredoes", []) if p.get("resultado_real")])} paredões anteriores</strong> e calcula quais plataformas erraram menos. Quem acertou mais ganha mais peso:</p>')
+                print(f'<table class="fs-base u-s088">')
                 print(f'<tr><th>Plataforma</th><th class="tc">Erro médio</th><th class="tc">Peso Votalhada</th><th class="tc">Peso Modelo</th></tr>')
                 for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
                     rmse_val = _rmse_info.get(p, 0)
                     _vol_pct = round(_plat_volumes.get(p, 0) * 100 / _total_plat_votos) if _total_plat_votos > 0 else 0
-                    print(f'<tr><td>{_plat_labels_d.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_pct}%</td><td class="tc" style="font-weight:bold;">{w*100:.0f}%</td></tr>')
+                    print(f'<tr><td>{_plat_labels_d.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_pct}%</td><td class="tc u-s002">{w*100:.0f}%</td></tr>')
                 print(f'</table>')
                 # Dynamic backtest stats (computed earlier via backtest_precision_model)
                 _bt_agg = _bt.get('aggregate', {}) if _bt else {}
                 _bt_consol_mae = _bt_agg.get('consolidado_mae', 0)
                 _bt_model_mae = _bt_agg.get('model_mae', 0)
                 if _bt_consol_mae > 0 and _bt_model_mae > 0:
-                    print(f'<p style="margin:0.5rem 0 0 0;">Resultado: o erro médio cai de {_bt_consol_mae:.1f} para {_bt_model_mae:.1f} p.p. comparado ao consolidado do Votalhada.</p>')
+                    print(f'<p class="u-s041">Resultado: o erro médio cai de {_bt_consol_mae:.1f} para {_bt_model_mae:.1f} p.p. comparado ao consolidado do Votalhada.</p>')
                 else:
-                    print(f'<p style="margin:0.5rem 0 0 0;">Resultado: o modelo pondera pela precisão histórica de cada plataforma.</p>')
+                    print(f'<p class="u-s041">Resultado: o modelo pondera pela precisão histórica de cada plataforma.</p>')
                 print(f'</div></details>')
             print()
 
@@ -966,41 +966,41 @@ if ultimo:
                     prot_with_votes.append((name, vuln, votes_count))
 
             if vuln_no_votes or prot_with_votes:
-                print('<div style="margin-top:0.8rem; padding:0.8rem; border-radius:8px; background:rgba(255,255,255,0.03);">')
-                print('<p class="fs-base" style="margin-bottom:0.6rem;"><strong>🔍 Contradições — Badge vs Realidade</strong></p>')
-                print('<p class="text-muted fs-md" style="margin-bottom:0.8rem;">O badge mede <em>quantas pessoas dão ❤️ a alguém que as rejeita</em> (\"amigos falsos\"). Vulnerável = muitos amigos falsos (alvos fáceis). Comparamos com os votos reais para ver se a previsão se confirmou.</p>')
+                print('<div class="u-s420">')
+                print('<p class="fs-base u-s073"><strong>🔍 Contradições — Badge vs Realidade</strong></p>')
+                print('<p class="text-muted fs-md u-s407">O badge mede <em>quantas pessoas dão ❤️ a alguém que as rejeita</em> (\"amigos falsos\"). Vulnerável = muitos amigos falsos (alvos fáceis). Comparamos com os votos reais para ver se a previsão se confirmou.</p>')
                 if vuln_no_votes:
-                    print('<div style="margin-bottom:0.8rem; padding:0.6rem; border-left:3px solid #2ecc71; background:rgba(46,204,113,0.05); border-radius:0 6px 6px 0;">')
-                    print('<p class="fs-base" style="margin-bottom:0.4rem;"><strong>✅ Vulneráveis que escaparam</strong> <span class="text-muted fs-md">— tinham alvos nas costas, mas ninguém votou neles</span></p>')
+                    print('<div class="u-s408">')
+                    print('<p class="fs-base u-s037"><strong>✅ Vulneráveis que escaparam</strong> <span class="text-muted fs-md">— tinham alvos nas costas, mas ninguém votou neles</span></p>')
                     for name, vuln, votes_count in vuln_no_votes:
                         det = badge_details[name]
                         ff_list = det['ff_names']
-                        print(f'<div style="margin:0.4rem 0; padding:0.4rem 0.6rem; background:rgba(255,255,255,0.03); border-radius:6px;">')
-                        print(f'<p style="margin:0;">{avatar_html(name, AVATARS, size=28)} <strong>{name}</strong> — <span style="color:#e67e22;">{vuln}</span> · 0 votos</p>')
+                        print(f'<div class="u-s090">')
+                        print(f'<p class="u-s011">{avatar_html(name, AVATARS, size=28)} <strong>{name}</strong> — <span class="u-s037">{vuln}</span> · 0 votos</p>')
                         if ff_list:
                             ff_str = ', '.join(f'{avatar_img(n, AVATARS, size=20)} {n} {emoji}' for n, emoji in ff_list[:5])
-                            print(f'<p class="fs-md" style="margin:0.2rem 0 0 0; color:#aaa;">Dá ❤️ a quem o rejeita: {ff_str}</p>')
-                        print(f'<p class="fs-md" style="margin:0.2rem 0 0 0; color:#2ecc71;">→ Apesar de {det["ff_count"]} \"amigo(s) falso(s)\", ninguém escolheu {name.split()[0]} como alvo na votação.</p>')
+                            print(f'<p class="fs-md u-s040">Dá ❤️ a quem o rejeita: {ff_str}</p>')
+                        print(f'<p class="fs-md u-s437">→ Apesar de {det["ff_count"]} \"amigo(s) falso(s)\", ninguém escolheu {name.split()[0]} como alvo na votação.</p>')
                         print('</div>')
                     print('</div>')
                 if prot_with_votes:
-                    print('<div style="padding:0.6rem; border-left:3px solid #e74c3c; background:rgba(231,76,60,0.05); border-radius:0 6px 6px 0;">')
-                    print('<p class="fs-base" style="margin-bottom:0.4rem;"><strong>⚠️ Protegidos que foram alvo</strong> <span class="text-muted fs-md">— poucos inimigos no queridômetro, mas muitos votos (voto de bloco)</span></p>')
+                    print('<div class="u-s466">')
+                    print('<p class="fs-base u-s037"><strong>⚠️ Protegidos que foram alvo</strong> <span class="text-muted fs-md">— poucos inimigos no queridômetro, mas muitos votos (voto de bloco)</span></p>')
                     for name, vuln, votes_count in prot_with_votes:
                         det = badge_details[name]
                         voters = det['voters']
                         total_eligible = len(votos)
                         pct = votes_count / total_eligible * 100 if total_eligible > 0 else 0
-                        print(f'<div style="margin:0.4rem 0; padding:0.4rem 0.6rem; background:rgba(255,255,255,0.03); border-radius:6px;">')
-                        print(f'<p style="margin:0;">{avatar_html(name, AVATARS, size=28)} <strong>{name}</strong> — <span style="color:#f1c40f;">{vuln}</span> · <strong>{votes_count} votos</strong> ({pct:.0f}%)</p>')
+                        print(f'<div class="u-s090">')
+                        print(f'<p class="u-s011">{avatar_html(name, AVATARS, size=28)} <strong>{name}</strong> — <span class="u-s023">{vuln}</span> · <strong>{votes_count} votos</strong> ({pct:.0f}%)</p>')
                         if det['ff_count'] == 0:
-                            print(f'<p class="fs-md" style="margin:0.2rem 0 0 0; color:#aaa;">Nenhum \"amigo falso\" no queridômetro — ninguém que dá ❤️ recebe negativo de volta.</p>')
+                            print(f'<p class="fs-md u-s040">Nenhum \"amigo falso\" no queridômetro — ninguém que dá ❤️ recebe negativo de volta.</p>')
                         else:
-                            print(f'<p class="fs-md" style="margin:0.2rem 0 0 0; color:#aaa;">Apenas {det["ff_count"]} \"amigo(s) falso(s)\" — baixa hostilidade no queridômetro.</p>')
+                            print(f'<p class="fs-md u-s040">Apenas {det["ff_count"]} \"amigo(s) falso(s)\" — baixa hostilidade no queridômetro.</p>')
                         if voters:
                             voter_str = ', '.join(f'{avatar_img(v, AVATARS, size=20)} {v}' for v in sorted(voters)[:8])
-                            print(f'<p class="fs-md" style="margin:0.2rem 0 0 0; color:#aaa;">Votaram em {name.split()[0]}: {voter_str}</p>')
-                        print(f'<p class="fs-md" style="margin:0.2rem 0 0 0; color:#e74c3c;">→ A votação contra {name.split()[0]} não veio do queridômetro — sugere <strong>articulação de grupo</strong> ou alvo estratégico.</p>')
+                            print(f'<p class="fs-md u-s040">Votaram em {name.split()[0]}: {voter_str}</p>')
+                        print(f'<p class="fs-md u-s438">→ A votação contra {name.split()[0]} não veio do queridômetro — sugere <strong>articulação de grupo</strong> ou alvo estratégico.</p>')
                         print('</div>')
                     print('</div>')
                 print('</div>')
@@ -1035,7 +1035,7 @@ if ultimo:
                         votantes_bloc = bloc['votantes']
                         sinc_match = sum(1 for v in votantes_bloc if v in _escolhas_blocs and _escolhas_blocs[v]['alvo'] == alvo_bloc)
                         if sinc_match > 0:
-                            print(f'<p class="fs-base" style="color:#aaa; margin:0.5rem 0;">🔗 {sinc_match} dos {len(votantes_bloc)} votantes em {alvo_bloc} também o escolheram no Sincerinho.</p>')
+                            print(f'<p class="fs-base u-s264">🔗 {sinc_match} dos {len(votantes_bloc)} votantes em {alvo_bloc} também o escolheram no Sincerinho.</p>')
                     # Broader alignment: did voters target nominees from the SAME bloc?
                     _sinc_vote_aligned = 0
                     _sinc_total = 0
@@ -1048,9 +1048,9 @@ if ultimo:
                             if sinc_target == vote_target:
                                 _sinc_vote_aligned += 1
                     if _sinc_total > 0 and _sinc_vote_aligned > 0:
-                        print(f'<p class="fs-base" style="color:#aaa; margin:0.3rem 0;">📊 {_sinc_vote_aligned}/{_sinc_total} participantes votaram no mesmo nome que escolheram no Sincerinho.</p>')
+                        print(f'<p class="fs-base u-s033">📊 {_sinc_vote_aligned}/{_sinc_total} participantes votaram no mesmo nome que escolheram no Sincerinho.</p>')
                     elif _sinc_total > 0 and _sinc_vote_aligned == 0:
-                        print(f'<p class="fs-base" style="color:#aaa; margin:0.3rem 0;">📊 Nenhum participante votou no mesmo nome que escolheu no Sincerinho — os alvos divergiram completamente.</p>')
+                        print(f'<p class="fs-base u-s033">📊 Nenhum participante votou no mesmo nome que escolheu no Sincerinho — os alvos divergiram completamente.</p>')
 
                 print()
 
@@ -1189,7 +1189,7 @@ if ultimo:
             _dr_eligible = sorted(set(_sol_pre.keys()) | set(_jf_pre.keys()))
 
             print(f"\n## 🎲 Análise — Por que {_consenso_target}?\n")
-            print(f'<p class="fs-base" style="color:#aaa;">Análise dos dados que embasaram a decisão conjunta no Duelo de Risco. Scores pré-duelo (excluindo a indicação).</p>\n')
+            print(f'<p class="fs-base u-s001">Análise dos dados que embasaram a decisão conjunta no Duelo de Risco. Scores pré-duelo (excluindo a indicação).</p>\n')
 
             # ── 1. Result Card ────────────────────────────────────────────
             print(render_duelo_result_card(_sorteado, _oponente, _consenso_target, AVATARS, _resultado_detail))
@@ -1201,7 +1201,7 @@ if ultimo:
 
             # ── 2. Pre-Duel Score Table ───────────────────────────────────
             print(f"### 📊 Opções pré-duelo — Viabilidade de consenso\n")
-            print(f'<p class="fs-base" style="color:#aaa;">Ranking por <strong>gargalo de consenso</strong>: o score do duelista <em>mais favorável</em> ao alvo (max). Para indicar juntos, ambos precisam aceitar — quem gosta mais do alvo é quem trava a decisão. Scores <strong>antes</strong> da indicação.</p>\n')
+            print(f'<p class="fs-base u-s001">Ranking por <strong>gargalo de consenso</strong>: o score do duelista <em>mais favorável</em> ao alvo (max). Para indicar juntos, ambos precisam aceitar — quem gosta mais do alvo é quem trava a decisão. Scores <strong>antes</strong> da indicação.</p>\n')
 
             # Build combined ranking
             _combined = []
@@ -1223,7 +1223,7 @@ if ultimo:
                 })
             _combined.sort(key=lambda x: x["bottleneck"])
 
-            print('<table class="table table-striped fs-base" style="max-width:100%;">')
+            print('<table class="table table-striped fs-base u-s094">')
             print(f'<thead><tr><th>#</th><th>Alvo</th><th class="tc">{_sorteado.split()[0]}</th><th class="tc">{_oponente.split()[0]}</th><th class="tc">Gargalo</th><th class="tc">Q {_sorteado.split()[0]}</th><th class="tc">Q {_oponente.split()[0]}</th><th></th></tr></thead>')
             print('<tbody>')
             for _i, _c in enumerate(_combined):
@@ -1231,14 +1231,14 @@ if ultimo:
                 _row_style = 'background:rgba(231,76,60,0.15); border-left:3px solid #e74c3c;' if _is_target else ''
                 _sc = lambda v: f'<span style="color:{"#e74c3c" if v < -2 else "#e67e22" if v < 0 else "#2ecc71"}; font-weight:bold;">{v:+.2f}</span>'
                 _q_c = lambda v: f'<span style="color:{"#e74c3c" if v < 0 else "#2ecc71"};">{v:+.2f}</span>'
-                _vip_badge = ' <span class="fs-xs" style="background:#f39c12; color:#000; padding:0.1rem 0.3rem; border-radius:6px;">VIP</span>' if _c["is_vip"] else ''
-                _target_badge = ' <span class="fs-xs" style="background:#e74c3c; color:#fff; padding:0.1rem 0.3rem; border-radius:6px;">📌 ESCOLHIDA</span>' if _is_target else ''
+                _vip_badge = ' <span class="fs-xs u-s153">VIP</span>' if _c["is_vip"] else ''
+                _target_badge = ' <span class="fs-xs u-s150">📌 ESCOLHIDA</span>' if _is_target else ''
                 _consensus_icon = '🔴' if _c["both_neg"] else '🟡'
                 _av_c = AVATARS.get(_c["name"], '')
-                _img_c = f'<img src="{_av_c}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_c else ''
+                _img_c = f'<img src="{_av_c}" class="u-s489">' if _av_c else ''
                 print(f'<tr style="{_row_style}"><td class="text-muted">{_i+1}</td><td>{_img_c}<strong>{_c["name"]}</strong>{_target_badge}</td><td class="tc">{_sc(_c["sol_score"])}</td><td class="tc">{_sc(_c["jf_score"])}</td><td class="tc">{_consensus_icon} {_sc(_c["bottleneck"])}</td><td class="tc">{_q_c(_c["sol_q"])}</td><td class="tc">{_q_c(_c["jf_q"])}</td><td>{_vip_badge}</td></tr>')
             print('</tbody></table>')
-            print(f'<p class="text-muted table-sm" style="margin-top:0.3rem;">🔴 = ambos negativos (consenso natural) · 🟡 = um positivo (alguém cede)</p>\n')
+            print(f'<p class="text-muted table-sm u-s024">🔴 = ambos negativos (consenso natural) · 🟡 = um positivo (alguém cede)</p>\n')
 
             # Position insight
             _target_pos = next((_i+1 for _i, _c in enumerate(_combined) if _c["name"] == _consenso_target), None)
@@ -1246,18 +1246,18 @@ if ultimo:
             if _target_pos and _target_entry:
                 _insight_color = '#e74c3c' if _target_pos <= 3 else '#f39c12' if _target_pos <= 6 else '#2ecc71'
                 _n_both_neg = sum(1 for _c in _combined if _c["both_neg"])
-                print(f'<div style="background:rgba(155,89,182,0.1); border:1px solid rgba(155,89,182,0.3); border-radius:8px; padding:0.8rem; margin:0.5rem 0;">')
-                print(f'<strong style="color:#9b59b6;">💡 Posição:</strong> <span style="color:{_insight_color};">{_consenso_target} era o <strong>#{_target_pos}</strong> alvo por viabilidade de consenso</span> (gargalo: {_target_entry["bottleneck"]:+.2f}).')
+                print(f'<div class="u-s013">')
+                print(f'<strong class="u-s029">💡 Posição:</strong> <span style="color:{_insight_color};">{_consenso_target} era o <strong>#{_target_pos}</strong> alvo por viabilidade de consenso</span> (gargalo: {_target_entry["bottleneck"]:+.2f}).')
                 if _n_both_neg > 0:
                     _both_neg_names = [_c["name"] for _c in _combined if _c["both_neg"]]
                     print(f' Havia {_n_both_neg} alvo(s) com ambos negativos ({", ".join(_both_neg_names)}), mas {_consenso_target} tinha o menor gargalo entre os demais.')
                 if _target_entry["sol_q"] >= 0 and _target_entry["jf_q"] < 0:
-                    print(f' O queridômetro de {_sorteado.split()[0]} era <span style="color:#2ecc71;">positivo ({_target_entry["sol_q"]:+.2f})</span> enquanto {_oponente.split()[0]} era <span style="color:#e74c3c;">negativo ({_target_entry["jf_q"]:+.2f})</span> — {_sorteado.split()[0]} cedeu para fechar o consenso.')
+                    print(f' O queridômetro de {_sorteado.split()[0]} era <span class="u-s007">positivo ({_target_entry["sol_q"]:+.2f})</span> enquanto {_oponente.split()[0]} era <span class="u-s005">negativo ({_target_entry["jf_q"]:+.2f})</span> — {_sorteado.split()[0]} cedeu para fechar o consenso.')
                 print('</div>\n')
 
             # ── 3. Overlap de Hostilidade ─────────────────────────────────
             print(f"### 🔀 Overlap de hostilidade\n")
-            print(f'<p class="fs-base" style="color:#aaa;">Classificação dos alvos por onde {_sorteado.split()[0]} e {_oponente.split()[0]} concordam/discordam (baseado no score pré-duelo).</p>\n')
+            print(f'<p class="fs-base u-s001">Classificação dos alvos por onde {_sorteado.split()[0]} e {_oponente.split()[0]} concordam/discordam (baseado no score pré-duelo).</p>\n')
 
             _both_neg = []
             _sol_only = []
@@ -1284,13 +1284,13 @@ if ultimo:
             _target_in_both_neg = any(_c["name"] == _consenso_target for _c in _both_neg)
             if not _target_in_both_neg:
                 _target_cat = "só negativo para " + _oponente.split()[0] if any(_c["name"] == _consenso_target for _c in _jf_only) else "só negativo para " + _sorteado.split()[0] if any(_c["name"] == _consenso_target for _c in _sol_only) else "positivo para ambos"
-                print(f'\n<div style="background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.3); border-radius:8px; padding:0.8rem; margin:0.8rem 0;">')
-                print(f'<strong style="color:#f1c40f;">⚠️ Nota:</strong> {_consenso_target} estava na categoria <em>"{_target_cat}"</em> pré-duelo — não era um alvo de consenso natural. Havia {len(_both_neg)} alvo(s) que ambos tinham score negativo.')
+                print(f'\n<div class="u-s182">')
+                print(f'<strong class="u-s023">⚠️ Nota:</strong> {_consenso_target} estava na categoria <em>"{_target_cat}"</em> pré-duelo — não era um alvo de consenso natural. Havia {len(_both_neg)} alvo(s) que ambos tinham score negativo.')
                 print(f'</div>\n')
 
             # ── 4. Queridômetro últimos 14 dias ───────────────────────────
             print(f"### 📅 Queridômetro — Últimos 14 dias\n")
-            print(f'<p class="fs-base" style="color:#aaa;">Reações diárias entre os duelistas e {_consenso_target}. Cada emoji mostra o que o participante deu naquele dia.</p>\n')
+            print(f'<p class="fs-base u-s001">Reações diárias entre os duelistas e {_consenso_target}. Cada emoji mostra o que o participante deu naquele dia.</p>\n')
 
             # Get 14 daily snapshots up to and including the duelo date
             _dr_snaps = [(s, m) for s, m in zip(daily_snapshots, daily_matrices) if s["date"] <= _duelo_date]
@@ -1303,18 +1303,18 @@ if ultimo:
                 (_consenso_target, _oponente, f"{_consenso_target} → {_oponente.split()[0]}"),
             ]
 
-            print('<table class="table fs-base" style="max-width:100%; white-space:nowrap;">')
+            print('<table class="table fs-base u-s095">')
             print('<thead><tr><th>Par</th>')
             for _snap, _mat in _last14:
                 _d = _snap["date"]
                 _d_short = _d[5:]  # MM-DD
-                print(f'<th class="tc text-muted fs-sm" style="padding:0.2rem;">{_d_short}</th>')
+                print(f'<th class="tc text-muted fs-sm u-s458">{_d_short}</th>')
             print('</tr></thead><tbody>')
 
             for _actor, _target_q, _label in _q_pairs:
                 _av_a = AVATARS.get(_actor, '')
-                _img_a = f'<img src="{_av_a}" style="width:18px; height:18px; border-radius:50%; vertical-align:middle; margin-right:2px;">' if _av_a else ''
-                print(f'<tr><td style="white-space:nowrap;">{_img_a}{_label}</td>')
+                _img_a = f'<img src="{_av_a}" class="u-s486">' if _av_a else ''
+                print(f'<tr><td class="u-s044">{_img_a}{_label}</td>')
                 for _snap, _mat in _last14:
                     _reaction = _mat.get((_actor, _target_q), '')
                     if _reaction:
@@ -1324,7 +1324,7 @@ if ultimo:
                         _bg = 'rgba(46,204,113,0.15)' if _is_pos else 'rgba(231,76,60,0.2)' if _is_strong_neg else 'rgba(241,196,15,0.1)'
                         print(f'<td class="tc" style="background:{_bg}; padding:0.2rem;" title="{_reaction}">{_emoji}</td>')
                     else:
-                        print(f'<td class="tc" style="color:#444; padding:0.2rem;">·</td>')
+                        print(f'<td class="tc u-s241">·</td>')
                 print('</tr>')
             print('</tbody></table>\n')
 
@@ -1336,13 +1336,13 @@ if ultimo:
             if _sol_hearts_to_target > 0 and _sol_total_days > 0:
                 _pct_hearts = _sol_hearts_to_target / _sol_total_days * 100
                 if _pct_hearts >= 30:
-                    print(f'<div style="background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.3); border-radius:8px; padding:0.8rem; margin:0.5rem 0;">')
-                    print(f'<strong style="color:#f1c40f;">⚠️ Contradição:</strong> {_sorteado.split()[0]} deu ❤️ para {_consenso_target} em {_sol_hearts_to_target} de {_sol_total_days} dias ({_pct_hearts:.0f}%) nos últimos 14 dias, mas a indicou no Duelo de Risco.')
+                    print(f'<div class="u-s181">')
+                    print(f'<strong class="u-s023">⚠️ Contradição:</strong> {_sorteado.split()[0]} deu ❤️ para {_consenso_target} em {_sol_hearts_to_target} de {_sol_total_days} dias ({_pct_hearts:.0f}%) nos últimos 14 dias, mas a indicou no Duelo de Risco.')
                     print(f'</div>\n')
 
             # ── 5. Perfil de rejeição (incoming scores) ──────────────────
             print(f"### 🎯 Perfil de rejeição — Quem mais rejeita {_consenso_target}?\n")
-            print(f'<p class="fs-base" style="color:#aaa;">Scores de todos os participantes em direção a {_consenso_target} (pré-duelo). Contextualiza se {_consenso_target} era amplamente rejeitad{artigo(_consenso_target)} ou um alvo estratégico isolado.</p>\n')
+            print(f'<p class="fs-base u-s001">Scores de todos os participantes em direção a {_consenso_target} (pré-duelo). Contextualiza se {_consenso_target} era amplamente rejeitad{artigo(_consenso_target)} ou um alvo estratégico isolado.</p>\n')
 
             # Gather all incoming scores toward the target
             _incoming = []
@@ -1361,16 +1361,16 @@ if ultimo:
 
             if _incoming:
                 _max_abs = max(abs(_inc["score"]) for _inc in _incoming) or 1
-                print('<div style="max-width:600px;">')
+                print('<div class="u-s096">')
                 for _inc in _incoming:
                     _bar_pct = abs(_inc["score"]) / _max_abs * 100
                     _bar_color = '#e74c3c' if _inc["score"] < -2 else '#e67e22' if _inc["score"] < 0 else '#2ecc71'
                     _is_duelist = _inc["name"] in (_sorteado, _oponente)
                     _mark = ' ⚔️' if _is_duelist else ''
                     _av_inc = AVATARS.get(_inc["name"], '')
-                    _img_inc = f'<img src="{_av_inc}" style="width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av_inc else ''
-                    print(f'<div class="fs-base" style="display:flex; align-items:center; margin:0.25rem 0;">')
-                    print(f'<span style="width:150px; text-align:right; padding-right:0.5rem; white-space:nowrap;">{_img_inc}{_inc["name"]}{_mark}</span>')
+                    _img_inc = f'<img src="{_av_inc}" class="u-s488">' if _av_inc else ''
+                    print(f'<div class="fs-base u-s316">')
+                    print(f'<span class="u-s485">{_img_inc}{_inc["name"]}{_mark}</span>')
                     if _inc["score"] < 0:
                         print(f'<div style="width:{_bar_pct:.0f}%; height:16px; background:{_bar_color}; border-radius:3px; margin-right:0.3rem;"></div>')
                     else:
@@ -1381,8 +1381,8 @@ if ultimo:
 
                 _n_neg = sum(1 for _inc in _incoming if _inc["score"] < 0)
                 _n_total = len(_incoming)
-                print(f'<div style="background:rgba(155,89,182,0.1); border:1px solid rgba(155,89,182,0.3); border-radius:8px; padding:0.8rem; margin:0.5rem 0;">')
-                print(f'<strong style="color:#9b59b6;">📊 Resumo:</strong> {_n_neg} de {_n_total} participantes tinham score negativo em direção a {_consenso_target} pré-duelo.')
+                print(f'<div class="u-s013">')
+                print(f'<strong class="u-s029">📊 Resumo:</strong> {_n_neg} de {_n_total} participantes tinham score negativo em direção a {_consenso_target} pré-duelo.')
                 if _n_neg <= 3:
                     print(f' Rejeição concentrada em poucos — <strong>alvo mais estratégico que consensual</strong>.')
                 elif _n_neg >= _n_total * 0.5:
@@ -1396,11 +1396,11 @@ if ultimo:
             _nao_citados = _duelo.get('nao_citados', [])
 
             print("\n## ⚔️ Sincerinho — Duelo de Risco\n")
-            print(f'<p class="fs-base" style="color:#aaa;">Cada participante escolheu quem quer enfrentar no Paredão.</p>\n')
+            print(f'<p class="fs-base u-s001">Cada participante escolheu quem quer enfrentar no Paredão.</p>\n')
 
             # ── Most targeted summary ──
             if _alvos:
-                print('<div style="display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; margin: 1.2rem 0;">')
+                print('<div class="u-s306">')
                 for _a in _alvos:
                     _nome = _a['nome']
                     _vezes = _a['vezes']
@@ -1409,7 +1409,7 @@ if ultimo:
                     print(f'<div class="tc" style="background: rgba(255,255,255,0.05); border: 1px solid {_cor}; border-radius: 10px; padding: 0.6rem 1rem; min-width: 100px;">')
                     if _av:
                         print(f'<img src="{_av}" style="width:36px; height:36px; border-radius:50%; border:2px solid {_cor}; margin-bottom:0.3rem;" alt="{_nome}">')
-                    print(f'<div class="fs-base" style="color:#fff; font-weight:bold;">{_nome}</div>')
+                    print(f'<div class="fs-base u-s063">{_nome}</div>')
                     print(f'<div class="fs-xl" style="color:{_cor}; font-weight:bold;">🎯 {_vezes}×</div>')
                     _por = ', '.join(_a.get('por', []))
                     print(f'<div class="text-muted fs-xs">{_por}</div>')
@@ -1417,7 +1417,7 @@ if ultimo:
                 print('</div>\n')
 
             # ── Full table ──
-            print('<table class="table table-striped fs-base" style="max-width:100%;">')
+            print('<table class="table table-striped fs-base u-s094">')
             print('<thead><tr><th>Participante</th><th>Quer enfrentar</th><th>Adjetivo</th></tr></thead>')
             print('<tbody>')
             _target_count = {}
@@ -1429,12 +1429,12 @@ if ultimo:
                 _alvo = _info['alvo']
                 _adj = _info['adjetivo']
                 _cnt = _target_count.get(_alvo, 0)
-                _badge = f' <span class="fs-sm" style="background:#e74c3c; color:#fff; padding:0.1rem 0.4rem; border-radius:8px;">{_cnt}×</span>' if _cnt >= 2 else ''
+                _badge = f' <span class="fs-sm u-s151">{_cnt}×</span>' if _cnt >= 2 else ''
                 _av_actor = AVATARS.get(_nome, '')
                 _av_target = AVATARS.get(_alvo, '')
-                _av_html_a = f'<img src="{_av_actor}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_actor else ''
-                _av_html_t = f'<img src="{_av_target}" style="width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:4px;">' if _av_target else ''
-                print(f'<tr><td>{_av_html_a}{_nome}</td><td>{_av_html_t}{_alvo}{_badge}</td><td style="color:#e74c3c; font-style:italic;">{_adj}</td></tr>')
+                _av_html_a = f'<img src="{_av_actor}" class="u-s109">' if _av_actor else ''
+                _av_html_t = f'<img src="{_av_target}" class="u-s109">' if _av_target else ''
+                print(f'<tr><td>{_av_html_a}{_nome}</td><td>{_av_html_t}{_alvo}{_badge}</td><td class="u-s275">{_adj}</td></tr>')
             print('</tbody></table>\n')
 
             # ── Mutual hostility pairs ──
@@ -1444,24 +1444,24 @@ if ultimo:
                 if _t1 in _escolhas and _escolhas[_t1]['alvo'] == _n1 and _n1 < _t1:
                     _mutuals.append((_n1, _i1['adjetivo'], _t1, _escolhas[_t1]['adjetivo']))
             if _mutuals:
-                print('<div style="background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 8px; padding: 1rem; margin: 1rem 0;">')
-                print('<h4 style="color:#e74c3c; margin-top:0;">⚔️ Hostilidade mútua — ambos se escolheram</h4>')
+                print('<div class="u-s125">')
+                print('<h4 class="u-s281">⚔️ Hostilidade mútua — ambos se escolheram</h4>')
                 for _m in _mutuals:
                     _av1 = AVATARS.get(_m[0], '')
                     _av2 = AVATARS.get(_m[2], '')
-                    _img1 = f'<img src="{_av1}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av1 else ''
-                    _img2 = f'<img src="{_av2}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:3px;">' if _av2 else ''
-                    print(f'<div class="fs-base" style="margin:0.4rem 0;">{_img1}<strong>{_m[0]}</strong> <span style="color:#e74c3c;">"{_m[1]}"</span> ↔ {_img2}<strong>{_m[2]}</strong> <span style="color:#e74c3c;">"{_m[3]}"</span></div>')
+                    _img1 = f'<img src="{_av1}" class="u-s110">' if _av1 else ''
+                    _img2 = f'<img src="{_av2}" class="u-s110">' if _av2 else ''
+                    print(f'<div class="fs-base u-s075">{_img1}<strong>{_m[0]}</strong> <span class="u-s005">"{_m[1]}"</span> ↔ {_img2}<strong>{_m[2]}</strong> <span class="u-s005">"{_m[3]}"</span></div>')
                 print('</div>\n')
 
             # ── Not targeted ──
             if _nao_citados:
-                print(f'<div style="background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); border-radius: 8px; padding: 0.8rem; margin: 1rem 0;">')
-                print(f'<h4 style="color:#2ecc71; margin-top:0;">💚 Ninguém escolheu enfrentar ({len(_nao_citados)})</h4>')
+                print(f'<div class="u-s127">')
+                print(f'<h4 class="u-s238">💚 Ninguém escolheu enfrentar ({len(_nao_citados)})</h4>')
                 _names_html = []
                 for _nc in _nao_citados:
                     _av_nc = AVATARS.get(_nc, '')
-                    _img_nc = f'<img src="{_av_nc}" style="width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:2px;">' if _av_nc else ''
+                    _img_nc = f'<img src="{_av_nc}" class="u-s487">' if _av_nc else ''
                     _names_html.append(f'{_img_nc}{_nc}')
                 print(f'<div class="text-light fs-base">{" · ".join(_names_html)}</div>')
                 print('</div>\n')
@@ -1552,22 +1552,22 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             # Status badges — Votalhada + Model side by side
             if accuracy and accuracy['predicao_correta']:
-                status_html = '<span style="background:#3CB44B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">✅ Votalhada correta</span>'
+                status_html = '<span class="u-s146">✅ Votalhada correta</span>'
             else:
-                status_html = '<span style="background:#E6194B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">❌ Votalhada errada</span>'
+                status_html = '<span class="u-s009">❌ Votalhada errada</span>'
 
             erro_medio = accuracy['erro_medio'] if accuracy else 0
-            print(f'<div class="tc" style="margin-bottom:1.5rem;">')
+            print(f'<div class="tc u-s409">')
             print(f'{status_html}')
-            print(f'<span class="text-muted" style="margin-left:0.5rem;">Erro: <strong>{erro_medio:.1f}</strong> p.p.</span>')
+            print(f'<span class="text-muted u-s075">Erro: <strong>{erro_medio:.1f}</strong> p.p.</span>')
 
             if _model_pred_fin and _model_mae_fin is not None:
                 if _model_correct_fin:
-                    model_badge = '<span style="background:#00bc8c; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">✅ Nosso Modelo correto</span>'
+                    model_badge = '<span class="u-s128">✅ Nosso Modelo correto</span>'
                 else:
-                    model_badge = '<span style="background:#E6194B; color:#fff; padding:0.3rem 0.8rem; border-radius:12px; font-weight:bold;">❌ Nosso Modelo errado</span>'
-                print(f'<span style="margin-left:1rem;">{model_badge}</span>')
-                print(f'<span class="text-muted" style="margin-left:0.5rem;">Erro: <strong>{_model_mae_fin:.1f}</strong> p.p.</span>')
+                    model_badge = '<span class="u-s009">❌ Nosso Modelo errado</span>'
+                print(f'<span class="u-s410">{model_badge}</span>')
+                print(f'<span class="text-muted u-s075">Erro: <strong>{_model_mae_fin:.1f}</strong> p.p.</span>')
             print(f'</div>\n')
 
             # Grouped bar chart: Enquetes vs Resultado Real
@@ -1629,8 +1629,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     return f'font-weight:bold; color:{_color_min_f};'
                 return 'color:#ddd;'
 
-            print('<div style="overflow-x:auto;">')
-            print('<table class="table table-striped table-hover fs-lg" style="max-width: 100%; white-space:nowrap;">')
+            print('<div class="u-s025">')
+            print('<table class="table table-striped table-hover fs-lg u-s092">')
             print('<thead><tr><th>Fonte</th>')
             for nome in participantes_poll:
                 avatar = avatar_img(nome, AVATARS, 42)
@@ -1657,7 +1657,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             total_votos = consolidado.get('total_votos', 0)
             total_str = f"{total_votos:,.0f}".replace(',', '.')
-            print(f'<tr style="background:rgba(155,89,182,0.2);"><td style="font-weight:bold;">📊 Votalhada</td>')
+            print(f'<tr class="u-s049"><td class="u-s002">📊 Votalhada</td>')
             _cfvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
@@ -1670,7 +1670,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             # Model row
             if _model_pred_fin:
-                print(f'<tr style="background:rgba(0,188,140,0.2);"><td style="font-weight:bold;">🧮 Nosso Modelo</td>')
+                print(f'<tr class="u-s048"><td class="u-s002">🧮 Nosso Modelo</td>')
                 _mfvals = [_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _model_pred_fin['prediction'].get(nome, 0)
@@ -1681,7 +1681,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 print(f'<td class="tc text-muted fs-md">ponderado</td>')
                 print('</tr>')
 
-            print(f'<tr style="background:rgba(52,152,219,0.2);"><td style="font-weight:bold;">🏆 Resultado Real</td>')
+            print(f'<tr class="u-s015"><td class="u-s002">🏆 Resultado Real</td>')
             for nome in participantes_poll:
                 val = resultado.get(nome, 0)
                 is_elim = nome == resultado.get('eliminado')
@@ -1722,7 +1722,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 print(f"**{eliminado_nome}** ({_elim_label}): enquete previa **{poll_elim:.1f}%**, resultado real **{voto_total_elim:.1f}%**\n")
 
                 # Table: Poll vs Vote Types
-                print('<table class="table table-sm" style="max-width: 600px;">')
+                print('<table class="table table-sm u-s093">')
                 print('<thead><tr><th>Comparação</th><th class="tc">Enquete</th><th class="tc">Votação</th><th class="tc">Erro</th></tr></thead>')
                 print('<tbody>')
 
@@ -1763,7 +1763,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
                 print(f'<p>Para <strong>{eliminado_nome}</strong> (resultado: {voto_total_elim:.1f}%):</p>')
-                print('<table class="table table-sm" style="max-width: 500px;">')
+                print('<table class="table table-sm u-s443">')
                 print('<thead><tr><th>#</th><th>Plataforma</th><th class="tc">Previsão</th><th class="tc">Erro</th></tr></thead>')
                 print('<tbody>')
                 for rank, (plat, pval, perr) in enumerate(platform_errors, 1):
@@ -1806,10 +1806,10 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
                     best_platform = min(platform_total_err, key=platform_total_err.get)
 
-                    print(f'<div style="background:rgba(52,152,219,0.1); border-radius:12px; padding:1rem; margin:1rem 0;">')
-                    print(f'<p style="margin:0;"><strong>✅ Taxa de acerto:</strong> {total_correct}/{total_polls} paredões ({100*total_correct/total_polls:.0f}%)</p>')
-                    print(f'<p style="margin:0.5rem 0 0 0;"><strong>📉 Padrão:</strong> Enquetes subestimam o mais votado em <strong>{abs(avg_underest):.1f} p.p.</strong> em média</p>')
-                    print(f'<p style="margin:0.5rem 0 0 0;"><strong>🏆 Plataforma mais precisa:</strong> {platform_names.get(best_platform, best_platform)} (erro médio: {platform_total_err[best_platform]/total_polls:.1f} p.p.)</p>')
+                    print(f'<div class="u-s192">')
+                    print(f'<p class="u-s011"><strong>✅ Taxa de acerto:</strong> {total_correct}/{total_polls} paredões ({100*total_correct/total_polls:.0f}%)</p>')
+                    print(f'<p class="u-s041"><strong>📉 Padrão:</strong> Enquetes subestimam o mais votado em <strong>{abs(avg_underest):.1f} p.p.</strong> em média</p>')
+                    print(f'<p class="u-s041"><strong>🏆 Plataforma mais precisa:</strong> {platform_names.get(best_platform, best_platform)} (erro médio: {platform_total_err[best_platform]/total_polls:.1f} p.p.)</p>')
                     print(f'</div>\n')
 
         # Resumo da formação (finalizado)
@@ -1900,25 +1900,25 @@ if _pp_data:
     _both = _jonas_nom & _alberto_nom
     if len(_both) >= 5:
         _both_html = " ".join([avatar_img(n, AVATARS, 28) for n in sorted(_both)])
-        _fhtml = '<div style="margin-top:0.8rem; padding:10px 14px; background:#1a1a2a; border:1px solid #4363d8; border-radius:8px;">'
+        _fhtml = '<div class="u-s421">'
         _fhtml += f'<strong>🏛️ Bloco Anti-Jonas/Alberto</strong> — {len(_both)} pessoas nomearam ambos:<br/>'
-        _fhtml += f'<div style="margin-top:6px;">{_both_html}</div></div>\n'
+        _fhtml += f'<div class="u-s426">{_both_html}</div></div>\n'
         print(_fhtml)
 
     # ── Who picked whom + mutuals (expandable) ──
-    _dhtml = '<details style="margin-top:1rem;">\n'
-    _dhtml += '<summary class="fs-lg" style="cursor:pointer; font-weight:bold;">🔍 Quem indicou quem + indicações mútuas</summary>\n\n'
-    _dhtml += '<table class="table table-striped fs-base" style="margin-top:0.5rem;">'
+    _dhtml = '<details class="u-s425">\n'
+    _dhtml += '<summary class="fs-lg u-s301">🔍 Quem indicou quem + indicações mútuas</summary>\n\n'
+    _dhtml += '<table class="table table-striped fs-base u-s013">'
     _dhtml += '<thead><tr><th>Participante</th><th>Paredão Perfeito (3 nomes)</th></tr></thead><tbody>'
     for _actor in sorted(_pp.keys()):
         _targets = _pp[_actor]
         _targets_html = " ".join([f'{avatar_img(t, AVATARS, 32)}' for t in _targets])
         _av = avatar_img(_actor, AVATARS, 32)
-        _dhtml += f'<tr><td>{_av} {_actor}</td><td>{_targets_html} <span class="fs-md" style="color:#aaa;">{", ".join(_targets)}</span></td></tr>'
+        _dhtml += f'<tr><td>{_av} {_actor}</td><td>{_targets_html} <span class="fs-md u-s001">{", ".join(_targets)}</span></td></tr>'
     _dhtml += '</tbody></table>'
     if _mutuals:
-        _dhtml += '<div style="margin-top:0.8rem;"><strong>⚔️ Indicações mútuas:</strong> '
-        _dhtml += " ".join([f'<span class="fs-md" style="background:#2a1a1a; border:1px solid #E6194B; border-radius:6px; padding:2px 8px;">{avatar_img(p[0], AVATARS, 22)} ↔ {avatar_img(p[1], AVATARS, 22)}</span>' for p in _mutuals])
+        _dhtml += '<div class="u-s417"><strong>⚔️ Indicações mútuas:</strong> '
+        _dhtml += " ".join([f'<span class="fs-md u-s139">{avatar_img(p[0], AVATARS, 22)} ↔ {avatar_img(p[1], AVATARS, 22)}</span>' for p in _mutuals])
         _dhtml += '</div>'
     _dhtml += '</details>\n'
     print(_dhtml)
@@ -1934,47 +1934,47 @@ if _pp_data:
             break
 
     if _duelo:
-        _duel_html = '<h4 style="margin-top:1.5rem;">⚔️ Duelo de Risco — Resultado</h4>\n'
-        _duel_html += '<div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:0.5rem;">'
+        _duel_html = '<h4 class="u-s039">⚔️ Duelo de Risco — Resultado</h4>\n'
+        _duel_html += '<div class="u-s323">'
 
         # Step 1: Big Fone
         _bf_who = _duelo.get('big_fone_atendeu', '?')
         _bf_tipo = _duelo.get('big_fone_tipo', '')
-        _duel_html += f'<div class="tc" style="background:#1a1a2a; border:1px solid #4363d8; border-radius:8px; padding:10px 14px; min-width:140px;">'
+        _duel_html += f'<div class="tc u-s130">'
         _duel_html += f'<div class="text-muted fs-sm">📞 Big Fone</div>'
         _duel_html += f'{avatar_img(_bf_who, AVATARS, 40)}<br/>'
         _duel_html += f'<strong>{_bf_who}</strong><br/>'
-        _duel_html += f'<span class="fs-sm" style="color:#aaa;">{_bf_tipo}</span></div>'
+        _duel_html += f'<span class="fs-sm u-s001">{_bf_tipo}</span></div>'
 
         # Step 2: Choice
         _escolhida = _duelo.get('escolhida', '?')
         _chaiany_picks = _pp.get(_bf_who, [])
-        _duel_html += f'<div class="text-muted fs-3xl" style="display:flex; align-items:center;">→</div>'
-        _duel_html += f'<div class="tc" style="background:#2a2a1a; border:1px solid #ffe119; border-radius:8px; padding:10px 14px; min-width:140px;">'
+        _duel_html += f'<div class="text-muted fs-3xl u-s051">→</div>'
+        _duel_html += f'<div class="tc u-s141">'
         _duel_html += f'<div class="text-muted fs-sm">🎯 Escolheu</div>'
         _duel_html += f'{avatar_img(_escolhida, AVATARS, 40)}<br/>'
         _duel_html += f'<strong>{_escolhida}</strong><br/>'
         _others = [n for n in _chaiany_picks if n != _escolhida]
-        _duel_html += f'<span class="fs-xs" style="color:#aaa;">De: {", ".join(_chaiany_picks)}</span></div>'
+        _duel_html += f'<span class="fs-xs u-s001">De: {", ".join(_chaiany_picks)}</span></div>'
 
         # Step 3: Result
         _emparedado = _duelo.get('emparedado', '?')
         _imune = _duelo.get('imune', '?')
-        _duel_html += f'<div class="text-muted fs-3xl" style="display:flex; align-items:center;">→</div>'
-        _duel_html += f'<div class="tc" style="background:#2a1a1a; border:1px solid #E6194B; border-radius:8px; padding:10px 14px; min-width:120px;">'
+        _duel_html += f'<div class="text-muted fs-3xl u-s051">→</div>'
+        _duel_html += f'<div class="tc u-s140">'
         _duel_html += f'<div class="text-muted fs-sm">🔥 Paredão</div>'
         _duel_html += f'{avatar_img(_emparedado, AVATARS, 40)}<br/>'
-        _duel_html += f'<strong style="color:#E6194B;">{_emparedado}</strong></div>'
+        _duel_html += f'<strong class="u-s030">{_emparedado}</strong></div>'
 
-        _duel_html += f'<div class="tc" style="background:#1a2a1a; border:1px solid #3CB44B; border-radius:8px; padding:10px 14px; min-width:120px;">'
+        _duel_html += f'<div class="tc u-s135">'
         _duel_html += f'<div class="text-muted fs-sm">🛡️ Imune</div>'
         _duel_html += f'{avatar_img(_imune, AVATARS, 40)}<br/>'
-        _duel_html += f'<strong style="color:#3CB44B;">{_imune}</strong></div>'
+        _duel_html += f'<strong class="u-s056">{_imune}</strong></div>'
 
         _duel_html += '</div>\n'
 
         # Irony callout
-        _duel_html += '<div class="fs-md" style="margin-top:0.8rem; padding:8px 12px; background:#2a1a2a; border:1px solid #9b59b6; border-radius:6px;">'
+        _duel_html += '<div class="fs-md u-s422">'
         _duel_html += f'🎭 <strong>Ironia:</strong> Chaiany é o <strong>Anjo</strong> da semana — pode imunizar um aliado mas não a si mesma. '
         _duel_html += f'Indicou Jordana no Sincerinho (7× indicações) e no Big Fone, mas Jordana saiu <strong>imune</strong>. '
         _duel_html += f'Contragolpe de Chaiany deve mirar Marciele ou Maxiane (seus outros 2 alvos do Sincerinho).</div>\n'
@@ -2074,10 +2074,7 @@ if _show_prediction:
 # ══════════════════════════════════════════════════════════════════════════════
 
 paredao_analysis_data = {}
-_pa_path = Path("data/derived/paredao_analysis.json")
-if _pa_path.exists():
-    with open(_pa_path) as f:
-        paredao_analysis_data = json.load(f)
+paredao_analysis_data = load_paredao_analysis()
 
 # Load vote prediction data
 _vp_path = Path("data/derived/vote_prediction.json")
@@ -2171,30 +2168,30 @@ if ultimo and ultimo.get('participantes'):
                                      key=lambda n: -(vote_concentration.get(n, 0) + actual_votes.get(n, 0)))
                 if all_targets and actual_votes:
                     max_count = max(max(vote_concentration.values(), default=1), max(actual_votes.values(), default=1))
-                    print('<div style="display:flex; gap:2rem; flex-wrap:wrap; margin-bottom:1rem;">')
+                    print('<div class="u-s331">')
                     # Predicted
-                    print('<div style="flex:1; min-width:250px;">')
-                    print('<div class="text-muted fs-base" style="margin-bottom:4px;">📊 Previsão do modelo</div>')
+                    print('<div class="u-s018">')
+                    print('<div class="text-muted fs-base u-s074">📊 Previsão do modelo</div>')
                     for tgt in all_targets[:6]:
                         cnt = vote_concentration.get(tgt, 0)
                         pct_bar = (cnt / max_count * 100) if max_count else 0
-                        print(f'<div style="display:flex; align-items:center; gap:6px; margin:2px 0;">')
-                        print(f'<span class="fs-md" style="width:80px; text-align:right;">{tgt.split()[0]}</span>')
-                        print(f'<div style="flex:1; background:#333; border-radius:3px; height:14px;">')
+                        print(f'<div class="u-s052">')
+                        print(f'<span class="fs-md u-s111">{tgt.split()[0]}</span>')
+                        print(f'<div class="u-s064">')
                         print(f'<div style="width:{pct_bar}%; background:#9b59b6; height:100%; border-radius:3px;"></div></div>')
-                        print(f'<span class="fs-md" style="width:20px;">{cnt}</span></div>')
+                        print(f'<span class="fs-md u-s108">{cnt}</span></div>')
                     print('</div>')
                     # Actual
-                    print('<div style="flex:1; min-width:250px;">')
-                    print('<div class="text-muted fs-base" style="margin-bottom:4px;">🗳️ Votação real</div>')
+                    print('<div class="u-s018">')
+                    print('<div class="text-muted fs-base u-s074">🗳️ Votação real</div>')
                     for tgt in all_targets[:6]:
                         cnt = actual_votes.get(tgt, 0)
                         pct_bar = (cnt / max_count * 100) if max_count else 0
-                        print(f'<div style="display:flex; align-items:center; gap:6px; margin:2px 0;">')
-                        print(f'<span class="fs-md" style="width:80px; text-align:right;">{tgt.split()[0]}</span>')
-                        print(f'<div style="flex:1; background:#333; border-radius:3px; height:14px;">')
+                        print(f'<div class="u-s052">')
+                        print(f'<span class="fs-md u-s111">{tgt.split()[0]}</span>')
+                        print(f'<div class="u-s064">')
                         print(f'<div style="width:{pct_bar}%; background:#3498db; height:100%; border-radius:3px;"></div></div>')
-                        print(f'<span class="fs-md" style="width:20px;">{cnt}</span></div>')
+                        print(f'<span class="fs-md u-s108">{cnt}</span></div>')
                     print('</div>')
                     print('</div>\n')
         # Scatter insight as narrative
@@ -2290,9 +2287,9 @@ if ultimo and ultimo.get('participantes'):
 
         if facts:
             print("\n### 💡 Fatos Interessantes\n")
-            print('<div style="background:linear-gradient(145deg, rgba(52,152,219,0.08), rgba(155,89,182,0.08)); border:1px solid rgba(52,152,219,0.3); border-radius:10px; padding:1rem; margin:1rem 0;">')
+            print('<div class="u-s161">')
             for fact in facts:
-                print(f'<p class="fs-base" style="margin:0.5rem 0;">{fact}</p>')
+                print(f'<p class="fs-base u-s042">{fact}</p>')
             print('</div>\n')
 
     # ── Anatomia dos Votos chart (keep) ──
@@ -2384,7 +2381,7 @@ if ultimo and ultimo.get('participantes'):
         grupo_color = GROUP_COLORS.get(grupo, '#888')
 
         print(f"\n### {badge_emoji} O Caso {nome}\n")
-        print(f'<div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">')
+        print(f'<div class="u-s314">')
         print(f'{avatar_img(nome, AVATARS, 64)}')
         print(f'<div>')
         print(f'<span class="fs-base" style="background:{badge_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">{badge_text}</span>')
@@ -2422,7 +2419,7 @@ if ultimo and ultimo.get('participantes'):
                 # Bidirectional reaction table
                 a2t = ir.get('actor_to_target', '?')
                 t2a = ir.get('target_to_actor', '?')
-                print('<table class="table fs-lg" style="max-width:500px;">')
+                print('<table class="table fs-lg u-s444">')
                 print(f'<thead><tr><th>Direção</th><th class="tc">Reação</th></tr></thead>')
                 print(f'<tbody>')
                 print(f'<tr><td>{avatar_html(actor, AVATARS, 28)} → {nome}</td><td class="tc fs-2xl">{a2t}</td></tr>')
@@ -2465,7 +2462,7 @@ if ultimo and ultimo.get('participantes'):
             delta = stat.get('delta_3d', '—')
             delta_color = '#4CAF50' if '▲' in str(delta) or '+' in str(delta) else ('#E6194B' if '▼' in str(delta) else '#888')
 
-            print('<table class="table fs-lg" style="max-width:600px;">')
+            print('<table class="table fs-lg u-s096">')
             print('<thead><tr><th>Sentimento</th><th>Rank</th><th>Δ 3 dias</th><th>Top 5</th><th>Bottom 5</th><th>Dias neg.</th></tr></thead>')
             print(f'<tbody><tr>')
             print(f'<td class="fs-xl" style="color:{sent_color}; font-weight:bold;">{sent_val:+.1f}</td>')
@@ -2520,7 +2517,7 @@ if ultimo and ultimo.get('participantes'):
 
             # Voter table
             has_vp = bool(vp_predictions)
-            print('<table class="table table-striped fs-lg" style="max-width:850px;">')
+            print('<table class="table table-striped fs-lg u-s450">')
             print('<thead><tr><th>Votante</th><th class="tc">Deu</th><th class="tc">Recebeu</th><th>Tipo</th><th>Histórico</th>', end="")
             if has_vp:
                 print('<th class="tc">Prev.</th>', end="")
@@ -2552,11 +2549,11 @@ if ultimo and ultimo.get('participantes'):
                         print(f'<td class="tc text-dim">—</td>')
                     elif pred.get('predicted') == nome:
                         conf = pred.get('confidence', '')
-                        print(f'<td class="tc fs-base" style="color:#3CB44B;">✅ {conf}</td>')
+                        print(f'<td class="tc fs-base u-s056">✅ {conf}</td>')
                     else:
                         pred_target = pred.get('predicted', '?')
                         short_name = pred_target.split()[0]
-                        print(f'<td class="tc fs-base" style="color:#E6194B;">❌→{short_name}</td>')
+                        print(f'<td class="tc fs-base u-s030">❌→{short_name}</td>')
                 print(f'</tr>')
             print('</tbody></table>\n')
         elif not is_bv_escapee:
@@ -2643,15 +2640,15 @@ else:
 ---
 
 ::: {.callout-important title="⚖️ Por que 70/30 e não 75/25?" appearance="simple"}
-<div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-<div style="flex:1; min-width:250px;">
-<p class="fs-lg" style="margin-bottom:0.5rem; color:#eee;">A campeã do BBB 25 <strong>perdeu no Voto Único por 9 pontos</strong> — mas venceu pelo Torcida. Pior audiência da história. Campeã menos seguida em 10 anos.</p>
-<p class="fs-base" style="color:#f39c12; margin-bottom:0.5rem;">Qual é o peso <strong>exato</strong> que inverte aquele resultado? Por que a Globo parou em 70% e não foi até 75%?</p>
-<p class="fs-base" style="margin:0;"><strong><a href="votacao.html" style="color:#2ecc71;">→ Ver a simulação completa + retroativo BBB 26</a></strong></p>
+<div class="u-s315">
+<div class="u-s018">
+<p class="fs-lg u-s406">A campeã do BBB 25 <strong>perdeu no Voto Único por 9 pontos</strong> — mas venceu pelo Torcida. Pior audiência da história. Campeã menos seguida em 10 anos.</p>
+<p class="fs-base u-s291">Qual é o peso <strong>exato</strong> que inverte aquele resultado? Por que a Globo parou em 70% e não foi até 75%?</p>
+<p class="fs-base u-s011"><strong><a href="votacao.html" class="u-s007">→ Ver a simulação completa + retroativo BBB 26</a></strong></p>
 </div>
-<div style="text-align:center; min-width:100px;">
-<div class="fs-4xl" style="color:#f39c12; font-weight:750;">74,3%</div>
-<div class="fs-sm" style="color:#aaa;">limiar de inversão</div>
+<div class="u-s476">
+<div class="fs-4xl u-s042">74,3%</div>
+<div class="fs-sm u-s001">limiar de inversão</div>
 </div>
 </div>
 :::
@@ -2675,11 +2672,4 @@ Quer ver os paredões anteriores? Acesse o **[Arquivo de Paredões](paredoes.htm
   **Melhoria prevista**: ponderar mais forte 🐍🎯🤮🤥 e reduzir peso de negativos leves nas leituras de coerência.
 - **Timing do jogo**: entre eliminação e nova liderança, as relações podem mudar rápido.
   **Melhoria prevista**: permitir "média móvel" de 2–3 dias na semana da formação.
-:::
-
-::: {.callout-tip title="🧭 Navegação"}
-- [📊 Painel](index.html) — Estado atual das reações
-- [📈 Evolução](evolucao.html) — Rankings, sentimento e pulso diário
-- [🤝 Relações](relacoes.html) — Mapa social, alianças e rivalidades
-- [📚 Arquivo](paredoes.html) — Histórico de paredões
 :::

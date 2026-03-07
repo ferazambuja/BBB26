@@ -14,11 +14,11 @@ execute:
 #| label: setup
 #| include: false
 
-import json
 import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
 from collections import defaultdict, Counter
+from html import escape
 import networkx as nx
 from IPython.display import Markdown, display as ipy_display
 
@@ -29,6 +29,7 @@ from data_utils import (
     load_reaction_matrices, deserialize_matrix,
     require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
     load_relations_scores, load_daily_metrics, load_participants_index, load_paredoes_raw,
+    load_clusters_data, load_index_data,
     REACTION_EMOJI, POSITIVE, GROUP_COLORS,
     make_horizontal_bar,
 )
@@ -58,21 +59,13 @@ daily_metrics_data = load_daily_metrics()
 hostility_counts = daily_metrics_data.get("hostility_counts", [])
 daily_changes = daily_metrics_data.get("daily_changes", [])
 
-clusters_data = {}
-CLUSTERS_FILE = Path("data/derived/clusters_data.json")
-if CLUSTERS_FILE.exists():
-    with open(CLUSTERS_FILE, encoding="utf-8") as f:
-        clusters_data = json.load(f)
+clusters_data = load_clusters_data()
 
 participants_index = load_participants_index().get("participants", [])
 
 paredoes_data = load_paredoes_raw()
 
-index_data = {}
-INDEX_FILE = Path("data/derived/index_data.json")
-if INDEX_FILE.exists():
-    with open(INDEX_FILE, encoding="utf-8") as f:
-        index_data = json.load(f)
+index_data = load_index_data()
 
 # ── Load snapshots for reaction matrices and network graph ──
 snapshots, MEMBER_OF, AVATARS, daily_snapshots, late_entrants = load_snapshots_full()
@@ -132,18 +125,18 @@ for (a, b), rxn_ab in latest_matrix.items():
 n_breaks = len(streak_breaks) if streak_breaks else 0
 
 print(f"""
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-<div style="background: #1a5228; border-radius: 8px; padding: 0.8rem 1.2rem; text-align: center;">
-<div class="fs-4xl" style="font-weight: bold; color: #2ecc71;">{mutual_heart_today}</div>
-<div class="fs-sm" style="color: rgba(255,255,255,0.7);">❤️ Alianças</div>
+<div class="u-s309">
+<div class="u-s112">
+<div class="fs-4xl u-s382">{mutual_heart_today}</div>
+<div class="fs-sm u-s052">❤️ Alianças</div>
 </div>
-<div style="background: #5a1a1a; border-radius: 8px; padding: 0.8rem 1.2rem; text-align: center;">
-<div class="fs-4xl" style="font-weight: bold; color: #e74c3c;">{mutual_neg_today}</div>
-<div class="fs-sm" style="color: rgba(255,255,255,0.7);">⚔️ Rivalidades</div>
+<div class="u-s119">
+<div class="fs-4xl u-s384">{mutual_neg_today}</div>
+<div class="fs-sm u-s052">⚔️ Rivalidades</div>
 </div>
-<div style="background: #4a2a5a; border-radius: 8px; padding: 0.8rem 1.2rem; text-align: center;">
-<div class="fs-4xl" style="font-weight: bold; color: #9b59b6;">{n_breaks}</div>
-<div class="fs-sm" style="color: rgba(255,255,255,0.7);">💔 Rupturas</div>
+<div class="u-s118">
+<div class="fs-4xl u-s383">{n_breaks}</div>
+<div class="fs-sm u-s052">💔 Rupturas</div>
 </div>
 </div>
 """)
@@ -245,7 +238,7 @@ if daily_changes:
                 f'padding:0.6rem; text-align:center; border-top:3px solid {color};">'
                 f'<div class="fs-4xl">{emoji}</div>'
                 f'<div class="fs-2xl" style="font-weight:bold; color:{color};">{value}</div>'
-                f'<div class="fs-sm" style="color:#aaa;">{label}</div></div>')
+                f'<div class="fs-sm u-s001">{label}</div></div>')
 
     cards = [
         _stat_card("💔", hl, "Corações perdidos", "#e74c3c"),
@@ -255,8 +248,8 @@ if daily_changes:
         _stat_card("💥", n_breaks, "Rupturas de aliança", "#e74c3c"),
     ]
 
-    print(f'''<div style="background:#1e1e1e; border-radius:12px; padding:1.2rem; margin:1rem 0;">
-<div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem;">
+    print(f'''<div class="u-s136">
+<div class="u-s327">
 {"".join(cards)}
 </div>''')
 
@@ -275,7 +268,7 @@ if daily_changes:
         parts.append(f"<strong>{n_breaks}</strong> rupturas de aliança ({', '.join(break_names[:3])}{'…' if len(break_names) > 3 else ''})")
 
     if parts:
-        print(f'<div class="fs-base" style="color:#ccc; line-height:1.6;">🔗 {" → ".join(parts)}</div>')
+        print(f'<div class="fs-base u-s267">🔗 {" → ".join(parts)}</div>')
 
     # Resolutions
     if r_mut > 0 or r_blind > 0:
@@ -284,10 +277,10 @@ if daily_changes:
             res_parts.append(f"{r_mut} rivalidade(s) mútua(s)")
         if r_blind > 0:
             res_parts.append(f"{r_blind} ponto(s) cego(s)")
-        print(f'<div class="fs-base" style="color:#91cf60; margin-top:0.5rem;">✅ Resolvidos: {", ".join(res_parts)}</div>')
+        print(f'<div class="fs-base u-s255">✅ Resolvidos: {", ".join(res_parts)}</div>')
 
     if not parts and r_mut == 0 and r_blind == 0:
-        print('<div class="fs-base" style="color:#888;">Sem mudanças significativas nas dinâmicas sociais.</div>')
+        print('<div class="fs-base u-s009">Sem mudanças significativas nas dinâmicas sociais.</div>')
 
     print('</div>')
 else:
@@ -397,15 +390,15 @@ if streak_breaks:
             _new_sb_set.add((nsb["giver"], nsb["receiver"]))
 
     _n_new = len(_new_sb_set)
-    _novo_note = f" (<span style='color:#e74c3c;'>{_n_new} nova(s) hoje</span>)" if _n_new > 0 else ""
+    _novo_note = f" (<span class='u-s005'>{_n_new} nova(s) hoje</span>)" if _n_new > 0 else ""
     print(f"**{len(streak_breaks)} rupturas** de aliança detectadas na temporada.{_novo_note}\n")
-    print('<div style="overflow-x:auto;">')
-    print('<table class="fs-base" style="width: 100%; border-collapse: collapse;">')
-    print('<thead><tr style="border-bottom: 1px solid #444;">'
-          '<th style="padding: 0.4rem; width: 3rem;"></th>'
-          '<th style="padding: 0.4rem;">Emissor</th><th style="padding: 0.4rem;">Receptor</th>'
-          '<th style="padding: 0.4rem;">Dias de ❤️</th><th style="padding: 0.4rem;">Nova reação</th>'
-          '<th style="padding: 0.4rem;">Gravidade</th><th style="padding: 0.4rem;">Data</th>'
+    print('<div class="u-s025">')
+    print('<table class="fs-base u-s077">')
+    print('<thead><tr class="u-s028">'
+          '<th class="u-s455"></th>'
+          '<th class="u-s004">Emissor</th><th class="u-s004">Receptor</th>'
+          '<th class="u-s004">Dias de ❤️</th><th class="u-s004">Nova reação</th>'
+          '<th class="u-s004">Gravidade</th><th class="u-s004">Data</th>'
           '</tr></thead><tbody>')
 
     for sb in streak_breaks:
@@ -414,16 +407,15 @@ if streak_breaks:
         sev_color = "#e74c3c" if severity == "strong" else "#f39c12"
         sev_label = "Forte" if severity == "strong" else "Leve"
         is_new = (sb["giver"], sb["receiver"]) in _new_sb_set
-        novo_badge = ('<span class="fs-xs" style="background:#e74c3c; color:white; '
-                      'padding:0.1rem 0.4rem; border-radius:4px; font-weight:bold;">NOVO</span>') if is_new else ""
+        novo_badge = ('<span class="fs-xs u-s152">NOVO</span>') if is_new else ""
         print(f'<tr style="border-left: 3px solid {sev_color};">'
-              f'<td style="padding: 0.4rem; text-align: center;">{novo_badge}</td>'
-              f'<td style="padding: 0.4rem;">{sb["giver"]}</td>'
-              f'<td style="padding: 0.4rem;">{sb["receiver"]}</td>'
-              f'<td style="padding: 0.4rem; text-align: center;">{sb["previous_streak"]}</td>'
-              f'<td style="padding: 0.4rem; text-align: center;">{emoji}</td>'
-              f'<td style="padding: 0.4rem;"><span style="color: {sev_color};">{sev_label}</span></td>'
-              f'<td style="padding: 0.4rem;">{sb["date"]}</td></tr>')
+              f'<td class="u-s015">{novo_badge}</td>'
+              f'<td class="u-s004">{sb["giver"]}</td>'
+              f'<td class="u-s004">{sb["receiver"]}</td>'
+              f'<td class="u-s015">{sb["previous_streak"]}</td>'
+              f'<td class="u-s015">{emoji}</td>'
+              f'<td class="u-s004"><span style="color: {sev_color};">{sev_label}</span></td>'
+              f'<td class="u-s004">{sb["date"]}</td></tr>')
     print('</tbody></table></div>')
 
     # Stats
@@ -707,7 +699,7 @@ if daily_changes:
         m_color = '#dc3545' if net_mutual > 0 else '#28a745' if net_mutual < 0 else '#888'
         b_color = '#dc3545' if net_blind > 0 else '#28a745' if net_blind < 0 else '#888'
         print(f"""
-<div style="background: #2a2a2a; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+<div class="u-s113">
 <strong>Saldo:</strong> Mútuas <span style="color: {m_color};">{net_mutual:+d}</span> | Pontos Cegos <span style="color: {b_color};">{net_blind:+d}</span>
 </div>""")
     else:
@@ -814,15 +806,15 @@ if two_sided_count:
 if contradictions:
     rate_pct = f"{contradiction_rate * 100:.0f}" if contradiction_rate else "?"
     print(f"**{len(contradictions)} contradição(ões)** detectadas: votou contra alguém a quem dava ❤️ (taxa: {rate_pct}%).\n")
-    print('<div style="overflow-x:auto;">')
-    print('<table class="fs-base" style="width: 100%; border-collapse: collapse;">')
-    print('<thead><tr style="border-bottom: 1px solid #444;">'
-          '<th style="padding: 0.4rem;">Votante</th>'
-          '<th style="padding: 0.4rem;">Alvo do voto</th>'
-          '<th style="padding: 0.4rem;">Queridômetro</th>'
-          '<th style="padding: 0.4rem;">Tipo</th>'
-          '<th style="padding: 0.4rem;">Semana</th>'
-          '<th style="padding: 0.4rem;">Data</th>'
+    print('<div class="rel-contr-table-wrap">')
+    print('<table class="rel-contr-table">')
+    print('<thead><tr>'
+          '<th>Votante</th>'
+          '<th>Alvo do voto</th>'
+          '<th>Queridômetro</th>'
+          '<th>Tipo</th>'
+          '<th>Semana</th>'
+          '<th>Data</th>'
           '</tr></thead><tbody>')
 
     for c in contradictions:
@@ -833,13 +825,36 @@ if contradictions:
         vote_kind = c.get("vote_kind", "?")
         week = c.get("week", "?")
         date = c.get("date", "?")
-        print(f'<tr><td style="padding: 0.4rem;">{voter}</td>'
-              f'<td style="padding: 0.4rem;">{target}</td>'
-              f'<td style="padding: 0.4rem; text-align: center;">{q_display}</td>'
-              f'<td style="padding: 0.4rem; text-align: center;">{vote_kind}</td>'
-              f'<td style="padding: 0.4rem; text-align: center;">{week}</td>'
-              f'<td style="padding: 0.4rem; text-align: center;">{date}</td></tr>')
+        print(f'<tr><td>{escape(str(voter))}</td>'
+              f'<td>{escape(str(target))}</td>'
+              f'<td>{escape(str(q_display))}</td>'
+              f'<td>{escape(str(vote_kind))}</td>'
+              f'<td>{escape(str(week))}</td>'
+              f'<td>{escape(str(date))}</td></tr>')
     print('</tbody></table></div>')
+
+    # Mobile cards (avoid horizontal swipe while preserving all fields)
+    print('<div class="rel-contr-mobile">')
+    for c in contradictions:
+        voter = c.get("actor", "?")
+        target = c.get("target", "?")
+        q_score = c.get("queridometro", 0)
+        q_display = "❤️" if q_score > 0 else f"{q_score:+.1f}"
+        vote_kind = c.get("vote_kind", "?")
+        week = c.get("week", "?")
+        date = c.get("date", "?")
+        print('<article class="rel-contr-card">')
+        print('<div class="rel-contr-head">'
+              f'<strong>{escape(str(voter))}</strong>'
+              f'<span>S{escape(str(week))} · {escape(str(date))}</span>'
+              '</div>')
+        print('<div class="rel-contr-grid">'
+              f'<div><span>Alvo</span><strong>{escape(str(target))}</strong></div>'
+              f'<div><span>Queridômetro</span><strong>{escape(str(q_display))}</strong></div>'
+              f'<div><span>Tipo</span><strong>{escape(str(vote_kind))}</strong></div>'
+              '</div>')
+        print('</article>')
+    print('</div>')
 
     # Context notes
     if contradiction_notes:
@@ -945,15 +960,3 @@ if clusters_data:
 else:
     print("*Dados de clusters indisponíveis.*")
 ```
-
----
-
-<div class="alert alert-secondary mt-5">
-<h5>📍 Navegação</h5>
-<p class="mb-0">
-<a href="index.html"><strong>📊 Painel</strong></a> — Estado atual |
-<a href="evolucao.html"><strong>📈 Evolução</strong></a> — Temporal |
-<a href="paredao.html"><strong>🗳️ Paredão</strong></a> — Paredão atual |
-<a href="paredoes.html"><strong>📚 Arquivo</strong></a> — Histórico
-</p>
-</div>

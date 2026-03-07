@@ -42,7 +42,7 @@ API GloboPlay → fetch_data.py → data/snapshots/*.json
                                 _site/ → GitHub Pages
 ```
 
-O GitHub Actions roda com slots permanentes em **00:00, 06:00, 15:00 e 18:00 BRT**, além de probes entre **10:00–16:00 BRT** e extras aos sábados (**17:00** e **20:00 BRT**) para capturar mudanças de dinâmica com mais precisão.
+O GitHub Actions roda com slots permanentes em **00:00, 06:00, 15:00 e 18:00 BRT**, extras aos sábados (**17:00** e **20:00 BRT**) e probes temporários entre **09:30–16:00 BRT** para validar a janela real de atualização do queridômetro (revisão de fechamento prevista para **2026-03-08**).
 
 ## Desenvolvimento local
 

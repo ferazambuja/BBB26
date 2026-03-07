@@ -1,0 +1,107 @@
+/* Global navbar overrides: hamburger-first + dark/emerald palette. */
+
+#quarto-header .navbar.navbar-expand-lg {
+  background: #222 !important;
+  border-bottom: 1px solid #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+#quarto-header .navbar-title,
+#quarto-header .navbar-brand {
+  color: #f2f4f6 !important;
+}
+
+#quarto-header .navbar-toggler {
+  border-color: #3a3a3a !important;
+}
+
+#quarto-header .navbar-toggler:focus {
+  box-shadow: 0 0 0 0.16rem rgba(0, 188, 140, 0.25) !important;
+}
+
+#quarto-header .navbar-nav {
+  gap: 0.2rem;
+}
+
+#quarto-header .navbar-nav .nav-link {
+  color: #d9dde1 !important;
+  border-radius: 8px;
+  padding: 0.52rem 0.7rem;
+  line-height: 1.2;
+}
+
+#quarto-header .navbar-nav .nav-link:hover,
+#quarto-header .navbar-nav .nav-link:focus {
+  color: #fff !important;
+  background: rgba(0, 188, 140, 0.12);
+}
+
+#quarto-header .navbar-nav .nav-link.active {
+  color: #fff !important;
+  background: rgba(0, 188, 140, 0.15);
+  border-left: 3px solid #00bc8c;
+  padding-left: 0.55rem;
+}
+
+#quarto-header .dropdown-menu {
+  background: #1f1f1f;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+}
+
+#quarto-header .dropdown-item {
+  color: #d9dde1;
+}
+
+#quarto-header .dropdown-item:hover,
+#quarto-header .dropdown-item:focus {
+  color: #fff;
+  background: rgba(0, 188, 140, 0.12);
+}
+
+@media (max-width: 991.98px) {
+  #quarto-header .navbar-toggler {
+    display: block !important;
+  }
+
+  /* Collapse menu only on mobile/tablet widths. */
+  #quarto-header .navbar.navbar-expand-lg .navbar-collapse {
+    display: none !important;
+    flex-basis: 100%;
+    margin-top: 0.55rem;
+  }
+
+  #quarto-header .navbar.navbar-expand-lg .navbar-collapse.show,
+  #quarto-header .navbar.navbar-expand-lg .navbar-collapse.collapsing {
+    display: block !important;
+  }
+
+  #quarto-header .navbar-nav {
+    background: #1f1f1f;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 0.45rem;
+  }
+}
+
+@media (min-width: 992px) {
+  #quarto-header .navbar-toggler {
+    display: none !important;
+  }
+
+  #quarto-header .navbar-nav {
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+
+  #quarto-header .navbar-nav .nav-link {
+    padding: 0.45rem 0.66rem;
+  }
+
+  #quarto-header .navbar-nav .nav-link.active {
+    border-left: 0;
+    border-bottom: 2px solid #00bc8c;
+    padding-left: 0.66rem;
+  }
+}

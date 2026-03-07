@@ -6,7 +6,7 @@ name: BBB26 Daily Update
 # | UTC  | BRT   | Purpose |
 # |------|-------|---------|
 # | 09:00| 06:00 | Pre-Raio-X baseline — balance/estalecas changes (punishments etc) |
-# | 18:00| 15:00 | Post-Raio-X — primary capture (data updates ~14:00 BRT) |
+# | 18:00| 15:00 | Post-Raio-X — primary capture (timing under active probe review) |
 # | 21:00| 18:00 | Evening — catches balance/role changes |
 # | 03:00| 00:00 | Night — catches post-episode changes (Sun Líder/Anjo, Tue elimination) |
 #
@@ -18,7 +18,8 @@ name: BBB26 Daily Update
 #
 # TEMPORARY PROBES (remove after ~3-5 days):
 # Goal: pinpoint exact queridômetro update time.
-# Historical first-appearances: 12:16, 12:54, 15:31, 15:40, 15:51 BRT.
+# Probes were re-enabled on 2026-03-03 after conflicting historical estimates.
+# End-of-week review target: 2026-03-08 (BRT) before removing probes.
 # Every 30 min from 09:30–16:00 BRT = 12:30–19:00 UTC.
 # fetch_data.py saves only if data hash changed, so no duplicate snapshots.
 # Analyze results with: python scripts/analyze_capture_timing.py

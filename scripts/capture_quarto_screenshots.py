@@ -276,6 +276,25 @@ def capture_stitched_fullpage_with_pwcli(
             )
 
         tile_paths: list[str] = []
+        def restore_browser_at(y_pos: int) -> None:
+            run_pwcli(pwcli, ["close-all"], check=False)
+            run_pwcli(pwcli, ["open", page_url])
+            run_pwcli(pwcli, ["resize", str(viewport_width), str(viewport_height)])
+            run_pwcli(
+                pwcli,
+                [
+                    "eval",
+                    f"async () => {{ await new Promise(r => setTimeout(r, {wait_ms})); return true; }}",
+                ],
+            )
+            run_pwcli(
+                pwcli,
+                [
+                    "eval",
+                    f"async () => {{ window.scrollTo(0, {y_pos}); await new Promise(r => setTimeout(r, 200)); return window.scrollY; }}",
+                ],
+            )
+
         for idx, y in enumerate(positions):
             if verbose and (idx == 0 or idx == len(positions) - 1 or idx % 5 == 0):
                 print(f"[VERBOSE] tile {idx + 1}/{len(positions)} y={y}")
@@ -287,7 +306,17 @@ def capture_stitched_fullpage_with_pwcli(
                 ],
             )
             tile_file = temp_dir / f"{idx:04d}.png"
-            run_pwcli(pwcli, ["screenshot", "--filename", str(tile_file)])
+            try:
+                run_pwcli(pwcli, ["screenshot", "--filename", str(tile_file)])
+            except RuntimeError as exc:
+                # playwright-cli sessions can sporadically drop on long pages.
+                if "not open" in str(exc).lower():
+                    if verbose:
+                        print(f"[VERBOSE] stitch recover: reopening browser at tile {idx + 1}")
+                    restore_browser_at(y)
+                    run_pwcli(pwcli, ["screenshot", "--filename", str(tile_file)])
+                else:
+                    raise
             tile_paths.append(str(tile_file))
 
         stitch_command = [

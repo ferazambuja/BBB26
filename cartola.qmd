@@ -14,7 +14,6 @@ execute:
 #| label: setup
 #| include: false
 
-import json
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -26,6 +25,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
     CARTOLA_POINTS, POINTS_LABELS, POINTS_EMOJI, get_week_number,
+    load_cartola_data, load_manual_events,
 )
 
 require_clean_manual_events()
@@ -40,8 +40,7 @@ def contrast_color(hex_color):
     return '#000' if luminance > 0.6 else '#fff'
 
 # Load precomputed Cartola data
-with open("data/derived/cartola_data.json") as f:
-    cartola = json.load(f)
+cartola = load_cartola_data()
 
 leaderboard = cartola["leaderboard"]
 stats = cartola["stats"]
@@ -85,11 +84,8 @@ for week_str, participants in weekly_points.items():
             all_points[participant][week].append(tuple(evt_data))
 
 # Load manual events (for weekly notes / Big Fone display)
-manual_events_path = Path('data/manual_events.json')
-if manual_events_path.exists():
-    with open(manual_events_path) as f:
-        manual_events = json.load(f)
-else:
+manual_events = load_manual_events()
+if not manual_events:
     manual_events = {'participants': {}, 'weekly_events': [], 'special_events': [], 'power_events': [], 'cartola_points_log': []}
 
 weekly_data = manual_events.get('weekly_events', [])
@@ -133,9 +129,9 @@ if bottom:
 
 if highlights:
     print(f'''
-<div class="info-panel" style="border-left-color: #2ecc71; border-radius: 8px; padding: 0.8rem 1rem; margin: 1rem 0;">
-<div style="font-weight: 700; margin-bottom: 0.5rem;">Destaques Cartola — Semana {n_weeks}</div>
-<ul style="margin: 0; padding-left: 1.2rem;">
+<div class="info-panel u-s050">
+<div class="u-s035">Destaques Cartola — Semana {n_weeks}</div>
+<ul class="u-s073">
 ''')
     for h in highlights:
         print(f"<li>{h}</li>")
@@ -157,34 +153,34 @@ n_monstros = len(seen_roles.get('Monstro', []))
 print(f'''
 <div class="stat-row">
 
-<div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+<div class="stat-card u-s045">
 <div class="stat-value">Sem {n_weeks}</div>
 <div class="stat-label">📅 Semana Atual</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #f1c40f, #d4ac0d);">
+<div class="stat-card u-s006">
 <div class="stat-value">{n_lideres}</div>
 <div class="stat-label">👑 Líderes</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+<div class="stat-card u-s004">
 <div class="stat-value">{n_anjos}</div>
 <div class="stat-label">😇 Anjos</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #27ae60, #1e8449);">
+<div class="stat-card u-s003">
 <div class="stat-value">{total_positive:+d}</div>
 <div class="stat-label">📈 Pts Positivos</div>
 </div>
 
-<div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+<div class="stat-card u-s005">
 <div class="stat-value">{total_negative:+d}</div>
 <div class="stat-label">📉 Pts Negativos</div>
 </div>
 
 </div>
 
-<p class="text-muted small" style="margin-top: 0.3rem;">Pontos calculados automaticamente da API (Líder, Anjo, Monstro, Paredão, VIP) + eventos manuais.</p>
+<p class="text-muted small u-s038">Pontos calculados automaticamente da API (Líder, Anjo, Monstro, Paredão, VIP) + eventos manuais.</p>
 ''')
 ```
 
@@ -206,7 +202,7 @@ zero_points = [p for p in leaderboard if p['total'] == 0 and p['active']][:5]
 display_list = with_points + zero_points
 
 if display_list:
-    print('<div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem;">')
+    print('<div class="info-grid u-s071">')
 
     for i, p in enumerate(display_list):
         rank = i + 1 if p['total'] != 0 else '—'
@@ -219,7 +215,7 @@ if display_list:
         if not p['active']:
             border_color = '#6c757d'  # Gray for exited
             status_text = manual_events.get('participants', {}).get(p['name'], {}).get('status', 'saiu')
-            status_badge = f'<span class="fs-xs" style="background: #6c757d; color: #fff; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase; margin-left: 0.5rem;">{status_text}</span>'
+            status_badge = f'<span class="fs-xs u-s002">{status_text}</span>'
         elif rank == 1:
             border_color = '#f1c40f'  # Gold for 1st
         elif isinstance(rank, int) and rank <= 3:
@@ -248,10 +244,10 @@ if display_list:
                 pts_color = '#27ae60' if total_pts > 0 else '#e74c3c'
                 count_prefix = f"{count}x " if count > 1 else ""
                 event_tags.append(
-                    f'<span class="fs-sm" style="background: #383838; padding: 0.2rem 0.5rem; border-radius: 4px; margin: 0.15rem; display: inline-block;">'
+                    f'<span class="fs-sm u-s021">'
                     f'{count_prefix}{emoji} {label} <span style="color: {pts_color}; font-weight: bold;">{total_pts:+d}</span></span>'
                 )
-            events_html = f'<div style="margin-top: 0.5rem; line-height: 1.8;">{"".join(event_tags)}</div>'
+            events_html = f'<div class="u-s078">{"".join(event_tags)}</div>'
 
         # Points display
         pts_color = '#27ae60' if p['total'] > 0 else ('#e74c3c' if p['total'] < 0 else '#888')
@@ -259,7 +255,7 @@ if display_list:
 
         print(f'''
 <div style="background: #2a2a2a; border-radius: 12px; border-left: 5px solid {border_color}; padding: 1rem; display: flex; gap: 1rem; align-items: flex-start;">
-<div style="flex-shrink: 0; position: relative;">
+<div class="u-s062">
 ''')
         if avatar_url:
             print(f'<img src="{avatar_url}" alt="{p["name"]}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {participant_color}; object-fit: cover;">')
@@ -269,14 +265,14 @@ if display_list:
         # Rank badge
         if isinstance(rank, int) and rank <= 3:
             rank_emoji = '🥇' if rank == 1 else ('🥈' if rank == 2 else '🥉')
-            print(f'<div class="fs-xl" style="position: absolute; bottom: -5px; right: -5px;">{rank_emoji}</div>')
+            print(f'<div class="fs-xl u-s106">{rank_emoji}</div>')
 
         print(f'''
 </div>
-<div style="flex: 1; min-width: 0;">
-<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.3rem;">
+<div class="u-s063">
+<div class="u-s050">
 <div>
-<span class="fs-xl" style="font-weight: bold; color: #fff;">{rank_display} {p['name']}</span>
+<span class="fs-xl u-s010">{rank_display} {p['name']}</span>
 <span class="fs-xs" style="background: {participant_color}; color: {badge_text_color}; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.5rem;">{p['grupo']}</span>
 {status_badge}
 </div>
@@ -393,54 +389,54 @@ if n_weeks > 0:
         monstro_avatar = AVATARS.get(list(week_roles['Monstro'])[0], '') if week_roles['Monstro'] else ''
 
         print(f'''
-<div style="display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0;">
+<div class="u-s049">
 
-<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #f1c40f; padding: 1rem; display: flex; align-items: center; gap: 0.8rem;">
+<div class="u-s379">
 ''')
         if lider_avatar and lider != '—':
-            print(f'<img src="{lider_avatar}" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #f1c40f; object-fit: cover;">')
+            print(f'<img src="{lider_avatar}" class="u-s482">')
         print(f'''
 <div>
-<div class="fs-sm" style="color: #f1c40f; text-transform: uppercase;">👑 Líder</div>
-<div class="fs-xl" style="font-weight: bold; color: #fff;">{lider}</div>
-<div class="fs-base" style="color: #27ae60; font-weight: bold;">+80 pts</div>
+<div class="fs-sm u-s231">👑 Líder</div>
+<div class="fs-xl u-s010">{lider}</div>
+<div class="fs-base u-s051">+80 pts</div>
 </div>
 </div>
 
-<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #3498db; padding: 1rem; display: flex; align-items: center; gap: 0.8rem;">
+<div class="u-s376">
 ''')
         if anjo_avatar and anjo != '—':
-            print(f'<img src="{anjo_avatar}" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #3498db; object-fit: cover;">')
+            print(f'<img src="{anjo_avatar}" class="u-s479">')
         print(f'''
 <div>
-<div class="fs-sm" style="color: #3498db; text-transform: uppercase;">😇 Anjo</div>
-<div class="fs-xl" style="font-weight: bold; color: #fff;">{anjo}</div>
-<div class="fs-base" style="color: #27ae60; font-weight: bold;">+45 pts</div>
+<div class="fs-sm u-s216">😇 Anjo</div>
+<div class="fs-xl u-s010">{anjo}</div>
+<div class="fs-base u-s051">+45 pts</div>
 </div>
 </div>
 
-<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #9b59b6; padding: 1rem; display: flex; align-items: center; gap: 0.8rem;">
+<div class="u-s377">
 ''')
         if imune_avatar and imune != '—':
-            print(f'<img src="{imune_avatar}" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #9b59b6; object-fit: cover;">')
+            print(f'<img src="{imune_avatar}" class="u-s480">')
         print(f'''
 <div>
-<div class="fs-sm" style="color: #9b59b6; text-transform: uppercase;">🛡️ Imune</div>
-<div class="fs-xl" style="font-weight: bold; color: #fff;">{imune}</div>
-<div class="fs-base" style="color: #27ae60; font-weight: bold;">+30 pts</div>
+<div class="fs-sm u-s218">🛡️ Imune</div>
+<div class="fs-xl u-s010">{imune}</div>
+<div class="fs-base u-s051">+30 pts</div>
 </div>
 </div>
 
-<div style="flex: 1 1 180px; min-width: 160px; background: #2a2a2a; border-radius: 10px; border-left: 4px solid #e74c3c; padding: 1rem;">
-<div style="display: flex; align-items: center; gap: 0.8rem;">
+<div class="u-s378">
+<div class="u-s303">
 ''')
         if monstro_avatar and monstro != '—':
-            print(f'<img src="{monstro_avatar}" style="width: 45px; height: 45px; border-radius: 50%; border: 2px solid #e74c3c; object-fit: cover;">')
+            print(f'<img src="{monstro_avatar}" class="u-s481">')
         print(f'''
 <div>
-<div class="fs-sm" style="color: #e74c3c; text-transform: uppercase;">👹 Monstro</div>
-<div class="fs-xl" style="font-weight: bold; color: #fff;">{monstro}</div>
-<div class="fs-base" style="color: #e74c3c; font-weight: bold;">-10 pts</div>
+<div class="fs-sm u-s228">👹 Monstro</div>
+<div class="fs-xl u-s010">{monstro}</div>
+<div class="fs-base u-s224">-10 pts</div>
 </div>
 </div>
 
@@ -486,7 +482,7 @@ if n_weeks > 0:
 
         if week_points_list:
             print('\n**Pontuações da semana:**\n')
-            print('<div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem;">')
+            print('<div class="info-grid u-s398">')
 
             for wp in week_points_list:
                 participant_color = participant_colors.get(wp['name'], '#666')
@@ -501,9 +497,9 @@ if n_weeks > 0:
                 if avatar:
                     print(f'<img src="{avatar}" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid {participant_color}; object-fit: cover;">')
                 print(f'''
-<div style="flex: 1;">
-<div style="font-weight: bold; color: #fff;">{wp['name']}</div>
-<div class="fs-md" style="color: #888;">{events_str}</div>
+<div class="u-s380">
+<div class="u-s010">{wp['name']}</div>
+<div class="fs-md u-s020">{events_str}</div>
 </div>
 <div class="fs-2xl" style="font-weight: bold; color: {pts_color};">{wp['total']:+d}</div>
 </div>
@@ -522,7 +518,7 @@ else:
 
 # Sistema de Pontos {#pontos}
 
-<div class="info-panel" style="border-left-color: #17a2b8; padding: 1.2rem; margin: 1rem 0;">
+<div class="info-panel u-s018">
 
 **Como funciona o Cartola BBB**
 
@@ -544,8 +540,8 @@ O Cartola BBB é um sistema de fantasy onde cada evento do jogo pontua. Os ponto
 print('''
 <div class="info-grid">
 
-<div style="background: linear-gradient(180deg, rgba(39, 174, 96, 0.15) 0%, rgba(39, 174, 96, 0.05) 100%); border: 1px solid rgba(39, 174, 96, 0.3); border-radius: 12px; padding: 1.2rem;">
-<h4 style="color: #27ae60; margin-top: 0; border-bottom: 1px solid rgba(39, 174, 96, 0.3); padding-bottom: 0.5rem;">📈 Eventos Positivos</h4>
+<div class="u-s123">
+<h4 class="u-s212">📈 Eventos Positivos</h4>
 <table class="table-full fs-base">
 ''')
 
@@ -555,14 +551,14 @@ for event, points in CARTOLA_POINTS.items():
         label = POINTS_LABELS.get(event, event)
         # Mark auto-detected events
         auto = ' <span class="text-muted fs-xs">(API)</span>' if event in ['lider', 'anjo', 'imunizado', 'vip'] else ''
-        print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{emoji} {label}{auto}</td><td class="tr" style="color: #27ae60; font-weight: bold; padding: 0.3rem 0;">+{points}</td></tr>')
+        print(f'<tr><td class="text-light u-s019">{emoji} {label}{auto}</td><td class="tr u-s211">+{points}</td></tr>')
 
 print('''
 </table>
 </div>
 
-<div style="background: linear-gradient(180deg, rgba(231, 76, 60, 0.15) 0%, rgba(231, 76, 60, 0.05) 100%); border: 1px solid rgba(231, 76, 60, 0.3); border-radius: 12px; padding: 1.2rem;">
-<h4 style="color: #e74c3c; margin-top: 0; border-bottom: 1px solid rgba(231, 76, 60, 0.3); padding-bottom: 0.5rem;">📉 Eventos Negativos</h4>
+<div class="u-s121">
+<h4 class="u-s225">📉 Eventos Negativos</h4>
 <table class="table-full fs-base">
 ''')
 
@@ -572,7 +568,7 @@ for event, points in CARTOLA_POINTS.items():
         label = POINTS_LABELS.get(event, event)
         # Mark auto-detected events
         auto = ' <span class="text-muted fs-xs">(API)</span>' if event in ['monstro', 'emparedado'] else ''
-        print(f'<tr><td class="text-light" style="padding: 0.3rem 0;">{emoji} {label}{auto}</td><td class="tr" style="color: #e74c3c; font-weight: bold; padding: 0.3rem 0;">{points}</td></tr>')
+        print(f'<tr><td class="text-light u-s019">{emoji} {label}{auto}</td><td class="tr u-s023">{points}</td></tr>')
 
 print('''
 </table>
