@@ -18,6 +18,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
 from collections import defaultdict, Counter
+from html import escape
 import networkx as nx
 from IPython.display import Markdown, display as ipy_display
 
@@ -805,15 +806,15 @@ if two_sided_count:
 if contradictions:
     rate_pct = f"{contradiction_rate * 100:.0f}" if contradiction_rate else "?"
     print(f"**{len(contradictions)} contradição(ões)** detectadas: votou contra alguém a quem dava ❤️ (taxa: {rate_pct}%).\n")
-    print('<div class="u-s025">')
-    print('<table class="fs-base u-s077">')
-    print('<thead><tr class="u-s028">'
-          '<th class="u-s004">Votante</th>'
-          '<th class="u-s004">Alvo do voto</th>'
-          '<th class="u-s004">Queridômetro</th>'
-          '<th class="u-s004">Tipo</th>'
-          '<th class="u-s004">Semana</th>'
-          '<th class="u-s004">Data</th>'
+    print('<div class="rel-contr-table-wrap">')
+    print('<table class="rel-contr-table">')
+    print('<thead><tr>'
+          '<th>Votante</th>'
+          '<th>Alvo do voto</th>'
+          '<th>Queridômetro</th>'
+          '<th>Tipo</th>'
+          '<th>Semana</th>'
+          '<th>Data</th>'
           '</tr></thead><tbody>')
 
     for c in contradictions:
@@ -824,13 +825,36 @@ if contradictions:
         vote_kind = c.get("vote_kind", "?")
         week = c.get("week", "?")
         date = c.get("date", "?")
-        print(f'<tr><td class="u-s004">{voter}</td>'
-              f'<td class="u-s004">{target}</td>'
-              f'<td class="u-s015">{q_display}</td>'
-              f'<td class="u-s015">{vote_kind}</td>'
-              f'<td class="u-s015">{week}</td>'
-              f'<td class="u-s015">{date}</td></tr>')
+        print(f'<tr><td>{escape(str(voter))}</td>'
+              f'<td>{escape(str(target))}</td>'
+              f'<td>{escape(str(q_display))}</td>'
+              f'<td>{escape(str(vote_kind))}</td>'
+              f'<td>{escape(str(week))}</td>'
+              f'<td>{escape(str(date))}</td></tr>')
     print('</tbody></table></div>')
+
+    # Mobile cards (avoid horizontal swipe while preserving all fields)
+    print('<div class="rel-contr-mobile">')
+    for c in contradictions:
+        voter = c.get("actor", "?")
+        target = c.get("target", "?")
+        q_score = c.get("queridometro", 0)
+        q_display = "❤️" if q_score > 0 else f"{q_score:+.1f}"
+        vote_kind = c.get("vote_kind", "?")
+        week = c.get("week", "?")
+        date = c.get("date", "?")
+        print('<article class="rel-contr-card">')
+        print('<div class="rel-contr-head">'
+              f'<strong>{escape(str(voter))}</strong>'
+              f'<span>S{escape(str(week))} · {escape(str(date))}</span>'
+              '</div>')
+        print('<div class="rel-contr-grid">'
+              f'<div><span>Alvo</span><strong>{escape(str(target))}</strong></div>'
+              f'<div><span>Queridômetro</span><strong>{escape(str(q_display))}</strong></div>'
+              f'<div><span>Tipo</span><strong>{escape(str(vote_kind))}</strong></div>'
+              '</div>')
+        print('</article>')
+    print('</div>')
 
     # Context notes
     if contradiction_notes:

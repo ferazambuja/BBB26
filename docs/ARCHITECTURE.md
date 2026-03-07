@@ -73,7 +73,7 @@ All files in `data/derived/`, built by `scripts/build_derived_data.py`:
 | `auto_events.json` | Auto power events (Líder/Anjo/Monstro/Imune) |
 | `daily_metrics.json` | Sentiment + reaction totals per day |
 | `participants_index.json` | Canonical participant list (name, avatar, active, first/last seen) |
-| `index_data.json` | Precomputed tables for `index.qmd` |
+| `index_data.json` | Precomputed tables for `index.qmd`. Sincerao: top-level (`current_week`, `available_weeks`, `reaction_reference_date`, `type_coverage` with `seen`/`unknown`, `radar` with `scope`, `pairs`), per-profile (`summary` with received/given totals + contradiction count, `current` received/given, `season` received_by_week/given_by_week with per-week `meta` counts) |
 | `plant_index.json` | Planta Index per week + rolling averages |
 | `cartola_data.json` | Cartola BBB points (leaderboard, weekly breakdown, stats) |
 | `relations_scores.json` | Pairwise sentiment scores (A→B) with **daily** and **paredão** versions, plus `streak_breaks` (detected alliance ruptures) |
