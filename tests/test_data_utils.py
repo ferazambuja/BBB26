@@ -1,6 +1,8 @@
 """Tests for data_utils.py core functions."""
+import json
 import pytest
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from data_utils import (
     calc_sentiment,
     utc_to_game_date,
@@ -163,6 +165,8 @@ class TestGetWeekNumber:
     def test_after_last_week(self):
         """Day after last known week boundary starts the next week."""
         assert get_week_number("2026-02-26") == 7
+        # Week 7 remains open until a new Líder is confirmed and boundary is added.
+        assert get_week_number("2026-03-06") == 7
 
     def test_monotonic_increase(self):
         """Week numbers should be monotonically non-decreasing."""
@@ -287,3 +291,40 @@ class TestBuildReactionMatrix:
             assert len(key) == 2
             assert isinstance(key[0], str)
             assert isinstance(key[1], str)
+
+
+class TestCartolaRegressions:
+    """Regression checks for known Cartola edge-cases."""
+
+    def test_breno_quarto_secreto_immunity_not_duplicated_into_week_8(self):
+        """Breno's Quarto Secreto immunity (+30) must exist once in week 7 only."""
+        cartola_path = Path("data/derived/cartola_data.json")
+        payload = json.loads(cartola_path.read_text(encoding="utf-8"))
+        leaderboard = payload.get("leaderboard", [])
+
+        breno = next((p for p in leaderboard if p.get("name") == "Breno"), None)
+        assert breno is not None, "Breno must exist in Cartola leaderboard"
+
+        immunity_events = [
+            evt for evt in breno.get("events", [])
+            if evt.get("event") == "imunizado"
+        ]
+
+        week7_return_immunity = [
+            evt for evt in immunity_events
+            if evt.get("date") == "2026-03-04"
+        ]
+        assert len(week7_return_immunity) == 1, (
+            "Expected exactly one Breno immunity event on 2026-03-04 "
+            "(Quarto Secreto return immunity)"
+        )
+        assert week7_return_immunity[0].get("week") == 7
+        assert week7_return_immunity[0].get("points") == 30
+
+        week8_duplicates = [
+            evt for evt in immunity_events
+            if evt.get("week") == 8
+        ]
+        assert not week8_duplicates, (
+            "Breno immunity from Quarto Secreto must not be duplicated in week 8"
+        )

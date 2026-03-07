@@ -271,6 +271,9 @@ These are picked up automatically by `build_daily_roles()` from snapshots:
 ### Later (when Líder term ends)
 
 6. **Update `WEEK_END_DATES`** in `scripts/data_utils.py` — add the last day of the completed week (day before next Prova do Líder). Cannot do this until the next Líder is crowned.
+   - Keep the current week open while leadership is unresolved, even if a provisional date is known from schedule pages.
+   - Example: if week 7 should end on `2026-03-05`, only add `2026-03-05` after the week-8 Líder is actually confirmed.
+   - Why: adding boundaries early makes dashboards jump to the next week before the leadership cycle truly turns over.
 
 ### Verification
 
@@ -1100,7 +1103,9 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 | Analyze capture timing | `python scripts/analyze_capture_timing.py` |
 | Update PROGRAMA_BBB26.md timeline | `python scripts/update_programa_doc.py` |
 | Scrape a GShow article | `python scripts/scrape_gshow.py "<url>" -o docs/scraped/` |
-| Scrape BBB 26 agenda (programação do dia) | `python scripts/scrape_gshow_agenda.py YYYY-MM-DD -o docs/scraped/agenda/` |
+| Scrape BBB 26 agenda (what happened on a date) | `python scripts/scrape_gshow_agenda.py YYYY-MM-DD` |
+| Scrape agenda range with JSON | `python scripts/scrape_gshow_agenda.py --start YYYY-MM-DD --end YYYY-MM-DD --json` |
+| Scrape agenda without browser (limited) | `python scripts/scrape_gshow_agenda.py YYYY-MM-DD --static` |
 
 ---
 
