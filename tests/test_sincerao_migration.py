@@ -51,6 +51,36 @@ class TestSincTypeMeta:
         for t, val in expected.items():
             assert SINC_TYPE_META[t]["valence"] == val
 
+    def test_type_meta_covers_all_types_seen_in_data(self):
+        """Every Sincerao type present in manual/derived data must be mapped."""
+        import json
+        from builders.index_data_builder import SINC_TYPE_META
+
+        root = Path(__file__).resolve().parents[1]
+        manual = json.loads((root / "data" / "manual_events.json").read_text(encoding="utf-8"))
+        derived = json.loads((root / "data" / "derived" / "sincerao_edges.json").read_text(encoding="utf-8"))
+
+        seen_types: set[str] = set()
+
+        for weekly in manual.get("weekly_events", []):
+            sinc = weekly.get("sincerao")
+            if not sinc:
+                continue
+            blocks = sinc if isinstance(sinc, list) else [sinc]
+            for block in blocks:
+                for edge in block.get("edges", []) or []:
+                    etype = edge.get("type")
+                    if etype:
+                        seen_types.add(etype)
+
+        for edge in derived.get("edges", []) or []:
+            etype = edge.get("type")
+            if etype:
+                seen_types.add(etype)
+
+        missing = sorted(t for t in seen_types if t not in SINC_TYPE_META)
+        assert missing == [], f"Unmapped Sincerao types in data: {missing}"
+
 
 class TestResolveSincLabel:
     """resolve_sinc_label() produces human-readable text for any edge."""
@@ -92,6 +122,26 @@ class TestResolveSincLabel:
         result = resolve_sinc_label("new_future_type", None, "Breno")
         assert result == "new future type"  # underscores replaced with spaces
         assert "_" not in result
+
+
+class TestReactionCanonicalization:
+    """Positive heart reaction detection should be accent-tolerant."""
+
+    def test_positive_reaction_accepts_canonical_heart(self):
+        from builders.index_data_builder import _is_positive_heart_reaction
+        assert _is_positive_heart_reaction("Coração") is True
+
+    def test_positive_reaction_accepts_unaccented_heart(self):
+        from builders.index_data_builder import _is_positive_heart_reaction
+        assert _is_positive_heart_reaction("Coracao") is True
+
+    def test_positive_reaction_rejects_non_heart(self):
+        from builders.index_data_builder import _is_positive_heart_reaction
+        assert _is_positive_heart_reaction("Cobra") is False
+
+    def test_canonical_reaction_label_unaccented_heart(self):
+        from builders.index_data_builder import _canonical_reaction_label
+        assert _canonical_reaction_label("Coracao") == "Coração"
 
 
 # ── Task 2: Profile sincerao model ──
@@ -214,12 +264,21 @@ class TestProfileSincerao:
     def test_contradiction_detection(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        # Breno gives bomba to Alberto but also gives Coracao in queridometro
-        matrix = {("Breno", "Alberto Cowboy"): "Coracao"}
+        # Breno gives bomba to Alberto but also gives Coração in queridometro
+        matrix = {("Breno", "Alberto Cowboy"): "Coração"}
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix=matrix, sinc_weeks_meta={})
         assert result["summary"]["contradiction_count"] == 1
         assert "Alberto Cowboy" in result["summary"]["contradiction_targets"]
+
+    def test_contradiction_detection_with_unaccented_legacy_label(self, sinc_data_basic):
+        from builders.index_data_builder import _build_profile_sincerao
+
+        # Legacy/unaccented label should still count as contradiction
+        matrix = {("Breno", "Alberto Cowboy"): "Coracao"}
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+                                          latest_matrix=matrix, sinc_weeks_meta={})
+        assert result["summary"]["contradiction_count"] == 1
 
     def test_no_contradiction_without_heart(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
@@ -254,6 +313,32 @@ class TestProfileSincerao:
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         assert result["current_week"] == 7
+
+    def test_attack_only_week_has_no_positive_and_still_renders_sections(self):
+        """Weeks with only attack options (all negative) should be represented cleanly."""
+        from builders.index_data_builder import _build_profile_sincerao
+
+        sinc_data = _make_sinc_data([
+            _make_edge("Breno", "Gabriela", "bomba", 8, tema="maior traidor(a)"),
+            _make_edge("Breno", "Milena", "bomba", 8, tema="maior traidor(a)"),
+            _make_edge("Jonas Sulzbach", "Breno", "bomba", 8, tema="maior traidor(a)"),
+        ])
+        result = _build_profile_sincerao(
+            "Breno",
+            sinc_data,
+            current_week=8,
+            latest_matrix={},
+            sinc_weeks_meta={8: "Só ataques"},
+        )
+        summary = result["summary"]
+        assert summary["given_total"] == 2
+        assert summary["given_pos"] == 0
+        assert summary["given_neg"] == 2
+        assert summary["received_total"] == 1
+        assert summary["received_pos"] == 0
+        assert summary["received_neg"] == 1
+        assert result["current"]["given"] != []
+        assert result["current"]["received"] != []
 
     def test_empty_sinc_data(self):
         from builders.index_data_builder import _build_profile_sincerao
@@ -349,8 +434,8 @@ class TestRadar:
             _make_edge("Jonas Sulzbach", "Gabriela", "bomba", 7),
         ]
         matrix = {
-            ("Breno", "Alberto Cowboy"): "Coracao",
-            ("Breno", "Milena"): "Coracao",
+            ("Breno", "Alberto Cowboy"): "Coração",
+            ("Breno", "Milena"): "Coração",
             ("Jonas Sulzbach", "Gabriela"): "Cobra",  # not a contradiction
         }
         radar = _compute_sincerao_radar(edges, week=7, latest_matrix=matrix)
@@ -364,6 +449,141 @@ class TestRadar:
         assert radar["most_targeted_neg"]["names"] == []
         assert radar["most_praised"]["names"] == []
         assert radar["most_contradictions"]["names"] == []
+
+    def test_radar_contradictions_accept_unaccented_matrix_label(self):
+        from builders.index_data_builder import _compute_sincerao_radar
+
+        edges = [_make_edge("Breno", "Alberto Cowboy", "bomba", 7)]
+        matrix = {("Breno", "Alberto Cowboy"): "Coracao"}  # legacy/unaccented
+        radar = _compute_sincerao_radar(edges, week=7, latest_matrix=matrix)
+        assert radar["most_contradictions"]["names"] == ["Breno"]
+        assert radar["most_contradictions"]["count"] == 1
+
+    def test_radar_active_only_scope_filters_inactive_names(self):
+        from builders.index_data_builder import _compute_sincerao_radar
+
+        edges = [
+            _make_edge("Breno", "Milena", "bomba", 7),        # active pair
+            _make_edge("Eliminado", "Milena", "bomba", 7),    # inactive actor
+            _make_edge("Breno", "Eliminado", "podio", 7),     # inactive target
+        ]
+        radar = _compute_sincerao_radar(
+            edges,
+            week=7,
+            latest_matrix={("Breno", "Milena"): "Coração"},
+            active_set={"Breno", "Milena"},
+        )
+        assert radar["most_targeted_neg"]["names"] == ["Milena"]
+        assert radar["most_targeted_neg"]["count"] == 1
+        assert radar["most_praised"]["names"] == []
+
+
+# ── Week resolution / reaction-date anchoring ──
+
+class TestSincWeekResolution:
+    """When a new week starts without Sincerao, keep the last Sincerao week."""
+
+    def test_falls_back_to_latest_available_week(self):
+        from builders.index_data_builder import _resolve_sinc_week
+
+        sinc_data = _make_sinc_data(
+            edges=[_make_edge("A", "B", "bomba", 7)],
+            aggregates=[{"week": 7, "scores": {"B": -1}}],
+        )
+        week_used, available = _resolve_sinc_week(sinc_data, current_week=8)
+        assert available == [7]
+        assert week_used == 7
+
+    def test_matrix_resolution_prefers_exact_then_previous_date(self):
+        from builders.index_data_builder import _resolve_matrix_for_date
+
+        daily_snapshots = [
+            {"date": "2026-03-01"},
+            {"date": "2026-03-02"},
+            {"date": "2026-03-04"},
+        ]
+        daily_matrices = [
+            {("A", "B"): "Coração"},
+            {("A", "B"): "Cobra"},
+            {("A", "B"): "Planta"},
+        ]
+
+        matrix, matrix_date = _resolve_matrix_for_date(
+            "2026-03-03",
+            daily_snapshots,
+            daily_matrices,
+            fallback_matrix={("A", "B"): "Mala"},
+            fallback_date="2026-02-28",
+        )
+        assert matrix_date == "2026-03-02"
+        assert matrix[("A", "B")] == "Cobra"
+
+
+class TestDailyCardsReferenceDate:
+    """Daily cards should anchor to the latest complete matrix day."""
+
+    @staticmethod
+    def _participant(name: str) -> dict:
+        return {"name": name, "characteristics": {"receivedReactions": []}}
+
+    def test_daily_cards_use_last_complete_day(self):
+        from builders.index_data_builder import _compute_daily_movers_cards
+
+        daily_snapshots = [
+            {"date": "2026-03-01", "participants": [self._participant("A"), self._participant("B")]},
+            {"date": "2026-03-02", "participants": [self._participant("A"), self._participant("B")]},
+            {"date": "2026-03-03", "participants": [self._participant("A"), self._participant("B")]},
+        ]
+        # Day 3 is intentionally incomplete (only 1/2 directed pairs).
+        daily_matrices = [
+            {("A", "B"): "Coração", ("B", "A"): "Coração"},
+            {("A", "B"): "Cobra", ("B", "A"): "Coração"},
+            {("A", "B"): "Cobra"},
+        ]
+
+        _highlights, cards = _compute_daily_movers_cards(daily_snapshots, daily_matrices, ["A", "B"])
+        by_type = {c.get("type"): c for c in cards}
+
+        assert by_type["changes"]["reference_date"] == "2026-03-02"
+        assert by_type["dramatic"]["reference_date"] == "2026-03-02"
+        assert by_type["hostilities"]["reference_date"] == "2026-03-02"
+        assert by_type["dramatic"]["scope"] == "today"
+        assert by_type["hostilities"]["scope"] == "today"
+        assert by_type["dramatic"]["items"][0]["date"] == "2026-03-02"
+        assert by_type["hostilities"]["items"][0]["date"] == "2026-03-02"
+
+
+class TestBreaksCardReferenceDate:
+    """Break card should expose the date anchor used for relative age labels."""
+
+    def test_breaks_card_carries_reference_date(self):
+        from builders.index_data_builder import _compute_breaks_and_context_cards
+
+        relations_data = {
+            "streak_breaks": [
+                {
+                    "giver": "A",
+                    "receiver": "B",
+                    "previous_streak": 6,
+                    "new_emoji": "Cobra",
+                    "severity": "strong",
+                    "date": "2026-03-01",
+                }
+            ]
+        }
+        latest = {"participants": [{"name": "A", "characteristics": {}}, {"name": "B", "characteristics": {}}]}
+
+        _highlights, cards = _compute_breaks_and_context_cards(
+            relations_data=relations_data,
+            active_set={"A", "B"},
+            latest=latest,
+            current_week=8,
+            daily_snapshots=[{"date": "2026-03-01", "participants": latest["participants"]}],
+            reference_date="2026-03-05",
+        )
+
+        breaks_card = next(c for c in cards if c.get("type") == "breaks")
+        assert breaks_card["reference_date"] == "2026-03-05"
 
 
 # ── Task 4: Contract tests (run after builder wiring) ──
@@ -381,7 +601,14 @@ class TestTopLevelSincerao:
         sinc = data.get("sincerao", {})
         assert "current_week" in sinc
         assert "available_weeks" in sinc
+        assert "reaction_reference_date" in sinc
         assert "radar" in sinc
+        assert sinc.get("radar", {}).get("scope") == "active_only"
+        assert "type_coverage" in sinc
+        assert "seen" in sinc["type_coverage"]
+        assert "unknown" in sinc["type_coverage"]
+        if sinc.get("current_week") is not None:
+            assert sinc.get("reaction_reference_date")
         pairs = sinc.get("pairs", {})
         assert "contradictions" in pairs
         assert "aligned_positive" in pairs
@@ -399,6 +626,57 @@ class TestTopLevelSincerao:
         pairs = sinc.get("pairs", {})
         assert "aligned_pos" not in pairs
         assert "aligned_neg" not in pairs
+
+    def test_highlight_card_carries_reaction_reference_date(self):
+        import json
+        path = Path(__file__).resolve().parents[1] / "data" / "derived" / "index_data.json"
+        if not path.exists():
+            pytest.skip("index_data.json not built yet")
+        with open(path) as f:
+            data = json.load(f)
+        sinc = data.get("sincerao", {})
+        cards = data.get("highlights", {}).get("cards", [])
+        sinc_card = next((c for c in cards if c.get("type") == "sincerao"), None)
+        if not sinc_card:
+            pytest.skip("No sincerao highlight card for current dataset")
+        assert sinc_card.get("week") == sinc.get("current_week")
+        if sinc.get("current_week") is not None:
+            assert sinc_card.get("reaction_reference_date") == sinc.get("reaction_reference_date")
+
+    def test_list_cards_expose_full_payload_for_in_card_toggles(self):
+        """List cards must carry full payloads so index can expand all rows in-card."""
+        from builders.index_data_builder import build_index_data
+
+        data = build_index_data()
+        if not data:
+            pytest.skip("index data unavailable for this environment")
+
+        cards = {c.get("type"): c for c in data.get("highlights", {}).get("cards", [])}
+
+        ranking = cards.get("ranking")
+        if ranking:
+            assert "podium_all" in ranking
+            assert "bottom_all" in ranking
+            assert "delta_all" in ranking
+            assert len(ranking.get("podium_all", [])) >= len(ranking.get("podium", []))
+            assert len(ranking.get("bottom_all", [])) >= len(ranking.get("bottom3", []))
+
+        alvo = cards.get("mais_alvo")
+        if alvo:
+            assert "items_all" in alvo
+            assert "items_recent_all" in alvo
+            assert len(alvo.get("items_all", [])) >= len(alvo.get("items", []))
+            assert len(alvo.get("items_recent_all", [])) >= len(alvo.get("items_recent", []))
+
+        agressor = cards.get("mais_agressor")
+        if agressor:
+            assert "items_all" in agressor
+            assert len(agressor.get("items_all", [])) >= len(agressor.get("items", []))
+
+        vuln = cards.get("vulnerability")
+        if vuln:
+            assert "items_all" in vuln
+            assert len(vuln.get("items_all", [])) >= len(vuln.get("items", []))
 
 
 class TestProfileSincerao_Contract:
@@ -430,6 +708,16 @@ class TestProfileSincerao_Contract:
             assert "season" in sinc
             assert "received_by_week" in sinc["season"]
             assert "given_by_week" in sinc["season"]
+            for wk in sinc["season"].get("received_by_week", []):
+                assert "meta" in wk
+                assert "count_total" in wk["meta"]
+                assert "count_pos" in wk["meta"]
+                assert "count_neg" in wk["meta"]
+            for wk in sinc["season"].get("given_by_week", []):
+                assert "meta" in wk
+                assert "count_total" in wk["meta"]
+                assert "count_pos" in wk["meta"]
+                assert "count_neg" in wk["meta"]
 
     def test_removed_profile_keys_absent(self):
         import json

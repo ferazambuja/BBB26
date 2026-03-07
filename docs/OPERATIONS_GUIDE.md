@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-04
+> **Last updated**: 2026-03-06
 
 ---
 
@@ -938,15 +938,26 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 }
 ```
 
-**Edge types** (must match `builders/sincerao.py` weights):
+**Edge types** (must match Sincerão builders):
 
 | Type | Weight | When to use |
 |------|--------|-------------|
 | `podio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Participant puts someone on their podium |
+| `regua` | +0.25 (aggregate mention) | Participant places someone in Top-3 priority/régua |
 | `nao_ganha` | −0.8 | Participant says someone won't win |
+| `regua_fora` | −0.5 (aggregate mention) | Participant leaves someone out of the régua |
 | `bomba` (+ `tema`) | −0.6 | Directed confrontation: bomb themes, "maior traidor(a)", etc. |
 | `paredao_perfeito` | −0.3 | Participant nominates someone for ideal paredão |
 | `prova_eliminou` | −0.15 | Eliminated someone in a Sincerão sub-game |
+| `quem_sai` | contextual (negative signal) | Explicit “quem sai hoje” indication |
+
+After rebuild, verify type coverage and unknown types:
+
+```bash
+jq '.sincerao.type_coverage' data/derived/index_data.json
+```
+
+If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py` before publishing.
 
 **Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `bomba` 0.4.
 
@@ -1131,6 +1142,18 @@ cat tmp/page_screenshots/<label>/manifest.json
 cat tmp/page_screenshots/<label>-slices/manifest.json
 ```
 
+### Sincerão QA checklist (mobile + desktop)
+
+Run this checklist page-by-page after each capture cycle (`index`, `relacoes`, debug pages where applicable):
+
+- Dense week (many Sincerão events): top entries are readable without horizontal scroll; overflow is accessible through `<details>`/expanded blocks.
+- Sparse week (few events): no empty/broken containers; layout remains balanced.
+- One-sided week (only positive or only negative): missing lanes show neutral empty-state text instead of blank space.
+- Mixed week: `Atacados`, `Elogiados`, and `Contradições` are all visible and legible.
+- Profile cards (`Recebeu`/`Fez`): chips wrap naturally on mobile; no clipped labels or forced horizontal swipe.
+- Contradiction consistency: contradiction values in profile summaries and top-level radar/pairs are coherent for the same week.
+- Visual density: desktop remains compact/scannable; mobile remains tappable with clear hierarchy.
+
 ### Core commands
 
 Wrapper (recommended, page-by-page progress logs):
@@ -1187,6 +1210,9 @@ python scripts/capture_quarto_screenshots.py \
 - "Looks stuck" on long pages:
   - Run one page first with `--page ... --verbose`.
   - Use slice captures as primary review artifact for extremely tall pages.
+- Intermittent stitch drop (`browser 'default' is not open`):
+  - The script now auto-recovers by reopening the page at the current tile.
+  - In verbose mode you may see `stitch recover: reopening browser at tile ...`.
 - Port in use:
   - Script auto-selects another local port; no manual action needed.
 - Browser/tool missing:

@@ -20,7 +20,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
@@ -50,6 +50,13 @@ if not index_data:
 latest = index_data.get("latest", {})
 MEMBER_OF = index_data.get("member_of", {})
 AVATARS = index_data.get("avatars", {})
+
+meta_generated_at = index_data.get("_metadata", {}).get("generated_at")
+try:
+    _gen_dt = datetime.fromisoformat(str(meta_generated_at).replace("Z", "+00:00"))
+    DATA_GENERATED_DATE_BRT = _gen_dt.astimezone(timezone(timedelta(hours=-3))).date()
+except Exception:
+    DATA_GENERATED_DATE_BRT = datetime.now(timezone(timedelta(hours=-3))).date()
 ```
 
 ```{python}
@@ -406,12 +413,63 @@ else:
 date_display_pt = index_data.get("highlights", {}).get("date_display", "")
 hl_cards = index_data.get("highlights", {}).get("cards", [])
 
+CARD_STORY_ORDER = {
+    "context": 0,
+    "ranking": 10,
+    "changes": 20,
+    "dramatic": 30,
+    "hostilities": 40,
+    "sincerao": 50,
+    "paredao": 60,
+    "breaks": 70,
+    "blindados": 80,
+    "impact": 90,
+    "positive_impact": 100,
+    "vulnerability": 110,
+    "mais_alvo": 120,
+    "mais_agressor": 130,
+    "vip": 140,
+    "xepa": 150,
+}
+hl_cards = sorted(hl_cards, key=lambda c: CARD_STORY_ORDER.get(c.get("type"), 999))
+
+def fmt_date_br(date_str: str) -> str:
+    if not date_str:
+        return ""
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
+    except Exception:
+        return date_str
+
+def days_ago_str(date_str: str, ref_date: str | None = None) -> str:
+    if not date_str:
+        return ""
+    # Relative labels should reflect real calendar date (BRT anchor), not latest data date.
+    # Anchor to build date metadata when available.
+    _anchor_brt = DATA_GENERATED_DATE_BRT
+    try:
+        d0 = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except Exception:
+        return ""
+    delta = (_anchor_brt - d0).days
+    if delta < 0:
+        return ""
+    if delta == 0:
+        return "hoje"
+    if delta == 1:
+        return "há 1 dia"
+    return f"há {delta} dias"
+
 def av(name, size=48, border_color="#555"):
     """Avatar image tag, clickable to the participant's profile."""
     slug = name.lower().replace(" ", "-")
     return _avatar_html(name, AVATARS, size=size, show_name=False,
                         link=f'#perfil-{slug}', border_color=border_color,
                         fallback_initials=True)
+
+def av_group_border(name: str) -> str:
+    grp = MEMBER_OF.get(name, "")
+    return GROUP_COLORS.get(grp, "#666")
 
 def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
     """Card header with icon, title, optional link, badge, data source tag, and subtitle."""
@@ -475,6 +533,9 @@ else:
             streak_txt = f"{streak}º dia consecutivo" if streak > 1 else "hoje"
             podium = card.get("podium", [])
             bottom3 = card.get("bottom3", [])
+            podium_all = card.get("podium_all") or podium
+            bottom_all = card.get("bottom_all") or bottom3
+            delta_all = card.get("delta_all", [])
             mup = card.get("movers_up")
             mdown = card.get("movers_down")
 
@@ -484,16 +545,17 @@ else:
                 subtitle="Score de hoje (❤️ = +1, negativas = −0.5 a −1). Dado do dia, não acumulado."
             )
 
-            # ── Top 6 (vertical list, same style as movers) ──
-            medals = ["🥇", "🥈", "🥉", "4º", "5º", "6º"]
-            medal_borders = ["#f1c40f", "#c0c0c0", "#cd7f32", "#27ae60", "#27ae60", "#27ae60"]
+            # ── Top (inline + in-card toggle for all) ──
+            medals = ["🥇", "🥈", "🥉", "4º", "5º"]
+            inline_podium = podium_all[:5]
+            overflow_podium = podium_all[5:]
             podium_html = '<div>'
             podium_html += '<div class="fs-2xs u-s060">⬆ Mais queridos</div>'
             podium_html += '<div class="u-s065">'
-            for i, p in enumerate(podium[:6]):
+            for i, p in enumerate(inline_podium):
                 name = p["name"]
                 score = p["score"]
-                border = medal_borders[i] if i < len(medal_borders) else "#27ae60"
+                border = av_group_border(name)
                 label = medals[i] if i < len(medals) else f"{i+1}º"
                 podium_html += (
                     f'<div class="u-s344">'
@@ -502,46 +564,97 @@ else:
                     f'</div>'
                 )
             podium_html += '</div></div>'
+            if overflow_podium:
+                podium_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_podium))
+                for i, p in enumerate(overflow_podium, start=len(inline_podium) + 1):
+                    name = p["name"]
+                    score = p["score"]
+                    border = av_group_border(name)
+                    label = f"{i}º"
+                    podium_html += (
+                        f'<div class="u-s344">'
+                        f'{av(name, 42, border)}'
+                        f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
+                        f'</div>'
+                    )
+                podium_html += '</div></details>'
 
-            # ── Bottom 6 (vertical list, same style as movers) ──
+            # ── Bottom (inline + in-card toggle for all) ──
             bottom_html = ""
-            if bottom3:
+            if bottom_all:
+                inline_bottom = bottom_all[:5]
+                overflow_bottom = bottom_all[5:]
                 bottom_html = '<div>'
                 bottom_html += '<div class="fs-2xs u-s060">⬇ Menos queridos</div>'
                 bottom_html += '<div class="u-s065">'
-                for p in bottom3[:6]:
+                for p in inline_bottom:
                     name = p["name"]
                     score = p["score"]
                     score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
                     bottom_html += (
                         f'<div class="u-s340">'
-                        f'{av(name, 42, "#e74c3c")}'
+                        f'{av(name, 42, av_group_border(name))}'
                         f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                         f'</div>'
                     )
                 bottom_html += '</div></div>'
+                if overflow_bottom:
+                    bottom_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_bottom))
+                    for p in overflow_bottom:
+                        name = p["name"]
+                        score = p["score"]
+                        score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
+                        bottom_html += (
+                            f'<div class="u-s340">'
+                            f'{av(name, 42, av_group_border(name))}'
+                            f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
+                            f'</div>'
+                        )
+                    bottom_html += '</div></details>'
 
-            # ── Movers (compact list: up to 3 risers + 3 fallers) ──
+            # ── Movers (inline + in-card toggle for all deltas) ──
             movers_html = ""
             mup_list = mup if isinstance(mup, list) else ([mup] if mup else [])
             mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
+            inline_deltas = []
             if mup_list or mdown_list:
+                inline_deltas = [{"name": d["name"], "delta": d["delta"]} for d in mup_list + mdown_list]
+            elif delta_all:
+                inline_deltas = delta_all[:6]
+            if inline_deltas:
+                inline_names = {d["name"] for d in inline_deltas}
+                overflow_deltas = [d for d in delta_all if d.get("name") not in inline_names]
                 movers_html = '<div>'
                 movers_html += '<div class="fs-2xs u-s060">📅 Variação vs ontem</div>'
                 movers_html += '<div class="u-s065">'
-                for mu in mup_list:
+                for d in inline_deltas:
+                    is_up = d.get("delta", 0) >= 0
+                    name = d["name"]
+                    icon = "📈" if is_up else "📉"
+                    row_cls = "u-s345" if is_up else "u-s341"
+                    text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
                     movers_html += (
-                        f'<div class="u-s345">'
-                        f'{av(mu["name"], 42, "#27ae60")}'
-                        f'<span class="fs-md u-s026">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
-                        f'</div>')
-                for md in mdown_list:
-                    movers_html += (
-                        f'<div class="u-s341">'
-                        f'{av(md["name"], 42, "#e74c3c")}'
-                        f'<span class="text-neg fs-md">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
-                        f'</div>')
+                        f'<div class="{row_cls}">'
+                        f'{av(name, 42, av_group_border(name))}'
+                        f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
+                        f'</div>'
+                    )
                 movers_html += '</div></div>'
+                if overflow_deltas:
+                    movers_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_deltas))
+                    for d in overflow_deltas:
+                        is_up = d.get("delta", 0) >= 0
+                        name = d["name"]
+                        icon = "📈" if is_up else "📉"
+                        row_cls = "u-s345" if is_up else "u-s341"
+                        text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                        movers_html += (
+                            f'<div class="{row_cls}">'
+                            f'{av(name, 42, av_group_border(name))}'
+                            f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
+                            f'</div>'
+                        )
+                    movers_html += '</div></details>'
 
             # 3-column grid on desktop, stacks on mobile
             print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
@@ -563,20 +676,34 @@ else:
             hg = card["hearts_gained"]
             hl_lost = card["hearts_lost"]
             direction_color = "#27ae60" if imp > wor else ("#e74c3c" if wor > imp else "#f39c12")
+            total_delta = max(1, imp + wor + lat)
+            net = imp - wor
+            net_txt = f"+{net}" if net > 0 else str(net)
+
+            def _pulse_row(label: str, value: int, color_row: str) -> str:
+                return (
+                    f'<div style="display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;">'
+                    f'<span class="fs-2xs" style="color:#aaa;">{label}</span>'
+                    f'{progress_bar(value, total_delta, color_row, height=6)}'
+                    f'<span class="fs-sm" style="color:{color_row};font-weight:700;">{value}</span>'
+                    f'</div>'
+                )
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Reações do queridômetro que mudaram de ontem para hoje. Melhorias = score subiu, pioras = score caiu.")}
+{card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Mudanças de ontem para hoje no queridômetro. Melhoria = reação ficou mais positiva; piora = mais negativa.")}
 <div class="u-s332">
 <span class="fs-4xl u-s393">{total}</span>
 <span class="fs-base u-s001">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
-<div class="u-s361">
-{stat_chip(imp, "melhorias", "#27ae60")}
-{stat_chip(wor, "pioras", "#e74c3c")}
-{stat_chip(lat, "laterais", "#888")}
+<div style="display:grid;gap:6px;margin-top:4px;">
+{_pulse_row("Melhorias", imp, "#27ae60")}
+{_pulse_row("Pioras", wor, "#e74c3c")}
+{_pulse_row("Laterais", lat, "#888")}
 </div>
-<div class="fs-md u-s362">
-<span class="u-s054">+{hg} ❤️ ganhados</span> <span class="u-s005">-{hl_lost} ❤️ perdidos</span>
+<div class="fs-sm u-s362" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+<span class="u-s054">+{hg} ❤️ ganhos</span>
+<span class="u-s005">-{hl_lost} ❤️ perdidos</span>
+<span style="color:{direction_color};font-weight:700;">saldo {net_txt}</span>
 </div>
 </div>''')
 
@@ -585,52 +712,86 @@ else:
             items = card.get("items", [])
             total = card.get("total", len(items))
             is_hostile = ctype == "hostilities"
-            badge = f"{total}" if total > 1 else None
+            scope = card.get("scope", "today")
+            today_count = card.get("today_count", total if scope == "today" else 0)
+            latest_date = card.get("latest_date", "")
+            ref_date = card.get("reference_date") or latest.get("date")
+            badge = f"{today_count}" if scope == "today" else f"{total}"
+            source_tag = "📅 Ontem → Hoje" if scope == "today" else "📅 Histórico recente"
+            card_title = card["title"] if scope == "today" else (
+                "Hostilidades Recentes" if is_hostile else "Mudanças Dramáticas (Recente)"
+            )
             if is_hostile:
-                ch = card_header(card["icon"], card["title"], card.get("link"), badge,
-                    source_tag="📅 Ontem → Hoje",
-                    subtitle="Quem passou a dar reação negativa a alguém que ainda dá ❤️ para eles. O receptor não sabe — ponto cego."
+                subtitle = (
+                    "Quem passou a dar reação negativa a alguém que ainda dá ❤️ para eles. O receptor não sabe."
+                    if scope == "today"
+                    else f"Sem novas hostilidades hoje. Últimos casos registrados (mais recente: {fmt_date_br(latest_date)})."
+                )
+                ch = card_header(card["icon"], card_title, card.get("link"), badge,
+                    source_tag=source_tag,
+                    subtitle=subtitle
                 )
             else:
-                ch = card_header(card["icon"], card["title"], card.get("link"), badge,
-                    source_tag="📅 Ontem → Hoje",
-                    subtitle="Trocas extremas: de ❤️ para negativo ou vice-versa. Quanto maior o salto, mais dramática."
+                subtitle = (
+                    "Trocas extremas: de ❤️ para negativo ou vice-versa."
+                    if scope == "today"
+                    else f"Sem mudanças dramáticas hoje. Últimos casos registrados (mais recente: {fmt_date_br(latest_date)})."
                 )
-            pairs_html = '<div class="u-s358">'
-            for it in items[:4]:
+                ch = card_header(card["icon"], card_title, card.get("link"), badge,
+                    source_tag=source_tag,
+                    subtitle=subtitle
+                )
+
+            def _event_row(it: dict) -> str:
                 g = it["giver"]
                 r = it["receiver"]
-                g_slug = g.lower().replace(" ", "-")
-                r_slug = r.lower().replace(" ", "-")
+                date_str = it.get("date", "")
+                when = fmt_date_br(date_str)
+                age_txt = days_ago_str(date_str, ref_date)
+                when_txt = when
+                if age_txt:
+                    when_txt = f"{when} ({age_txt})" if when else age_txt
+
                 if is_hostile:
-                    emoji = it.get("emoji", "?")
-                    date_str = it.get("date", "")
-                    try:
-                        date_fmt = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
-                    except Exception:
-                        date_fmt = ""
-                    label = f'{g.split()[0]} {emoji} {r.split()[0]}'
-                    date_badge = f' <span class="fs-2xs" style="opacity:0.5">{date_fmt}</span>' if date_fmt else ""
-                    g_color = "#f39c12"
-                    r_color = "#e74c3c"
+                    old_e = it.get("old_emoji", "?")
+                    new_e = it.get("new_emoji", it.get("emoji", "?"))
+                    main_txt = f'{g.split()[0]} {new_e} {r.split()[0]}'
+                    sub_txt = f'Hostilidade unilateral · {old_e}→{new_e} · {when_txt}'
+                    g_color, r_color, row_border = "#f39c12", "#e74c3c", "#f39c12"
                 else:
                     old_e = it.get("old_emoji", "?")
                     new_e = it.get("new_emoji", "?")
-                    label = f'{old_e}→{new_e}'
-                    date_badge = ""
-                    g_color = "#e74c3c" if new_e == "❤️" else "#666"
-                    r_color = "#27ae60" if new_e == "❤️" else "#e74c3c"
-                pairs_html += (
-                    f'<div class="u-s342" title="{g} → {r}">'
-                    f'<a href="#perfil-{g_slug}" style="text-decoration:none">{av(g, 42, g_color)}</a>'
-                    f'<span class="fs-md u-s017">{label}{date_badge}</span>'
-                    f'<a href="#perfil-{r_slug}" style="text-decoration:none">{av(r, 42, r_color)}</a>'
+                    sev = it.get("severity", 0)
+                    sev_txt = "alta" if sev >= 1.5 else ("média" if sev >= 1.0 else "leve")
+                    main_txt = f'{g.split()[0]} {old_e}→{new_e} {r.split()[0]}'
+                    sub_txt = f'Mudança {sev_txt} · {when_txt}'
+                    g_color, r_color = "#666", "#27ae60" if new_e == "❤️" else "#e74c3c"
+                    row_border = "#e74c3c" if sev >= 1.5 else "#8e44ad"
+
+                return (
+                    f'<div class="u-s342" style="border-left:3px solid {row_border};">'
+                    f'{av(g, 42, g_color)}'
+                    f'<div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;">'
+                    f'<span class="fs-sm" style="font-weight:600;">{main_txt}</span>'
+                    f'<span class="fs-2xs" style="opacity:0.68;">{sub_txt}</span>'
+                    f'</div>'
+                    f'{av(r, 42, r_color)}'
                     f'</div>'
                 )
-            extra = total - 4
-            if extra > 0:
-                link = card.get("link", "#")
-                pairs_html += f'<a href="{link}" class="fs-sm u-s349">+{extra} mais ↗</a>'
+
+            inline_items = items[:4]
+            overflow_items = items[4:]
+            pairs_html = '<div class="u-s358">'
+            pairs_html += "".join(_event_row(it) for it in inline_items)
+            if overflow_items:
+                pairs_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s358">'
+                    f'{"".join(_event_row(it) for it in overflow_items)}'
+                    f'</div>'
+                    f'</details>'
+                )
             pairs_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
@@ -644,98 +805,170 @@ else:
             contras = card.get("contradictions", [])
             aligned_neg = card.get("aligned_neg", [])
             fmt = card.get("format", "")
+            reaction_reference_date = card.get("reaction_reference_date")
             neg_ranked = radar.get("neg_ranked", [])
             pos_ranked = radar.get("pos_ranked", [])
             not_targeted = radar.get("not_targeted", [])
 
-            # Format subtitle
-            fmt_short = fmt.split("—")[0].strip() if "—" in fmt else (fmt[:50] if fmt else "")
+            INLINE_MAX_RANKED = 4
+            INLINE_MAX_PAIRS = 3
+
             subtitle = fmt if fmt else "Resumo semanal do Sincerão × Queridômetro."
+            if reaction_reference_date:
+                try:
+                    reaction_ref_pt = datetime.strptime(reaction_reference_date, "%Y-%m-%d").strftime("%d/%m")
+                except Exception:
+                    reaction_ref_pt = reaction_reference_date
+                subtitle = f"{subtitle} Reações de referência: {reaction_ref_pt}."
 
-            body_html = '<div style="display:flex;flex-direction:column;gap:8px;padding:4px 0">'
+            def _rank_chip(entry: dict, lane_type: str, is_top: bool, *, force_count: int | None = None) -> str:
+                name = entry.get("name", "")
+                first = name.split()[0] if name else "?"
+                slug = name.lower().replace(" ", "-")
+                count = force_count if force_count is not None else int(entry.get("count", 0) or 0)
+                lane_colors = {
+                    "attack": "#e67e22",
+                    "praise": "#27ae60",
+                    "safe": "#3498db",
+                }
+                avatar = _avatar_html(
+                    name,
+                    AVATARS,
+                    size=30,
+                    show_name=False,
+                    border_color=lane_colors.get(lane_type, "#666"),
+                    fallback_initials=True,
+                )
+                top_cls = " top" if is_top else ""
+                return (
+                    f'<a href="#perfil-{slug}" class="sinc-person-chip {lane_type}{top_cls}">'
+                    f'<span class="sinc-person-avatar">{avatar}</span>'
+                    f'<span class="sinc-person-meta">'
+                    f'<span class="sinc-person-name">{first}</span>'
+                    f'<span class="sinc-count-badge {lane_type}">{count}x</span>'
+                    f'</span>'
+                    f'</a>'
+                )
 
-            # -- Most targeted (negative) -- show full ranked list
-            if neg_ranked:
-                neg_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
-                neg_html += '<span class="fs-sm" style="opacity:0.6;min-width:80px">💣 Atacados</span>'
-                for entry in neg_ranked:
-                    n = entry["name"].split()[0]
-                    slug = entry["name"].lower().replace(" ", "-")
-                    c = entry["count"]
-                    is_top = entry["count"] == neg_ranked[0]["count"]
-                    weight = "font-weight:700" if is_top else "opacity:0.8"
-                    neg_html += f'<a href="#perfil-{slug}" class="fs-sm" style="{weight};text-decoration:none;color:inherit">{n} <b>({c}x)</b></a>'
-                neg_html += '</div>'
-                body_html += neg_html
+            def _render_ranked_lane(
+                title: str,
+                icon: str,
+                ranked: list[dict],
+                empty_text: str,
+                lane_type: str,
+                *,
+                highlight_top: bool = True,
+                force_count: int | None = None,
+            ) -> str:
+                lane = [f'<div class="sinc-lane"><div class="sinc-lane-head">{icon} {title}</div>']
+                if not ranked:
+                    lane.append(f'<div class="sinc-empty">{empty_text}</div></div>')
+                    return "".join(lane)
 
-            # -- Most praised (positive) -- show full ranked list
+                top_count = ranked[0].get("count", 0)
+                inline_items = ranked[:INLINE_MAX_RANKED]
+                overflow_items = ranked[INLINE_MAX_RANKED:]
+                lane.append('<div class="sinc-people-grid">')
+                lane.extend(
+                    _rank_chip(
+                        it,
+                        lane_type,
+                        highlight_top and it.get("count", 0) == top_count,
+                        force_count=force_count,
+                    )
+                    for it in inline_items
+                )
+                lane.append('</div>')
+                if overflow_items:
+                    lane.append(
+                        f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
+                        f'<div class="sinc-more-list"><div class="sinc-people-grid">'
+                    )
+                    lane.extend(_rank_chip(it, lane_type, False, force_count=force_count) for it in overflow_items)
+                    lane.append('</div></div></details>')
+                lane.append('</div>')
+                return "".join(lane)
+
+            def _render_pair_lane(title: str, icon: str, pairs: list[dict], mode: str, *, show_header: bool = True) -> str:
+                lane = ['<div class="sinc-lane">']
+                if show_header:
+                    lane.append(f'<div class="sinc-lane-head">{icon} {title}</div>')
+                if not pairs:
+                    lane.append('<div class="sinc-empty">Sem casos nesta semana.</div></div>')
+                    return "".join(lane)
+
+                inline_items = pairs[:INLINE_MAX_PAIRS]
+                overflow_items = pairs[INLINE_MAX_PAIRS:]
+
+                def _pair_chip(item: dict) -> str:
+                    a_name = item.get("ator", "")
+                    b_name = item.get("alvo", "")
+                    a_first = a_name.split()[0] if a_name else "?"
+                    b_first = b_name.split()[0] if b_name else "?"
+                    a_slug = a_name.lower().replace(" ", "-")
+                    b_slug = b_name.lower().replace(" ", "-")
+                    tipo = item.get("tipo_label", "?")
+                    emoji = item.get("emoji", "?")
+                    if mode == "contra":
+                        detail = f"{tipo} mas dá {emoji}"
+                    else:
+                        detail = f"{tipo} + {emoji}"
+                    return (
+                        f'<span class="sinc-chip-muted">'
+                        f'<a href="#perfil-{a_slug}" class="sinc-chip">{a_first}</a>'
+                        f' → <a href="#perfil-{b_slug}" class="sinc-chip">{b_first}</a> '
+                        f'<span class="sinc-chip-muted">({detail})</span>'
+                        f'</span>'
+                    )
+
+                lane.append('<div class="sinc-chip-wrap">')
+                lane.extend(_pair_chip(it) for it in inline_items)
+                lane.append('</div>')
+                if overflow_items:
+                    lane.append(
+                        f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
+                        f'<div class="sinc-more-list">'
+                    )
+                    lane.extend(_pair_chip(it) for it in overflow_items)
+                    lane.append('</div></details>')
+                lane.append('</div>')
+                return "".join(lane)
+
+            def _render_toggle_pair_lane(title: str, icon: str, pairs: list[dict], mode: str) -> str:
+                count = len(pairs)
+                body = _render_pair_lane(title, icon, pairs, mode, show_header=False)
+                return (
+                    f'<details class="sinc-toggle">'
+                    f'<summary>{icon} {title} <span class="sinc-toggle-count">({count})</span></summary>'
+                    f'{body}'
+                    f'</details>'
+                )
+
+            lanes = [
+                _render_ranked_lane("Atacados", "💣", neg_ranked, "Sem ataques na semana.", "attack"),
+            ]
+
             if pos_ranked:
-                pos_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
-                pos_html += '<span class="fs-sm" style="opacity:0.6;min-width:80px">🏆 Elogiados</span>'
-                for entry in pos_ranked:
-                    n = entry["name"].split()[0]
-                    slug = entry["name"].lower().replace(" ", "-")
-                    c = entry["count"]
-                    is_top = entry["count"] == pos_ranked[0]["count"]
-                    weight = "font-weight:700" if is_top else "opacity:0.8"
-                    pos_html += f'<a href="#perfil-{slug}" class="fs-sm" style="{weight};text-decoration:none;color:inherit">{n} <b>({c}x)</b></a>'
-                pos_html += '</div>'
-                body_html += pos_html
+                lanes.append(_render_ranked_lane("Elogiados", "🏆", pos_ranked, "Sem elogios na semana.", "praise"))
 
-            # -- Not targeted (safe) -- participou mas ninguém citou
-            if not_targeted:
-                safe_links = ", ".join(
-                    f'<a href="#perfil-{n.lower().replace(" ", "-")}" style="text-decoration:none;color:inherit">{n.split()[0]}</a>'
-                    for n in not_targeted
+            safe_ranked = [{"name": n, "count": 0} for n in not_targeted]
+            lanes.append(
+                _render_ranked_lane(
+                    "Poupados",
+                    "🛡️",
+                    safe_ranked,
+                    "Ninguém ficou poupado na semana.",
+                    "safe",
+                    highlight_top=False,
+                    force_count=0,
                 )
-                safe_html = (
-                    f'<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
-                    f'<span class="fs-sm" style="opacity:0.6;min-width:80px">🛡️ Poupados</span>'
-                    f'<span class="fs-sm" style="opacity:0.8">{safe_links}</span>'
-                    f'</div>'
-                )
-                body_html += safe_html
+            )
 
-            # -- Contradictions (neg sincerao + ❤️ queridometro)
-            if contras:
-                contra_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
-                contra_html += f'<span class="fs-sm" style="opacity:0.6;min-width:80px">⚡ Contradiz</span>'
-                for c in contras[:5]:
-                    ator_slug = c["ator"].lower().replace(" ", "-")
-                    alvo_slug = c["alvo"].lower().replace(" ", "-")
-                    contra_html += (
-                        f'<span class="fs-sm">'
-                        f'<a href="#perfil-{ator_slug}" style="text-decoration:none;color:inherit">{c["ator"].split()[0]}</a>'
-                        f'→<a href="#perfil-{alvo_slug}" style="text-decoration:none;color:inherit">{c["alvo"].split()[0]}</a> '
-                        f'<span style="opacity:0.6">({c.get("tipo_label", "?")} mas dá {c.get("emoji", "?")})</span>'
-                        f'</span>'
-                    )
-                if len(contras) > 5:
-                    contra_html += f'<span class="fs-sm" style="opacity:0.5">+{len(contras)-5} mais</span>'
-                contra_html += '</div>'
-                body_html += contra_html
-
-            # -- Aligned negative (confirmed hostility)
-            if aligned_neg:
-                align_html = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center">'
-                align_html += f'<span class="fs-sm" style="opacity:0.6;min-width:80px">🎯 Confirmado</span>'
-                for a in aligned_neg[:5]:
-                    ator_slug = a["ator"].lower().replace(" ", "-")
-                    alvo_slug = a["alvo"].lower().replace(" ", "-")
-                    align_html += (
-                        f'<span class="fs-sm">'
-                        f'<a href="#perfil-{ator_slug}" style="text-decoration:none;color:inherit">{a["ator"].split()[0]}</a>'
-                        f'→<a href="#perfil-{alvo_slug}" style="text-decoration:none;color:inherit">{a["alvo"].split()[0]}</a> '
-                        f'<span style="opacity:0.6">({a.get("tipo_label", "?")} + {a.get("emoji", "?")})</span>'
-                        f'</span>'
-                    )
-                if len(aligned_neg) > 5:
-                    align_html += f'<span class="fs-sm" style="opacity:0.5">+{len(aligned_neg)-5} mais</span>'
-                align_html += '</div>'
-                body_html += align_html
-
-            body_html += '</div>'
-
+            toggle_sections = [
+                _render_toggle_pair_lane("Contradições", "⚡", contras, "contra"),
+                _render_toggle_pair_lane("Conflito Confirmado", "🎯", aligned_neg, "aligned"),
+            ]
+            body_html = f'<div class="sinc-card">{"".join(lanes)}{"".join(toggle_sections)}</div>'
             count_txt = f"{len(neg_ranked) + len(pos_ranked)}" if (neg_ranked or pos_ranked) else ""
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
@@ -760,78 +993,160 @@ else:
 {avatars_html}
 </div>''')
 
-        # ── 🎯 Impact Negative ──
-        elif ctype == "impact":
-            items = card.get("items", [])
-            total = card.get("total", len(items))
-            worst_neg = abs(items[0]["negative"]) if items else 1
-            rows_html = '<div class="u-s058">'
-            for it in items[:4]:
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                neg = it["negative"]
-                bar_pct = min(100, abs(neg) / worst_neg * 100)
-                rows_html += (
-                    f'<div class="u-s056">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#c0392b")}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="text-neg fs-sm">{neg:.1f}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
-                    f'</div>'
-                    f'</div></div>'
-                )
-            extra = total - 4
-            if extra > 0:
-                rows_html += f'<div class="tc fs-sm u-s009"><a href="{card.get("link", "#")}" class="u-s035">+{extra} mais ↗</a></div>'
-            rows_html += '</div>'
+        # ── 🎯 Mais Alvo ──
+        elif ctype == "mais_alvo":
+            items_accum = card.get("items", [])
+            items_recent = card.get("items_recent", [])
+            items_accum_all = card.get("items_all") or items_accum
+            items_recent_all = card.get("items_recent_all") or items_recent
+            total = card.get("total", len(items_accum))
+            card_id = "alvo-toggle"
+
+            def _render_alvo_rows(items, rid):
+                worst = abs(items[0]["score"]) if items else 1
+                html = f'<div id="{rid}" class="u-s058">'
+                inline_items = items[:5]
+                overflow_items = items[5:]
+                for it in inline_items:
+                    _name = it["name"]
+                    _slug = _name.lower().replace(" ", "-")
+                    score = it["score"]
+                    bar_pct = min(100, abs(score) / worst * 100)
+                    html += (
+                        f'<div class="u-s056">'
+                        f'<a href="#perfil-{_slug}" style="text-decoration:none">{av(_name, 42, "#c0392b")}</a>'
+                        f'<div class="u-s066">'
+                        f'<div class="u-s059">'
+                        f'<a href="#perfil-{_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_name.split()[0]}</a>'
+                        f'<span class="text-neg fs-sm">{score:.1f}</span>'
+                        f'</div>'
+                        f'<div class="u-s014">'
+                        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
+                        f'</div>'
+                        f'</div></div>'
+                    )
+                if overflow_items:
+                    html += (
+                        f'<details class="sinc-more">'
+                        f'<summary>+{len(overflow_items)} restantes</summary>'
+                        f'<div class="u-s058">'
+                    )
+                    for it in overflow_items:
+                        _name = it["name"]
+                        _slug = _name.lower().replace(" ", "-")
+                        score = it["score"]
+                        bar_pct = min(100, abs(score) / worst * 100)
+                        html += (
+                            f'<div class="u-s056">'
+                            f'<a href="#perfil-{_slug}" style="text-decoration:none">{av(_name, 42, "#c0392b")}</a>'
+                            f'<div class="u-s066">'
+                            f'<div class="u-s059">'
+                            f'<a href="#perfil-{_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_name.split()[0]}</a>'
+                            f'<span class="text-neg fs-sm">{score:.1f}</span>'
+                            f'</div>'
+                            f'<div class="u-s014">'
+                            f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
+                            f'</div>'
+                            f'</div></div>'
+                        )
+                    html += '</div></details>'
+                html += '</div>'
+                return html
+
+            accum_html = _render_alvo_rows(items_accum_all, f"{card_id}-accum")
+            recent_html = _render_alvo_rows(items_recent_all, f"{card_id}-recent")
+
+            toggle_html = (
+                f'<div style="display:flex;gap:6px;margin-bottom:8px;">'
+                f'<button id="{card_id}-btn-accum" class="fs-2xs" onclick="'
+                f"document.getElementById('{card_id}-accum').style.display='block';"
+                f"document.getElementById('{card_id}-recent').style.display='none';"
+                f"this.style.opacity='1';document.getElementById('{card_id}-btn-recent').style.opacity='0.5';"
+                f'" style="padding:2px 8px;border:1px solid #555;border-radius:4px;background:#2a2a2a;color:#ccc;cursor:pointer;">Acumulado</button>'
+                f'<button id="{card_id}-btn-recent" class="fs-2xs" onclick="'
+                f"document.getElementById('{card_id}-recent').style.display='block';"
+                f"document.getElementById('{card_id}-accum').style.display='none';"
+                f"this.style.opacity='1';document.getElementById('{card_id}-btn-accum').style.opacity='0.5';"
+                f'" style="padding:2px 8px;border:1px solid #555;border-radius:4px;background:#2a2a2a;color:#ccc;cursor:pointer;opacity:0.5;">Recente</button>'
+                f'</div>'
+            )
+
+            # Recent starts hidden
+            recent_html = recent_html.replace(f'id="{card_id}-recent"', f'id="{card_id}-recent" style="display:none"', 1)
+
+            rows_html = toggle_html + accum_html + recent_html
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto negativo acumulado por eventos de poder, votos, Sincerão e VIP. Quem mais sofre ao longo do jogo.")}
+{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Quem mais foi alvo de indicações, votos e eventos de poder. Alterne entre visão acumulada e recente.")}
 {rows_html}
 </div>''')
 
-        # ── 🌟 Impact Positive ──
-        elif ctype == "impact_positive":
+        # ── ⚔️ Mais Agressor ──
+        elif ctype == "mais_agressor":
             items = card.get("items", [])
+            items_all = card.get("items_all") or items
             total = card.get("total", len(items))
-            best_pos = items[0]["positive"] if items else 1
+            worst_aggr = abs(items_all[0]["score"]) if items_all else 1
+            inline_items = items_all[:5]
+            overflow_items = items_all[5:]
             rows_html = '<div class="u-s058">'
-            for it in items[:4]:
+            for it in inline_items:
                 name = it["name"]
                 name_slug = name.lower().replace(" ", "-")
-                pos = it["positive"]
-                bar_pct = min(100, pos / best_pos * 100) if best_pos > 0 else 0
+                score = it["score"]
+                bar_pct = min(100, abs(score) / worst_aggr * 100)
                 rows_html += (
                     f'<div class="u-s056">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#27ae60")}</a>'
+                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
                     f'<div class="u-s066">'
                     f'<div class="u-s059">'
                     f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:#27ae60;font-weight:700">+{pos:.1f}</span>'
+                    f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score:.1f}</span>'
                     f'</div>'
                     f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#27ae60;border-radius:3px;"></div>'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
                     f'</div>'
                     f'</div></div>'
                 )
-            extra = total - 4
-            if extra > 0:
-                rows_html += f'<div class="tc fs-sm u-s009"><a href="{card.get("link", "#")}" class="u-s035">+{extra} mais ↗</a></div>'
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s058">'
+                )
+                for it in overflow_items:
+                    name = it["name"]
+                    name_slug = name.lower().replace(" ", "-")
+                    score = it["score"]
+                    bar_pct = min(100, abs(score) / worst_aggr * 100)
+                    rows_html += (
+                        f'<div class="u-s056">'
+                        f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
+                        f'<div class="u-s066">'
+                        f'<div class="u-s059">'
+                        f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                        f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score:.1f}</span>'
+                        f'</div>'
+                        f'<div class="u-s014">'
+                        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
+                        f'</div>'
+                        f'</div></div>'
+                    )
+                rows_html += '</div></details>'
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto positivo acumulado por Liderança, Anjo, imunidades e Sincerão. Quem mais se beneficiou ao longo do jogo.")}
+{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Quem mais fez indicações, monstro, vetos e outros ataques deliberados ao longo do jogo.")}
 {rows_html}
 </div>''')
 
         # ── 🔴 Vulnerability ──
         elif ctype == "vulnerability":
             items = card.get("items", [])
+            items_all = card.get("items_all") or items
             total = card.get("total", len(items))
+            inline_items = items_all[:4]
+            overflow_items = items_all[4:]
             rows_html = '<div class="u-s058">'
-            for it in items[:4]:
+            for it in inline_items:
                 name = it["name"]
                 count = it["count"]
                 level = it.get("level", "warning")
@@ -855,9 +1170,37 @@ else:
                     f'{f"<span class=&quot;fs-2xs&quot; style=&quot;color:#888;&quot;>+{extra_enemies}</span>" if extra_enemies > 0 else ""}'
                     f'</div></div></div>'
                 )
-            extra = total - 4
-            if extra > 0:
-                rows_html += f'<div class="tc fs-sm u-s009"><a href="{card.get("link", "#")}" class="u-s035">+{extra} mais ↗</a></div>'
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s058">'
+                )
+                for it in overflow_items:
+                    name = it["name"]
+                    count = it["count"]
+                    level = it.get("level", "warning")
+                    enemies = it.get("enemies", [])
+                    level_color = "#e74c3c" if level == "critical" else "#f39c12"
+                    level_label = "MUITO VULNERÁVEL" if level == "critical" else "VULNERÁVEL"
+                    enemy_avatars = ''.join(av(e, 34, level_color) for e in enemies[:4])
+                    extra_enemies = len(enemies) - 4
+                    rows_html += (
+                        f'<div class="u-s348">'
+                        f'{av(name, 42, level_color)}'
+                        f'<div class="u-s066">'
+                        f'<div class="u-s347">'
+                        f'<span class="fs-base u-s068">{name.split()[0]}</span>'
+                        f'<span class="fs-2xs" style="padding:2px 6px;border-radius:4px;background:{level_color};color:#fff;font-weight:700;">{level_label}</span>'
+                        f'<span class="fs-sm" style="color:{level_color};font-weight:600;">{count} falsos amigos</span>'
+                        f'</div>'
+                        f'<div class="u-s366">'
+                        f'<span class="fs-2xs u-s251">Quem:</span>'
+                        f'{enemy_avatars}'
+                        f'{f"<span class=&quot;fs-2xs&quot; style=&quot;color:#888;&quot;>+{extra_enemies}</span>" if extra_enemies > 0 else ""}'
+                        f'</div></div></div>'
+                    )
+                rows_html += '</div></details>'
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Composto", subtitle="Falsos amigos: dá ❤️ a quem tem score negativo contra si (queridômetro + votos + eventos). Risco de voto surpresa.")}
@@ -870,13 +1213,11 @@ else:
             total = card.get("total", len(items))
             strong_count = card.get("strong_count", 0)
             severity_badge = f"{strong_count} graves" if strong_count else None
+            break_ref_date = card.get("reference_date") or latest.get("date")
 
-            rows_html = '<div class="u-s357">'
-            for it in items[:4]:
+            def _break_row(it: dict) -> str:
                 g = it["giver"]
                 r = it["receiver"]
-                g_slug = g.lower().replace(" ", "-")
-                r_slug = r.lower().replace(" ", "-")
                 streak = it["streak"]
                 new_e = it.get("new_emoji", "?")
                 sev = it.get("severity", "mild")
@@ -886,27 +1227,152 @@ else:
                     date_fmt = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
                 except Exception:
                     date_fmt = ""
-                date_badge = f'<span class="fs-2xs" style="opacity:0.5;margin-left:auto">{date_fmt}</span>' if date_fmt else ""
+                age_txt = days_ago_str(date_str, break_ref_date)
+                when_txt = f"{date_fmt} ({age_txt})" if date_fmt and age_txt else (date_fmt or age_txt)
+                date_badge = f'<span class="fs-2xs" style="opacity:0.7;margin-left:auto">Rompimento: {when_txt}</span>' if when_txt else ""
                 alert_html = '<span class="fs-xs" style="color:#e74c3c;font-weight:700">🚨</span>' if sev == "strong" else ""
-                rows_html += (
+                return (
                     f'<div class="u-s342" style="border-left:3px solid {sev_border};">'
-                    f'<a href="#perfil-{g_slug}" style="text-decoration:none">{av(g, 42, sev_border)}</a>'
+                    f'{av(g, 42, av_group_border(g))}'
                     f'<div class="u-s057">'
                     f'<span class="fs-xs u-s001">{streak}d ❤️</span>'
                     f'<span class="fs-base">→ {new_e}</span>'
                     f'</div>'
-                    f'<a href="#perfil-{r_slug}" style="text-decoration:none">{av(r, 42, sev_border)}</a>'
+                    f'{av(r, 42, av_group_border(r))}'
                     f'{alert_html}'
                     f'{date_badge}'
                     f'</div>'
                 )
-            extra = total - 4
-            if extra > 0:
-                rows_html += f'<a href="{card.get("link", "#")}" class="fs-sm u-s350">+{extra} mais ↗</a>'
+
+            inline_items = items[:4]
+            overflow_items = items[4:]
+            rows_html = '<div class="u-s357">'
+            rows_html += "".join(_break_row(it) for it in inline_items)
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s357">{"".join(_break_row(it) for it in overflow_items)}</div>'
+                    f'</details>'
+                )
             rows_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), severity_badge or f"{total}", source_tag="📈 Histórico", subtitle="Alianças longas de ❤️ que foram rompidas. Quanto mais dias seguidos, mais grave a ruptura.")}
+{card_header(card["icon"], card["title"], card.get("link"), severity_badge or f"{total}", source_tag="📈 Histórico", subtitle="Rompimentos de alianças (histórico): data indica quando a ruptura ocorreu.")}
+{rows_html}
+</div>''')
+
+        # ── 🛡️ Mais Blindados ──
+        elif ctype == "blindados":
+            items = card.get("items", [])
+            n_par = card.get("n_paredoes", 1)
+            inline_items = items[:5]
+            overflow_items = items[5:]
+
+            def _blindado_row(it: dict) -> str:
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                paredao_count = it.get("paredao", 0)
+                prot = it.get("protected", 0)
+                avail = it.get("available", 0)
+                votes = it.get("votes", 0)
+                has_bv = it.get("bv_escape", False)
+                prot_text = it.get("prot_text", "")
+
+                border = "#3498db" if prot >= 3 else ("#27ae60" if paredao_count == 0 else "#f39c12")
+                par_color = "#27ae60" if paredao_count == 0 else ("#f39c12" if paredao_count == 1 else "#e74c3c")
+                par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
+                bar_pct = min(100, prot / n_par * 100) if n_par > 0 else 0
+                prot_badges = []
+                if has_bv:
+                    prot_badges.append("<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>BV</span>")
+                if prot_text:
+                    prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;'>{prot_text}</span>")
+                prot_badges_html = " ".join(prot_badges)
+                extra_badges = f"<div style='margin-top:3px;'>{prot_badges_html}</div>" if prot_badges_html else ""
+
+                return (
+                    f'<div class="u-s056" style="align-items:flex-start;">'
+                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    f'<span class="fs-sm" style="color:{par_color};font-weight:700;">{par_label}</span>'
+                    f'</div>'
+                    f'<div class="u-s014">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#3498db;border-radius:3px;"></div>'
+                    f'</div>'
+                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} em {avail} elegível{"" if avail == 1 else "eis"} · protegido {prot}x</div>'
+                    f'{extra_badges}'
+                    f'</div></div>'
+                )
+
+            rows_html = '<div class="u-s058">'
+            rows_html += "".join(_blindado_row(it) for it in inline_items)
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s058">{"".join(_blindado_row(it) for it in overflow_items)}</div>'
+                    f'</details>'
+                )
+            rows_html += '</div>'
+
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais protegidos nas votações da casa. Menos paredões + mais proteções = mais blindado.")}
+{rows_html}
+</div>''')
+
+        # ── 👑 VIP / 🍳 Xepa (separate cards) ──
+        elif ctype in ("vip", "xepa"):
+            items = card.get("items", [])
+            is_vip = ctype == "vip"
+            accent = "#f1c40f" if is_vip else "#95a5a6"
+            day_key = "vip" if is_vip else "xepa"
+            max_days = max((it["total"] for it in items), default=1) or 1
+
+            def _render_vx_row(it):
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                days = it[day_key]
+                total = it["total"]
+                pct = round(days / total * 100) if total > 0 else 0
+                bar_pct = min(100, days / max_days * 100) if max_days > 0 else 0
+                return (
+                    f'<div class="u-s056">'
+                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 38, accent)}</a>'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'<a href="#perfil-{name_slug}" class="fs-sm u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    f'<span class="fs-sm" style="color:{accent};font-weight:700;">{days}d ({pct}%)</span>'
+                    f'</div>'
+                    f'<div class="u-s014">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:{accent};border-radius:3px;"></div>'
+                    f'</div>'
+                    f'</div></div>'
+                )
+
+            rows_html = '<div class="u-s058">'
+            for it in items[:5]:
+                rows_html += _render_vx_row(it)
+            rows_html += '</div>'
+
+            # Collapsible section for items beyond top 5
+            rest = items[5:]
+            if rest:
+                rows_html += (
+                    '<details style="margin-top:4px;">'
+                    '<summary class="fs-2xs" style="color:#888;cursor:pointer;padding:4px 0;">'
+                    f'+{len(rest)} restantes</summary>'
+                    '<div class="u-s058">'
+                )
+                for it in rest:
+                    rows_html += _render_vx_row(it)
+                rows_html += '</div></details>'
+
+            subtitle = "Quem passou mais dias no VIP ao longo do jogo." if is_vip else "Quem passou mais dias na Xepa ao longo do jogo."
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), source_tag="📈 Acumulado", subtitle=subtitle)}
 {rows_html}
 </div>''')
 
@@ -920,11 +1386,12 @@ else:
         key=lambda x: x.get("balance", 0), reverse=True
     )
     if saldo_profiles:
-        top_n = min(5, len(saldo_profiles))
         max_bal = max(abs(p.get("balance", 0)) for p in saldo_profiles) or 1
+        inline_profiles = saldo_profiles[:5]
+        overflow_profiles = saldo_profiles[5:]
         saldo_rows = '<div class="u-s355">'
         medals = ["🥇", "🥈", "🥉", "4º", "5º"]
-        for i, p in enumerate(saldo_profiles[:top_n]):
+        for i, p in enumerate(inline_profiles):
             name = p["name"]
             bal = p.get("balance", 0)
             grupo = p.get("group", "")
@@ -945,6 +1412,34 @@ else:
                 f'</div>'
                 f'</div></div>'
             )
+        if overflow_profiles:
+            saldo_rows += (
+                f'<details class="sinc-more">'
+                f'<summary>+{len(overflow_profiles)} restantes</summary>'
+                f'<div class="u-s355">'
+            )
+            for i, p in enumerate(overflow_profiles, start=len(inline_profiles) + 1):
+                name = p["name"]
+                bal = p.get("balance", 0)
+                grupo = p.get("group", "")
+                cor = GROUP_COLORS.get(grupo, "#999")
+                bal_color = "#1a9850" if bal > 1000 else ("#66bd63" if bal > 0 else ("#888" if bal == 0 else "#e74c3c"))
+                label = f"{i}º"
+                bar_pct = min(100, abs(bal) / max_bal * 100) if max_bal > 0 else 0
+                saldo_rows += (
+                    f'<div class="u-s056">'
+                    f'{av(name, 42, cor)}'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'<span class="fs-md u-s068">{label} {name.split()[0]}</span>'
+                    f'<span class="fs-base" style="color:{bal_color};font-weight:700;">{bal:,}</span>'
+                    f'</div>'
+                    f'<div class="u-s014">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:{bal_color};border-radius:3px;"></div>'
+                    f'</div>'
+                    f'</div></div>'
+                )
+            saldo_rows += '</div></details>'
         saldo_rows += '</div>'
         print(f'''<div class="info-panel u-s199">
 {card_header("💰", "Saldo de Estalecas", "evolucao.html#saldo", source_tag="📸 Dado do dia", subtitle="Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.")}
@@ -1568,7 +2063,7 @@ print(ANALYSIS_DESCRIPTIONS["profiles_intro"])
 
 <details class="u-s433">
 <summary class="info-panel u-s296">
-ℹ️ Como calculamos Vulnerabilidade, Impacto Negativo e Hostilidade Gerada (clique para expandir)
+ℹ️ Como calculamos Vulnerabilidade, Mais Alvo e Mais Agressor (clique para expandir)
 </summary>
 <div class="info-panel u-s456">
 
@@ -1587,17 +2082,17 @@ print(ANALYSIS_DESCRIPTIONS["vulnerability_long"])
 | 🟡 **ATENÇÃO** | 1-2 falsos amigos | Posição razoável, mas com pontos cegos. |
 | 🟢 **PROTEGIDO** | 0 falsos amigos | Sem pontos cegos — sabe quem são seus aliados e inimigos. |
 
-**🧭 Impacto Negativo (acumulado)**
+**🎯 Mais Alvo (power events + votos recebidos)**
 
-Mede o quanto o participante foi alvo de eventos negativos ao longo do jogo: indicações, contragolpes, votos recebidos, Sincerão negativo, visibilidade de votos, e backlash. Usa os mesmos pesos calibrados do sistema de relações (`relations_scores.json` → `received_impact.negative`), sem decay — todos os eventos acumulam com peso integral.
+Mede o quanto o participante foi alvo de eventos de poder (indicações, contragolpes, monstro, vetos) e votos da casa ao longo do jogo. **Exclui** Sincerão (participação obrigatória) e backlash (reações automáticas). Disponível em modo "Acumulado" (sem decay) e "Recente" (decay exponencial 0.85 por semana).
 
-Faixas: 🟢 **NENHUM** (0), 🟡 **BAIXO** (< 0), 🟠 **MÉDIO** (≤ -5), 🔴 **ALTO** (≤ -10).
+Faixas no perfil: 🟢 **NENHUM** (0), 🟡 **BAIXO** (< 0), 🟠 **MÉDIO** (≤ -5), 🔴 **ALTO** (≤ -10).
 
-**🔥 Hostilidade Gerada (acumulada)**
+**⚔️ Mais Agressor (eventos deliberados outgoing)**
 
-Mede o quanto o participante **causou impacto negativo** sobre os demais: soma das edges negativas de eventos de poder, votos, Sincerão e visibilidade. Usa os mesmos pesos calibrados do sistema de relações (`pairs_daily` → componentes não-queridômetro), sem decay.
+Mede o quanto o participante **fez escolhas hostis deliberadas** contra outros: indicações, contragolpes, monstro, vetos, mira do líder, barrado no baile, duelo de risco. **Exclui** votos (obrigatórios), Sincerão (obrigatório), backlash (automático) e punições coletivas (1 incidente → muitas edges).
 
-Faixas: 🟢 **NENHUMA** (0), 🟡 **BAIXA** (< 0), 🟠 **MÉDIA** (≤ -4), 🔴 **ALTA** (≤ -8).
+Faixas no perfil: 🟢 **NENHUMA** (0), 🟡 **BAIXA** (< 0), 🟠 **MÉDIA** (≤ -4), 🔴 **ALTA** (≤ -8).
 
 **Categorias de Relação** (baseadas no score composto, não apenas emoji):
 
@@ -1615,7 +2110,7 @@ print(ANALYSIS_DESCRIPTIONS["profiles_footer"])
 **Sinais de jogo no perfil:**
 - **Poderes recebidos** (benefícios e prejuízos): acontecimentos na casa que afetam o score.
 - **Votos da casa recebidos**: marcados com dedo-duro quando o voto foi revelado.
-- **Impacto Negativo** e **Hostilidade Gerada**: pesos calibrados do sistema de relações (sem divergência).
+- **Impacto Recebido** e **Agressividade**: filtrados para eventos deliberados (sem Sincerão/backlash).
 
 </div>
 </details>
@@ -2016,45 +2511,55 @@ for p in profiles:
     # Build sincerao HTML: Recebeu + Fez for current week, then season history
     sincerao_html = ""
     if sinc_total > 0:
+        CURRENT_INLINE_MAX = 8
+        HISTORY_INLINE_MAX = 10
         sinc_parts = []
 
-        # -- Current week: Recebeu --
-        current_received = sinc_current.get("received", [])
-        if current_received:
-            chips = ""
-            for ix in current_received:
-                emoji = ix.get("emoji", "")
-                actor_first = ix.get("actor", "").split()[0] if ix.get("actor") else ""
-                label = ix.get("label", "")
-                valence = ix.get("valence", "neg")
-                border_color = "#2d8659" if valence == "pos" else "#b33"
-                chips += (
-                    f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
-                    f"{emoji} {actor_first} <span style='opacity:0.7'>{label}</span></span> "
-                )
-            sinc_parts.append(
-                f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
-                f"<span class='fs-2xs' style='opacity:0.6;min-width:50px'>Recebeu</span>{chips}</div>"
+        def _render_profile_sinc_chip(ix: dict, who_key: str) -> str:
+            emoji = ix.get("emoji", "")
+            who_first = ix.get(who_key, "").split()[0] if ix.get(who_key) else ""
+            label = ix.get("label", "")
+            valence_cls = "pos" if ix.get("valence", "neg") == "pos" else "neg"
+            return (
+                f"<span class='profile-sinc-chip {valence_cls}'>"
+                f"{emoji} {who_first} <span class='profile-sinc-chip-text'>{label}</span></span>"
             )
 
-        # -- Current week: Fez --
+        def _render_profile_row(row_label: str, interactions: list[dict], who_key: str, inline_max: int, week_prefix: str = "") -> str:
+            if not interactions:
+                return ""
+            inline = interactions[:inline_max]
+            overflow = interactions[inline_max:]
+            chips = "".join(_render_profile_sinc_chip(ix, who_key) for ix in inline)
+            row_html = (
+                f"<div class='profile-sinc-row'>"
+                f"{week_prefix}"
+                f"<span class='profile-sinc-label'>{row_label}</span>"
+                f"<div class='profile-sinc-chip-wrap'>{chips}</div>"
+                f"</div>"
+            )
+            if overflow:
+                overflow_chips = "".join(_render_profile_sinc_chip(ix, who_key) for ix in overflow)
+                row_html += (
+                    f"<details class='profile-sinc-more'>"
+                    f"<summary>+{len(overflow)} desta semana</summary>"
+                    f"<div class='profile-sinc-chip-wrap profile-sinc-overflow'>{overflow_chips}</div>"
+                    f"</details>"
+                )
+            return row_html
+
+        # -- Current week (Recebeu / Fez) --
+        current_rows = []
+        current_received = sinc_current.get("received", [])
+        if current_received:
+            current_rows.append(_render_profile_row("Recebeu", current_received, "actor", CURRENT_INLINE_MAX))
+
         current_given = sinc_current.get("given", [])
         if current_given:
-            chips = ""
-            for ix in current_given:
-                emoji = ix.get("emoji", "")
-                target_first = ix.get("target", "").split()[0] if ix.get("target") else ""
-                label = ix.get("label", "")
-                valence = ix.get("valence", "neg")
-                border_color = "#2d8659" if valence == "pos" else "#b33"
-                chips += (
-                    f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
-                    f"{emoji} {target_first} <span style='opacity:0.7'>{label}</span></span> "
-                )
-            sinc_parts.append(
-                f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
-                f"<span class='fs-2xs' style='opacity:0.6;min-width:50px'>Fez</span>{chips}</div>"
-            )
+            current_rows.append(_render_profile_row("Fez", current_given, "target", CURRENT_INLINE_MAX))
+
+        if current_rows:
+            sinc_parts.append(f"<div class='profile-sinc-current'>{''.join(current_rows)}</div>")
 
         # -- Season history (collapsed): both received AND given per past week --
         received_by_week = sinc_season.get("received_by_week", [])
@@ -2074,56 +2579,44 @@ for p in profiles:
             given_lookup = {w["week"]: w["interactions"] for w in given_by_week}
             history_rows = []
             for wk in sorted(past_weeks_set, reverse=True):
-                week_label = f"<span class='fs-2xs' style='opacity:0.6;min-width:24px'>S{wk}</span>"
                 week_parts = []
+                week_badge = f"<span class='profile-sinc-week'>S{wk}</span>"
+                week_badge_ghost = "<span class='profile-sinc-week ghost'></span>"
 
-                # Received sub-row
                 recv_ints = recv_lookup.get(wk, [])
                 if recv_ints:
-                    chips_html = ""
-                    for ix in recv_ints:
-                        emoji = ix.get("emoji", "")
-                        actor_first = ix.get("actor", "").split()[0] if ix.get("actor") else ""
-                        label = ix.get("label", "")
-                        valence = ix.get("valence", "neg")
-                        border_color = "#2d8659" if valence == "pos" else "#b33"
-                        chips_html += (
-                            f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
-                            f"{emoji} {actor_first} <span style='opacity:0.7'>{label}</span></span> "
-                        )
                     week_parts.append(
-                        f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
-                        f"{week_label}<span class='fs-2xs' style='opacity:0.5'>Recebeu</span>{chips_html}</div>"
+                        _render_profile_row(
+                            "Recebeu",
+                            recv_ints,
+                            "actor",
+                            HISTORY_INLINE_MAX,
+                            week_prefix=week_badge,
+                        )
                     )
 
-                # Given sub-row
                 given_ints = given_lookup.get(wk, [])
                 if given_ints:
-                    chips_html = ""
-                    for ix in given_ints:
-                        emoji = ix.get("emoji", "")
-                        target_first = ix.get("target", "").split()[0] if ix.get("target") else ""
-                        label = ix.get("label", "")
-                        valence = ix.get("valence", "neg")
-                        border_color = "#2d8659" if valence == "pos" else "#b33"
-                        chips_html += (
-                            f"<span class='u-s060 fs-2xs' style='border-left:2px solid {border_color};padding-left:3px'>"
-                            f"{emoji} {target_first} <span style='opacity:0.7'>{label}</span></span> "
-                        )
-                    given_label = f"<span style='min-width:24px'></span>" if recv_ints else week_label
                     week_parts.append(
-                        f"<div style='display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline'>"
-                        f"{given_label}<span class='fs-2xs' style='opacity:0.5'>Fez</span>{chips_html}</div>"
+                        _render_profile_row(
+                            "Fez",
+                            given_ints,
+                            "target",
+                            HISTORY_INLINE_MAX,
+                            week_prefix=(week_badge_ghost if recv_ints else week_badge),
+                        )
                     )
 
-                history_rows.extend(week_parts)
+                if week_parts:
+                    history_rows.append(f"<div class='profile-sinc-week-block'>{''.join(week_parts)}</div>")
 
             if history_rows:
                 n_past = len(past_weeks_set)
                 sinc_parts.append(
-                    f"<details style='margin-top:2px'><summary class='fs-2xs' style='cursor:pointer;opacity:0.6'>"
-                    f"+ {n_past} semana{'s' if n_past > 1 else ''} anterior{'es' if n_past > 1 else ''}</summary>"
-                    f"{''.join(history_rows)}</details>"
+                    f"<details class='profile-sinc-history'>"
+                    f"<summary>+ {n_past} semana{'s' if n_past > 1 else ''} anterior{'es' if n_past > 1 else ''}</summary>"
+                    f"<div class='profile-sinc-history-body'>{''.join(history_rows)}</div>"
+                    f"</details>"
                 )
 
         sincerao_html = "".join(sinc_parts)
@@ -2286,7 +2779,7 @@ for p in profiles:
         for k, v in sorted(ext_bd.items(), key=lambda x: x[1])
     ) if ext_bd else "<div class='sb-muted'>Nenhum evento negativo recebido.</div>"
     ext_detail += f"<div class='sb-muted'>Total: {ext_score:.1f} | Positivos: +{ext_pos:.1f} | Eventos: {ext_count}</div>"
-    impact_chip = render_status_chip("🧭", "Impacto Negativo", external_level, external_color, ext_detail)
+    impact_chip = render_status_chip("🎯", "Impacto Recebido", external_level, external_color, ext_detail)
 
     anim_score = scores_data.get("animosity", 0)
     anim_bd = scores_data.get("animosity_breakdown", {})
@@ -2295,7 +2788,7 @@ for p in profiles:
         for k, v in sorted(anim_bd.items(), key=lambda x: x[1])
     ) if anim_bd else "<div class='sb-muted'>Nenhum evento negativo causado.</div>"
     anim_detail += f"<div class='sb-muted'>Total: {anim_score:.1f}</div>"
-    hostility_chip = render_status_chip("🔥", "Hostilidade Gerada", animosity_level, animosity_color, anim_detail)
+    hostility_chip = render_status_chip("⚔️", "Agressividade", animosity_level, animosity_color, anim_detail)
 
     plant_info = p.get("plant_index") or {}
     plant_chip_html = ""

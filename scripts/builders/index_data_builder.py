@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+import unicodedata
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from collections import defaultdict, Counter
 from typing import Any, Callable
@@ -14,12 +15,13 @@ BRT = timezone(timedelta(hours=-3))
 
 from data_utils import (
     load_snapshot, build_reaction_matrix, parse_roles, calc_sentiment,
-    REACTION_EMOJI, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
+    REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
     genero,
 )
+from builders.vote_prediction import extract_paredao_eligibility
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 DATA_DIR = _PROJECT_ROOT / "data" / "snapshots"
@@ -85,6 +87,38 @@ def resolve_sinc_label(edge_type: str, tema: str | None, target: str) -> str:
     return edge_type.replace("_", " ")
 
 
+def _normalize_text_token(value: str) -> str:
+    """Normalize text for tolerant token comparisons."""
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    return " ".join(ascii_text.lower().strip().split())
+
+
+def _is_positive_heart_reaction(label: str | None) -> bool:
+    """Return True when reaction label represents a positive heart reaction."""
+    if not label:
+        return False
+    if label in POSITIVE or label == "❤️":
+        return True
+    token = _normalize_text_token(label)
+    slug = token.replace(" ", "-")
+    canonical = REACTION_SLUG_TO_LABEL.get(slug)
+    if canonical in POSITIVE:
+        return True
+    return token in {"coracao", "heart"}
+
+
+def _canonical_reaction_label(label: str | None) -> str:
+    """Normalize reaction labels to canonical forms used by SENTIMENT_WEIGHTS."""
+    if not label:
+        return ""
+    if label in SENTIMENT_WEIGHTS:
+        return label
+    token = _normalize_text_token(label)
+    slug = token.replace(" ", "-")
+    return REACTION_SLUG_TO_LABEL.get(slug, label)
+
+
 def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
                              latest_matrix: dict[tuple[str, str], str],
                              sinc_weeks_meta: dict[int, str]) -> dict[str, Any]:
@@ -124,10 +158,18 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
             by_week[wk].append(_build_interaction(edge, perspective))
         result = []
         for wk in sorted(by_week.keys(), reverse=True):
+            interactions = by_week[wk]
+            pos_count = sum(1 for ix in interactions if ix.get("valence") == "pos")
+            neg_count = len(interactions) - pos_count
             result.append({
                 "week": wk,
                 "format_short": sinc_weeks_meta.get(wk, ""),
-                "interactions": by_week[wk],
+                "meta": {
+                    "count_total": len(interactions),
+                    "count_pos": pos_count,
+                    "count_neg": neg_count,
+                },
+                "interactions": interactions,
             })
         return result
 
@@ -153,7 +195,7 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
     g_pos, g_neg = _count_valence(all_given_items)
 
     # Contradiction detection: current-week edges where actor==name gave negative
-    # but latest_matrix shows Coracao for that pair
+    # but latest_matrix shows positive heart reaction for that pair
     contradiction_targets: set[str] = set()
     for edge in given_edges:
         if edge.get("week") != current_week:
@@ -162,7 +204,7 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
         if SINC_VALENCE.get(etype) != "neg":
             continue
         target = edge.get("target")
-        if target and latest_matrix.get((name, target)) == "Coracao":
+        if target and _is_positive_heart_reaction(latest_matrix.get((name, target))):
             contradiction_targets.add(target)
 
     return {
@@ -189,7 +231,8 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
 
 
 def _compute_sincerao_radar(week_edges: list[dict], week: int,
-                             latest_matrix: dict[tuple[str, str], str]) -> dict:
+                             latest_matrix: dict[tuple[str, str], str],
+                             active_set: set[str] | None = None) -> dict:
     """Compute weekly Sincerao radar: ranked targets, praised, contradictions, not-targeted."""
     neg_counts: dict[str, int] = defaultdict(int)
     pos_counts: dict[str, int] = defaultdict(int)
@@ -202,13 +245,15 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
         etype = edge.get("type", "")
         actor = edge.get("actor", "")
         target = edge.get("target", "")
+        if active_set and (actor not in active_set or target not in active_set):
+            continue
         valence = SINC_VALENCE.get(etype, "neg")
         if actor:
             actors.add(actor)
 
         if valence == "neg":
             neg_counts[target] += 1
-            if latest_matrix.get((actor, target)) == "Coracao":
+            if _is_positive_heart_reaction(latest_matrix.get((actor, target))):
                 contradiction_counts[actor] += 1
         else:
             pos_counts[target] += 1
@@ -240,6 +285,23 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
         "not_targeted": not_targeted,
         "n_actors": len(actors),
         "week": week,
+    }
+
+
+def _compute_sinc_type_coverage(sinc_data: dict) -> dict[str, Any]:
+    """Return observed Sincerao types and unknown types for quick QA."""
+    type_counts: Counter[str] = Counter()
+    for edge in sinc_data.get("edges", []) if isinstance(sinc_data, dict) else []:
+        etype = edge.get("type")
+        if etype:
+            type_counts[etype] += 1
+
+    seen = sorted(type_counts.keys())
+    unknown = sorted(t for t in seen if t not in SINC_TYPE_META)
+    return {
+        "seen": seen,
+        "unknown": unknown,
+        "counts": {t: type_counts[t] for t in seen},
     }
 
 
@@ -761,10 +823,36 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
     if len(daily_snapshots) < 2:
         return highlights, cards
 
-    today = daily_snapshots[-1]
-    yesterday = daily_snapshots[-2]
-    today_mat = daily_matrices[-1]
-    yesterday_mat = daily_matrices[-2]
+    n_days = min(len(daily_snapshots), len(daily_matrices))
+    if n_days < 2:
+        return highlights, cards
+
+    def _expected_pairs_for_snapshot(snapshot: dict) -> int:
+        participants = snapshot.get("participants", [])
+        if isinstance(participants, list):
+            n_active = len(
+                [p for p in participants if not p.get("characteristics", {}).get("eliminated")]
+            )
+            if n_active <= 0:
+                n_active = len(active_names)
+        else:
+            n_active = len(active_names)
+        return max(0, n_active * (n_active - 1))
+
+    complete_indices = []
+    for i in range(n_days):
+        expected_pairs = _expected_pairs_for_snapshot(daily_snapshots[i])
+        if expected_pairs == 0 or len(daily_matrices[i]) >= expected_pairs:
+            complete_indices.append(i)
+
+    comparable_indices = complete_indices if len(complete_indices) >= 2 else list(range(n_days))
+    today_idx = comparable_indices[-1]
+    yesterday_idx = comparable_indices[-2]
+
+    today = daily_snapshots[today_idx]
+    yesterday = daily_snapshots[yesterday_idx]
+    today_mat = daily_matrices[today_idx]
+    yesterday_mat = daily_matrices[yesterday_idx]
 
     today_active = [p for p in today["participants"]
                     if not p.get("characteristics", {}).get("eliminated")]
@@ -791,8 +879,10 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
                 break
 
         sorted_today = sorted(sentiment_today.items(), key=lambda x: x[1], reverse=True)
-        podium = [{"name": n, "score": s} for n, s in sorted_today[:6]]
-        bottom3 = [{"name": n, "score": s} for n, s in sorted_today[-6:]]
+        podium_all = [{"name": n, "score": s} for n, s in sorted_today]
+        bottom_all = [{"name": n, "score": s} for n, s in reversed(sorted_today)]
+        podium = podium_all[:6]
+        bottom3 = bottom_all[:6]
 
         deltas = {}
         for name, score in sentiment_today.items():
@@ -801,11 +891,14 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
 
         movers_up = []
         movers_down = []
+        delta_all = []
         if deltas:
             sorted_deltas = sorted(deltas.items(), key=lambda x: x[1], reverse=True)
             movers_up = [{"name": n, "delta": d} for n, d in sorted_deltas if d > 0.5][:3]
             movers_down = [{"name": n, "delta": d} for n, d in sorted_deltas if d < -0.5][-3:]
             movers_down.sort(key=lambda x: x["delta"])  # most negative first
+            delta_all = [{"name": n, "delta": d} for n, d in sorted_deltas if d != 0]
+            delta_all.sort(key=lambda x: (abs(x["delta"]), x["delta"]), reverse=True)
 
         cards.append({
             "type": "ranking",
@@ -816,8 +909,11 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             "streak": streak,
             "podium": podium,
             "bottom3": bottom3,
+            "podium_all": podium_all,
+            "bottom_all": bottom_all,
             "movers_up": movers_up,
             "movers_down": movers_down,
+            "delta_all": delta_all,
         })
 
         streak_text = f" pelo {streak}º dia consecutivo" if streak > 1 else ""
@@ -856,6 +952,7 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             "icon": "📊", "title": "Pulso Diário",
             "color": "#3498db", "link": "evolucao.html#pulso",
             "total": n_changes,
+            "reference_date": today.get("date"),
             "pct": int(pct_changed),
             "total_possible": total_possible,
             "improve": n_improve,
@@ -879,78 +976,194 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             f" · {direction}{hearts_txt}"
         )
 
-    # -- Dramatic changes --
-    dramatic_changes = []
-    for pair, old_rxn, new_rxn in changes:
-        giver, receiver = pair
-        old_e = REACTION_EMOJI.get(old_rxn, "?")
-        new_e = REACTION_EMOJI.get(new_rxn, "?")
-        severity = abs(SENTIMENT_WEIGHTS.get(new_rxn, 0) - SENTIMENT_WEIGHTS.get(old_rxn, 0))
-        is_dramatic = (
-            (old_rxn in POSITIVE and new_rxn in STRONG_NEGATIVE) or
-            (old_rxn in STRONG_NEGATIVE and new_rxn in POSITIVE) or
-            (old_rxn in POSITIVE and new_rxn in MILD_NEGATIVE) or
-            (old_rxn in MILD_NEGATIVE and new_rxn in POSITIVE)
-        )
-        if is_dramatic:
-            dramatic_changes.append({
-                "giver": giver, "receiver": receiver,
-                "old_emoji": old_e, "new_emoji": new_e,
-                "severity": severity,
-            })
-    dramatic_changes.sort(key=lambda x: x["severity"], reverse=True)
+    # -- Dramatic changes + one-sided hostilities (today + recent fallback) --
+    dramatic_all: list[dict[str, Any]] = []
+    hostilities_all: list[dict[str, Any]] = []
 
-    if dramatic_changes:
+    comparison_pairs = [
+        (comparable_indices[i - 1], comparable_indices[i])
+        for i in range(1, len(comparable_indices))
+    ]
+
+    for prev_idx, cur_idx in comparison_pairs:
+        day = daily_snapshots[cur_idx].get("date", "")
+        prev_mat = daily_matrices[prev_idx]
+        cur_mat = daily_matrices[cur_idx]
+        common_day_pairs = prev_mat.keys() & cur_mat.keys()
+        for pair in common_day_pairs:
+            old_rxn = prev_mat[pair]
+            new_rxn = cur_mat[pair]
+            if old_rxn == new_rxn:
+                continue
+
+            giver, receiver = pair
+            old_e = REACTION_EMOJI.get(old_rxn, "?")
+            new_e = REACTION_EMOJI.get(new_rxn, "?")
+            severity = abs(SENTIMENT_WEIGHTS.get(new_rxn, 0) - SENTIMENT_WEIGHTS.get(old_rxn, 0))
+
+            is_dramatic = (
+                (old_rxn in POSITIVE and new_rxn in STRONG_NEGATIVE) or
+                (old_rxn in STRONG_NEGATIVE and new_rxn in POSITIVE) or
+                (old_rxn in POSITIVE and new_rxn in MILD_NEGATIVE) or
+                (old_rxn in MILD_NEGATIVE and new_rxn in POSITIVE)
+            )
+            if is_dramatic:
+                dramatic_all.append({
+                    "giver": giver, "receiver": receiver,
+                    "old_emoji": old_e, "new_emoji": new_e,
+                    "severity": severity,
+                    "date": day,
+                })
+
+            new_is_neg = new_rxn not in POSITIVE and new_rxn != ""
+            old_is_pos = old_rxn in POSITIVE
+            receiver_likes_giver = cur_mat.get((receiver, giver), "") in POSITIVE
+            if old_is_pos and new_is_neg and receiver_likes_giver:
+                hostilities_all.append({
+                    "giver": giver, "receiver": receiver,
+                    "emoji": new_e,
+                    "old_emoji": old_e,
+                    "new_emoji": new_e,
+                    "date": day,
+                })
+
+    dramatic_all.sort(key=lambda x: (x.get("date", ""), x.get("severity", 0)), reverse=True)
+    hostilities_all.sort(key=lambda x: x.get("date", ""), reverse=True)
+
+    dramatic_today = [d for d in dramatic_all if d.get("date") == today.get("date")]
+    hostilities_today = [h for h in hostilities_all if h.get("date") == today.get("date")]
+
+    dramatic_scope = "today" if dramatic_today else "recent"
+    hostilities_scope = "today" if hostilities_today else "recent"
+    dramatic_selected = dramatic_today if dramatic_today else dramatic_all[:12]
+    hostilities_selected = hostilities_today if hostilities_today else hostilities_all[:12]
+
+    if dramatic_selected:
         cards.append({
             "type": "dramatic",
             "icon": "💥", "title": "Mudanças Dramáticas",
             "color": "#e74c3c", "link": "evolucao.html#pulso",
-            "total": len(dramatic_changes),
-            "items": dramatic_changes[:6],
+            "total": len(dramatic_selected),
+            "reference_date": today.get("date"),
+            "items": dramatic_selected,
+            "scope": dramatic_scope,
+            "today_count": len(dramatic_today),
+            "latest_date": dramatic_selected[0].get("date", ""),
         })
-        lines = [f"**{d['giver'].split()[0]}** → **{d['receiver'].split()[0]}** (de {d['old_emoji']} para {d['new_emoji']})"
-                 for d in dramatic_changes[:5]]
-        extra = len(dramatic_changes) - 5
-        highlights.append(
-            f"💥 **{len(dramatic_changes)} mudanças dramáticas** [hoje](evolucao.html#pulso): "
-            + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
-        )
+        lines = [f"**{d['giver'].split()[0]}** → **{d['receiver'].split()[0]}** ({d['old_emoji']}→{d['new_emoji']})"
+                 for d in dramatic_selected[:4]]
+        extra = len(dramatic_selected) - 4
+        if dramatic_scope == "today":
+            highlights.append(
+                f"💥 **{len(dramatic_selected)} mudanças dramáticas** [hoje](evolucao.html#pulso): "
+                + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
+            )
+        else:
+            latest_txt = dramatic_selected[0].get("date", "")
+            highlights.append(
+                f"💥 **Sem mudanças dramáticas hoje** — últimos casos em [histórico recente](evolucao.html#pulso)"
+                f" (mais recente: {latest_txt}): "
+                + " · ".join(lines[:3]) + (f" (+{extra} mais)" if extra > 0 else "")
+            )
 
-    # -- New one-sided hostilities --
-    new_hostilities = []
-    for pair, old_rxn, new_rxn in changes:
-        giver, receiver = pair
-        new_is_neg = new_rxn not in POSITIVE and new_rxn != ""
-        old_is_pos = old_rxn in POSITIVE
-        receiver_likes_giver = today_mat.get((receiver, giver), "") in POSITIVE
-        if old_is_pos and new_is_neg and receiver_likes_giver:
-            new_hostilities.append({
-                "giver": giver, "receiver": receiver,
-                "emoji": REACTION_EMOJI.get(new_rxn, "?"),
-                "date": today["date"],
-            })
-
-    if new_hostilities:
+    if hostilities_selected:
         cards.append({
             "type": "hostilities",
             "icon": "⚠️", "title": "Novas Hostilidades",
             "color": "#f39c12", "link": "relacoes.html#hostilidades-dia",
-            "total": len(new_hostilities),
-            "items": new_hostilities[:6],
+            "total": len(hostilities_selected),
+            "reference_date": today.get("date"),
+            "items": hostilities_selected,
+            "scope": hostilities_scope,
+            "today_count": len(hostilities_today),
+            "latest_date": hostilities_selected[0].get("date", ""),
         })
         lines = [f"{h['giver'].split()[0]} → {h['receiver'].split()[0]} ({h['emoji']})"
-                 for h in new_hostilities[:4]]
-        extra = len(new_hostilities) - 4
-        highlights.append(
-            f"⚠️ **{len(new_hostilities)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades-dia)"
-            f": {' · '.join(lines)}{f' +{extra} mais' if extra > 0 else ''}"
-            f" — {new_hostilities[0]['receiver'].split()[0] if len(new_hostilities) == 1 else 'eles'} não sabe(m)!"
-        )
+                 for h in hostilities_selected[:4]]
+        extra = len(hostilities_selected) - 4
+        if hostilities_scope == "today":
+            highlights.append(
+                f"⚠️ **{len(hostilities_selected)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades-dia)"
+                f": {' · '.join(lines)}{f' +{extra} mais' if extra > 0 else ''}"
+            )
+        else:
+            latest_txt = hostilities_selected[0].get("date", "")
+            highlights.append(
+                f"⚠️ **Sem novas hostilidades hoje** — últimos casos em [histórico recente](relacoes.html#hostilidades-dia)"
+                f" (mais recente: {latest_txt}): {' · '.join(lines[:3])}"
+                f"{f' +{extra} mais' if extra > 0 else ''}"
+            )
 
     return highlights, cards
 
 
-def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matrix: dict[tuple[str, str], str]) -> tuple[list[str], list[dict], list[dict], list[dict], list[dict], int, list[int], dict]:
+def _resolve_sinc_week(sinc_data: dict, current_week: int) -> tuple[int, list[int]]:
+    """Resolve which Sincerao week should be displayed.
+
+    Rule: keep the current week only if it has Sincerao data; otherwise keep
+    the most recent week with Sincerao data.
+    """
+    edge_weeks = [e.get("week") for e in sinc_data.get("edges", []) if isinstance(e.get("week"), int)] if sinc_data else []
+    agg_weeks = [a.get("week") for a in sinc_data.get("aggregates", []) if a.get("scores")] if sinc_data else []
+    agg_weeks = [w for w in agg_weeks if isinstance(w, int)]
+    available_weeks = sorted(set(edge_weeks + agg_weeks))
+
+    sinc_week_used = current_week
+    if available_weeks and sinc_week_used not in available_weeks:
+        sinc_week_used = max(available_weeks)
+    return sinc_week_used, available_weeks
+
+
+def _resolve_sinc_reference_date(sinc_data: dict, sinc_week_used: int) -> str | None:
+    """Return canonical date for the selected Sincerao week, if available."""
+    for w in sinc_data.get("weeks", []) if sinc_data else []:
+        if w.get("week") == sinc_week_used and w.get("date"):
+            return w.get("date")
+    return None
+
+
+def _resolve_matrix_for_date(
+    target_date: str | None,
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+    fallback_matrix: dict[tuple[str, str], str],
+    fallback_date: str | None,
+) -> tuple[dict[tuple[str, str], str], str | None]:
+    """Pick the closest daily matrix to a target date (prefer <= target)."""
+    if not daily_snapshots or not daily_matrices:
+        return fallback_matrix, fallback_date
+
+    n = min(len(daily_snapshots), len(daily_matrices))
+    if n == 0:
+        return fallback_matrix, fallback_date
+
+    snaps = daily_snapshots[:n]
+    mats = daily_matrices[:n]
+
+    if not target_date:
+        return mats[-1], snaps[-1].get("date")
+
+    for i, snap in enumerate(snaps):
+        if snap.get("date") == target_date:
+            return mats[i], snap.get("date")
+
+    prev_idx = None
+    for i, snap in enumerate(snaps):
+        d = snap.get("date")
+        if d and d <= target_date:
+            prev_idx = i
+    if prev_idx is not None:
+        return mats[prev_idx], snaps[prev_idx].get("date")
+
+    return mats[0], snaps[0].get("date")
+
+
+def _compute_sincerao_highlight(
+    sinc_data: dict,
+    current_week: int,
+    latest_matrix: dict[tuple[str, str], str],
+    active_set: set[str] | None = None,
+) -> tuple[list[str], list[dict], list[dict], list[dict], list[dict], int, list[int], dict]:
     """Sincerão x Queridômetro contradictions, alignments, and radar.
 
     Returns (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
@@ -959,13 +1172,7 @@ def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matri
     highlights = []
     cards = []
 
-    sinc_week_used = current_week
-    edge_weeks = [e.get("week") for e in sinc_data.get("edges", []) if isinstance(e.get("week"), int)] if sinc_data else []
-    agg_weeks = [a.get("week") for a in sinc_data.get("aggregates", []) if a.get("scores")] if sinc_data else []
-    agg_weeks = [w for w in agg_weeks if isinstance(w, int)]
-    available_weeks = sorted(set(edge_weeks + agg_weeks))
-    if available_weeks and sinc_week_used not in available_weeks:
-        sinc_week_used = max(available_weeks)
+    sinc_week_used, available_weeks = _resolve_sinc_week(sinc_data, current_week)
 
     pair_contradictions = []
     pair_aligned_pos = []
@@ -980,9 +1187,12 @@ def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matri
         target = edge.get("target")
         if not actor or not target:
             continue
+        if active_set and (actor not in active_set or target not in active_set):
+            continue
         rxn = latest_matrix.get((actor, target), "")
         if not rxn:
             continue
+        rxn = _canonical_reaction_label(rxn)
         rxn_weight = SENTIMENT_WEIGHTS.get(rxn, 0)
         rxn_sign = "pos" if rxn_weight > 0 else ("neg" if rxn_weight < 0 else "neu")
         edge_sign = "pos" if etype == "podio" else "neg"
@@ -1014,7 +1224,7 @@ def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matri
     # Compute radar for the week used
     week_edges_for_radar = [e for e in (sinc_data.get("edges", []) if sinc_data else [])
                             if e.get("week") == sinc_week_used]
-    radar = _compute_sincerao_radar(week_edges_for_radar, sinc_week_used, latest_matrix)
+    radar = _compute_sincerao_radar(week_edges_for_radar, sinc_week_used, latest_matrix, active_set=active_set)
 
     # Get week format name
     sinc_week_format = ""
@@ -1039,8 +1249,8 @@ def _compute_sincerao_highlight(sinc_data: dict, current_week: int, latest_matri
             sinc_week_used, available_weeks, radar)
 
 
-def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_set: set[str], received_impact: dict, relations_pairs: dict) -> tuple[list[str], list[dict], list[str]]:
-    """Impact, vulnerability, and active paredão cards.
+def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_set: set[str], received_impact: dict, relations_pairs: dict, relations_data: dict | list | None = None) -> tuple[list[str], list[dict], list[str]]:
+    """Mais Alvo, Mais Agressor, vulnerability, and active paredão cards.
 
     Returns (highlights, cards, paredao_names).
     """
@@ -1059,59 +1269,87 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
         })
         highlights.append(f"🗳️ [**Paredão ativo**](paredao.html): {', '.join(sorted(paredao_names))}")
 
-    # -- Most impacted by negative events --
-    if received_impact:
-        active_impact = [(n, d) for n, d in received_impact.items()
-                         if n in active_set and d.get("negative", 0) < -5]
-        active_impact.sort(key=lambda x: x[1].get("negative", 0))
-        if active_impact:
-            impact_items = []
-            for imp_name, imp_data in active_impact[:5]:
-                impact_items.append({
-                    "name": imp_name,
-                    "negative": round(imp_data.get("negative", 0), 1),
-                    "positive": round(imp_data.get("positive", 0), 1),
-                    "net": round(imp_data.get("negative", 0) + imp_data.get("positive", 0), 1),
-                })
+    # -- Mais Alvo (power events + votes received, no sincerao/backlash) --
+    ALVO_DECAY = 0.85
+    edges = relations_data.get("edges", []) if isinstance(relations_data, dict) else []
+    if edges:
+        current_wk = get_week_number(date.today().isoformat())  # current week
+
+        alvo_accum: dict[str, float] = defaultdict(float)
+        alvo_recent: dict[str, float] = defaultdict(float)
+        for e in edges:
+            w = e.get("weight", 0)
+            if w >= 0 or e.get("backlash"):
+                continue
+            if e["type"] not in ("power_event", "vote"):
+                continue
+            alvo_accum[e["target"]] += w
+            age = max(0, current_wk - e.get("week", current_wk))
+            alvo_recent[e["target"]] += w * (ALVO_DECAY ** age)
+
+        def _build_alvo_items(scores: dict[str, float]) -> list[dict]:
+            ranked = [(n, scores.get(n, 0)) for n in active_set if scores.get(n, 0) < -5]
+            ranked.sort(key=lambda x: x[1])
+            return [{"name": n, "score": round(s, 1)} for n, s in ranked]
+
+        items_accum_all = _build_alvo_items(alvo_accum)
+        items_recent_all = _build_alvo_items(alvo_recent)
+        items_accum = items_accum_all[:5]
+        items_recent = items_recent_all[:5]
+
+        if items_accum or items_recent:
+            total_accum = len(items_accum_all)
             cards.append({
-                "type": "impact",
-                "icon": "🎯", "title": "Impacto Negativo",
+                "type": "mais_alvo",
+                "icon": "🎯", "title": "Mais Alvo",
                 "color": "#c0392b", "link": "evolucao.html#impacto",
-                "total": len(active_impact),
-                "items": impact_items,
+                "total": total_accum,
+                "items": items_accum,
+                "items_recent": items_recent,
+                "items_all": items_accum_all,
+                "items_recent_all": items_recent_all,
             })
-            lines = [f"**{d['name']}** ({d['negative']:.1f} neg, net {d['net']:+.1f})" for d in impact_items[:3]]
-            extra = len(active_impact) - 3
+            display_items = items_accum
+            lines = [f"**{d['name']}** ({d['score']:.1f})" for d in display_items[:3]]
+            extra = total_accum - 3
             highlights.append(
-                f"🎯 [Mais impactados](evolucao.html#impacto) por eventos negativos: "
+                f"🎯 [Mais alvos](evolucao.html#impacto) do jogo: "
                 + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
             )
 
-    # -- Most impacted by positive events --
-    if received_impact:
-        active_pos = [(n, d) for n, d in received_impact.items()
-                      if n in active_set and d.get("positive", 0) > 2]
-        active_pos.sort(key=lambda x: x[1].get("positive", 0), reverse=True)
-        if active_pos:
-            pos_items = []
-            for imp_name, imp_data in active_pos[:5]:
-                pos_items.append({
-                    "name": imp_name,
-                    "positive": round(imp_data.get("positive", 0), 1),
-                    "negative": round(imp_data.get("negative", 0), 1),
-                    "net": round(imp_data.get("negative", 0) + imp_data.get("positive", 0), 1),
-                })
+    # -- Mais Agressor (deliberate individual power events outgoing only) --
+    DELIBERATE_EVENTS = {"indicacao", "contragolpe", "monstro", "veto_prova",
+                         "mira_do_lider", "barrado_baile", "veto_ganha_ganha",
+                         "duelo_de_risco", "imunidade", "troca_xepa", "troca_vip"}
+    if edges:
+        aggressor_scores: dict[str, float] = defaultdict(float)
+        for e in edges:
+            w = e.get("weight", 0)
+            if w >= 0 or e.get("backlash"):
+                continue
+            if e["type"] != "power_event":
+                continue
+            if e.get("event_type") not in DELIBERATE_EVENTS:
+                continue
+            aggressor_scores[e["actor"]] += w
+
+        active_aggr = [(n, aggressor_scores.get(n, 0)) for n in active_set if aggressor_scores.get(n, 0) < -2]
+        active_aggr.sort(key=lambda x: x[1])
+        if active_aggr:
+            aggr_items_all = [{"name": n, "score": round(s, 1)} for n, s in active_aggr]
+            aggr_items = aggr_items_all[:5]
             cards.append({
-                "type": "impact_positive",
-                "icon": "🌟", "title": "Impacto Positivo",
-                "color": "#27ae60", "link": "evolucao.html#impacto",
-                "total": len(active_pos),
-                "items": pos_items,
+                "type": "mais_agressor",
+                "icon": "⚔️", "title": "Mais Agressor",
+                "color": "#8e44ad", "link": "evolucao.html#impacto",
+                "total": len(active_aggr),
+                "items": aggr_items,
+                "items_all": aggr_items_all,
             })
-            lines = [f"**{d['name']}** (+{d['positive']:.1f} pos, net {d['net']:+.1f})" for d in pos_items[:3]]
-            extra = len(active_pos) - 3
+            lines = [f"**{d['name']}** ({d['score']:.1f})" for d in aggr_items[:3]]
+            extra = len(active_aggr) - 3
             highlights.append(
-                f"🌟 [Mais beneficiados](evolucao.html#impacto) por eventos positivos: "
+                f"⚔️ [Mais agressores](evolucao.html#impacto): "
                 + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
             )
 
@@ -1145,6 +1383,7 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
                 "color": "#e74c3c", "link": "#perfis",
                 "total": len(vuln_items),
                 "items": vuln_items[:5],
+                "items_all": vuln_items,
             })
             lines = []
             for v in vuln_items[:3]:
@@ -1160,7 +1399,14 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
     return highlights, cards, paredao_names
 
 
-def _compute_breaks_and_context_cards(relations_data: dict | list, active_set: set[str], latest: dict, current_week: int, daily_snapshots: list[dict]) -> tuple[list[str], list[dict]]:
+def _compute_breaks_and_context_cards(
+    relations_data: dict | list,
+    active_set: set[str],
+    latest: dict,
+    current_week: int,
+    daily_snapshots: list[dict],
+    reference_date: str | None = None,
+) -> tuple[list[str], list[dict]]:
     """Streak breaks (alliance ruptures) and week context cards.
 
     Returns (highlights, cards).
@@ -1173,9 +1419,13 @@ def _compute_breaks_and_context_cards(relations_data: dict | list, active_set: s
     active_breaks = [b for b in streak_breaks_data if b.get("giver") in active_set and b.get("receiver") in active_set]
     if active_breaks:
         strong = [b for b in active_breaks if b.get("severity") == "strong"]
-        active_breaks_sorted = sorted(active_breaks, key=lambda b: b.get("previous_streak", 0), reverse=True)
+        active_breaks_sorted = sorted(
+            active_breaks,
+            key=lambda b: (b.get("date", ""), b.get("previous_streak", 0)),
+            reverse=True,
+        )
         break_items = []
-        for b in active_breaks_sorted[:6]:
+        for b in active_breaks_sorted:
             break_items.append({
                 "giver": b["giver"], "receiver": b["receiver"],
                 "streak": b.get("previous_streak", 0),
@@ -1189,6 +1439,7 @@ def _compute_breaks_and_context_cards(relations_data: dict | list, active_set: s
             "color": "#8e44ad", "link": "relacoes.html#aliancas",
             "total": len(active_breaks),
             "strong_count": len(strong),
+            "reference_date": reference_date or latest.get("date"),
             "items": break_items,
         })
         lines = [f"{b['giver']} → {b['receiver']} ({b['streak']}d ❤️ → {b['new_emoji']})"
@@ -1196,7 +1447,7 @@ def _compute_breaks_and_context_cards(relations_data: dict | list, active_set: s
         extra = len(active_breaks) - 4
         severity_txt = f" — **{len(strong)} graves**" if strong else ""
         highlights.append(
-            f"💔 **{len(active_breaks)} aliança(s) rompida(s)** [hoje](relacoes.html#aliancas){severity_txt}: "
+            f"💔 **{len(active_breaks)} aliança(s) rompida(s)** [histórico ativo](relacoes.html#aliancas){severity_txt}: "
             + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
         )
 
@@ -1218,6 +1469,130 @@ def _compute_breaks_and_context_cards(relations_data: dict | list, active_set: s
     return highlights, cards
 
 
+def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
+    """Mais Blindados + VIP x Xepa cards (accumulated metrics)."""
+    highlights: list[str] = []
+    cards: list[dict] = []
+    active_set = ctx["active_set"]
+    paredoes_data = ctx["paredoes"]
+    paredoes_list = paredoes_data.get("paredoes", []) if paredoes_data else []
+
+    # ── Mais Blindados ──
+    paredoes_with_votes = [p for p in paredoes_list if p.get("votos_casa")]
+    if paredoes_with_votes:
+        n_paredoes = len(paredoes_with_votes)
+
+        # Per-participant accumulators
+        on_paredao: Counter[str] = Counter()        # times in indicados_finais
+        protected: Counter[str] = Counter()          # times as Líder/immune/anjo_autoimune
+        available: Counter[str] = Counter()           # times eligible for house votes
+        house_votes: Counter[str] = Counter()         # votes received when available
+        bv_escapes_set: set[str] = set()
+        protection_detail: dict[str, list[tuple[int, str]]] = defaultdict(list)
+
+        for par in paredoes_with_votes:
+            num = par.get("numero", 0)
+            form = par.get("formacao", {})
+            indicados = {(ind["nome"] if isinstance(ind, dict) else ind)
+                         for ind in par.get("indicados_finais", [])}
+
+            # Use extract_paredao_eligibility for cant_be_voted
+            elig = extract_paredao_eligibility(par)
+            cant_be_voted = elig["cant_be_voted"]
+
+            # Identify protected positions (subset of cant_be_voted)
+            lider = form.get("lider")
+            imun = (form.get("imunizado") or {}).get("quem") if isinstance(form.get("imunizado"), dict) else None
+            anjo = form.get("anjo") if form.get("anjo_autoimune") else None
+            protected_names = {n for n in [lider, imun, anjo] if n}
+
+            # BV escapes
+            bv = form.get("bate_volta", {}) or {}
+            bv_winner = bv.get("vencedor")
+            if bv_winner and bv_winner not in indicados:
+                bv_escapes_set.add(bv_winner)
+
+            for name in active_set:
+                if name in indicados:
+                    on_paredao[name] += 1
+                elif name in protected_names:
+                    protected[name] += 1
+                    reason = "Líder" if name == lider else ("Imune" if name == imun else "Anjo")
+                    protection_detail[name].append((num, reason))
+                elif name not in cant_be_voted:
+                    available[name] += 1
+                    house_votes[name] += sum(
+                        1 for _v, t in (par.get("votos_casa") or {}).items()
+                        if t.strip() == name
+                    )
+
+        items = []
+        for name in active_set:
+            n_par = on_paredao.get(name, 0)
+            n_prot = protected.get(name, 0)
+            n_avail = available.get(name, 0)
+            n_votes = house_votes.get(name, 0)
+            has_bv = name in bv_escapes_set
+
+            # Protection breakdown for display
+            reason_counts = Counter(r for _, r in protection_detail.get(name, []))
+            prot_text = ", ".join(f"{r} {c}x" for r, c in reason_counts.items()) if reason_counts else ""
+
+            items.append({
+                "name": name,
+                "paredao": n_par,
+                "protected": n_prot,
+                "available": n_avail,
+                "votes": n_votes,
+                "bv_escape": has_bv,
+                "prot_text": prot_text,
+                "total": n_paredoes,
+            })
+
+        # Sort: fewer paredão → more protected → fewer votes
+        items.sort(key=lambda x: (x["paredao"], -x["protected"], x["votes"]))
+
+        cards.append({
+            "type": "blindados",
+            "icon": "\U0001f6e1\ufe0f", "title": "Mais Blindados",
+            "color": "#3498db", "link": "paredoes.html",
+            "total": len(items),
+            "items": items,
+            "n_paredoes": n_paredoes,
+        })
+
+    # ── VIP / Xepa (separate cards) ──
+    vip_days = ctx.get("vip_days", {})
+    xepa_days = ctx.get("xepa_days", {})
+    total_days_map = ctx.get("total_days", {})
+
+    if vip_days or xepa_days:
+        vip_ranked = sorted(
+            [{"name": n, "vip": vip_days.get(n, 0), "xepa": xepa_days.get(n, 0), "total": total_days_map.get(n, 0)}
+             for n in active_set],
+            key=lambda x: x["vip"], reverse=True,
+        )
+        xepa_ranked = sorted(
+            [{"name": n, "xepa": xepa_days.get(n, 0), "vip": vip_days.get(n, 0), "total": total_days_map.get(n, 0)}
+             for n in active_set],
+            key=lambda x: x["xepa"], reverse=True,
+        )
+        cards.append({
+            "type": "vip",
+            "icon": "\U0001f451", "title": "Mais dias VIP",
+            "color": "#f1c40f", "link": "evolucao.html#vip-xepa",
+            "items": vip_ranked,
+        })
+        cards.append({
+            "type": "xepa",
+            "icon": "\U0001f373", "title": "Mais dias Xepa",
+            "color": "#95a5a6", "link": "evolucao.html#vip-xepa",
+            "items": xepa_ranked,
+        })
+
+    return highlights, cards
+
+
 def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     """Daily movers, dramatic changes, Sincerão contradictions, all highlight cards."""
     daily_snapshots = ctx["daily_snapshots"]
@@ -1231,6 +1606,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     sinc_data = ctx["sinc_data"]
     current_week = ctx["current_week"]
     latest = ctx["latest"]
+    latest_date = ctx["latest_date"]
 
     highlights = []
     cards = []
@@ -1241,24 +1617,46 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     highlights.extend(dm_hl)
     cards.extend(dm_cards)
 
+    # Resolve Sincerao week and lock reaction matrix to the Sincerao date
+    # (avoid comparing Sincerão actions against "today" reactions days later).
+    sinc_week_for_reactions, _ = _resolve_sinc_week(sinc_data, current_week)
+    sinc_reference_day = _resolve_sinc_reference_date(sinc_data, sinc_week_for_reactions)
+    sinc_reference_matrix, sinc_reference_date = _resolve_matrix_for_date(
+        sinc_reference_day,
+        daily_snapshots,
+        daily_matrices,
+        latest_matrix,
+        latest_date,
+    )
+
     # Sincerão x Queridômetro
     (sinc_hl, sinc_cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
      sinc_week_used, available_weeks, sinc_radar) = _compute_sincerao_highlight(
-        sinc_data, current_week, latest_matrix)
+        sinc_data, current_week, sinc_reference_matrix, active_set=active_set)
+    for card in sinc_cards:
+        if card.get("type") != "sincerao":
+            continue
+        card["week"] = sinc_week_used
+        card["reaction_reference_date"] = sinc_reference_date
     highlights.extend(sinc_hl)
     cards.extend(sinc_cards)
 
     # Impact, vulnerability, paredão
     vuln_hl, vuln_cards, paredao_names = _compute_vulnerability_cards(
-        latest, active_names, active_set, received_impact, relations_pairs)
+        latest, active_names, active_set, received_impact, relations_pairs, relations_data)
     highlights.extend(vuln_hl)
     cards.extend(vuln_cards)
 
     # Breaks and context
     bc_hl, bc_cards = _compute_breaks_and_context_cards(
-        relations_data, active_set, latest, current_week, daily_snapshots)
+        relations_data, active_set, latest, current_week, daily_snapshots, latest_date)
     highlights.extend(bc_hl)
     cards.extend(bc_cards)
+
+    # Static cards: blindados, VIP x Xepa
+    static_hl, static_cards = _compute_static_cards(ctx)
+    highlights.extend(static_hl)
+    cards.extend(static_cards)
 
     return {
         "highlights": highlights,
@@ -1269,6 +1667,8 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
         "sinc_week_used": sinc_week_used,
         "available_weeks": available_weeks,
         "sinc_radar": sinc_radar,
+        "sinc_reference_matrix": sinc_reference_matrix,
+        "sinc_reference_date": sinc_reference_date,
         "paredao_names": paredao_names,
     }
 
@@ -2005,18 +2405,26 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
     pos_events_hist = [ev for ev in historic_events if ev.get("impacto") == "positivo"]
     neg_events_hist = [ev for ev in historic_events if ev.get("impacto") == "negativo"]
 
-    # Impacto Negativo — from received_impact in relations_scores.json
-    impact = received_impact.get(name, {})
-    external_score = impact.get("negative", 0)
-    external_positive = impact.get("positive", 0)
-    external_count = impact.get("count", 0)
-
-    # Breakdown: incoming edges by type (negative only)
-    external_breakdown = defaultdict(float)
-    for edge in relations_data.get("edges", []):
-        if edge.get("target") == name and edge.get("weight", 0) < 0:
-            etype = edge.get("type", "other")
-            external_breakdown[etype] += edge.get("weight", 0)
+    # Impacto Recebido — power_event + vote received, no backlash/sincerao
+    all_edges = relations_data.get("edges", []) if isinstance(relations_data, dict) else []
+    external_score = 0.0
+    external_positive = 0.0
+    external_count = 0
+    external_breakdown: dict[str, float] = defaultdict(float)
+    for edge in all_edges:
+        if edge.get("target") != name:
+            continue
+        w = edge.get("weight", 0)
+        if edge.get("backlash"):
+            continue
+        if edge["type"] not in ("power_event", "vote"):
+            continue
+        if w < 0:
+            external_score += w
+            external_breakdown[edge.get("event_type") or edge["type"]] += w
+            external_count += 1
+        elif w > 0:
+            external_positive += w
 
     if external_score <= -10:
         external_level = "🔴 ALTO"
@@ -2031,16 +2439,24 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
         external_level = "🟢 NENHUM"
         external_color = "#28a745"
 
-    # Hostilidade Gerada — sum of outgoing negative event edges (non-queridômetro)
+    # Agressividade — deliberate individual power events outgoing only
+    DELIBERATE_CHIP = {"indicacao", "contragolpe", "monstro", "veto_prova",
+                       "mira_do_lider", "barrado_baile", "veto_ganha_ganha",
+                       "duelo_de_risco", "imunidade", "troca_xepa", "troca_vip"}
     animosity_score = 0.0
-    animosity_breakdown = defaultdict(float)
-    targets_data = relations_pairs.get(name, {})
-    for _target_name, rel in targets_data.items():
-        components = rel.get("components", {})
-        for comp_key, comp_val in components.items():
-            if comp_key != "queridometro" and comp_val < 0:
-                animosity_score += comp_val
-                animosity_breakdown[comp_key] += comp_val
+    animosity_breakdown: dict[str, float] = defaultdict(float)
+    for edge in all_edges:
+        if edge.get("actor") != name:
+            continue
+        w = edge.get("weight", 0)
+        if w >= 0 or edge.get("backlash"):
+            continue
+        if edge["type"] != "power_event":
+            continue
+        if edge.get("event_type") not in DELIBERATE_CHIP:
+            continue
+        animosity_score += w
+        animosity_breakdown[edge.get("event_type", "other")] += w
 
     if animosity_score <= -8:
         animosity_level = "🔴 ALTA"
@@ -2410,6 +2826,8 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
     roles_current = ctx["roles_current"]
     current_cycle_week = ctx["current_cycle_week"]
     current_week = ctx["current_week"]
+    sinc_week_used = ctx.get("sinc_week_used", current_week)
+    sinc_reference_matrix = ctx.get("sinc_reference_matrix", latest_matrix)
     plant_scores = ctx["plant_scores"]
     plant_week = ctx["plant_week"]
     vip_days = ctx["vip_days"]
@@ -2436,7 +2854,7 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
 
     # 3a. Sincerao model (received/given)
     sincerao_model = _build_profile_sincerao(
-        name, sinc_data, current_week, latest_matrix,
+        name, sinc_data, sinc_week_used, sinc_reference_matrix,
         sinc_weeks_meta=lookups.get("sinc_weeks_meta", {}))
 
     # 4. Footer: curiosities, game stats
@@ -2616,6 +3034,8 @@ def build_index_data() -> dict | None:
 
     # 2. Highlights and cards
     hl = _build_highlights_and_cards(ctx)
+    ctx["sinc_week_used"] = hl["sinc_week_used"]
+    ctx["sinc_reference_matrix"] = hl.get("sinc_reference_matrix", ctx["latest_matrix"])
 
     # 3. Overview stats
     ov = _build_overview_stats(ctx)
@@ -2712,7 +3132,12 @@ def build_index_data() -> dict | None:
         "sincerao": {
             "current_week": hl["sinc_week_used"] if hl["available_weeks"] else None,
             "available_weeks": hl["available_weeks"],
-            "radar": hl["sinc_radar"],
+            "reaction_reference_date": hl.get("sinc_reference_date"),
+            "type_coverage": _compute_sinc_type_coverage(ctx["sinc_data"]),
+            "radar": {
+                **(hl["sinc_radar"] if isinstance(hl.get("sinc_radar"), dict) else {}),
+                "scope": "active_only",
+            },
             "pairs": {
                 "aligned_positive": hl["pair_aligned_pos"],
                 "aligned_negative": hl["pair_aligned_neg"],
