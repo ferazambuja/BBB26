@@ -9,13 +9,21 @@ if [[ "$current_branch" == local/* ]]; then
   exit 1
 fi
 
-# Private docs that must never be tracked on the public branch tip
-forbidden_regex='^(CLAUDE\.md|TODO\.md|docs/TODO_WORKFLOW\.md|docs/TODO_DONE_LOG\.md|docs/CODE_REVIEW_.*\.md|docs/TECH_DEBT\.md|docs/MOBILE_LAYOUT_AUDIT_.*\.md|docs/plans/|\.private/)'
+# Private docs and local tooling paths that must never be tracked on the public branch tip
+forbidden_regex='^(CLAUDE\.md|TODO\.md|docs/TODO_WORKFLOW\.md|docs/TODO_DONE_LOG\.md|docs/CODE_REVIEW_.*\.md|docs/TECH_DEBT\.md|docs/MOBILE_LAYOUT_AUDIT_.*\.md|docs/plans/|\.private/|\.claude/|\.worktrees/)'
 
 if git ls-tree -r --name-only HEAD | grep -Eq "$forbidden_regex"; then
   echo "[BLOCKED] Private documentation paths are tracked on this branch tip."
   echo "Remove private files from tracking before pushing."
   git ls-tree -r --name-only HEAD | grep -E "$forbidden_regex" || true
+  exit 1
+fi
+
+# Block embedded repositories (gitlinks/submodules) in public history.
+if git ls-tree -r HEAD | awk '$1=="160000"{print $4}' | grep -q .; then
+  echo "[BLOCKED] Embedded git repositories (gitlinks) detected on branch tip."
+  echo "Remove them from index before pushing:"
+  git ls-tree -r HEAD | awk '$1=="160000"{print $4}'
   exit 1
 fi
 

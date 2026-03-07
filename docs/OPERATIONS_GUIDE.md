@@ -38,7 +38,7 @@
 This repository is public. Agents must enforce a strict documentation boundary:
 
 - Public docs: only approved pillar docs (see `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`).
-- Private docs: local-only and never pushed (`.private/**`, `CLAUDE.md`, WIP/review/planning docs).
+- Private docs/tooling: local-only and never pushed (`.private/**`, `CLAUDE.md`, `.claude/**`, `.worktrees/**`, WIP/review/planning docs).
 - If visibility is unclear, default to private and place under `.private/docs/`.
 
 Pre-push checklist:

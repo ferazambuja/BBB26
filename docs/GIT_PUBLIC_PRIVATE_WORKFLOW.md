@@ -41,6 +41,7 @@ git push origin main
 
 - Never push `local/private-main`.
 - Never commit private docs into `main`.
+- Never track local tooling/worktree paths in `main` (`.claude/**`, `.worktrees/**`).
 - If uncertain whether a document is public-safe, keep it in `.private/docs/`.
 
 ## Optional Safety Hook
