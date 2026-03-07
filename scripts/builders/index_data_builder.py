@@ -750,7 +750,7 @@ def _build_shared_context(snapshots: list[dict], daily_snapshots: list[dict], da
     return ctx
 
 
-def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: list[dict], active_names: list[str], relations_pairs: dict) -> tuple[list[str], list[dict]]:
+def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: list[dict], active_names: list[str]) -> tuple[list[str], list[dict]]:
     """Ranking leader, podium, movers, reaction changes, dramatic changes, hostilities.
 
     Returns (highlights, cards) lists for the daily comparison section.
@@ -832,35 +832,6 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             f"🏆 **{sentiment_leader}** lidera o [ranking](#ranking){streak_text} ({leader_score:+.1f})"
             f" — Top 3: {pod_txt}{movers_txt}"
         )
-
-        # Strategic leader divergence
-        strat_card = None
-        if relations_pairs:
-            strat_scores = {}
-            for sname in active_names:
-                incoming = [
-                    relations_pairs.get(sother, {}).get(sname, {}).get("score", 0)
-                    for sother in active_names if sother != sname and relations_pairs.get(sother, {}).get(sname)
-                ]
-                if incoming:
-                    strat_scores[sname] = sum(incoming) / len(incoming)
-            if strat_scores:
-                strat_leader = max(strat_scores, key=strat_scores.get)
-                if strat_leader != sentiment_leader:
-                    strat_top3 = sorted(strat_scores.items(), key=lambda x: x[1], reverse=True)[:3]
-                    strat_card = {
-                        "type": "strategic",
-                        "icon": "🧭", "title": "Ranking Estratégico",
-                        "color": "#9b59b6", "link": "evolucao.html#sentimento",
-                        "leader": strat_leader,
-                        "podium": [{"name": n, "score": round(s, 2)} for n, s in strat_top3],
-                    }
-                    cards.append(strat_card)
-                    strat_podium = " · ".join(f"{n} ({s:+.2f})" for n, s in strat_top3)
-                    highlights.append(
-                        f"🧭 No [ranking estratégico](evolucao.html#sentimento), **{strat_leader}** lidera "
-                        f"— diverge do queridômetro. Top 3: {strat_podium}"
-                    )
 
     # -- Reaction changes summary --
     common_pairs = today_mat.keys() & yesterday_mat.keys()
@@ -1116,6 +1087,34 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
                 + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
             )
 
+    # -- Most impacted by positive events --
+    if received_impact:
+        active_pos = [(n, d) for n, d in received_impact.items()
+                      if n in active_set and d.get("positive", 0) > 2]
+        active_pos.sort(key=lambda x: x[1].get("positive", 0), reverse=True)
+        if active_pos:
+            pos_items = []
+            for imp_name, imp_data in active_pos[:5]:
+                pos_items.append({
+                    "name": imp_name,
+                    "positive": round(imp_data.get("positive", 0), 1),
+                    "negative": round(imp_data.get("negative", 0), 1),
+                    "net": round(imp_data.get("negative", 0) + imp_data.get("positive", 0), 1),
+                })
+            cards.append({
+                "type": "impact_positive",
+                "icon": "🌟", "title": "Impacto Positivo",
+                "color": "#27ae60", "link": "evolucao.html#impacto",
+                "total": len(active_pos),
+                "items": pos_items,
+            })
+            lines = [f"**{d['name']}** (+{d['positive']:.1f} pos, net {d['net']:+.1f})" for d in pos_items[:3]]
+            extra = len(active_pos) - 3
+            highlights.append(
+                f"🌟 [Mais beneficiados](evolucao.html#impacto) por eventos positivos: "
+                + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
+            )
+
     # -- Most vulnerable (false friends) --
     if relations_pairs:
         vuln_items = []
@@ -1238,7 +1237,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
 
     # Daily movers, ranking, changes, dramatic, hostilities
     dm_hl, dm_cards = _compute_daily_movers_cards(
-        daily_snapshots, daily_matrices, active_names, relations_pairs)
+        daily_snapshots, daily_matrices, active_names)
     highlights.extend(dm_hl)
     cards.extend(dm_cards)
 
@@ -1447,31 +1446,6 @@ def _build_ranking_tables(ctx: dict[str, Any]) -> dict[str, Any]:
     change_yesterday = build_change_rows(ranking_today, yesterday_scores)
     change_week = build_change_rows(ranking_today, week_ago_scores)
 
-    # Strategic ranking — average incoming composite pair score
-    strategic_ranking = []
-    if relations_pairs:
-        active_set = {r["name"] for r in ranking_today}
-        for entry in ranking_today:
-            name = entry["name"]
-            incoming = []
-            for other in active_set:
-                if other != name:
-                    pair = relations_pairs.get(other, {}).get(name, {})
-                    if pair:
-                        incoming.append(pair.get("score", 0))
-            if incoming:
-                avg_score = sum(incoming) / len(incoming)
-            else:
-                avg_score = entry["score"]  # fallback to queridômetro
-            strategic_ranking.append({
-                "name": name,
-                "score": round(avg_score, 2),
-                "queridometro_score": entry["score"],
-                "group": entry["group"],
-                "avatar": entry.get("avatar", ""),
-                "n_sources": len(incoming),
-            })
-
     # Timeline data (queridômetro sentiment per day) — with precomputed rank
     timeline = []
     daily_metrics_map = {d.get("date"): d for d in daily_metrics.get("daily", [])}
@@ -1563,7 +1537,6 @@ def _build_ranking_tables(ctx: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "ranking_today": ranking_today,
-        "strategic_ranking": strategic_ranking,
         "yesterday_label": yesterday_label,
         "week_ago_label": week_ago_label,
         "change_yesterday": change_yesterday,
@@ -2720,7 +2693,6 @@ def build_index_data() -> dict | None:
         "ranking": {
             "height": max(500, len(active) * 32),
             "today": rk["ranking_today"],
-            "strategic": rk["strategic_ranking"],
             "yesterday_label": rk["yesterday_label"],
             "week_label": rk["week_ago_label"],
             "change_yesterday": rk["change_yesterday"],

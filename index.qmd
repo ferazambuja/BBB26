@@ -760,7 +760,7 @@ else:
 {avatars_html}
 </div>''')
 
-        # ── 🎯 Impact ──
+        # ── 🎯 Impact Negative ──
         elif ctype == "impact":
             items = card.get("items", [])
             total = card.get("total", len(items))
@@ -768,15 +768,15 @@ else:
             rows_html = '<div class="u-s058">'
             for it in items[:4]:
                 name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
                 neg = it["negative"]
-                net = it["net"]
                 bar_pct = min(100, abs(neg) / worst_neg * 100)
                 rows_html += (
                     f'<div class="u-s056">'
-                    f'{av(name, 42, "#c0392b")}'
+                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#c0392b")}</a>'
                     f'<div class="u-s066">'
                     f'<div class="u-s059">'
-                    f'<span class="fs-md u-s068">{name.split()[0]}</span>'
+                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
                     f'<span class="text-neg fs-sm">{neg:.1f}</span>'
                     f'</div>'
                     f'<div class="u-s014">'
@@ -790,6 +790,39 @@ else:
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto negativo acumulado por eventos de poder, votos, Sincerão e VIP. Quem mais sofre ao longo do jogo.")}
+{rows_html}
+</div>''')
+
+        # ── 🌟 Impact Positive ──
+        elif ctype == "impact_positive":
+            items = card.get("items", [])
+            total = card.get("total", len(items))
+            best_pos = items[0]["positive"] if items else 1
+            rows_html = '<div class="u-s058">'
+            for it in items[:4]:
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                pos = it["positive"]
+                bar_pct = min(100, pos / best_pos * 100) if best_pos > 0 else 0
+                rows_html += (
+                    f'<div class="u-s056">'
+                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#27ae60")}</a>'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    f'<span class="fs-sm" style="color:#27ae60;font-weight:700">+{pos:.1f}</span>'
+                    f'</div>'
+                    f'<div class="u-s014">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#27ae60;border-radius:3px;"></div>'
+                    f'</div>'
+                    f'</div></div>'
+                )
+            extra = total - 4
+            if extra > 0:
+                rows_html += f'<div class="tc fs-sm u-s009"><a href="{card.get("link", "#")}" class="u-s035">+{extra} mais ↗</a></div>'
+            rows_html += '</div>'
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Impacto positivo acumulado por Liderança, Anjo, imunidades e Sincerão. Quem mais se beneficiou ao longo do jogo.")}
 {rows_html}
 </div>''')
 
@@ -854,16 +887,16 @@ else:
                 except Exception:
                     date_fmt = ""
                 date_badge = f'<span class="fs-2xs" style="opacity:0.5;margin-left:auto">{date_fmt}</span>' if date_fmt else ""
+                alert_html = '<span class="fs-xs" style="color:#e74c3c;font-weight:700">🚨</span>' if sev == "strong" else ""
                 rows_html += (
-                    f'<div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);'
-                    f'padding:5px 8px;border-radius:8px;border-left:3px solid {sev_border};">'
+                    f'<div class="u-s342" style="border-left:3px solid {sev_border};">'
                     f'<a href="#perfil-{g_slug}" style="text-decoration:none">{av(g, 42, sev_border)}</a>'
                     f'<div class="u-s057">'
                     f'<span class="fs-xs u-s001">{streak}d ❤️</span>'
                     f'<span class="fs-base">→ {new_e}</span>'
                     f'</div>'
                     f'<a href="#perfil-{r_slug}" style="text-decoration:none">{av(r, 42, sev_border)}</a>'
-                    f'{"<span class=&quot;fs-xs&quot; style=&quot;color:#e74c3c;font-weight:700;&quot;>🚨</span>" if sev == "strong" else ""}'
+                    f'{alert_html}'
                     f'{date_badge}'
                     f'</div>'
                 )
@@ -875,26 +908,6 @@ else:
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), severity_badge or f"{total}", source_tag="📈 Histórico", subtitle="Alianças longas de ❤️ que foram rompidas. Quanto mais dias seguidos, mais grave a ruptura.")}
 {rows_html}
-</div>''')
-
-        # ── 🧭 Strategic divergence ──
-        elif ctype == "strategic":
-            podium = card.get("podium", [])
-            leader = card.get("leader", "?")
-            _medals3 = ["🥇", "🥈", "🥉"]
-            strat_html = '<div class="u-s360">'
-            for i, p in enumerate(podium[:3]):
-                strat_html += (
-                    f'<div class="u-s343">'
-                    f'{av(p["name"], 42, "#9b59b6")}'
-                    f'<span class="fs-md u-s017">{_medals3[i]} {p["name"].split()[0]}</span>'
-                    f'<span class="fs-md u-s261">{p["score"]:+.2f}</span>'
-                    f'</div>'
-                )
-            strat_html += '</div>'
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), source_tag="📈 Composto", subtitle="Score médio recebido (queridômetro + votos + eventos). Líder diverge do ranking puro por emoji.")}
-{strat_html}
 </div>''')
 
         # ── 📅 Context — rendered in the header, not as a card ──
@@ -1051,7 +1064,6 @@ Ver análise →
 
 @media (max-width: 575.98px) {
   #cell-sentiment-ranking-today,
-  #cell-strategic-ranking,
   #cell-evolution-queridometro,
   #cell-evolution-strategic {
     display: none;
@@ -1089,7 +1101,6 @@ print(ANALYSIS_DESCRIPTIONS["composite_score_chart"])
 ranking_data = index_data.get("ranking", {})
 _ranking_height = ranking_data.get("height", 500)
 today_rows = ranking_data.get("today", [])
-strategic_rows = ranking_data.get("strategic", [])
 
 
 def _short_name(name):
@@ -1187,89 +1198,6 @@ def render_mobile_queridometro_summary(today_rows, change_week):
         '<div class="ranking-mobile-cta ranking-mobile-note">\n'
         'Gráfico completo no desktop ou na página dedicada:\n'
         '<a href="evolucao.html#sentimento" class="u-s059">ver evolução do queridômetro ↗</a>\n'
-        '</div>\n'
-        '</div>'
-    )
-
-
-def render_mobile_strategic_summary(today_rows, strategic_rows):
-    if not strategic_rows:
-        return "<div class='ranking-mobile-summary'><p class='ranking-mobile-note'>Dados estratégicos indisponíveis.</p></div>"
-
-    quer_sorted = sorted(today_rows, key=lambda x: x.get("score", 0), reverse=True)
-    strat_sorted = sorted(strategic_rows, key=lambda x: x.get("score", 0), reverse=True)
-    quer_rank = {r["name"]: i + 1 for i, r in enumerate(quer_sorted)}
-    strat_rank = {r["name"]: i + 1 for i, r in enumerate(strat_sorted)}
-
-    gaps = []
-    for row in strategic_rows:
-        name = row["name"]
-        qr = quer_rank.get(name)
-        sr = strat_rank.get(name)
-        if qr is None or sr is None:
-            continue
-        gaps.append({
-            "name": name,
-            "gap": qr - sr,
-            "qr": qr,
-            "sr": sr,
-        })
-
-    gap_top = sorted(gaps, key=lambda r: abs(r["gap"]), reverse=True)[:4]
-    hidden_risk = sorted(
-        [r for r in strategic_rows if r.get("queridometro_score", 0) > 0 and r.get("score", 0) < 0],
-        key=lambda r: r.get("score", 0)
-    )[:3]
-    hidden_power = sorted(
-        [r for r in strategic_rows if r.get("queridometro_score", 0) <= 0 and r.get("score", 0) > 0],
-        key=lambda r: r.get("score", 0),
-        reverse=True
-    )[:3]
-
-    gap_html = _render_list(
-        gap_top,
-        "Sem divergências fortes no momento.",
-        lambda r: (
-            f"Q#{r['qr']} → E#{r['sr']} "
-            f"(<span style='color:{'#27ae60' if r['gap'] > 0 else '#e74c3c'};'>"
-            f"{'sobe' if r['gap'] > 0 else 'cai'} {abs(r['gap'])}</span>)"
-        )
-    )
-    risk_html = _render_list(
-        hidden_risk,
-        "Sem risco oculto forte agora.",
-        lambda r: (
-            f"estratégico <span class='u-s005'>{_fmt_signed(r.get('score', 0), 2)}</span> "
-            f"(queridômetro {r.get('queridometro_score', 0):+.1f})"
-        )
-    )
-    power_html = _render_list(
-        hidden_power,
-        "Sem influência subestimada detectada.",
-        lambda r: (
-            f"estratégico <span class='u-s054'>{_fmt_signed(r.get('score', 0), 2)}</span> "
-            f"(queridômetro {r.get('queridometro_score', 0):+.1f})"
-        )
-    )
-
-    return (
-        '<div class="ranking-mobile-summary">\n'
-        '<div class="ranking-mobile-card">\n'
-        '<h4>🧭 Desalinhamento de leitura</h4>\n'
-        '<p class="ranking-mobile-note u-s011">Quem muda mais de posição entre popularidade e jogo.</p>\n'
-        f'{gap_html}\n'
-        '</div>\n'
-        '<div class="ranking-mobile-card">\n'
-        '<h4>⚠️ Risco de voto surpresa</h4>\n'
-        f'{risk_html}\n'
-        '</div>\n'
-        '<div class="ranking-mobile-card">\n'
-        '<h4>🕵️ Influência subestimada</h4>\n'
-        f'{power_html}\n'
-        '</div>\n'
-        '<div class="ranking-mobile-cta ranking-mobile-note">\n'
-        'Gráfico estratégico completo:\n'
-        '<a href="evolucao.html#estrategico" class="u-s059">abrir evolução estratégica ↗</a>\n'
         '</div>\n'
         '</div>'
     )
@@ -1373,95 +1301,6 @@ print(render_mobile_queridometro_summary(today_rows, ranking_data.get("change_we
 
 fig = make_sentiment_ranking(today_rows, title_suffix=latest.get("label", ""), fixed_height=_ranking_height)
 fig.show()
-```
-
-## Estratégico
-
-```{python}
-#| label: strategic-ranking
-#| output: asis
-
-print(render_mobile_strategic_summary(today_rows, strategic_rows))
-
-if strategic_rows:
-    df_strat = pd.DataFrame(strategic_rows).sort_values('score', ascending=True)
-
-    # Build queridômetro rank lookup for divergence display
-    quer_sorted = sorted(today_rows, key=lambda x: -x['score'])
-    quer_rank = {r['name']: i+1 for i, r in enumerate(quer_sorted)}
-    strat_sorted = sorted(strategic_rows, key=lambda x: -x['score'])
-    strat_rank = {r['name']: i+1 for i, r in enumerate(strat_sorted)}
-
-    fig_s = go.Figure()
-    fig_s.add_trace(go.Bar(
-        y=df_strat['name'],
-        x=df_strat['score'],
-        orientation='h',
-        marker_color=[GROUP_COLORS.get(g, '#999') for g in df_strat['group']],
-        text=[f"{s:+.2f}" for s in df_strat['score']],
-        textposition='outside',
-        hovertemplate='%{y}: %{x:+.2f}<br>Queridômetro: %{customdata[0]:+.1f} (#%{customdata[1]})<br>Estratégico: #%{customdata[2]}<extra></extra>',
-        customdata=list(zip(
-            df_strat['queridometro_score'],
-            [quer_rank.get(n, '?') for n in df_strat['name']],
-            [strat_rank.get(n, '?') for n in df_strat['name']],
-        )),
-        showlegend=False
-    ))
-
-    title_s = "Ranking Estratégico"
-    if latest.get("label"):
-        title_s += f" — {latest['label']}"
-
-    fig_s.update_layout(
-        title=title_s,
-        xaxis_title="Score Composto (média recebida)",
-        yaxis_title="",
-        height=_ranking_height,
-        margin=dict(l=150),
-        shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_strat)-0.5,
-                     line=dict(color='red', dash='dash', width=1))]
-    )
-
-    for group, color in GROUP_COLORS.items():
-        fig_s.add_trace(go.Scatter(
-            x=[None], y=[None], mode='markers',
-            marker=dict(size=10, color=color),
-            name=group, showlegend=True
-        ))
-
-    fig_s.show()
-
-    # Show divergence table
-    divergences = []
-    for r in strategic_rows:
-        name = r['name']
-        qr = quer_rank.get(name, 99)
-        sr = strat_rank.get(name, 99)
-        delta = qr - sr
-        if abs(delta) >= 3:
-            divergences.append((name, qr, sr, delta, r['score'], r['queridometro_score']))
-
-    if divergences:
-        divergences.sort(key=lambda x: -abs(x[3]))
-        print("<details class='ranking-desktop-only'><summary><strong>Maiores divergências entre rankings</strong> (≥3 posições)</summary>")
-        print("<div class='table-md u-s072'>")
-        for name, qr, sr, delta, cs, qs in divergences:
-            if delta > 0:
-                icon = "📈"
-                desc = f"sobe {delta} posições"
-                color = "#27ae60"
-            else:
-                icon = "📉"
-                desc = f"cai {abs(delta)} posições"
-                color = "#e74c3c"
-            print(f"<div class='sep-bottom u-s019'>"
-                  f"{icon} <strong>{name}</strong>: Queridômetro #{qr} ({qs:+.1f}) → "
-                  f"Estratégico #{sr} ({cs:+.2f}) — "
-                  f"<span style='color: {color};'>{desc}</span></div>")
-        print("</div></details>")
-else:
-    print("<p class='text-muted'>Dados de relações não disponíveis.</p>")
 ```
 
 ## Evolução

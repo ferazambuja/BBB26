@@ -248,6 +248,9 @@ def compute_streak_data(daily_snapshots: list[dict], eliminated_last_seen: dict[
         if break_from_positive and ref_date:
             severity = "strong" if current_cat == "strong_negative" else "mild"
             latest_label = relevant[-1][1] if relevant else ""
+            # Use the actual transition date (first day of negative streak)
+            break_idx = len(categorized) - streak_len
+            break_date = categorized[break_idx][0] if break_idx < len(categorized) else ref_date
             streak_breaks.append({
                 "giver": actor,
                 "receiver": target,
@@ -255,7 +258,7 @@ def compute_streak_data(daily_snapshots: list[dict], eliminated_last_seen: dict[
                 "previous_category": "positive",
                 "new_emoji": latest_label,
                 "new_category": current_cat,
-                "date": ref_date,
+                "date": break_date,
                 "severity": severity,
             })
 
