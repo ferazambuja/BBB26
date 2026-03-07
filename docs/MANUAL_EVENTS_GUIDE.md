@@ -7,9 +7,9 @@ Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read t
 
 Events **not available from the API** are tracked manually in `data/manual_events.json`.
 
-**Auto-detected from API** (do NOT add manually):
+**Auto-detected / derived** (do NOT add manually in `cartola_points_log`):
 - Líder, Anjo, Monstro, Imune — detected via `characteristics.roles`
-- VIP membership — detected via `characteristics.group`
+- VIP points — primary source is `provas.json` (`tipo=lider` → `vip`), with API fallback via `characteristics.group`
 - Paredão — detected via `characteristics.roles`
 
 Cartola role transitions are auto-detected from consecutive snapshots in `build_derived_data.py` → `build_cartola_data()` and persisted to `data/derived/cartola_data.json`.
@@ -61,6 +61,7 @@ Dinâmica com 4 consequências sorteadas via acessórios carnavalescos. Registre
   - Crie **2 power_events**: `troca_vip` (actor→beneficiado, positivo) e `troca_xepa` (actor→prejudicado, negativo).
   - Actor = quem pegou a Máscara Duas Caras; targets = quem foi promovido e quem foi rebaixado.
   - VIP edge original do Líder NÃO é removido (a troca não foi decisão do Líder).
+  - Cartola: `troca_vip` pode gerar `vip +5` para o promovido na rodada (deduplicado por semana). `troca_xepa` não remove automaticamente pontos já obtidos de VIP.
 
 - **VETO de voto** (1 participante veta o voto de outro no Paredão):
   - Use `voto_anulado` (actor = quem vetou, target = quem perdeu o voto).

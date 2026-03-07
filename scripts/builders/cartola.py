@@ -122,6 +122,197 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
         previous_vip = current_vip.copy()
 
 
+def _event_exists(calculated_points: dict, name: str, week: int, event_key: str) -> bool:
+    week_events = calculated_points.get(name, {}).get(week, [])
+    return any(evt[0] == event_key for evt in week_events)
+
+
+def _add_event_if_missing(calculated_points: dict, name: str, week: int, event_key: str, points: int, date_str: str | None) -> None:
+    if not name:
+        return
+    if _event_exists(calculated_points, name, week, event_key):
+        return
+    calculated_points[name][week].append((event_key, points, date_str))
+
+
+def _normalize_name_list(value) -> list[str]:
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    if isinstance(value, str):
+        v = value.strip()
+        return [v] if v else []
+    return []
+
+
+def _week_from_payload(week_raw, date_str: str) -> int:
+    if isinstance(week_raw, int) and week_raw > 0:
+        return week_raw
+    if date_str:
+        return get_week_number(date_str)
+    return 1
+
+
+def _collect_api_detected(calculated_points: dict) -> dict:
+    tracked = {'lider', 'anjo', 'monstro', 'imunizado', 'emparedado', 'vip'}
+    detected = defaultdict(lambda: defaultdict(set))
+    for name, weeks in calculated_points.items():
+        for week, events in weeks.items():
+            for evt, *_ in events:
+                if evt in tracked:
+                    detected[evt][week].add(name)
+    return detected
+
+
+def _collect_official_role_events(provas_data: dict | None, manual_events: dict, paredoes_data: dict) -> tuple[dict, dict, dict]:
+    """Collect canonical event assignments from provas/manual/ paredões.
+
+    Returns:
+      official_events: event_key -> week -> {name: date}
+      strict_weeks: event_key -> set(weeks) where unexpected API extras must fail
+      leaders_by_week: week -> set(names)
+    """
+    official_events = defaultdict(lambda: defaultdict(dict))
+    strict_weeks = defaultdict(set)
+    leaders_by_week = defaultdict(set)
+
+    def add_official(event_key: str, week: int, names: list[str], date_str: str, strict: bool = False) -> None:
+        if strict:
+            strict_weeks[event_key].add(week)
+        for name in names:
+            n = str(name or '').strip()
+            if not n:
+                continue
+            if n not in official_events[event_key][week]:
+                official_events[event_key][week][n] = date_str or None
+
+    provas = provas_data.get('provas', []) if isinstance(provas_data, dict) else []
+    if isinstance(provas, list):
+        for prova in provas:
+            if not isinstance(prova, dict):
+                continue
+            tipo = str(prova.get('tipo', '')).strip().lower()
+            date_str = str(prova.get('date') or '').strip()
+            week = _week_from_payload(prova.get('week'), date_str)
+            winners = _normalize_name_list(prova.get('vencedores')) or _normalize_name_list(prova.get('vencedor'))
+
+            if tipo in {'lider', 'líder'}:
+                add_official('lider', week, winners, date_str, strict=True)
+                leaders_by_week[week].update(winners)
+
+                vip_names = _normalize_name_list(prova.get('vip'))
+                if vip_names:
+                    vip_source = str(prova.get('vip_source') or '').strip().lower()
+                    vip_strict = vip_source != 'api_fallback'
+                    add_official('vip', week, vip_names, date_str, strict=vip_strict)
+
+            if tipo == 'anjo':
+                add_official('anjo', week, winners, date_str, strict=True)
+
+    for week_event in manual_events.get('weekly_events', []):
+        if not isinstance(week_event, dict):
+            continue
+        week = week_event.get('week')
+        if not isinstance(week, int):
+            continue
+        anjo = week_event.get('anjo')
+        if not isinstance(anjo, dict):
+            continue
+        monstro_names = _normalize_name_list(anjo.get('monstro'))
+        monstro_date = str(anjo.get('prova_date') or week_event.get('start_date') or '')
+        if monstro_names:
+            add_official('monstro', week, monstro_names, monstro_date, strict=False)
+
+        imunizados = _normalize_name_list(anjo.get('imunizado'))
+        imune_date = str(anjo.get('prova_date') or week_event.get('start_date') or '')
+        if imunizados:
+            add_official('imunizado', week, imunizados, imune_date, strict=False)
+
+    for ev in manual_events.get('power_events', []):
+        if not isinstance(ev, dict):
+            continue
+        ev_type = ev.get('type')
+        date_str = str(ev.get('date') or '').strip()
+        week = _week_from_payload(ev.get('week'), date_str)
+        target = str(ev.get('target') or '').strip()
+        if not target:
+            continue
+        if ev_type == 'imunidade':
+            add_official('imunizado', week, [target], date_str, strict=False)
+        elif ev_type == 'troca_vip':
+            add_official('vip', week, [target], date_str, strict=True)
+
+    for paredao in paredoes_data.get('paredoes', []):
+        if not isinstance(paredao, dict):
+            continue
+        date_str = str(paredao.get('data_formacao') or paredao.get('data') or '').strip()
+        week = _week_from_payload(paredao.get('semana'), date_str)
+        indicados = [
+            str(item.get('nome') or '').strip()
+            for item in paredao.get('indicados_finais', [])
+            if isinstance(item, dict) and str(item.get('nome') or '').strip()
+        ]
+        if indicados:
+            add_official('emparedado', week, indicados, date_str, strict=True)
+
+    return official_events, strict_weeks, leaders_by_week
+
+
+def _validate_unexpected_api_extras(api_detected: dict, official_events: dict, strict_weeks: dict, leaders_by_week: dict) -> None:
+    """Fail fast if API has extra names not present in strict official sources."""
+    for event_key, weeks in strict_weeks.items():
+        for week in sorted(weeks):
+            expected = set(official_events.get(event_key, {}).get(week, {}).keys())
+            detected = set(api_detected.get(event_key, {}).get(week, set()))
+
+            # Leaders never score VIP/Imune points, so ignore them in this strict check.
+            if event_key in {'vip', 'imunizado'}:
+                week_leaders = set(leaders_by_week.get(week, set()))
+                expected -= week_leaders
+                detected -= week_leaders
+
+            unexpected = sorted(detected - expected)
+            if unexpected:
+                raise RuntimeError(
+                    f"Cartola strict mismatch ({event_key}, week {week}): "
+                    f"API has unexpected names {unexpected}; expected subset={sorted(expected)}"
+                )
+
+
+def _apply_official_role_fallbacks(calculated_points: dict, official_events: dict, leaders_by_week: dict) -> None:
+    points_by_event = {
+        'lider': CARTOLA_POINTS['lider'],
+        'anjo': CARTOLA_POINTS['anjo'],
+        'monstro': CARTOLA_POINTS['monstro'],
+        'imunizado': CARTOLA_POINTS['imunizado'],
+        'emparedado': CARTOLA_POINTS['emparedado'],
+        'vip': CARTOLA_POINTS['vip'],
+    }
+
+    for event_key, points in points_by_event.items():
+        for week, names_with_date in official_events.get(event_key, {}).items():
+            for name, date_str in names_with_date.items():
+                if event_key in {'vip', 'imunizado'} and (
+                    name in leaders_by_week.get(week, set()) or _event_exists(calculated_points, name, week, 'lider')
+                ):
+                    continue
+                _add_event_if_missing(calculated_points, name, week, event_key, points, date_str)
+
+    # If Monstro recipient had VIP points in the same week, apply extra -5.
+    for week, monstros in official_events.get('monstro', {}).items():
+        vip_names = set(official_events.get('vip', {}).get(week, {}).keys())
+        for name, date_str in monstros.items():
+            if name not in vip_names:
+                continue
+            _add_event_if_missing(
+                calculated_points,
+                name,
+                week,
+                'monstro_retirado_vip',
+                CARTOLA_POINTS['monstro_retirado_vip'],
+                date_str,
+            )
+
+
 def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes_data: dict, daily_snapshots: list[dict]) -> dict:
     """Apply manual events, paredão-derived events, and merge with cartola_points_log.
 
@@ -421,7 +612,13 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
     }
 
 
-def build_cartola_data(daily_snapshots: list[dict], manual_events: dict, paredoes_data: dict, participants_index: list[dict]) -> dict:
+def build_cartola_data(
+    daily_snapshots: list[dict],
+    manual_events: dict,
+    paredoes_data: dict,
+    participants_index: list[dict],
+    provas_data: dict | None = None,
+) -> dict:
     """Build Cartola BBB points data from snapshots, manual events, and paredões.
 
     Returns a dict suitable for writing to cartola_data.json.
@@ -429,5 +626,9 @@ def build_cartola_data(daily_snapshots: list[dict], manual_events: dict, paredoe
     calculated_points = defaultdict(lambda: defaultdict(list))
 
     _detect_cartola_roles(daily_snapshots, calculated_points)
+    api_detected = _collect_api_detected(calculated_points)
+    official_events, strict_weeks, leaders_by_week = _collect_official_role_events(provas_data, manual_events, paredoes_data)
+    _validate_unexpected_api_extras(api_detected, official_events, strict_weeks, leaders_by_week)
+    _apply_official_role_fallbacks(calculated_points, official_events, leaders_by_week)
     all_points = _apply_cartola_manual(calculated_points, manual_events, paredoes_data, daily_snapshots)
     return _format_cartola_output(all_points, participants_index, manual_events, daily_snapshots)

@@ -309,7 +309,13 @@ def build_derived_data() -> None:
     })
 
     # Build Cartola data
-    cartola_data = build_cartola_data(daily_snapshots, manual_events, paredoes, participants_index)
+    cartola_data = build_cartola_data(
+        daily_snapshots,
+        manual_events,
+        paredoes,
+        participants_index,
+        provas_data=provas_data,
+    )
     write_json(DERIVED_DIR / "cartola_data.json", cartola_data)
 
     # Build precomputed reaction matrices

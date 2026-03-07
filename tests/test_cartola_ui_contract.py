@@ -53,16 +53,18 @@ def test_cartola_hides_internal_data_source_copy():
     assert "(API)" not in content
 
 
-def test_cartola_worst_score_highlight_is_active_only():
+def test_cartola_hero_highlights_section_removed():
     content = _read(CARTOLA_QMD)
-    assert "active_bottom = [p for p in leaderboard if p['active'] and p['total'] < 0]" in content
-    assert "Menor pontuação entre ativos" in content
+    assert "Destaques Cartola" not in content
+    assert "Resumo dos últimos eventos" not in content
+    assert "week_event_feed = []" not in content
+    assert "Últimos lançamentos da semana" not in content
 
 
-def test_cartola_hero_copy_is_recent_events_not_daily_wording():
+def test_cartola_copy_has_no_daily_or_events_summary_wording():
     content = _read(CARTOLA_QMD)
     assert "Panorama diário da disputa" not in content
-    assert "últimos eventos" in content.lower()
+    assert "últimos eventos" not in content.lower()
 
 
 def test_cartola_eliminated_avatar_is_grayscale():
@@ -127,8 +129,10 @@ def test_cartola_top5_extremes_are_computed_from_events_dynamically():
     assert "all_time_positive_top5 = sorted(" in content
     assert "all_time_negative_top5 = sorted(" in content
     assert "[:5]" in content
-    assert "sum(evt.get('points', 0) for evt in events if evt.get('points', 0) > 0)" in content
-    assert "sum(evt.get('points', 0) for evt in events if evt.get('points', 0) < 0)" in content
+    assert "positive_breakdown = defaultdict(lambda: {'points': 0, 'count': 0})" in content
+    assert "negative_breakdown = defaultdict(lambda: {'points': 0, 'count': 0})" in content
+    assert "positive_breakdown[evt_type]['points'] += points" in content
+    assert "negative_breakdown[evt_type]['points'] += points" in content
     assert "events = [evt for evt in events if evt.get('week') == week_filter]" in content
     assert "build_extreme_candidates(current_cycle_week, include_inactive=False)" in content
     assert "build_extreme_candidates(include_inactive=True)" in content
@@ -150,9 +154,21 @@ def test_cartola_top5_extremes_handle_inactive_and_weekly_gaps():
     assert "status_by_participant" in content
     assert "is-inactive" in content
     assert "Nenhum participante com saldo positivo na semana" in content
-    assert "Nenhum participante com saldo negativo na semana" in content
+    assert "Ainda não houve lançamentos negativos nesta semana" in content
     assert "inclui participantes ativos e eliminados" in content
     assert ".cartola-extreme-row.is-inactive .cartola-extreme-row-avatar" in css
+
+
+def test_cartola_top5_rows_show_reason_on_hover_and_tap():
+    content = _read(CARTOLA_QMD)
+    css = _read(CARTOLA_CSS)
+    assert "title=\"{reason_summary}\"" in content
+    assert "details class=\"cartola-extreme-row-reason\"" in content
+    assert "cartola-extreme-row-reason-toggle" in content
+    assert "POINTS_LABELS.get(reason['event'], reason['event'])" in content
+    assert ".cartola-extreme-row-reason" in css
+    assert ".cartola-extreme-row-reason-toggle" in css
+    assert ".cartola-extreme-row-reason-text" in css
 
 
 def test_cartola_uses_manual_open_week_as_cycle_reference():
@@ -160,7 +176,7 @@ def test_cartola_uses_manual_open_week_as_cycle_reference():
     assert "manual_open_weeks = sorted(" in content
     assert "current_cycle_week = manual_open_weeks[-1] if manual_open_weeks else n_weeks" in content
     assert "is_transition_cycle = current_cycle_week != n_weeks" in content
-    assert "week_events = all_points.get(entry['name'], {}).get(current_cycle_week, [])" in content
+    assert "max_week_for_display = current_cycle_week if is_transition_cycle else n_weeks" in content
 
 
 def test_cartola_ranking_section_removed_in_favor_of_participant_cards():

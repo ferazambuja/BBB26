@@ -437,7 +437,8 @@ Higher = more aligned; lower = contradiction.
 - **Salvo do paredão (+25)**: quando emparedado é salvo por dinâmica (ex.: Bate-Volta/Big Fone). **Não recebe "Não emparedado"**, mas acumula com **Emparedado**. Se foi emparedado com janela fechada e salvo com janela aberta, vale apenas **Emparedado**.
 - **Não eliminado no paredão (+20)**: indicado que permanece após votação.
 - **Não emparedado (+10)**: disponível para votação e não foi ao paredão; **não vale para imunizados (Líder/Anjo) nem salvos**.
-- **VIP (+5)**: não acumula com Líder.
+- **VIP (+5)**: não acumula com Líder. Fonte primária: `provas.json` (`tipo=lider` → `vip`), com fallback API. Promoções por dinâmica (`troca_vip`) também podem gerar `+5` na rodada.
+- **Tá com Nada**: não há categoria própria de pontuação Cartola oficial para essa condição.
 - **Não recebeu votos da casa (+5)**: disponíveis para votação **sem votos**; não vale para Líder e imunizados.
 - **Palpites (+5)**: pontos extras por acerto de palpites (não modelado no dashboard).
 - **Janela de escalação**: quando aberta, **dinâmicas não pontuam** (não modelamos janela; calculamos pelos eventos reais).

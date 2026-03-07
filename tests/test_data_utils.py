@@ -165,8 +165,8 @@ class TestGetWeekNumber:
     def test_after_last_week(self):
         """Day after last known week boundary starts the next week."""
         assert get_week_number("2026-02-26") == 7
-        # Week 7 remains open until a new Líder is confirmed and boundary is added.
-        assert get_week_number("2026-03-06") == 7
+        # Week 7 boundary is 2026-03-05; week 8 starts on 2026-03-06.
+        assert get_week_number("2026-03-06") == 8
 
     def test_monotonic_increase(self):
         """Week numbers should be monotonically non-decreasing."""

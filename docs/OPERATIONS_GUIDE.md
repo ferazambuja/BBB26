@@ -171,7 +171,7 @@ Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for m
 | W2 | Mon Jan 26 | Bombas com temas do público | Plateia define planta (Solange) |
 | W3 | Mon Feb 2 | Pior futebol do mundo | Escalação com papéis negativos |
 | W4 | Mon Feb 9 | Quem Sou Eu? (adivinhação) | Plateia define mais apagada (Marciele) |
-| W5 | Mon Feb 16 | **MISSING** — needs data | Done hastily on live show, not yet classified |
+| W5 | Mon Feb 16 | Cancelado (Carnaval) | Globo exibiu desfiles. Sincerão feito ao vivo de forma abreviada. Dados mínimos registrados (3 edges: previsões dos emparedados). |
 | W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
 | W7 | Mon Mar 2 | Linha Direta — maior traidor(a) | Each participant calls one person they consider the biggest traitor |
 | W8 | TBD | TBD | |
@@ -223,8 +223,97 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/  # if available
    ```
 
+   **VIP article sourcing**: The VIP composition article is typically published within hours of the Prova do Líder result. Search the Líder's GShow profile page or the Cartola BBB section for the VIP/Xepa article. Add to `fontes` in both `paredoes.json` and `provas.json`.
+   - **Required field in `provas.json` (tipo=`lider`)**: add `vip` (array with point-eligible VIP names for the round) and `vip_source`.
+   - `vip_source` values:
+     - `oficial_gshow` when list is confirmed by article.
+     - `api_fallback` only when no reliable article/list is available yet.
+   - Cartola safeguard uses `provas.lider.vip` as primary source and API as fallback. Unexpected extra names from API in strict weeks fail the build.
+
 2. **Update `data/provas.json`** — add Prova do Líder results (phases, scores, placements).
    Include `fontes` with `{url, arquivo, titulo}` format pointing to scraped files.
+   See templates below (standard and resistance prova formats).
+
+   **Resistance/dupla provas — full elimination order**:
+   - For resistance or elimination-format provas, record **ALL participants** in order of exit (last out = pos 1)
+   - For dupla provas, both members share the same position
+   - `participantes_total` = number who actually competed (total active minus excluded)
+   - `excluidos: []` required even if empty
+   - Reference: Prova #1 (26h resistance, 20 participants fully ranked) is the model
+   - Source: GShow publishes individual "Nª dupla a deixar a prova" articles — scrape each for provenance
+
+   **Why complete rankings matter**: Every `classificacao` position feeds into `prova_rankings.json` scoring. Unranked participants receive 0 points. Record ALL positions — not just the winner. For multi-phase provas, include both phase results so the builder can compute final positions with offsets.
+
+   **Scoring reference** (hardcoded in `scripts/builders/provas.py`):
+
+   | Position | Base Points | × Líder (1.5) | × Anjo (1.0) | × Bate e Volta (0.75) |
+   |----------|------------|---------------|--------------|----------------------|
+   | 1st      | 10         | 15.0          | 10.0         | 7.5                  |
+   | 2nd      | 7          | 10.5          | 7.0          | 5.25                 |
+   | 3rd      | 5          | 7.5           | 5.0          | 3.75                 |
+   | 4th      | 4          | 6.0           | 4.0          | 3.0                  |
+   | 5th      | 3          | 4.5           | 3.0          | 2.25                 |
+   | 6th      | 2          | 3.0           | 2.0          | 1.5                  |
+   | 7th-8th  | 1          | 1.5           | 1.0          | 0.75                 |
+   | 9th+     | 0.5        | 0.75          | 0.5          | 0.375                |
+   | DQ       | 0          | 0             | 0            | 0                    |
+
+   **`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current week.
+
+   **Líder prova template** (add to `provas` array):
+   ```json
+   {
+     "numero": N,
+     "tipo": "lider",
+     "week": W,
+     "date": "YYYY-MM-DD",
+     "nome": "Nª Prova do Líder — Description",
+     "formato": "format_type",
+     "vencedor": "Winner Name",
+     "vip": ["Name1", "Name2", "Name3", "Name4"],
+     "vip_source": "oficial_gshow",
+     "participantes_total": 14,
+     "excluidos": [],
+     "nota": "Brief description of how the prova worked and who won.",
+     "fases": [
+       {"fase": 1, "tipo": "...", "classificacao": [{"pos": 1, "nome": "Winner"}, ...]}
+     ],
+     "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+   }
+   ```
+
+   **Resistance prova template** (full elimination order):
+   ```json
+   {
+     "numero": N,
+     "tipo": "lider",
+     "week": W,
+     "date": "YYYY-MM-DD",
+     "nome": "Nª Prova do Líder — Resistência em Duplas",
+     "formato": "resistencia_duplas",
+     "vencedor": "Winner Name",
+     "vencedores": ["Winner1", "Winner2"],
+     "vip": ["Name1", "Name2", "Name3"],
+     "vip_source": "oficial_gshow",
+     "participantes_total": 14,
+     "excluidos": [],
+     "nota": "Description of the resistance prova.",
+     "fases": [
+       {
+         "fase": 1,
+         "tipo": "resistencia_duplas",
+         "classificacao": [
+           {"pos": 1, "nome": "Winner1", "nota": "Última dupla (7ª)"},
+           {"pos": 1, "nome": "Winner2", "nota": "Última dupla (7ª)"},
+           {"pos": 3, "nome": "Name3", "nota": "6ª dupla a sair"},
+           {"pos": 3, "nome": "Name4", "nota": "6ª dupla a sair"},
+           {"pos": 13, "nome": "NameN", "nota": "1ª dupla a sair"}
+         ]
+       }
+     ],
+     "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+   }
+   ```
 
 3. **Create paredão skeleton in `data/paredoes.json`** — even before formation details.
    This is **critical** for `leader_periods` to show the correct Líder for the week.
@@ -265,7 +354,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 
 These are picked up automatically by `build_daily_roles()` from snapshots:
 - **Líder role** — appears in `characteristics.roles` (usually within hours of the ceremony)
-- **VIP/Xepa groups** — appears in `characteristics.group` (same timing)
+- **VIP/Xepa groups** — appears in `characteristics.group` (fallback/audit source; official VIP scoring source is `provas.lider.vip`)
 - **Roles cleared briefly** during transition (roles empty for a few hours → normal)
 
 ### Later (when Líder term ends)
@@ -329,6 +418,10 @@ Add a new entry to the `provas` array:
 
 **Phase rules**: Each phase has its own `classificacao`. For binary-outcome finals (e.g., "correct box"), use **winner only** (no rankings for losers). For timed/scored phases, include all participants with positions.
 
+**Scoring**: Every position feeds into `prova_rankings.json`. Record ALL placements, not just the winner. See scoring table in [Líder Checklist](#líder-transition-checklist-thursday-night).
+
+**`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current week.
+
 **Excluded**: Líder always excluded (doesn't play). Others excluded by sorteio, punishment, etc.
 
 ### 3. Update `data/manual_events.json` → `weekly_events[N].anjo`
@@ -356,7 +449,10 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 
 **Fill-later fields** (Sunday [Presente do Anjo](#presente-do-anjo-checklist-sunday-afternoon)): `almoco_date`, `almoco_convidados`, `escolha`, `usou_extra_poder`, `imunizado`. Fill after the Sunday afternoon show.
 
-**Monstro**: API auto-detects the role. Fill `monstro` name from article or API. `monstro_tipo` and `monstro_motivo` when article available.
+**Monstro**: API auto-detects the role. Fill `monstro` name from article or API.
+- `monstro_tipo`: descriptive name of the castigo (e.g., "Monstro Movendo Areia", "Castigo do Monstro — Fantasia de abóbora")
+- `monstro_motivo`: Anjo's stated reason + consequences (e.g., loss of estalecas, VIP→Xepa)
+- Note: GShow sometimes publishes a separate "Castigo do Monstro" article — scrape it if available and add to `fontes`
 
 **Cartola `monstro_retirado_vip`**: Auto-detected. If the Monstro recipient was in VIP in the previous snapshot, the -5 penalty is automatically applied. No manual entry needed.
 
@@ -377,6 +473,10 @@ git push
 - **Anjo role** — `characteristics.roles` contains `"Anjo"`
 - **Monstro role** — `characteristics.roles` contains `"Monstro"`
 - Both appear in `auto_events.json` and `roles_daily.json` after rebuild
+
+### Note on Cartola articles
+
+GShow publishes Cartola-specific recap articles for Líder, Anjo, VIP, Monstro, etc. (e.g., "Alberto Cowboy soma pontos no Cartola BBB"). These are **informational/provenance only** — all Cartola points are auto-detected by `build_derived_data.py`. Optionally scrape and add to `fontes` in `provas.json` or `paredoes.json` for traceability.
 
 ---
 
@@ -455,7 +555,7 @@ git push
 | W4 | Alberto Cowboy | video_familia | Jonas Sulzbach, Sarah Andrade, Edilson | Edilson |
 | W5 | Gabriela | video_familia | Chaiany, Jordana | Chaiany |
 | W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
-| W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | TBD |
+| W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
 
 **Pattern**: 7/7 Anjos chose family video. The 2nd immunity has never been used.
 
@@ -941,15 +1041,26 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 }
 ```
 
-**Edge types** (must match `builders/sincerao.py` weights):
+**Edge types** (must match Sincerão builders):
 
 | Type | Weight | When to use |
 |------|--------|-------------|
 | `podio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Participant puts someone on their podium |
+| `regua` | +0.25 (aggregate mention) | Participant places someone in Top-3 priority/régua |
 | `nao_ganha` | −0.8 | Participant says someone won't win |
+| `regua_fora` | −0.5 (aggregate mention) | Participant leaves someone out of the régua |
 | `bomba` (+ `tema`) | −0.6 | Directed confrontation: bomb themes, "maior traidor(a)", etc. |
 | `paredao_perfeito` | −0.3 | Participant nominates someone for ideal paredão |
 | `prova_eliminou` | −0.15 | Eliminated someone in a Sincerão sub-game |
+| `quem_sai` | contextual (negative signal) | Explicit “quem sai hoje” indication |
+
+After rebuild, verify type coverage and unknown types:
+
+```bash
+jq '.sincerao.type_coverage' data/derived/index_data.json
+```
+
+If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py` before publishing.
 
 **Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `bomba` 0.4.
 
@@ -1067,10 +1178,20 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 
 **What's auto-detected**:
 - From API snapshots: `lider`, `anjo`, `monstro`, `imunizado`, `emparedado`, `vip`
+- VIP strict source: `provas.json` (`tipo=lider` → `vip`, `vip_source`) plus `power_events.type=troca_vip`
 - From manual data: `atendeu_big_fone`, `desistente`, `eliminado`, `desclassificado`
 - From paredões: `salvo_paredao`, `nao_eliminado_paredao`, `nao_emparedado`, `nao_recebeu_votos`
 - Cross-checked: `monstro_retirado_vip` (Monstro recipient was in VIP in previous snapshot)
 - Paredão Falso: `quarto_secreto` (+40, from `paredao_falso: true` + finalized result)
+
+### VIP scoring references (for audits)
+
+Scrape and keep these pages in `docs/scraped/` for future verification:
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/o-que-e-cartola-bbb-entenda-como-funciona-a-novidade-do-reality.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/lider-samira-define-novo-vip-saiba-como-fica-a-pontuacao-na-setima-rodada-do-cartola-bbb.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/bloco-do-paredao-termina-com-tres-emparedados-e-pontuacao-negativa-no-cartola-bbb.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/noticia/bloco-do-paredao-samira-altera-vip-e-xepa-e-troca-edilson-por-ana-paula-renault.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/ana-paula-renault-recebe-o-castigo-do-monstro-e-sofre-duas-pontuacoes-negativas-no-cartola-bbb.ghtml
 
 ---
 
@@ -1136,6 +1257,18 @@ cat tmp/page_screenshots/<label>/manifest.json
 cat tmp/page_screenshots/<label>-slices/manifest.json
 ```
 
+### Sincerão QA checklist (mobile + desktop)
+
+Run this checklist page-by-page after each capture cycle (`index`, `relacoes`, debug pages where applicable):
+
+- Dense week (many Sincerão events): top entries are readable without horizontal scroll; overflow is accessible through `<details>`/expanded blocks.
+- Sparse week (few events): no empty/broken containers; layout remains balanced.
+- One-sided week (only positive or only negative): missing lanes show neutral empty-state text instead of blank space.
+- Mixed week: `Atacados`, `Elogiados`, and `Contradições` are all visible and legible.
+- Profile cards (`Recebeu`/`Fez`): chips wrap naturally on mobile; no clipped labels or forced horizontal swipe.
+- Contradiction consistency: contradiction values in profile summaries and top-level radar/pairs are coherent for the same week.
+- Visual density: desktop remains compact/scannable; mobile remains tappable with clear hierarchy.
+
 ### Core commands
 
 Wrapper (recommended, page-by-page progress logs):
@@ -1192,6 +1325,9 @@ python scripts/capture_quarto_screenshots.py \
 - "Looks stuck" on long pages:
   - Run one page first with `--page ... --verbose`.
   - Use slice captures as primary review artifact for extremely tall pages.
+- Intermittent stitch drop (`browser 'default' is not open`):
+  - The script now auto-recovers by reopening the page at the current tile.
+  - In verbose mode you may see `stitch recover: reopening browser at tile ...`.
 - Port in use:
   - Script auto-selects another local port; no manual action needed.
 - Browser/tool missing:

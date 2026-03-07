@@ -121,6 +121,10 @@ current_cycle_week = manual_open_weeks[-1] if manual_open_weeks else n_weeks
 is_transition_cycle = current_cycle_week != n_weeks
 max_week_for_display = current_cycle_week if is_transition_cycle else n_weeks
 participant_slug = {name: slugify_name(name) for name in all_participants}
+lider_points = CARTOLA_POINTS['lider']
+anjo_points = CARTOLA_POINTS['anjo']
+monstro_points = CARTOLA_POINTS['monstro']
+imune_points = CARTOLA_POINTS['imunizado']
 ```
 
 <div class="cartola-page" id="cartola-page" hidden></div>
@@ -129,84 +133,16 @@ participant_slug = {name: slugify_name(name) for name in all_participants}
 #| label: destaques
 #| output: asis
 
-highlights = []
-lider_points = CARTOLA_POINTS['lider']
-anjo_points = CARTOLA_POINTS['anjo']
-monstro_points = CARTOLA_POINTS['monstro']
-paredao_points = CARTOLA_POINTS['emparedado']
-imune_points = CARTOLA_POINTS['imunizado']
-
-if leader and leader['total'] != 0:
-    highlights.append(f"🏆 <strong>{leader['name']}</strong> ({leader['grupo']}) lidera com <strong>{leader['total']:+d}</strong> pontos")
-
-if current_roles.get('Líder'):
-    highlights.append(f"👑 Líder atual: <strong>{current_roles['Líder']}</strong> ({lider_points:+d})")
-if current_roles.get('Anjo'):
-    highlights.append(f"😇 Anjo atual: <strong>{current_roles['Anjo']}</strong> ({anjo_points:+d})")
-if current_roles.get('Monstro'):
-    names = ', '.join(current_roles['Monstro'])
-    highlights.append(f"👹 Monstro: <strong>{names}</strong> ({monstro_points:+d})")
-if current_roles.get('Paredão'):
-    names = ', '.join(current_roles['Paredão'])
-    highlights.append(f"🗳️ No Paredão: <strong>{names}</strong> ({paredao_points:+d})")
-
-weekly_gains = []
-weekly_drops = []
-for entry in leaderboard:
-    if not entry.get('active'):
-        continue
-    week_events = all_points.get(entry['name'], {}).get(current_cycle_week, [])
-    week_delta = sum(event[1] for event in week_events)
-    if week_delta > 0:
-        weekly_gains.append((entry['name'], week_delta))
-    elif week_delta < 0:
-        weekly_drops.append((entry['name'], week_delta))
-
-if weekly_gains:
-    top_gain = max(weekly_gains, key=lambda x: x[1])
-    highlights.append(f"🔥 Maior alta da semana: <strong>{top_gain[0]}</strong> ({top_gain[1]:+d})")
-elif weekly_drops:
-    top_drop = min(weekly_drops, key=lambda x: x[1])
-    highlights.append(f"📉 Maior queda da semana: <strong>{top_drop[0]}</strong> ({top_drop[1]:+d})")
-
-active_bottom = [p for p in leaderboard if p['active'] and p['total'] < 0]
-if active_bottom:
-    worst = min(active_bottom, key=lambda x: x['total'])
-    highlights.append(f"📉 Menor pontuação entre ativos: <strong>{worst['name']}</strong> ({worst['total']:+d})")
-
-hero_html = [
-    '<section class="cartola-hero">',
-    '<div class="cartola-hero-head">',
-    f'<p class="cartola-kicker">Destaques Cartola · Semana {current_cycle_week}</p>',
-    '<h2 class="cartola-hero-title">Resumo dos últimos eventos</h2>',
-    '<p class="cartola-hero-subtitle">Leitura rápida com os movimentos mais recentes da pontuação e dos papéis da semana.</p>',
-    '</div>',
-    '<div class="cartola-highlights">',
-    '<ul>'
-]
-
-if is_transition_cycle:
-    hero_html.insert(
-        5,
-        f'<p class="cartola-cycle-note">Transição detectada: ciclo em andamento na Semana {current_cycle_week}; snapshots já registram sinais da Semana {n_weeks}.</p>'
-    )
-
-for item in highlights[:5]:
-    hero_html.append(f'<li>{item}</li>')
-
-hero_html.extend([
-    '</ul>',
-    '</div>',
-    '</section>',
+nav_html = [
     '<nav id="cartola-quick-jump" class="cartola-jump-nav" aria-label="Atalhos da página Cartola">',
     '<a class="cartola-jump-link" href="#participantes">Participantes</a>',
     '<a class="cartola-jump-link" href="#evolucao">Evolução</a>',
     '<a class="cartola-jump-link" href="#semanas">Semanas</a>',
     '<a class="cartola-jump-link" href="#pontos">Sistema de Pontos</a>',
     '</nav>',
-])
+]
 
-print('\n'.join(hero_html))
+print('\n'.join(nav_html))
 ```
 
 ```{python}
@@ -268,8 +204,36 @@ def build_extreme_candidates(week_filter=None, include_inactive=True):
         if week_filter is not None:
             events = [evt for evt in events if evt.get('week') == week_filter]
 
-        positive_total = sum(evt.get('points', 0) for evt in events if evt.get('points', 0) > 0)
-        negative_total = sum(evt.get('points', 0) for evt in events if evt.get('points', 0) < 0)
+        positive_total = 0
+        negative_total = 0
+        positive_breakdown = defaultdict(lambda: {'points': 0, 'count': 0})
+        negative_breakdown = defaultdict(lambda: {'points': 0, 'count': 0})
+        for evt in events:
+            evt_type = evt.get('event', '')
+            points = evt.get('points', 0)
+            if points > 0:
+                positive_total += points
+                positive_breakdown[evt_type]['points'] += points
+                positive_breakdown[evt_type]['count'] += 1
+            elif points < 0:
+                negative_total += points
+                negative_breakdown[evt_type]['points'] += points
+                negative_breakdown[evt_type]['count'] += 1
+
+        positive_reasons = sorted(
+            (
+                {'event': evt_type, 'points': info['points'], 'count': info['count']}
+                for evt_type, info in positive_breakdown.items()
+            ),
+            key=lambda x: (-x['points'], -x['count'], x['event'])
+        )
+        negative_reasons = sorted(
+            (
+                {'event': evt_type, 'points': info['points'], 'count': info['count']}
+                for evt_type, info in negative_breakdown.items()
+            ),
+            key=lambda x: (x['points'], -x['count'], x['event'])
+        )
 
         base = {
             'name': name,
@@ -278,9 +242,9 @@ def build_extreme_candidates(week_filter=None, include_inactive=True):
             'status': status_by_participant.get(name, ''),
         }
         if positive_total > 0:
-            positives.append({**base, 'points': positive_total})
+            positives.append({**base, 'points': positive_total, 'reasons': positive_reasons})
         if negative_total < 0:
-            negatives.append({**base, 'points': negative_total})
+            negatives.append({**base, 'points': negative_total, 'reasons': negative_reasons})
     return positives, negatives
 
 
@@ -315,6 +279,7 @@ def render_extreme_top5_card(tone_class, kicker, entries, empty_text, caption):
     for pos, entry in enumerate(entries, start=1):
         name = entry['name']
         points = entry['points']
+        reasons = entry.get('reasons', [])
         avatar = entry.get('avatar', '')
         is_active = entry.get('active', True)
         status_text = entry.get('status', '') if not is_active else ''
@@ -322,9 +287,20 @@ def render_extreme_top5_card(tone_class, kicker, entries, empty_text, caption):
         status_badge = f'<span class="cartola-status-badge">{status_text or "saiu"}</span>' if not is_active else ''
         value_tone = 'points-pos' if points > 0 else ('points-neg' if points < 0 else 'points-zero')
         bar_width = (abs(points) / max_abs_points) * 100
+        reason_parts = []
+        for reason in reasons[:3]:
+            reason_label = POINTS_LABELS.get(reason['event'], reason['event'])
+            reason_emoji = POINTS_EMOJI.get(reason['event'], '•')
+            reason_points = reason['points']
+            reason_count = reason.get('count', 0)
+            if reason_count > 1:
+                reason_parts.append(f"{reason_emoji} {reason_label} ({reason_points:+d}, {reason_count}x)")
+            else:
+                reason_parts.append(f"{reason_emoji} {reason_label} ({reason_points:+d})")
+        reason_summary = " · ".join(reason_parts) if reason_parts else "Sem eventos detalhados"
 
         emit(f'''
-<div class="cartola-extreme-row{row_class}">
+<div class="cartola-extreme-row{row_class}" title="{reason_summary}">
   <p class="cartola-extreme-rank">{pos}</p>
 ''')
         if avatar:
@@ -338,6 +314,10 @@ def render_extreme_top5_card(tone_class, kicker, entries, empty_text, caption):
     <div class="cartola-extreme-row-bar">
       <div class="cartola-extreme-row-fill" style="width: {bar_width:.1f}%;"></div>
     </div>
+    <details class="cartola-extreme-row-reason">
+      <summary class="cartola-extreme-row-reason-toggle">Ver motivo</summary>
+      <p class="cartola-extreme-row-reason-text">{reason_summary}</p>
+    </details>
   </div>
   <p class="cartola-extreme-row-value {value_tone}">{points:+d}</p>
 </div>
@@ -362,7 +342,7 @@ render_extreme_top5_card(
     "cartola-extreme-negative",
     f"SEMANA {current_cycle_week} • MAIOR PONTUAÇÃO NEGATIVA (TOP 5)",
     week_negative_top5,
-    "Nenhum participante com saldo negativo na semana",
+    "Ainda não houve lançamentos negativos nesta semana",
     "soma em eventos negativos da semana atual",
 )
 render_extreme_top5_card(
