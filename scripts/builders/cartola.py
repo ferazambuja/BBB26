@@ -264,11 +264,15 @@ def _validate_unexpected_api_extras(api_detected: dict, official_events: dict, s
             expected = set(official_events.get(event_key, {}).get(week, {}).keys())
             detected = set(api_detected.get(event_key, {}).get(week, set()))
 
-            # Leaders never score VIP/Imune points, so ignore them in this strict check.
+            # Leaders and Anjos are auto-placed in VIP by the API but score
+            # separate points (lider/anjo), so exclude them from the VIP strict check.
             if event_key in {'vip', 'imunizado'}:
                 week_leaders = set(leaders_by_week.get(week, set()))
                 expected -= week_leaders
                 detected -= week_leaders
+                # Anjo is also moved to VIP by the API — exclude from VIP check
+                week_anjos = set(official_events.get('anjo', {}).get(week, {}).keys())
+                detected -= week_anjos
 
             unexpected = sorted(detected - expected)
             if unexpected:
