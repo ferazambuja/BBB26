@@ -314,9 +314,9 @@ def render_extreme_top5_card(tone_class, kicker, entries, empty_text, caption):
     <div class="cartola-extreme-row-bar">
       <div class="cartola-extreme-row-fill" style="width: {bar_width:.1f}%;"></div>
     </div>
-    <details class="cartola-extreme-row-reason">
-      <summary class="cartola-extreme-row-reason-toggle">Ver motivo</summary>
-      <p class="cartola-extreme-row-reason-text">{reason_summary}</p>
+    <details class="card-reason">
+      <summary class="card-reason-toggle">Ver motivo</summary>
+      <p class="card-reason-text">{reason_summary}</p>
     </details>
   </div>
   <p class="cartola-extreme-row-value {value_tone}">{points:+d}</p>
@@ -767,13 +767,13 @@ if max_week_for_display > 0:
             print('</div>')
 
         if week_points_list:
-            print(f'<div class="cartola-week-points cartola-collapse" id="cartola-week-collapse-{week}">')
+            print(f'<div class="cartola-week-points" id="cartola-week-collapse-{week}">')
             for idx, wp in enumerate(week_points_list):
                 participant_color = participant_colors.get(wp['name'], '#666')
                 pts_tone = 'points-pos' if wp['total'] > 0 else ('points-neg' if wp['total'] < 0 else 'points-zero')
                 avatar = wp['avatar']
                 events_str = ' '.join([POINTS_EMOJI.get(e, '•') for e, _, _ in wp['events']])
-                extra_class = ' cartola-collapse-extra cartola-week-extra' if idx >= 6 else ''
+                extra_class = ' collapse-extra' if idx >= 6 else ''
 
                 print(f'<article class="cartola-week-point-card{extra_class}" style="--card-accent:{participant_color};">')
                 if avatar:
@@ -793,7 +793,7 @@ if max_week_for_display > 0:
             if len(week_points_list) > 6:
                 emit(f'''
 <button type="button"
-  class="cartola-collapse-toggle cartola-week-more"
+  class="collapse-toggle"
   id="cartola-week-more-{week}"
   data-target="cartola-week-collapse-{week}"
   data-label-more="Ver pontuações completas"

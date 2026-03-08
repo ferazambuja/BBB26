@@ -545,17 +545,31 @@ else:
                 subtitle="Score de hoje (❤️ = +1, negativas = −0.5 a −1). Dado do dia, não acumulado."
             )
 
-            # ── Top (inline + in-card toggle for all) ──
-            medals = ["🥇", "🥈", "🥉", "4º", "5º"]
-            inline_podium = podium_all[:5]
-            overflow_podium = podium_all[5:]
+            # ── Helper: subtle expand toggle ──
+            def _toggle(n):
+                return (
+                    f'<details class="sinc-more" style="margin-top:4px;">'
+                    f'<summary style="list-style:none;cursor:pointer;text-align:center;'
+                    f'padding:4px 0;color:#666;font-size:var(--fs-xs);">'
+                    f'<span style="background:rgba(255,255,255,0.08);padding:2px 14px;'
+                    f'border-radius:10px;">⋯ {n}</span></summary>'
+                )
+
+            # ── Top 6 (only score > 0, medal borders) ──
+            medals = ["🥇", "🥈", "🥉", "4º", "5º", "6º"]
+            medal_borders = ["#f1c40f", "#c0c0c0", "#cd7f32", "#27ae60", "#27ae60", "#27ae60"]
+            podium_all = card.get("podium_all") or podium
+            # Only show participants with positive scores
+            podium_positive = [p for p in podium_all if p["score"] > 0]
+            inline_podium = podium_positive[:6]
+            overflow_podium = podium_positive[6:]
             podium_html = '<div>'
             podium_html += '<div class="fs-2xs u-s060">⬆ Mais queridos</div>'
             podium_html += '<div class="u-s065">'
             for i, p in enumerate(inline_podium):
                 name = p["name"]
                 score = p["score"]
-                border = av_group_border(name)
+                border = medal_borders[i] if i < len(medal_borders) else "#27ae60"
                 label = medals[i] if i < len(medals) else f"{i+1}º"
                 podium_html += (
                     f'<div class="u-s344">'
@@ -563,59 +577,66 @@ else:
                     f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
                     f'</div>'
                 )
-            podium_html += '</div></div>'
+            podium_html += '</div>'  # close u-s065
             if overflow_podium:
-                podium_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_podium))
+                podium_html += _toggle(len(overflow_podium))
+                podium_html += '<div class="u-s065">'
                 for i, p in enumerate(overflow_podium, start=len(inline_podium) + 1):
                     name = p["name"]
                     score = p["score"]
-                    border = av_group_border(name)
-                    label = f"{i}º"
                     podium_html += (
                         f'<div class="u-s344">'
-                        f'{av(name, 42, border)}'
-                        f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
+                        f'{av(name, 42, "#27ae60")}'
+                        f'<span class="fs-md u-s026">{i}º {name.split()[0]} {score:+.1f}</span>'
                         f'</div>'
                     )
                 podium_html += '</div></details>'
+            podium_html += '</div>'  # close column wrapper
 
-            # ── Bottom (inline + in-card toggle for all) ──
+            # ── Bottom 6 (only score < 0, red borders, worst first) ──
             bottom_html = ""
+            bottom_all = card.get("bottom_all") or bottom3
             if bottom_all:
-                inline_bottom = bottom_all[:5]
-                overflow_bottom = bottom_all[5:]
-                bottom_html = '<div>'
-                bottom_html += '<div class="fs-2xs u-s060">⬇ Menos queridos</div>'
-                bottom_html += '<div class="u-s065">'
-                for p in inline_bottom:
-                    name = p["name"]
-                    score = p["score"]
-                    score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
-                    bottom_html += (
-                        f'<div class="u-s340">'
-                        f'{av(name, 42, av_group_border(name))}'
-                        f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
-                        f'</div>'
-                    )
-                bottom_html += '</div></div>'
-                if overflow_bottom:
-                    bottom_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_bottom))
-                    for p in overflow_bottom:
+                # Only show participants with negative scores
+                bottom_negative = [p for p in bottom_all if p["score"] < 0]
+                inline_bottom = bottom_negative[:6]
+                overflow_bottom = bottom_negative[6:]
+                if inline_bottom:
+                    bottom_html = '<div>'
+                    bottom_html += '<div class="fs-2xs u-s060">⬇ Menos queridos</div>'
+                    bottom_html += '<div class="u-s065">'
+                    for p in inline_bottom:
                         name = p["name"]
                         score = p["score"]
-                        score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
+                        score_color = "#e74c3c" if score < -1 else "#f39c12"
                         bottom_html += (
                             f'<div class="u-s340">'
-                            f'{av(name, 42, av_group_border(name))}'
+                            f'{av(name, 42, "#e74c3c")}'
                             f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                             f'</div>'
                         )
-                    bottom_html += '</div></details>'
+                    bottom_html += '</div>'  # close u-s065
+                    if overflow_bottom:
+                        bottom_html += _toggle(len(overflow_bottom))
+                        bottom_html += '<div class="u-s065">'
+                        for p in overflow_bottom:
+                            name = p["name"]
+                            score = p["score"]
+                            score_color = "#e74c3c" if score < -1 else "#f39c12"
+                            bottom_html += (
+                                f'<div class="u-s340">'
+                                f'{av(name, 42, "#e74c3c")}'
+                                f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
+                                f'</div>'
+                            )
+                        bottom_html += '</div></details>'
+                    bottom_html += '</div>'  # close column wrapper
 
-            # ── Movers (inline + in-card toggle for all deltas) ──
+            # ── Movers (up to 3 risers + 3 fallers inline, overflow toggle) ──
             movers_html = ""
             mup_list = mup if isinstance(mup, list) else ([mup] if mup else [])
             mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
+            delta_all = card.get("delta_all", [])
             inline_deltas = []
             if mup_list or mdown_list:
                 inline_deltas = [{"name": d["name"], "delta": d["delta"]} for d in mup_list + mdown_list]
@@ -627,34 +648,51 @@ else:
                 movers_html = '<div>'
                 movers_html += '<div class="fs-2xs u-s060">📅 Variação vs ontem</div>'
                 movers_html += '<div class="u-s065">'
-                for d in inline_deltas:
-                    is_up = d.get("delta", 0) >= 0
-                    name = d["name"]
-                    icon = "📈" if is_up else "📉"
-                    row_cls = "u-s345" if is_up else "u-s341"
-                    text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                for mu in mup_list:
                     movers_html += (
-                        f'<div class="{row_cls}">'
-                        f'{av(name, 42, av_group_border(name))}'
-                        f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
-                        f'</div>'
-                    )
-                movers_html += '</div></div>'
+                        f'<div class="u-s345">'
+                        f'{av(mu["name"], 42, "#27ae60")}'
+                        f'<span class="fs-md u-s026">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
+                        f'</div>')
+                for md in mdown_list:
+                    movers_html += (
+                        f'<div class="u-s341">'
+                        f'{av(md["name"], 42, "#e74c3c")}'
+                        f'<span class="text-neg fs-md">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
+                        f'</div>')
+                if not mup_list and not mdown_list:
+                    for d in inline_deltas:
+                        is_up = d.get("delta", 0) >= 0
+                        name = d["name"]
+                        icon = "📈" if is_up else "📉"
+                        row_cls = "u-s345" if is_up else "u-s341"
+                        text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                        border = "#27ae60" if is_up else "#e74c3c"
+                        movers_html += (
+                            f'<div class="{row_cls}">'
+                            f'{av(name, 42, border)}'
+                            f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
+                            f'</div>'
+                        )
+                movers_html += '</div>'  # close u-s065
                 if overflow_deltas:
-                    movers_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_deltas))
+                    movers_html += _toggle(len(overflow_deltas))
+                    movers_html += '<div class="u-s065">'
                     for d in overflow_deltas:
                         is_up = d.get("delta", 0) >= 0
                         name = d["name"]
                         icon = "📈" if is_up else "📉"
                         row_cls = "u-s345" if is_up else "u-s341"
                         text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                        border = "#27ae60" if is_up else "#e74c3c"
                         movers_html += (
                             f'<div class="{row_cls}">'
-                            f'{av(name, 42, av_group_border(name))}'
+                            f'{av(name, 42, border)}'
                             f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
                             f'</div>'
                         )
                     movers_html += '</div></details>'
+                movers_html += '</div>'  # close column wrapper
 
             # 3-column grid on desktop, stacks on mobile
             print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">

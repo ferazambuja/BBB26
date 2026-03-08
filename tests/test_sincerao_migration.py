@@ -545,12 +545,45 @@ class TestDailyCardsReferenceDate:
         by_type = {c.get("type"): c for c in cards}
 
         assert by_type["changes"]["reference_date"] == "2026-03-02"
+        assert by_type["changes"]["from_date"] == "2026-03-01"
+        assert by_type["changes"]["to_date"] == "2026-03-02"
+        assert "net" in by_type["changes"]
         assert by_type["dramatic"]["reference_date"] == "2026-03-02"
         assert by_type["hostilities"]["reference_date"] == "2026-03-02"
         assert by_type["dramatic"]["scope"] == "today"
         assert by_type["hostilities"]["scope"] == "today"
+        assert by_type["dramatic"]["state"] == "today"
+        assert by_type["hostilities"]["state"] == "today"
+        assert by_type["dramatic"]["display_limit"] == 4
+        assert by_type["hostilities"]["display_limit"] == 4
+        assert by_type["dramatic"]["event_latest_date"] == "2026-03-02"
+        assert by_type["hostilities"]["event_latest_date"] == "2026-03-02"
         assert by_type["dramatic"]["items"][0]["date"] == "2026-03-02"
         assert by_type["hostilities"]["items"][0]["date"] == "2026-03-02"
+
+    def test_daily_cards_emit_empty_state_cards_when_no_events(self):
+        from builders.index_data_builder import _compute_daily_movers_cards
+
+        daily_snapshots = [
+            {"date": "2026-03-01", "participants": [self._participant("A"), self._participant("B")]},
+            {"date": "2026-03-02", "participants": [self._participant("A"), self._participant("B")]},
+        ]
+        daily_matrices = [
+            {("A", "B"): "Coração", ("B", "A"): "Coração"},
+            {("A", "B"): "Coração", ("B", "A"): "Coração"},
+        ]
+
+        _highlights, cards = _compute_daily_movers_cards(daily_snapshots, daily_matrices, ["A", "B"])
+        by_type = {c.get("type"): c for c in cards}
+
+        assert by_type["dramatic"]["state"] == "empty"
+        assert by_type["hostilities"]["state"] == "empty"
+        assert by_type["dramatic"]["scope"] == "empty"
+        assert by_type["hostilities"]["scope"] == "empty"
+        assert by_type["dramatic"]["items"] == []
+        assert by_type["hostilities"]["items"] == []
+        assert by_type["dramatic"]["total"] == 0
+        assert by_type["hostilities"]["total"] == 0
 
 
 class TestBreaksCardReferenceDate:
@@ -584,6 +617,8 @@ class TestBreaksCardReferenceDate:
 
         breaks_card = next(c for c in cards if c.get("type") == "breaks")
         assert breaks_card["reference_date"] == "2026-03-05"
+        assert breaks_card["display_limit"] == 4
+        assert breaks_card["event_latest_date"] == "2026-03-01"
 
 
 # ── Task 4: Contract tests (run after builder wiring) ──
@@ -677,6 +712,12 @@ class TestTopLevelSincerao:
         if vuln:
             assert "items_all" in vuln
             assert len(vuln.get("items_all", [])) >= len(vuln.get("items", []))
+
+        blindados = cards.get("blindados")
+        if blindados:
+            assert "items_all" in blindados
+            assert len(blindados.get("items_all", [])) >= len(blindados.get("items", []))
+            assert blindados.get("display_limit") == 4
 
 
 class TestProfileSincerao_Contract:

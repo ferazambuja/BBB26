@@ -105,6 +105,9 @@ def test_provas_hides_internal_data_source_copy():
 def test_provas_ui_js_has_mobile_collapse_and_page_guard():
     js = _read(PROVAS_JS)
     assert "#provas-page" in js
-    assert "provas-collapse-toggle" in js
-    assert "provas-mobile-collapsed" in js
+    assert "#provas-page" in js
+    # Collapse logic now lives in shared collapse-ui.js
+    collapse_js = _read(REPO_ROOT / "assets" / "collapse-ui.js")
+    assert "collapse-toggle" in collapse_js
+    assert "mobile-collapsed" in collapse_js
 

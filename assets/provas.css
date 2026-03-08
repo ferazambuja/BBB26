@@ -579,9 +579,10 @@
   color: #b7c5db;
 }
 
-.provas-collapse-toggle {
+/* Provas page override for shared collapse toggle */
+body.provas-page .collapse-toggle {
   margin-top: 0.45rem;
-  border: 1px solid rgba(122, 200, 255, 0.38);
+  border-color: rgba(122, 200, 255, 0.38);
   border-radius: 999px;
   padding: 0.3rem 0.65rem;
   font-size: 0.76rem;
@@ -589,27 +590,10 @@
   color: #bfe4ff;
   background: transparent;
 }
-
-.provas-collapse-toggle:hover,
-.provas-collapse-toggle:focus-visible {
+body.provas-page .collapse-toggle:hover,
+body.provas-page .collapse-toggle:focus-visible {
   color: #fff;
   border-color: rgba(165, 228, 255, 0.9);
-}
-
-.provas-mobile-collapsed .provas-collapse-extra {
-  display: none;
-}
-
-.points-pos {
-  color: #65d092;
-}
-
-.points-neg {
-  color: #f38f8f;
-}
-
-.points-zero {
-  color: #b9c6d9;
 }
 
 .provas-legacy-anchor {

@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-06
+> **Last updated**: 2026-03-07
 
 ---
 
@@ -242,7 +242,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    - Reference: Prova #1 (26h resistance, 20 participants fully ranked) is the model
    - Source: GShow publishes individual "Nª dupla a deixar a prova" articles — scrape each for provenance
 
-   **Why complete rankings matter**: Every `classificacao` position feeds into `prova_rankings.json` scoring. Unranked participants receive 0 points. Record ALL positions — not just the winner. For multi-phase provas, include both phase results so the builder can compute final positions with offsets.
+   **Why complete rankings matter**: Every `classificacao` position feeds into `prova_rankings.json` scoring. Unranked participants receive 0 points. Record ALL positions — not just the winner. For multi-phase provas, include both phase results so the builder can compute final positions with offsets. See [How to extract positions from articles](#how-to-extract-positions-from-articles) in the Anjo checklist for a step-by-step guide on turning article text into `classificacao` entries.
 
    **Scoring reference** (hardcoded in `scripts/builders/provas.py`):
 
@@ -418,11 +418,67 @@ Add a new entry to the `provas` array:
 
 **Phase rules**: Each phase has its own `classificacao`. For binary-outcome finals (e.g., "correct box"), use **winner only** (no rankings for losers). For timed/scored phases, include all participants with positions.
 
-**Scoring**: Every position feeds into `prova_rankings.json`. Record ALL placements, not just the winner. See scoring table in [Líder Checklist](#líder-transition-checklist-thursday-night).
+**Scoring**: Every position feeds into `prova_rankings.json`. Record ALL placements, not just the winner. The build will **warn** if `participantes_total` doesn't match the number of ranked participants, and **hard-fail** if the winner isn't at position 1. See scoring table in [Líder Checklist](#líder-transition-checklist-thursday-night).
 
 **`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current week.
 
-**Excluded**: Líder always excluded (doesn't play). Others excluded by sorteio, punishment, etc.
+**Excluded**: Líder always excluded (doesn't play). For dual leadership weeks, **both Líderes** are excluded (reduces field by 2). Others excluded by sorteio, punishment, etc.
+
+#### How to extract positions from articles
+
+Articles rarely give clean rankings. Follow this process to turn article text into `classificacao` entries:
+
+**Step 1 — Count participants.** Active house count minus `excluidos` = `participantes_total`. All of them must appear in at least one phase's `classificacao`.
+
+**Step 2 — Identify what the article tells you.** Typical patterns:
+- Names of eliminated participants per round
+- Names of finalists
+- Winner
+
+**Step 3 — Deduce missing positions.** If the article names 6 eliminated in round 1 and 3 finalists, the remaining participants (total minus eliminated minus finalists) were eliminated in intermediate rounds. Use tied positions for them.
+
+**Step 4 — Choose phase structure.** Use the minimum number of phases that captures all known data:
+
+| Article gives you | Use this structure |
+|---|---|
+| Full per-round results | One fase per round, each with complete classificacao |
+| Eliminatória results + final winner only | 2 fases: (1) eliminatória pass/fail, (2) winner-only final |
+| Eliminatória + finalists but not intermediate rounds | 2 fases: (1) eliminatória, (2) classificatória with finalists ranked + intermediates tied |
+| Only the winner | 1 fase with winner at pos 1 (other participants get `null` — no ranking points) |
+
+**Step 5 — Assign positions.** Rules:
+- **Survivors of a pass/fail phase**: all share `pos: 1` (they all "won" that phase)
+- **Eliminated together**: all share the same position (e.g., 6 eliminated share `pos: 7` if 6 advanced)
+- **Unknown ordering within a group**: use `"tied": true` on each entry
+- **Phase offsets (2-phase provas)**: the builder auto-adds `n_phase2` to phase 1 positions, so phase 1 eliminated at `pos: 7` become final position `7 + 6 = 13` (if phase 2 has 6 entries)
+
+**Example** — 12 participants, article says "6 eliminated in round 1; finalists were Milena, Samira, Leandro; Milena won":
+```json
+{"fase": 1, "tipo": "eliminatoria", "classificacao": [
+  {"pos": 1, "nome": "Milena", "nota": "Avançou"},
+  {"pos": 1, "nome": "Samira", "nota": "Avançou"},
+  {"pos": 1, "nome": "Leandro", "nota": "Avançou"},
+  {"pos": 1, "nome": "Ana Paula Renault", "nota": "Avançou"},
+  {"pos": 1, "nome": "Babu Santana", "nota": "Avançou"},
+  {"pos": 1, "nome": "Solange Couto", "nota": "Avançou"},
+  {"pos": 7, "nome": "Breno", "nota": "Eliminado na eliminatória"},
+  {"pos": 7, "nome": "Chaiany", "nota": "Eliminada na eliminatória"},
+  {"pos": 7, "nome": "Gabriela", "nota": "Eliminada na eliminatória"},
+  {"pos": 7, "nome": "Jordana", "nota": "Eliminada na eliminatória"},
+  {"pos": 7, "nome": "Juliano Floss", "nota": "Eliminado na eliminatória"},
+  {"pos": 7, "nome": "Marciele", "nota": "Eliminada na eliminatória"}
+]},
+{"fase": 2, "tipo": "classificatoria", "classificacao": [
+  {"pos": 1, "nome": "Milena"},
+  {"pos": 2, "nome": "Samira", "nota": "Finalista", "tied": true},
+  {"pos": 2, "nome": "Leandro", "nota": "Finalista", "tied": true},
+  {"pos": 4, "nome": "Ana Paula Renault", "nota": "Eliminada na classificatória", "tied": true},
+  {"pos": 4, "nome": "Babu Santana", "nota": "Eliminado na classificatória", "tied": true},
+  {"pos": 4, "nome": "Solange Couto", "nota": "Eliminada na classificatória", "tied": true}
+]}
+```
+
+This produces final rankings: Milena 1st (10pts), Samira/Leandro tied 2nd (7pts each), Ana Paula/Babu/Solange tied 4th (4pts each), 6 eliminated share 13th (0.5pts each via offset: pos 7 + 6 phase2 entries).
 
 ### 3. Update `data/manual_events.json` → `weekly_events[N].anjo`
 
@@ -459,6 +515,8 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 ### 4. Clean up scheduled events
 
 Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the auto-dedup handles timeline, but cleaner to remove.
+
+**Note**: Anjo/Monstro timeline events come from API role auto-detection (snapshots), not from `weekly_events.anjo`. Removing scheduled events before the next API snapshot creates a temporary gap in the timeline display — this is normal and self-corrects after the next snapshot arrives.
 
 ### 5. Rebuild + commit + push
 
@@ -556,6 +614,7 @@ git push
 | W5 | Gabriela | video_familia | Chaiany, Jordana | Chaiany |
 | W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
 | W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
+| W8 | Milena | TBD | TBD | TBD |
 
 **Pattern**: 7/7 Anjos chose family video. The 2nd immunity has never been used.
 

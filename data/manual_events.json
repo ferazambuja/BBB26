@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-02-28",
+  "_last_updated": "2026-03-07",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -4087,7 +4087,24 @@
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/alberto-cowboy-e-jonas-sulzbach-sao-a-ultima-dupla-a-deixar-a-prova-do-lider-de-resistencia-do-bbb-26.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-lideranca-dupla-contragolpe-e-consenso-de-anjo-e-monstro.ghtml"
-      ]
+      ],
+      "anjo": {
+        "vencedor": "Milena",
+        "prova_date": "2026-03-07",
+        "almoco_date": null,
+        "almoco_convidados": [],
+        "escolha": null,
+        "usou_extra_poder": null,
+        "imunizado": null,
+        "monstro": "Jonas Sulzbach",
+        "monstro_tipo": "Monstro Esponja — transportar água com esponja",
+        "monstro_motivo": "Milena escolheu Jonas Sulzbach (Líder da semana). Motivo: 'Como você é muito bom de prova e gosta de ganhar esse colar'. Consequência: -300 estalecas + VIP→Xepa.",
+        "notas": "Milena venceu a 8ª Prova do Anjo (percurso individual por tempo em 4 fases). Venceu a final contra Samira e Leandro. Indicou Jonas Sulzbach para o Castigo do Monstro Esponja. Dinâmica especial da semana: Anjo e Monstro devem indicar um participante para o Paredão por consenso — se não concordarem, ambos vão para a berlinda.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-milena-vence-a-oitava-prova.ghtml",
+          "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/jonas-sulzbach-recebe-castigo-do-monstro-no-bbb-26.ghtml"
+        ]
+      }
     }
   ],
   "special_events": [
@@ -5946,27 +5963,6 @@
   ],
   "cartola_points_log": [],
   "scheduled_events": [
-    {
-      "date": "2026-03-07",
-      "week": 8,
-      "category": "anjo",
-      "emoji": "👼",
-      "title": "Prova do Anjo",
-      "detail": "Prova do Anjo. Nesta semana, Anjo e Monstro entram em consenso para emparedar uma pessoa. Se não houver consenso, os dois vão ao Paredão.",
-      "time": "A definir",
-      "fontes": [
-        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-do-bbb-26-tem-lideranca-dupla-contragolpe-e-consenso-de-anjo-e-monstro.ghtml"
-      ]
-    },
-    {
-      "date": "2026-03-07",
-      "week": 8,
-      "category": "monstro",
-      "emoji": "👹",
-      "title": "Monstro",
-      "detail": "Anjo escolhe o Monstro. Nesta semana, Anjo e Monstro emparedam alguém em consenso.",
-      "time": "Ao Vivo"
-    },
     {
       "date": "2026-03-07",
       "week": 8,

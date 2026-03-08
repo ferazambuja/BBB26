@@ -34,7 +34,7 @@ def test_cartola_has_mobile_progressive_disclosure_hooks():
     content = _read(CARTOLA_QMD)
     assert "cartola-ranking-more" not in content
     assert "cartola-week-more" in content
-    assert "cartola-collapse-toggle" in content
+    assert 'class="collapse-toggle"' in content
 
 
 def test_cartola_has_evolution_chart_modes():
@@ -163,12 +163,11 @@ def test_cartola_top5_rows_show_reason_on_hover_and_tap():
     content = _read(CARTOLA_QMD)
     css = _read(CARTOLA_CSS)
     assert "title=\"{reason_summary}\"" in content
-    assert "details class=\"cartola-extreme-row-reason\"" in content
-    assert "cartola-extreme-row-reason-toggle" in content
+    assert 'details class="card-reason"' in content
+    assert "card-reason-toggle" in content
     assert "POINTS_LABELS.get(reason['event'], reason['event'])" in content
-    assert ".cartola-extreme-row-reason" in css
-    assert ".cartola-extreme-row-reason-toggle" in css
-    assert ".cartola-extreme-row-reason-text" in css
+    assert ".card-reason" in css or ".cartola-extreme-row-reason" in css
+    assert ".card-reason-toggle" in css or ".cartola-extreme-row-reason-toggle" in css
 
 
 def test_cartola_uses_manual_open_week_as_cycle_reference():

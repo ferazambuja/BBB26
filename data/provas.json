@@ -1,6 +1,6 @@
 {
   "_description": "Competition results and placements for all BBB26 provas.",
-  "_last_updated": "2026-03-06",
+  "_last_updated": "2026-03-07",
   "provas": [
     {
       "numero": 1,
@@ -2307,6 +2307,149 @@
         "Solange Couto"
       ],
       "vip_source": "oficial_gshow"
+    },
+    {
+      "numero": 22,
+      "tipo": "anjo",
+      "week": 8,
+      "date": "2026-03-07",
+      "nome": "8ª Prova do Anjo — Percurso Individual por Tempo (4 fases)",
+      "formato": "percurso_tempo_4fases",
+      "vencedor": "Milena",
+      "participantes_total": 12,
+      "excluidos": [
+        {
+          "nome": "Alberto Cowboy",
+          "motivo": "Líder da semana, não participa"
+        },
+        {
+          "nome": "Jonas Sulzbach",
+          "motivo": "Líder da semana, não participa"
+        }
+      ],
+      "nota": "Prova em múltiplas etapas. Fase eliminatória no gramado: 12 participantes, 6 avançaram. Classificatória: disputa individual por tempo em 4 fases com obstáculos diferentes — top 5, top 4, top 3, e final. Milena venceu a final contra Samira e Leandro completando o percurso em menor tempo.",
+      "fases": [
+        {
+          "fase": 1,
+          "tipo": "eliminatoria",
+          "nota": "12 participantes no gramado. 6 eliminados, 6 avançaram para a classificatória.",
+          "classificacao": [
+            {
+              "pos": 1,
+              "nome": "Samira",
+              "nota": "Avançou para classificatória"
+            },
+            {
+              "pos": 1,
+              "nome": "Milena",
+              "nota": "Avançou para classificatória"
+            },
+            {
+              "pos": 1,
+              "nome": "Solange Couto",
+              "nota": "Avançou para classificatória"
+            },
+            {
+              "pos": 1,
+              "nome": "Ana Paula Renault",
+              "nota": "Avançou para classificatória"
+            },
+            {
+              "pos": 1,
+              "nome": "Babu Santana",
+              "nota": "Avançou para classificatória"
+            },
+            {
+              "pos": 1,
+              "nome": "Leandro",
+              "nota": "Avançou para classificatória"
+            },
+            {
+              "pos": 7,
+              "nome": "Juliano Floss",
+              "nota": "Eliminado na fase eliminatória"
+            },
+            {
+              "pos": 7,
+              "nome": "Gabriela",
+              "nota": "Eliminada na fase eliminatória"
+            },
+            {
+              "pos": 7,
+              "nome": "Chaiany",
+              "nota": "Eliminada na fase eliminatória"
+            },
+            {
+              "pos": 7,
+              "nome": "Jordana",
+              "nota": "Eliminada na fase eliminatória"
+            },
+            {
+              "pos": 7,
+              "nome": "Marciele",
+              "nota": "Eliminada na fase eliminatória"
+            },
+            {
+              "pos": 7,
+              "nome": "Breno",
+              "nota": "Eliminado na fase eliminatória"
+            }
+          ]
+        },
+        {
+          "fase": 2,
+          "tipo": "percurso_individual_tempo",
+          "nota": "Disputa individual por tempo em 4 fases com obstáculos diferentes. Top 5 → top 4 → top 3 → final. Milena completou o percurso final em menor tempo.",
+          "classificacao": [
+            {
+              "pos": 1,
+              "nome": "Milena"
+            },
+            {
+              "pos": 2,
+              "nome": "Samira",
+              "nota": "Finalista",
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Leandro",
+              "nota": "Finalista",
+              "tied": true
+            },
+            {
+              "pos": 4,
+              "nome": "Solange Couto",
+              "nota": "Eliminada nas fases classificatórias",
+              "tied": true
+            },
+            {
+              "pos": 4,
+              "nome": "Ana Paula Renault",
+              "nota": "Eliminada nas fases classificatórias",
+              "tied": true
+            },
+            {
+              "pos": 4,
+              "nome": "Babu Santana",
+              "nota": "Eliminado nas fases classificatórias",
+              "tied": true
+            }
+          ]
+        }
+      ],
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-milena-vence-a-oitava-prova.ghtml",
+          "arquivo": "docs/scraped/quem-e-o-anjo-do-bbb-26-milena-vence-a-oitava-prova.md",
+          "titulo": "Quem é o Anjo do BBB 26? Milena vence a oitava prova"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/jonas-sulzbach-recebe-castigo-do-monstro-no-bbb-26.ghtml",
+          "arquivo": "docs/scraped/jonas-sulzbach-recebe-castigo-do-monstro-no-bbb-26.md",
+          "titulo": "Jonas Sulzbach recebe Castigo do Monstro no BBB 26"
+        }
+      ]
     }
   ]
 }

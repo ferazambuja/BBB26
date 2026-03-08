@@ -317,9 +317,9 @@ def render_top5_card(
     <p class="provas-top5-name">{name}</p>
     {status_badge}
     <div class="provas-top5-bar"><div class="provas-top5-fill" style="width:{width:.1f}%;"></div></div>
-    <details class="provas-top5-row-reason">
-      <summary class="provas-top5-row-reason-toggle">Ver motivo</summary>
-      <p class="provas-top5-row-reason-text">{reason}</p>
+    <details class="card-reason">
+      <summary class="card-reason-toggle">Ver motivo</summary>
+      <p class="card-reason-text">{reason}</p>
     </details>
   </div>
   <p class="provas-top5-value">{value}</p>
@@ -708,11 +708,11 @@ else:
             emit(f'''
 <details class="provas-points-details">
   <summary class="provas-points-summary">📊 Pontos atribuídos nesta prova</summary>
-  <div id="{collapse_id}" class="provas-points-list provas-collapse">
+  <div id="{collapse_id}" class="provas-points-list">
 ''')
 
             for row_index, row in enumerate(scored_entries):
-                extra_class = " provas-collapse-extra" if row_index >= 6 else ""
+                extra_class = " collapse-extra" if row_index >= 6 else ""
                 pos = row.get("position")
                 pos_str = "DQ" if pos == "dq" else (f"{pos}º" if isinstance(pos, int) else "—")
                 pts = row.get("weighted_pts", 0)
@@ -731,7 +731,7 @@ else:
             if len(scored_entries) > 6:
                 emit(f'''
 <button type="button"
-  class="provas-collapse-toggle"
+  class="collapse-toggle"
   id="provas-collapse-toggle-{numero}"
   data-target="{collapse_id}"
   data-label-more="Ver pontuações completas"
