@@ -418,6 +418,8 @@ Add a new entry to the `provas` array:
 
 **Phase rules**: Each phase has its own `classificacao`. For binary-outcome finals (e.g., "correct box"), use **winner only** (no rankings for losers). For timed/scored phases, include all participants with positions.
 
+**`nota_ranking`**: When the source only reveals finalists, classificados, or the winner, add a short `nota_ranking` explaining exactly what is missing. This marks the prova as intentionally partial, keeps the limitation explicit in the data, and suppresses the generic completeness warning during `build_derived_data.py`.
+
 **Scoring**: Every position feeds into `prova_rankings.json`. Record ALL placements, not just the winner. The build will **warn** if `participantes_total` doesn't match the number of ranked participants, and **hard-fail** if the winner isn't at position 1. See scoring table in [Líder Checklist](#líder-transition-checklist-thursday-night).
 
 **`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current week.
@@ -1226,6 +1228,8 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 **When**: After Prova do Líder (Thursday), Prova do Anjo (Saturday), Bate e Volta (Sunday).
 
 **Workflow**: Add entry to the `provas` array with `numero`, `tipo`, `week`, `date`, `vencedor`, `fases`, `fontes`. See [Anjo Checklist](#anjo--monstro-update-checklist-saturday) and [Líder Checklist](#líder-transition-checklist-thursday-night) for templates.
+
+If the ranking is intentionally partial, include `nota_ranking` in the prova entry instead of leaving the limitation implicit.
 
 ### 4. `data/votalhada/polls.json`
 

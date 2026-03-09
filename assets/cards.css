@@ -260,6 +260,179 @@ th.th-soft {
   flex: 1;
 }
 
+/* ── Paredões spotlight (week-specific narrative block) ── */
+.paredao-spotlight {
+  margin: 1.3rem 0 1.6rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at top right, rgba(255, 196, 0, 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(32, 36, 45, 0.96), rgba(19, 21, 27, 0.98));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.24);
+}
+
+.paredao-spotlight-kicker {
+  margin-bottom: 0.35rem;
+  color: #f6c453;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.paredao-spotlight-title {
+  margin: 0 0 0.45rem;
+  font-size: var(--fs-2xl);
+  line-height: 1.15;
+}
+
+.paredao-spotlight-thesis,
+.paredao-spotlight-caveat,
+.paredao-spotlight-note,
+.paredao-spotlight-proof {
+  color: #d7dee8;
+}
+
+.paredao-spotlight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin: 0.9rem 0;
+}
+
+.paredao-spotlight-card {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.85rem 0.9rem;
+}
+
+.paredao-spotlight-card-accent {
+  background: linear-gradient(135deg, rgba(230, 57, 70, 0.2), rgba(241, 196, 15, 0.12));
+  border-color: rgba(241, 196, 15, 0.26);
+}
+
+.paredao-spotlight-card-title,
+.paredao-spotlight-section-title {
+  margin: 0 0 0.3rem;
+  color: #f4f7fb;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.paredao-spotlight-metric {
+  margin: 0.1rem 0 0.25rem;
+  color: #fff;
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.paredao-spotlight-pill {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.55rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef2f7;
+  font-size: var(--fs-xs);
+}
+
+.paredao-spotlight-section {
+  margin-top: 1rem;
+}
+
+.paredao-spotlight-section-card {
+  margin-top: 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.paredao-spotlight-section-card.tone-power {
+  border-color: rgba(246, 196, 83, 0.28);
+  background: linear-gradient(180deg, rgba(246, 196, 83, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.paredao-spotlight-section-card.tone-attack {
+  border-color: rgba(231, 76, 60, 0.28);
+  background: linear-gradient(180deg, rgba(231, 76, 60, 0.09), rgba(255, 255, 255, 0.02));
+}
+
+.paredao-spotlight-section-card.tone-response {
+  border-color: rgba(52, 152, 219, 0.28);
+  background: linear-gradient(180deg, rgba(52, 152, 219, 0.08), rgba(255, 255, 255, 0.02));
+}
+
+.paredao-spotlight-timeline {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.paredao-spotlight-subtitle {
+  margin: 0 0 0.35rem;
+  color: #f7fbff;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.paredao-spotlight-timeline-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.65rem 0.7rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.paredao-spotlight-timeline-meta {
+  color: #f6c453;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.paredao-spotlight-card-secret {
+  background: linear-gradient(135deg, rgba(52, 152, 219, 0.12), rgba(155, 89, 182, 0.1));
+  border-color: rgba(52, 152, 219, 0.28);
+}
+
+.paredao-spotlight-facts {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 768px) {
+  .paredao-spotlight {
+    padding: 0.85rem;
+    border-radius: 14px;
+  }
+
+  .paredao-spotlight-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .paredao-spotlight-timeline-item {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+}
+
 .sinc-person-name {
   color: #e4e4e4;
   font-size: var(--fs-xs);

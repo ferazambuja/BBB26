@@ -217,6 +217,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from pathlib import Path
 from collections import Counter
+from html import escape
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
@@ -239,6 +240,7 @@ from paredao_viz import (
     render_nominee_cards_em_andamento,
     render_nominee_cards_finalized,
     build_paredao_history,
+    render_featured_story,
     render_voting_blocs,
     render_votos_casa_table,
     render_duelo_result_card,
@@ -2260,6 +2262,7 @@ if ultimo and ultimo.get('participantes'):
     vagg = pa_entry.get("vote_aggregates", {})
     per_nominee_data = pa_entry.get("per_nominee", {})
     indicator_reactions = pa_entry.get("indicator_reactions", [])
+    featured_story = pa_entry.get("featured_story")
     rh = pa_entry.get("relationship_history", {})
     indicados_stats = qi.get("indicados_stats", [])
 
@@ -2377,6 +2380,10 @@ if ultimo and ultimo.get('participantes'):
             if vote_concentration:
                 top_predicted = max(vote_concentration, key=vote_concentration.get)
                 print(f"🤖 **Previsão do modelo:** {vote_concentration[top_predicted]} votos previstos para {top_predicted}.\n")
+
+    if featured_story:
+        print(render_featured_story(featured_story))
+        print()
 
     # ── Fatos Interessantes (data-driven insights) ──
     if total_votes > 0 and votos:

@@ -4,6 +4,7 @@ These functions depend on complex upstream data. We create synthetic data
 for 5 participants over 10 days with 1 paredao, then run the real pipeline
 functions and verify the output structures.
 """
+import json
 import pytest
 import sys
 from pathlib import Path
@@ -18,6 +19,9 @@ from build_derived_data import (
     build_relations_scores,
     build_daily_roles,
     build_auto_events,
+    build_sincerao_edges,
+    get_all_snapshots,
+    get_daily_snapshots,
 )
 from data_utils import POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE
 
@@ -333,6 +337,177 @@ class TestBuildParedaoAnalysis:
             assert "name" in entry
             assert "sentiment" in entry
             assert isinstance(entry["sentiment"], (int, float))
+
+
+@pytest.fixture(scope="module")
+def repo_data_dir():
+    return Path(__file__).resolve().parents[1] / "data"
+
+
+@pytest.fixture(scope="module")
+def real_manual_events(repo_data_dir):
+    return json.loads((repo_data_dir / "manual_events.json").read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def real_paredoes_data(repo_data_dir):
+    return json.loads((repo_data_dir / "paredoes.json").read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def real_daily_snapshots():
+    return get_daily_snapshots(get_all_snapshots())
+
+
+@pytest.fixture(scope="module")
+def real_auto_events(real_daily_snapshots):
+    return build_auto_events(build_daily_roles(real_daily_snapshots))
+
+
+@pytest.fixture(scope="module")
+def real_sincerao_edges(real_manual_events):
+    return build_sincerao_edges(real_manual_events)
+
+
+@pytest.fixture(scope="module")
+def real_relations_scores(repo_data_dir):
+    return json.loads((repo_data_dir / "derived" / "relations_scores.json").read_text(encoding="utf-8"))
+
+
+class TestWeek8MilenaSpotlight:
+    """Real-data regression tests for the week-8 Milena spotlight."""
+
+    @pytest.fixture(scope="class")
+    def real_paredao_output(
+        self,
+        real_daily_snapshots,
+        real_paredoes_data,
+        real_manual_events,
+        real_auto_events,
+        real_sincerao_edges,
+        real_relations_scores,
+    ):
+        return build_paredao_analysis(
+            real_daily_snapshots,
+            real_paredoes_data,
+            real_manual_events,
+            real_auto_events,
+            real_sincerao_edges,
+            real_relations_scores,
+        )
+
+    def test_dual_leaders_are_split_into_individual_indicator_pairs(self, real_paredao_output):
+        p8 = real_paredao_output["by_paredao"]["8"]
+        lider_pairs = [
+            pair for pair in p8["indicator_pairs"]
+            if pair["type"] == "lider" and pair["target"] == "Milena"
+        ]
+        assert {"actor": "Alberto Cowboy", "target": "Milena", "type": "lider"} in lider_pairs
+        assert {"actor": "Jonas Sulzbach", "target": "Milena", "type": "lider"} in lider_pairs
+        assert all(pair["actor"] != "Alberto Cowboy + Jonas Sulzbach" for pair in lider_pairs)
+
+    def test_featured_story_is_week8_only_and_tracks_asymmetry(self, real_paredao_output):
+        assert real_paredao_output["by_paredao"]["1"].get("featured_story") is None
+
+        story = real_paredao_output["by_paredao"]["8"]["featured_story"]
+        assert story["kind"] == "milena_targeted_by_dual_leaders"
+        assert story["target"] == "Milena"
+        assert story["actors"] == ["Alberto Cowboy", "Jonas Sulzbach"]
+        assert story["summary_counts"]["leaders_to_target_total"] > story["summary_counts"]["target_back_total"]
+        assert story["formation_day_date"] == "2026-03-08"
+        assert story["formation_day_reactions"] == {
+            "Alberto Cowboy": {"to_target": "Vômito", "from_target": "Vômito"},
+            "Jonas Sulzbach": {"to_target": "Planta", "from_target": "Mentiroso"},
+        }
+
+        timeline = story["timeline"]
+        assert any(
+            item["actor"] == "Alberto Cowboy"
+            and item["target"] == "Milena"
+            and item["event_type"] == "mira_do_lider"
+            for item in timeline
+        )
+        assert any(
+            item["actor"] == "Jonas Sulzbach"
+            and item["target"] == "Milena"
+            and item["event_type"] == "indicacao"
+            and item["week"] == 8
+            for item in timeline
+        )
+        assert any(item["actor"] == "Milena" and item["target"] == "Jonas Sulzbach" for item in timeline)
+
+    def test_featured_story_reuses_prior_public_vote_results(self, real_paredao_output):
+        story = real_paredao_output["by_paredao"]["8"]["featured_story"]
+        prior = {item["paredao_num"]: item for item in story["past_leader_indications"]}
+
+        assert prior[1]["leaders"] == ["Alberto Cowboy"]
+        assert prior[1]["milena_voto_unico"] == pytest.approx(33.02, abs=0.01)
+        assert prior[1]["eliminated"] == "Aline Campos"
+        assert prior[1]["eliminated_voto_unico"] == pytest.approx(60.42, abs=0.01)
+        assert prior[1]["milena_survived"] is True
+
+        assert prior[6]["leaders"] == ["Jonas Sulzbach"]
+        assert prior[6]["milena_voto_unico"] == pytest.approx(32.98, abs=0.01)
+        assert prior[6]["eliminated"] == "Maxiane"
+        assert prior[6]["eliminated_voto_unico"] == pytest.approx(66.20, abs=0.01)
+        assert prior[6]["milena_survived"] is True
+
+    def test_featured_story_includes_power_usage_and_proxy_targeting(self, real_paredao_output):
+        story = real_paredao_output["by_paredao"]["8"]["featured_story"]
+        power_usage = story["power_usage"]
+
+        alberto = power_usage["by_actor"]["Alberto Cowboy"]
+        assert alberto["total"] == 6
+        assert alberto["toward_target"] == 4
+        assert alberto["toward_target_pct"] == pytest.approx(66.7, abs=0.1)
+        assert alberto["toward_target_or_ally"] == 5
+        assert alberto["toward_target_or_ally_pct"] == pytest.approx(83.3, abs=0.1)
+
+        jonas = power_usage["by_actor"]["Jonas Sulzbach"]
+        assert jonas["total"] == 9
+        assert jonas["toward_target"] == 4
+        assert jonas["toward_target_pct"] == pytest.approx(44.4, abs=0.1)
+        assert jonas["toward_target_or_ally"] == 5
+        assert jonas["toward_target_or_ally_pct"] == pytest.approx(55.6, abs=0.1)
+
+        combined = power_usage["combined"]
+        assert combined["total"] == 15
+        assert combined["toward_target"] == 8
+        assert combined["toward_target_pct"] == pytest.approx(53.3, abs=0.1)
+        assert combined["toward_target_or_ally"] == 10
+        assert combined["toward_target_or_ally_pct"] == pytest.approx(66.7, abs=0.1)
+
+        assert any(
+            entry["actor"] == "Jonas Sulzbach"
+            and entry["target"] == "Ana Paula Renault"
+            and "combo" in entry["detail"].lower()
+            and "milena" in entry["detail"].lower()
+            for entry in power_usage["proxy_evidence"]
+        )
+
+    def test_featured_story_includes_secret_queridometro_history(self, real_paredao_output):
+        story = real_paredao_output["by_paredao"]["8"]["featured_story"]
+        secret = story["secret_queridometro"]
+
+        assert "sinal privado" in secret["private_signal_note"].lower()
+        assert "ações públicas" in secret["private_signal_note"].lower()
+
+        alberto = secret["pairs"]["Alberto Cowboy"]
+        assert alberto["to_target"]["ever_sent_heart"] is True
+        assert alberto["to_target"]["mutual_heart_days"] == 0
+        assert alberto["to_target"]["latest_emoji"] == "🤮"
+        assert alberto["from_target"]["latest_emoji"] == "🤮"
+
+        jonas = secret["pairs"]["Jonas Sulzbach"]
+        assert jonas["to_target"]["mutual_heart_days"] == 7
+        assert jonas["to_target"]["latest_emoji"] == "🌱"
+        assert jonas["from_target"]["latest_emoji"] == "🤥"
+
+        facts = " ".join(secret["facts"])
+        assert "❤️" in facts
+        assert "7" in facts
+        assert "🤮" in facts
+        assert "🤥" in facts
 
 
 # ─── TestBuildClustersData ────────────────────────────────────────────────────

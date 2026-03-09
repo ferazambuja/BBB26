@@ -133,14 +133,24 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
             f"expected 1. Check classificacao entries."
         )
 
-    # Validate participantes_total matches ranked participants
-    ranked_count = sum(1 for p in positions.values() if p is not None and p != "dq")
-    if expected_total > 0 and ranked_count > 0 and ranked_count != expected_total:
-        logger.warning(
-            "Prova #%d: participantes_total=%d but %d participants are ranked. "
-            "Check classificacao completeness.",
-            numero, expected_total, ranked_count,
-        )
+    # Validate participantes_total matches accounted participants.
+    # DQ entries are still explicit placements in the source data and should
+    # not trigger a false "missing rankings" warning by themselves.
+    accounted_count = sum(1 for p in positions.values() if p is not None)
+    if expected_total > 0 and accounted_count > 0 and accounted_count != expected_total:
+        missing_count = expected_total - accounted_count
+        if missing_count > 0 and prova.get("nota_ranking"):
+            logger.info(
+                "Prova #%d: ranking incompleto explicitamente documentado em nota_ranking "
+                "(accounted=%d, expected=%d).",
+                numero, accounted_count, expected_total,
+            )
+        else:
+            logger.warning(
+                "Prova #%d: participantes_total=%d but %d participants are accounted for. "
+                "Check classificacao completeness.",
+                numero, expected_total, accounted_count,
+            )
 
     return {
         "numero": numero,

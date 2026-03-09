@@ -43,6 +43,7 @@ _EMOJI_MAP: dict[str, str] = {
     "Biscoito": "🍪", "Coração partido": "💔", "Alvo": "🎯",
     "Vômito": "🤮", "Mentiroso": "🤥",
 }
+_SPOTLIGHT_POWER_TYPES = {"mira_do_lider", "indicacao", "monstro", "barrado_baile", "veto_bate_volta"}
 
 
 def build_paredao_history(
@@ -273,6 +274,213 @@ def render_voting_blocs(
         lines.append(f'</div>')
     lines.append('</div>')
     return '\n'.join(lines)
+
+
+def _spotlight_reaction_emoji(label: str | None) -> str:
+    if not label:
+        return "—"
+    return REACTION_EMOJI.get(label, label)
+
+
+def _render_spotlight_timeline_group(title: str, items: list[dict], tone_class: str) -> str:
+    if not items:
+        return ""
+
+    lines = [f'<div class="paredao-spotlight-section-card {tone_class}">']
+    lines.append(f'<h6 class="paredao-spotlight-subtitle">{safe_html(title)}</h6>')
+    lines.append('<ul class="paredao-spotlight-timeline">')
+    for item in items:
+        week_label = f"S{item.get('week')}" if item.get("week") else item.get("date", "")
+        detail = item.get("detail") or item.get("label") or ""
+        actor = item.get("actor", "")
+        target = item.get("target", "")
+        label = item.get("label", "")
+        lines.append('<li class="paredao-spotlight-timeline-item">')
+        lines.append(f'<span class="paredao-spotlight-timeline-meta">{safe_html(week_label)}</span>')
+        lines.append(
+            f'<span><strong>{safe_html(actor)}</strong> → <strong>{safe_html(target)}</strong>: '
+            f'{safe_html(label)}. <span class="meta-inline">{safe_html(detail)}</span></span>'
+        )
+        lines.append('</li>')
+    lines.append('</ul>')
+    lines.append('</div>')
+    return "\n".join(lines)
+
+
+def _render_secret_pair_card(actor: str, pair_data: dict) -> str:
+    to_target = pair_data.get("to_target", {})
+    from_target = pair_data.get("from_target", {})
+    lines = ['<div class="paredao-spotlight-card paredao-spotlight-card-secret">']
+    lines.append(f'<div class="paredao-spotlight-card-title">{safe_html(actor)} x Milena</div>')
+    lines.append(
+        f'<div class="paredao-spotlight-note"><strong>{safe_html(actor)}</strong> já mandou '
+        f'{safe_html(to_target.get("heart_days", 0))} dia(s) de ❤️ e terminou esse recorte em '
+        f'{safe_html(to_target.get("latest_emoji", "—"))}.</div>'
+    )
+    lines.append(
+        f'<div class="paredao-spotlight-note">Milena terminou contra '
+        f'<strong>{safe_html(actor.split()[0])}</strong> em {safe_html(from_target.get("latest_emoji", "—"))}. '
+        f'❤️ mútuo: {safe_html(to_target.get("mutual_heart_days", 0))} dia(s).</div>'
+    )
+    streak = to_target.get("longest_streak", {})
+    if streak:
+        lines.append(
+            f'<div class="paredao-spotlight-note">Emoji mais constante de {safe_html(actor.split()[0])} → Milena: '
+            f'{safe_html(streak.get("emoji", "—"))} por {safe_html(streak.get("length", 0))} dia(s).</div>'
+        )
+    lines.append('</div>')
+    return "\n".join(lines)
+
+
+def render_featured_story(story: dict | None) -> str:
+    """Render the week-8 spotlight shared by paredao.qmd and paredoes.qmd."""
+    if not story:
+        return ""
+
+    target = story.get("target", "Milena")
+    actors = story.get("actors", [])
+    counts = story.get("summary_counts", {})
+    formation_day_date = story.get("formation_day_date", "")
+    formation_story = story.get("formation_day_reactions", {})
+    timeline = story.get("timeline", [])
+    prior_plate = story.get("past_leader_indications", [])
+    power_usage = story.get("power_usage", {})
+    secret = story.get("secret_queridometro", {})
+    total_hits = counts.get("leaders_to_target_total", 0)
+    total_back = counts.get("target_back_total", 0)
+
+    power_timeline = [item for item in timeline if item.get("event_type") in _SPOTLIGHT_POWER_TYPES and item.get("actor") != target]
+    attack_timeline = [item for item in timeline if item.get("actor") != target and item.get("event_type") not in _SPOTLIGHT_POWER_TYPES]
+    response_timeline = [item for item in timeline if item.get("actor") == target]
+
+    lines = ['<div class="paredao-spotlight">']
+    lines.append('<div class="paredao-spotlight-kicker">Recorte especial da semana</div>')
+    lines.append(f'<h4 class="paredao-spotlight-title">{safe_html(story.get("title", "Milena no alvo dos líderes"))}</h4>')
+    lines.append(
+        f'<p class="paredao-spotlight-thesis">{safe_html(story.get("thesis", ""))}</p>'
+    )
+    lines.append('<div class="paredao-spotlight-grid">')
+
+    for actor in actors:
+        reactions = formation_story.get(actor, {})
+        to_target = _spotlight_reaction_emoji(reactions.get("to_target"))
+        from_target = _spotlight_reaction_emoji(reactions.get("from_target"))
+        hits = counts.get(f"{actor}->{target}", 0)
+        back_hits = counts.get(f"{target}->{actor}", 0)
+        lines.append('<div class="paredao-spotlight-card">')
+        lines.append(f'<div class="paredao-spotlight-card-title">{safe_html(actor)} → {safe_html(target)}</div>')
+        lines.append(f'<div class="paredao-spotlight-metric">{hits}</div>')
+        lines.append(
+            f'<div class="paredao-spotlight-note">{safe_html(actor)} já mirou {safe_html(target)} em {hits} momento(s) diretos; '
+            f'ela devolveu {back_hits} vez(es).</div>'
+        )
+        lines.append(
+            f'<div class="paredao-spotlight-pill">Queridômetro no domingo da formação'
+            f'{f" ({safe_html(formation_day_date[5:])})" if formation_day_date else ""}: '
+            f'{safe_html(actor.split()[0])} {safe_html(to_target)} {safe_html(target)} · '
+            f'{safe_html(target)} {safe_html(from_target)} {safe_html(actor.split()[0])}</div>'
+        )
+        lines.append('</div>')
+
+    lines.append('<div class="paredao-spotlight-card paredao-spotlight-card-accent">')
+    lines.append('<div class="paredao-spotlight-card-title">Assimetria do recorte</div>')
+    lines.append(f'<div class="paredao-spotlight-metric">{total_hits} x {total_back}</div>')
+    lines.append(
+        f'<div class="paredao-spotlight-note">Nos eventos diretos entre os três, Alberto e Jonas somam {total_hits} ataques contra '
+        f'{safe_html(target)}. Ela soma {total_back} devoluções.</div>'
+    )
+    lines.append('</div>')
+    lines.append('</div>')
+
+    if power_usage:
+        combined_power = power_usage.get("combined", {})
+        by_actor_power = power_usage.get("by_actor", {})
+        proxy_evidence = power_usage.get("proxy_evidence", [])
+        lines.append('<div class="paredao-spotlight-section">')
+        lines.append('<h5 class="paredao-spotlight-section-title">Quando o poder caiu na mão deles</h5>')
+        lines.append('<div class="paredao-spotlight-grid">')
+        lines.append('<div class="paredao-spotlight-card">')
+        lines.append('<div class="paredao-spotlight-card-title">Milena como alvo direto</div>')
+        lines.append(f'<div class="paredao-spotlight-metric">{combined_power.get("toward_target_pct", 0):.1f}%</div>')
+        lines.append(
+            f'<div class="paredao-spotlight-note">{combined_power.get("toward_target", 0)} de '
+            f'{combined_power.get("total", 0)} decisões negativas de Alberto e Jonas miraram diretamente em Milena.</div>'
+        )
+        lines.append('</div>')
+        lines.append('<div class="paredao-spotlight-card">')
+        lines.append('<div class="paredao-spotlight-card-title">Milena ou Ana Paula</div>')
+        lines.append(f'<div class="paredao-spotlight-metric">{combined_power.get("toward_target_or_ally_pct", 0):.1f}%</div>')
+        lines.append(
+            f'<div class="paredao-spotlight-note">{combined_power.get("toward_target_or_ally", 0)} de '
+            f'{combined_power.get("total", 0)} decisões negativas foram contra Milena ou Ana Paula, o eixo mais próximo dela no jogo.</div>'
+        )
+        lines.append('</div>')
+        lines.append('</div>')
+        actor_lines = []
+        for actor in actors:
+            actor_power = by_actor_power.get(actor, {})
+            actor_lines.append(
+                f'{actor}: {actor_power.get("toward_target", 0)}/{actor_power.get("total", 0)} '
+                f'({actor_power.get("toward_target_pct", 0):.1f}%) direto em Milena; '
+                f'{actor_power.get("toward_target_or_ally", 0)}/{actor_power.get("total", 0)} '
+                f'({actor_power.get("toward_target_or_ally_pct", 0):.1f}%) em Milena ou Ana Paula.'
+            )
+        if actor_lines:
+            lines.append(f'<p class="paredao-spotlight-note">{" ".join(safe_html(line) for line in actor_lines)}</p>')
+        if proxy_evidence:
+            lines.append(
+                '<p class="paredao-spotlight-note">Como proxy, Jonas chegou a barrar Ana Paula no baile dizendo que era um '
+                '<strong>“combo, em dobro”</strong>, ligando o ataque à proximidade dela com Milena.</p>'
+            )
+        lines.append('</div>')
+
+    lines.append('<div class="paredao-spotlight-section">')
+    lines.append('<h5 class="paredao-spotlight-section-title">Como a história escalou</h5>')
+    lines.append(_render_spotlight_timeline_group("👑 Poder contra Milena", power_timeline, "tone-power"))
+    lines.append(_render_spotlight_timeline_group("🎯 Ataques diretos e Sincerão", attack_timeline, "tone-attack"))
+    lines.append(_render_spotlight_timeline_group("↩️ Respostas da Milena", response_timeline, "tone-response"))
+    lines.append('</div>')
+
+    if secret:
+        lines.append('<div class="paredao-spotlight-section">')
+        lines.append('<h5 class="paredao-spotlight-section-title">🔒 Queridômetro secreto</h5>')
+        lines.append(f'<p class="paredao-spotlight-note">{safe_html(secret.get("private_signal_note", ""))}</p>')
+        lines.append('<div class="paredao-spotlight-grid">')
+        for actor in actors:
+            pair_data = secret.get("pairs", {}).get(actor)
+            if pair_data:
+                lines.append(_render_secret_pair_card(actor, pair_data))
+        lines.append('</div>')
+        facts = secret.get("facts", [])
+        if facts:
+            lines.append('<div class="paredao-spotlight-facts">')
+            for fact in facts:
+                lines.append(f'<p class="paredao-spotlight-note">• {safe_html(fact)}</p>')
+            lines.append('</div>')
+        lines.append('</div>')
+
+    if prior_plate:
+        lines.append('<div class="paredao-spotlight-section">')
+        lines.append('<h5 class="paredao-spotlight-section-title">Voto Único e resposta do público</h5>')
+        lines.append('<div class="paredao-spotlight-grid">')
+        for item in prior_plate:
+            leaders_label = " + ".join(item.get("leaders", []))
+            milena_vote = item.get("milena_voto_unico") or 0
+            eliminated_vote = item.get("eliminated_voto_unico") or 0
+            lines.append('<div class="paredao-spotlight-card">')
+            lines.append(f'<div class="paredao-spotlight-card-title">{item.get("paredao_num")}º Paredão · {safe_html(leaders_label)}</div>')
+            lines.append(
+                f'<div class="paredao-spotlight-proof">Milena ficou com {milena_vote:.2f}% no Voto Único; '
+                f'{safe_html(item.get("eliminated", ""))} saiu com {eliminated_vote:.2f}%.</div>'
+            )
+            lines.append('</div>')
+        lines.append('</div>')
+        lines.append('<p class="paredao-spotlight-note">Nas duas indicações já concluídas, o público não comprou a leitura dos líderes a ponto de eliminar Milena.</p>')
+        lines.append('</div>')
+
+    lines.append(f'<p class="paredao-spotlight-caveat">{safe_html(story.get("caveat", ""))}</p>')
+    lines.append('</div>')
+    return "\n".join(lines)
 
 
 def render_votos_casa_table(

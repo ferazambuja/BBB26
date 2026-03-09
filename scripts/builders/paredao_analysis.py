@@ -8,10 +8,562 @@ from pathlib import Path
 from data_utils import (
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
     REACTION_EMOJI,
-    build_reaction_matrix, calc_sentiment, patch_missing_raio_x,
+    build_reaction_matrix, calc_sentiment, patch_missing_raio_x, resolve_leaders,
 )
 
 DERIVED_DIR = Path(__file__).parent.parent.parent / "data" / "derived"
+SPOTLIGHT_TARGET = "Milena"
+SPOTLIGHT_ACTORS = ("Alberto Cowboy", "Jonas Sulzbach")
+SPOTLIGHT_TRIO = frozenset((SPOTLIGHT_TARGET, *SPOTLIGHT_ACTORS))
+NEGATIVE_SINC_TYPES = frozenset({"nao_ganha", "bomba", "paredao_perfeito", "regua_fora"})
+POWER_TIMELINE_TYPES = frozenset({"mira_do_lider", "indicacao", "monstro", "barrado_baile", "veto_bate_volta"})
+EVENT_TYPE_LABELS = {
+    "mira_do_lider": "Na Mira do Líder",
+    "indicacao": "Indicação",
+    "monstro": "Monstro",
+    "barrado_baile": "Barrado no Baile",
+    "bomba": "Bomba no Sincerão",
+    "nao_ganha": "Não Ganha",
+    "paredao_perfeito": "Paredão Perfeito",
+    "regua_fora": "Fora da Régua",
+}
+POWER_DECISION_TYPES = frozenset({"mira_do_lider", "indicacao", "barrado_baile", "veto_bate_volta", "monstro"})
+SPOTLIGHT_ALLY = "Ana Paula Renault"
+SECRET_SIGNAL_NOTE = (
+    "O queridômetro é um sinal privado de sentimento: ajuda a mostrar o clima da relação, "
+    "mas pesa menos que ações públicas como indicação, barrado, Monstro e Sincerão."
+)
+
+
+def _story_event_label(event_type: str) -> str:
+    return EVENT_TYPE_LABELS.get(event_type, event_type.replace("_", " ").title())
+
+
+def _is_spotlight_pair(actor: str | None, target: str | None) -> bool:
+    return bool(actor and target and actor != target and actor in SPOTLIGHT_TRIO and target in SPOTLIGHT_TRIO)
+
+
+def _normalize_story_event(
+    *,
+    actor: str,
+    target: str,
+    event_type: str,
+    date: str,
+    week: int | None,
+    detail: str = "",
+    source_kind: str = "",
+) -> dict:
+    return {
+        "actor": actor,
+        "target": target,
+        "event_type": event_type,
+        "label": _story_event_label(event_type),
+        "date": date,
+        "week": week,
+        "detail": detail or _story_event_label(event_type),
+        "source_kind": source_kind,
+    }
+
+
+def _group_power_decisions(
+    par: dict,
+    manual_events: dict | None,
+    auto_events: list[dict] | None,
+) -> list[dict]:
+    grouped: dict[tuple[str, str, str], dict] = {}
+
+    def _register(actor: str, event: dict, source_kind: str) -> None:
+        if actor not in SPOTLIGHT_ACTORS:
+            return
+        if event.get("impacto") != "negativo":
+            return
+        event_type = event.get("type", "")
+        if event_type not in POWER_DECISION_TYPES:
+            return
+        detail = (event.get("detail") or "").lower()
+        # Consensus box dynamics are public mechanics, not discretionary leader-style power use.
+        if event_type == "indicacao" and "dinâmica das caixas" in detail:
+            return
+        key = (actor, event.get("date", ""), event_type)
+        entry = grouped.setdefault(key, {
+            "actor": actor,
+            "date": event.get("date", ""),
+            "week": event.get("week"),
+            "event_type": event_type,
+            "label": _story_event_label(event_type),
+            "targets": [],
+            "details": [],
+            "source_kinds": set(),
+        })
+        target = event.get("target")
+        if target and target not in entry["targets"]:
+            entry["targets"].append(target)
+        raw_detail = event.get("detail", "")
+        if raw_detail and raw_detail not in entry["details"]:
+            entry["details"].append(raw_detail)
+        entry["source_kinds"].add(source_kind)
+
+    for event in (manual_events or {}).get("power_events", []):
+        actors = event.get("actors") or [event.get("actor")]
+        for actor in actors:
+            if actor:
+                _register(actor, event, "manual")
+
+    for event in auto_events or []:
+        actor = event.get("actor")
+        if actor:
+            _register(actor, event, "auto")
+
+    formacao = par.get("formacao", {})
+    if par.get("numero") == 8 and formacao.get("indicado_lider") == SPOTLIGHT_TARGET:
+        detail = formacao.get("motivo_indicacao") or formacao.get("motivo_lider") or "Indicação em consenso ao paredão"
+        for actor in resolve_leaders(formacao):
+            if actor not in SPOTLIGHT_ACTORS:
+                continue
+            key = (actor, par.get("data_formacao") or par.get("data", ""), "indicacao")
+            entry = grouped.setdefault(key, {
+                "actor": actor,
+                "date": par.get("data_formacao") or par.get("data", ""),
+                "week": par.get("semana"),
+                "event_type": "indicacao",
+                "label": _story_event_label("indicacao"),
+                "targets": [],
+                "details": [],
+                "source_kinds": set(),
+            })
+            if SPOTLIGHT_TARGET not in entry["targets"]:
+                entry["targets"].append(SPOTLIGHT_TARGET)
+            if detail and detail not in entry["details"]:
+                entry["details"].append(detail)
+            entry["source_kinds"].add("paredao")
+
+    rows = []
+    for entry in grouped.values():
+        rows.append({
+            **entry,
+            "source_kinds": sorted(entry["source_kinds"]),
+        })
+    rows.sort(key=lambda item: (item["actor"], item["date"], item["event_type"]))
+    return rows
+
+
+def _build_power_usage_story(
+    par: dict,
+    manual_events: dict | None,
+    auto_events: list[dict] | None,
+) -> dict:
+    decisions = _group_power_decisions(par, manual_events, auto_events)
+    by_actor: dict[str, dict] = {}
+
+    for actor in SPOTLIGHT_ACTORS:
+        actor_rows = [row for row in decisions if row["actor"] == actor]
+        toward_target = sum(1 for row in actor_rows if SPOTLIGHT_TARGET in row["targets"])
+        toward_target_or_ally = sum(1 for row in actor_rows if any(target in (SPOTLIGHT_TARGET, SPOTLIGHT_ALLY) for target in row["targets"]))
+        total = len(actor_rows)
+        by_actor[actor] = {
+            "total": total,
+            "toward_target": toward_target,
+            "toward_target_pct": round((toward_target / total * 100), 1) if total else 0.0,
+            "toward_target_or_ally": toward_target_or_ally,
+            "toward_target_or_ally_pct": round((toward_target_or_ally / total * 100), 1) if total else 0.0,
+        }
+
+    total = len(decisions)
+    toward_target = sum(1 for row in decisions if SPOTLIGHT_TARGET in row["targets"])
+    toward_target_or_ally = sum(1 for row in decisions if any(target in (SPOTLIGHT_TARGET, SPOTLIGHT_ALLY) for target in row["targets"]))
+    proxy_evidence = []
+    for row in decisions:
+        if SPOTLIGHT_ALLY not in row["targets"]:
+            continue
+        detail = " ".join(row["details"]).strip()
+        proxy_evidence.append({
+            "actor": row["actor"],
+            "target": SPOTLIGHT_ALLY,
+            "date": row["date"],
+            "week": row["week"],
+            "event_type": row["event_type"],
+            "label": row["label"],
+            "detail": detail,
+        })
+
+    return {
+        "by_actor": by_actor,
+        "combined": {
+            "total": total,
+            "toward_target": toward_target,
+            "toward_target_pct": round((toward_target / total * 100), 1) if total else 0.0,
+            "toward_target_or_ally": toward_target_or_ally,
+            "toward_target_or_ally_pct": round((toward_target_or_ally / total * 100), 1) if total else 0.0,
+        },
+        "decisions": decisions,
+        "proxy_evidence": proxy_evidence,
+    }
+
+
+def _collect_spotlight_timeline(
+    par: dict,
+    manual_events: dict | None,
+    auto_events: list[dict] | None,
+    sincerao_edges: dict | None,
+) -> list[dict]:
+    timeline: list[dict] = []
+
+    for event in (manual_events or {}).get("power_events", []):
+        actor = event.get("actor")
+        target = event.get("target")
+        if not _is_spotlight_pair(actor, target):
+            continue
+        if event.get("impacto") != "negativo":
+            continue
+        timeline.append(_normalize_story_event(
+            actor=actor,
+            target=target,
+            event_type=event.get("type", ""),
+            date=event.get("date", ""),
+            week=event.get("week"),
+            detail=event.get("detail", ""),
+            source_kind="manual",
+        ))
+
+    for event in auto_events or []:
+        actor = event.get("actor")
+        target = event.get("target")
+        if not _is_spotlight_pair(actor, target):
+            continue
+        if event.get("impacto") != "negativo":
+            continue
+        timeline.append(_normalize_story_event(
+            actor=actor,
+            target=target,
+            event_type=event.get("type", ""),
+            date=event.get("date", ""),
+            week=event.get("week"),
+            detail=event.get("detail", ""),
+            source_kind="auto",
+        ))
+
+    for event in (sincerao_edges or {}).get("edges", []):
+        actor = event.get("actor")
+        target = event.get("target")
+        event_type = event.get("type", "")
+        if not _is_spotlight_pair(actor, target):
+            continue
+        if event_type not in NEGATIVE_SINC_TYPES:
+            continue
+        detail = event.get("tema", "") or event.get("detail", "") or _story_event_label(event_type)
+        timeline.append(_normalize_story_event(
+            actor=actor,
+            target=target,
+            event_type=event_type,
+            date=event.get("date", ""),
+            week=event.get("week"),
+            detail=detail,
+            source_kind="sincerao",
+        ))
+
+    formacao = par.get("formacao", {})
+    if par.get("numero") == 8 and formacao.get("indicado_lider") == SPOTLIGHT_TARGET:
+        reason = formacao.get("motivo_indicacao") or formacao.get("motivo_lider") or "Indicação em consenso ao paredão"
+        for leader in resolve_leaders(formacao):
+            if leader not in SPOTLIGHT_ACTORS:
+                continue
+            timeline.append(_normalize_story_event(
+                actor=leader,
+                target=SPOTLIGHT_TARGET,
+                event_type="indicacao",
+                date=par.get("data_formacao") or par.get("data", ""),
+                week=par.get("semana"),
+                detail=f"Indicação em consenso. {reason}",
+                source_kind="paredao",
+            ))
+
+    timeline.sort(key=lambda item: (
+        item.get("date", ""),
+        item.get("week") or 0,
+        item.get("actor", ""),
+        item.get("target", ""),
+        item.get("event_type", ""),
+    ))
+    return timeline
+
+
+def _build_spotlight_past_indications(
+    paredoes_list: list[dict],
+    actors: tuple[str, ...] = SPOTLIGHT_ACTORS,
+    target: str = SPOTLIGHT_TARGET,
+) -> list[dict]:
+    past: list[dict] = []
+    for paredao in paredoes_list:
+        if paredao.get("status") != "finalizado":
+            continue
+        formacao = paredao.get("formacao", {})
+        leaders = [leader for leader in resolve_leaders(formacao) if leader in actors]
+        if not leaders or formacao.get("indicado_lider") != target:
+            continue
+        resultado = paredao.get("resultado") or {}
+        votos = resultado.get("votos") or {}
+        eliminated = resultado.get("eliminado")
+        if not eliminated:
+            continue
+        milena_votes = votos.get(target) or {}
+        eliminated_votes = votos.get(eliminated) or {}
+        if not milena_votes or not eliminated_votes:
+            continue
+        past.append({
+            "paredao_num": paredao.get("numero"),
+            "leaders": leaders,
+            "reason": formacao.get("motivo_lider") or formacao.get("motivo_indicacao") or "",
+            "milena_voto_unico": milena_votes.get("voto_unico"),
+            "eliminated": eliminated,
+            "eliminated_voto_unico": eliminated_votes.get("voto_unico"),
+            "milena_survived": eliminated != target,
+        })
+    return past
+
+
+def _resolve_matrix_at_or_before(
+    target_date: str,
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+) -> tuple[str, dict[tuple[str, str], str] | None]:
+    if not daily_snapshots or not daily_matrices:
+        return "", None
+
+    chosen_idx = 0
+    for idx, snap in enumerate(daily_snapshots):
+        if snap["date"] <= target_date:
+            chosen_idx = idx
+
+    return daily_snapshots[chosen_idx]["date"], daily_matrices[chosen_idx]
+
+
+def _collect_pair_secret_history(
+    actor: str,
+    target: str,
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+    cutoff_date: str,
+) -> list[dict]:
+    history: list[dict] = []
+    for snap, matrix in zip(daily_snapshots, daily_matrices):
+        snap_date = snap["date"]
+        if snap_date > cutoff_date:
+            break
+        label = matrix.get((actor, target), "")
+        if not label:
+            continue
+        reverse_label = matrix.get((target, actor), "")
+        history.append({
+            "date": snap_date,
+            "label": label,
+            "emoji": REACTION_EMOJI.get(label, label),
+            "reverse_label": reverse_label,
+            "reverse_emoji": REACTION_EMOJI.get(reverse_label, reverse_label) if reverse_label else "",
+        })
+    return history
+
+
+def _summarize_pair_secret_history(history: list[dict]) -> dict:
+    if not history:
+        return {
+            "days_with_data": 0,
+            "ever_sent_heart": False,
+            "heart_days": 0,
+            "mutual_heart_days": 0,
+            "first_non_heart_date": None,
+            "latest_label": "",
+            "latest_emoji": "",
+            "most_frequent_label": "",
+            "most_frequent_emoji": "",
+            "most_frequent_count": 0,
+            "longest_streak": {},
+        }
+
+    counts = Counter(item["label"] for item in history)
+    most_frequent_label, most_frequent_count = counts.most_common(1)[0]
+    first_non_heart_date = next((item["date"] for item in history if item["label"] != "Coração"), None)
+    mutual_heart_days = sum(
+        1
+        for item in history
+        if item["label"] == "Coração" and item["reverse_label"] == "Coração"
+    )
+
+    best_streak = {"label": "", "emoji": "", "length": 0, "start_date": None, "end_date": None}
+    current_label = ""
+    current_start = None
+    current_length = 0
+    prev_date = None
+
+    for item in history:
+        label = item["label"]
+        if label == current_label:
+            current_length += 1
+        else:
+            if current_label and current_length > best_streak["length"]:
+                best_streak = {
+                    "label": current_label,
+                    "emoji": REACTION_EMOJI.get(current_label, current_label),
+                    "length": current_length,
+                    "start_date": current_start,
+                    "end_date": prev_date,
+                }
+            current_label = label
+            current_start = item["date"]
+            current_length = 1
+        prev_date = item["date"]
+
+    if current_label and current_length > best_streak["length"]:
+        best_streak = {
+            "label": current_label,
+            "emoji": REACTION_EMOJI.get(current_label, current_label),
+            "length": current_length,
+            "start_date": current_start,
+            "end_date": prev_date,
+        }
+
+    latest = history[-1]
+    return {
+        "days_with_data": len(history),
+        "ever_sent_heart": "Coração" in counts,
+        "heart_days": counts.get("Coração", 0),
+        "mutual_heart_days": mutual_heart_days,
+        "first_non_heart_date": first_non_heart_date,
+        "latest_label": latest["label"],
+        "latest_emoji": latest["emoji"],
+        "most_frequent_label": most_frequent_label,
+        "most_frequent_emoji": REACTION_EMOJI.get(most_frequent_label, most_frequent_label),
+        "most_frequent_count": most_frequent_count,
+        "longest_streak": best_streak,
+    }
+
+
+def _build_secret_queridometro_story(
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+    cutoff_date: str,
+    formation_day_reactions: dict[str, dict[str, str]],
+) -> dict:
+    pairs: dict[str, dict] = {}
+    for actor in SPOTLIGHT_ACTORS:
+        pairs[actor] = {
+            "to_target": _summarize_pair_secret_history(
+                _collect_pair_secret_history(actor, SPOTLIGHT_TARGET, daily_snapshots, daily_matrices, cutoff_date)
+            ),
+            "from_target": _summarize_pair_secret_history(
+                _collect_pair_secret_history(SPOTLIGHT_TARGET, actor, daily_snapshots, daily_matrices, cutoff_date)
+            ),
+        }
+
+    alberto = pairs["Alberto Cowboy"]
+    jonas = pairs["Jonas Sulzbach"]
+    facts = []
+
+    if alberto["to_target"]["ever_sent_heart"] and alberto["to_target"]["mutual_heart_days"] == 0:
+        facts.append(
+            "Alberto até mandou ❤️ para Milena no começo, mas os dois nunca ficaram em ❤️ mútuo no mesmo dia."
+        )
+
+    if jonas["to_target"]["mutual_heart_days"] > 0:
+        facts.append(
+            f"Jonas e Milena tiveram {jonas['to_target']['mutual_heart_days']} dia(s) de ❤️ mútuo antes de a relação azedar."
+        )
+
+    facts.append(
+        "No domingo da formação, o retrato secreto já era "
+        f"Alberto {REACTION_EMOJI.get(formation_day_reactions['Alberto Cowboy']['to_target'], formation_day_reactions['Alberto Cowboy']['to_target'])} "
+        f"Milena e Milena {REACTION_EMOJI.get(formation_day_reactions['Alberto Cowboy']['from_target'], formation_day_reactions['Alberto Cowboy']['from_target'])} Alberto; "
+        f"Jonas {REACTION_EMOJI.get(formation_day_reactions['Jonas Sulzbach']['to_target'], formation_day_reactions['Jonas Sulzbach']['to_target'])} "
+        f"Milena e Milena {REACTION_EMOJI.get(formation_day_reactions['Jonas Sulzbach']['from_target'], formation_day_reactions['Jonas Sulzbach']['from_target'])} Jonas."
+    )
+    facts.append(
+        "No fechamento desse recorte, Alberto termina em "
+        f"{alberto['to_target']['latest_emoji']} contra Milena; "
+        f"Milena responde com {alberto['from_target']['latest_emoji']} para Alberto; "
+        f"Jonas fecha em {jonas['to_target']['latest_emoji']} e Milena em {jonas['from_target']['latest_emoji']}."
+    )
+
+    return {
+        "private_signal_note": SECRET_SIGNAL_NOTE,
+        "pairs": pairs,
+        "facts": facts,
+    }
+
+
+def _build_week8_featured_story(
+    par: dict,
+    paredoes_list: list[dict],
+    matrix_p: dict[tuple[str, str], str] | None,
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+    manual_events: dict | None,
+    auto_events: list[dict] | None,
+    sincerao_edges: dict | None,
+) -> dict | None:
+    if par.get("numero") != 8:
+        return None
+
+    formacao = par.get("formacao", {})
+    leaders = [leader for leader in resolve_leaders(formacao) if leader in SPOTLIGHT_ACTORS]
+    if formacao.get("indicado_lider") != SPOTLIGHT_TARGET or set(leaders) != set(SPOTLIGHT_ACTORS):
+        return None
+
+    formation_day_date, formation_matrix = _resolve_matrix_at_or_before(
+        par.get("data_formacao") or par.get("data", ""),
+        daily_snapshots,
+        daily_matrices,
+    )
+    if formation_matrix is None:
+        formation_day_date = par.get("data_formacao") or par.get("data", "")
+        formation_matrix = matrix_p or {}
+
+    timeline = _collect_spotlight_timeline(par, manual_events, auto_events, sincerao_edges)
+    if not timeline:
+        return None
+
+    summary_counts = {
+        f"{leader}->{SPOTLIGHT_TARGET}": sum(
+            1 for item in timeline if item["actor"] == leader and item["target"] == SPOTLIGHT_TARGET
+        )
+        for leader in SPOTLIGHT_ACTORS
+    }
+    for leader in SPOTLIGHT_ACTORS:
+        summary_counts[f"{SPOTLIGHT_TARGET}->{leader}"] = sum(
+            1 for item in timeline if item["actor"] == SPOTLIGHT_TARGET and item["target"] == leader
+        )
+    summary_counts["leaders_to_target_total"] = sum(
+        summary_counts[f"{leader}->{SPOTLIGHT_TARGET}"] for leader in SPOTLIGHT_ACTORS
+    )
+    summary_counts["target_back_total"] = sum(
+        summary_counts[f"{SPOTLIGHT_TARGET}->{leader}"] for leader in SPOTLIGHT_ACTORS
+    )
+
+    formation_day_reactions = {}
+    for leader in SPOTLIGHT_ACTORS:
+        formation_day_reactions[leader] = {
+            "to_target": formation_matrix.get((leader, SPOTLIGHT_TARGET), "") if formation_matrix else "",
+            "from_target": formation_matrix.get((SPOTLIGHT_TARGET, leader), "") if formation_matrix else "",
+        }
+
+    return {
+        "kind": "milena_targeted_by_dual_leaders",
+        "title": "Milena no alvo de Alberto e Jonas",
+        "target": SPOTLIGHT_TARGET,
+        "actors": list(SPOTLIGHT_ACTORS),
+        "summary_counts": summary_counts,
+        "formation_day_date": formation_day_date,
+        "formation_day_reactions": formation_day_reactions,
+        "timeline": timeline,
+        "past_leader_indications": _build_spotlight_past_indications(paredoes_list),
+        "power_usage": _build_power_usage_story(par, manual_events, auto_events),
+        "secret_queridometro": _build_secret_queridometro_story(
+            daily_snapshots,
+            daily_matrices,
+            formation_day_date,
+            formation_day_reactions,
+        ),
+        "thesis": "Alberto e Jonas acumularam um histórico bem mais longo de ataques diretos contra Milena do que ela construiu de volta.",
+        "caveat": "Milena também devolveu menos e mais tarde, sobretudo a partir da semana 6.",
+    }
 
 
 def _compute_pair_relationship_history(
@@ -187,10 +739,10 @@ def _build_paredao_summary_stats(
     formacao = par.get("formacao", {})
     indicator_pairs: list[dict] = []
 
-    lider = formacao.get("lider")
     indicado_lider = formacao.get("indicado_lider")
-    if lider and indicado_lider:
-        indicator_pairs.append({"actor": lider, "target": indicado_lider, "type": "lider"})
+    if indicado_lider:
+        for lider in resolve_leaders(formacao):
+            indicator_pairs.append({"actor": lider, "target": indicado_lider, "type": "lider"})
 
     contragolpe = formacao.get("contragolpe")
     if contragolpe and contragolpe.get("de") and contragolpe.get("para"):
@@ -259,6 +811,10 @@ def _analyze_single_paredao(
     par: dict,
     daily_snapshots: list[dict],
     daily_matrices: list[dict],
+    paredoes_list: list[dict],
+    manual_events: dict | None = None,
+    auto_events: list[dict] | None = None,
+    sincerao_edges: dict | None = None,
 ) -> dict | None:
     """Analyze a single paredão: nominee stats, relationship history, vote analysis.
 
@@ -290,6 +846,9 @@ def _analyze_single_paredao(
 
     if not snap_for_analysis:
         return None
+
+    if not is_finalizado:
+        analysis_date = snap_for_analysis["date"]
 
     # Sentiment in analysis snapshot
     sent_paredao: dict[str, float] = {}
@@ -388,6 +947,16 @@ def _analyze_single_paredao(
         },
         "relationship_history": relationship_history,
         "vote_analysis": vote_analysis,
+        "featured_story": _build_week8_featured_story(
+            par,
+            paredoes_list,
+            matrix_p,
+            daily_snapshots,
+            daily_matrices,
+            manual_events,
+            auto_events,
+            sincerao_edges,
+        ),
         **summary,
     }
 
@@ -443,7 +1012,14 @@ def _analyze_nominees(
     return indicados_stats
 
 
-def build_paredao_analysis(daily_snapshots: list[dict], paredoes_data: dict | None) -> dict:
+def build_paredao_analysis(
+    daily_snapshots: list[dict],
+    paredoes_data: dict | None,
+    manual_events: dict | None = None,
+    auto_events: list[dict] | None = None,
+    sincerao_edges: dict | None = None,
+    relations_scores: dict | None = None,
+) -> dict:
     """Build quick insights and relationship history for each paredão.
 
     Returns a dict keyed by paredão number with stats for each nominee
@@ -463,8 +1039,17 @@ def build_paredao_analysis(daily_snapshots: list[dict], paredoes_data: dict | No
         daily_matrices.append(matrix)
         prev_matrix = matrix
 
+    _ = relations_scores
     for par in paredoes_list:
-        result = _analyze_single_paredao(par, daily_snapshots, daily_matrices)
+        result = _analyze_single_paredao(
+            par,
+            daily_snapshots,
+            daily_matrices,
+            paredoes_list,
+            manual_events=manual_events,
+            auto_events=auto_events,
+            sincerao_edges=sincerao_edges,
+        )
         if result is not None:
             by_paredao[str(result["numero"])] = result
 
