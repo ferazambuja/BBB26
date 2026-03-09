@@ -47,21 +47,6 @@ DEFAULT_NAME_ALIASES = {
 CONSOLIDADO_SUM_TOLERANCE = 0.25
 SERIES_SUM_TOLERANCE = 0.75
 PLATFORM_SUM_TOLERANCE = 0.60
-SERIES_SCHEDULE_SLOTS = [
-    "00:00",
-    "01:00",
-    "01:30",
-    "08:00",
-    "08:30",
-    "12:00",
-    "15:00",
-    "17:30",
-    "18:00",
-    "21:00",
-    "22:00",
-    "23:30",
-]
-SERIES_EXPECTED_SLOT_SET = set(SERIES_SCHEDULE_SLOTS)
 
 
 def _strip_accents(text: str) -> str:
@@ -379,7 +364,7 @@ def _normalize_hora_token(token: str) -> str | None:
 
 def _coerce_time_progression(time_str: str, previous: str | None) -> str:
     """Coerce likely OCR time slips to the nearest plausible scheduled slot."""
-    schedule = SERIES_SCHEDULE_SLOTS
+    schedule = ["01:00", "01:30", "08:00", "12:00", "15:00", "17:30", "18:00", "21:00"]
 
     def to_minutes(t: str) -> int:
         hh, mm = map(int, t.split(":"))
@@ -926,88 +911,6 @@ def _series_quality(rows: list[dict]) -> tuple[int, int]:
     return (len(rows), int(rows[-1].get("votos", 0)))
 
 
-def _apply_series_time_sanity(
-    rows: list[dict],
-    participants: list[str],
-) -> tuple[list[dict], list[dict], list[str]]:
-    """Apply conservative repairs/warnings for OCR time noise in series rows."""
-    if not rows:
-        return [], [], []
-
-    ordered = sorted(rows, key=lambda r: _parse_hora_pt(r["hora"]))
-    corrections: list[dict] = []
-    warnings: list[str] = []
-    repaired: list[dict] = []
-
-    for idx, row in enumerate(ordered):
-        hora = str(row.get("hora", ""))
-        if " " not in hora or "/" not in hora:
-            warnings.append(f"unrecognized_hora_format:{hora}")
-            repaired.append(row)
-            continue
-
-        day_token, time_token = hora.split(maxsplit=1)
-        target_time = time_token
-
-        # Guarded repairs:
-        # - OCR often misreads 08:00/08:30 as 03:00/03:30
-        # - either as next-day first slot, or as same-day duplicate beside true 08:xx
-        if time_token in {"03:00", "03:30"} and repaired:
-            prev_day, prev_time = repaired[-1]["hora"].split()
-            candidate_time = "08:00" if time_token == "03:00" else "08:30"
-            next_times_same_day = []
-            same_day_duplicate_votes = False
-            for future_row in ordered[idx + 1 :]:
-                future_hora = str(future_row.get("hora", ""))
-                if not future_hora.startswith(f"{day_token} "):
-                    continue
-                _, future_time = future_hora.split(maxsplit=1)
-                next_times_same_day.append(future_time)
-                if (
-                    future_time == candidate_time
-                    and int(future_row.get("votos", 0)) == int(row.get("votos", 0))
-                ):
-                    same_day_duplicate_votes = True
-
-            likely_day_rollover = (
-                prev_day != day_token
-                and prev_time in {"18:00", "21:00", "22:00", "23:30"}
-                and any(t in {"12:00", "15:00", "17:30", "18:00", "21:00", "22:00"} for t in next_times_same_day)
-            )
-            if same_day_duplicate_votes or likely_day_rollover:
-                target_time = candidate_time
-
-        if target_time != time_token:
-            corrected_hora = f"{day_token} {target_time}"
-            same_day_known = {
-                r["hora"].split(maxsplit=1)[1]
-                for r in repaired
-                if str(r.get("hora", "")).startswith(f"{day_token} ")
-            }
-            if target_time in same_day_known:
-                warnings.append(f"time_correction_skipped_duplicate:{hora}->{corrected_hora}")
-            else:
-                corrected = row.copy()
-                corrected["hora"] = corrected_hora
-                repaired.append(corrected)
-                corrections.append(
-                    {
-                        "from": hora,
-                        "to": corrected_hora,
-                        "reason": "rollover_03_to_08_repair",
-                    }
-                )
-                continue
-
-        if target_time not in SERIES_EXPECTED_SLOT_SET:
-            warnings.append(f"unexpected_time_slot:{day_token} {target_time}")
-
-        repaired.append(row)
-
-    cleaned = _clean_series_rows(repaired, participants)
-    return cleaned, corrections, warnings
-
-
 def _extract_platform_rows(lines: list[str], participants: list[str]) -> dict:
     rows: dict[str, dict] = {}
 
@@ -1105,7 +1008,6 @@ def parse_consolidado_snapshot(
             series = series_no_votes
     if source_image is not None:
         series = _coerce_single_row_series_date_from_image(series, source_image)
-    series, time_corrections, time_warnings = _apply_series_time_sanity(series, participants)
 
     capture_hora = series[-1]["hora"] if series else None
 
@@ -1140,8 +1042,6 @@ def parse_consolidado_snapshot(
         },
         "plataformas": plataformas_payload,
         "serie_temporal": series,
-        "time_corrections": time_corrections,
-        "time_warnings": time_warnings,
     }
     if note:
         payload["consolidado"]["nota"] = note
