@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-09T09:02:08.869726+00:00",
+    "generated_at": "2026-03-09T12:10:01.643061+00:00",
     "source": "snapshots+paredoes+manual_events"
   },
   "by_paredao": {
@@ -753,6 +753,7 @@
           "total_days": 1
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "ponto_cego": 6,
@@ -1569,6 +1570,7 @@
           "total_days": 13
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 9,
@@ -2548,6 +2550,7 @@
           "total_days": 15
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 14,
@@ -3619,6 +3622,7 @@
           "total_days": 27
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 15,
@@ -4640,6 +4644,7 @@
           "total_days": 29
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 13,
@@ -5719,6 +5724,7 @@
           "total_days": 41
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 12,
@@ -6911,6 +6917,7 @@
           "total_days": 48
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 11,
@@ -7954,23 +7961,41 @@
           "narrative": "Reconciliaram em 2026-03-08.",
           "total_days": 55
         },
-        "Alberto Cowboy + Jonas Sulzbach→Milena": {
-          "pattern": "sem_dados",
-          "days_as_friends": 0,
-          "days_as_enemies": 0,
+        "Alberto Cowboy→Milena": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 11,
+          "days_as_enemies": 44,
           "days_mutual_friends": 0,
-          "change_date": null,
-          "narrative": "Sem dados",
-          "total_days": 0
+          "change_date": "2026-01-28",
+          "narrative": "Foram amigos por 11 dias, romperam em 2026-01-28.",
+          "total_days": 55
         },
-        "Milena→Alberto Cowboy + Jonas Sulzbach": {
-          "pattern": "sem_dados",
-          "days_as_friends": 0,
-          "days_as_enemies": 0,
+        "Milena→Alberto Cowboy": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 2,
+          "days_as_enemies": 53,
           "days_mutual_friends": 0,
-          "change_date": null,
-          "narrative": "Sem dados",
-          "total_days": 0
+          "change_date": "2026-01-31",
+          "narrative": "Foram amigos por 2 dias, romperam em 2026-01-31.",
+          "total_days": 55
+        },
+        "Jonas Sulzbach→Milena": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 8,
+          "days_as_enemies": 47,
+          "days_mutual_friends": 7,
+          "change_date": "2026-01-26",
+          "narrative": "Foram amigos por 8 dias, romperam em 2026-01-26.",
+          "total_days": 55
+        },
+        "Milena→Jonas Sulzbach": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 10,
+          "days_as_enemies": 45,
+          "days_mutual_friends": 7,
+          "change_date": "2026-01-27",
+          "narrative": "Foram amigos por 10 dias, romperam em 2026-01-27.",
+          "total_days": 55
         },
         "Jordana→Chaiany": {
           "pattern": "ex_amigos",
@@ -8176,6 +8201,564 @@
           "total_days": 55
         }
       ],
+      "featured_story": {
+        "kind": "milena_targeted_by_dual_leaders",
+        "title": "Milena no alvo de Alberto e Jonas",
+        "target": "Milena",
+        "actors": [
+          "Alberto Cowboy",
+          "Jonas Sulzbach"
+        ],
+        "summary_counts": {
+          "Alberto Cowboy->Milena": 7,
+          "Jonas Sulzbach->Milena": 7,
+          "Milena->Alberto Cowboy": 2,
+          "Milena->Jonas Sulzbach": 3,
+          "leaders_to_target_total": 14,
+          "target_back_total": 5
+        },
+        "current_reactions": {
+          "Alberto Cowboy": {
+            "to_target": "Vômito",
+            "from_target": "Vômito"
+          },
+          "Jonas Sulzbach": {
+            "to_target": "Planta",
+            "from_target": "Mentiroso"
+          }
+        },
+        "timeline": [
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "mira_do_lider",
+            "label": "Na Mira do Líder",
+            "date": "2026-01-16",
+            "week": 1,
+            "detail": "Escolhida como um dos 5 alvos na Mira do Líder (1 dos 5 seria indicado ao paredão)",
+            "source_kind": "manual"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "indicacao",
+            "label": "Indicação",
+            "date": "2026-01-18",
+            "week": 1,
+            "detail": "Indicação do líder ao paredão",
+            "source_kind": "manual"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "nao_ganha",
+            "label": "Não Ganha",
+            "date": "2026-01-19",
+            "week": 1,
+            "detail": "Não Ganha",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "bomba",
+            "label": "Bomba no Sincerão",
+            "date": "2026-01-26",
+            "week": 2,
+            "detail": "mais leva-e-traz",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "monstro",
+            "label": "Monstro",
+            "date": "2026-02-07",
+            "week": 4,
+            "detail": "Recebeu o monstro (escolha do Anjo)",
+            "source_kind": "auto"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "barrado_baile",
+            "label": "Barrado no Baile",
+            "date": "2026-02-11",
+            "week": 5,
+            "detail": "Líder escolheu Milena para ficar fora da festa do líder. Milena completou a primeira hora do desafio pintando um desenho de Jonas Sulzbach.",
+            "source_kind": "manual"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "barrado_baile",
+            "label": "Barrado no Baile",
+            "date": "2026-02-18",
+            "week": 6,
+            "detail": "Líder escolheu Milena pela segunda vez consecutiva para ficar fora da festa. Desafio: escrever uma mesma frase em caderno de 50 páginas.",
+            "source_kind": "manual"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "paredao_perfeito",
+            "label": "Paredão Perfeito",
+            "date": "2026-02-20",
+            "week": 6,
+            "detail": "Paredão Perfeito",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "paredao_perfeito",
+            "label": "Paredão Perfeito",
+            "date": "2026-02-20",
+            "week": 6,
+            "detail": "Paredão Perfeito",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Milena",
+            "target": "Alberto Cowboy",
+            "event_type": "paredao_perfeito",
+            "label": "Paredão Perfeito",
+            "date": "2026-02-20",
+            "week": 6,
+            "detail": "Paredão Perfeito",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Milena",
+            "target": "Jonas Sulzbach",
+            "event_type": "paredao_perfeito",
+            "label": "Paredão Perfeito",
+            "date": "2026-02-20",
+            "week": 6,
+            "detail": "Paredão Perfeito",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "indicacao",
+            "label": "Indicação",
+            "date": "2026-02-22",
+            "week": 6,
+            "detail": "Indicação do Líder ao Paredão. Justificativa: 'Porque ela já deixou declarado também que eu sou prioridade para ela'",
+            "source_kind": "manual"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "regua_fora",
+            "label": "Fora da Régua",
+            "date": "2026-02-23",
+            "week": 6,
+            "detail": "Fora da Régua",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "regua_fora",
+            "label": "Fora da Régua",
+            "date": "2026-02-23",
+            "week": 6,
+            "detail": "Fora da Régua",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Milena",
+            "target": "Alberto Cowboy",
+            "event_type": "regua_fora",
+            "label": "Fora da Régua",
+            "date": "2026-02-23",
+            "week": 6,
+            "detail": "Fora da Régua",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Milena",
+            "target": "Jonas Sulzbach",
+            "event_type": "regua_fora",
+            "label": "Fora da Régua",
+            "date": "2026-02-23",
+            "week": 6,
+            "detail": "Fora da Régua",
+            "source_kind": "sincerao"
+          },
+          {
+            "actor": "Milena",
+            "target": "Jonas Sulzbach",
+            "event_type": "monstro",
+            "label": "Monstro",
+            "date": "2026-03-07",
+            "week": 8,
+            "detail": "Recebeu o monstro (escolha do Anjo)",
+            "source_kind": "auto"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "indicacao",
+            "label": "Indicação",
+            "date": "2026-03-08",
+            "week": 8,
+            "detail": "Indicação em consenso. Jonas justificou: 'A rainha da soberba'",
+            "source_kind": "paredao"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "indicacao",
+            "label": "Indicação",
+            "date": "2026-03-08",
+            "week": 8,
+            "detail": "Indicação em consenso. Jonas justificou: 'A rainha da soberba'",
+            "source_kind": "paredao"
+          }
+        ],
+        "past_leader_indications": [
+          {
+            "paredao_num": 1,
+            "leaders": [
+              "Alberto Cowboy"
+            ],
+            "reason": "Indicou Milena sem explicação estratégica clara",
+            "milena_voto_unico": 33.02,
+            "eliminated": "Aline Campos",
+            "eliminated_voto_unico": 60.42,
+            "milena_survived": true
+          },
+          {
+            "paredao_num": 6,
+            "leaders": [
+              "Jonas Sulzbach"
+            ],
+            "reason": "Porque ela já deixou declarado também que eu sou prioridade para ela",
+            "milena_voto_unico": 32.98,
+            "eliminated": "Maxiane",
+            "eliminated_voto_unico": 66.2,
+            "milena_survived": true
+          }
+        ],
+        "power_usage": {
+          "by_actor": {
+            "Alberto Cowboy": {
+              "total": 7,
+              "toward_target": 4,
+              "toward_target_pct": 57.1,
+              "toward_target_or_ally": 5,
+              "toward_target_or_ally_pct": 71.4
+            },
+            "Jonas Sulzbach": {
+              "total": 9,
+              "toward_target": 4,
+              "toward_target_pct": 44.4,
+              "toward_target_or_ally": 5,
+              "toward_target_or_ally_pct": 55.6
+            }
+          },
+          "combined": {
+            "total": 16,
+            "toward_target": 8,
+            "toward_target_pct": 50.0,
+            "toward_target_or_ally": 10,
+            "toward_target_or_ally_pct": 62.5
+          },
+          "decisions": [
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-01-16",
+              "week": 1,
+              "event_type": "mira_do_lider",
+              "label": "Na Mira do Líder",
+              "targets": [
+                "Milena",
+                "Breno",
+                "Paulo Augusto",
+                "Samira",
+                "Maxiane"
+              ],
+              "details": [
+                "Escolhida como um dos 5 alvos na Mira do Líder (1 dos 5 seria indicado ao paredão)",
+                "Escolhido como um dos 5 alvos na Mira do Líder (1 dos 5 seria indicado ao paredão)"
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-01-18",
+              "week": 1,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Indicação do líder ao paredão"
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-01-21",
+              "week": 2,
+              "event_type": "barrado_baile",
+              "label": "Barrado no Baile",
+              "targets": [
+                "Leandro"
+              ],
+              "details": [
+                "Líder escolheu para ficar fora da festa do líder"
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-01-24",
+              "week": 2,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Leandro"
+              ],
+              "details": [
+                "Indicação em consenso via dinâmica das caixas"
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-02-07",
+              "week": 4,
+              "event_type": "monstro",
+              "label": "Monstro",
+              "targets": [
+                "Juliano Floss",
+                "Milena"
+              ],
+              "details": [
+                "Recebeu o monstro (escolha do Anjo)"
+              ],
+              "source_kinds": [
+                "auto"
+              ]
+            },
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-02-28",
+              "week": 7,
+              "event_type": "monstro",
+              "label": "Monstro",
+              "targets": [
+                "Ana Paula Renault"
+              ],
+              "details": [
+                "Recebeu o monstro (escolha do Anjo)"
+              ],
+              "source_kinds": [
+                "auto"
+              ]
+            },
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-03-08",
+              "week": 8,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Líderes Alberto Cowboy e Jonas Sulzbach indicaram Milena ao Paredão em consenso. Jonas: 'A rainha da soberba'.",
+                "Jonas justificou: 'A rainha da soberba'"
+              ],
+              "source_kinds": [
+                "manual",
+                "paredao"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-01-17",
+              "week": 1,
+              "event_type": "monstro",
+              "label": "Monstro",
+              "targets": [
+                "Marcelo"
+              ],
+              "details": [
+                "Recebeu o monstro (escolha do Anjo)"
+              ],
+              "source_kinds": [
+                "auto"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-01-23",
+              "week": 2,
+              "event_type": "monstro",
+              "label": "Monstro",
+              "targets": [
+                "Chaiany"
+              ],
+              "details": [
+                "Recebeu o monstro (escolha do Anjo)"
+              ],
+              "source_kinds": [
+                "auto"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-02-08",
+              "week": 4,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Babu Santana"
+              ],
+              "details": [
+                "Líder Jonas indicou Babu Santana. Justificou citando Big Fone e desavenças."
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-02-11",
+              "week": 5,
+              "event_type": "barrado_baile",
+              "label": "Barrado no Baile",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Líder escolheu Milena para ficar fora da festa do líder. Milena completou a primeira hora do desafio pintando um desenho de Jonas Sulzbach."
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-02-15",
+              "week": 5,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Marcelo"
+              ],
+              "details": [
+                "Líder Jonas indicou Marcelo. Justificou: Marcelo o chamou de falso numa situação que ele nem entendeu direito."
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-02-18",
+              "week": 6,
+              "event_type": "barrado_baile",
+              "label": "Barrado no Baile",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Líder escolheu Milena pela segunda vez consecutiva para ficar fora da festa. Desafio: escrever uma mesma frase em caderno de 50 páginas."
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-02-22",
+              "week": 6,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Indicação do Líder ao Paredão. Justificativa: 'Porque ela já deixou declarado também que eu sou prioridade para ela'"
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-02-25",
+              "week": 6,
+              "event_type": "barrado_baile",
+              "label": "Barrado no Baile",
+              "targets": [
+                "Ana Paula Renault"
+              ],
+              "details": [
+                "Líder escolheu Ana Paula para ficar fora da 3ª Festa do Líder (tema Bali). Justificou: 'é como se fosse um combo, em dobro' (referindo-se à proximidade com Milena). Ana Paula reagiu: 'Depois acha ruim de chamar de 5ª série'."
+              ],
+              "source_kinds": [
+                "manual"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-03-08",
+              "week": 8,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Líderes Alberto Cowboy e Jonas Sulzbach indicaram Milena ao Paredão em consenso. Jonas: 'A rainha da soberba'.",
+                "Jonas justificou: 'A rainha da soberba'"
+              ],
+              "source_kinds": [
+                "manual",
+                "paredao"
+              ]
+            }
+          ],
+          "proxy_evidence": [
+            {
+              "actor": "Alberto Cowboy",
+              "target": "Ana Paula Renault",
+              "date": "2026-02-28",
+              "week": 7,
+              "event_type": "monstro",
+              "label": "Monstro",
+              "detail": "Recebeu o monstro (escolha do Anjo)"
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "target": "Ana Paula Renault",
+              "date": "2026-02-25",
+              "week": 6,
+              "event_type": "barrado_baile",
+              "label": "Barrado no Baile",
+              "detail": "Líder escolheu Ana Paula para ficar fora da 3ª Festa do Líder (tema Bali). Justificou: 'é como se fosse um combo, em dobro' (referindo-se à proximidade com Milena). Ana Paula reagiu: 'Depois acha ruim de chamar de 5ª série'."
+            }
+          ]
+        },
+        "thesis": "Alberto e Jonas acumularam um histórico bem mais longo de ataques diretos contra Milena do que ela construiu de volta.",
+        "caveat": "Milena também devolveu menos e mais tarde, sobretudo a partir da semana 6."
+      },
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 9,
@@ -8223,7 +8806,12 @@
       },
       "indicator_pairs": [
         {
-          "actor": "Alberto Cowboy + Jonas Sulzbach",
+          "actor": "Alberto Cowboy",
+          "target": "Milena",
+          "type": "lider"
+        },
+        {
+          "actor": "Jonas Sulzbach",
           "target": "Milena",
           "type": "lider"
         },
@@ -8235,13 +8823,22 @@
       ],
       "indicator_reactions": [
         {
-          "actor": "Alberto Cowboy + Jonas Sulzbach",
+          "actor": "Alberto Cowboy",
           "target": "Milena",
           "type": "lider",
-          "actor_to_target": "?",
-          "target_to_actor": "?",
-          "actor_to_target_raw": "",
-          "target_to_actor_raw": ""
+          "actor_to_target": "🤮",
+          "target_to_actor": "🤮",
+          "actor_to_target_raw": "Vômito",
+          "target_to_actor_raw": "Vômito"
+        },
+        {
+          "actor": "Jonas Sulzbach",
+          "target": "Milena",
+          "type": "lider",
+          "actor_to_target": "🌱",
+          "target_to_actor": "🤥",
+          "actor_to_target_raw": "Planta",
+          "target_to_actor_raw": "Mentiroso"
         },
         {
           "actor": "Jordana",
