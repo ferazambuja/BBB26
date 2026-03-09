@@ -738,6 +738,11 @@ python scripts/fetch_votalhada_images.py --paredao N
 
 # Or by direct URL
 python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/YYYY/MM/pesquisaN.html"
+
+# Optional: save platform-card audit JSON + fail on anomalies
+python scripts/fetch_votalhada_images.py --paredao N \
+  --platform-audit-output tmp/votalhada_ocr/platform_consistency_latest.json \
+  --platform-audit-strict
 ```
 
 **URL pattern**: Votalhada always uses `https://votalhada.blogspot.com/{year}/{month}/pesquisa{N}.html`. The script derives this automatically from `paredoes.json` when the skeleton exists. If no skeleton exists yet (e.g., new paredão not created), the script falls back to the **current BRT month/year** — so `--paredao 8` works immediately without needing a `paredoes.json` entry.
@@ -755,6 +760,19 @@ N=8; echo "https://votalhada.blogspot.com/$(TZ=America/Sao_Paulo date +%Y/%m)/pe
 Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures. Use `--no-timestamp` to overwrite instead.
 
 **Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
+
+After each fetch, the script automatically runs a **platform-card consistency audit** (Sites/YouTube/Twitter/Instagram):
+- checks displayed `Média` row sums (PT-BR decimals with comma) and flags source-side drifts like YouTube `100,37`
+- reports `ok` / `anomaly` / `inconclusive` per platform card
+- use `--skip-platform-audit` to disable if needed
+
+Standalone audit command (same logic):
+
+```bash
+python scripts/votalhada_platform_consistency_audit.py \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --output tmp/votalhada_ocr/platform_consistency_latest.json
+```
 
 ### 2. Run OCR parser (Consolidado-only)
 
