@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from builders.balance import (
     build_balance_events,
+    build_compras_fairness,
     _classify_event,
     _get_balances,
     _events_should_merge,
@@ -399,6 +400,83 @@ class TestBuildBalanceEvents:
         result = build_balance_events([snap1, snap2])
         types = [e["type"] for e in result["events"]]
         assert "dinamica" in types
+
+
+class TestComprasFairnessPerCapita:
+    def test_weekly_per_capita_and_average_distance_fields(self, monkeypatch):
+        """Compras fairness exposes weekly per-capita and distance-to-average fields."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {
+                "daily": [
+                    {"date": "2026-02-01", "vip": ["Alice", "Bob"]},
+                    {"date": "2026-02-08", "vip": ["Alice", "Bob"]},
+                ]
+            },
+        )
+
+        snapshots = [
+            _make_snap(
+                "2026-02-01",
+                [
+                    _make_participant("Alice", 1000),
+                    _make_participant("Bob", 1000),
+                    _make_participant("Carol", 1000),
+                ],
+                "2026-02-01_12-00-00",
+            ),
+            _make_snap(
+                "2026-02-08",
+                [
+                    _make_participant("Alice", 900),
+                    _make_participant("Bob", 900),
+                    _make_participant("Carol", 750),
+                ],
+                "2026-02-08_12-00-00",
+            ),
+        ]
+
+        events = [
+            {
+                "type": "compras",
+                "game_date": "2026-02-01",
+                "week": 3,
+                "from_snapshot": "2026-02-01_12-00-00",
+                "changes": {"Alice": -200, "Bob": -100, "Carol": -250},
+            },
+            {
+                "type": "compras",
+                "game_date": "2026-02-08",
+                "week": 4,
+                "from_snapshot": "2026-02-08_12-00-00",
+                "changes": {"Alice": -100, "Bob": -100, "Carol": -400},
+            },
+        ]
+
+        fairness = build_compras_fairness(events, snapshots, {})
+        by_week = {ev["week"]: ev for ev in fairness["events"]}
+
+        w3 = by_week[3]
+        assert w3["vip_n"] == 2
+        assert w3["xepa_n"] == 1
+        assert w3["vip_total_spent"] == 300
+        assert w3["xepa_total_spent"] == 250
+        assert w3["vip_per_capita_spent"] == 150.0
+        assert w3["xepa_per_capita_spent"] == 250.0
+        assert w3["house_per_capita_spent"] == pytest.approx(183.3, abs=0.1)
+        assert w3["vip_vs_house_delta"] == pytest.approx(-33.3, abs=0.1)
+        assert w3["xepa_vs_house_delta"] == pytest.approx(66.7, abs=0.1)
+
+        # VIP historical per-capita avg = (150 + 100) / 2 = 125
+        # Xepa historical per-capita avg = (250 + 400) / 2 = 325
+        assert w3["vip_vs_own_avg_delta"] == pytest.approx(25.0, abs=0.1)
+        assert w3["xepa_vs_own_avg_delta"] == pytest.approx(-75.0, abs=0.1)
+
+        w4 = by_week[4]
+        assert w4["vip_per_capita_spent"] == 100.0
+        assert w4["xepa_per_capita_spent"] == 400.0
+        assert w4["vip_vs_own_avg_delta"] == pytest.approx(-25.0, abs=0.1)
+        assert w4["xepa_vs_own_avg_delta"] == pytest.approx(75.0, abs=0.1)
 
 
 # ─── Reclassification ─────────────────────────────────────────────────────

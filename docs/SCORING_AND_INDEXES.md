@@ -31,6 +31,17 @@ Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read t
   - Use as **small modifiers** to the sentiment index (see Sincerão framework below).
 - **Bate-Volta** (manual): vencedor sai do paredão e conta como **evento positivo** no Planta Index.
 
+### Economia (compras fairness) — derived fields
+- Source: `build_balance_events()` + `build_compras_fairness()` in `scripts/builders/balance.py`.
+- `compras` events are inferred from snapshot delta patterns (collective losses), not manually entered.
+- `data/derived/balance_events.json` → `compras_fairness.events[]` includes:
+  - `% do saldo`: `vip_avg_pct`, `xepa_avg_pct`
+  - Per-capita weekly spend: `vip_per_capita_spent`, `xepa_per_capita_spent`, `house_per_capita_spent`
+  - Group-size context: `vip_n`, `xepa_n`, `vip_total_spent`, `xepa_total_spent`
+  - Distance signals:
+    - vs house week average: `vip_vs_house_delta`, `xepa_vs_house_delta`
+    - vs own-group historical average: `vip_vs_own_avg_delta`, `xepa_vs_own_avg_delta`
+
 ### Why power events are "modifiers"
 - They are **rare** and usually **one-to-one** (actor → target).
 - Queridômetro is daily and captures **ongoing sentiment**.

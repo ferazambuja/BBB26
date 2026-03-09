@@ -1273,6 +1273,41 @@ Scrape and keep these pages in `docs/scraped/` for future verification:
 
 ---
 
+## Economia / Compras Detection (automatic vs manual)
+
+### How compras is detected today
+
+`compras` is **auto-detected** in the derived pipeline from snapshot balance deltas.
+
+- Source builder: `scripts/builders/balance.py` (`build_balance_events()`).
+- Rule of thumb:
+  - If losses affect >=80% of active participants (collective pattern), classify as `compras`.
+  - Tiny gains in the same transition are tolerated (keeps event as `compras`).
+  - Significant mixed gains/losses become `dinamica`.
+- Output artifact: `data/derived/balance_events.json`:
+  - `events[]` (includes `type="compras"`)
+  - `compras_fairness.events[]` (VIP/Xepa percentages + per-capita economics fields)
+
+### What is manual (and what is not)
+
+- There is **no dedicated manual compras event entry** in `manual_events.json`.
+- Manual files still matter for context:
+  - `special_events` can reclassify certain balance events as special dynamics (e.g., Máquina do Poder).
+  - Sources and narrative context are documented manually in weekly/special event records.
+
+### Operator checks when numbers look suspicious
+
+1. Confirm snapshots exist around the date (`data/snapshots/` cadence and timestamps).
+2. Rebuild derived data:
+   ```bash
+   python scripts/build_derived_data.py
+   ```
+3. Inspect the detected event in `data/derived/balance_events.json` (`events` + `compras_fairness`).
+4. Compare against official/source notes for that week (`docs/PROGRAMA_BBB26.md`, scraped sources).
+5. If a special dynamic was misclassified, update `manual_events.json` (`special_events`) and rebuild.
+
+---
+
 ## Quick Reference: Which Script When
 
 | Situation | Command |

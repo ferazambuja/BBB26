@@ -366,12 +366,22 @@ def build_compras_fairness(
         participants: list[dict] = []
         vip_contribs: list[float] = []
         xepa_contribs: list[float] = []
+        vip_total_spent = 0.0
+        xepa_total_spent = 0.0
+        vip_n = 0
+        xepa_n = 0
 
         for name, delta in ev["changes"].items():
             abs_d = abs(delta)
             pre_bal = pre_balances.get(name, 0)
             pct = (abs_d / pre_bal * 100) if pre_bal > 0 else 0.0
             is_vip = name in vip_set
+            if is_vip:
+                vip_total_spent += abs_d
+                vip_n += 1
+            else:
+                xepa_total_spent += abs_d
+                xepa_n += 1
 
             participants.append({
                 "name": name,
@@ -399,6 +409,14 @@ def build_compras_fairness(
         xepa_avg = sum(xepa_contribs) / len(xepa_contribs) if xepa_contribs else 0
         all_vip_pcts.extend(vip_contribs)
         all_xepa_pcts.extend(xepa_contribs)
+        house_per_capita = total_spent / n_part if n_part > 0 else 0.0
+        vip_per_capita = vip_total_spent / vip_n if vip_n > 0 else 0.0
+        xepa_per_capita = xepa_total_spent / xepa_n if xepa_n > 0 else 0.0
+
+        vip_vs_house_delta = vip_per_capita - house_per_capita
+        xepa_vs_house_delta = xepa_per_capita - house_per_capita
+        vip_vs_house_pct = (vip_vs_house_delta / house_per_capita * 100) if house_per_capita > 0 else 0.0
+        xepa_vs_house_pct = (xepa_vs_house_delta / house_per_capita * 100) if house_per_capita > 0 else 0.0
 
         fairness_events.append({
             "game_date": game_date,
@@ -408,8 +426,42 @@ def build_compras_fairness(
             "fair_share": round(fair_share, 1),
             "vip_avg_pct": round(vip_avg, 1),
             "xepa_avg_pct": round(xepa_avg, 1),
+            "vip_n": vip_n,
+            "xepa_n": xepa_n,
+            "vip_total_spent": round(vip_total_spent, 1),
+            "xepa_total_spent": round(xepa_total_spent, 1),
+            "house_per_capita_spent": round(house_per_capita, 1),
+            "vip_per_capita_spent": round(vip_per_capita, 1),
+            "xepa_per_capita_spent": round(xepa_per_capita, 1),
+            "vip_vs_house_delta": round(vip_vs_house_delta, 1),
+            "xepa_vs_house_delta": round(xepa_vs_house_delta, 1),
+            "vip_vs_house_pct": round(vip_vs_house_pct, 1),
+            "xepa_vs_house_pct": round(xepa_vs_house_pct, 1),
             "participants": participants,
         })
+
+    vip_weekly_per_capita = [e["vip_per_capita_spent"] for e in fairness_events if e.get("vip_n", 0) > 0]
+    xepa_weekly_per_capita = [e["xepa_per_capita_spent"] for e in fairness_events if e.get("xepa_n", 0) > 0]
+    vip_own_avg = sum(vip_weekly_per_capita) / len(vip_weekly_per_capita) if vip_weekly_per_capita else 0.0
+    xepa_own_avg = sum(xepa_weekly_per_capita) / len(xepa_weekly_per_capita) if xepa_weekly_per_capita else 0.0
+
+    for e in fairness_events:
+        vip_per_capita = e.get("vip_per_capita_spent", 0.0)
+        xepa_per_capita = e.get("xepa_per_capita_spent", 0.0)
+        has_vip = e.get("vip_n", 0) > 0
+        has_xepa = e.get("xepa_n", 0) > 0
+
+        vip_vs_own_avg_delta = (vip_per_capita - vip_own_avg) if has_vip else 0.0
+        xepa_vs_own_avg_delta = (xepa_per_capita - xepa_own_avg) if has_xepa else 0.0
+        vip_vs_own_avg_pct = (vip_vs_own_avg_delta / vip_own_avg * 100) if has_vip and vip_own_avg > 0 else 0.0
+        xepa_vs_own_avg_pct = (xepa_vs_own_avg_delta / xepa_own_avg * 100) if has_xepa and xepa_own_avg > 0 else 0.0
+
+        e["vip_own_avg_per_capita_spent"] = round(vip_own_avg, 1)
+        e["xepa_own_avg_per_capita_spent"] = round(xepa_own_avg, 1)
+        e["vip_vs_own_avg_delta"] = round(vip_vs_own_avg_delta, 1)
+        e["xepa_vs_own_avg_delta"] = round(xepa_vs_own_avg_delta, 1)
+        e["vip_vs_own_avg_pct"] = round(vip_vs_own_avg_pct, 1)
+        e["xepa_vs_own_avg_pct"] = round(xepa_vs_own_avg_pct, 1)
 
     # By-participant summary
     by_participant: dict[str, dict] = {}

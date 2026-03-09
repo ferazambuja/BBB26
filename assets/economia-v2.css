@@ -1,0 +1,256 @@
+/* Economia V2: scoped overrides and new storytelling components */
+
+.economia-v2-page {
+  --eco-v2-surface: #20242b;
+  --eco-v2-surface-soft: #1b1f25;
+  --eco-v2-border: #3a4250;
+  --eco-v2-text: #e8edf5;
+  --eco-v2-muted: #a9b4c4;
+  --eco-v2-good: #23b26d;
+  --eco-v2-bad: #e45555;
+  --eco-v2-warn: #f1c75a;
+  --eco-v2-vip: #d9b131;
+  --eco-v2-xepa: #77839a;
+}
+
+.economia-v2-page .eco-hero {
+  border-color: #6f6030;
+}
+
+.economia-v2-page .eco-jump-nav {
+  gap: 6px;
+}
+
+.economia-v2-page .eco-jump-link {
+  border-radius: 999px;
+  background: #2a2f36;
+  border: 1px solid #454d5c;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.economia-v2-page .eco-curiosity-grid {
+  gap: 10px;
+}
+
+.economia-v2-page .eco-curiosity-card {
+  border-radius: 10px;
+  border: 1px solid #3b4250;
+  background: #232931;
+}
+
+.economia-v2-page .eco-story-arc,
+.economia-v2-page .eco-v2-chapter-intro {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #3e4758;
+  background: linear-gradient(135deg, #242a33, #20252d);
+}
+
+.economia-v2-page .eco-story-arc-title,
+.economia-v2-page .eco-v2-chapter-kicker {
+  margin: 0 0 6px;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #d6dde9;
+  font-weight: 700;
+}
+
+.economia-v2-page .eco-story-arc-text,
+.economia-v2-page .eco-v2-chapter-copy {
+  margin: 0;
+  color: var(--eco-v2-text);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.economia-v2-page .eco-v2-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.economia-v2-page .eco-v2-pulse-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--eco-v2-border);
+  background: var(--eco-v2-surface);
+}
+
+.economia-v2-page .eco-v2-pulse-card--vip {
+  border-color: #7d6b2e;
+}
+
+.economia-v2-page .eco-v2-pulse-card--xepa {
+  border-color: #4f596c;
+}
+
+.economia-v2-page .eco-v2-pulse-card--alto {
+  box-shadow: inset 0 0 0 1px rgba(35, 178, 109, 0.35);
+}
+
+.economia-v2-page .eco-v2-pulse-card--baixo {
+  box-shadow: inset 0 0 0 1px rgba(228, 85, 85, 0.35);
+}
+
+.economia-v2-page .eco-v2-pulse-title {
+  margin: 0;
+  color: var(--eco-v2-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.economia-v2-page .eco-v2-pulse-value {
+  margin: 4px 0;
+  color: var(--eco-v2-text);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.economia-v2-page .eco-v2-pulse-detail {
+  margin: 0;
+  color: #c8d1de;
+  font-size: 0.84rem;
+}
+
+.economia-v2-page .eco-v2-weekline {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-bottom: 12px;
+}
+
+.economia-v2-page .eco-v2-weekline-item {
+  border: 1px solid #394355;
+  border-radius: 8px;
+  background: #1f242d;
+  padding: 8px 10px;
+}
+
+.economia-v2-page .eco-v2-weekline-title {
+  margin: 0 0 2px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #dce5f1;
+}
+
+.economia-v2-page .eco-v2-weekline-copy {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #bcc7d7;
+}
+
+.economia-v2-page .eco-v2-people-strip {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin: 10px 0 14px;
+}
+
+.economia-v2-page .eco-v2-person-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid #394252;
+  background: #21262f;
+}
+
+.economia-v2-page .eco-v2-person-chip--alert {
+  border-color: #614141;
+  background: #2c2325;
+}
+
+.economia-v2-page .eco-v2-person-name {
+  margin: 0;
+  color: var(--eco-v2-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.economia-v2-page .eco-v2-person-meta {
+  margin: 0;
+  color: #b7c2d2;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.economia-v2-page .eco-v2-drill {
+  margin: 10px 0;
+  border: 1px solid #3a4454;
+  border-radius: 10px;
+  background: #1f242c;
+  padding: 4px 10px 10px;
+}
+
+.economia-v2-page .eco-v2-drill-summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  color: #d8e1ee;
+  padding: 10px 2px;
+  font-size: 0.9rem;
+}
+
+.economia-v2-page .eco-v2-drill-summary::-webkit-details-marker {
+  display: none;
+}
+
+.economia-v2-page .eco-v2-drill-summary::before {
+  content: "▸ ";
+  color: #9fb0c7;
+}
+
+.economia-v2-page .eco-v2-drill[open] .eco-v2-drill-summary::before {
+  content: "▾ ";
+}
+
+.economia-v2-page .eco-card-grid {
+  gap: 10px;
+}
+
+.economia-v2-page .eco-participant-card {
+  border-color: #3a4350;
+  background: #21262e;
+}
+
+.economia-v2-page .eco-narrative {
+  border-left-width: 3px;
+}
+
+.economia-v2-page .eco-narrative--red {
+  border-left-color: #b54545;
+}
+
+.economia-v2-page .eco-vip-count-row {
+  margin: 0 0 8px;
+}
+
+@media (max-width: 740px) {
+  .economia-v2-page .eco-v2-pulse-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .economia-v2-page .eco-v2-people-strip,
+  .economia-v2-page .eco-v2-weekline {
+    grid-template-columns: 1fr;
+  }
+
+  .economia-v2-page .eco-v2-pulse-value {
+    font-size: 1rem;
+  }
+
+  .economia-v2-page .eco-v2-person-name {
+    font-size: 0.85rem;
+  }
+
+  .economia-v2-page .eco-v2-person-meta {
+    font-size: 0.76rem;
+  }
+}
