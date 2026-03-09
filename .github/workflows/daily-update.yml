@@ -196,4 +196,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add data/ docs/MANUAL_EVENTS_AUDIT.md
           git diff --staged --quiet || git commit -m "data: derived update $(date -u +%Y-%m-%d_%H-%M) UTC"
+          # Pull --rebase to handle race with 15-min fetch polls that may have
+          # pushed a new snapshot commit between build checkout and now.
+          git pull --rebase origin main || true
           git push

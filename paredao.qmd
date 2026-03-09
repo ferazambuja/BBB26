@@ -139,12 +139,69 @@ execute:
 
   .paredao-history-table {
     font-size: 0.86rem;
-    min-width: 620px;
+    min-width: 0;
   }
 
-  .paredao-history-table th:nth-child(3),
-  .paredao-history-table td:nth-child(3) {
-    min-width: 170px;
+  .paredao-history-table-wrap {
+    overflow-x: visible;
+  }
+
+  .paredao-history-table thead {
+    display: none;
+  }
+
+  .paredao-history-table tbody,
+  .paredao-history-table tr,
+  .paredao-history-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .paredao-history-table tr {
+    border: 1px solid rgba(120, 140, 170, 0.25);
+    border-radius: 8px;
+    padding: 0.42rem 0.5rem;
+    margin-bottom: 0.44rem;
+    background: rgba(255, 255, 255, 0.015);
+  }
+
+  .paredao-history-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .paredao-history-table td {
+    border: 0;
+    padding: 0.16rem 0;
+    min-width: 0 !important;
+    white-space: normal;
+    text-align: left !important;
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: start;
+  }
+
+  .paredao-history-table td::before {
+    content: attr(data-label);
+    color: #b8c9e8;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
+  }
+
+  .paredao-history-table td[data-label="Participante"] {
+    display: block;
+    padding-top: 0;
+    padding-bottom: 0.2rem;
+  }
+
+  .paredao-history-table td[data-label="Participante"]::before {
+    display: none;
+  }
+
+  .paredao-history-table td[data-label="%"],
+  .paredao-history-table td[data-label="Resultado"] {
+    grid-template-columns: 6rem auto;
   }
 }
 </style>
@@ -428,7 +485,15 @@ if ultimo:
                         _h_res = f'<span style="color:#2ecc71; font-weight:bold;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
                     else:
                         _h_res = '—'
-                    print(f'<tr><td>{_av} {first_name}</td><td>{_h_num}º{_h_falso}</td><td style="word-break:break-word;">{_h_como}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_res}</td></tr>')
+                    print(
+                        f'<tr>'
+                        f'<td data-label="Participante">{_av} {first_name}</td>'
+                        f'<td data-label="Paredão">{_h_num}º{_h_falso}</td>'
+                        f'<td data-label="Como" style="word-break:break-word;">{_h_como}</td>'
+                        f'<td data-label="%" class="tc">{_h_pct}</td>'
+                        f'<td data-label="Resultado" class="tc">{_h_res}</td>'
+                        f'</tr>'
+                    )
             print('</tbody></table></div></div></details>\n')
 
         # ── Enquetes do Votalhada (em andamento) — right after nominee cards ──
