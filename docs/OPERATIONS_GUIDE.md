@@ -614,9 +614,9 @@ git push
 | W5 | Gabriela | video_familia | Chaiany, Jordana | Chaiany |
 | W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
 | W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
-| W8 | Milena | TBD | TBD | TBD |
+| W8 | Milena | video_familia | Ana Paula Renault, Juliano Floss, Samira | TBD |
 
-**Pattern**: 7/7 Anjos chose family video. The 2nd immunity has never been used.
+**Pattern**: 8/8 Anjos chose family video. The 2nd immunity has never been used.
 
 ---
 
@@ -673,6 +673,16 @@ Add power events for the formation:
 - `bate_volta` (winners who escaped)
 
 Also update `weekly_events[N].anjo.imunizado` with who the Anjo immunized at formation. The `escolha` and other Presente do Anjo fields should already be filled from the [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) (Sunday afternoon).
+
+**Dual Líderes consensus**: When dual Líderes indicate in consensus, record as a single `indicacao` power_event with `"actor": "Name1 + Name2"` (display string) and `"actors": ["Name1", "Name2"]` (array for edge creation). Fill `formacao.indicado_lider` as normal. This produces 1 timeline row + 2 correct relationship edges.
+
+**Consenso Anjo + Monstro**: When the week's dynamic requires Anjo and Monstro to consensus-nominate:
+- If consensus reached: add a `power_event` with `"type": "consenso_anjo_monstro"`, `"actor": "Anjo + Monstro"`, `"actors": ["Anjo Name", "Monstro Name"]`, `"target": "Nominee"`. Add to `indicados_finais` with `"como": "Consenso Anjo+Monstro"`.
+- If no consensus: both Anjo and Monstro go to paredão. Add each to `indicados_finais` with `"como": "Consenso falhou"`. No `power_event` needed.
+
+**Two immunity fields** (both must be filled at formation):
+- `weekly_events[N].anjo.imunizado` = simple string name (used for scoring edges)
+- `paredoes[N].formacao.imunizado` = object `{"por": "Anjo Name", "quem": "Immunized Name"}` (used for display)
 
 ### 4. Update `data/provas.json` (if Bate e Volta happened)
 
@@ -1055,6 +1065,15 @@ When `paredao_falso: true` is set in `paredoes.json`, the entire display layer a
 Generic analytical text uses "mais votado" instead of "eliminado" across all pattern/accuracy displays (works for both types).
 
 **No manual overrides needed** — the `paredao_falso: true` flag drives all display logic.
+
+### Quarto Secreto Return
+
+When a participant returns from Quarto Secreto:
+- **API auto-detects** the `Imune` role — no manual participant entry needed.
+- The returned participant has full queridômetro data (reactions given and received).
+- `weekly_events[N].quarto_secreto` schema (see W7 data for reference): `{"retorno_date": "YYYY-MM-DD", "convidado": "Name", "escolha": "..."}`.
+- `quarto_secreto_convite` edge (+0.20) is auto-created from `weekly_events[N].quarto_secreto.convidado` in the relations builder.
+- Immunity lasts for the next paredão formation only.
 
 ---
 
