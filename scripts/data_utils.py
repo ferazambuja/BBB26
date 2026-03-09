@@ -1686,6 +1686,21 @@ def avatar_img(name: str, avatars: dict[str, str], size: int = 24, **kwargs: obj
     return avatar_html(name, avatars, size=size, show_name=False, **kwargs)
 
 
+# ── Paredão / formação helpers ───────────────────────────────────────────────
+
+def resolve_leaders(form: dict) -> list[str]:
+    """Resolve individual leader names from formacao dict.
+
+    Supports dual leadership (lideres array) with fallback to single lider.
+    """
+    lideres = form.get("lideres") or []
+    if not lideres:
+        lider = form.get("lider")
+        if lider:
+            lideres = [lider]
+    return lideres
+
+
 # ── Gender & nominee helpers ─────────────────────────────────────────────────
 
 _FEMALE_NAMES = frozenset({

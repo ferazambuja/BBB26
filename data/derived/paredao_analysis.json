@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-09T12:11:34.577966+00:00",
+    "generated_at": "2026-03-09T12:44:29.781619+00:00",
     "source": "snapshots+paredoes+manual_events"
   },
   "by_paredao": {
@@ -753,6 +753,7 @@
           "total_days": 1
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "ponto_cego": 6,
@@ -1569,6 +1570,7 @@
           "total_days": 13
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 9,
@@ -2548,6 +2550,7 @@
           "total_days": 15
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 14,
@@ -3619,6 +3622,7 @@
           "total_days": 27
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 15,
@@ -4640,6 +4644,7 @@
           "total_days": 29
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 13,
@@ -5719,6 +5724,7 @@
           "total_days": 41
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 12,
@@ -6911,6 +6917,7 @@
           "total_days": 48
         }
       ],
+      "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 11,
@@ -7954,23 +7961,41 @@
           "narrative": "Reconciliaram em 2026-03-08.",
           "total_days": 55
         },
-        "Alberto Cowboy + Jonas Sulzbach→Milena": {
-          "pattern": "sem_dados",
-          "days_as_friends": 0,
-          "days_as_enemies": 0,
+        "Alberto Cowboy→Milena": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 11,
+          "days_as_enemies": 44,
           "days_mutual_friends": 0,
-          "change_date": null,
-          "narrative": "Sem dados",
-          "total_days": 0
+          "change_date": "2026-01-28",
+          "narrative": "Foram amigos por 11 dias, romperam em 2026-01-28.",
+          "total_days": 55
         },
-        "Milena→Alberto Cowboy + Jonas Sulzbach": {
-          "pattern": "sem_dados",
-          "days_as_friends": 0,
-          "days_as_enemies": 0,
+        "Milena→Alberto Cowboy": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 2,
+          "days_as_enemies": 53,
           "days_mutual_friends": 0,
-          "change_date": null,
-          "narrative": "Sem dados",
-          "total_days": 0
+          "change_date": "2026-01-31",
+          "narrative": "Foram amigos por 2 dias, romperam em 2026-01-31.",
+          "total_days": 55
+        },
+        "Jonas Sulzbach→Milena": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 8,
+          "days_as_enemies": 47,
+          "days_mutual_friends": 7,
+          "change_date": "2026-01-26",
+          "narrative": "Foram amigos por 8 dias, romperam em 2026-01-26.",
+          "total_days": 55
+        },
+        "Milena→Jonas Sulzbach": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 10,
+          "days_as_enemies": 45,
+          "days_mutual_friends": 7,
+          "change_date": "2026-01-27",
+          "narrative": "Foram amigos por 10 dias, romperam em 2026-01-27.",
+          "total_days": 55
         },
         "Jordana→Chaiany": {
           "pattern": "ex_amigos",
@@ -8176,6 +8201,233 @@
           "total_days": 55
         }
       ],
+      "featured_story": {
+        "kind": "milena_targeted_by_dual_leaders",
+        "title": "Milena no alvo de Alberto e Jonas",
+        "target": "Milena",
+        "actors": [
+          "Alberto Cowboy",
+          "Jonas Sulzbach"
+        ],
+        "summary_counts": {
+          "Alberto Cowboy->Milena": 1,
+          "Jonas Sulzbach->Milena": 1,
+          "Milena->Alberto Cowboy": 0,
+          "Milena->Jonas Sulzbach": 0,
+          "leaders_to_target_total": 2,
+          "target_back_total": 0
+        },
+        "formation_day_date": "2026-03-08",
+        "formation_day_reactions": {
+          "Alberto Cowboy": {
+            "to_target": "Vômito",
+            "from_target": "Vômito"
+          },
+          "Jonas Sulzbach": {
+            "to_target": "Planta",
+            "from_target": "Mentiroso"
+          }
+        },
+        "timeline": [
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Milena",
+            "event_type": "indicacao",
+            "label": "Indicação",
+            "date": "2026-03-08",
+            "week": 8,
+            "detail": "Indicação em consenso. Jonas justificou: 'A rainha da soberba'",
+            "source_kind": "paredao"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "event_type": "indicacao",
+            "label": "Indicação",
+            "date": "2026-03-08",
+            "week": 8,
+            "detail": "Indicação em consenso. Jonas justificou: 'A rainha da soberba'",
+            "source_kind": "paredao"
+          }
+        ],
+        "past_leader_indications": [
+          {
+            "paredao_num": 1,
+            "leaders": [
+              "Alberto Cowboy"
+            ],
+            "reason": "Indicou Milena sem explicação estratégica clara",
+            "milena_voto_unico": 33.02,
+            "eliminated": "Aline Campos",
+            "eliminated_voto_unico": 60.42,
+            "milena_survived": true
+          },
+          {
+            "paredao_num": 6,
+            "leaders": [
+              "Jonas Sulzbach"
+            ],
+            "reason": "Porque ela já deixou declarado também que eu sou prioridade para ela",
+            "milena_voto_unico": 32.98,
+            "eliminated": "Maxiane",
+            "eliminated_voto_unico": 66.2,
+            "milena_survived": true
+          }
+        ],
+        "power_usage": {
+          "by_actor": {
+            "Alberto Cowboy": {
+              "total": 1,
+              "toward_target": 1,
+              "toward_target_pct": 100.0,
+              "toward_target_or_ally": 1,
+              "toward_target_or_ally_pct": 100.0
+            },
+            "Jonas Sulzbach": {
+              "total": 1,
+              "toward_target": 1,
+              "toward_target_pct": 100.0,
+              "toward_target_or_ally": 1,
+              "toward_target_or_ally_pct": 100.0
+            }
+          },
+          "combined": {
+            "total": 2,
+            "toward_target": 2,
+            "toward_target_pct": 100.0,
+            "toward_target_or_ally": 2,
+            "toward_target_or_ally_pct": 100.0
+          },
+          "decisions": [
+            {
+              "actor": "Alberto Cowboy",
+              "date": "2026-03-08",
+              "week": 8,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Jonas justificou: 'A rainha da soberba'"
+              ],
+              "source_kinds": [
+                "paredao"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-03-08",
+              "week": 8,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Milena"
+              ],
+              "details": [
+                "Jonas justificou: 'A rainha da soberba'"
+              ],
+              "source_kinds": [
+                "paredao"
+              ]
+            }
+          ],
+          "proxy_evidence": []
+        },
+        "secret_queridometro": {
+          "private_signal_note": "O queridômetro é um sinal privado de sentimento: ajuda a mostrar o clima da relação, mas pesa menos que ações públicas como indicação, barrado, Monstro e Sincerão.",
+          "pairs": {
+            "Alberto Cowboy": {
+              "to_target": {
+                "days_with_data": 55,
+                "ever_sent_heart": true,
+                "heart_days": 11,
+                "mutual_heart_days": 0,
+                "first_non_heart_date": "2026-01-15",
+                "latest_label": "Vômito",
+                "latest_emoji": "🤮",
+                "most_frequent_label": "Alvo",
+                "most_frequent_emoji": "🎯",
+                "most_frequent_count": 30,
+                "longest_streak": {
+                  "label": "Alvo",
+                  "emoji": "🎯",
+                  "length": 16,
+                  "start_date": "2026-02-12",
+                  "end_date": "2026-02-27"
+                }
+              },
+              "from_target": {
+                "days_with_data": 55,
+                "ever_sent_heart": true,
+                "heart_days": 2,
+                "mutual_heart_days": 0,
+                "first_non_heart_date": "2026-01-13",
+                "latest_label": "Vômito",
+                "latest_emoji": "🤮",
+                "most_frequent_label": "Vômito",
+                "most_frequent_emoji": "🤮",
+                "most_frequent_count": 16,
+                "longest_streak": {
+                  "label": "Mala",
+                  "emoji": "💼",
+                  "length": 13,
+                  "start_date": "2026-01-16",
+                  "end_date": "2026-01-28"
+                }
+              }
+            },
+            "Jonas Sulzbach": {
+              "to_target": {
+                "days_with_data": 55,
+                "ever_sent_heart": true,
+                "heart_days": 8,
+                "mutual_heart_days": 7,
+                "first_non_heart_date": "2026-01-16",
+                "latest_label": "Planta",
+                "latest_emoji": "🌱",
+                "most_frequent_label": "Planta",
+                "most_frequent_emoji": "🌱",
+                "most_frequent_count": 15,
+                "longest_streak": {
+                  "label": "Vômito",
+                  "emoji": "🤮",
+                  "length": 10,
+                  "start_date": "2026-02-24",
+                  "end_date": "2026-03-05"
+                }
+              },
+              "from_target": {
+                "days_with_data": 55,
+                "ever_sent_heart": true,
+                "heart_days": 10,
+                "mutual_heart_days": 7,
+                "first_non_heart_date": "2026-01-18",
+                "latest_label": "Mentiroso",
+                "latest_emoji": "🤥",
+                "most_frequent_label": "Mentiroso",
+                "most_frequent_emoji": "🤥",
+                "most_frequent_count": 20,
+                "longest_streak": {
+                  "label": "Mentiroso",
+                  "emoji": "🤥",
+                  "length": 13,
+                  "start_date": "2026-02-22",
+                  "end_date": "2026-03-06"
+                }
+              }
+            }
+          },
+          "facts": [
+            "Alberto até mandou ❤️ para Milena no começo, mas os dois nunca ficaram em ❤️ mútuo no mesmo dia.",
+            "Jonas e Milena tiveram 7 dia(s) de ❤️ mútuo antes de a relação azedar.",
+            "No domingo da formação, o retrato secreto já era Alberto 🤮 Milena e Milena 🤮 Alberto; Jonas 🌱 Milena e Milena 🤥 Jonas.",
+            "No fechamento desse recorte, Alberto termina em 🤮 contra Milena; Milena responde com 🤮 para Alberto; Jonas fecha em 🌱 e Milena em 🤥."
+          ]
+        },
+        "thesis": "Alberto e Jonas acumularam um histórico bem mais longo de ataques diretos contra Milena do que ela construiu de volta.",
+        "caveat": "Milena também devolveu menos e mais tarde, sobretudo a partir da semana 6."
+      },
       "vote_aggregates": {
         "relationship_counts": {
           "inimigos_declarados": 9,
@@ -8223,7 +8475,12 @@
       },
       "indicator_pairs": [
         {
-          "actor": "Alberto Cowboy + Jonas Sulzbach",
+          "actor": "Alberto Cowboy",
+          "target": "Milena",
+          "type": "lider"
+        },
+        {
+          "actor": "Jonas Sulzbach",
           "target": "Milena",
           "type": "lider"
         },
@@ -8235,13 +8492,22 @@
       ],
       "indicator_reactions": [
         {
-          "actor": "Alberto Cowboy + Jonas Sulzbach",
+          "actor": "Alberto Cowboy",
           "target": "Milena",
           "type": "lider",
-          "actor_to_target": "?",
-          "target_to_actor": "?",
-          "actor_to_target_raw": "",
-          "target_to_actor_raw": ""
+          "actor_to_target": "🤮",
+          "target_to_actor": "🤮",
+          "actor_to_target_raw": "Vômito",
+          "target_to_actor_raw": "Vômito"
+        },
+        {
+          "actor": "Jonas Sulzbach",
+          "target": "Milena",
+          "type": "lider",
+          "actor_to_target": "🌱",
+          "target_to_actor": "🤥",
+          "actor_to_target_raw": "Planta",
+          "target_to_actor_raw": "Mentiroso"
         },
         {
           "actor": "Jordana",
