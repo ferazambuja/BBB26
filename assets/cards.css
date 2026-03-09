@@ -118,6 +118,47 @@
 .text-neg { color: #e74c3c; font-weight: 700; }
 .text-pos { color: #2ecc71; font-weight: 700; }
 
+/* ── Stable semantic text utilities (manual) ── */
+.meta-text {
+  color: #b8c0cc;
+  background: transparent;
+}
+
+.meta-inline {
+  color: #c8d0db;
+  background: transparent;
+}
+
+.meta-link,
+.meta-link:visited {
+  color: #7ec8ff;
+  background: transparent;
+  text-decoration: none;
+}
+
+.meta-link:hover,
+.meta-link:focus-visible {
+  color: #9ad6ff;
+  text-decoration: underline;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+  padding: 0.1rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7dee8;
+  line-height: 1.25;
+}
+
+th.th-soft {
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7dee8;
+}
+
 /* ── Layout ── */
 .scroll-x { overflow-x: auto; max-width: 100%; }
 .sep-bottom { border-bottom: 1px solid #333; }

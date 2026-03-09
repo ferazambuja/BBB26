@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Sistema de Votação"
 subtitle: "Por que 70/30? A matemática por trás da mudança que a Globo não quer que você calcule"
+description: "Por que 70/30? A matemática por trás do sistema de votação do BBB 26"
 lang: pt-BR
 format:
   html:
@@ -44,6 +45,12 @@ setup_bbb_dark_theme()
 
 # ── Mobile-first responsive styles ──
 print('<style>')
+print('.v-hdr-short { display: none; }')
+print('.v-feasibility-note { display: inline-flex; align-items: flex-start; gap: 0.34rem; line-height: 1.34; }')
+print('.v-feasibility-note .meta-inline { color: #dbe3ee; }')
+print('.v-table-swipe th, .v-table-swipe td { white-space: nowrap; }')
+print('.v-table-swipe th:first-child, .v-table-swipe td:first-child { position: sticky; left: 0; z-index: 1; background: #20232a; }')
+print('.v-scroll-hint::after { content: "↔ arraste para ver mais"; display: none; font-size: 0.72rem; color: #97a9bf; text-align: right; margin-top: 0.35rem; }')
 print('@media (max-width: 575px) {')
 print('  .v-card { flex: 0 0 calc(50% - 0.4rem) !important; max-width: calc(50% - 0.4rem) !important; min-width: 0 !important; }')
 print('  .v-box { padding: 0.8rem !important; }')
@@ -52,8 +59,18 @@ print('  .v-hdr-full { display: none !important; }')
 print('  .v-hdr-short { display: inline !important; }')
 print('  .v-flex-stack { gap: 0.5rem !important; }')
 print('  .v-flex-stack > div { flex: 0 0 calc(50% - 0.3rem) !important; min-width: 0 !important; max-width: calc(50% - 0.3rem) !important; }')
+print('  .v-scroll-hint::after { display: block; }')
+print('  .v-table-swipe { min-width: 680px; }')
+print('  .v-table-retro { min-width: 760px; }')
+print('  .v-table-swipe th:first-child, .v-table-swipe td:first-child { z-index: 2; background: #252a34; }')
+print('  .v-table-feasibility thead { display: none; }')
+print('  .v-table-feasibility tbody, .v-table-feasibility tr, .v-table-feasibility td { display: block; width: 100%; }')
+print('  .v-table-feasibility tr { border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; padding: 0.42rem 0.5rem; margin-bottom: 0.42rem; background: rgba(255,255,255,0.03); }')
+print('  .v-table-feasibility tr:last-child { margin-bottom: 0; }')
+print('  .v-table-feasibility td { border: 0; padding: 0.16rem 0; text-align: left !important; white-space: normal; display: grid; grid-template-columns: 6.2rem minmax(0,1fr); gap: 0.45rem; align-items: start; }')
+print('  .v-table-feasibility td::before { content: attr(data-label); color: #a9bbd2; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.01em; }')
+print('  .v-table-feasibility td[data-label="Viável?"] .v-feasibility-note { justify-content: flex-start; }')
 print('}')
-print('.v-hdr-short { display: none; }')
 print('</style>')
 
 print("## 📉 O estrago do BBB 25\n")
@@ -86,7 +103,7 @@ for emoji, val, label, detail in stats:
     print(f'<div class="v-card u-s174">')
     print(f'<div class="fs-sm u-s005">{emoji} {label}</div>')
     print(f'<div class="fs-2xl tabnum u-s045">{val}</div>')
-    print(f'<div class="fs-sm u-s001">{detail}</div>')
+    print(f'<div class="fs-sm meta-text">{detail}</div>')
     print('</div>')
 print('</div>')
 
@@ -141,7 +158,7 @@ print('</div>')
 
 print('<blockquote class="u-s200">')
 print('<p class="fs-base u-s034">"Renata passa por cima do público e vira campeã do BBB 25"</p>')
-print('<p class="fs-sm u-s249">— <a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="u-s001">Pipoca Moderna</a></p>')
+print('<p class="fs-sm u-s249">— <a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="meta-link">Pipoca Moderna</a></p>')
 print('</blockquote>')
 
 print('</div>')
@@ -173,7 +190,7 @@ for name, color, emoji in [("Renata", "#9b59b6", "👑"), ("Guilherme", "#3498db
     d = bbb25[name]
     print(f'<div class="v-card" style="background:#111; border:1px solid {color}; border-radius:10px; padding:0.8rem 1rem; min-width:160px; flex:1; max-width:220px; text-align:center;">')
     print(f'<div class="fs-lg" style="color:{color}; font-weight:700; margin-bottom:0.4rem;">{emoji} {name}</div>')
-    print(f'<div class="fs-sm u-s001">Voto Único</div>')
+    print(f'<div class="fs-sm meta-text">Voto Único</div>')
     vu_color = "#2ecc71" if d["vu"] > 50 else "#e74c3c" if d["vu"] < 10 else "#eee"
     print(f'<div class="fs-xl tabnum" style="color:{vu_color}; font-weight:700;">{d["vu"]:.2f}%</div>')
     print(f'<div class="fs-sm u-s031">Voto Torcida</div>')
@@ -231,8 +248,8 @@ weights = [
 ]
 
 print('<h4 class="u-s039">🔬 Simulação: diferentes pesos aplicados a final do BBB 25</h4>')
-print('<div class="scroll-x">')
-print('<table class="table-full fs-base v-table u-s449">')
+print('<div class="scroll-x v-scroll-hint">')
+print('<table class="table-full fs-base v-table v-table-swipe u-s449">')
 print('<thead><tr class="u-s022">')
 print('<th class="u-s003"><span class="v-hdr-full">Peso </span>VU/VT</th>')
 print('<th class="tc u-s003">Nota</th>')
@@ -259,7 +276,7 @@ for w, label, note in weights:
     else:
         row_bg = ""
 
-    note_html = f'<span class="fs-sm u-s001">{note}</span>' if note else ''
+    note_html = f'<span class="fs-sm meta-inline">{note}</span>' if note else ''
     diff_color = "#9b59b6" if diff > 0 else ("#3498db" if diff < 0 else "#f39c12")
     winner_icon = "👑" if winner == "Renata" else ("🏆" if winner == "Guilherme" else "⚖️")
 
@@ -313,7 +330,7 @@ print('Na prática:</p>')
 
 # Buffer examples table
 print('<div class="scroll-x">')
-print('<table class="table-full fs-base v-table u-s446">')
+print('<table class="table-full fs-base v-table v-table-feasibility u-s446">')
 print('<thead><tr class="u-s022">')
 print('<th class="u-s003">Vantagem no CPF</th>')
 print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Torcida precisa de</span><span class="v-hdr-short">VT necessário</span></th>')
@@ -347,9 +364,9 @@ examples = [
 for lead, note, color, icon in examples:
     needed = lead * (0.7 / 0.3)
     print(f'<tr>')
-    print(f'<td class="u-s076">{lead}pp</td>')
-    print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem; font-weight:700; color:{color};">{needed:.1f}pp</td>')
-    print(f'<td class="tc u-s012">{icon} <span class="fs-sm u-s001">{note}</span></td>')
+    print(f'<td class="u-s076" data-label="Vantagem no CPF">{lead}pp</td>')
+    print(f'<td class="tr tabnum" data-label="Torcida precisa de" style="padding:0.4rem 0.5rem; font-weight:700; color:{color};">{needed:.1f}pp</td>')
+    print(f'<td class="tc u-s012" data-label="Viável?"><span class="v-feasibility-note">{icon} <span class="fs-sm meta-inline">{note}</span></span></td>')
     print(f'</tr>')
 
 print('</tbody></table>')
@@ -479,7 +496,7 @@ for p in paredoes_fin:
 
     paredao_label = f'{num}o Paredão Falso' if is_falso else f'{num}o Paredão'
     print(f'<div class="v-card" style="background:#111; border:1px solid {health_color}44; border-radius:8px; padding:0.6rem 0.8rem; flex:1; min-width:175px; max-width:240px;">')
-    print(f'<div class="fs-sm u-s001">{paredao_label}</div>')
+    print(f'<div class="fs-sm meta-text">{paredao_label}</div>')
     print(f'<div class="fs-2xl tabnum" style="color:{health_color}; font-weight:750;">{danger:.1f}<span class="fs-sm">pp</span></div>')
     print(f'<div class="fs-sm" style="color:{health_color}; font-weight:600;">{health_icon} {health_label}</div>')
     if ranking_invertido:
@@ -676,8 +693,8 @@ print(f'seria suficiente para anular uma vantagem de <strong>{max_flip_7030:.1f}
 print('Em uma final, com mobilização máxima, a inflação tende a ser ainda maior — ')
 print('no BBB 25, chegou a <strong>26pp</strong>.</p>')
 
-print('<div class="scroll-x">')
-print('<table class="table-full fs-base v-table u-s448">')
+print('<div class="scroll-x v-scroll-hint">')
+print('<table class="table-full fs-base v-table v-table-swipe u-s448">')
 print('<thead><tr class="u-s022">')
 print('<th class="u-s003">Peso VU/VT</th>')
 print('<th class="tr tabnum u-s003">Multiplicador</th>')
@@ -706,7 +723,7 @@ for vu_w, vt_w, note in safety_rows:
         bg = ""
 
     safe_icon = "🟢" if bbb25_flips < 5 else ("🟡" if bbb25_flips < 8 else "🔴")
-    note_html = f' <span class="fs-sm u-s001">{note}</span>' if note else ''
+    note_html = f' <span class="fs-sm meta-inline">{note}</span>' if note else ''
 
     print(f'<tr style="{bg}">')
     print(f'<td class="u-s076">{vu_w}/{vt_w}{note_html}</td>')
@@ -837,7 +854,8 @@ if rows_5050:
     print('</div>')
 
     # Detailed table — paredão number as group header row (saves one column for mobile)
-    print('<table class="table-full fs-base v-table">')
+    print('<div class="scroll-x v-scroll-hint">')
+    print('<table class="table-full fs-base v-table v-table-swipe v-table-retro">')
     print('<thead><tr class="u-s022">')
     print('<th class="u-s003">Nome</th>')
     print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Voto Único</span><span class="v-hdr-short">VU</span></th>')
@@ -905,7 +923,7 @@ if rows_5050:
             print(f'<td class="tc u-s027">{" ".join(badges)}</td>')
             print('</tr>')
 
-    print('</tbody></table>')
+    print('</tbody></table></div>')
 
     # Interpretation
     if n_changed == 0:
@@ -966,7 +984,7 @@ for emoji, val, label, detail in impact_stats:
     print(f'<div class="v-card u-s189">')
     print(f'<div class="fs-sm u-s007">{emoji} {label}</div>')
     print(f'<div class="fs-2xl tabnum u-s045">{val}</div>')
-    print(f'<div class="fs-sm u-s001">{detail}</div>')
+    print(f'<div class="fs-sm meta-text">{detail}</div>')
     print('</div>')
 print('</div>')
 
@@ -1042,14 +1060,14 @@ print('</div>')
 # Sources
 print('<div class="fs-sm u-s247">')
 print('<strong>Fontes:</strong> ')
-print('<a href="https://gshow.globo.com/realities/bbb/bbb-25/dentro-da-casa/noticia/quem-ganhou-o-bbb-25-renata-e-a-vencedora-do-reality.ghtml" target="_blank" class="u-s001">gshow.globo.com — Final BBB 25</a> · ')
-print('<a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="u-s001">Pipoca Moderna</a> · ')
-print('<a href="https://www.metropoles.com/entretenimento/televisão/final-do-bbb-25-registra-pior-audiência-da-história-do-reality" target="_blank" class="u-s001">Metropoles — Pior audiência</a> · ')
-print('<a href="https://x.com/faahlso/status/1914885003751645694" target="_blank" class="u-s001">@faahlso — Dados de seguidores</a> · ')
-print('<a href="https://gshow.globo.com/realities/bbb/bbb-26/noticia/sexto-paredão-do-bbb-26-bate-recorde-de-votação-saiba-mais.ghtml" target="_blank" class="u-s001">gshow — Recorde 3M CPFs</a> · ')
-print('<a href="https://www.cnnbrasil.com.br/entretenimento/bbb/bbb-26-bate-recorde-e-registra-maior-votação-da-história-por-cpf/" target="_blank" class="u-s001">CNN Brasil</a> · ')
-print('<a href="https://www.seudinheiro.com/2026/economia/premio-do-bbb-2026-e-troco-de-pinga-perto-do-que-a-globo-ja-arrecadou-com-patrocínios/" target="_blank" class="u-s001">Seu Dinheiro — R$ 1,5 bi</a> · ')
-print('<a href="https://www.nsctotal.com.br/noticias/quanto-a-globo-lucra-com-o-big-brother-brasil" target="_blank" class="u-s001">NSC Total — Receita BBB</a><br>')
+print('<a href="https://gshow.globo.com/realities/bbb/bbb-25/dentro-da-casa/noticia/quem-ganhou-o-bbb-25-renata-e-a-vencedora-do-reality.ghtml" target="_blank" class="meta-link">gshow.globo.com — Final BBB 25</a> · ')
+print('<a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="meta-link">Pipoca Moderna</a> · ')
+print('<a href="https://www.metropoles.com/entretenimento/televisão/final-do-bbb-25-registra-pior-audiência-da-história-do-reality" target="_blank" class="meta-link">Metropoles — Pior audiência</a> · ')
+print('<a href="https://x.com/faahlso/status/1914885003751645694" target="_blank" class="meta-link">@faahlso — Dados de seguidores</a> · ')
+print('<a href="https://gshow.globo.com/realities/bbb/bbb-26/noticia/sexto-paredão-do-bbb-26-bate-recorde-de-votação-saiba-mais.ghtml" target="_blank" class="meta-link">gshow — Recorde 3M CPFs</a> · ')
+print('<a href="https://www.cnnbrasil.com.br/entretenimento/bbb/bbb-26-bate-recorde-e-registra-maior-votação-da-história-por-cpf/" target="_blank" class="meta-link">CNN Brasil</a> · ')
+print('<a href="https://www.seudinheiro.com/2026/economia/premio-do-bbb-2026-e-troco-de-pinga-perto-do-que-a-globo-ja-arrecadou-com-patrocínios/" target="_blank" class="meta-link">Seu Dinheiro — R$ 1,5 bi</a> · ')
+print('<a href="https://www.nsctotal.com.br/noticias/quanto-a-globo-lucra-com-o-big-brother-brasil" target="_blank" class="meta-link">NSC Total — Receita BBB</a><br>')
 print('Fórmula BBB 25: (VU x 0,50) + (VT x 0,50) · Fórmula BBB 26: (VU x 0,70) + (VT x 0,30)')
 print('</div>')
 ```

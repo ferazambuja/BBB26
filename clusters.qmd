@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Clusters de Afinidade"
 subtitle: "Comunidades, blocos de votação e dinâmica de grupos"
+description: "Comunidades, blocos de votação e dinâmica de grupos no BBB 26"
 lang: pt-BR
 format:
   html:
@@ -777,9 +778,9 @@ for entry in top3:
     avatar_img_html = f'<img src="{avatar}" style="width:48px;height:48px;border-radius:50%;border:2px solid {cluster_colors[cl]};" />' if avatar else ""
 
     p_html = f'<div style="flex:1 1 250px;background:#2a2a2a;border-radius:8px;padding:1rem;border-top:3px solid {cluster_colors[cl]};">'
-    p_html += f'<div class="u-s364">{avatar_img_html}<div><div class="u-s387">{name}</div><div class="fs-md u-s001">{entry["grupo"]} · {cluster_names[cl]}</div></div></div>'
+    p_html += f'<div class="u-s364">{avatar_img_html}<div><div class="u-s387">{name}</div><div class="fs-md meta-text">{entry["grupo"]} · {cluster_names[cl]}</div></div></div>'
     p_html += f'<div class="fs-base">'
-    p_html += f'<div class="u-s001">Dispersão: <b>{entry["std_received"]:.2f}</b> · Média: <b>{entry["avg_received"]:+.2f}</b></div>'
+    p_html += f'<div class="meta-text">Dispersão: <b>{entry["std_received"]:.2f}</b> · Média: <b>{entry["avg_received"]:+.2f}</b></div>'
     p_html += f'<div class="u-s024">💚 Mais positivos: {love_str}</div>'
     p_html += f'<div>🔴 Mais negativos: {hate_str}</div>'
     p_html += f'<div class="u-s292">⚡ Contradições: {entry["contradictions"]}</div>'

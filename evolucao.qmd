@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Evolução"
 subtitle: "Como o jogo está evoluindo: rankings, sentimento, impacto e pulso diário"
+description: "Como o jogo está evoluindo: rankings, sentimento, impacto e pulso diário"
 lang: pt-BR
 format:
   html:
@@ -338,7 +339,7 @@ def make_difference_table_html(changes_list, common_names, prev_date, curr_date)
 .diff-table td {{ font-size: var(--fs-base); }}
 .diff-table td:hover {{ outline: 2px solid #fff; }}
 </style>
-<table class="diff-table"><thead><tr><th class="u-s001">↓ / →</th>''']
+<table class="diff-table"><thead><tr><th class="th-soft">↓ / →</th>''']
     for short in short_names:
         html.append(f'<th>{short}</th>')
     html.append('</tr></thead><tbody>')

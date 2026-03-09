@@ -180,22 +180,22 @@ def _build_curiosities(
     if not compras_by_part:
         return curiosities
 
-    # Most generous (highest avg_pct_of_balance)
-    most_gen_name = max(compras_by_part, key=lambda n: compras_by_part[n]["avg_pct_of_balance"])
-    most_gen = compras_by_part[most_gen_name]
+    # Most generous (highest avg_pct_of_balance) — handle ties
+    max_gen_val = max(d["avg_pct_of_balance"] for d in compras_by_part.values())
+    most_gen_names = sorted(n for n, d in compras_by_part.items() if d["avg_pct_of_balance"] == max_gen_val)
     curiosities.append({
         "type": "most_generous",
-        "name": most_gen_name,
-        "detail": f"Deu em média {most_gen['avg_pct_of_balance']}% do saldo nas compras — quase tudo, toda semana",
+        "name": ", ".join(most_gen_names),
+        "detail": f"{'Deram' if len(most_gen_names) > 1 else 'Deu'} em média {max_gen_val}% do saldo nas compras — quase tudo, toda semana",
     })
 
-    # Least generous (lowest avg_pct_of_balance)
-    least_gen_name = min(compras_by_part, key=lambda n: compras_by_part[n]["avg_pct_of_balance"])
-    least_gen = compras_by_part[least_gen_name]
+    # Least generous (lowest avg_pct_of_balance) — handle ties
+    min_gen_val = min(d["avg_pct_of_balance"] for d in compras_by_part.values())
+    least_gen_names = sorted(n for n, d in compras_by_part.items() if d["avg_pct_of_balance"] == min_gen_val)
     curiosities.append({
         "type": "least_generous",
-        "name": least_gen_name,
-        "detail": f"Contribuiu em média apenas {least_gen['avg_pct_of_balance']}% do saldo, mesmo com saldos altos",
+        "name": ", ".join(least_gen_names),
+        "detail": f"{'Contribuíram' if len(least_gen_names) > 1 else 'Contribuiu'} em média apenas {min_gen_val}% do saldo, mesmo com saldos altos",
     })
 
     # Anomaly: single compras event with lowest pct for someone with ≥500 balance
@@ -229,37 +229,42 @@ def _build_curiosities(
             "detail": f"VIP contribui em média {vip_avg:.0f}% do saldo vs Xepa {xepa_avg:.0f}% — quem tem menos paga mais",
         })
 
-    # Never VIP (≥3 compras, 0 VIP)
+    # Never VIP (≥3 compras, 0 VIP) — handle ties
     never_vip = [(n, d) for n, d in compras_by_part.items()
                  if d["n_vip"] == 0 and d["n_compras"] >= 3]
     if never_vip:
-        nv_name, nv_data = max(never_vip, key=lambda x: x[1]["n_compras"])
+        max_nv_compras = max(d["n_compras"] for _, d in never_vip)
+        nv_names = sorted(n for n, d in never_vip if d["n_compras"] == max_nv_compras)
         curiosities.append({
             "type": "never_vip",
-            "name": nv_name,
-            "detail": f"Nunca foi VIP em {nv_data['n_compras']} compras — sempre pagando com menos",
+            "name": ", ".join(nv_names),
+            "detail": f"{'Nunca foram' if len(nv_names) > 1 else 'Nunca foi'} VIP em {max_nv_compras} compras — sempre pagando com menos",
         })
 
-    # Most punished (from main by_participant)
+    # Most punished (from main by_participant) — handle ties
     pun_candidates = [(n, d) for n, d in main_by_part.items() if d.get("n_punicoes", 0) > 0]
     if pun_candidates:
-        most_pun_name, most_pun = max(pun_candidates, key=lambda x: x[1]["n_punicoes"])
+        max_pun = max(d["n_punicoes"] for _, d in pun_candidates)
+        pun_names = sorted(n for n, d in pun_candidates if d["n_punicoes"] == max_pun)
+        total_lost_str = ", ".join(
+            f"{abs(main_by_part[n]['total_lost']):,}" for n in pun_names
+        )
         curiosities.append({
             "type": "most_punished",
-            "name": most_pun_name,
-            "detail": f"{most_pun['n_punicoes']} punições, perdeu {abs(most_pun['total_lost']):,} estalecas no total",
+            "name": ", ".join(pun_names),
+            "detail": f"{max_pun} punições, {'perderam' if len(pun_names) > 1 else 'perdeu'} {total_lost_str} estalecas no total",
         })
 
-    # Most zero balances
+    # Most zero balances — handle ties
     zero_candidates = [(n, d) for n, d in main_by_part.items()
                        if len(d.get("ta_com_nada_dates", [])) >= 2]
     if zero_candidates:
-        most_zeros_name, most_zeros = max(zero_candidates, key=lambda x: len(x[1]["ta_com_nada_dates"]))
-        n_zeros = len(most_zeros["ta_com_nada_dates"])
+        max_zeros = max(len(d["ta_com_nada_dates"]) for _, d in zero_candidates)
+        zero_names = sorted(n for n, d in zero_candidates if len(d["ta_com_nada_dates"]) == max_zeros)
         curiosities.append({
             "type": "most_zeros",
-            "name": most_zeros_name,
-            "detail": f"Ficou zerado {n_zeros}x — mais que qualquer outro participante",
+            "name": ", ".join(zero_names),
+            "detail": f"{'Ficaram' if len(zero_names) > 1 else 'Ficou'} zerado {max_zeros}x — mais que qualquer outro participante",
         })
 
     return curiosities

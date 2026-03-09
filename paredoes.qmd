@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Histórico de Paredões"
 subtitle: "Resultado, votação da casa, análise de coerência e reações de cada eliminação"
+description: "Arquivo completo de todos os paredões do BBB 26 — resultado, votação da casa e análise de coerência"
 lang: pt-BR
 format:
   html:
@@ -673,7 +674,7 @@ if len(finalized_polls) >= 1:
     print('</div>')
     print('<div class="u-s477">')
     print('<div class="fs-4xl u-s042">70<span class="fs-lg">/</span>30</div>')
-    print('<div class="fs-sm u-s001">vs 50/50</div>')
+    print('<div class="fs-sm meta-text">vs 50/50</div>')
     print('</div>')
     print('</div>')
     print('</div>')
@@ -784,7 +785,7 @@ else:
             print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid {color};" alt="{name}" title="{name}">')
         print(f'<div class="fs-sm u-s082">{name}</div>')
         print(f'<div class="fs-base tabnum" style="color:{color}; font-weight:700; margin-top:2px;">{data["eligible"]}/{data["total"]}</div>')
-        print(f'<div class="fs-2xs u-s001">elegível ({pct:.0f}%)</div>')
+        print(f'<div class="fs-2xs meta-text">elegível ({pct:.0f}%)</div>')
         if data['exemptions']:
             # Group reasons
             from collections import Counter as _Ctr

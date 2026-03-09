@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Paredão"
 subtitle: "Acompanhe o paredão atual: formação, votação e análise de reações"
+description: "Acompanhe o paredão atual: formação, votação e análise de reações"
 lang: pt-BR
 format:
   html:
@@ -1355,7 +1356,7 @@ if ultimo:
             _dr_eligible = sorted(set(_sol_pre.keys()) | set(_jf_pre.keys()))
 
             print(f"\n## 🎲 Análise — Por que {_consenso_target}?\n")
-            print(f'<p class="fs-base u-s001">Análise dos dados que embasaram a decisão conjunta no Duelo de Risco. Scores pré-duelo (excluindo a indicação).</p>\n')
+            print(f'<p class="fs-base meta-text">Análise dos dados que embasaram a decisão conjunta no Duelo de Risco. Scores pré-duelo (excluindo a indicação).</p>\n')
 
             # ── 1. Result Card ────────────────────────────────────────────
             print(render_duelo_result_card(_sorteado, _oponente, _consenso_target, AVATARS, _resultado_detail))
@@ -1367,7 +1368,7 @@ if ultimo:
 
             # ── 2. Pre-Duel Score Table ───────────────────────────────────
             print(f"### 📊 Opções pré-duelo — Viabilidade de consenso\n")
-            print(f'<p class="fs-base u-s001">Ranking por <strong>gargalo de consenso</strong>: o score do duelista <em>mais favorável</em> ao alvo (max). Para indicar juntos, ambos precisam aceitar — quem gosta mais do alvo é quem trava a decisão. Scores <strong>antes</strong> da indicação.</p>\n')
+            print(f'<p class="fs-base meta-text">Ranking por <strong>gargalo de consenso</strong>: o score do duelista <em>mais favorável</em> ao alvo (max). Para indicar juntos, ambos precisam aceitar — quem gosta mais do alvo é quem trava a decisão. Scores <strong>antes</strong> da indicação.</p>\n')
 
             # Build combined ranking
             _combined = []
@@ -1423,7 +1424,7 @@ if ultimo:
 
             # ── 3. Overlap de Hostilidade ─────────────────────────────────
             print(f"### 🔀 Overlap de hostilidade\n")
-            print(f'<p class="fs-base u-s001">Classificação dos alvos por onde {_sorteado.split()[0]} e {_oponente.split()[0]} concordam/discordam (baseado no score pré-duelo).</p>\n')
+            print(f'<p class="fs-base meta-text">Classificação dos alvos por onde {_sorteado.split()[0]} e {_oponente.split()[0]} concordam/discordam (baseado no score pré-duelo).</p>\n')
 
             _both_neg = []
             _sol_only = []
@@ -1456,7 +1457,7 @@ if ultimo:
 
             # ── 4. Queridômetro últimos 14 dias ───────────────────────────
             print(f"### 📅 Queridômetro — Últimos 14 dias\n")
-            print(f'<p class="fs-base u-s001">Reações diárias entre os duelistas e {_consenso_target}. Cada emoji mostra o que o participante deu naquele dia.</p>\n')
+            print(f'<p class="fs-base meta-text">Reações diárias entre os duelistas e {_consenso_target}. Cada emoji mostra o que o participante deu naquele dia.</p>\n')
 
             # Get 14 daily snapshots up to and including the duelo date
             _dr_snaps = [(s, m) for s, m in zip(daily_snapshots, daily_matrices) if s["date"] <= _duelo_date]
@@ -1508,7 +1509,7 @@ if ultimo:
 
             # ── 5. Perfil de rejeição (incoming scores) ──────────────────
             print(f"### 🎯 Perfil de rejeição — Quem mais rejeita {_consenso_target}?\n")
-            print(f'<p class="fs-base u-s001">Scores de todos os participantes em direção a {_consenso_target} (pré-duelo). Contextualiza se {_consenso_target} era amplamente rejeitad{artigo(_consenso_target)} ou um alvo estratégico isolado.</p>\n')
+            print(f'<p class="fs-base meta-text">Scores de todos os participantes em direção a {_consenso_target} (pré-duelo). Contextualiza se {_consenso_target} era amplamente rejeitad{artigo(_consenso_target)} ou um alvo estratégico isolado.</p>\n')
 
             # Gather all incoming scores toward the target
             _incoming = []
@@ -1562,7 +1563,7 @@ if ultimo:
             _nao_citados = _duelo.get('nao_citados', [])
 
             print("\n## ⚔️ Sincerinho — Duelo de Risco\n")
-            print(f'<p class="fs-base u-s001">Cada participante escolheu quem quer enfrentar no Paredão.</p>\n')
+            print(f'<p class="fs-base meta-text">Cada participante escolheu quem quer enfrentar no Paredão.</p>\n')
 
             # ── Most targeted summary ──
             if _alvos:
@@ -2080,7 +2081,7 @@ if _pp_data:
         _targets = _pp[_actor]
         _targets_html = " ".join([f'{avatar_img(t, AVATARS, 32)}' for t in _targets])
         _av = avatar_img(_actor, AVATARS, 32)
-        _dhtml += f'<tr><td>{_av} {_actor}</td><td>{_targets_html} <span class="fs-md u-s001">{", ".join(_targets)}</span></td></tr>'
+        _dhtml += f'<tr><td>{_av} {_actor}</td><td>{_targets_html} <span class="fs-md meta-inline">{", ".join(_targets)}</span></td></tr>'
     _dhtml += '</tbody></table>'
     if _mutuals:
         _dhtml += '<div class="u-s417"><strong>⚔️ Indicações mútuas:</strong> '
@@ -2110,7 +2111,7 @@ if _pp_data:
         _duel_html += f'<div class="text-muted fs-sm">📞 Big Fone</div>'
         _duel_html += f'{avatar_img(_bf_who, AVATARS, 40)}<br/>'
         _duel_html += f'<strong>{_bf_who}</strong><br/>'
-        _duel_html += f'<span class="fs-sm u-s001">{_bf_tipo}</span></div>'
+        _duel_html += f'<span class="fs-sm meta-chip">{_bf_tipo}</span></div>'
 
         # Step 2: Choice
         _escolhida = _duelo.get('escolhida', '?')
@@ -2121,7 +2122,7 @@ if _pp_data:
         _duel_html += f'{avatar_img(_escolhida, AVATARS, 40)}<br/>'
         _duel_html += f'<strong>{_escolhida}</strong><br/>'
         _others = [n for n in _chaiany_picks if n != _escolhida]
-        _duel_html += f'<span class="fs-xs u-s001">De: {", ".join(_chaiany_picks)}</span></div>'
+        _duel_html += f'<span class="fs-xs meta-inline">De: {", ".join(_chaiany_picks)}</span></div>'
 
         # Step 3: Result
         _emparedado = _duelo.get('emparedado', '?')
@@ -2814,7 +2815,7 @@ else:
 </div>
 <div class="u-s476">
 <div class="fs-4xl u-s042">74,3%</div>
-<div class="fs-sm u-s001">limiar de inversão</div>
+<div class="fs-sm meta-text">limiar de inversão</div>
 </div>
 </div>
 :::

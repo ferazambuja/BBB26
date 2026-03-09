@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Painel de Reações"
 subtitle: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"
+description: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"
 lang: pt-BR
 format:
   html:
@@ -233,7 +234,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
 <table class="cross-table">
 <thead>
 <tr>
-<th class="u-s001">→ deu / ↓ recebeu</th>
+<th class="th-soft">→ deu / ↓ recebeu</th>
 ''')
 
     # Header row with receiver names
@@ -731,7 +732,7 @@ else:
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Mudanças de ontem para hoje no queridômetro. Melhoria = reação ficou mais positiva; piora = mais negativa.")}
 <div class="u-s332">
 <span class="fs-4xl u-s393">{total}</span>
-<span class="fs-base u-s001">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
+<span class="fs-base meta-text">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
 <div style="display:grid;gap:6px;margin-top:4px;">
 {_pulse_row("Melhorias", imp, "#27ae60")}
@@ -1273,7 +1274,7 @@ else:
                     f'<div class="u-s342" style="border-left:3px solid {sev_border};">'
                     f'{av(g, 42, av_group_border(g))}'
                     f'<div class="u-s057">'
-                    f'<span class="fs-xs u-s001">{streak}d ❤️</span>'
+                    f'<span class="fs-xs meta-chip">{streak}d ❤️</span>'
                     f'<span class="fs-base">→ {new_e}</span>'
                     f'</div>'
                     f'{av(r, 42, av_group_border(r))}'
@@ -2423,7 +2424,7 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
             f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
             f'<div class="fs-2xs u-s061">{label}</div></div>'
             f'</summary>'
-            f'<div class="status-breakdown u-s001">{detail_html}</div>'
+            f'<div class="status-breakdown">{detail_html}</div>'
             f'</details>'
         )
     return (
@@ -2713,7 +2714,7 @@ for p in profiles:
         votes_detail_rows += (
             f"<div class='u-s072'>"
             f"<b>{vd.get('numero', '?')}º Paredão</b> ({vd.get('data', '')})<br>"
-            f"<span class='u-s001'>Votaram: {voters_str}</span></div>"
+            f"<span class='meta-inline'>Votaram: {voters_str}</span></div>"
         )
     if votes_detail_rows:
         votos_chip = (
@@ -2739,7 +2740,7 @@ for p in profiles:
         paredao_detail_rows += (
             f"<div class='u-s072'>"
             f"<b>{ph.get('numero', '?')}º Paredão</b> ({ph.get('data', '')})<br>"
-            f"<span class='u-s001'>Como: {ph.get('como', '?')}</span> · "
+            f"<span class='meta-inline'>Como: {ph.get('como', '?')}</span> · "
             f"<span style='color:{res_color};'>{res}{vt_str}</span></div>"
         )
     if n_paredoes > 0 and paredao_detail_rows:
@@ -3107,7 +3108,7 @@ if eliminated:
 {av_img}
 <div>
 <div class="fs-lg u-s389">{name}</div>
-<div class="fs-base u-s001">{subtitle}</div>
+<div class="fs-base meta-text">{subtitle}</div>
 {reason_html}
 </div>
 </div>'''
