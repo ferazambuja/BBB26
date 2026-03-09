@@ -19,9 +19,10 @@ on:
     - cron: '*/15 * * * *'  # Every 15 minutes
   workflow_dispatch:  # Allow manual trigger (always runs full pipeline)
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true  # Latest data wins; no point finishing stale builds
+# NOTE: No workflow-level concurrency group. A lightweight 31-second schedule
+# poll must NOT cancel a 4+ minute manual build+deploy. Concurrency is set
+# per-job: build uses cancel-in-progress (avoid duplicate renders), deploy
+# uses cancel-in-progress (latest site wins on Pages API).
 
 # ── Job 1: fetch (lightweight, always runs, ~30 sec) ─────────────────────
 # Only needs `requests`. Fetches API, saves snapshot if data changed,
@@ -73,6 +74,9 @@ jobs:
     needs: fetch
     if: needs.fetch.outputs.data_changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    concurrency:
+      group: "build"
+      cancel-in-progress: true  # Avoid duplicate renders; latest data wins
     permissions:
       contents: read
     outputs:
@@ -163,6 +167,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: "pages"
+      cancel-in-progress: true  # Latest site wins on Pages API
     permissions:
       contents: write
       pages: write
