@@ -25,11 +25,14 @@ def test_paredoes_has_milena_spotlight_render_hook():
     assert "Queridômetro no domingo da formação" in helper
     assert "🔒 Queridômetro secreto" in helper
     assert "Quando o poder caiu na mão deles" in helper
-    assert "🎯 Ataques diretos e Sincerão" in helper
-    assert "↩️ Respostas da Milena" in helper
+    assert "🎯 No Sincerão e nos ataques diretos" in helper
+    assert "↩️ Quando Milena devolveu" in helper
+    assert "paredao-spotlight-summary-list" in helper
     assert "private_signal_note" in helper
     assert 'story.get("caveat"' in helper
     assert "Agora:" not in helper
+    assert "Emoji mais constante" not in helper
+    assert "No fechamento desse recorte" not in helper
 
 
 def test_paredao_live_page_has_milena_spotlight_render_hook():
@@ -43,6 +46,22 @@ def test_paredoes_spotlight_has_mobile_first_styles():
     assert ".paredao-spotlight" in css
     assert ".paredao-spotlight-grid" in css
     assert "@media (max-width: 768px)" in css
+
+
+def test_paredao_pages_define_scoped_typography_layer():
+    live = _read(PAREDAO_QMD)
+    archive = _read(PAREDOES_QMD)
+    css = _read(CARDS_CSS)
+
+    assert "body-classes: paredao-page" in live
+    assert "body-classes: paredao-page" in archive
+    assert "body.paredao-page #title-block-header .title" in css
+    assert "body.paredao-page #title-block-header .subtitle" in css
+    assert "body.paredao-page main.content h2" in css
+    assert "body.paredao-page .paredao-spotlight-section-title" in css
+    assert "body.paredao-page .paredao-spotlight-note" in css
+    assert "body.paredao-page .nav-tabs .nav-link" in css
+    assert "body.paredao-page .paredao-history-summary" in css
 
 
 def test_paredoes_tabs_include_current_open_week():

@@ -24,6 +24,7 @@ from build_derived_data import (
     get_daily_snapshots,
 )
 from data_utils import POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE
+from paredao_viz import render_featured_story
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -495,19 +496,35 @@ class TestWeek8MilenaSpotlight:
         alberto = secret["pairs"]["Alberto Cowboy"]
         assert alberto["to_target"]["ever_sent_heart"] is True
         assert alberto["to_target"]["mutual_heart_days"] == 0
+        assert alberto["to_target"]["last_positive_date"] == "2026-01-27"
+        assert alberto["to_target"]["days_since_last_positive"] == 40
         assert alberto["to_target"]["latest_emoji"] == "🤮"
+        assert alberto["to_target"]["current_streak"]["emoji"] == "🤮"
         assert alberto["from_target"]["latest_emoji"] == "🤮"
+        assert alberto["from_target"]["last_positive_date"] == "2026-01-30"
+        assert alberto["from_target"]["days_since_last_positive"] == 37
 
         jonas = secret["pairs"]["Jonas Sulzbach"]
         assert jonas["to_target"]["mutual_heart_days"] == 7
+        assert jonas["to_target"]["last_mutual_positive_date"] == "2026-01-25"
+        assert jonas["to_target"]["days_since_last_mutual_positive"] == 42
         assert jonas["to_target"]["latest_emoji"] == "🌱"
+        assert jonas["to_target"]["longest_streak"]["emoji"] == "🤮"
         assert jonas["from_target"]["latest_emoji"] == "🤥"
+        assert jonas["from_target"]["current_streak"]["emoji"] == "🤥"
 
-        facts = " ".join(secret["facts"])
-        assert "❤️" in facts
-        assert "7" in facts
-        assert "🤮" in facts
-        assert "🤥" in facts
+    def test_featured_story_render_uses_summary_copy_not_repetitive_dump(self, real_paredao_output):
+        story = real_paredao_output["by_paredao"]["8"]["featured_story"]
+        html = render_featured_story(story)
+
+        assert "Quando o poder caiu na mão deles" in html
+        assert "🎯 No Sincerão e nos ataques diretos" in html
+        assert "↩️ Quando Milena devolveu" in html
+        assert "Nunca teve um dia de emojis positivos dos dois lados" in html
+        assert "A última troca positiva dos dois foi em <strong>25/01</strong>" in html
+        assert "No fechamento desse recorte" not in html
+        assert "Emoji mais constante" not in html
+        assert "No domingo da formação" not in html
 
 
 # ─── TestBuildClustersData ────────────────────────────────────────────────────

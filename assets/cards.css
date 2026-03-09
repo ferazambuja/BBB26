@@ -260,6 +260,81 @@ th.th-soft {
   flex: 1;
 }
 
+/* ── Paredão pages: scoped typography rebalance ── */
+body.paredao-page #title-block-header .title {
+  font-size: clamp(1.72rem, 1.42rem + 1.05vw, 2.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.35rem;
+}
+
+body.paredao-page #title-block-header .subtitle {
+  max-width: 62ch;
+  font-size: clamp(0.98rem, 0.94rem + 0.28vw, 1.12rem);
+  line-height: 1.46;
+  color: #ccd4df;
+}
+
+body.paredao-page main.content {
+  font-size: 1rem;
+  line-height: 1.68;
+}
+
+body.paredao-page main.content h2 {
+  font-size: clamp(1.34rem, 1.18rem + 0.5vw, 1.64rem);
+  line-height: 1.14;
+  margin-top: 1.75rem;
+  margin-bottom: 0.62rem;
+}
+
+body.paredao-page main.content h3 {
+  font-size: clamp(1.14rem, 1.04rem + 0.34vw, 1.34rem);
+  line-height: 1.2;
+  margin-top: 1.35rem;
+  margin-bottom: 0.52rem;
+}
+
+body.paredao-page main.content h4 {
+  font-size: clamp(1.02rem, 0.97rem + 0.22vw, 1.16rem);
+  line-height: 1.28;
+}
+
+body.paredao-page main.content h5,
+body.paredao-page main.content h6 {
+  font-size: clamp(0.96rem, 0.93rem + 0.14vw, 1.04rem);
+  line-height: 1.3;
+}
+
+body.paredao-page main.content p,
+body.paredao-page main.content li,
+body.paredao-page main.content td,
+body.paredao-page main.content th {
+  font-size: 0.98rem;
+  line-height: 1.66;
+}
+
+body.paredao-page main.content .meta-inline {
+  font-size: 0.86rem;
+  line-height: 1.42;
+}
+
+body.paredao-page .nav-tabs .nav-link {
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+body.paredao-page .paredao-history-summary {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+body.paredao-page .paredao-history-table,
+body.paredao-page table.table {
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 /* ── Paredões spotlight (week-specific narrative block) ── */
 .paredao-spotlight {
   margin: 1.3rem 0 1.6rem;
@@ -294,6 +369,19 @@ th.th-soft {
   color: #d7dee8;
 }
 
+body.paredao-page .paredao-spotlight-title {
+  font-size: clamp(1.24rem, 1.08rem + 0.52vw, 1.52rem);
+  line-height: 1.12;
+}
+
+body.paredao-page .paredao-spotlight-thesis,
+body.paredao-page .paredao-spotlight-caveat,
+body.paredao-page .paredao-spotlight-note,
+body.paredao-page .paredao-spotlight-proof {
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
 .paredao-spotlight-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -321,6 +409,12 @@ th.th-soft {
   font-weight: 700;
 }
 
+body.paredao-page .paredao-spotlight-card-title,
+body.paredao-page .paredao-spotlight-section-title {
+  font-size: 1rem;
+  line-height: 1.28;
+}
+
 .paredao-spotlight-metric {
   margin: 0.1rem 0 0.25rem;
   color: #fff;
@@ -339,6 +433,11 @@ th.th-soft {
   background: rgba(255, 255, 255, 0.08);
   color: #eef2f7;
   font-size: var(--fs-xs);
+}
+
+body.paredao-page .paredao-spotlight-pill {
+  font-size: 0.8rem;
+  line-height: 1.34;
 }
 
 .paredao-spotlight-section {
@@ -384,6 +483,11 @@ th.th-soft {
   font-weight: 700;
 }
 
+body.paredao-page .paredao-spotlight-subtitle {
+  font-size: 0.94rem;
+  line-height: 1.26;
+}
+
 .paredao-spotlight-timeline-item {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
@@ -408,6 +512,32 @@ th.th-soft {
   border-color: rgba(52, 152, 219, 0.28);
 }
 
+.paredao-spotlight-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  margin: 0.55rem 0 0.65rem;
+}
+
+.paredao-spotlight-summary-item {
+  padding: 0.48rem 0.58rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #eef2f7;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+
+body.paredao-page .paredao-spotlight-summary-item {
+  font-size: 0.92rem;
+  line-height: 1.36;
+}
+
+.paredao-spotlight-summary-item strong {
+  color: #fff;
+}
+
 .paredao-spotlight-facts {
   margin-top: 0.75rem;
   padding: 0.7rem 0.8rem;
@@ -417,6 +547,24 @@ th.th-soft {
 }
 
 @media (max-width: 768px) {
+  body.paredao-page #title-block-header .title {
+    font-size: clamp(1.55rem, 1.28rem + 0.9vw, 1.9rem);
+  }
+
+  body.paredao-page #title-block-header .subtitle,
+  body.paredao-page main.content p,
+  body.paredao-page main.content li,
+  body.paredao-page .paredao-spotlight-thesis,
+  body.paredao-page .paredao-spotlight-caveat,
+  body.paredao-page .paredao-spotlight-note,
+  body.paredao-page .paredao-spotlight-proof {
+    font-size: 0.95rem;
+  }
+
+  body.paredao-page .nav-tabs .nav-link {
+    font-size: 0.86rem;
+  }
+
   .paredao-spotlight {
     padding: 0.85rem;
     border-radius: 14px;

@@ -29,6 +29,24 @@ python scripts/votalhada_ocr_feasibility.py \
 
 If downloading fails, save a single consolidado screenshot and run the same OCR parser against that directory.
 
+**Option C — Continuous local scheduler (recommended for week runs)**
+
+```bash
+# Preview upcoming slots converted to your local timezone
+python scripts/schedule_votalhada_fetch.py --paredao N --local-tz America/New_York --dry-run
+
+# Keep running hourly (default mode) with duplicate filtering
+python scripts/schedule_votalhada_fetch.py --paredao N --local-tz America/New_York
+
+# Run once on the next scheduled window (good for smoke tests)
+python scripts/schedule_votalhada_fetch.py --paredao N --local-tz America/New_York --once
+
+# Optional: use only the classic Votalhada windows instead of hourly
+python scripts/schedule_votalhada_fetch.py --paredao N --local-tz America/New_York --mode windows
+```
+
+The scheduler is timezone-aware and follows Sao Paulo windows directly; it prints both BRT and local times on startup so you can confirm offsets (for example, New York is currently 1 hour behind Sao Paulo on 2026-03-09).
+
 **Important**: extraction is consolidado-card based. The parser selects the best consolidado image by content signature (it does not assume fixed filename index).
 
 ## When to Collect

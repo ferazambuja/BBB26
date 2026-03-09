@@ -18,6 +18,7 @@ to keep a history of captures. Use --no-timestamp to overwrite instead.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 from datetime import datetime, timezone
@@ -29,6 +30,8 @@ import requests
 REPO_ROOT = Path(__file__).resolve().parent.parent
 VOTALHADA_DIR = REPO_ROOT / "data" / "votalhada"
 PAREDOES_JSON = REPO_ROOT / "data" / "paredoes.json"
+CAPTURE_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(?:-\d{2})?$")
+DEDUPE_MODES = ("off", "size", "sha256", "size+sha256")
 
 
 def _load_paredoes():
@@ -94,6 +97,72 @@ def download_image(url: str, path: Path, session: requests.Session) -> bool:
         return False
 
 
+def _display_path(path: Path) -> str:
+    """Return a stable, human-readable path for logs."""
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _is_capture_for_base(path: Path, base: str) -> bool:
+    stem = path.stem
+    if stem == base:
+        return True
+    prefix = f"{base}_"
+    if not stem.startswith(prefix):
+        return False
+    tail = stem[len(prefix) :]
+    return bool(CAPTURE_TS_RE.fullmatch(tail))
+
+
+def _files_match(existing: Path, incoming: Path, mode: str) -> bool:
+    if mode == "off":
+        return False
+
+    existing_size = existing.stat().st_size
+    incoming_size = incoming.stat().st_size
+
+    if mode == "size":
+        return existing_size == incoming_size
+    if mode == "sha256":
+        return _sha256_file(existing) == _sha256_file(incoming)
+    if mode == "size+sha256":
+        if existing_size != incoming_size:
+            return False
+        return _sha256_file(existing) == _sha256_file(incoming)
+
+    raise ValueError(f"Unsupported dedupe mode: {mode}")
+
+
+def _find_duplicate_capture(out_dir: Path, base: str, incoming: Path, mode: str) -> Path | None:
+    if mode == "off":
+        return None
+
+    candidates = []
+    for candidate in sorted(out_dir.glob("*.png")):
+        if candidate.resolve() == incoming.resolve():
+            continue
+        if not _is_capture_for_base(candidate, base):
+            continue
+        if _files_match(candidate, incoming, mode):
+            candidates.append(candidate)
+
+    if not candidates:
+        return None
+
+    return max(candidates, key=lambda p: p.stat().st_mtime)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download Votalhada poll images from a pesquisa post.",
@@ -113,6 +182,12 @@ def main() -> None:
         type=Path,
         default=None,
         help="Override output directory (default: data/votalhada/YYYY_MM_DD)",
+    )
+    parser.add_argument(
+        "--dedupe",
+        choices=DEDUPE_MODES,
+        default="off",
+        help="Optional duplicate detection across captures in the same folder.",
     )
     args = parser.parse_args()
 
@@ -159,6 +234,7 @@ def main() -> None:
         suffix = "_" + datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
 
     saved = 0
+    skipped_dupes = 0
     for i, url in enumerate(urls):
         if i == 0:
             base = "consolidados"
@@ -167,10 +243,22 @@ def main() -> None:
         name = f"{base}{suffix}.png"
         path = out_dir / name
         if download_image(url, path, session):
-            print(f"  Saved {path.relative_to(REPO_ROOT)}")
+            duplicate = _find_duplicate_capture(out_dir, base, path, mode=args.dedupe)
+            if duplicate is not None:
+                path.unlink(missing_ok=True)
+                print(
+                    "  Skipped duplicate "
+                    f"{_display_path(path)} (same as {_display_path(duplicate)} via {args.dedupe})"
+                )
+                skipped_dupes += 1
+                continue
+            print(f"  Saved {_display_path(path)}")
             saved += 1
 
-    print(f"Done. {saved}/{len(urls)} images saved to {out_dir.relative_to(REPO_ROOT)}.")
+    print(
+        f"Done. {saved}/{len(urls)} images saved to {_display_path(out_dir)}"
+        f" (duplicates skipped: {skipped_dupes})."
+    )
 
 
 if __name__ == "__main__":

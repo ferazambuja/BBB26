@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
+from datetime import date
 from pathlib import Path
 
 from data_utils import (
@@ -371,17 +372,33 @@ def _summarize_pair_secret_history(history: list[dict]) -> dict:
             "heart_days": 0,
             "mutual_heart_days": 0,
             "first_non_heart_date": None,
+            "last_positive_date": None,
+            "days_since_last_positive": None,
+            "last_mutual_positive_date": None,
+            "days_since_last_mutual_positive": None,
             "latest_label": "",
             "latest_emoji": "",
             "most_frequent_label": "",
             "most_frequent_emoji": "",
             "most_frequent_count": 0,
             "longest_streak": {},
+            "current_streak": {},
         }
 
     counts = Counter(item["label"] for item in history)
     most_frequent_label, most_frequent_count = counts.most_common(1)[0]
     first_non_heart_date = next((item["date"] for item in history if item["label"] != "Coração"), None)
+    latest = history[-1]
+    cutoff_date = latest["date"]
+    last_positive_date = next((item["date"] for item in reversed(history) if item["label"] in POSITIVE), None)
+    last_mutual_positive_date = next(
+        (
+            item["date"]
+            for item in reversed(history)
+            if item["label"] in POSITIVE and item["reverse_label"] in POSITIVE
+        ),
+        None,
+    )
     mutual_heart_days = sum(
         1
         for item in history
@@ -421,19 +438,42 @@ def _summarize_pair_secret_history(history: list[dict]) -> dict:
             "end_date": prev_date,
         }
 
-    latest = history[-1]
+    current_streak_length = 0
+    current_streak_start = latest["date"]
+    for item in reversed(history):
+        if item["label"] != latest["label"]:
+            break
+        current_streak_length += 1
+        current_streak_start = item["date"]
+
+    def _days_since(date_str: str | None) -> int | None:
+        if not date_str:
+            return None
+        return (date.fromisoformat(cutoff_date) - date.fromisoformat(date_str)).days
+
     return {
         "days_with_data": len(history),
         "ever_sent_heart": "Coração" in counts,
         "heart_days": counts.get("Coração", 0),
         "mutual_heart_days": mutual_heart_days,
         "first_non_heart_date": first_non_heart_date,
+        "last_positive_date": last_positive_date,
+        "days_since_last_positive": _days_since(last_positive_date),
+        "last_mutual_positive_date": last_mutual_positive_date,
+        "days_since_last_mutual_positive": _days_since(last_mutual_positive_date),
         "latest_label": latest["label"],
         "latest_emoji": latest["emoji"],
         "most_frequent_label": most_frequent_label,
         "most_frequent_emoji": REACTION_EMOJI.get(most_frequent_label, most_frequent_label),
         "most_frequent_count": most_frequent_count,
         "longest_streak": best_streak,
+        "current_streak": {
+            "label": latest["label"],
+            "emoji": latest["emoji"],
+            "length": current_streak_length,
+            "start_date": current_streak_start,
+            "end_date": latest["date"],
+        },
     }
 
 
