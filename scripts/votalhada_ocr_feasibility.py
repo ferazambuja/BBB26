@@ -170,10 +170,16 @@ def select_best_consolidado_image(
     diagnostics: dict[str, dict[str, int | str]] = {}
 
     def _extract_ts(path: Path) -> datetime | None:
-        m = re.search(r"_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})\.png$", path.name)
+        m = re.search(r"_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(?:-\d{2})?)\.png$", path.name)
         if not m:
             return None
-        return datetime.strptime(m.group(1), "%Y-%m-%d_%H-%M")
+        raw = m.group(1)
+        for fmt in ("%Y-%m-%d_%H-%M-%S", "%Y-%m-%d_%H-%M"):
+            try:
+                return datetime.strptime(raw, fmt)
+            except ValueError:
+                continue
+        return None
 
     for path in image_paths:
         text = ocr(path)

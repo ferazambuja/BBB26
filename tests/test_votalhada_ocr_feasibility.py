@@ -171,6 +171,19 @@ def test_select_best_consolidado_prefers_latest_timestamp_when_scores_tie():
     assert selected.name == "consolidados_5_2026-03-03_22-39.png"
 
 
+def test_select_best_consolidado_prefers_latest_timestamp_when_seconds_are_present():
+    images = [
+        Path("consolidados_5_2026-03-09_06-40.png"),
+        Path("consolidados_5_2026-03-09_18-06-00.png"),
+    ]
+
+    def fake_ocr(_: Path) -> str:
+        return SAMPLE_CONSOLIDADO_OCR
+
+    selected, _ = select_best_consolidado_image(images, ocr_func=fake_ocr)
+    assert selected.name == "consolidados_5_2026-03-09_18-06-00.png"
+
+
 def test_parse_consolidado_snapshot_extracts_expected_fields():
     participants = ["Alberto Cowboy", "Breno", "Jordana"]
     aliases = {"A Cowboy": "Alberto Cowboy"}
