@@ -36,6 +36,7 @@ MONTH_MAP_PT = {
     "nov": 11,
     "dez": 12,
 }
+MONTH_MAP_PT_REV = {v: k for k, v in MONTH_MAP_PT.items()}
 
 DEFAULT_NAME_ALIASES = {
     "A COWBOY": "Alberto Cowboy",
@@ -45,6 +46,7 @@ DEFAULT_NAME_ALIASES = {
 
 CONSOLIDADO_SUM_TOLERANCE = 0.25
 SERIES_SUM_TOLERANCE = 0.75
+PLATFORM_SUM_TOLERANCE = 0.60
 
 
 def _strip_accents(text: str) -> str:
@@ -211,27 +213,44 @@ def select_best_consolidado_image(
 
 def _extract_row_values(lines: list[str], label: str) -> tuple[list[float], int]:
     label_norm = _norm(label)
-    candidates: list[tuple[float, int, list[float], int]] = []
+    # Candidate sort keys:
+    # - reconstructed_penalty: prefer full rows (0) over 3-token reconstructed rows (1)
+    # - sum_gap: keep values closest to 100%
+    # - -votes: tie-break toward larger vote count
+    candidates: list[tuple[int, float, int, list[float], int]] = []
     for line in lines:
         if label_norm not in _norm(line):
             continue
         tokens = re.findall(r"\d[\d\.,]*", line)
-        if len(tokens) < 4:
+        if len(tokens) >= 4:
+            p1 = _as_float_percent(tokens[0])
+            p2 = _as_float_percent(tokens[1])
+            p3 = _as_float_percent(tokens[2])
+            votes = _as_int_votes(tokens[-1])
+            if None in (p1, p2, p3, votes):
+                continue
+            repaired = _repair_triplet([p1, p2, p3])
+            if any(v < 0 or v > 100 for v in repaired):
+                continue
+            sum_gap = abs(sum(repaired) - 100.0)
+            candidates.append((0, sum_gap, -int(votes), repaired, int(votes)))
             continue
-        p1 = _as_float_percent(tokens[0])
-        p2 = _as_float_percent(tokens[1])
-        p3 = _as_float_percent(tokens[2])
-        votes = _as_int_votes(tokens[3])
-        if None in (p1, p2, p3, votes):
-            continue
-        repaired = _repair_triplet([p1, p2, p3])
-        if any(v < 0 or v > 100 for v in repaired):
-            continue
-        sum_gap = abs(sum(repaired) - 100.0)
-        candidates.append((sum_gap, -int(votes), repaired, int(votes)))
+
+        # OCR occasionally drops the first percentage in a platform row,
+        # leaving only [p2, p3, votes]. Reconstruct p1 as the complement.
+        if len(tokens) == 3:
+            p2 = _as_float_percent(tokens[0])
+            p3 = _as_float_percent(tokens[1])
+            votes3 = _as_int_votes(tokens[2])
+            if None not in (p2, p3, votes3):
+                p1 = round(100.0 - float(p2) - float(p3), 2)
+                repaired3 = _repair_triplet([p1, float(p2), float(p3)])
+                if all(0 <= v <= 100 for v in repaired3):
+                    sum_gap3 = abs(sum(repaired3) - 100.0)
+                    candidates.append((1, sum_gap3, -int(votes3), repaired3, int(votes3)))
     if candidates:
-        candidates.sort(key=lambda item: (item[0], item[1]))
-        _, _, best_pcts, best_votes = candidates[0]
+        candidates.sort(key=lambda item: (item[0], item[1], item[2]))
+        _, _, _, best_pcts, best_votes = candidates[0]
         return best_pcts, best_votes
     raise ValueError(f"Could not parse row for label '{label}'")
 
@@ -372,6 +391,39 @@ def _parse_hora_pt(hora: str, year: int = 2026) -> datetime:
     hh, mm = time_part.split(":")
     month = MONTH_MAP_PT[month_str.lower()]
     return datetime(year, month, int(day_str), int(hh), int(mm))
+
+
+def _coerce_single_row_series_date_from_image(rows: list[dict], source_image: Path) -> list[dict]:
+    if len(rows) != 1:
+        return rows
+
+    m = re.search(r"_(\d{4})-(\d{2})-(\d{2})_", source_image.name)
+    if not m:
+        return rows
+    month_abbr = MONTH_MAP_PT_REV.get(int(m.group(2)))
+    if month_abbr is None:
+        return rows
+    day_from_name = int(m.group(3))
+
+    hora = str(rows[0].get("hora", ""))
+    if " " not in hora:
+        return rows
+    day_month, time_part = hora.split(maxsplit=1)
+    if "/" not in day_month:
+        return rows
+    parsed_day_str, parsed_month = day_month.split("/", maxsplit=1)
+    if not parsed_day_str.isdigit():
+        return rows
+    parsed_day = int(parsed_day_str)
+    parsed_month = parsed_month.lower()
+
+    # For single-row fallback captures, trust image timestamp if OCR date is clearly off.
+    if parsed_month != month_abbr or abs(parsed_day - day_from_name) >= 2:
+        corrected = rows[0].copy()
+        corrected["hora"] = f"{day_from_name:02d}/{month_abbr} {time_part}"
+        return [corrected]
+
+    return rows
 
 
 def _normalize_day_month_token(token: str) -> str | None:
@@ -716,7 +768,11 @@ def extract_series_rows_from_image(image_path: Path, participants: list[str]) ->
     return max(candidates, key=_series_quality)
 
 
-def _parse_series_rows(lines: list[str], participants: list[str]) -> list[dict]:
+def _parse_series_rows(
+    lines: list[str],
+    participants: list[str],
+    fallback_votes: int | None = None,
+) -> list[dict]:
     rows: list[dict] = []
     in_series = False
     current_date: str | None = None
@@ -765,16 +821,27 @@ def _parse_series_rows(lines: list[str], participants: list[str]) -> list[dict]:
                 continue
             numeric_tokens.append(tok)
 
-        if len(numeric_tokens) < 4:
+        if len(numeric_tokens) < 3:
             continue
 
-        vote_idx = len(numeric_tokens) - 1
-        votos = _as_int_votes(numeric_tokens[vote_idx])
-        if votos is None:
-            continue
+        pct_source_tokens: list[str]
+        votos: int | None
+        if len(numeric_tokens) >= 4:
+            vote_idx = len(numeric_tokens) - 1
+            votos = _as_int_votes(numeric_tokens[vote_idx])
+            if votos is None:
+                continue
+            pct_source_tokens = numeric_tokens[:vote_idx]
+        else:
+            # Some early cards render/ocr series rows without the rightmost vote cell.
+            # Use consolidated total only as a fallback for these partial rows.
+            if fallback_votes is None:
+                continue
+            votos = int(fallback_votes)
+            pct_source_tokens = numeric_tokens
 
         pct_values = []
-        for tok in numeric_tokens[:vote_idx]:
+        for tok in pct_source_tokens:
             val = _as_float_percent(tok)
             if val is None:
                 continue
@@ -862,7 +929,7 @@ def _extract_platform_rows(lines: list[str], participants: list[str]) -> dict:
     # Core rows expected in both legacy and current layouts.
     put_row("sites", ["Sites"])
     put_row("youtube", ["YouTube"])
-    put_row("twitter", ["Twitter", "X - Twitter", "X-Twitter"])
+    put_row("twitter", ["Twitter", "X - Twitter", "X-Twitter", "Twrittor", "Twritter", "Twiter"])
 
     # Dynamic extra schemas:
     # - old 3-platform layout: none of these appears
@@ -903,6 +970,14 @@ def parse_consolidado_snapshot(
 
     plataformas_payload = _extract_platform_rows(lines, participants)
     note = _extract_note(text)
+    try:
+        cons_vals, cons_votes = _extract_consolidado_row(text + "\n" + (alt_text or ""))
+        cons_from_row = True
+    except ValueError:
+        cons_vals = []
+        cons_votes = 0
+        cons_from_row = False
+
     series = _clean_series_rows(_parse_series_rows(lines_primary, participants), participants)
     if source_image is not None:
         series_from_image = _clean_series_rows(
@@ -911,11 +986,32 @@ def parse_consolidado_snapshot(
         )
         if _series_quality(series_from_image) > _series_quality(series):
             series = series_from_image
+
+    fallback_series_votes: int | None = None
+    if cons_from_row:
+        fallback_series_votes = int(cons_votes)
+    else:
+        platform_keys = _platform_keys_for_totals(plataformas_payload)
+        if platform_keys:
+            fallback_series_votes = sum(int(plataformas_payload[p]["votos"]) for p in platform_keys)
+
+    if not series and fallback_series_votes is not None:
+        series_no_votes = _clean_series_rows(
+            _parse_series_rows(
+                lines_primary + lines_alt,
+                participants,
+                fallback_votes=int(fallback_series_votes),
+            ),
+            participants,
+        )
+        if _series_quality(series_no_votes) > _series_quality(series):
+            series = series_no_votes
+    if source_image is not None:
+        series = _coerce_single_row_series_date_from_image(series, source_image)
+
     capture_hora = series[-1]["hora"] if series else None
 
-    try:
-        cons_vals, cons_votes = _extract_consolidado_row(text + "\n" + (alt_text or ""))
-    except ValueError:
+    if not cons_from_row:
         if series:
             last = series[-1]
             cons_vals = [float(last[participants[0]]), float(last[participants[1]]), float(last[participants[2]])]
@@ -977,7 +1073,7 @@ def validate_snapshot(
     for plat_name in platform_keys:
         pdata = plataformas.get(plat_name, {})
         s = sum(float(pdata.get(name, 0.0)) for name in participants)
-        if abs(s - 100.0) > sum_tolerance:
+        if abs(s - 100.0) > max(sum_tolerance, PLATFORM_SUM_TOLERANCE):
             errors.append(f"{plat_name} sum mismatch: {s:.2f}")
 
     # Total-vote reconciliation.

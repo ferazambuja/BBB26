@@ -117,6 +117,43 @@ EVOLUCAO DAS MEDIAS
 06/abr 21:00 44,80 46,29 8,91 6.240.808
 """
 
+SAMPLE_MISSING_LEADING_TWITTER_VALUE_OCR = """
+CONSOLIDADOS - Quem voce quer eliminar?
+CONSOLIDADOS Babu Chaiany Milena Votos
+Sites 43,27 1,60 55,14 566.849
+YouTube 58,36 5,14 37,05 257.004
+Twitter 3,52 16,52 272.481
+Instagram 71,42 2,33 26,25 684.309
+Media Proporcional 60,13 5,05 34,90 Total 1.838.009
+VARIACAO DAS MEDIAS
+09/mar 01:00 60,13 5,05 34,90 1.838.009
+"""
+
+SAMPLE_DUPLICATE_YOUTUBE_FULL_AND_MISSING_OCR = """
+CONSOLIDADOS - Quem voce quer eliminar?
+CONSOLIDADOS Babu Chaiany Milena Votos
+Sites 45,11 1,92 52,97 1.224.702
+YouTube 58,67 4,79 36,90 581.336
+YouTube 4,79 36,90 581.336
+Twitter 78,89 3,19 17,93 405.746
+Instagram 72,50 2,00 25,50 1.183.200
+Media Proporcional 60,10 3,85 36,11 Total 3.452.350
+VARIACAO DAS MEDIAS
+09/mar 08:00 60,10 3,85 36,11 3.452.350
+"""
+
+SAMPLE_SERIES_ROW_WITHOUT_VOTES_OCR = """
+CONSOLIDADOS - Quem voce quer eliminar?
+CONSOLIDADOS Babu Chaiany Milena Votos
+Sites 43,27 1,60 55,14 566.849
+YouTube 58,36 5,14 37,05 257.004
+Twitter 79,97 3,52 16,52 272.481
+Instagram 71,42 2,33 26,25 684.309
+Media Proporcional 60,13 5,05 34,90 Total 1.838.009
+VARIACAO DAS MEDIAS
+09/mar 01:00 60,13 5,05 34,90
+"""
+
 
 def test_classify_ocr_text_consolidado():
     label, score = classify_ocr_text(SAMPLE_CONSOLIDADO_OCR)
@@ -375,6 +412,61 @@ def test_clean_series_rows_drops_sum_outliers_above_validation_tolerance():
     assert "07/abr 12:00" not in horas
 
 
+def test_parse_consolidado_snapshot_recovers_missing_leading_twitter_percentage():
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    parsed = parse_consolidado_snapshot(SAMPLE_MISSING_LEADING_TWITTER_VALUE_OCR, participants)
+
+    tw = parsed["plataformas"]["twitter"]
+    assert tw["Babu Santana"] == pytest.approx(79.96, abs=0.1)
+    assert tw["Chaiany"] == pytest.approx(3.52, abs=0.01)
+    assert tw["Milena"] == pytest.approx(16.52, abs=0.01)
+
+
+def test_validate_snapshot_allows_small_platform_rounding_drift():
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    parsed = parse_consolidado_snapshot(SAMPLE_MISSING_LEADING_TWITTER_VALUE_OCR, participants)
+
+    # Mirrors real card behavior: displayed rounded values may sum to >100 by ~0.4.
+    parsed["plataformas"]["youtube"]["Babu Santana"] = 58.08
+    parsed["plataformas"]["youtube"]["Chaiany"] = 4.67
+    parsed["plataformas"]["youtube"]["Milena"] = 37.62
+    errors = validate_snapshot(parsed, participants)
+
+    assert not any("youtube sum mismatch" in e for e in errors)
+
+
+def test_validate_snapshot_allows_real_card_rounding_drift_100_55():
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    parsed = parse_consolidado_snapshot(SAMPLE_MISSING_LEADING_TWITTER_VALUE_OCR, participants)
+
+    # Real card values can sum to 100.55 due display rounding.
+    parsed["plataformas"]["youtube"]["Babu Santana"] = 58.36
+    parsed["plataformas"]["youtube"]["Chaiany"] = 5.14
+    parsed["plataformas"]["youtube"]["Milena"] = 37.05
+    errors = validate_snapshot(parsed, participants)
+
+    assert not any("youtube sum mismatch" in e for e in errors)
+
+
+def test_parse_consolidado_snapshot_prefers_full_youtube_row_over_reconstructed_row():
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    parsed = parse_consolidado_snapshot(SAMPLE_DUPLICATE_YOUTUBE_FULL_AND_MISSING_OCR, participants)
+    yt = parsed["plataformas"]["youtube"]
+
+    assert yt["Babu Santana"] == pytest.approx(58.67, abs=0.01)
+    assert yt["Chaiany"] == pytest.approx(4.79, abs=0.01)
+    assert yt["Milena"] == pytest.approx(36.90, abs=0.01)
+
+
+def test_parse_consolidado_snapshot_recovers_series_row_without_votes_value():
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    parsed = parse_consolidado_snapshot(SAMPLE_SERIES_ROW_WITHOUT_VOTES_OCR, participants)
+
+    assert len(parsed["serie_temporal"]) == 1
+    assert parsed["capture_hora"] == "09/mar 01:00"
+    assert parsed["serie_temporal"][0]["votos"] == 1838009
+
+
 def test_regression_2026_01_20_series_not_empty():
     image = Path("data/votalhada/2026_01_20/consolidados_final.png")
     if not image.exists():
@@ -447,3 +539,18 @@ def test_regression_2026_03_01_instagram_row_parse_resolved():
 
     assert parsed["plataformas"]["instagram"]["Jordana"] > 0
     assert not any("sum mismatch" in e for e in errors)
+
+
+def test_regression_2026_03_08_06_40_single_row_series_recovers_correct_capture_date():
+    image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-09_06-40.png")
+    if not image.exists():
+        pytest.skip("Regression image 2026_03_08 06:40 not available")
+
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    text = _run_tesseract_text(image, psm=6)
+    alt = _run_tesseract_text(image, psm=4)
+    parsed = parse_consolidado_snapshot(text, participants, alt_text=alt, source_image=image)
+    errors = validate_snapshot(parsed, participants)
+
+    assert not any("series empty" in e for e in errors)
+    assert parsed["capture_hora"] == "09/mar 01:00"
