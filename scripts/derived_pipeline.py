@@ -293,7 +293,14 @@ def build_derived_data() -> None:
     write_json(DERIVED_DIR / "vote_prediction.json", vote_prediction)
 
     # Build paredão analysis + badges
-    paredao_analysis = build_paredao_analysis(daily_snapshots, paredoes)
+    paredao_analysis = build_paredao_analysis(
+        daily_snapshots,
+        paredoes,
+        manual_events,
+        auto_events,
+        sincerao_edges,
+        relations_scores,
+    )
     write_json(DERIVED_DIR / "paredao_analysis.json", {
         "_metadata": {"generated_at": now, "source": "snapshots+paredoes+manual_events"},
         **paredao_analysis,

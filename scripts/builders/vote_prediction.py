@@ -9,6 +9,7 @@ from data_utils import (
     MILD_NEGATIVE, STRONG_NEGATIVE,
     SENTIMENT_WEIGHTS,
     build_reaction_matrix, patch_missing_raio_x,
+    resolve_leaders,
 )
 
 # ── Vote Prediction constants ──
@@ -50,16 +51,17 @@ def extract_paredao_eligibility(paredao_entry: dict) -> dict:
     impedidos = set(paredao_entry.get("impedidos_votar", []) or [])
     anulados = set(paredao_entry.get("votos_anulados", []) or [])
 
-    # Can't be voted by house: líder, líder's indicado, imunizado, anjo autoimune,
+    # Can't be voted by house: líder(es), líder's indicado, imunizado, anjo autoimune,
     # dinâmica/big_fone indicado (already on paredão before house vote)
     # NOTE: indicados_finais includes people voted BY the house — they ARE eligible targets.
     # We only exclude people who were placed on paredão BEFORE the house vote.
     cant_be_voted = set()
     reasons = {}
 
-    if lider:
-        cant_be_voted.add(lider)
-        reasons[lider] = "Líder"
+    lider_names = resolve_leaders(form)
+    for l in lider_names:
+        cant_be_voted.add(l)
+        reasons[l] = "Líder"
 
     # Líder's indicado is already on paredão before house vote
     indicado_lider = form.get("indicado_lider")
@@ -86,10 +88,9 @@ def extract_paredao_eligibility(paredao_entry: dict) -> dict:
         cant_be_voted.add(contragolpe["para"])
         reasons.setdefault(contragolpe["para"], "Contragolpe")
 
-    # Can't vote: líder + impedidos + anulados
+    # Can't vote: líder(es) + impedidos + anulados
     cant_vote = set()
-    if lider:
-        cant_vote.add(lider)
+    cant_vote.update(lider_names)
     cant_vote.update(impedidos)
     # Note: anulados CAN vote (their vote just doesn't count), but we exclude them
     # since their votes have no effect on who goes to paredão
@@ -100,6 +101,7 @@ def extract_paredao_eligibility(paredao_entry: dict) -> dict:
         "cant_vote": cant_vote,
         "ineligible_reasons": reasons,
         "lider": lider,
+        "lider_names": lider_names,
         "indicados_finais": indicados_finais,
     }
 

@@ -1,0 +1,302 @@
+"""Tests for Mais Blindados card: resolve_leaders, BV counting, vote counting, nomination classification."""
+from __future__ import annotations
+
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+import pytest
+
+# Add scripts to path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+
+from data_utils import resolve_leaders
+from builders.vote_prediction import extract_paredao_eligibility
+
+
+# ── resolve_leaders() ────────────────────────────────────────────────────────
+
+class TestResolveLeaders:
+    def test_single(self):
+        assert resolve_leaders({"lider": "A"}) == ["A"]
+
+    def test_dual(self):
+        assert resolve_leaders({"lider": "A + B", "lideres": ["A", "B"]}) == ["A", "B"]
+
+    def test_none(self):
+        assert resolve_leaders({}) == []
+
+    def test_lideres_takes_precedence(self):
+        assert resolve_leaders({"lider": "X", "lideres": ["A", "B"]}) == ["A", "B"]
+
+    def test_empty_lideres_falls_back(self):
+        assert resolve_leaders({"lider": "A", "lideres": []}) == ["A"]
+
+    def test_null_lideres_falls_back(self):
+        assert resolve_leaders({"lider": "A", "lideres": None}) == ["A"]
+
+    def test_no_lider_no_lideres(self):
+        assert resolve_leaders({"anjo": "X"}) == []
+
+
+# ── extract_paredao_eligibility() dual leadership ────────────────────────────
+
+class TestExtractEligibilityDualLeaders:
+    def test_both_in_cant_be_voted(self):
+        entry = {
+            "formacao": {"lider": "A + B", "lideres": ["A", "B"]},
+            "indicados_finais": [],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "A" in result["cant_be_voted"]
+        assert "B" in result["cant_be_voted"]
+        assert "A + B" not in result["cant_be_voted"]
+
+    def test_both_in_cant_vote(self):
+        entry = {
+            "formacao": {"lider": "A + B", "lideres": ["A", "B"]},
+            "indicados_finais": [],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "A" in result["cant_vote"]
+        assert "B" in result["cant_vote"]
+
+    def test_lider_names_in_result(self):
+        entry = {
+            "formacao": {"lider": "A + B", "lideres": ["A", "B"]},
+            "indicados_finais": [],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert result["lider_names"] == ["A", "B"]
+
+    def test_single_leader_compat(self):
+        entry = {
+            "formacao": {"lider": "Jonas"},
+            "indicados_finais": [],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Jonas" in result["cant_be_voted"]
+        assert result["lider_names"] == ["Jonas"]
+        assert result["lider"] == "Jonas"
+
+
+# ── BV escape counting ──────────────────────────────────────────────────────
+
+def _make_paredao(num, lider, indicados, bv_vencedor=None, bv_vencedores=None, votos_casa=None):
+    """Build a synthetic paredão entry for testing."""
+    bv = {}
+    if bv_vencedor:
+        bv["vencedor"] = bv_vencedor
+    if bv_vencedores:
+        bv["vencedores"] = bv_vencedores
+    return {
+        "numero": num,
+        "formacao": {"lider": lider, "bate_volta": bv if bv else None},
+        "indicados_finais": [{"nome": n, "como": "test"} for n in indicados],
+        "votos_casa": votos_casa or {},
+    }
+
+
+class TestBvEscapeCounting:
+    """Test BV escape detection logic extracted from _compute_static_cards."""
+
+    def _count_bv_escapes(self, paredoes):
+        """Replicate the BV counting logic from _compute_static_cards."""
+        bv_escape_count: Counter = Counter()
+        for par in paredoes:
+            form = par.get("formacao", {})
+            indicados = {(ind["nome"] if isinstance(ind, dict) else ind)
+                         for ind in par.get("indicados_finais", [])}
+            bv = form.get("bate_volta", {}) or {}
+            bv_winners = bv.get("vencedores") or ([bv["vencedor"]] if bv.get("vencedor") else [])
+            for bw in bv_winners:
+                if bw and bw not in indicados:
+                    bv_escape_count[bw] += 1
+        return bv_escape_count
+
+    def test_single_winner_escaped(self):
+        paredoes = [_make_paredao(1, "L", ["X", "Y"], bv_vencedor="Z")]
+        counts = self._count_bv_escapes(paredoes)
+        assert counts["Z"] == 1
+
+    def test_single_winner_still_in_indicados(self):
+        """Winner appears in indicados_finais (lost BV) — not an escape."""
+        paredoes = [_make_paredao(1, "L", ["X", "Z"], bv_vencedor="Z")]
+        counts = self._count_bv_escapes(paredoes)
+        assert counts.get("Z", 0) == 0
+
+    def test_multiple_winners_p5_pattern(self):
+        """P5 pattern: 3 BV winners escape via vencedores array."""
+        paredoes = [_make_paredao(5, "Jonas", ["Milena", "Leandro"],
+                                  bv_vencedores=["Jordana", "Alberto", "Breno"])]
+        counts = self._count_bv_escapes(paredoes)
+        assert counts["Jordana"] == 1
+        assert counts["Alberto"] == 1
+        assert counts["Breno"] == 1
+
+    def test_cumulative_across_paredoes(self):
+        """Alberto escapes BV in two separate paredões."""
+        paredoes = [
+            _make_paredao(5, "Jonas", ["Milena"], bv_vencedores=["Alberto"]),
+            _make_paredao(6, "Jonas", ["Samira"], bv_vencedor="Alberto"),
+        ]
+        counts = self._count_bv_escapes(paredoes)
+        assert counts["Alberto"] == 2
+
+    def test_no_bv(self):
+        paredoes = [_make_paredao(2, "Babu", ["X", "Y"])]
+        counts = self._count_bv_escapes(paredoes)
+        assert len(counts) == 0
+
+
+# ── Vote counting (Bug 3) ───────────────────────────────────────────────────
+
+class TestVotesCounting:
+    """Test that ALL house votes are counted regardless of participant status."""
+
+    def _count_all_votes(self, paredoes, active_set):
+        """Replicate the all-votes pre-pass from _compute_static_cards."""
+        all_house_votes: Counter = Counter()
+        last_voted_paredao: dict = {}
+        for par in paredoes:
+            num = par.get("numero", 0)
+            for _voter, target in (par.get("votos_casa") or {}).items():
+                t = target.strip()
+                if t in active_set:
+                    all_house_votes[t] += 1
+                    last_voted_paredao[t] = max(last_voted_paredao.get(t, 0), num)
+        return all_house_votes, last_voted_paredao
+
+    def test_votes_counted_on_paredao(self):
+        """Leandro P3 pattern: in indicados_finais AND receives votes → both counted."""
+        paredoes = [_make_paredao(3, "Maxiane",
+                                  ["Leandro", "X"],
+                                  votos_casa={"A": "Leandro", "B": "Leandro", "C": "X"})]
+        votes, last = self._count_all_votes(paredoes, {"Leandro", "X", "A", "B", "C", "Maxiane"})
+        assert votes["Leandro"] == 2
+        assert votes["X"] == 1
+        assert last["Leandro"] == 3
+
+    def test_votes_counted_when_available(self):
+        paredoes = [_make_paredao(1, "L", ["X"],
+                                  votos_casa={"A": "Y", "B": "Y"})]
+        votes, _ = self._count_all_votes(paredoes, {"X", "Y", "A", "B", "L"})
+        assert votes["Y"] == 2
+
+    def test_unknown_target_skipped(self):
+        """Targets not in active_set are silently skipped."""
+        paredoes = [_make_paredao(1, "L", [],
+                                  votos_casa={"A": "Unknown Person"})]
+        votes, _ = self._count_all_votes(paredoes, {"A", "L"})
+        assert votes.get("Unknown Person", 0) == 0
+
+    def test_last_voted_paredao_tracks_max(self):
+        paredoes = [
+            _make_paredao(1, "L", [], votos_casa={"A": "X"}),
+            _make_paredao(3, "L", [], votos_casa={"B": "X"}),
+        ]
+        _, last = self._count_all_votes(paredoes, {"X", "A", "B", "L"})
+        assert last["X"] == 3
+
+
+# ── Nomination classification ────────────────────────────────────────────────
+
+class TestNominationClassification:
+    def _classify(self, paredoes, active_set):
+        """Replicate nomination classification from _compute_static_cards."""
+        by_lider: Counter = Counter()
+        by_casa: Counter = Counter()
+        by_dynamic: Counter = Counter()
+        for par in paredoes:
+            for ind in par.get("indicados_finais", []):
+                nome = ind.get("nome", "") if isinstance(ind, dict) else ind
+                como = (ind.get("como", "") if isinstance(ind, dict) else "").lower()
+                if not nome or nome not in active_set:
+                    continue
+                if "líder" in como:
+                    by_lider[nome] += 1
+                elif "casa" in como or "mais votad" in como:
+                    by_casa[nome] += 1
+                else:
+                    by_dynamic[nome] += 1
+        return by_lider, by_casa, by_dynamic
+
+    def test_lider_nomination(self):
+        paredoes = [{"indicados_finais": [{"nome": "X", "como": "Líder"}], "votos_casa": {}}]
+        by_l, by_c, by_d = self._classify(paredoes, {"X"})
+        assert by_l["X"] == 1
+        assert by_c.get("X", 0) == 0
+
+    def test_lider_with_parenthetical(self):
+        paredoes = [{"indicados_finais": [{"nome": "X", "como": "Líder (indicada por Jonas)"}], "votos_casa": {}}]
+        by_l, _, _ = self._classify(paredoes, {"X"})
+        assert by_l["X"] == 1
+
+    def test_casa_nomination(self):
+        paredoes = [{"indicados_finais": [{"nome": "X", "como": "Casa (6 votos)"}], "votos_casa": {}}]
+        _, by_c, _ = self._classify(paredoes, {"X"})
+        assert by_c["X"] == 1
+
+    def test_mais_votado(self):
+        paredoes = [{"indicados_finais": [{"nome": "X", "como": "Mais votado pela casa"}], "votos_casa": {}}]
+        _, by_c, _ = self._classify(paredoes, {"X"})
+        assert by_c["X"] == 1
+
+    def test_dynamic_nomination(self):
+        paredoes = [{"indicados_finais": [{"nome": "X", "como": "Contragolpe (Y)"}], "votos_casa": {}}]
+        _, _, by_d = self._classify(paredoes, {"X"})
+        assert by_d["X"] == 1
+
+
+# ── Contract test (uses real data if available) ──────────────────────────────
+
+class TestBlindadosContract:
+    """Contract tests verifying the blindados card in index_data.json."""
+
+    @pytest.fixture
+    def blindados_card(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "derived" / "index_data.json"
+        if not path.exists():
+            pytest.skip("index_data.json not built yet")
+        with open(path) as f:
+            data = json.load(f)
+        cards = {c["type"]: c for c in data.get("highlights", {}).get("cards", [])}
+        card = cards.get("blindados")
+        if not card:
+            pytest.skip("blindados card not present")
+        return card
+
+    def test_fields_present(self, blindados_card):
+        required = {"name", "paredao", "bv_escapes", "exposure", "protected",
+                     "available", "votes_total", "votes_available", "by_lider",
+                     "by_casa", "by_dynamic", "nom_text", "prot_text", "bv_text",
+                     "last_voted_paredao", "total", "votes", "bv_escape"}
+        for item in blindados_card["items_all"]:
+            missing = required - set(item.keys())
+            assert not missing, f"{item['name']} missing fields: {missing}"
+
+    def test_exposure_invariant(self, blindados_card):
+        for item in blindados_card["items_all"]:
+            assert item["exposure"] == item["paredao"] + item["bv_escapes"], \
+                f"{item['name']}: exposure should be paredao + bv_escapes"
+
+    def test_votes_total_ge_votes_available(self, blindados_card):
+        for item in blindados_card["items_all"]:
+            assert item["votes_total"] >= item["votes_available"], \
+                f"{item['name']}: votes_total should be >= votes_available"
+
+    def test_sort_order_deterministic(self, blindados_card):
+        items = blindados_card["items_all"]
+        for i in range(len(items) - 1):
+            a, b = items[i], items[i + 1]
+            key_a = (a["exposure"], -a["protected"], a["votes_total"], a["name"])
+            key_b = (b["exposure"], -b["protected"], b["votes_total"], b["name"])
+            assert key_a <= key_b, f"Sort violation: {a['name']} should come before {b['name']}"
+
+    def test_backward_compat_fields(self, blindados_card):
+        for item in blindados_card["items_all"]:
+            assert "votes" in item
+            assert "bv_escape" in item
+            assert item["votes"] == item["votes_total"]
+            assert item["bv_escape"] == (item["bv_escapes"] > 0)

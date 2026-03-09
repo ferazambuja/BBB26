@@ -19,7 +19,7 @@ from data_utils import (
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
-    genero,
+    genero, resolve_leaders,
 )
 from builders.vote_prediction import extract_paredao_eligibility
 
@@ -667,11 +667,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     for par in paredoes_list:
         formacao = par.get("formacao", {})
         lider_by_paredao[par["numero"]] = formacao.get("lider")
-        # Support dual leaders: lideres array or fallback to single lider
-        _lideres = formacao.get("lideres", [])
-        if not _lideres and formacao.get("lider"):
-            _lideres = [formacao["lider"]]
-        lideres_by_paredao[par["numero"]] = _lideres
+        lideres_by_paredao[par["numero"]] = resolve_leaders(formacao)
 
     n_weeks = len(WEEK_END_DATES)
     for week_num in range(1, n_weeks + 2):  # +1 for open current week
@@ -1695,9 +1691,38 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
         on_paredao: Counter[str] = Counter()        # times in indicados_finais
         protected: Counter[str] = Counter()          # times as Líder/immune/anjo_autoimune
         available: Counter[str] = Counter()           # times eligible for house votes
-        house_votes: Counter[str] = Counter()         # votes received when available
-        bv_escapes_set: set[str] = set()
+        house_votes_avail: Counter[str] = Counter()   # votes received when available
+        bv_escape_count: Counter[str] = Counter()     # BV escapes (count, not boolean)
+        bv_escape_detail: dict[str, list[int]] = defaultdict(list)
         protection_detail: dict[str, list[tuple[int, str]]] = defaultdict(list)
+
+        # Bug fix 3: count ALL house votes in a separate pre-pass
+        all_house_votes: Counter[str] = Counter()
+        last_voted_paredao: dict[str, int] = {}
+        for par in paredoes_with_votes:
+            num = par.get("numero", 0)
+            for _voter, target in (par.get("votos_casa") or {}).items():
+                t = target.strip()
+                if t in active_set:
+                    all_house_votes[t] += 1
+                    last_voted_paredao[t] = max(last_voted_paredao.get(t, 0), num)
+
+        # Bug fix 3 (cont): classify nomination method from como field
+        by_lider: Counter[str] = Counter()
+        by_casa: Counter[str] = Counter()
+        by_dynamic: Counter[str] = Counter()
+        for par in paredoes_with_votes:
+            for ind in par.get("indicados_finais", []):
+                nome = ind.get("nome", "") if isinstance(ind, dict) else ind
+                como = (ind.get("como", "") if isinstance(ind, dict) else "").lower()
+                if not nome or nome not in active_set:
+                    continue
+                if "líder" in como:
+                    by_lider[nome] += 1
+                elif "casa" in como or "mais votad" in como:
+                    by_casa[nome] += 1
+                else:
+                    by_dynamic[nome] += 1
 
         for par in paredoes_with_votes:
             num = par.get("numero", 0)
@@ -1709,28 +1734,34 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
             elig = extract_paredao_eligibility(par)
             cant_be_voted = elig["cant_be_voted"]
 
-            # Identify protected positions (subset of cant_be_voted)
-            lider = form.get("lider")
+            # Bug fix 1: resolve dual leadership for protected_names
+            lider_names = resolve_leaders(form)
             imun = (form.get("imunizado") or {}).get("quem") if isinstance(form.get("imunizado"), dict) else None
             anjo = form.get("anjo") if form.get("anjo_autoimune") else None
-            protected_names = {n for n in [lider, imun, anjo] if n}
+            protected_names = set(lider_names)
+            if imun:
+                protected_names.add(imun)
+            if anjo:
+                protected_names.add(anjo)
 
-            # BV escapes
+            # Bug fix 2: BV escape counting (supports vencedores array)
             bv = form.get("bate_volta", {}) or {}
-            bv_winner = bv.get("vencedor")
-            if bv_winner and bv_winner not in indicados:
-                bv_escapes_set.add(bv_winner)
+            bv_winners = bv.get("vencedores") or ([bv["vencedor"]] if bv.get("vencedor") else [])
+            for bw in bv_winners:
+                if bw and bw not in indicados:
+                    bv_escape_count[bw] += 1
+                    bv_escape_detail[bw].append(num)
 
             for name in active_set:
                 if name in indicados:
                     on_paredao[name] += 1
                 elif name in protected_names:
                     protected[name] += 1
-                    reason = "Líder" if name == lider else ("Imune" if name == imun else "Anjo")
+                    reason = "Líder" if name in lider_names else ("Imune" if name == imun else "Anjo")
                     protection_detail[name].append((num, reason))
                 elif name not in cant_be_voted:
                     available[name] += 1
-                    house_votes[name] += sum(
+                    house_votes_avail[name] += sum(
                         1 for _v, t in (par.get("votos_casa") or {}).items()
                         if t.strip() == name
                     )
@@ -1738,28 +1769,56 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
         items = []
         for name in active_set:
             n_par = on_paredao.get(name, 0)
+            n_bv = bv_escape_count.get(name, 0)
             n_prot = protected.get(name, 0)
             n_avail = available.get(name, 0)
-            n_votes = house_votes.get(name, 0)
-            has_bv = name in bv_escapes_set
 
             # Protection breakdown for display
             reason_counts = Counter(r for _, r in protection_detail.get(name, []))
             prot_text = ", ".join(f"{r} {c}x" for r, c in reason_counts.items()) if reason_counts else ""
 
+            # BV escape text
+            if n_bv > 0:
+                par_nums = bv_escape_detail.get(name, [])
+                nums_str = ", ".join(f"{n}º" for n in par_nums)
+                bv_text = f"Escapou Bate-Volta {n_bv}x ({nums_str})"
+            else:
+                bv_text = ""
+
+            # Nomination breakdown text
+            nom_parts = []
+            if by_lider.get(name, 0):
+                nom_parts.append(f"Líder {by_lider[name]}x")
+            if by_casa.get(name, 0):
+                nom_parts.append(f"Casa {by_casa[name]}x")
+            if by_dynamic.get(name, 0):
+                nom_parts.append(f"Dinâmica {by_dynamic[name]}x")
+            nom_text = ", ".join(nom_parts)
+
             items.append({
                 "name": name,
                 "paredao": n_par,
+                "bv_escapes": n_bv,
+                "exposure": n_par + n_bv,
                 "protected": n_prot,
                 "available": n_avail,
-                "votes": n_votes,
-                "bv_escape": has_bv,
+                "votes_total": all_house_votes.get(name, 0),
+                "votes_available": house_votes_avail.get(name, 0),
+                "by_lider": by_lider.get(name, 0),
+                "by_casa": by_casa.get(name, 0),
+                "by_dynamic": by_dynamic.get(name, 0),
+                "nom_text": nom_text,
                 "prot_text": prot_text,
+                "bv_text": bv_text,
+                "last_voted_paredao": last_voted_paredao.get(name, 0),
                 "total": n_paredoes,
+                # Backward compat
+                "votes": all_house_votes.get(name, 0),
+                "bv_escape": n_bv > 0,
             })
 
-        # Sort: fewer paredão → more protected → fewer votes
-        items.sort(key=lambda x: (x["paredao"], -x["protected"], x["votes"]))
+        # Sort: fewer exposure → more protected → fewer votes → name (deterministic)
+        items.sort(key=lambda x: (x["exposure"], -x["protected"], x["votes_total"], x["name"]))
 
         cards.append({
             "type": "blindados",
@@ -2440,8 +2499,8 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     for par in paredoes_with_votes:
         num = par.get("numero", 0)
         form = par.get("formacao", {})
-        if form.get("lider"):
-            house_vote_ineligible[form["lider"]].append((num, "Líder"))
+        for l in resolve_leaders(form):
+            house_vote_ineligible[l].append((num, "Líder"))
         for ind in par.get("indicados_finais", []):
             n = ind.get("nome", "") if isinstance(ind, dict) else ind
             if n:

@@ -1312,19 +1312,26 @@ else:
                 name = it["name"]
                 name_slug = name.lower().replace(" ", "-")
                 paredao_count = it.get("paredao", 0)
+                n_bv = it.get("bv_escapes", 0)
+                exposure = it.get("exposure", paredao_count)
                 prot = it.get("protected", 0)
-                avail = it.get("available", 0)
-                votes = it.get("votes", 0)
-                has_bv = it.get("bv_escape", False)
-                prot_text = it.get("prot_text", "")
+                votes = it.get("votes_total", it.get("votes", 0))
 
-                border = "#3498db" if prot >= 3 else ("#27ae60" if paredao_count == 0 else "#f39c12")
-                par_color = "#27ae60" if paredao_count == 0 else ("#f39c12" if paredao_count == 1 else "#e74c3c")
-                par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
+                border = "#3498db" if prot >= 3 else ("#27ae60" if exposure == 0 else "#f39c12")
+                par_color = "#27ae60" if exposure == 0 else ("#f39c12" if exposure <= 1 else "#e74c3c")
+                if n_bv > 0:
+                    par_label = f"{paredao_count} {'paredão' if paredao_count == 1 else 'paredões'} + {n_bv} Bate-Volta"
+                else:
+                    par_label = f"{paredao_count} {'paredão' if paredao_count == 1 else 'paredões'}"
                 bar_pct = min(100, prot / n_par * 100) if n_par > 0 else 0
                 prot_badges = []
-                if has_bv:
-                    prot_badges.append("<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>BV</span>")
+                if n_bv > 0:
+                    bv_text = it.get("bv_text", f"Bate-Volta {n_bv}x")
+                    prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>🔄 {bv_text}</span>")
+                nom_text = it.get("nom_text", "")
+                if nom_text:
+                    prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;'>{nom_text}</span>")
+                prot_text = it.get("prot_text", "")
                 if prot_text:
                     prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;'>{prot_text}</span>")
                 prot_badges_html = " ".join(prot_badges)
@@ -1341,7 +1348,7 @@ else:
                     f'<div class="u-s014">'
                     f'<div style="width:{bar_pct:.0f}%;height:100%;background:#3498db;border-radius:3px;"></div>'
                     f'</div>'
-                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} em {avail} elegível{"" if avail == 1 else "eis"} · protegido {prot}x</div>'
+                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} · protegido {prot}x</div>'
                     f'{extra_badges}'
                     f'</div></div>'
                 )
@@ -1358,7 +1365,7 @@ else:
             rows_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais protegidos nas votações da casa. Menos paredões + mais proteções = mais blindado.")}
+{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Menor exposição a paredões e Bate-Volta. Proteções (Líder, Imune, Anjo) reduzem exposição.")}
 {rows_html}
 </div>''')
 

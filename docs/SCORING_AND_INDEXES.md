@@ -843,6 +843,62 @@ Ambos os métodos acertaram o eliminado em 6/6 paredões. A diferença está na 
 
 ---
 
+## Mais Blindados (Índice de Proteção)
+
+Ranks active participants by how protected they are from house votes. Computed in `_compute_static_cards()` in `scripts/builders/index_data_builder.py`, stored in `data/derived/index_data.json` → `highlights.cards` (type `"blindados"`).
+
+### Protection Types
+
+All three provide **full immunity** from house votes (equal weight):
+
+| Status | How Obtained |
+|--------|-------------|
+| **Líder** | Won Prova do Líder |
+| **Imune** | Anjo immunized them |
+| **Anjo (autoimune)** | Anjo chose self-immunity |
+
+### Fields
+
+| Field | Description |
+|-------|-------------|
+| `exposure` | `paredao + bv_escapes` — total times at risk of elimination |
+| `paredao` | Times in `indicados_finais` (final nominee list) |
+| `bv_escapes` | Times won Bate-Volta and escaped (not in `indicados_finais`) |
+| `protected` | Times as Líder, Imune, or Anjo autoimune |
+| `available` | Times eligible for house votes (not protected, not on paredão, not otherwise ineligible) |
+| `votes_total` | ALL house votes received across all paredões (regardless of status) |
+| `votes_available` | House votes received only when in the "available" bucket |
+| `by_lider` | Times nominated by Líder (`como` contains "líder") |
+| `by_casa` | Times nominated by house vote (`como` contains "casa" or "mais votad") |
+| `by_dynamic` | Times nominated by other mechanism (Contragolpe, Big Fone, Exilado, etc.) |
+| `nom_text` | Display text, e.g., "Líder 3x, Dinâmica 1x" |
+| `prot_text` | Protection breakdown, e.g., "Líder 4x, Imune 1x" |
+| `bv_text` | BV escape detail, e.g., "Escapou Bate-Volta 2x (5º, 8º)" |
+| `last_voted_paredao` | Most recent paredão number where participant received house votes |
+| `total` | Total paredões with house votes (denominator) |
+
+### Sort Order
+
+```
+(exposure ASC, protected DESC, votes_total ASC, name ASC)
+```
+
+Name as final tiebreaker for deterministic ordering. No composite score — raw fields are transparent and debuggable.
+
+### Key Implementation Details
+
+- **Dual leadership**: `resolve_leaders()` in `data_utils.py` resolves individual names from `formacao.lideres` array, falling back to single `formacao.lider`. Used at 5 call sites.
+- **BV escape detection**: Reads `formacao.bate_volta.vencedores` (array) or `vencedor` (string). Winner NOT in `indicados_finais` = escaped. Counter, not boolean.
+- **Two vote metrics**: `votes_total` counts ALL house votes (separate pre-pass over `votos_casa`). `votes_available` counts only votes when participant was in the "available" bucket. `votes_total >= votes_available` always.
+- **Nomination classification**: Parsed from `indicados_finais[].como` field using substring matching.
+
+### Surfaces
+
+- **`index.qmd`**: Primary card with avatar, exposure label, protection bar, badges (BV, nomination, protection)
+- **`paredoes.qmd`**: Complementary eligibility-ratio view (eligible / total paredões), with BV context
+
+---
+
 ## Consolidation History
 
 **Implemented (2026-01-26)**:

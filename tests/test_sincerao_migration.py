@@ -718,6 +718,13 @@ class TestTopLevelSincerao:
             assert "items_all" in blindados
             assert len(blindados.get("items_all", [])) >= len(blindados.get("items", []))
             assert blindados.get("display_limit") == 4
+            # Verify new fields from Phase 1 bug fixes
+            if blindados["items_all"]:
+                item = blindados["items_all"][0]
+                for field in ("exposure", "bv_escapes", "votes_total", "votes_available",
+                              "by_lider", "by_casa", "by_dynamic", "nom_text", "bv_text",
+                              "last_voted_paredao"):
+                    assert field in item, f"Missing field '{field}' in blindados item"
 
 
 class TestProfileSincerao_Contract:
