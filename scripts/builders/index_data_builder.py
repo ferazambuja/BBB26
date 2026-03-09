@@ -712,6 +712,30 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
                 elif grp == "xepa":
                     period_xepa.append(nm)
 
+        # Cold-start fix: if start_date snapshot has all-VIP (no Xepa), the API
+        # hadn't set up VIP/Xepa yet (premiere night). Scan forward within the
+        # period to find a snapshot with a proper VIP/Xepa split.
+        if period_vip and not period_xepa and len(period_vip) > 10:
+            for ds in daily_snapshots:
+                if ds["date"] < start_date or ds["date"] > end_date:
+                    continue
+                if ds is snap:
+                    continue
+                _vip, _xepa = [], []
+                for p in ds["participants"]:
+                    nm = p.get("name")
+                    if not nm:
+                        continue
+                    grp = (p.get("characteristics", {}).get("group") or "").lower()
+                    if grp == "vip":
+                        _vip.append(nm)
+                    elif grp == "xepa":
+                        _xepa.append(nm)
+                if _xepa:  # Found a snapshot with proper split
+                    period_vip = _vip
+                    period_xepa = _xepa
+                    break
+
         for nm in period_vip:
             vip_weeks_selected[nm] += 1
         for nm in period_xepa:

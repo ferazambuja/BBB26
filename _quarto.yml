@@ -7,6 +7,7 @@ project:
     - index.qmd
     - datas.qmd
     - evolucao.qmd
+    - economia.qmd
     - relacoes.qmd
     - paredao.qmd
     - paredoes.qmd
@@ -31,6 +32,8 @@ website:
         text: "Painel"
       - href: evolucao.qmd
         text: "Evolução"
+      - href: economia.qmd
+        text: "Economia"
       - href: relacoes.qmd
         text: "Relações"
       - href: paredao.qmd
@@ -75,6 +78,7 @@ format:
       - assets/cards.css
       - assets/cartola.css
       - assets/provas.css
+      - assets/economia.css
     include-in-header:
       - text: |
           <link rel="preconnect" href="https://fonts.googleapis.com">
