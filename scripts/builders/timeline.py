@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from data_utils import get_week_number, normalize_actors
+from data_utils import get_week_number, normalize_actors, POWER_EVENT_LABELS
 
 
 def _collect_timeline_auto_events(
@@ -103,7 +103,7 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
             title_parts.append(f"{actor} → {target}")
         elif actor:
             title_parts.append(actor)
-        title_parts.append(t.replace("_", " ").capitalize())
+        title_parts.append(POWER_EVENT_LABELS.get(t, t.replace("_", " ").capitalize()))
         actors_list = normalize_actors(ev)
         participants = list({p for p in actors_list + [target] if p})
         events.append({

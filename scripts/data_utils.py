@@ -71,7 +71,7 @@ GROUP_COLORS = {
 
 POWER_EVENT_EMOJI = {
     'lider': '👑', 'anjo': '😇', 'monstro': '👹',
-    'imunidade': '🛡️', 'indicacao': '🎯', 'contragolpe': '🌀',
+    'imunidade': '🛡️', 'indicacao': '🎯', 'consenso_anjo_monstro': '🤝', 'contragolpe': '🌀',
     'voto_duplo': '🗳️', 'voto_anulado': '🚫', 'perdeu_voto': '⛔',
     'bate_volta': '🛟',
     'veto_ganha_ganha': '🚫', 'ganha_ganha_escolha': '🎁',
@@ -83,7 +83,7 @@ POWER_EVENT_EMOJI = {
 
 POWER_EVENT_LABELS = {
     'lider': 'Líder', 'anjo': 'Anjo', 'monstro': 'Monstro',
-    'imunidade': 'Imunidade', 'indicacao': 'Indicação', 'contragolpe': 'Contragolpe',
+    'imunidade': 'Imunidade', 'indicacao': 'Indicação', 'consenso_anjo_monstro': 'Consenso Anjo+Monstro', 'contragolpe': 'Contragolpe',
     'voto_duplo': 'Voto 2x', 'voto_anulado': 'Voto anulado', 'perdeu_voto': 'Perdeu voto',
     'bate_volta': 'Bate-Volta',
     'veto_ganha_ganha': 'Veto (Ganha-Ganha)', 'ganha_ganha_escolha': 'Escolha (Ganha-Ganha)',
@@ -516,6 +516,11 @@ def load_game_timeline() -> dict:
 def load_paredao_analysis() -> dict:
     """Load data/derived/paredao_analysis.json."""
     return _load_json_file("data/derived/paredao_analysis.json", {})
+
+
+def load_balance_events() -> dict:
+    """Load data/derived/balance_events.json."""
+    return _load_json_file("data/derived/balance_events.json", {"events": [], "by_participant": {}, "weekly_summary": []})
 
 
 def load_reaction_matrices() -> dict:
@@ -972,6 +977,7 @@ TIMELINE_CAT_COLORS = {
     "paredao_votacao": "#e74c3c",
     "paredao_contragolpe": "#d35400",
     "paredao_bate_volta": "#f39c12",
+    "consenso_anjo_monstro": "#8e44ad",
 }
 
 TIMELINE_CAT_LABELS = {
@@ -994,6 +1000,7 @@ TIMELINE_CAT_LABELS = {
     "paredao_votacao": "Votação",
     "paredao_contragolpe": "Contragolpe",
     "paredao_bate_volta": "Bate-Volta",
+    "consenso_anjo_monstro": "Consenso Anjo+Monstro",
 }
 
 

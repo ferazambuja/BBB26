@@ -669,7 +669,7 @@ if len(finalized_polls) >= 1:
     print('<div class="u-s018">')
     print('<p class="fs-xl u-s290">⚖️ E se o BBB 26 usasse o sistema antigo?</p>')
     print('<p class="fs-base u-s032">Algum resultado teria sido diferente com 50/50? Quanto o peso 70/30 realmente muda os números? E por que a Globo <strong>não foi até 75/25</strong>?</p>')
-    print('<p class="fs-base u-s011"><strong><a href="votacao.html" class="u-s007">→ Simulação completa: BBB 25, BBB 26 e o número que a Globo não quer que você calcule</a></strong></p>')
+    print('<p class="fs-base u-s011"><strong><a href="votacao.html" style="color:#f39c12;">→ Simulação completa: BBB 25, BBB 26 e o número que a Globo não quer que você calcule</a></strong></p>')
     print('</div>')
     print('<div class="u-s477">')
     print('<div class="fs-4xl u-s042">70<span class="fs-lg">/</span>30</div>')
@@ -967,8 +967,8 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         print('<details class="u-s086">')
         print('<summary class="fs-base u-s064">📋 Histórico em paredões anteriores</summary>')
         print('<div class="u-s452">')
-        print('<table class="table table-sm fs-md u-s044">')
-        print('<thead><tr><th>Participante</th><th>Par.</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
+        print('<table class="table table-sm fs-md u-s044" style="table-layout:fixed; width:100%;">')
+        print('<thead><tr><th style="width:90px;">Participante</th><th style="width:45px;">Par.</th><th>Como</th><th style="width:50px;" class="tc">%</th><th style="width:70px;" class="tc">Resultado</th></tr></thead><tbody>')
         for _h_nome, _h_entries in _arc_nominees_hist:
             _h_fn = _h_nome.split()[0]
             _h_av = avatar_img(_h_nome, AVATARS, 22)
@@ -980,10 +980,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                 elif _h.get('eliminado'):
                     _h_r = f'<span class="u-s031">Elim.</span>'
                 elif 'voto_total' in _h:
-                    _h_r = f'<span class="u-s007">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
+                    _h_r = f'<span style="color:#2ecc71; font-weight:bold;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
                 else:
                     _h_r = '—'
-                print(f'<tr><td>{_h_av} {_h_fn}</td><td>{_h["paredao"]}º{_h_f}</td><td class="fs-base">{_h["como"]}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_r}</td></tr>')
+                print(f'<tr><td>{_h_av} {_h_fn}</td><td>{_h["paredao"]}º{_h_f}</td><td class="fs-base" style="word-break:break-word;">{_h["como"]}</td><td class="tc">{_h_pct}</td><td class="tc">{_h_r}</td></tr>')
         print('</tbody></table></div></details>\n')
 
     # ══════════════════════════════════════════════════════════════

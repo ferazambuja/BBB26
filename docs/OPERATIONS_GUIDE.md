@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-07
+> **Last updated**: 2026-03-09
 
 ---
 
@@ -614,7 +614,7 @@ git push
 | W5 | Gabriela | video_familia | Chaiany, Jordana | Chaiany |
 | W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
 | W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
-| W8 | Milena | video_familia | Ana Paula Renault, Juliano Floss, Samira | TBD |
+| W8 | Milena | video_familia | Ana Paula Renault, Juliano Floss, Samira | Ana Paula Renault |
 
 **Pattern**: 8/8 Anjos chose family video. The 2nd immunity has never been used.
 
@@ -1426,94 +1426,36 @@ Ensure no `tmp/` capture artifacts are staged.
 
 ---
 
-## Capture Timing Analysis
+## Capture Timing & Polling Strategy
 
-### Current status (as of 2026-03-04)
+### Current strategy (as of 2026-03-09)
 
-- Temporary probes are **active** and the timing review is still open.
-- Do **not** treat "median 15:00 BRT" as confirmed while probe validation is running.
-- Review closure target: **2026-03-08 (BRT)**.
+The workflow uses **15-minute polling** (`*/15 * * * *`). This replaced the previous approach of fixed cron slots + temporary probes.
 
-### What probes are checking
+- `fetch_data.py` runs every 15 minutes but only takes ~30 seconds (uses `--fetch-only`, no heavy deps).
+- Snapshots are saved **only when the data hash changes** — dedup rate ~61%.
+- Expected: ~5–15 actual snapshots/day out of 96 polls.
+- The build-deploy job only runs when data actually changed (or on manual dispatch).
 
-The probes are validating when new queridômetro data first appears after the morning baseline:
+### Why 15-minute polling
+
+Probe-era analysis (Mar 3–8) confirmed that queridômetro reactions, balance changes, and role updates happen at **unpredictable times** throughout the day — not just around 15:00 BRT as previously assumed. Examples: 10:36 BRT on Mar 3; 11:50, 12:45, 13:52 BRT on Mar 4. High-frequency polling catches all granular events (punições, compras, mesada, role changes) as they happen.
+
+### How dedup works
 
 - Source of truth: `_metadata.reactions_hash` in each snapshot.
-- Detection method: compare consecutive snapshots; a hash change means reactions changed.
-- Collector behavior: `fetch_data.py` only saves when the full payload hash changes (no duplicate snapshots).
+- Detection method: `fetch_data.py` computes a hash of the full API payload; saves only if the hash differs from the last snapshot.
+- No duplicate snapshots are created — same data = no new file.
 
-Quick verification commands:
-
-```bash
-# Probe crons exist and are enabled
-rg -n "cron: '30 12-18|cron: '0 13-19" .github/workflows/daily-update.yml
-
-# Probe-era analysis (default start: 2026-03-03)
-python scripts/analyze_capture_timing.py
-
-# Historical comparison (all snapshots)
-python scripts/analyze_capture_timing.py --full-history
-```
-
-### Current cron schedule
-
-**Permanent slots** (4x/day):
-
-| UTC | BRT | Purpose |
-|-----|-----|---------|
-| 03:00 | 00:00 | Night — post-episode changes (Sun Líder/Anjo, Tue elimination) |
-| 09:00 | 06:00 | Pre-Raio-X baseline — balance/estalecas |
-| 18:00 | 15:00 | Post-Raio-X — **primary capture** |
-| 21:00 | 18:00 | Evening — balance/role changes |
-
-**Saturday extras** (Anjo + Monstro usually Saturday afternoon):
-
-| UTC | BRT | Purpose |
-|-----|-----|---------|
-| 20:00 | 17:00 | Post-Anjo challenge (runs ~14h-17h) |
-| 23:00 | 20:00 | Post-Monstro pick |
-
-**Total**: 6 runs/day (weekdays), 8 on Saturdays.
-
-### Temporary timing probes (active since 2026-03-03)
-
-To pinpoint the exact queridômetro update time, extra probes run every 30 min from **09:30 to 16:00 BRT**:
-
-| BRT | UTC | Cron expression |
-|-----|-----|-----------------|
-| 09:30 | 12:30 | `30 12-18 * * *` |
-| 10:00 | 13:00 | `0 13-19 * * *` |
-| 10:30 | 13:30 | `30 12-18 * * *` |
-| 11:00 | 14:00 | `0 13-19 * * *` |
-| 11:30 | 14:30 | `30 12-18 * * *` |
-| 12:00 | 15:00 | `0 13-19 * * *` |
-| 12:30 | 15:30 | `30 12-18 * * *` |
-| 13:00 | 16:00 | `0 13-19 * * *` |
-| 13:30 | 16:30 | `30 12-18 * * *` |
-| 14:00 | 17:00 | `0 13-19 * * *` |
-| 14:30 | 17:30 | `30 12-18 * * *` |
-| 15:00 | 18:00 | `0 13-19 * * *` (overlaps permanent slot) |
-| 15:30 | 18:30 | `30 12-18 * * *` |
-| 16:00 | 19:00 | `0 13-19 * * *` |
-
-Probe-era captures already include morning and early-afternoon updates (examples: **10:36 BRT** on Mar 3; **11:50**, **12:45**, **13:52 BRT** on Mar 4), confirming that the old "only around 15:00" assumption was incorrect.
-
-**Analyzing results**:
+### Verification
 
 ```bash
-# Probe-era decision view (default)
-python scripts/analyze_capture_timing.py
+# Check cron schedule
+head -20 .github/workflows/daily-update.yml
 
-# Full history (for context only; mixes pre-probe and probe eras)
+# Timing analysis (historical)
 python scripts/analyze_capture_timing.py --full-history
 ```
-
-### End-of-week closure checklist (2026-03-08 BRT)
-
-After the review checkpoint:
-1. Remove the two temporary cron lines from `.github/workflows/daily-update.yml`
-2. Keep or move the permanent 15:00 BRT slot based on probe-era evidence
-3. Update timing statements in all related docs (`README.md`, `CLAUDE.md`, this guide, and timing comments in scripts/workflow)
 
 ---
 

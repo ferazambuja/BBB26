@@ -30,6 +30,7 @@ DATA_DIR = Path(__file__).parent.parent.parent / "data" / "snapshots"
 
 RELATION_POWER_WEIGHTS = {
     "indicacao": -2.8,
+    "consenso_anjo_monstro": -2.8,
     "contragolpe": -2.8,
     "monstro": -1.2,
     "veto_prova": -1.5,
@@ -94,6 +95,7 @@ RELATION_VIP_WEIGHT = 0.2
 RELATION_VISIBILITY_FACTOR = {"public": 1.2, "secret": 0.5}
 RELATION_POWER_BACKLASH_FACTOR = {
     "indicacao": 0.6,
+    "consenso_anjo_monstro": 0.6,
     "contragolpe": 0.6,
     "veto_ganha_ganha": 0.5,
     "ganha_ganha_escolha": 0.5,

@@ -156,7 +156,7 @@ def main() -> None:
 
     suffix = ""
     if not args.no_timestamp:
-        suffix = "_" + datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M")
+        suffix = "_" + datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
 
     saved = 0
     for i, url in enumerate(urls):
