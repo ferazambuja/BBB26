@@ -594,11 +594,26 @@ body.paredao-page .paredao-spotlight-summary-item {
 
 .paredao-live-card.is-active {
   background:
-    radial-gradient(circle at top right, rgba(231, 76, 60, 0.09), transparent 32%),
-    linear-gradient(180deg, rgba(31, 34, 42, 0.96), rgba(18, 20, 26, 0.99));
+    radial-gradient(circle at top right, rgba(231, 76, 60, 0.12), transparent 34%),
+    radial-gradient(circle at top left, rgba(241, 196, 15, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(31, 34, 42, 0.97), rgba(18, 20, 26, 0.99));
 }
 
 .paredao-index-card {
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(28, 31, 39, 0.96), rgba(19, 21, 27, 0.99));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.paredao-index-card.is-active {
+  background:
+    radial-gradient(circle at top right, rgba(231, 76, 60, 0.12), transparent 34%),
+    radial-gradient(circle at top left, rgba(241, 196, 15, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(31, 34, 42, 0.97), rgba(18, 20, 26, 0.99));
+}
+
+.paredao-index-card.is-empty {
   padding: 0;
   border: none;
   background: transparent;
@@ -687,6 +702,10 @@ body.paredao-page .paredao-spotlight-summary-item {
 .paredao-index-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
+}
+
+.paredao-index-card .paredao-index-grid {
+  margin-top: 0;
 }
 
 .paredao-live-nominee,
@@ -877,11 +896,11 @@ body.paredao-page .paredao-spotlight-summary-item {
   border-color: rgba(230, 126, 34, 0.42);
 }
 
-.poll-compare-body {
+.poll-compare-panels {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, auto) minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.7rem;
-  align-items: stretch;
+  margin-top: 0.7rem;
 }
 
 .poll-compare-side {
@@ -970,8 +989,10 @@ body.paredao-page .paredao-spotlight-summary-item {
 }
 
 .poll-compare-bridge-target {
-  color: #d7e6f8;
-  font-size: var(--fs-sm);
+  color: #e7f0fd;
+  font-size: var(--fs-md);
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .poll-compare-bridge-metric {
@@ -1131,20 +1152,16 @@ body.paredao-page .paredao-spotlight-summary-item {
     min-height: 0;
   }
 
-  .poll-compare-body {
+  .poll-compare-panels {
     grid-template-columns: 1fr;
   }
 
-  .poll-compare-bridge {
+  .poll-compare-side.is-model {
     order: 1;
   }
 
-  .poll-compare-side.is-model {
-    order: 2;
-  }
-
   .poll-compare-side.is-votalhada {
-    order: 3;
+    order: 2;
   }
 
   .poll-compare-strip {

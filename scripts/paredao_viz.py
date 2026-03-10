@@ -462,7 +462,10 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     agree_class = "is-agree" if agreement else "is-disagree"
     agree_label = "🤝 Concordam" if agreement else "🔀 Discordam"
     vote_mode = payload.get("vote_mode", "eliminate")
-    decision_hint = "quem segue no jogo" if vote_mode == "save" else "quem deve sair"
+    if vote_mode == "save":
+        decision_hint = "quem segue no jogo"
+    else:
+        decision_hint = "quem deve sair"
 
     model_gap = payload.get("model_top2_gap_pp")
     votalhada_gap = payload.get("votalhada_top2_gap_pp")
@@ -478,6 +481,13 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
 
     winner_delta_pp = payload.get("winner_delta_pp")
     delta_line = f"Diferença no líder: {_format_delta_pp(winner_delta_pp)}"
+    if agreement:
+        lead_line = f"Ambos apontam {safe_html(m_name.split()[0])} ao comparar {decision_hint}."
+    else:
+        lead_line = (
+            f"Votalhada aponta {safe_html(v_name.split()[0])} e "
+            f"Nosso Modelo aponta {safe_html(m_name.split()[0])} para {decision_hint}."
+        )
 
     v_avatar = avatar_img(v_name, avatars, 58, border_color="#9b59b6") if v_name != "—" else ""
     m_avatar = avatar_img(m_name, avatars, 58, border_color="#00bc8c") if m_name != "—" else ""
@@ -510,20 +520,13 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
 
     return (
         f'<section class="poll-compare-card {agree_class}">'
-        f'<div class="poll-compare-body">'
-        f'<div class="poll-compare-side is-votalhada">'
-        f'<div class="poll-compare-brand">📊 VOTALHADA</div>'
-        f'<div class="poll-compare-blurb">Média por volume de votos das fontes.</div>'
-        f'<div class="poll-compare-winner">{v_avatar}<div>'
-        f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
-        f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
-        f'</div></div></div>'
         f'<div class="poll-compare-bridge">'
         f'<div class="poll-compare-bridge-pill">{agree_label}</div>'
-        f'<div class="poll-compare-bridge-target">Comparando {decision_hint}</div>'
+        f'<div class="poll-compare-bridge-target">{lead_line}</div>'
         f'<div class="poll-compare-bridge-metric">{safe_html(confidence_line)}</div>'
         f'<div class="poll-compare-bridge-metric">{safe_html(delta_line)}</div>'
         f'</div>'
+        f'<div class="poll-compare-panels">'
         f'<div class="poll-compare-side is-model">'
         f'<div class="poll-compare-brand">🧮 NOSSO MODELO</div>'
         f'<div class="poll-compare-blurb">Mesmas fontes, ponderadas por histórico de acerto.</div>'
@@ -531,6 +534,13 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'<div class="poll-compare-winner">{m_avatar}<div>'
         f'<div class="poll-compare-name">{safe_html(m_name)}</div>'
         f'<div class="poll-compare-pct">com {_format_pct(m_pct)}</div>'
+        f'</div></div></div>'
+        f'<div class="poll-compare-side is-votalhada">'
+        f'<div class="poll-compare-brand">📊 VOTALHADA</div>'
+        f'<div class="poll-compare-blurb">Média por volume de votos das fontes.</div>'
+        f'<div class="poll-compare-winner">{v_avatar}<div>'
+        f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
+        f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
         f'</div></div></div>'
         f'</div>'
         f'<div class="poll-compare-strip">{rows_compact}</div>'
