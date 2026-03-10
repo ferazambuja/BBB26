@@ -16,14 +16,14 @@ DERIVED_DIR = Path(__file__).parent.parent.parent / "data" / "derived"
 SPOTLIGHT_TARGET = "Milena"
 SPOTLIGHT_ACTORS = ("Alberto Cowboy", "Jonas Sulzbach")
 SPOTLIGHT_TRIO = frozenset((SPOTLIGHT_TARGET, *SPOTLIGHT_ACTORS))
-NEGATIVE_SINC_TYPES = frozenset({"nao_ganha", "bomba", "paredao_perfeito", "regua_fora"})
+NEGATIVE_SINC_TYPES = frozenset({"nao_ganha", "ataque", "paredao_perfeito", "regua_fora"})
 POWER_TIMELINE_TYPES = frozenset({"mira_do_lider", "indicacao", "monstro", "barrado_baile", "veto_bate_volta"})
 EVENT_TYPE_LABELS = {
     "mira_do_lider": "Na Mira do Líder",
     "indicacao": "Indicação",
     "monstro": "Monstro",
     "barrado_baile": "Barrado no Baile",
-    "bomba": "Bomba no Sincerão",
+    "ataque": "Ataque no Sincerão",
     "nao_ganha": "Não Ganha",
     "paredao_perfeito": "Paredão Perfeito",
     "regua_fora": "Fora da Régua",

@@ -217,7 +217,7 @@ def sample_sincerao_edges():
             {
                 "actor": "Alice",
                 "target": "Bob",
-                "type": "podio",
+                "type": "elogio",
                 "slot": 1,
                 "week": 2,
                 "date": "2026-01-25",
@@ -226,7 +226,7 @@ def sample_sincerao_edges():
             {
                 "actor": "Carol",
                 "target": "Dave",
-                "type": "bomba",
+                "type": "ataque",
                 "week": 2,
                 "date": "2026-01-25",
                 "tema": "Jogo",
@@ -721,52 +721,52 @@ class TestBuildPowerEventEdges:
 class TestBuildSinceraoEdges:
     """Test _build_sincerao_edges_section() edge generation."""
 
-    def test_podio_creates_positive_edge(self, sample_sincerao_edges):
+    def test_elogio_creates_positive_edge(self, sample_sincerao_edges):
         collector = EdgeCollector()
         _build_sincerao_edges_section(sample_sincerao_edges, collector)
 
-        podio = next(
+        elogio = next(
             e for e in collector.edges
-            if e["meta"].get("sinc_type") == "podio" and not e["meta"].get("backlash")
+            if e["meta"].get("sinc_type") == "elogio" and not e["meta"].get("backlash")
         )
-        assert podio["actor"] == "Alice"
-        assert podio["target"] == "Bob"
-        assert podio["weight"] > 0  # podio slot 1 = 0.7
+        assert elogio["actor"] == "Alice"
+        assert elogio["target"] == "Bob"
+        assert elogio["weight"] > 0  # elogio slot 1 = 0.7
 
-    def test_bomba_creates_negative_edge(self, sample_sincerao_edges):
+    def test_ataque_creates_negative_edge(self, sample_sincerao_edges):
         collector = EdgeCollector()
         _build_sincerao_edges_section(sample_sincerao_edges, collector)
 
-        bomba = next(
+        ataque = next(
             e for e in collector.edges
-            if e["meta"].get("sinc_type") == "bomba" and not e["meta"].get("backlash")
+            if e["meta"].get("sinc_type") == "ataque" and not e["meta"].get("backlash")
         )
-        assert bomba["actor"] == "Carol"
-        assert bomba["target"] == "Dave"
-        assert bomba["weight"] < 0
+        assert ataque["actor"] == "Carol"
+        assert ataque["target"] == "Dave"
+        assert ataque["weight"] < 0
 
-    def test_bomba_has_backlash(self, sample_sincerao_edges):
+    def test_ataque_has_backlash(self, sample_sincerao_edges):
         collector = EdgeCollector()
         _build_sincerao_edges_section(sample_sincerao_edges, collector)
 
-        bomba_backlash = [
+        ataque_backlash = [
             e for e in collector.edges
-            if e["meta"].get("sinc_type") == "bomba" and e["meta"].get("backlash")
+            if e["meta"].get("sinc_type") == "ataque" and e["meta"].get("backlash")
         ]
-        assert len(bomba_backlash) == 1
-        assert bomba_backlash[0]["actor"] == "Dave"  # target retaliates
-        assert bomba_backlash[0]["target"] == "Carol"
+        assert len(ataque_backlash) == 1
+        assert ataque_backlash[0]["actor"] == "Dave"  # target retaliates
+        assert ataque_backlash[0]["target"] == "Carol"
 
-    def test_podio_no_backlash(self, sample_sincerao_edges):
-        """Podio has no backlash factor defined."""
+    def test_elogio_no_backlash(self, sample_sincerao_edges):
+        """Elogio has no backlash factor defined."""
         collector = EdgeCollector()
         _build_sincerao_edges_section(sample_sincerao_edges, collector)
 
-        podio_backlash = [
+        elogio_backlash = [
             e for e in collector.edges
-            if e["meta"].get("sinc_type") == "podio" and e["meta"].get("backlash")
+            if e["meta"].get("sinc_type") == "elogio" and e["meta"].get("backlash")
         ]
-        assert len(podio_backlash) == 0
+        assert len(elogio_backlash) == 0
 
     def test_regua_edge(self, sample_sincerao_edges):
         collector = EdgeCollector()
