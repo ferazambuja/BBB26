@@ -583,15 +583,19 @@ body.paredao-page .paredao-spotlight-summary-item {
 .paredao-index-card {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    radial-gradient(circle at top right, rgba(231, 76, 60, 0.09), transparent 32%),
-    linear-gradient(180deg, rgba(31, 34, 42, 0.96), rgba(18, 20, 26, 0.99));
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
 }
 
 .paredao-live-card {
   padding: 1rem;
   margin: 1rem 0 1.35rem;
+  background: linear-gradient(180deg, rgba(28, 31, 39, 0.96), rgba(19, 21, 27, 0.99));
+}
+
+.paredao-live-card.is-active {
+  background:
+    radial-gradient(circle at top right, rgba(231, 76, 60, 0.09), transparent 32%),
+    linear-gradient(180deg, rgba(31, 34, 42, 0.96), rgba(18, 20, 26, 0.99));
 }
 
 .paredao-index-card {
@@ -856,6 +860,158 @@ body.paredao-page .paredao-spotlight-summary-item {
   line-height: 1.45;
 }
 
+/* ── Unified Votalhada vs Nosso Modelo card ── */
+.poll-compare-card {
+  margin: 0.9rem 0 1.15rem;
+  padding: 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.poll-compare-card.is-agree {
+  border-color: rgba(46, 204, 113, 0.38);
+}
+
+.poll-compare-card.is-disagree {
+  border-color: rgba(230, 126, 34, 0.42);
+}
+
+.poll-compare-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, auto) minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: stretch;
+}
+
+.poll-compare-side {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+}
+
+.poll-compare-side.is-votalhada {
+  background: rgba(155, 89, 182, 0.09);
+  border-color: rgba(155, 89, 182, 0.36);
+}
+
+.poll-compare-side.is-model {
+  background: rgba(0, 188, 140, 0.09);
+  border-color: rgba(0, 188, 140, 0.34);
+}
+
+.poll-compare-brand {
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.poll-compare-side.is-votalhada .poll-compare-brand {
+  color: #bf9ed8;
+}
+
+.poll-compare-side.is-model .poll-compare-brand {
+  color: #63dbbd;
+}
+
+.poll-compare-blurb {
+  color: #d8deea;
+  font-size: var(--fs-sm);
+  line-height: 1.36;
+}
+
+.poll-compare-trust {
+  color: #77e1c5;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.poll-compare-winner {
+  margin-top: 0.25rem;
+  display: flex;
+  gap: 0.62rem;
+  align-items: center;
+}
+
+.poll-compare-name {
+  color: #fff;
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.poll-compare-pct {
+  color: #d4dbe7;
+  font-size: var(--fs-lg);
+}
+
+.poll-compare-bridge {
+  border-radius: 14px;
+  padding: 0.75rem;
+  border: 1px solid rgba(52, 152, 219, 0.34);
+  background: rgba(31, 75, 117, 0.17);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.34rem;
+}
+
+.poll-compare-bridge-pill {
+  align-self: flex-start;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #f3f7ff;
+}
+
+.poll-compare-bridge-target {
+  color: #d7e6f8;
+  font-size: var(--fs-sm);
+}
+
+.poll-compare-bridge-metric {
+  color: #e9f2ff;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+
+.poll-compare-strip {
+  margin-top: 0.7rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.poll-compare-chip {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.45rem 0.5rem;
+}
+
+.poll-compare-chip-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #f1f4fb;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  margin-bottom: 0.24rem;
+}
+
+.poll-compare-chip-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  color: #bac4d3;
+  font-size: var(--fs-xs);
+}
+
 /* ── Homepage relationship and blindados cards ── */
 .pair-story-card {
   display: flex;
@@ -973,6 +1129,26 @@ body.paredao-page .paredao-spotlight-summary-item {
 
   .paredao-index-nominee {
     min-height: 0;
+  }
+
+  .poll-compare-body {
+    grid-template-columns: 1fr;
+  }
+
+  .poll-compare-bridge {
+    order: 1;
+  }
+
+  .poll-compare-side.is-model {
+    order: 2;
+  }
+
+  .poll-compare-side.is-votalhada {
+    order: 3;
+  }
+
+  .poll-compare-strip {
+    grid-template-columns: 1fr;
   }
 
   .u-s370 {

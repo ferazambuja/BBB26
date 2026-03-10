@@ -1318,6 +1318,10 @@ class TestMakePollTimeseries:
         poll = polls_json_data["paredoes"][0]
         fig = make_poll_timeseries(poll, compact=True)
         assert fig.layout.height == 350
+        assert fig.layout.legend.orientation == "h"
+        assert fig.layout.legend.yanchor == "top"
+        assert fig.layout.legend.y < 0
+        assert fig.layout.margin.b >= 85
 
     def test_empty_serie_temporal(self):
         from data_utils import make_poll_timeseries

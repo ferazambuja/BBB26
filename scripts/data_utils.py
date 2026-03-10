@@ -1186,8 +1186,15 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
         ),
         xaxis_title="", yaxis_title="Votos (%)",
         height=350 if compact else 380,
-        margin=dict(t=80, b=50, r=80),
-        legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        margin=dict(t=80, b=92 if compact else 104, r=80),
+        legend=dict(
+            orientation='h',
+            yanchor='top',
+            y=-0.18 if compact else -0.22,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=10 if compact else 11),
+        ),
         hovermode='x unified',
     )
     return fig

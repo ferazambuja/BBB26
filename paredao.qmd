@@ -239,7 +239,9 @@ from data_utils import (
 )
 from paredao_viz import (
     build_paredao_card_payload,
+    build_poll_comparison_payload,
     render_paredao_live_card,
+    render_poll_comparison_card,
     render_nominee_cards_em_andamento,
     render_nominee_cards_finalized,
     build_paredao_history,
@@ -454,38 +456,7 @@ if ultimo:
             _card_payload = build_paredao_card_payload(ultimo, poll, polls_data, _par_history)
             print(render_paredao_live_card(_card_payload, AVATARS))
 
-        # ── Paredão history for nominees with past appearances ──
         _nominees_with_history = [(p['nome'], _par_history.get(p['nome'], [])) for p in participantes if _par_history.get(p['nome'])]
-        if _nominees_with_history:
-            print('\n<details class="paredao-history-box" open>')
-            print('<summary class="paredao-history-summary">📋 Histórico em paredões anteriores</summary>')
-            print('<div class="paredao-history-inner"><div class="paredao-history-table-wrap">')
-            print('<table class="table table-sm fs-md paredao-history-table no-mobile-prune" data-mobile-no-prune="1">')
-            print('<thead><tr><th>Participante</th><th class="tc">Paredão</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
-            for _h_nome, _h_entries in _nominees_with_history:
-                first_name = _h_nome.split()[0]
-                _av = avatar_img(_h_nome, AVATARS, 24)
-                for _h in _h_entries:
-                    _h_num = _h['paredao']
-                    _h_como = _h.get('como', '?')
-                    _h_pct = f'{_h["voto_total"]:.2f}%' if 'voto_total' in _h else '—'
-                    _h_falso = ' 🔮' if _h.get('falso') else ''
-                    if _h.get('eliminado'):
-                        _h_res = f'<span class="u-s031">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
-                    elif 'voto_total' in _h:
-                        _h_res = f'<span style="color:#2ecc71; font-weight:bold;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
-                    else:
-                        _h_res = '—'
-                    print(
-                        f'<tr>'
-                        f'<td data-label="Participante">{_av} {first_name}</td>'
-                        f'<td data-label="Paredão">{_h_num}º{_h_falso}</td>'
-                        f'<td data-label="Como" style="word-break:break-word;">{_h_como}</td>'
-                        f'<td data-label="%" class="tc">{_h_pct}</td>'
-                        f'<td data-label="Resultado" class="tc">{_h_res}</td>'
-                        f'</tr>'
-                    )
-            print('</tbody></table></div></div></details>\n')
 
         # ── Enquetes do Votalhada (em andamento) — right after nominee cards ──
         if poll:
@@ -504,78 +475,51 @@ if ultimo:
             total_str = f"{total_votos:,.0f}".replace(',', '.')
             print(f'<p class="text-muted fs-base">Coleta: {_coleta_date} {_coleta_time} · {total_str} votos · Fonte: <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a></p>\n')
 
-            # ── How it works (brief, audience-friendly) ──
-            print(f'<div class="fs-md u-s368">')
-            print(f'<div class="u-s166">')
-            print(f'<strong class="u-s029">📊 Votalhada</strong> reúne enquetes de 70+ fontes (sites, redes sociais) e faz uma média <em>pelo número de votos</em> de cada fonte.')
-            print(f'</div>')
-            print(f'<div class="u-s162">')
-            print(f'<strong class="u-s053">🧮 Nosso Modelo</strong> usa as mesmas enquetes, mas dá <em>mais peso para quem acertou mais</em> nos paredões anteriores. <a href="paredoes.html#nosso-modelo-back-test" class="fs-base u-s053">Ver teste retrospectivo →</a>')
-            print(f'</div>')
-            print(f'</div>\n')
-
             # Compute precision model prediction
             _prec = calculate_precision_weights(polls_data)
             _model_pred = predict_precision_weighted(poll, _prec) if _prec.get('sufficient') else None
 
-            # ── Prediction cards (mobile-stacked) ──
             _consol_elim = consolidado.get("predicao_eliminado", "—")
-            _consol_pct = consolidado.get(_consol_elim, 0)
-            _save_label = ' p/ salvar' if _is_save_poll else ''
-
-            # Tie detection: top two within 2 p.p.
             _sorted_consol = sorted([(n, consolidado.get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
             _is_tie = len(_sorted_consol) >= 2 and abs(_sorted_consol[0][1] - _sorted_consol[1][1]) < 2.0
 
-            # Agreement / disagreement label
+            _model_elim = None
             if _model_pred:
                 _model_elim = _model_pred['predicao_eliminado']
-                _model_pct = _model_pred['prediction'].get(_model_elim, 0)
-                if _model_elim == _consol_elim:
-                    if _is_tie:
-                        _agree_label = '🤝 Concordam (mas apertado!)'
-                        _agree_color = '#f39c12'
-                    else:
-                        _agree_label = '🤝 Concordam'
-                        _agree_color = '#2ecc71'
-                else:
-                    _agree_label = f'🔀 Apostas diferentes'
-                    _agree_color = '#e67e22'
+            _compare_payload = build_poll_comparison_payload(poll, _model_pred)
+            print(render_poll_comparison_card(_compare_payload, AVATARS))
 
-            print(f'<div class="u-s369">')
-
-            # Votalhada card
-            _tie_tag = '<span class="fs-2xs u-s010">EMPATE TÉCNICO</span>' if _is_tie else ''
-            print(f'<div class="u-s210">')
-            print(f'<div class="fs-sm u-s030">📊 VOTALHADA</div>')
-            if _is_tie and len(_sorted_consol) >= 2:
-                _v1, _v2 = _sorted_consol[0], _sorted_consol[1]
-                _v_diff = abs(_v1[1] - _v2[1])
-                print(f'<div class="fs-xl u-s036">{_v1[0].split()[0]} vs {_v2[0].split()[0]}{_tie_tag}</div>')
-                print(f'<div class="text-muted fs-base">{_v1[1]:.2f}% vs {_v2[1]:.2f}%{_save_label} · Δ {_v_diff:.1f} p.p.</div>')
-            else:
-                print(f'<div class="fs-xl u-s036">{_consol_elim}{_tie_tag}</div>')
-                print(f'<div class="text-muted fs-base">com {_consol_pct:.2f}%{_save_label}</div>')
-            print(f'</div>')
-
-            # Model card
-            if _model_pred:
-                _sorted_model = sorted([(n, _model_pred['prediction'].get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
-                _m_is_tie = len(_sorted_model) >= 2 and abs(_sorted_model[0][1] - _sorted_model[1][1]) < 2.0
-                _m_tie_tag = '<span class="fs-2xs u-s010">EMPATE TÉCNICO</span>' if _m_is_tie else ''
-                print(f'<div class="u-s209">')
-                print(f'<div class="fs-sm u-s234">🧮 NOSSO MODELO</div>')
-                if _m_is_tie:
-                    _m1, _m2 = _sorted_model[0], _sorted_model[1]
-                    _m_diff_top = abs(_m1[1] - _m2[1])
-                    print(f'<div class="fs-xl u-s036">{_m1[0].split()[0]} vs {_m2[0].split()[0]}{_m_tie_tag}</div>')
-                    print(f'<div class="text-muted fs-base">{_m1[1]:.2f}% vs {_m2[1]:.2f}%{_save_label} · Δ {_m_diff_top:.1f} p.p.</div>')
-                else:
-                    print(f'<div class="fs-xl u-s036">{_model_elim}{_m_tie_tag}</div>')
-                    print(f'<div class="text-muted fs-base">com {_model_pct:.2f}%{_save_label}</div>')
-                print(f'<div class="fs-md" style="margin-top:0.4rem; color:{_agree_color}; font-weight:600;">{_agree_label}</div>')
-                print(f'</div>')
-            print(f'</div>\n')
+            # ── Paredão history for nominees with past appearances ──
+            if _nominees_with_history:
+                print('\n<section class="paredao-history-box">')
+                print('<div class="paredao-history-summary">📋 Histórico em paredões anteriores</div>')
+                print('<div class="paredao-history-inner"><div class="paredao-history-table-wrap">')
+                print('<table class="table table-sm fs-md paredao-history-table no-mobile-prune" data-mobile-no-prune="1">')
+                print('<thead><tr><th>Participante</th><th class="tc">Paredão</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
+                for _h_nome, _h_entries in _nominees_with_history:
+                    first_name = _h_nome.split()[0]
+                    _av = avatar_img(_h_nome, AVATARS, 24)
+                    for _h in _h_entries:
+                        _h_num = _h['paredao']
+                        _h_como = _h.get('como', '?')
+                        _h_pct = f'{_h["voto_total"]:.2f}%' if 'voto_total' in _h else '—'
+                        _h_falso = ' 🔮' if _h.get('falso') else ''
+                        if _h.get('eliminado'):
+                            _h_res = f'<span class="u-s031">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
+                        elif 'voto_total' in _h:
+                            _h_res = f'<span style="color:#2ecc71; font-weight:bold;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
+                        else:
+                            _h_res = '—'
+                        print(
+                            f'<tr>'
+                            f'<td data-label="Participante">{_av} {first_name}</td>'
+                            f'<td data-label="Paredão">{_h_num}º{_h_falso}</td>'
+                            f'<td data-label="Como" style="word-break:break-word;">{_h_como}</td>'
+                            f'<td data-label="%" class="tc">{_h_pct}</td>'
+                            f'<td data-label="Resultado" class="tc">{_h_res}</td>'
+                            f'</tr>'
+                        )
+                print('</tbody></table></div></div></section>\n')
 
             # ── Platform breakdown table (responsive) ──
             # Color scheme depends on vote type:
@@ -617,7 +561,7 @@ if ultimo:
                     for nome in participantes_poll:
                         val = pdata.get(nome, 0)
                         style = _poll_highlight(val, _pvals)
-                        print(f'<td class="tc" style="{style}">{val:.2f}%</td>')
+                        print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                     print(f'<td class="tc text-muted fs-md">{votos_str}</td>')
                     print('</tr>')
 
@@ -629,7 +573,7 @@ if ultimo:
                 style = _poll_highlight(val, _cvals)
                 if 'font-weight' not in style:
                     style = 'font-weight:bold;' + style
-                print(f'<td class="tc" style="{style}">{val:.2f}%</td>')
+                print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print(f'<td class="tc text-muted fs-md">{total_str}</td>')
             print('</tr>')
 
@@ -642,7 +586,7 @@ if ultimo:
                     style = _poll_highlight(val, _mvals)
                     if 'font-weight' not in style:
                         style = 'font-weight:bold;' + style
-                    print(f'<td class="tc" style="{style}">{val:.2f}%</td>')
+                    print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print(f'<td class="tc text-muted fs-sm">ponderado</td>')
                 print('</tr>')
 
@@ -677,7 +621,7 @@ if ultimo:
                     _mv = _model_pred['prediction'].get(n, 0)
                     _delta = _mv - _cv
                     _arrow = '↑' if _delta > 0.5 else '↓' if _delta < -0.5 else '≈'
-                    _comp_parts.append(f'{n.split()[0]} {_cv:.2f}→<strong>{_mv:.2f}%</strong> ({_arrow}{abs(_delta):.1f})')
+                    _comp_parts.append(f'{n.split()[0]} {_cv:.1f}→<strong>{_mv:.1f}%</strong> ({_arrow}{abs(_delta):.1f})')
                 _curiosities.append(f'🧮 <strong><a href="paredoes.html#nosso-modelo-back-test" class="u-s053">Nosso Modelo</a></strong> vs Votalhada: {" · ".join(_comp_parts)}')
 
             # 2. Tie detection per model
@@ -781,9 +725,9 @@ if ultimo:
             _min_pct = consolidado.get(_min_voter, 0)
             if _min_pct < 10:
                 _model_min = _model_pred['prediction'].get(_min_voter, 0) if _model_pred else 0
-                _outlier_txt = f'📉 {_min_voter.split()[0]} tem apenas <strong>{_min_pct:.2f}%</strong> no Votalhada'
+                _outlier_txt = f'📉 {_min_voter.split()[0]} tem apenas <strong>{_min_pct:.1f}%</strong> no Votalhada'
                 if _model_pred and abs(_model_min - _min_pct) > 0.5:
-                    _outlier_txt += f' ({_model_min:.2f}% no Nosso Modelo)'
+                    _outlier_txt += f' ({_model_min:.1f}% no Nosso Modelo)'
                 _outlier_txt += ' — distância enorme para os outros'
                 _curiosities.append(_outlier_txt)
 
@@ -1643,26 +1587,26 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
         if has_breakdown:
             fig.add_trace(go.Bar(
                 x=df_p['nome'], y=df_p['voto_unico'],
-                text=[f"{v:.2f}%" for v in df_p['voto_unico']],
+                text=[f"{v:.1f}%" for v in df_p['voto_unico']],
                 textposition='outside', name='Voto Único (70%)',
                 marker_color='#1976D2',
-                hovertemplate='%{x}: %{y:.2f}% (Voto Único)<extra></extra>',
+                hovertemplate='%{x}: %{y:.1f}% (Voto Único)<extra></extra>',
             ))
             fig.add_trace(go.Bar(
                 x=df_p['nome'], y=df_p['voto_torcida'],
-                text=[f"{v:.2f}%" for v in df_p['voto_torcida']],
+                text=[f"{v:.1f}%" for v in df_p['voto_torcida']],
                 textposition='outside', name='Voto Torcida (30%)',
                 marker_color='#FF9800',
-                hovertemplate='%{x}: %{y:.2f}% (Voto Torcida)<extra></extra>',
+                hovertemplate='%{x}: %{y:.1f}% (Voto Torcida)<extra></extra>',
             ))
 
         colors_total = ['#E6194B' if r == 'ELIMINADA' else '#3CB44B' for r in df_p['resultado']]
         fig.add_trace(go.Bar(
             x=df_p['nome'], y=df_p['voto_total'],
-            text=[f"{v:.2f}%" for v in df_p['voto_total']],
+            text=[f"{v:.1f}%" for v in df_p['voto_total']],
             textposition='outside', name='Média Final',
             marker_color=colors_total,
-            hovertemplate='%{x}: %{y:.2f}% (Final)<extra></extra>',
+            hovertemplate='%{x}: %{y:.1f}% (Final)<extra></extra>',
         ))
 
         fig.update_layout(
@@ -1729,30 +1673,30 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             enquete_vals = [consolidado.get(n, 0) for n in participantes_poll]
             fig_poll.add_trace(go.Bar(
                 x=participantes_poll, y=enquete_vals,
-                text=[f"{v:.2f}%" for v in enquete_vals],
+                text=[f"{v:.1f}%" for v in enquete_vals],
                 textposition='outside', name='📊 Votalhada',
                 marker_color='#9b59b6',
-                hovertemplate='%{x}: %{y:.2f}% (Votalhada)<extra></extra>',
+                hovertemplate='%{x}: %{y:.1f}% (Votalhada)<extra></extra>',
             ))
             # Model bar (between Votalhada and Resultado)
             if _model_pred_fin:
                 model_vals = [_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll]
                 fig_poll.add_trace(go.Bar(
                     x=participantes_poll, y=model_vals,
-                    text=[f"{v:.2f}%" for v in model_vals],
+                    text=[f"{v:.1f}%" for v in model_vals],
                     textposition='outside', name='🧮 Nosso Modelo',
                     marker_color='#00bc8c',
-                    hovertemplate='%{x}: %{y:.2f}% (Nosso Modelo)<extra></extra>',
+                    hovertemplate='%{x}: %{y:.1f}% (Nosso Modelo)<extra></extra>',
                 ))
 
             resultado_vals = [resultado.get(n, 0) for n in participantes_poll]
             colors_real = ['#E6194B' if n == resultado.get('eliminado') else '#3CB44B' for n in participantes_poll]
             fig_poll.add_trace(go.Bar(
                 x=participantes_poll, y=resultado_vals,
-                text=[f"{v:.2f}%" for v in resultado_vals],
+                text=[f"{v:.1f}%" for v in resultado_vals],
                 textposition='outside', name='Resultado Real',
                 marker_color=colors_real,
-                hovertemplate='%{x}: %{y:.2f}% (Real)<extra></extra>',
+                hovertemplate='%{x}: %{y:.1f}% (Real)<extra></extra>',
             ))
             fig_poll.update_layout(
                 title=dict(text='Votalhada vs Nosso Modelo vs Resultado', y=0.95, x=0.5, xanchor='center'),
@@ -1805,7 +1749,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     for nome in participantes_poll:
                         val = pdata.get(nome, 0)
                         style = _poll_hl_fin(val, _pfvals)
-                        print(f'<td class="tc" style="{style}">{val:.2f}%</td>')
+                        print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                     print(f'<td class="tc text-muted fs-base">{votos_str}</td>')
                     print('</tr>')
 
@@ -1818,7 +1762,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 style = _poll_hl_fin(val, _cfvals)
                 if 'font-weight' not in style:
                     style = 'font-weight:bold;' + style
-                print(f'<td class="tc" style="{style}">{val:.2f}%</td>')
+                print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print(f'<td class="tc text-muted fs-base">{total_str}</td>')
             print('</tr>')
 
@@ -1831,7 +1775,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     style = _poll_hl_fin(val, _mfvals)
                     if 'font-weight' not in style:
                         style = 'font-weight:bold;' + style
-                    print(f'<td class="tc" style="{style}">{val:.2f}%</td>')
+                    print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print(f'<td class="tc text-muted fs-md">ponderado</td>')
                 print('</tr>')
 
@@ -1840,7 +1784,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 val = resultado.get(nome, 0)
                 is_elim = nome == resultado.get('eliminado')
                 style = 'font-weight:bold; color:#E6194B;' if is_elim else 'font-weight:bold; color:#3CB44B;'
-                print(f'<td class="tc" style="{style}">{val:.2f}%</td>')
+                print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print('<td class="tc text-muted">—</td>')
             print('</tr>')
             print('</tbody></table>')
@@ -1873,7 +1817,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
                 print("\n### 🎯 Precisão das Enquetes\n")
                 _elim_label = "→ quarto secreto" if ultimo.get('paredao_falso') else "eliminado"
-                print(f"**{eliminado_nome}** ({_elim_label}): enquete previa **{poll_elim:.2f}%**, resultado real **{voto_total_elim:.2f}%**\n")
+                print(f"**{eliminado_nome}** ({_elim_label}): enquete previa **{poll_elim:.1f}%**, resultado real **{voto_total_elim:.1f}%**\n")
 
                 # Table: Poll vs Vote Types
                 print('<table class="table table-sm u-s093">')
@@ -1895,8 +1839,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     badge = ' 🎯' if is_closest else ''
                     err_color = '#E6194B' if verr < -5 else '#3CB44B' if abs(verr) < 5 else '#f39c12'
                     print(f'<tr style="{row_style}"><td>{vtype}{badge}</td>')
-                    print(f'<td class="tc">{poll_elim:.2f}%</td>')
-                    print(f'<td class="tc">{vval:.2f}%</td>')
+                    print(f'<td class="tc">{poll_elim:.1f}%</td>')
+                    print(f'<td class="tc">{vval:.1f}%</td>')
                     print(f'<td class="tc" style="color:{err_color}; font-weight:bold;">{verr:+.1f} p.p.</td>')
                     print('</tr>')
 
@@ -1916,7 +1860,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
                 platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
-                print(f'<p>Para <strong>{eliminado_nome}</strong> (resultado: {voto_total_elim:.2f}%):</p>')
+                print(f'<p>Para <strong>{eliminado_nome}</strong> (resultado: {voto_total_elim:.1f}%):</p>')
                 print('<table class="table table-sm u-s443">')
                 print('<thead><tr><th>#</th><th>Plataforma</th><th class="tc">Previsão</th><th class="tc">Erro</th></tr></thead>')
                 print('<tbody>')
@@ -1924,7 +1868,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     medal = '🥇' if rank == 1 else '🥈' if rank == 2 else '🥉' if rank == 3 else '4º'
                     row_style = 'background:rgba(60,180,75,0.2);' if rank == 1 else ''
                     print(f'<tr style="{row_style}"><td>{medal}</td><td>{platform_names.get(plat, plat)}</td>')
-                    print(f'<td class="tc">{pval:.2f}%</td>')
+                    print(f'<td class="tc">{pval:.1f}%</td>')
                     print(f'<td class="tc">{perr:.1f} p.p.</td>')
                     print('</tr>')
                 print('</tbody></table>\n')
@@ -2309,9 +2253,9 @@ if ultimo and ultimo.get('participantes'):
             vp_ind = vp_retro.get("individual", {})
             vp_hc = vp_retro.get("high_confidence", {})
             if vp_ind.get("total", 0) > 0:
-                print(f"🤖 **Previsão do modelo:** acertou {vp_ind['correct']}/{vp_ind['total']} votos ({vp_ind['pct']:.2f}%)", end="")
+                print(f"🤖 **Previsão do modelo:** acertou {vp_ind['correct']}/{vp_ind['total']} votos ({vp_ind['pct']:.1f}%)", end="")
                 if vp_hc.get("total", 0) > 0:
-                    print(f" · Alta confiança: {vp_hc['correct']}/{vp_hc['total']} ({vp_hc['pct']:.2f}%)")
+                    print(f" · Alta confiança: {vp_hc['correct']}/{vp_hc['total']} ({vp_hc['pct']:.1f}%)")
                 else:
                     print()
                 print()

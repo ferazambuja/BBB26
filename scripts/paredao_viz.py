@@ -353,6 +353,191 @@ def build_paredao_card_payload(
     }
 
 
+def _format_pct(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"{value:.2f}%"
+
+
+def _format_delta_pp(value: float | None) -> str:
+    if value is None:
+        return "—"
+    sign = "+" if value >= 0 else ""
+    return f"{sign}{value:.2f} p.p."
+
+
+def _top2_gap(entries: list[tuple[str, float]]) -> float | None:
+    if len(entries) < 2:
+        return None
+    return abs(entries[0][1] - entries[1][1])
+
+
+def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | None) -> dict | None:
+    """Build payload for the merged Votalhada vs Nosso Modelo comparison card."""
+    if not poll:
+        return None
+
+    participantes = poll.get("participantes", [])
+    consolidado = poll.get("consolidado", {})
+    if not participantes:
+        return None
+
+    vote_mode = "save" if poll.get("tipo_voto") == "salvar" else "eliminate"
+    votalhada_rank = sorted(
+        [(nome, float(consolidado.get(nome, 0) or 0)) for nome in participantes],
+        key=lambda x: (-x[1], x[0]),
+    )
+    if not votalhada_rank:
+        return None
+
+    model_values = (model_prediction or {}).get("prediction", {}) if model_prediction else {}
+    model_rank = sorted(
+        [(nome, float(model_values.get(nome, 0) or 0)) for nome in participantes],
+        key=lambda x: (-x[1], x[0]),
+    ) if model_values else []
+
+    votalhada_name, votalhada_pct = votalhada_rank[0]
+    model_name, model_pct = model_rank[0] if model_rank else ("—", None)
+
+    agreement = bool(model_rank and model_name == votalhada_name)
+    winner_name = model_name if model_rank else votalhada_name
+    winner_delta_pp = None
+    if winner_name != "—" and winner_name in model_values:
+        winner_delta_pp = float(model_values.get(winner_name, 0) or 0) - float(consolidado.get(winner_name, 0) or 0)
+
+    rows = []
+    for nome in participantes:
+        v_pct = float(consolidado.get(nome, 0) or 0)
+        m_pct = float(model_values.get(nome, 0) or 0) if model_rank else None
+        delta = (m_pct - v_pct) if m_pct is not None else None
+        rows.append(
+            {
+                "name": nome,
+                "votalhada_pct": v_pct,
+                "model_pct": m_pct,
+                "delta_pp": delta,
+            }
+        )
+
+    # Surface model order when available, fallback to votalhada order.
+    if model_rank:
+        order = {nome: idx for idx, (nome, _) in enumerate(model_rank)}
+        rows.sort(key=lambda r: (order.get(r["name"], 999), r["name"]))
+    else:
+        order = {nome: idx for idx, (nome, _) in enumerate(votalhada_rank)}
+        rows.sort(key=lambda r: (order.get(r["name"], 999), r["name"]))
+
+    return {
+        "vote_mode": vote_mode,
+        "agreement": agreement,
+        "votalhada": {
+            "name": votalhada_name,
+            "pct": votalhada_pct,
+        },
+        "model": {
+            "name": model_name,
+            "pct": model_pct,
+            "available": bool(model_rank),
+        },
+        "votalhada_top2_gap_pp": _top2_gap(votalhada_rank),
+        "model_top2_gap_pp": _top2_gap(model_rank) if model_rank else None,
+        "winner_delta_pp": winner_delta_pp,
+        "rows": rows,
+    }
+
+
+def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -> str:
+    """Render a merged comparison card for Votalhada vs Nosso Modelo."""
+    if not payload:
+        return ""
+
+    v = payload.get("votalhada", {})
+    m = payload.get("model", {})
+    v_name = v.get("name", "—")
+    m_name = m.get("name", "—")
+    v_pct = v.get("pct")
+    m_pct = m.get("pct")
+
+    agreement = payload.get("agreement")
+    agree_class = "is-agree" if agreement else "is-disagree"
+    agree_label = "🤝 Concordam" if agreement else "🔀 Discordam"
+    vote_mode = payload.get("vote_mode", "eliminate")
+    decision_hint = "quem segue no jogo" if vote_mode == "save" else "quem deve sair"
+
+    model_gap = payload.get("model_top2_gap_pp")
+    votalhada_gap = payload.get("votalhada_top2_gap_pp")
+    if model_gap is not None and votalhada_gap is not None:
+        confidence_line = (
+            f"Confiança: Modelo Δtop2 {model_gap:.1f} p.p. "
+            f"vs Votalhada {votalhada_gap:.1f} p.p."
+        )
+    elif model_gap is not None:
+        confidence_line = f"Confiança: Modelo Δtop2 {model_gap:.1f} p.p."
+    else:
+        confidence_line = "Confiança: aguardando histórico suficiente para o Nosso Modelo."
+
+    winner_delta_pp = payload.get("winner_delta_pp")
+    delta_line = f"Diferença no líder: {_format_delta_pp(winner_delta_pp)}"
+
+    v_avatar = avatar_img(v_name, avatars, 58, border_color="#9b59b6") if v_name != "—" else ""
+    m_avatar = avatar_img(m_name, avatars, 58, border_color="#00bc8c") if m_name != "—" else ""
+    trust_line = (
+        '<a class="poll-compare-trust" href="paredoes.html#nosso-modelo-back-test">'
+        'Ver teste retrospectivo →</a>'
+        if m.get("available")
+        else '<div class="poll-compare-trust">Aguardando histórico suficiente.</div>'
+    )
+
+    rows_html = []
+    for row in payload.get("rows", []):
+        nome = row.get("name", "")
+        avatar = avatar_img(nome, avatars, 26, border_color="#666")
+        if row.get("model_pct") is None:
+            model_cell = "<span>M —</span>"
+        else:
+            model_cell = f'<span>M {row.get("model_pct", 0):.2f}%</span>'
+        rows_html.append(
+            '<div class="poll-compare-chip">'
+            f'<div class="poll-compare-chip-name">{avatar}<span>{safe_html(nome.split()[0])}</span></div>'
+            f'<div class="poll-compare-chip-metrics">'
+            f'<span>V {row.get("votalhada_pct", 0):.2f}%</span>'
+            f"{model_cell}"
+            f'<span>Δ {_format_delta_pp(row.get("delta_pp"))}</span>'
+            f'</div>'
+            '</div>'
+        )
+    rows_compact = "".join(rows_html)
+
+    return (
+        f'<section class="poll-compare-card {agree_class}">'
+        f'<div class="poll-compare-body">'
+        f'<div class="poll-compare-side is-votalhada">'
+        f'<div class="poll-compare-brand">📊 VOTALHADA</div>'
+        f'<div class="poll-compare-blurb">Média por volume de votos das fontes.</div>'
+        f'<div class="poll-compare-winner">{v_avatar}<div>'
+        f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
+        f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
+        f'</div></div></div>'
+        f'<div class="poll-compare-bridge">'
+        f'<div class="poll-compare-bridge-pill">{agree_label}</div>'
+        f'<div class="poll-compare-bridge-target">Comparando {decision_hint}</div>'
+        f'<div class="poll-compare-bridge-metric">{safe_html(confidence_line)}</div>'
+        f'<div class="poll-compare-bridge-metric">{safe_html(delta_line)}</div>'
+        f'</div>'
+        f'<div class="poll-compare-side is-model">'
+        f'<div class="poll-compare-brand">🧮 NOSSO MODELO</div>'
+        f'<div class="poll-compare-blurb">Mesmas fontes, ponderadas por histórico de acerto.</div>'
+        f'{trust_line}'
+        f'<div class="poll-compare-winner">{m_avatar}<div>'
+        f'<div class="poll-compare-name">{safe_html(m_name)}</div>'
+        f'<div class="poll-compare-pct">com {_format_pct(m_pct)}</div>'
+        f'</div></div></div>'
+        f'</div>'
+        f'<div class="poll-compare-strip">{rows_compact}</div>'
+        f'</section>'
+    )
+
+
 def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, compact: bool = False) -> str:
     modifier = "paredao-index-nominee" if compact else "paredao-live-nominee"
     avatar_size = 52 if compact else 72

@@ -10,8 +10,22 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
-from data_utils import load_paredoes_transformed, load_snapshots_full, load_votalhada_polls, get_poll_for_paredao
-from paredao_viz import build_paredao_history, build_paredao_card_payload, render_paredao_live_card, render_paredao_index_card
+from data_utils import (
+    calculate_precision_weights,
+    get_poll_for_paredao,
+    load_paredoes_transformed,
+    load_snapshots_full,
+    load_votalhada_polls,
+    predict_precision_weighted,
+)
+from paredao_viz import (
+    build_paredao_card_payload,
+    build_paredao_history,
+    build_poll_comparison_payload,
+    render_paredao_index_card,
+    render_paredao_live_card,
+    render_poll_comparison_card,
+)
 
 
 @pytest.fixture(scope="module")
@@ -99,3 +113,44 @@ def test_live_and_index_renderers_share_the_new_card_language(_repo_data):
     assert "Babu" in index_html
     assert 'href="paredoes.html#nosso-modelo-back-test"' in index_html
     assert 'class="paredao-index-note' in index_html
+
+
+def test_poll_comparison_payload_includes_confidence_and_delta(_repo_data):
+    current = _repo_data["paredoes"][-1]
+    poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
+    precision = calculate_precision_weights(_repo_data["polls_data"])
+    model_prediction = predict_precision_weighted(poll, precision)
+
+    payload = build_poll_comparison_payload(poll, model_prediction)
+
+    assert payload["agreement"] is True
+    assert payload["vote_mode"] == "eliminate"
+    assert payload["votalhada"]["name"] == "Babu Santana"
+    assert payload["model"]["name"] == "Babu Santana"
+    assert payload["model"]["pct"] == pytest.approx(model_prediction["prediction"]["Babu Santana"], abs=1e-6)
+    assert payload["votalhada"]["pct"] == pytest.approx(poll["consolidado"]["Babu Santana"], abs=1e-6)
+    assert payload["winner_delta_pp"] == pytest.approx(
+        model_prediction["prediction"]["Babu Santana"] - poll["consolidado"]["Babu Santana"],
+        abs=1e-6,
+    )
+    assert payload["model_top2_gap_pp"] > payload["votalhada_top2_gap_pp"]
+    assert len(payload["rows"]) == len(poll.get("participantes", []))
+    assert {row["name"] for row in payload["rows"]} == set(poll.get("participantes", []))
+
+
+def test_poll_comparison_renderer_outputs_unified_compare_card(_repo_data):
+    current = _repo_data["paredoes"][-1]
+    poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
+    precision = calculate_precision_weights(_repo_data["polls_data"])
+    model_prediction = predict_precision_weighted(poll, precision)
+    payload = build_poll_comparison_payload(poll, model_prediction)
+
+    html = render_poll_comparison_card(payload, _repo_data["avatars"])
+
+    assert 'class="poll-compare-card' in html
+    assert "Concordam" in html
+    assert "Confiança" in html
+    assert "Diferença no líder" in html
+    assert "Média por volume de votos" in html
+    assert "ponderadas por histórico de acerto" in html
+    assert "Babu" in html
