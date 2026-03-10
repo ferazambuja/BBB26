@@ -1,7 +1,6 @@
 ---
 title: "BBB 26 — Painel de Reações"
 subtitle: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"
-description: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"
 lang: pt-BR
 format:
   html:
@@ -22,6 +21,7 @@ import plotly.graph_objects as go
 from pathlib import Path
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
+from html import escape
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
@@ -34,6 +34,7 @@ from data_utils import (
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     ANALYSIS_DESCRIPTIONS, render_cronologia_html,
 )
+from paredao_viz import render_paredao_index_card
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
@@ -234,7 +235,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
 <table class="cross-table">
 <thead>
 <tr>
-<th class="th-soft">→ deu / ↓ recebeu</th>
+<th class="u-s001">→ deu / ↓ recebeu</th>
 ''')
 
     # Header row with receiver names
@@ -416,12 +417,12 @@ hl_cards = index_data.get("highlights", {}).get("cards", [])
 
 CARD_STORY_ORDER = {
     "context": 0,
+    "paredao": 5,
     "ranking": 10,
     "changes": 20,
     "dramatic": 30,
     "hostilities": 40,
     "sincerao": 50,
-    "paredao": 60,
     "breaks": 70,
     "blindados": 80,
     "impact": 90,
@@ -475,16 +476,21 @@ def av_group_border(name: str) -> str:
 def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
     """Card header with icon, title, optional link, badge, data source tag, and subtitle."""
     title_html = title
-    link_html = f' <a href="{link}" class="fs-xs u-s254">ver mais ↗</a>' if link else ""
-    badge_html = f' <span class="fs-xs u-s187">{badge}</span>' if badge else ""
-    source_html = f' <span class="fs-2xs u-s253">{source_tag}</span>' if source_tag else ""
-    subtitle_html = f'<div class="fs-sm u-s258">{subtitle}</div>' if subtitle else ""
-    return (f'<div class="u-s073">'
-            f'<div class="u-s333">'
-            f'<span class="fs-2xl">{icon}</span>'
-            f'<span class="fs-base u-s392">{title_html}</span>'
-            f'{badge_html}{source_html}{link_html}'
+    meta_parts = []
+    if badge:
+        meta_parts.append(f'<span class="dashboard-card-badge fs-xs u-s187">{badge}</span>')
+    if source_tag:
+        meta_parts.append(f'<span class="dashboard-card-source fs-2xs u-s253">{source_tag}</span>')
+    if link:
+        meta_parts.append(f'<a href="{link}" class="dashboard-card-link fs-xs u-s254">ver mais ↗</a>')
+    meta_html = f'<div class="dashboard-card-header-meta">{"".join(meta_parts)}</div>' if meta_parts else ""
+    subtitle_html = f'<div class="dashboard-card-subtitle fs-sm u-s258">{subtitle}</div>' if subtitle else ""
+    return (f'<div class="u-s073 dashboard-card-header">'
+            f'<div class="dashboard-card-header-main">'
+            f'<span class="dashboard-card-icon fs-2xl">{icon}</span>'
+            f'<span class="dashboard-card-title fs-base u-s392">{title_html}</span>'
             f'</div>'
+            f'{meta_html}'
             f'{subtitle_html}</div>')
 
 def stat_chip(value, label, color="#888"):
@@ -498,6 +504,39 @@ def progress_bar(value, max_val, color="#3498db", height=6):
     pct = min(100, value / max_val * 100) if max_val > 0 else 0
     return (f'<div style="background:rgba(255,255,255,0.08);border-radius:{height//2}px;height:{height}px;width:100%;overflow:hidden;">'
             f'<div style="width:{pct:.0f}%;height:100%;background:{color};border-radius:{height//2}px;"></div></div>')
+
+
+def pair_story_card(
+    giver: str,
+    receiver: str,
+    transition_html: str,
+    meta_text: str,
+    *,
+    border_color: str,
+    left_border: str | None = None,
+    right_border: str | None = None,
+):
+    """Centered pair card used by dramatic changes, hostilities, and alliance breaks."""
+    left_border = left_border or av_group_border(giver)
+    right_border = right_border or av_group_border(receiver)
+    return (
+        f'<div class="pair-story-card" style="border-left:3px solid {border_color};">'
+        f'<div class="pair-story-grid">'
+        f'<div class="pair-story-side">'
+        f'{av(giver, 42, left_border)}'
+        f'<span class="pair-story-name">{escape(giver.split()[0])}</span>'
+        f'</div>'
+        f'<div class="pair-story-center">'
+        f'<div class="pair-story-transition">{transition_html}</div>'
+        f'<div class="pair-story-meta">{escape(meta_text)}</div>'
+        f'</div>'
+        f'<div class="pair-story-side">'
+        f'{av(receiver, 42, right_border)}'
+        f'<span class="pair-story-name">{escape(receiver.split()[0])}</span>'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+    )
 
 
 if not hl_cards:
@@ -539,6 +578,7 @@ else:
             delta_all = card.get("delta_all", [])
             mup = card.get("movers_up")
             mdown = card.get("movers_down")
+            movers_label = card.get("movers_label", "📅 Variação vs ontem")
 
             header = card_header(
                 card["icon"], card["title"], card.get("link"), streak_txt,
@@ -546,7 +586,6 @@ else:
                 subtitle="Score de hoje (❤️ = +1, negativas = −0.5 a −1). Dado do dia, não acumulado."
             )
 
-            # ── Helper: subtle expand toggle ──
             def _toggle(n):
                 return (
                     f'<details class="sinc-more" style="margin-top:4px;">'
@@ -556,29 +595,25 @@ else:
                     f'border-radius:10px;">⋯ {n}</span></summary>'
                 )
 
-            # ── Top 6 (only score > 0, medal borders) ──
-            medals = ["🥇", "🥈", "🥉", "4º", "5º", "6º"]
-            medal_borders = ["#f1c40f", "#c0c0c0", "#cd7f32", "#27ae60", "#27ae60", "#27ae60"]
-            podium_all = card.get("podium_all") or podium
-            # Only show participants with positive scores
+            # ── Top (main layout + in-card toggle) ──
+            medals = ["🥇", "🥈", "🥉", "4º", "5º"]
             podium_positive = [p for p in podium_all if p["score"] > 0]
-            inline_podium = podium_positive[:6]
-            overflow_podium = podium_positive[6:]
+            inline_podium = podium_positive[:5]
+            overflow_podium = podium_positive[5:]
             podium_html = '<div>'
             podium_html += '<div class="fs-2xs u-s060">⬆ Mais queridos</div>'
             podium_html += '<div class="u-s065">'
             for i, p in enumerate(inline_podium):
                 name = p["name"]
                 score = p["score"]
-                border = medal_borders[i] if i < len(medal_borders) else "#27ae60"
                 label = medals[i] if i < len(medals) else f"{i+1}º"
                 podium_html += (
                     f'<div class="u-s344">'
-                    f'{av(name, 42, border)}'
+                    f'{av(name, 42, "#27ae60")}'
                     f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
                     f'</div>'
                 )
-            podium_html += '</div>'  # close u-s065
+            podium_html += '</div>'
             if overflow_podium:
                 podium_html += _toggle(len(overflow_podium))
                 podium_html += '<div class="u-s065">'
@@ -592,13 +627,11 @@ else:
                         f'</div>'
                     )
                 podium_html += '</div></details>'
-            podium_html += '</div>'  # close column wrapper
+            podium_html += '</div>'
 
-            # ── Bottom 6 (only score < 0, red borders, worst first) ──
+            # ── Bottom (main layout + in-card toggle) ──
             bottom_html = ""
-            bottom_all = card.get("bottom_all") or bottom3
             if bottom_all:
-                # Only show participants with negative scores
                 bottom_negative = [p for p in bottom_all if p["score"] < 0]
                 inline_bottom = bottom_negative[:6]
                 overflow_bottom = bottom_negative[6:]
@@ -616,7 +649,7 @@ else:
                             f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                             f'</div>'
                         )
-                    bottom_html += '</div>'  # close u-s065
+                    bottom_html += '</div>'
                     if overflow_bottom:
                         bottom_html += _toggle(len(overflow_bottom))
                         bottom_html += '<div class="u-s065">'
@@ -631,13 +664,12 @@ else:
                                 f'</div>'
                             )
                         bottom_html += '</div></details>'
-                    bottom_html += '</div>'  # close column wrapper
+                    bottom_html += '</div>'
 
-            # ── Movers (up to 3 risers + 3 fallers inline, overflow toggle) ──
+            # ── Movers (main layout + in-card toggle) ──
             movers_html = ""
             mup_list = mup if isinstance(mup, list) else ([mup] if mup else [])
             mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
-            delta_all = card.get("delta_all", [])
             inline_deltas = []
             if mup_list or mdown_list:
                 inline_deltas = [{"name": d["name"], "delta": d["delta"]} for d in mup_list + mdown_list]
@@ -647,35 +679,22 @@ else:
                 inline_names = {d["name"] for d in inline_deltas}
                 overflow_deltas = [d for d in delta_all if d.get("name") not in inline_names]
                 movers_html = '<div>'
-                movers_html += '<div class="fs-2xs u-s060">📅 Variação vs ontem</div>'
+                movers_html += f'<div class="fs-2xs u-s060">{movers_label}</div>'
                 movers_html += '<div class="u-s065">'
-                for mu in mup_list:
+                for d in inline_deltas:
+                    is_up = d.get("delta", 0) >= 0
+                    name = d["name"]
+                    icon = "📈" if is_up else "📉"
+                    row_cls = "u-s345" if is_up else "u-s341"
+                    text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                    border = "#27ae60" if is_up else "#e74c3c"
                     movers_html += (
-                        f'<div class="u-s345">'
-                        f'{av(mu["name"], 42, "#27ae60")}'
-                        f'<span class="fs-md u-s026">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
-                        f'</div>')
-                for md in mdown_list:
-                    movers_html += (
-                        f'<div class="u-s341">'
-                        f'{av(md["name"], 42, "#e74c3c")}'
-                        f'<span class="text-neg fs-md">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
-                        f'</div>')
-                if not mup_list and not mdown_list:
-                    for d in inline_deltas:
-                        is_up = d.get("delta", 0) >= 0
-                        name = d["name"]
-                        icon = "📈" if is_up else "📉"
-                        row_cls = "u-s345" if is_up else "u-s341"
-                        text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
-                        border = "#27ae60" if is_up else "#e74c3c"
-                        movers_html += (
-                            f'<div class="{row_cls}">'
-                            f'{av(name, 42, border)}'
-                            f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
-                            f'</div>'
-                        )
-                movers_html += '</div>'  # close u-s065
+                        f'<div class="{row_cls}">'
+                        f'{av(name, 42, border)}'
+                        f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
+                        f'</div>'
+                    )
+                movers_html += '</div>'
                 if overflow_deltas:
                     movers_html += _toggle(len(overflow_deltas))
                     movers_html += '<div class="u-s065">'
@@ -693,7 +712,7 @@ else:
                             f'</div>'
                         )
                     movers_html += '</div></details>'
-                movers_html += '</div>'  # close column wrapper
+                movers_html += '</div>'
 
             # 3-column grid on desktop, stacks on mobile
             print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
@@ -732,7 +751,7 @@ else:
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Mudanças de ontem para hoje no queridômetro. Melhoria = reação ficou mais positiva; piora = mais negativa.")}
 <div class="u-s332">
 <span class="fs-4xl u-s393">{total}</span>
-<span class="fs-base meta-text">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
+<span class="fs-base u-s001">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
 <div style="display:grid;gap:6px;margin-top:4px;">
 {_pulse_row("Melhorias", imp, "#27ae60")}
@@ -758,7 +777,7 @@ else:
             badge = f"{today_count}" if scope == "today" else f"{total}"
             source_tag = "📅 Ontem → Hoje" if scope == "today" else "📅 Histórico recente"
             card_title = card["title"] if scope == "today" else (
-                "Hostilidades Recentes" if is_hostile else "Mudanças Dramáticas (Recente)"
+                "Hostilidades Recentes" if is_hostile else "Mudanças Dramáticas"
             )
             if is_hostile:
                 subtitle = (
@@ -794,28 +813,32 @@ else:
                 if is_hostile:
                     old_e = it.get("old_emoji", "?")
                     new_e = it.get("new_emoji", it.get("emoji", "?"))
-                    main_txt = f'{g.split()[0]} {new_e} {r.split()[0]}'
-                    sub_txt = f'Hostilidade unilateral · {old_e}→{new_e} · {when_txt}'
-                    g_color, r_color, row_border = "#f39c12", "#e74c3c", "#f39c12"
+                    transition_html = (
+                        f'<span class="pair-story-origin">{old_e}</span>'
+                        f'<span class="pair-story-arrow">→</span>'
+                        f'<span class="pair-story-destination">{new_e}</span>'
+                    )
+                    meta_txt = f"Hostilidade unilateral · {when_txt}"
+                    row_border = "#f39c12"
                 else:
                     old_e = it.get("old_emoji", "?")
                     new_e = it.get("new_emoji", "?")
                     sev = it.get("severity", 0)
                     sev_txt = "alta" if sev >= 1.5 else ("média" if sev >= 1.0 else "leve")
-                    main_txt = f'{g.split()[0]} {old_e}→{new_e} {r.split()[0]}'
-                    sub_txt = f'Mudança {sev_txt} · {when_txt}'
-                    g_color, r_color = "#666", "#27ae60" if new_e == "❤️" else "#e74c3c"
+                    transition_html = (
+                        f'<span class="pair-story-origin">{old_e}</span>'
+                        f'<span class="pair-story-arrow">→</span>'
+                        f'<span class="pair-story-destination">{new_e}</span>'
+                    )
+                    meta_txt = f"Mudança {sev_txt} · {when_txt}"
                     row_border = "#e74c3c" if sev >= 1.5 else "#8e44ad"
 
-                return (
-                    f'<div class="u-s342" style="border-left:3px solid {row_border};">'
-                    f'{av(g, 42, g_color)}'
-                    f'<div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;">'
-                    f'<span class="fs-sm" style="font-weight:600;">{main_txt}</span>'
-                    f'<span class="fs-2xs" style="opacity:0.68;">{sub_txt}</span>'
-                    f'</div>'
-                    f'{av(r, 42, r_color)}'
-                    f'</div>'
+                return pair_story_card(
+                    g,
+                    r,
+                    transition_html,
+                    meta_txt,
+                    border_color=row_border,
                 )
 
             inline_items = items[:4]
@@ -1017,19 +1040,11 @@ else:
 
         # ── 🗳️ Paredão ──
         elif ctype == "paredao":
-            nominees = card.get("nominees", [])
-            avatars_html = '<div class="u-s363">'
-            for name in nominees:
-                avatars_html += (
-                    f'<div class="u-s057">'
-                    f'{av(name, 60, "#e74c3c")}'
-                    f'<span class="fs-xs u-s270">{name.split()[0]}</span>'
-                    f'</div>'
-                )
-            avatars_html += '</div>'
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), subtitle="Participantes emparedados — clique para análise de votos e reações.")}
-{avatars_html}
+            payload = card.get("payload") or {}
+            status_badge = payload.get("status_label", "Em votação")
+            print(f'''<div class="info-panel highlight-card-span-3" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), status_badge, source_tag="🧮 Nosso Modelo", subtitle="Leitura atual do paredão; quando fechar, o card troca para o resultado oficial.")}
+{render_paredao_index_card(payload, AVATARS)}
 </div>''')
 
         # ── 🎯 Mais Alvo ──
@@ -1260,7 +1275,6 @@ else:
                 streak = it["streak"]
                 new_e = it.get("new_emoji", "?")
                 sev = it.get("severity", "mild")
-                sev_border = "#e74c3c" if sev == "strong" else "#8e44ad"
                 date_str = it.get("date", "")
                 try:
                     date_fmt = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
@@ -1268,19 +1282,21 @@ else:
                     date_fmt = ""
                 age_txt = days_ago_str(date_str, break_ref_date)
                 when_txt = f"{date_fmt} ({age_txt})" if date_fmt and age_txt else (date_fmt or age_txt)
-                date_badge = f'<span class="fs-2xs" style="opacity:0.7;margin-left:auto">Rompimento: {when_txt}</span>' if when_txt else ""
-                alert_html = '<span class="fs-xs" style="color:#e74c3c;font-weight:700">🚨</span>' if sev == "strong" else ""
-                return (
-                    f'<div class="u-s342" style="border-left:3px solid {sev_border};">'
-                    f'{av(g, 42, av_group_border(g))}'
-                    f'<div class="u-s057">'
-                    f'<span class="fs-xs meta-chip">{streak}d ❤️</span>'
-                    f'<span class="fs-base">→ {new_e}</span>'
-                    f'</div>'
-                    f'{av(r, 42, av_group_border(r))}'
-                    f'{alert_html}'
-                    f'{date_badge}'
-                    f'</div>'
+                sev_border = "#e74c3c" if sev == "strong" else "#8e44ad"
+                meta_txt = f"Rompimento{' grave' if sev == 'strong' else ''}"
+                if when_txt:
+                    meta_txt += f" · {when_txt}"
+                transition_html = (
+                    f'<span class="pair-story-origin">{streak}d ❤️</span>'
+                    f'<span class="pair-story-arrow">→</span>'
+                    f'<span class="pair-story-destination">{new_e}</span>'
+                )
+                return pair_story_card(
+                    g,
+                    r,
+                    transition_html,
+                    meta_txt,
+                    border_color=sev_border,
                 )
 
             inline_items = items[:4]
@@ -1312,28 +1328,28 @@ else:
                 name = it["name"]
                 name_slug = name.lower().replace(" ", "-")
                 paredao_count = it.get("paredao", 0)
-                n_bv = it.get("bv_escapes", 0)
-                exposure = it.get("exposure", paredao_count)
                 prot = it.get("protected", 0)
-                votes = it.get("votes_total", it.get("votes", 0))
+                avail = it.get("available", 0)
+                votes = it.get("votes", 0)
+                has_bv = it.get("bv_escape", False)
+                bv_text = it.get("bv_text", "")
+                protection_tags = it.get("protection_tags", [])
 
-                border = "#3498db" if prot >= 3 else ("#27ae60" if exposure == 0 else "#f39c12")
-                par_color = "#27ae60" if exposure == 0 else ("#f39c12" if exposure <= 1 else "#e74c3c")
-                if n_bv > 0:
-                    par_label = f"{paredao_count} {'paredão' if paredao_count == 1 else 'paredões'} + {n_bv} Bate-Volta"
-                else:
-                    par_label = f"{paredao_count} {'paredão' if paredao_count == 1 else 'paredões'}"
+                border = "#3498db" if prot >= 3 else ("#27ae60" if paredao_count == 0 else "#f39c12")
+                par_color = "#27ae60" if paredao_count == 0 else ("#f39c12" if paredao_count == 1 else "#e74c3c")
+                par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
                 bar_pct = min(100, prot / n_par * 100) if n_par > 0 else 0
                 prot_badges = []
-                if n_bv > 0:
-                    bv_text = it.get("bv_text", f"Bate-Volta {n_bv}x")
-                    prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>🔄 {bv_text}</span>")
-                nom_text = it.get("nom_text", "")
-                if nom_text:
-                    prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;'>{nom_text}</span>")
-                prot_text = it.get("prot_text", "")
-                if prot_text:
-                    prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;'>{prot_text}</span>")
+                if has_bv and bv_text:
+                    prot_badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>{escape(bv_text)}</span>"
+                    )
+                for tag in protection_tags:
+                    label = tag.get("label")
+                    tone_style = "background:#2d1b3f;color:#d9b3ff;" if label == "Líder" else "background:#123b2a;color:#8fe3b8;"
+                    prot_badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;{tone_style}'>{escape(tag.get('text', ''))}</span>"
+                    )
                 prot_badges_html = " ".join(prot_badges)
                 extra_badges = f"<div style='margin-top:3px;'>{prot_badges_html}</div>" if prot_badges_html else ""
 
@@ -1348,7 +1364,7 @@ else:
                     f'<div class="u-s014">'
                     f'<div style="width:{bar_pct:.0f}%;height:100%;background:#3498db;border-radius:3px;"></div>'
                     f'</div>'
-                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} · protegido {prot}x</div>'
+                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} em {avail} {"elegível" if avail == 1 else "elegíveis"} · protegido {prot}x</div>'
                     f'{extra_badges}'
                     f'</div></div>'
                 )
@@ -1365,7 +1381,7 @@ else:
             rows_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Menor exposição a paredões e Bate-Volta. Proteções (Líder, Imune, Anjo) reduzem exposição.")}
+{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais protegidos nas votações da casa. Menos paredões + mais proteções = mais blindado.")}
 {rows_html}
 </div>''')
 
@@ -1499,20 +1515,22 @@ else:
 #| label: paredao-status-card
 #| output: asis
 
-paredao_names = index_data.get("paredao", {}).get("names", [])
-if paredao_names:
-    status_text = "Em Votação"
-    status_color = "#e74c3c"
-    status_icon = "🗳️"
-    names_display = ", ".join(sorted(paredao_names))
-    detail_html = f'<div class="fs-lg u-s022">Emparedados: <strong>{names_display}</strong></div>'
-else:
-    status_text = "Aguardando formação"
-    status_color = "#6c757d"
-    status_icon = "⏳"
-    detail_html = '<div class="fs-base u-s020">Nenhum paredão ativo no momento</div>'
+paredao_card = index_data.get("paredao", {}).get("card")
+if not (paredao_card and paredao_card.get("state") != "empty"):
+    paredao_names = index_data.get("paredao", {}).get("names", [])
+    if paredao_names:
+        status_text = "Em Votação"
+        status_color = "#e74c3c"
+        status_icon = "🗳️"
+        names_display = ", ".join(sorted(paredao_names))
+        detail_html = f'<div class="fs-lg u-s022">Emparedados: <strong>{names_display}</strong></div>'
+    else:
+        status_text = "Aguardando formação"
+        status_color = "#6c757d"
+        status_icon = "⏳"
+        detail_html = '<div class="fs-base u-s020">Nenhum paredão ativo no momento</div>'
 
-print(f'''
+    print(f'''
 <div class="info-panel" style="padding: 1rem 1.2rem; margin: 1rem 0 1.5rem 0; border-left-color: {status_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
 <div>
 <div class="fs-xl u-s385">
@@ -2431,7 +2449,7 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
             f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
             f'<div class="fs-2xs u-s061">{label}</div></div>'
             f'</summary>'
-            f'<div class="status-breakdown">{detail_html}</div>'
+            f'<div class="status-breakdown u-s001">{detail_html}</div>'
             f'</details>'
         )
     return (
@@ -2721,7 +2739,7 @@ for p in profiles:
         votes_detail_rows += (
             f"<div class='u-s072'>"
             f"<b>{vd.get('numero', '?')}º Paredão</b> ({vd.get('data', '')})<br>"
-            f"<span class='meta-inline'>Votaram: {voters_str}</span></div>"
+            f"<span class='u-s001'>Votaram: {voters_str}</span></div>"
         )
     if votes_detail_rows:
         votos_chip = (
@@ -2747,7 +2765,7 @@ for p in profiles:
         paredao_detail_rows += (
             f"<div class='u-s072'>"
             f"<b>{ph.get('numero', '?')}º Paredão</b> ({ph.get('data', '')})<br>"
-            f"<span class='meta-inline'>Como: {ph.get('como', '?')}</span> · "
+            f"<span class='u-s001'>Como: {ph.get('como', '?')}</span> · "
             f"<span style='color:{res_color};'>{res}{vt_str}</span></div>"
         )
     if n_paredoes > 0 and paredao_detail_rows:
@@ -3115,7 +3133,7 @@ if eliminated:
 {av_img}
 <div>
 <div class="fs-lg u-s389">{name}</div>
-<div class="fs-base meta-text">{subtitle}</div>
+<div class="fs-base u-s001">{subtitle}</div>
 {reason_html}
 </div>
 </div>'''

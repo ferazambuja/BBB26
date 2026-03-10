@@ -19,9 +19,10 @@ from data_utils import (
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
-    genero, resolve_leaders,
+    genero, resolve_leaders, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao,
 )
 from builders.vote_prediction import extract_paredao_eligibility
+from paredao_viz import build_paredao_history, build_paredao_card_payload
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 DATA_DIR = _PROJECT_ROOT / "data" / "snapshots"
@@ -47,6 +48,8 @@ ROLE_TYPES = {
     "Imune": "imunidade",
     "Paredão": "emparedado",
 }
+
+BLINDADOS_REASON_ORDER = ["Autoimune", "Líder", "Imune"]
 
 SINC_TYPE_META: dict[str, dict[str, str]] = {
     "elogio":            {"label": "elogio",             "emoji": "🏆", "valence": "pos"},
@@ -953,37 +956,45 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
         podium = podium_all[:6]
         bottom3 = bottom_all[:6]
 
-        deltas = {}
-        for name, score in sentiment_today.items():
-            if name in sentiment_yesterday:
-                deltas[name] = round(score - sentiment_yesterday[name], 1)
-
-        movers_up = []
-        movers_down = []
-        delta_all = []
-        if deltas:
-            sorted_deltas = sorted(deltas.items(), key=lambda x: x[1], reverse=True)
-            delta_items = []
-            for n, d in sorted_deltas:
-                if d == 0:
+        def _build_delta_items(reference_scores: dict[str, float], reason_prefix: str) -> list[dict[str, Any]]:
+            items: list[dict[str, Any]] = []
+            for n, today_score in sentiment_today.items():
+                if n not in reference_scores:
                     continue
-                today_score = sentiment_today.get(n, 0.0)
-                yesterday_score = sentiment_yesterday.get(n, today_score - d)
-                delta_items.append({
+                previous_score = reference_scores[n]
+                delta = round(today_score - previous_score, 1)
+                if delta == 0:
+                    continue
+                items.append({
                     "name": n,
-                    "delta": d,
+                    "delta": delta,
                     "today_score": round(today_score, 1),
-                    "yesterday_score": round(yesterday_score, 1),
+                    "yesterday_score": round(previous_score, 1),
                     "reason": (
-                        f"Variação = score de hoje ({today_score:+.1f}) "
-                        f"− score do dia anterior ({yesterday_score:+.1f}) = {d:+.1f}."
+                        f"{reason_prefix}: score de hoje ({today_score:+.1f}) "
+                        f"− score de referência ({previous_score:+.1f}) = {delta:+.1f}."
                     ),
                 })
-            movers_up = [item for item in delta_items if item["delta"] > 0.5][:3]
-            movers_down = [item for item in delta_items if item["delta"] < -0.5][-3:]
-            movers_down.sort(key=lambda x: x["delta"])  # most negative first
-            delta_all = delta_items
-            delta_all.sort(key=lambda x: (abs(x["delta"]), x["delta"]), reverse=True)
+            items.sort(key=lambda x: (abs(x["delta"]), x["delta"]), reverse=True)
+            return items
+
+        day_delta_all = _build_delta_items(sentiment_yesterday, "Variação vs ontem")
+        week_reference = {}
+        if len(daily_snapshots) >= 7:
+            week_snapshot = daily_snapshots[-7]
+            week_reference = {
+                p["name"]: calc_sentiment(p)
+                for p in week_snapshot.get("participants", [])
+                if not p.get("characteristics", {}).get("eliminated") and p.get("name")
+            }
+        week_delta_all = _build_delta_items(week_reference, "Variação na semana") if week_reference else []
+
+        delta_all = day_delta_all or week_delta_all
+        movers_scope = "day" if day_delta_all else ("week" if week_delta_all else "none")
+        movers_label = "📅 Variação vs ontem" if movers_scope == "day" else "📅 Variação na semana"
+        movers_up = [item for item in delta_all if item["delta"] > 0.5][:3]
+        movers_down = [item for item in delta_all if item["delta"] < -0.5][:3]
+        movers_down.sort(key=lambda x: x["delta"])  # most negative first
 
         cards.append({
             "type": "ranking",
@@ -999,6 +1010,8 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             "movers_up": movers_up,
             "movers_down": movers_down,
             "delta_all": delta_all,
+            "movers_scope": movers_scope,
+            "movers_label": movers_label if delta_all else "",
         })
 
         streak_text = f" pelo {streak}º dia consecutivo" if streak > 1 else ""
@@ -1757,7 +1770,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
                     on_paredao[name] += 1
                 elif name in protected_names:
                     protected[name] += 1
-                    reason = "Líder" if name in lider_names else ("Imune" if name == imun else "Anjo")
+                    reason = "Líder" if name in lider_names else ("Imune" if name == imun else "Autoimune")
                     protection_detail[name].append((num, reason))
                 elif name not in cant_be_voted:
                     available[name] += 1
@@ -1775,7 +1788,20 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
 
             # Protection breakdown for display
             reason_counts = Counter(r for _, r in protection_detail.get(name, []))
-            prot_text = ", ".join(f"{r} {c}x" for r, c in reason_counts.items()) if reason_counts else ""
+            reason_numbers: dict[str, list[int]] = defaultdict(list)
+            for par_num, reason in protection_detail.get(name, []):
+                reason_numbers[reason].append(par_num)
+            ordered_reasons = [r for r in BLINDADOS_REASON_ORDER if reason_counts.get(r)]
+            prot_text = ", ".join(f"{r} {reason_counts[r]}x" for r in ordered_reasons) if ordered_reasons else ""
+            protection_tags = [
+                {
+                    "label": reason,
+                    "count": reason_counts[reason],
+                    "nums": sorted(reason_numbers[reason]),
+                    "text": f"{reason} {reason_counts[reason]}x ({', '.join(f'{n}º' for n in sorted(reason_numbers[reason]))})",
+                }
+                for reason in ordered_reasons
+            ]
 
             # BV escape text
             if n_bv > 0:
@@ -1809,6 +1835,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
                 "by_dynamic": by_dynamic.get(name, 0),
                 "nom_text": nom_text,
                 "prot_text": prot_text,
+                "protection_tags": protection_tags,
                 "bv_text": bv_text,
                 "last_voted_paredao": last_voted_paredao.get(name, 0),
                 "total": n_paredoes,
@@ -3344,11 +3371,33 @@ def build_index_data() -> dict | None:
         ctx["avatars"], ctx["member_of"], ctx["roles_current"], ctx["latest_matrix"], pair_sentiment,
     )
 
-    paredao_names = hl["paredao_names"]
+    latest_paredao = None
+    paredao_card = None
+    transformed_paredoes = load_paredoes_transformed(member_of=ctx["member_of"])
+    if transformed_paredoes:
+        latest_paredao = transformed_paredoes[-1]
+        polls_data = load_votalhada_polls()
+        current_poll = get_poll_for_paredao(polls_data, latest_paredao["numero"])
+        history = build_paredao_history(ctx["paredoes"].get("paredoes", []), latest_paredao["numero"])
+        paredao_card = build_paredao_card_payload(latest_paredao, current_poll, polls_data, history)
+
+    paredao_names = [n["name"] for n in paredao_card.get("nominees", [])] if paredao_card else hl["paredao_names"]
     paredao_status = {
         "names": sorted(paredao_names),
-        "status": "Em Votação" if paredao_names else "Aguardando formação",
+        "status": (paredao_card or {}).get("status_label", "Em Votação" if paredao_names else "Aguardando formação"),
+        "card": paredao_card,
     }
+
+    hl["cards"] = [c for c in hl["cards"] if c.get("type") != "paredao"]
+    if paredao_card and paredao_card.get("state") != "empty":
+        hl["cards"].append({
+            "type": "paredao",
+            "icon": "🗳️",
+            "title": "Paredão Ativo",
+            "color": paredao_card.get("status_color", "#e74c3c"),
+            "link": "paredao.html",
+            "payload": paredao_card,
+        })
 
     payload = {
         "_metadata": {"generated_at": datetime.now(timezone.utc).isoformat()},
