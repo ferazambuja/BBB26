@@ -26,7 +26,7 @@
   background: #2a2f36;
   border: 1px solid #454d5c;
   padding: 4px 10px;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
 }
 
 .economia-v2-page .eco-curiosity-grid {
@@ -51,7 +51,7 @@
 .economia-v2-page .eco-story-arc-title,
 .economia-v2-page .eco-v2-chapter-kicker {
   margin: 0 0 6px;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #d6dde9;
@@ -62,7 +62,7 @@
 .economia-v2-page .eco-v2-chapter-copy {
   margin: 0;
   color: var(--eco-v2-text);
-  font-size: 0.94rem;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -99,7 +99,7 @@
 .economia-v2-page .eco-v2-pulse-title {
   margin: 0;
   color: var(--eco-v2-muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -107,14 +107,14 @@
 .economia-v2-page .eco-v2-pulse-value {
   margin: 4px 0;
   color: var(--eco-v2-text);
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
 .economia-v2-page .eco-v2-pulse-detail {
   margin: 0;
   color: #c8d1de;
-  font-size: 0.84rem;
+  font-size: var(--fs-sm);
 }
 
 .economia-v2-page .eco-v2-weekline {
@@ -133,14 +133,14 @@
 
 .economia-v2-page .eco-v2-weekline-title {
   margin: 0 0 2px;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: #dce5f1;
 }
 
 .economia-v2-page .eco-v2-weekline-copy {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: #bcc7d7;
 }
 
@@ -169,7 +169,7 @@
 .economia-v2-page .eco-v2-person-name {
   margin: 0;
   color: var(--eco-v2-text);
-  font-size: 0.88rem;
+  font-size: var(--fs-md);
   font-weight: 700;
   line-height: 1.2;
 }
@@ -177,7 +177,7 @@
 .economia-v2-page .eco-v2-person-meta {
   margin: 0;
   color: #b7c2d2;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   line-height: 1.25;
 }
 
@@ -195,7 +195,7 @@
   font-weight: 700;
   color: #d8e1ee;
   padding: 10px 2px;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 
 .economia-v2-page .eco-v2-drill-summary::-webkit-details-marker {
@@ -243,14 +243,14 @@
   }
 
   .economia-v2-page .eco-v2-pulse-value {
-    font-size: 1rem;
+    font-size: var(--fs-base);
   }
 
   .economia-v2-page .eco-v2-person-name {
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
   }
 
   .economia-v2-page .eco-v2-person-meta {
-    font-size: 0.76rem;
+    font-size: var(--fs-xs);
   }
 }

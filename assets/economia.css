@@ -41,7 +41,7 @@ body.economia-page nav {
 
 .eco-hero-title {
   margin: 0.35rem 0 0.55rem;
-  font-size: 1.45rem;
+  font-size: var(--fs-3xl);
 }
 
 .eco-hero-subtitle {
@@ -232,7 +232,7 @@ body.economia-page nav {
   display: inline-block;
   color: var(--eco-gold);
   text-decoration: none;
-  font-size: 0.82em;
+  font-size: var(--fs-sm);
   font-weight: 600;
   margin-left: 4px;
   opacity: 0.85;
@@ -255,7 +255,7 @@ body.economia-page nav {
 }
 .eco-card-grid details.eco-participant-card > summary::after {
   content: "▸";
-  font-size: 0.9em;
+  font-size: var(--fs-sm);
   color: #666;
   margin-left: auto;
   transition: transform 0.2s;
@@ -357,7 +357,7 @@ body.economia-page nav {
 .eco-bar-label {
   flex: 0 0 130px;
   text-align: right;
-  font-size: 0.85em;
+  font-size: var(--fs-sm);
   color: var(--eco-text);
   white-space: nowrap;
   overflow: hidden;
@@ -382,13 +382,13 @@ body.economia-page nav {
 
 .eco-bar-value {
   flex: 0 0 50px;
-  font-size: 0.82em;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--eco-muted);
 }
 
 .eco-bar-title {
-  font-size: 1em;
+  font-size: var(--fs-base);
   font-weight: 700;
   color: var(--eco-text);
   margin: 0.8rem 0 0.4rem;
@@ -400,7 +400,7 @@ body.economia-page nav {
 .eco-vip-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8em;
+  font-size: var(--fs-sm);
   margin: 0.5rem 0;
   overflow-x: auto;
   display: block;
@@ -446,7 +446,7 @@ body.economia-page nav {
 .eco-vip-cell--fora {
   background: rgba(85, 85, 85, 0.15);
   color: #666;
-  font-size: 0.85em;
+  font-size: var(--fs-sm);
 }
 
 .eco-vip-count-row {
@@ -459,7 +459,7 @@ body.economia-page nav {
 .eco-vip-count-label {
   flex: 0 0 130px;
   text-align: right;
-  font-size: 0.85em;
+  font-size: var(--fs-sm);
   color: var(--eco-text);
   white-space: nowrap;
   overflow: hidden;
@@ -486,7 +486,7 @@ body.economia-page nav {
 
 .eco-vip-count-nums {
   flex: 0 0 80px;
-  font-size: 0.82em;
+  font-size: var(--fs-sm);
   color: var(--eco-muted);
   display: flex;
   gap: 6px;
@@ -503,7 +503,7 @@ body.economia-page nav {
   align-items: center;
   gap: 8px;
   margin: 4px 0;
-  font-size: 0.88em;
+  font-size: var(--fs-md);
 }
 
 .eco-compras-week-label {
@@ -527,7 +527,7 @@ body.economia-page nav {
   display: flex;
   align-items: center;
   padding-left: 6px;
-  font-size: 0.78em;
+  font-size: var(--fs-xs);
   font-weight: 700;
   min-width: 30px;
 }
@@ -544,7 +544,7 @@ body.economia-page nav {
 
 .eco-compras-ratio {
   flex: 0 0 60px;
-  font-size: 0.78em;
+  font-size: var(--fs-xs);
   color: #aaa;
   text-align: right;
 }
@@ -559,7 +559,7 @@ body.economia-page nav {
 }
 
 .eco-toggle-label {
-  font-size: 0.85em;
+  font-size: var(--fs-sm);
   color: var(--eco-muted);
 }
 
@@ -610,7 +610,7 @@ body.hide-eliminated [data-eliminated] {
 
 @media (max-width: 575.98px) {
   .eco-hero-title {
-    font-size: 1.2rem;
+    font-size: var(--fs-2xl);
   }
 
   .eco-kpi-row {
@@ -646,16 +646,16 @@ body.hide-eliminated [data-eliminated] {
   .eco-bar-label,
   .eco-vip-count-label {
     flex: 0 0 100px;
-    font-size: 0.78em;
+    font-size: var(--fs-xs);
   }
 
   .eco-bar-value {
     flex: 0 0 42px;
-    font-size: 0.78em;
+    font-size: var(--fs-xs);
   }
 
   .eco-vip-table {
-    font-size: 0.72em;
+    font-size: var(--fs-xs);
   }
 
   .eco-vip-table th,
