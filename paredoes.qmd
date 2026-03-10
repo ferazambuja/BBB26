@@ -504,7 +504,7 @@ if len(finalized_polls) >= 1:
     # ══════════════════════════════════════════════════════════════
     if backtest and len(backtest['per_paredao']) >= 3:
         _bt_agg = backtest['aggregate']
-        print("\n## 🧮 Nosso Modelo — Back-test\n")
+        print("\n## 🧮 Nosso Modelo — Teste retrospectivo {#nosso-modelo-back-test}\n")
         _method_text = build_precision_methodology_text(polls_data)
         # Convert markdown bold to HTML
         import re as _re

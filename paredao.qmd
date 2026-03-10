@@ -238,6 +238,8 @@ from data_utils import (
     ANALYSIS_DESCRIPTIONS,
 )
 from paredao_viz import (
+    build_paredao_card_payload,
+    render_paredao_live_card,
     render_nominee_cards_em_andamento,
     render_nominee_cards_finalized,
     build_paredao_history,
@@ -440,18 +442,8 @@ if ultimo:
 </div>
 """)
 
-        # ── Pre-compute poll predictions for cards ──
         poll = get_poll_for_paredao(polls_data, ultimo['numero'])
-        _card_preds = None
-        _is_save_poll = False
-        if poll:
-            _is_save_poll = poll.get('tipo_voto') == 'salvar'
-            _prec_card = calculate_precision_weights(polls_data)
-            _model_card = predict_precision_weighted(poll, _prec_card) if _prec_card.get('sufficient') else None
-            if _model_card:
-                _card_preds = _model_card['prediction']
-            elif poll.get('consolidado'):
-                _card_preds = {n: poll['consolidado'].get(n, 0) for n in poll.get('participantes', [])}
+        _is_save_poll = poll.get('tipo_voto') == 'salvar' if poll else False
 
         # Build paredão history (past appearances)
         _raw_paredoes = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
@@ -459,13 +451,8 @@ if ultimo:
 
         # Cards dos indicados conhecidos
         if participantes:
-            print(render_nominee_cards_em_andamento(
-                participantes, esperado_indicados, AVATARS, MEMBER_OF,
-                poll_predictions=_card_preds,
-                is_save_poll=_is_save_poll,
-                paredao_history=_par_history,
-                is_paredao_falso=ultimo.get('paredao_falso', False),
-            ))
+            _card_payload = build_paredao_card_payload(ultimo, poll, polls_data, _par_history)
+            print(render_paredao_live_card(_card_payload, AVATARS))
 
         # ── Paredão history for nominees with past appearances ──
         _nominees_with_history = [(p['nome'], _par_history.get(p['nome'], [])) for p in participantes if _par_history.get(p['nome'])]
@@ -523,7 +510,7 @@ if ultimo:
             print(f'<strong class="u-s029">📊 Votalhada</strong> reúne enquetes de 70+ fontes (sites, redes sociais) e faz uma média <em>pelo número de votos</em> de cada fonte.')
             print(f'</div>')
             print(f'<div class="u-s162">')
-            print(f'<strong class="u-s053">🧮 Nosso Modelo</strong> usa as mesmas enquetes, mas dá <em>mais peso para quem acertou mais</em> nos paredões anteriores. <a href="paredoes.html#nosso-modelo-back-test" class="fs-base u-s053">Ver back-test →</a>')
+            print(f'<strong class="u-s053">🧮 Nosso Modelo</strong> usa as mesmas enquetes, mas dá <em>mais peso para quem acertou mais</em> nos paredões anteriores. <a href="paredoes.html#nosso-modelo-back-test" class="fs-base u-s053">Ver teste retrospectivo →</a>')
             print(f'</div>')
             print(f'</div>\n')
 
@@ -883,7 +870,7 @@ if ultimo:
                         _model_correct_n = sum(1 for r in _bt_results if r.get('model_correct'))
                         _consol_avg = sum(r['consolidado_mae'] for r in _bt_results) / len(_bt_results)
                         _model_avg = sum(r['model_mae'] for r in _bt_results) / len(_bt_results)
-                        _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro {_model_avg:.1f} p.p.) — <a href="paredoes.html#nosso-modelo-back-test" class="fs-base u-s023">ver back-test</a>')
+                        _curiosities.append(f'📊 Em <strong>{_n_finalized} paredões</strong>: Votalhada acertou {_consol_correct}/{_n_finalized} (erro {_consol_avg:.1f} p.p.) · Nosso Modelo acertou {_model_correct_n}/{_n_finalized} (erro {_model_avg:.1f} p.p.) — <a href="paredoes.html#nosso-modelo-back-test" class="fs-base u-s023">ver teste retrospectivo</a>')
 
             if _curiosities:
                 print(f'<div class="u-s179">')
@@ -1647,12 +1634,9 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
         _raw_par_fin = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8'))
         _par_hist_fin = build_paredao_history(_raw_par_fin.get('paredoes', []), ultimo['numero'])
 
-        # ── Visual: Cards com fotos e resultado ──
-        print(render_nominee_cards_finalized(
-            df_p.to_dict('records'), AVATARS, MEMBER_OF,
-            is_paredao_falso=ultimo.get('paredao_falso', False),
-            paredao_history=_par_hist_fin,
-        ))
+        poll = get_poll_for_paredao(polls_data, ultimo['numero'])
+        _final_card_payload = build_paredao_card_payload(ultimo, poll, polls_data, _par_hist_fin)
+        print(render_paredao_live_card(_final_card_payload, AVATARS))
 
         fig = go.Figure()
 

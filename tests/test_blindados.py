@@ -12,6 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from data_utils import resolve_leaders
+from builders.index_data_builder import _compute_static_cards
 from builders.vote_prediction import extract_paredao_eligibility
 
 
@@ -300,3 +301,51 @@ class TestBlindadosContract:
             assert "bv_escape" in item
             assert item["votes"] == item["votes_total"]
             assert item["bv_escape"] == (item["bv_escapes"] > 0)
+
+
+class TestBlindadosDisplayDetails:
+    def test_builder_emits_split_protection_tags_and_autoimune_label(self):
+        ctx = {
+            "active_set": {"Jonas", "Milena", "Breno", "Ana"},
+            "paredoes": {
+                "paredoes": [
+                    {
+                        "numero": 3,
+                        "formacao": {"lider": "Ana", "bate_volta": {"vencedor": "Jonas"}},
+                        "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
+                        "votos_casa": {"Breno": "Milena"},
+                    },
+                    {
+                        "numero": 4,
+                        "formacao": {"lider": "Jonas"},
+                        "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
+                        "votos_casa": {"Ana": "Milena"},
+                    },
+                    {
+                        "numero": 5,
+                        "formacao": {"lider": "Ana", "imunizado": {"quem": "Jonas"}},
+                        "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
+                        "votos_casa": {"Breno": "Milena"},
+                    },
+                    {
+                        "numero": 6,
+                        "formacao": {"lider": "Ana", "anjo": "Jonas", "anjo_autoimune": True},
+                        "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
+                        "votos_casa": {"Breno": "Milena"},
+                    },
+                ]
+            },
+        }
+
+        _highlights, cards = _compute_static_cards(ctx)
+        blindados = next(card for card in cards if card["type"] == "blindados")
+        jonas = next(item for item in blindados["items_all"] if item["name"] == "Jonas")
+
+        assert jonas["bv_text"] == "Escapou Bate-Volta 1x (3º)"
+        assert "🚄" not in jonas["bv_text"]
+        assert jonas["prot_text"] == "Autoimune 1x, Líder 1x, Imune 1x"
+        assert jonas["protection_tags"] == [
+            {"label": "Autoimune", "count": 1, "nums": [6], "text": "Autoimune 1x (6º)"},
+            {"label": "Líder", "count": 1, "nums": [4], "text": "Líder 1x (4º)"},
+            {"label": "Imune", "count": 1, "nums": [5], "text": "Imune 1x (5º)"},
+        ]

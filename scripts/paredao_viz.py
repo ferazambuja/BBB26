@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from data_utils import (
     GROUP_COLORS,
@@ -16,7 +16,10 @@ from data_utils import (
     avatar_html,
     avatar_img,
     artigo,
+    backtest_precision_model,
+    calculate_precision_weights,
     genero,
+    predict_precision_weighted,
     safe_html,
 )
 
@@ -95,6 +98,377 @@ def build_paredao_history(
                 entry['eliminado'] = (nome == eliminado)
             history.setdefault(nome, []).append(entry)
     return history
+
+
+_PAREDAO_ROLE_COLORS: dict[str, str] = {
+    "danger": "#e74c3c",
+    "warning": "#f39c12",
+    "safe": "#2ecc71",
+    "neutral": "#95a5a6",
+}
+
+
+def _is_finalized_paredao(entry: dict | None) -> bool:
+    if not entry:
+        return False
+    if entry.get("status") == "finalizado":
+        return True
+    return any(p.get("resultado") for p in entry.get("participantes", []))
+
+
+def _format_collection_label(data_coleta: str | None) -> str | None:
+    if not data_coleta:
+        return None
+    try:
+        dt = datetime.fromisoformat(data_coleta.replace("Z", "+00:00"))
+        return f"Coleta {dt.strftime('%d/%m')} · {dt.strftime('%H:%M')}"
+    except Exception:
+        return None
+
+
+def _normalize_route_label(route: str | None) -> str:
+    if not route or route == "API":
+        return "Aguardando origem"
+    cleaned = route.split(" + ")[0].strip()
+    lower = cleaned.lower()
+    if "líder" in lower:
+        return "Líder"
+    if "contragolpe" in lower:
+        return "Contragolpe"
+    if "consenso anjo+monstro" in lower:
+        return "Consenso Anjo+Monstro"
+    if "duelo de risco" in lower:
+        return "Duelo de Risco"
+    return cleaned
+
+
+def _result_is_selected(result: str | None) -> bool:
+    normalized = (result or "").upper()
+    return normalized.startswith("ELIMINAD") or normalized == "QUARTO_SECRETO"
+
+
+def _build_trust_badge(polls_data: dict | None) -> dict:
+    backtest = backtest_precision_model(polls_data or {"paredoes": []}) if polls_data else None
+    aggregate = (backtest or {}).get("aggregate") or {}
+    n_paredoes = aggregate.get("n_paredoes", 0)
+    model_mae = aggregate.get("model_mae")
+    consolidado_mae = aggregate.get("consolidado_mae")
+    visible = bool(
+        n_paredoes >= 3
+        and model_mae is not None
+        and consolidado_mae is not None
+        and model_mae < consolidado_mae
+    )
+    if not visible:
+        return {"visible": False, "text": "", "short_text": "", "href": "", "aggregate": aggregate}
+
+    model_correct = aggregate.get("model_correct", 0)
+    consolidado_correct = aggregate.get("consolidado_correct", 0)
+    text = (
+        f"Nosso Modelo mais preciso que o Votalhada no teste retrospectivo: "
+        f"{model_correct}/{n_paredoes} e {model_mae:.1f} p.p. "
+        f"vs {consolidado_correct}/{n_paredoes} e {consolidado_mae:.1f} p.p."
+    )
+    short_text = (
+        f"Mais preciso no teste retrospectivo: "
+        f"{model_correct}/{n_paredoes} · {model_mae:.1f} p.p. "
+        f"vs {consolidado_correct}/{n_paredoes} · {consolidado_mae:.1f}"
+    )
+    return {
+        "visible": True,
+        "text": text,
+        "short_text": short_text,
+        "href": "paredoes.html#nosso-modelo-back-test",
+        "aggregate": aggregate,
+    }
+
+
+def _route_fact_priority(route_short: str) -> int:
+    lower = route_short.lower()
+    if lower == "líder":
+        return 0
+    if "contragolpe" in lower:
+        return 1
+    if "consenso" in lower:
+        return 2
+    if "duelo" in lower:
+        return 3
+    return 4
+
+
+def _build_active_fact_lines(nominees: list[dict], vote_mode: str) -> list[str]:
+    facts: list[str] = []
+    with_model = [n for n in nominees if n.get("model_pct") is not None]
+    if len(with_model) >= 2:
+        lead, runner = with_model[0], with_model[1]
+        gap = abs((lead.get("model_pct") or 0.0) - (runner.get("model_pct") or 0.0))
+        if gap < 2.0:
+            facts.append(
+                f"Empate técnico no Nosso Modelo: {lead['first_name']} {lead['model_pct']:.1f}% "
+                f"vs {runner['first_name']} {runner['model_pct']:.1f}%."
+            )
+        elif vote_mode == "save":
+            facts.append(
+                f"{lead['first_name']} lidera o Nosso Modelo por {gap:.1f} p.p. "
+                f"sobre {runner['first_name']}."
+            )
+        else:
+            facts.append(
+                f"{lead['first_name']} abre {gap:.1f} p.p. sobre {runner['first_name']} "
+                f"no Nosso Modelo."
+            )
+
+    repeat_nominees = [n for n in nominees if n.get("appearance_count", 1) > 1]
+    if repeat_nominees:
+        repeat_nominees.sort(key=lambda n: (-n["appearance_count"], n["name"]))
+        repeated = repeat_nominees[0]
+        facts.append(
+            f"{repeated['first_name']} chega ao {repeated['appearance_count']}º paredão."
+        )
+    elif vote_mode == "save":
+        facts.append("Neste paredão falso, a maior porcentagem indica quem segue no jogo.")
+    else:
+        routes = sorted(
+            [n for n in nominees if n.get("route_short") and n.get("route_short") != "Aguardando origem"],
+            key=lambda n: (_route_fact_priority(n["route_short"]), n["name"]),
+        )
+        if routes:
+            chosen = routes[0]
+            facts.append(f"{chosen['first_name']} caiu via {chosen['route_short']}.")
+
+    return facts[:2]
+
+
+def _build_memory_line(payload_nominees: list[dict], model_prediction: dict | None, vote_mode: str) -> str | None:
+    if not model_prediction:
+        return None
+    selected = model_prediction.get("predicao_eliminado", "")
+    prediction = model_prediction.get("prediction", {})
+    if not selected or selected not in prediction:
+        return None
+    pct = prediction[selected]
+    if vote_mode == "save":
+        return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.1f}% para seguir no jogo."
+    return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.1f}%."
+
+
+def build_paredao_card_payload(
+    paredao_entry: dict | None,
+    poll: dict | None,
+    polls_data: dict | None,
+    paredao_history: dict[str, list[dict]] | None = None,
+) -> dict:
+    """Build the shared active/finalized paredao card payload for live and index pages."""
+    if not paredao_entry:
+        return {
+            "state": "empty",
+            "headline": "Paredão",
+            "status_label": "Aguardando formação",
+            "status_color": _PAREDAO_ROLE_COLORS["neutral"],
+            "primary_source": "Nosso Modelo",
+            "vote_mode": "eliminate",
+            "collection_label": None,
+            "nominees": [],
+            "trust_badge": {"visible": False, "text": "", "short_text": "", "aggregate": {}},
+            "fact_lines": [],
+            "memory_line": None,
+            "link_href": "paredao.html",
+        }
+
+    state = "finalized" if _is_finalized_paredao(paredao_entry) else "active"
+    history_map = paredao_history or {}
+    trust_badge = _build_trust_badge(polls_data)
+    vote_mode = "save" if ((poll or {}).get("tipo_voto") == "salvar" or paredao_entry.get("paredao_falso")) else "eliminate"
+
+    precision = calculate_precision_weights(polls_data or {"paredoes": []}) if polls_data else {"sufficient": False}
+    model_prediction = predict_precision_weighted(poll, precision) if poll and precision.get("sufficient") else None
+    model_values = (model_prediction or {}).get("prediction", {})
+
+    nominees: list[dict] = []
+    for participant in paredao_entry.get("participantes", []):
+        name = participant.get("nome", "")
+        if not name:
+            continue
+        route_raw = participant.get("como", "")
+        route_short = _normalize_route_label(route_raw)
+        appearance_count = len(history_map.get(name, [])) + 1
+        result = participant.get("resultado", "")
+        nominee = {
+            "name": name,
+            "first_name": name.split()[0],
+            "route_to_paredao": route_raw or route_short,
+            "route_short": route_short,
+            "appearance_count": appearance_count,
+            "history_label": f"{appearance_count}º paredão" if appearance_count > 1 else None,
+            "model_pct": model_values.get(name),
+            "official_pct": participant.get("voto_total"),
+            "display_pct": model_values.get(name) if state == "active" else participant.get("voto_total"),
+            "is_eliminated": _result_is_selected(result),
+            "use_grayscale": state == "finalized" and _result_is_selected(result),
+            "result_label": result or "Em andamento",
+            "color_role": "neutral",
+            "accent_color": _PAREDAO_ROLE_COLORS["neutral"],
+        }
+        nominees.append(nominee)
+
+    if state == "active" and model_values:
+        nominees.sort(key=lambda n: (n.get("model_pct") is None, -(n.get("model_pct") or 0.0), n["name"]))
+    elif state == "finalized":
+        nominees.sort(key=lambda n: (-(n.get("display_pct") or 0.0), n["name"]))
+
+    if state == "active" and model_values and nominees:
+        last_idx = len(nominees) - 1
+        for idx, nominee in enumerate(nominees):
+            if vote_mode == "save":
+                role = "safe" if idx == 0 else "danger" if idx == last_idx else "warning"
+            else:
+                role = "danger" if idx == 0 else "safe" if idx == last_idx else "warning"
+            nominee["color_role"] = role
+            nominee["accent_color"] = _PAREDAO_ROLE_COLORS[role]
+    elif state == "finalized":
+        for nominee in nominees:
+            role = "danger" if nominee["is_eliminated"] else "safe"
+            nominee["color_role"] = role
+            nominee["accent_color"] = _PAREDAO_ROLE_COLORS[role]
+
+    fact_lines = _build_active_fact_lines(nominees, vote_mode) if state == "active" else []
+    memory_line = _build_memory_line(nominees, model_prediction, vote_mode) if state == "finalized" else None
+
+    numero = paredao_entry.get("numero")
+    headline = f"{numero}º Paredão" if numero else "Paredão"
+    if paredao_entry.get("paredao_falso"):
+        headline += " Falso"
+    status_label = "Em votação" if state == "active" else "Resultado oficial" if state == "finalized" else "Aguardando formação"
+    status_color = "#f39c12" if state == "active" else "#e74c3c" if state == "finalized" else _PAREDAO_ROLE_COLORS["neutral"]
+
+    return {
+        "state": state,
+        "headline": headline,
+        "status_label": status_label,
+        "status_color": status_color,
+        "primary_source": "Nosso Modelo",
+        "vote_mode": vote_mode,
+        "collection_label": _format_collection_label((poll or {}).get("data_coleta")),
+        "nominees": nominees,
+        "trust_badge": trust_badge,
+        "fact_lines": fact_lines,
+        "memory_line": memory_line,
+        "link_href": "paredao.html",
+    }
+
+
+def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, compact: bool = False) -> str:
+    modifier = "paredao-index-nominee" if compact else "paredao-live-nominee"
+    avatar_size = 52 if compact else 72
+    pct = nominee.get("display_pct")
+    pct_html = (
+        f'<div class="paredao-card-pct">{pct:.1f}%</div>'
+        if pct is not None else '<div class="paredao-card-pct paredao-card-pct--empty">—</div>'
+    )
+    width = max(0.0, min(100.0, pct if pct is not None else 0.0))
+    bar_html = (
+        f'<div class="paredao-card-bar-track"><div class="paredao-card-bar-fill" '
+        f'style="width:{width:.1f}%; background:{nominee["accent_color"]};"></div></div>'
+        if pct is not None else ""
+    )
+    chip_html = ""
+    if nominee.get("history_label"):
+        chip_html = f'<span class="paredao-card-chip">{safe_html(nominee["history_label"])}</span>'
+    avatar = avatar_img(
+        nominee["name"],
+        avatars,
+        avatar_size,
+        border_color=nominee["accent_color"],
+        grayscale=nominee.get("use_grayscale", False),
+    )
+    return (
+        f'<div class="{modifier} is-{nominee["color_role"]}">'
+        f'<div class="paredao-card-avatar">{avatar}</div>'
+        f'<div class="paredao-card-main">'
+        f'<div class="paredao-card-name">{safe_html(nominee["first_name"])}</div>'
+        f'{pct_html}'
+        f'{bar_html}'
+        f'<div class="paredao-card-route">{safe_html(nominee["route_short"])}</div>'
+        f'{chip_html}'
+        f'</div>'
+        f'</div>'
+    )
+
+
+def _render_trust_badge(badge: dict, *, compact: bool = False) -> str:
+    if not badge.get("visible"):
+        return ""
+    text = badge.get("short_text") if compact else badge.get("text")
+    href = badge.get("href")
+    if href:
+        return (
+            f'<a class="paredao-card-trust" href="{safe_html(href)}" '
+            f'title="Ver explicação do teste retrospectivo">🧮 {safe_html(text)}</a>'
+        )
+    return f'<div class="paredao-card-trust">🧮 {safe_html(text)}</div>'
+
+
+def render_paredao_live_card(payload: dict | None, avatars: dict[str, str]) -> str:
+    """Render the full live-page paredao card."""
+    if not payload:
+        return ""
+    if payload.get("state") == "empty":
+        return (
+            '<div class="paredao-live-card is-empty">'
+            '<div class="paredao-live-card-header">'
+            '<div><div class="paredao-card-kicker">🗳️ Paredão</div>'
+            '<div class="paredao-live-title">Aguardando formação</div></div>'
+            '</div></div>'
+        )
+
+    nominees_html = "".join(_render_paredao_nominee_card(n, avatars) for n in payload.get("nominees", []))
+    facts = payload.get("fact_lines", [])
+    facts_html = "".join(f'<li>{safe_html(fact)}</li>' for fact in facts)
+    memory_line = payload.get("memory_line")
+    collection = payload.get("collection_label")
+
+    return (
+        f'<div class="paredao-live-card is-{payload.get("state")}">'
+        f'<div class="paredao-live-card-header">'
+        f'<div class="paredao-live-card-title-block">'
+        f'<div class="paredao-card-kicker">🧮 {safe_html(payload.get("primary_source", "Nosso Modelo"))}</div>'
+        f'<div class="paredao-live-title-row">'
+        f'<h3 class="paredao-live-title">{safe_html(payload.get("headline", "Paredão"))}</h3>'
+        f'<span class="paredao-card-status">{safe_html(payload.get("status_label", ""))}</span>'
+        f'</div>'
+        f'{f"<div class=\"paredao-card-collection\">{safe_html(collection)}</div>" if collection else ""}'
+        f'</div>'
+        f'{_render_trust_badge(payload.get("trust_badge", {}))}'
+        f'</div>'
+        f'<div class="paredao-live-grid">{nominees_html}</div>'
+        f'{f"<ul class=\"paredao-card-facts\">{facts_html}</ul>" if facts else ""}'
+        f'{f"<div class=\"paredao-card-memory\">{safe_html(memory_line)}</div>" if memory_line else ""}'
+        f'</div>'
+    )
+
+
+def render_paredao_index_card(payload: dict | None, avatars: dict[str, str]) -> str:
+    """Render the compact homepage mirror for the current/latest paredao."""
+    if not payload or payload.get("state") == "empty":
+        return '<div class="paredao-index-card is-empty"><div class="paredao-index-empty">Nenhum paredão ativo no momento.</div></div>'
+
+    nominees_html = "".join(_render_paredao_nominee_card(n, avatars, compact=True) for n in payload.get("nominees", []))
+    fact = payload.get("memory_line") or (payload.get("fact_lines") or [None])[0]
+    trust_badge = payload.get("trust_badge", {})
+    trust_html = ""
+    if trust_badge.get("visible"):
+        trust_html = (
+            f'<a class="paredao-index-trust" href="{safe_html(trust_badge.get("href", "paredoes.html#nosso-modelo-back-test"))}">'
+            f'🧮 {safe_html(trust_badge.get("text", ""))}'
+            f'</a>'
+        )
+    return (
+        f'<div class="paredao-index-card is-{payload.get("state")}">'
+        f'<div class="paredao-index-grid">{nominees_html}</div>'
+        f'{trust_html}'
+        f'{f"<div class=\"paredao-index-fact\">{safe_html(fact)}</div>" if fact else ""}'
+        f'</div>'
+    )
 
 
 def render_nominee_cards_em_andamento(
