@@ -240,6 +240,7 @@ from data_utils import (
 from paredao_viz import (
     build_paredao_card_payload,
     build_poll_comparison_payload,
+    render_paredao_index_card,
     render_paredao_live_card,
     render_poll_comparison_card,
     render_nominee_cards_em_andamento,
@@ -454,7 +455,7 @@ if ultimo:
         # Cards dos indicados conhecidos
         if participantes:
             _card_payload = build_paredao_card_payload(ultimo, poll, polls_data, _par_history)
-            print(render_paredao_live_card(_card_payload, AVATARS))
+            print(render_paredao_index_card(_card_payload, AVATARS))
 
         _nominees_with_history = [(p['nome'], _par_history.get(p['nome'], [])) for p in participantes if _par_history.get(p['nome'])]
 
@@ -488,38 +489,6 @@ if ultimo:
                 _model_elim = _model_pred['predicao_eliminado']
             _compare_payload = build_poll_comparison_payload(poll, _model_pred)
             print(render_poll_comparison_card(_compare_payload, AVATARS))
-
-            # ── Paredão history for nominees with past appearances ──
-            if _nominees_with_history:
-                print('\n<section class="paredao-history-box">')
-                print('<div class="paredao-history-summary">📋 Histórico em paredões anteriores</div>')
-                print('<div class="paredao-history-inner"><div class="paredao-history-table-wrap">')
-                print('<table class="table table-sm fs-md paredao-history-table no-mobile-prune" data-mobile-no-prune="1">')
-                print('<thead><tr><th>Participante</th><th class="tc">Paredão</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
-                for _h_nome, _h_entries in _nominees_with_history:
-                    first_name = _h_nome.split()[0]
-                    _av = avatar_img(_h_nome, AVATARS, 24)
-                    for _h in _h_entries:
-                        _h_num = _h['paredao']
-                        _h_como = _h.get('como', '?')
-                        _h_pct = f'{_h["voto_total"]:.2f}%' if 'voto_total' in _h else '—'
-                        _h_falso = ' 🔮' if _h.get('falso') else ''
-                        if _h.get('eliminado'):
-                            _h_res = f'<span class="u-s031">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
-                        elif 'voto_total' in _h:
-                            _h_res = f'<span style="color:#2ecc71; font-weight:bold;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
-                        else:
-                            _h_res = '—'
-                        print(
-                            f'<tr>'
-                            f'<td data-label="Participante">{_av} {first_name}</td>'
-                            f'<td data-label="Paredão">{_h_num}º{_h_falso}</td>'
-                            f'<td data-label="Como" style="word-break:break-word;">{_h_como}</td>'
-                            f'<td data-label="%" class="tc">{_h_pct}</td>'
-                            f'<td data-label="Resultado" class="tc">{_h_res}</td>'
-                            f'</tr>'
-                        )
-                print('</tbody></table></div></div></section>\n')
 
             # ── Platform breakdown table (responsive) ──
             # Color scheme depends on vote type:
@@ -859,6 +828,38 @@ if ultimo:
                 fig_ts = make_poll_timeseries(poll)
                 if fig_ts:
                     fig_ts.show()
+
+        # ── Paredão history for nominees with past appearances ──
+        if _nominees_with_history:
+            print('\n<section class="paredao-history-box">')
+            print('<div class="paredao-history-summary">📋 Histórico em paredões anteriores</div>')
+            print('<div class="paredao-history-inner"><div class="paredao-history-table-wrap">')
+            print('<table class="table table-sm fs-md paredao-history-table no-mobile-prune" data-mobile-no-prune="1">')
+            print('<thead><tr><th>Participante</th><th class="tc">Paredão</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
+            for _h_nome, _h_entries in _nominees_with_history:
+                first_name = _h_nome.split()[0]
+                _av = avatar_img(_h_nome, AVATARS, 24)
+                for _h in _h_entries:
+                    _h_num = _h['paredao']
+                    _h_como = _h.get('como', '?')
+                    _h_pct = f'{_h["voto_total"]:.2f}%' if 'voto_total' in _h else '—'
+                    _h_falso = ' 🔮' if _h.get('falso') else ''
+                    if _h.get('eliminado'):
+                        _h_res = f'<span class="u-s031">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
+                    elif 'voto_total' in _h:
+                        _h_res = f'<span style="color:#2ecc71; font-weight:bold;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
+                    else:
+                        _h_res = '—'
+                    print(
+                        f'<tr>'
+                        f'<td data-label="Participante">{_av} {first_name}</td>'
+                        f'<td data-label="Paredão">{_h_num}º{_h_falso}</td>'
+                        f'<td data-label="Como" style="word-break:break-word;">{_h_como}</td>'
+                        f'<td data-label="%" class="tc">{_h_pct}</td>'
+                        f'<td data-label="Resultado" class="tc">{_h_res}</td>'
+                        f'</tr>'
+                    )
+            print('</tbody></table></div></div></section>\n')
 
         # ── Setup duelo data (used by Consensus Analysis and Sincerinho later) ──
         _formacao_raw = ultimo.get('formacao_raw', {})

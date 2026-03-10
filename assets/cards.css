@@ -1033,6 +1033,30 @@ body.paredao-page .paredao-spotlight-summary-item {
   font-size: var(--fs-xs);
 }
 
+.poll-compare-val {
+  font-weight: 650;
+}
+
+.poll-compare-val.is-v {
+  color: #bf9ed8;
+}
+
+.poll-compare-val.is-m {
+  color: #63dbbd;
+}
+
+.poll-compare-val.is-delta.is-positive {
+  color: #58d68d;
+}
+
+.poll-compare-val.is-delta.is-negative {
+  color: #ff8f87;
+}
+
+.poll-compare-val.is-delta.is-close {
+  color: #f0c453;
+}
+
 /* ── Homepage relationship and blindados cards ── */
 .pair-story-card {
   display: flex;

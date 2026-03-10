@@ -502,17 +502,27 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     for row in payload.get("rows", []):
         nome = row.get("name", "")
         avatar = avatar_img(nome, avatars, 26, border_color="#666")
-        if row.get("model_pct") is None:
-            model_cell = "<span>M —</span>"
+        delta_pp = row.get("delta_pp")
+        if delta_pp is None:
+            delta_class = "is-close"
+        elif abs(delta_pp) <= 1.0:
+            delta_class = "is-close"
+        elif delta_pp > 1.0:
+            delta_class = "is-positive"
         else:
-            model_cell = f'<span>M {row.get("model_pct", 0):.2f}%</span>'
+            delta_class = "is-negative"
+
+        if row.get("model_pct") is None:
+            model_cell = '<span class="poll-compare-val is-m">M —</span>'
+        else:
+            model_cell = f'<span class="poll-compare-val is-m">M {row.get("model_pct", 0):.2f}%</span>'
         rows_html.append(
             '<div class="poll-compare-chip">'
             f'<div class="poll-compare-chip-name">{avatar}<span>{safe_html(nome.split()[0])}</span></div>'
             f'<div class="poll-compare-chip-metrics">'
-            f'<span>V {row.get("votalhada_pct", 0):.2f}%</span>'
+            f'<span class="poll-compare-val is-v">V {row.get("votalhada_pct", 0):.2f}%</span>'
             f"{model_cell}"
-            f'<span>Δ {_format_delta_pp(row.get("delta_pp"))}</span>'
+            f'<span class="poll-compare-val is-delta {delta_class}">Δ {_format_delta_pp(delta_pp)}</span>'
             f'</div>'
             '</div>'
         )
