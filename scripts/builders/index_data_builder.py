@@ -49,12 +49,12 @@ ROLE_TYPES = {
 }
 
 SINC_TYPE_META: dict[str, dict[str, str]] = {
-    "podio":             {"label": "podio",              "emoji": "🏆", "valence": "pos"},
+    "elogio":            {"label": "elogio",             "emoji": "🏆", "valence": "pos"},
     "regua":             {"label": "regua",              "emoji": "📏", "valence": "pos"},
-    "bomba":             {"label": "bomba",              "emoji": "💣", "valence": "neg"},
-    "nao_ganha":         {"label": "nao ganha",          "emoji": "🚫", "valence": "neg"},
-    "paredao_perfeito":  {"label": "paredao perfeito",   "emoji": "🏛️", "valence": "neg"},
-    "regua_fora":        {"label": "fora da regua",      "emoji": "❌", "valence": "neg"},
+    "ataque":            {"label": "ataque",             "emoji": "💣", "valence": "neg"},
+    "nao_ganha":         {"label": "não ganha",           "emoji": "🚫", "valence": "neg"},
+    "paredao_perfeito":  {"label": "paredão perfeito",   "emoji": "🏛️", "valence": "neg"},
+    "regua_fora":        {"label": "fora da régua",      "emoji": "❌", "valence": "neg"},
     "quem_sai":          {"label": "quem sai",           "emoji": "🚪", "valence": "neg"},
     "prova_eliminou":    {"label": "eliminado na prova", "emoji": "⚡", "valence": "neg"},
 }
@@ -73,7 +73,7 @@ def _resolve_gendered_tema(tema: str, target: str) -> str:
 def resolve_sinc_label(edge_type: str, tema: str | None, target: str) -> str:
     """Produce a human-readable label for a Sincerao interaction.
 
-    If the edge has a tema (e.g. bomba themes), use it with gender resolution.
+    If the edge has a tema (e.g. ataque themes), use it with gender resolution.
     Otherwise, fall back to SINC_TYPE_META label. Unknown types are humanized
     (underscores replaced with spaces) and a warning is logged.
     """
@@ -1284,7 +1284,7 @@ def _compute_sincerao_highlight(
         if edge.get("week") != sinc_week_used:
             continue
         etype = edge.get("type")
-        if etype not in ["podio", "nao_ganha", "bomba"]:
+        if etype not in ["elogio", "nao_ganha", "ataque"]:
             continue
         actor = edge.get("actor")
         target = edge.get("target")
@@ -1298,8 +1298,8 @@ def _compute_sincerao_highlight(
         rxn = _canonical_reaction_label(rxn)
         rxn_weight = SENTIMENT_WEIGHTS.get(rxn, 0)
         rxn_sign = "pos" if rxn_weight > 0 else ("neg" if rxn_weight < 0 else "neu")
-        edge_sign = "pos" if etype == "podio" else "neg"
-        tipo_label = {"podio": "pódio", "nao_ganha": "não ganha", "bomba": "bomba"}.get(etype, etype)
+        edge_sign = "pos" if etype == "elogio" else "neg"
+        tipo_label = SINC_TYPE_META.get(etype, {}).get("label", etype)
         row = {
             "ator": actor, "alvo": target,
             "tipo": etype, "tipo_label": tipo_label,

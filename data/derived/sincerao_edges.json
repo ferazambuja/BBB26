@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-10T01:46:41.677432+00:00",
+    "generated_at": "2026-03-10T05:26:14.223240+00:00",
     "weights": {
       "podio_mention": 0.25,
       "nao_ganha_mention": -0.5,
@@ -8,11 +8,11 @@
       "regua_top3_mention": 0.25,
       "sem_podio": -0.4,
       "planta_plateia": -0.3,
-      "edge_podio_1": 0.6,
-      "edge_podio_2": 0.4,
-      "edge_podio_3": 0.2,
+      "edge_elogio_1": 0.6,
+      "edge_elogio_2": 0.4,
+      "edge_elogio_3": 0.2,
       "edge_nao_ganha": -0.8,
-      "edge_bomba": -0.6,
+      "edge_ataque": -0.6,
       "edge_paredao_perfeito": -0.3,
       "edge_prova_eliminou": -0.15
     }
@@ -265,13 +265,48 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/jonas-sulzbach-aponta-breno-como-maior-traidor-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/gabriela-aponta-milena-como-maior-traidora-da-casa-do-bbb-26-no-sincerao-linha-direta.ghtml"
       ]
+    },
+    {
+      "week": 8,
+      "date": "2026-03-09",
+      "format": "Pódio dos Medrosos — cada participante monta um pódio com os 3 mais medrosos da casa e entrega medalhas (covarde, frouxo/a, arregão/arregona)",
+      "scoring_mode": "full",
+      "participacao": [
+        "Alberto Cowboy",
+        "Ana Paula Renault",
+        "Babu Santana",
+        "Breno",
+        "Chaiany",
+        "Gabriela",
+        "Jonas Sulzbach",
+        "Jordana",
+        "Juliano Floss",
+        "Leandro",
+        "Marciele",
+        "Milena",
+        "Samira",
+        "Solange Couto"
+      ],
+      "protagonistas": [
+        "Alberto Cowboy",
+        "Jonas Sulzbach",
+        "Milena",
+        "Jordana",
+        "Chaiany"
+      ],
+      "temas_publico": [],
+      "planta": null,
+      "notes": "Formato pódio negativo: todos os 14 participantes montaram pódio dos 3 mais medrosos e entregaram medalhas (covarde, frouxo/a, arregão/arregona). Alberto Cowboy foi o mais visado (6 vezes), seguido de Jonas Sulzbach (5). Leandro foi o único a não receber nenhuma medalha. 6 confrontações mútuas (ambos colocaram o outro no pódio): Jonas↔Milena (ambos 1º lugar), Jordana↔Chaiany (ambos 1º), Babu↔Samira, Alberto↔Breno, Floss↔Marciele, Solange↔Ana Paula.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-bbb-26-participantes-montam-podio-dos-medrosos.ghtml"
+      ]
     }
   ],
   "edges": [
     {
       "actor": "Alberto Cowboy",
       "target": "Alberto Cowboy",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -279,7 +314,7 @@
     {
       "actor": "Alberto Cowboy",
       "target": "Edilson",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -287,7 +322,7 @@
     {
       "actor": "Alberto Cowboy",
       "target": "Babu Santana",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -302,7 +337,7 @@
     {
       "actor": "Jonas Sulzbach",
       "target": "Jonas Sulzbach",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -310,7 +345,7 @@
     {
       "actor": "Jonas Sulzbach",
       "target": "Sarah Andrade",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -318,7 +353,7 @@
     {
       "actor": "Jonas Sulzbach",
       "target": "Alberto Cowboy",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -333,7 +368,7 @@
     {
       "actor": "Marcelo",
       "target": "Marcelo",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -341,7 +376,7 @@
     {
       "actor": "Marcelo",
       "target": "Maxiane",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -349,7 +384,7 @@
     {
       "actor": "Marcelo",
       "target": "Marciele",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -364,7 +399,7 @@
     {
       "actor": "Aline Campos",
       "target": "Aline Campos",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -372,7 +407,7 @@
     {
       "actor": "Aline Campos",
       "target": "Sol Vega",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -380,7 +415,7 @@
     {
       "actor": "Aline Campos",
       "target": "Jordana",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -395,7 +430,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Ana Paula Renault",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -403,7 +438,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Milena",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -411,7 +446,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Samira",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -426,7 +461,7 @@
     {
       "actor": "Milena",
       "target": "Milena",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -434,7 +469,7 @@
     {
       "actor": "Milena",
       "target": "Ana Paula Renault",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -442,7 +477,7 @@
     {
       "actor": "Milena",
       "target": "Breno",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -457,7 +492,7 @@
     {
       "actor": "Gabriela",
       "target": "Gabriela",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -465,7 +500,7 @@
     {
       "actor": "Gabriela",
       "target": "Chaiany",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -473,7 +508,7 @@
     {
       "actor": "Gabriela",
       "target": "Breno",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -488,7 +523,7 @@
     {
       "actor": "Chaiany",
       "target": "Chaiany",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -496,7 +531,7 @@
     {
       "actor": "Chaiany",
       "target": "Gabriela",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -504,7 +539,7 @@
     {
       "actor": "Chaiany",
       "target": "Edilson",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -519,7 +554,7 @@
     {
       "actor": "Sol Vega",
       "target": "Sol Vega",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -527,7 +562,7 @@
     {
       "actor": "Sol Vega",
       "target": "Aline Campos",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -535,7 +570,7 @@
     {
       "actor": "Sol Vega",
       "target": "Solange Couto",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -550,7 +585,7 @@
     {
       "actor": "Babu Santana",
       "target": "Babu Santana",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -558,7 +593,7 @@
     {
       "actor": "Babu Santana",
       "target": "Solange Couto",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -566,7 +601,7 @@
     {
       "actor": "Babu Santana",
       "target": "Edilson",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -581,7 +616,7 @@
     {
       "actor": "Matheus",
       "target": "Matheus",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -589,7 +624,7 @@
     {
       "actor": "Matheus",
       "target": "Edilson",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -597,7 +632,7 @@
     {
       "actor": "Matheus",
       "target": "Juliano Floss",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -612,7 +647,7 @@
     {
       "actor": "Edilson",
       "target": "Edilson",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -620,7 +655,7 @@
     {
       "actor": "Edilson",
       "target": "Babu Santana",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -628,7 +663,7 @@
     {
       "actor": "Edilson",
       "target": "Juliano Floss",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -643,7 +678,7 @@
     {
       "actor": "Juliano Floss",
       "target": "Juliano Floss",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -651,7 +686,7 @@
     {
       "actor": "Juliano Floss",
       "target": "Babu Santana",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -659,7 +694,7 @@
     {
       "actor": "Juliano Floss",
       "target": "Paulo Augusto",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -674,7 +709,7 @@
     {
       "actor": "Paulo Augusto",
       "target": "Paulo Augusto",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -682,7 +717,7 @@
     {
       "actor": "Paulo Augusto",
       "target": "Brigido",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -690,7 +725,7 @@
     {
       "actor": "Paulo Augusto",
       "target": "Juliano Floss",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -705,7 +740,7 @@
     {
       "actor": "Brigido",
       "target": "Brigido",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -713,7 +748,7 @@
     {
       "actor": "Brigido",
       "target": "Marciele",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -721,7 +756,7 @@
     {
       "actor": "Brigido",
       "target": "Paulo Augusto",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -736,7 +771,7 @@
     {
       "actor": "Leandro",
       "target": "Leandro",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -744,7 +779,7 @@
     {
       "actor": "Leandro",
       "target": "Chaiany",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -752,7 +787,7 @@
     {
       "actor": "Leandro",
       "target": "Matheus",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -767,7 +802,7 @@
     {
       "actor": "Solange Couto",
       "target": "Solange Couto",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -775,7 +810,7 @@
     {
       "actor": "Solange Couto",
       "target": "Babu Santana",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -783,7 +818,7 @@
     {
       "actor": "Solange Couto",
       "target": "Gabriela",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -798,7 +833,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Sarah Andrade",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -806,7 +841,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Jonas Sulzbach",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -814,7 +849,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Marciele",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -829,7 +864,7 @@
     {
       "actor": "Jordana",
       "target": "Jordana",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -837,7 +872,7 @@
     {
       "actor": "Jordana",
       "target": "Marciele",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -845,7 +880,7 @@
     {
       "actor": "Jordana",
       "target": "Aline Campos",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -860,7 +895,7 @@
     {
       "actor": "Marciele",
       "target": "Marciele",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -868,7 +903,7 @@
     {
       "actor": "Marciele",
       "target": "Maxiane",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -876,7 +911,7 @@
     {
       "actor": "Marciele",
       "target": "Marcelo",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -891,7 +926,7 @@
     {
       "actor": "Maxiane",
       "target": "Maxiane",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -899,7 +934,7 @@
     {
       "actor": "Maxiane",
       "target": "Marcelo",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -907,7 +942,7 @@
     {
       "actor": "Maxiane",
       "target": "Marciele",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -922,7 +957,7 @@
     {
       "actor": "Breno",
       "target": "Breno",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -930,7 +965,7 @@
     {
       "actor": "Breno",
       "target": "Marciele",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -938,7 +973,7 @@
     {
       "actor": "Breno",
       "target": "Milena",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -953,7 +988,7 @@
     {
       "actor": "Samira",
       "target": "Samira",
-      "type": "podio",
+      "type": "elogio",
       "slot": 1,
       "week": 1,
       "date": "2026-01-19"
@@ -961,7 +996,7 @@
     {
       "actor": "Samira",
       "target": "Milena",
-      "type": "podio",
+      "type": "elogio",
       "slot": 2,
       "week": 1,
       "date": "2026-01-19"
@@ -969,7 +1004,7 @@
     {
       "actor": "Samira",
       "target": "Ana Paula Renault",
-      "type": "podio",
+      "type": "elogio",
       "slot": 3,
       "week": 1,
       "date": "2026-01-19"
@@ -984,7 +1019,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Juliano Floss",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "mais vtzeiro",
       "week": 2,
       "date": "2026-01-26"
@@ -992,7 +1027,7 @@
     {
       "actor": "Alberto Cowboy",
       "target": "Leandro",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "mais chato",
       "week": 2,
       "date": "2026-01-26"
@@ -1000,7 +1035,7 @@
     {
       "actor": "Brigido",
       "target": "Milena",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "mais influenciável",
       "week": 2,
       "date": "2026-01-26"
@@ -1008,7 +1043,7 @@
     {
       "actor": "Babu Santana",
       "target": "Gabriela",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "menos confiável",
       "week": 2,
       "date": "2026-01-26"
@@ -1016,7 +1051,7 @@
     {
       "actor": "Jonas Sulzbach",
       "target": "Milena",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "mais leva-e-traz",
       "week": 2,
       "date": "2026-01-26"
@@ -1024,7 +1059,7 @@
     {
       "actor": "Leandro",
       "target": "Alberto Cowboy",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "mais manipulador",
       "week": 2,
       "date": "2026-01-26"
@@ -1032,7 +1067,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Sol Vega",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "mais inútil",
       "week": 2,
       "date": "2026-01-26"
@@ -1040,7 +1075,7 @@
     {
       "actor": "Matheus",
       "target": "Ana Paula Renault",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "mais falsa",
       "week": 2,
       "date": "2026-01-26"
@@ -1048,7 +1083,7 @@
     {
       "actor": "Babu Santana",
       "target": "Jonas Sulzbach",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Bola Murcha",
       "week": 3,
       "date": "2026-02-02"
@@ -1056,7 +1091,7 @@
     {
       "actor": "Babu Santana",
       "target": "Alberto Cowboy",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Juiz",
       "week": 3,
       "date": "2026-02-02"
@@ -1064,7 +1099,7 @@
     {
       "actor": "Babu Santana",
       "target": "Brigido",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Técnico",
       "week": 3,
       "date": "2026-02-02"
@@ -1072,7 +1107,7 @@
     {
       "actor": "Babu Santana",
       "target": "Sol Vega",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Gandula",
       "week": 3,
       "date": "2026-02-02"
@@ -1080,7 +1115,7 @@
     {
       "actor": "Babu Santana",
       "target": "Jordana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Goleiro Frangueiro",
       "week": 3,
       "date": "2026-02-02"
@@ -1088,7 +1123,7 @@
     {
       "actor": "Babu Santana",
       "target": "Gabriela",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Arquibancada",
       "week": 3,
       "date": "2026-02-02"
@@ -1096,7 +1131,7 @@
     {
       "actor": "Leandro",
       "target": "Edilson",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Bola Murcha",
       "week": 3,
       "date": "2026-02-02"
@@ -1104,7 +1139,7 @@
     {
       "actor": "Leandro",
       "target": "Alberto Cowboy",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Juiz",
       "week": 3,
       "date": "2026-02-02"
@@ -1112,7 +1147,7 @@
     {
       "actor": "Leandro",
       "target": "Brigido",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Técnico",
       "week": 3,
       "date": "2026-02-02"
@@ -1120,7 +1155,7 @@
     {
       "actor": "Leandro",
       "target": "Gabriela",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Gandula",
       "week": 3,
       "date": "2026-02-02"
@@ -1128,7 +1163,7 @@
     {
       "actor": "Leandro",
       "target": "Jonas Sulzbach",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Goleiro Frangueiro",
       "week": 3,
       "date": "2026-02-02"
@@ -1136,7 +1171,7 @@
     {
       "actor": "Leandro",
       "target": "Sarah Andrade",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Arquibancada",
       "week": 3,
       "date": "2026-02-02"
@@ -1144,7 +1179,7 @@
     {
       "actor": "Brigido",
       "target": "Juliano Floss",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Bola Murcha",
       "week": 3,
       "date": "2026-02-02"
@@ -1152,7 +1187,7 @@
     {
       "actor": "Brigido",
       "target": "Babu Santana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Juiz",
       "week": 3,
       "date": "2026-02-02"
@@ -1160,7 +1195,7 @@
     {
       "actor": "Brigido",
       "target": "Ana Paula Renault",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Técnico",
       "week": 3,
       "date": "2026-02-02"
@@ -1168,7 +1203,7 @@
     {
       "actor": "Brigido",
       "target": "Milena",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Gandula",
       "week": 3,
       "date": "2026-02-02"
@@ -1176,7 +1211,7 @@
     {
       "actor": "Brigido",
       "target": "Breno",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Goleiro Frangueiro",
       "week": 3,
       "date": "2026-02-02"
@@ -1184,7 +1219,7 @@
     {
       "actor": "Brigido",
       "target": "Chaiany",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Arquibancada",
       "week": 3,
       "date": "2026-02-02"
@@ -1192,7 +1227,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Sarah Andrade",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Bola Murcha",
       "week": 3,
       "date": "2026-02-02"
@@ -1200,7 +1235,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Brigido",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Juiz",
       "week": 3,
       "date": "2026-02-02"
@@ -1208,7 +1243,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Alberto Cowboy",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Técnico",
       "week": 3,
       "date": "2026-02-02"
@@ -1216,7 +1251,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Jordana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Gandula",
       "week": 3,
       "date": "2026-02-02"
@@ -1224,7 +1259,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Jonas Sulzbach",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Goleiro Frangueiro",
       "week": 3,
       "date": "2026-02-02"
@@ -1232,7 +1267,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Gabriela",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Arquibancada",
       "week": 3,
       "date": "2026-02-02"
@@ -1240,7 +1275,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Juliano Floss",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Bola Murcha",
       "week": 3,
       "date": "2026-02-02"
@@ -1248,7 +1283,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Babu Santana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Juiz",
       "week": 3,
       "date": "2026-02-02"
@@ -1256,7 +1291,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Ana Paula Renault",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Técnico",
       "week": 3,
       "date": "2026-02-02"
@@ -1264,7 +1299,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Milena",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Gandula",
       "week": 3,
       "date": "2026-02-02"
@@ -1272,7 +1307,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Leandro",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Goleiro Frangueiro",
       "week": 3,
       "date": "2026-02-02"
@@ -1280,7 +1315,7 @@
     {
       "actor": "Sarah Andrade",
       "target": "Chaiany",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Arquibancada",
       "week": 3,
       "date": "2026-02-02"
@@ -1288,7 +1323,7 @@
     {
       "actor": "Maxiane",
       "target": "Milena",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Bola Murcha",
       "week": 3,
       "date": "2026-02-02"
@@ -1296,7 +1331,7 @@
     {
       "actor": "Maxiane",
       "target": "Ana Paula Renault",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Juiz",
       "week": 3,
       "date": "2026-02-02"
@@ -1304,7 +1339,7 @@
     {
       "actor": "Maxiane",
       "target": "Babu Santana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Técnico",
       "week": 3,
       "date": "2026-02-02"
@@ -1312,7 +1347,7 @@
     {
       "actor": "Maxiane",
       "target": "Gabriela",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Gandula",
       "week": 3,
       "date": "2026-02-02"
@@ -1320,7 +1355,7 @@
     {
       "actor": "Maxiane",
       "target": "Juliano Floss",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Goleiro Frangueiro",
       "week": 3,
       "date": "2026-02-02"
@@ -1328,7 +1363,7 @@
     {
       "actor": "Maxiane",
       "target": "Solange Couto",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "Arquibancada",
       "week": 3,
       "date": "2026-02-02"
@@ -3335,7 +3370,7 @@
     {
       "actor": "Alberto Cowboy",
       "target": "Breno",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3343,7 +3378,7 @@
     {
       "actor": "Breno",
       "target": "Jordana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3351,7 +3386,7 @@
     {
       "actor": "Jordana",
       "target": "Breno",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3359,7 +3394,7 @@
     {
       "actor": "Samira",
       "target": "Jordana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3367,7 +3402,7 @@
     {
       "actor": "Marciele",
       "target": "Breno",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3375,7 +3410,7 @@
     {
       "actor": "Ana Paula Renault",
       "target": "Babu Santana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3383,7 +3418,7 @@
     {
       "actor": "Milena",
       "target": "Babu Santana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3391,7 +3426,7 @@
     {
       "actor": "Juliano Floss",
       "target": "Marciele",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3399,7 +3434,7 @@
     {
       "actor": "Solange Couto",
       "target": "Samira",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3407,7 +3442,7 @@
     {
       "actor": "Leandro",
       "target": "Gabriela",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3415,7 +3450,7 @@
     {
       "actor": "Babu Santana",
       "target": "Ana Paula Renault",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3423,7 +3458,7 @@
     {
       "actor": "Chaiany",
       "target": "Jordana",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3431,7 +3466,7 @@
     {
       "actor": "Jonas Sulzbach",
       "target": "Breno",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
@@ -3439,10 +3474,388 @@
     {
       "actor": "Gabriela",
       "target": "Milena",
-      "type": "bomba",
+      "type": "ataque",
       "tema": "maior traidor(a)",
       "week": 7,
       "date": "2026-03-02"
+    },
+    {
+      "actor": "Babu Santana",
+      "target": "Jordana",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "arregona",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Babu Santana",
+      "target": "Samira",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "frouxa",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Babu Santana",
+      "target": "Gabriela",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Chaiany",
+      "target": "Jordana",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "frouxo",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Chaiany",
+      "target": "Alberto Cowboy",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Chaiany",
+      "target": "Jonas Sulzbach",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "frouxo",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Milena",
+      "target": "Jonas Sulzbach",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Milena",
+      "target": "Alberto Cowboy",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "arregão",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Milena",
+      "target": "Solange Couto",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "frouxo",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Alberto Cowboy",
+      "target": "Ana Paula Renault",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Alberto Cowboy",
+      "target": "Juliano Floss",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Alberto Cowboy",
+      "target": "Breno",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Jonas Sulzbach",
+      "target": "Milena",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Jonas Sulzbach",
+      "target": "Samira",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "arregona",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Jonas Sulzbach",
+      "target": "Juliano Floss",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "frouxo",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Juliano Floss",
+      "target": "Jonas Sulzbach",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Juliano Floss",
+      "target": "Alberto Cowboy",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Juliano Floss",
+      "target": "Marciele",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "arregona",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Marciele",
+      "target": "Samira",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Marciele",
+      "target": "Juliano Floss",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "frouxo",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Marciele",
+      "target": "Chaiany",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "arregona",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Samira",
+      "target": "Solange Couto",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "frouxa",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Samira",
+      "target": "Babu Santana",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Samira",
+      "target": "Jonas Sulzbach",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "arregão",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Solange Couto",
+      "target": "Samira",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Solange Couto",
+      "target": "Milena",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Solange Couto",
+      "target": "Ana Paula Renault",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "arregona",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Ana Paula Renault",
+      "target": "Babu Santana",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Ana Paula Renault",
+      "target": "Alberto Cowboy",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Ana Paula Renault",
+      "target": "Solange Couto",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "frouxa",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Breno",
+      "target": "Marciele",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "arregona",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Breno",
+      "target": "Alberto Cowboy",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Breno",
+      "target": "Jordana",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Leandro",
+      "target": "Alberto Cowboy",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "arregão",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Leandro",
+      "target": "Jonas Sulzbach",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "arregão",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Leandro",
+      "target": "Marciele",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Gabriela",
+      "target": "Babu Santana",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "frouxo",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Gabriela",
+      "target": "Juliano Floss",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Gabriela",
+      "target": "Milena",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Jordana",
+      "target": "Chaiany",
+      "type": "ataque",
+      "slot": 1,
+      "tema": "arregona",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Jordana",
+      "target": "Solange Couto",
+      "type": "ataque",
+      "slot": 2,
+      "tema": "covarde",
+      "week": 8,
+      "date": "2026-03-09"
+    },
+    {
+      "actor": "Jordana",
+      "target": "Babu Santana",
+      "type": "ataque",
+      "slot": 3,
+      "tema": "frouxo",
+      "week": 8,
+      "date": "2026-03-09"
     }
   ],
   "aggregates": [
@@ -3698,6 +4111,18 @@
     {
       "week": 7,
       "date": "2026-03-02",
+      "podio_mentions": {},
+      "nao_ganha_mentions": {},
+      "regua_fora_mentions": {},
+      "regua_top3_mentions": {},
+      "sem_podio": [],
+      "planta": null,
+      "scores": {},
+      "reasons": {}
+    },
+    {
+      "week": 8,
+      "date": "2026-03-09",
       "podio_mentions": {},
       "nao_ganha_mentions": {},
       "regua_fora_mentions": {},

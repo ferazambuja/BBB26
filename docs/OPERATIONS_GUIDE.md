@@ -174,7 +174,8 @@ Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for m
 | W5 | Mon Feb 16 | Cancelado (Carnaval) | Globo exibiu desfiles. Sincerão feito ao vivo de forma abreviada. Dados mínimos registrados (3 edges: previsões dos emparedados). |
 | W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
 | W7 | Mon Mar 2 | Linha Direta — maior traidor(a) | Each participant calls one person they consider the biggest traitor |
-| W8 | TBD | TBD | |
+| W8 | Mon Mar 9 | Pódio dos Medrosos | 3 medalhas (covarde, frouxo/a, arregão/a). Cowboy mais visado (6×), Leandro zero |
+| W9 | TBD | TBD | |
 
 ### Week Dynamic History (Friday — varies each week)
 
@@ -190,6 +191,7 @@ Separate from Sincerão. Announced in the dynamics article (published ~Thursday)
 | W6 | Sincerinho Paredão Perfeito + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
 | W7 | O Exilado + Paredão Falso + Quarto Secreto | `special_events` |
 | W8 | Liderança Dupla + Consenso Anjo/Monstro + Contragolpe | `special_events` |
+| W9 | TBD | TBD |
 
 ### Recurring Events Checklist (per week)
 
@@ -1144,7 +1146,7 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
       "mutual_confrontations": [["A", "B"]]
     },
     "edges": [
-      {"actor": "A", "target": "B", "type": "bomba", "tema": "maior traidor(a)"}
+      {"actor": "A", "target": "B", "type": "ataque", "tema": "maior traidor(a)"}
     ],
     "edges_notes": "Context about edge extraction"
   }
@@ -1155,14 +1157,21 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 
 | Type | Weight | When to use |
 |------|--------|-------------|
-| `podio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Participant puts someone on their podium |
+| `elogio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Directed positive endorsement (e.g., positive podium “quem ganha”) |
 | `regua` | +0.25 (aggregate mention) | Participant places someone in Top-3 priority/régua |
 | `nao_ganha` | −0.8 | Participant says someone won't win |
 | `regua_fora` | −0.5 (aggregate mention) | Participant leaves someone out of the régua |
-| `bomba` (+ `tema`) | −0.6 | Directed confrontation: bomb themes, "maior traidor(a)", etc. |
+| `ataque` (+ `tema`) | −0.6 | Directed negative confrontation: themes, medals, accusations, etc. |
 | `paredao_perfeito` | −0.3 | Participant nominates someone for ideal paredão |
 | `prova_eliminou` | −0.15 | Eliminated someone in a Sincerão sub-game |
 | `quem_sai` | contextual (negative signal) | Explicit “quem sai hoje” indication |
+
+**Negative podium formats** (e.g., “Pódio dos Medrosos” W8): When the podium theme is negative (calling someone cowardly, etc.), use `ataque` with `tema` = the specific medal/label given (e.g., `”covarde”`, `”frouxo”`, `”arregão”`). Add `”slot”: 1/2/3` to preserve rank position (scoring is flat −0.8 per edge, but slot preserves data granularity). Do **NOT** use `elogio` for negative podiums — `elogio` is hardcoded positive in the scoring pipeline.
+
+**`stats` structure varies by format:**
+- Positive formats: use `podio_top` (most podium placements), `sem_podio` (not placed), `nao_ganha_top`
+- Negative / ataque formats: use `most_targeted` (most targeted), `not_targeted` (not targeted), `mutual_confrontations`
+- Directed formats (Linha Direta): use `most_targeted`, `not_targeted`, `mutual_confrontations`
 
 After rebuild, verify type coverage and unknown types:
 
@@ -1172,7 +1181,7 @@ jq '.sincerao.type_coverage' data/derived/index_data.json
 
 If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py` before publishing.
 
-**Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `bomba` 0.4.
+**Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `ataque` 0.4.
 
 **Full Sincerão schema**: See `docs/SCORING_AND_INDEXES.md` → Sincerão Framework.
 

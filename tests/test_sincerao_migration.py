@@ -19,7 +19,7 @@ class TestSincTypeMeta:
         from builders.index_data_builder import SINC_TYPE_META
 
         required_types = [
-            "podio", "regua", "bomba", "nao_ganha",
+            "elogio", "regua", "ataque", "nao_ganha",
             "paredao_perfeito", "regua_fora", "quem_sai", "prova_eliminou",
         ]
         for t in required_types:
@@ -44,8 +44,8 @@ class TestSincTypeMeta:
         from builders.index_data_builder import SINC_TYPE_META
 
         expected = {
-            "podio": "pos", "regua": "pos",
-            "bomba": "neg", "nao_ganha": "neg", "paredao_perfeito": "neg",
+            "elogio": "pos", "regua": "pos",
+            "ataque": "neg", "nao_ganha": "neg", "paredao_perfeito": "neg",
             "regua_fora": "neg", "quem_sai": "neg", "prova_eliminou": "neg",
         }
         for t, val in expected.items():
@@ -85,23 +85,23 @@ class TestSincTypeMeta:
 class TestResolveSincLabel:
     """resolve_sinc_label() produces human-readable text for any edge."""
 
-    def test_bomba_with_tema_uses_tema(self):
+    def test_ataque_with_tema_uses_tema(self):
         from builders.index_data_builder import resolve_sinc_label
 
-        result = resolve_sinc_label("bomba", "maior traidor(a)", "Gabriela")
+        result = resolve_sinc_label("ataque", "maior traidor(a)", "Gabriela")
         assert result == "maior traidora"  # feminine resolved
 
-    def test_bomba_with_tema_masculine(self):
+    def test_ataque_with_tema_masculine(self):
         from builders.index_data_builder import resolve_sinc_label
 
-        result = resolve_sinc_label("bomba", "maior traidor(a)", "Breno")
+        result = resolve_sinc_label("ataque", "maior traidor(a)", "Breno")
         assert result == "maior traidor"  # masculine resolved
 
     def test_regua_fora_without_tema_uses_label(self):
         from builders.index_data_builder import resolve_sinc_label
 
         result = resolve_sinc_label("regua_fora", None, "Breno")
-        assert result == "fora da regua"  # human label, not "regua_fora"
+        assert result == "fora da régua"  # human label, not "regua_fora"
 
     def test_nao_ganha_without_tema(self):
         from builders.index_data_builder import resolve_sinc_label
@@ -110,11 +110,11 @@ class TestResolveSincLabel:
         assert "ganha" in result.lower()  # human label
         assert "_" not in result
 
-    def test_podio_without_tema(self):
+    def test_elogio_without_tema(self):
         from builders.index_data_builder import resolve_sinc_label
 
-        result = resolve_sinc_label("podio", None, "Breno")
-        assert "podio" in result.lower() or "pódio" in result.lower()
+        result = resolve_sinc_label("elogio", None, "Breno")
+        assert "elogio" in result.lower()
 
     def test_unknown_type_humanized_with_underscore_removal(self):
         from builders.index_data_builder import resolve_sinc_label
@@ -171,24 +171,24 @@ class TestProfileSincerao:
 
     @pytest.fixture
     def sinc_data_basic(self):
-        """Sincerao data with edges for Breno: receives bomba, gives podio."""
+        """Sincerao data with edges for Breno: receives ataque, gives elogio."""
         return _make_sinc_data(
             edges=[
-                _make_edge("Alberto Cowboy", "Breno", "bomba", 7, tema="maior traidor(a)"),
+                _make_edge("Alberto Cowboy", "Breno", "ataque", 7, tema="maior traidor(a)"),
                 _make_edge("Milena", "Breno", "regua_fora", 7),
-                _make_edge("Breno", "Gabriela", "podio", 7, slot=1),
-                _make_edge("Breno", "Alberto Cowboy", "bomba", 7, tema="mais falso(a)"),
+                _make_edge("Breno", "Gabriela", "elogio", 7, slot=1),
+                _make_edge("Breno", "Alberto Cowboy", "ataque", 7, tema="mais falso(a)"),
                 # Older week
-                _make_edge("Jonas Sulzbach", "Breno", "podio", 6, slot=2),
+                _make_edge("Jonas Sulzbach", "Breno", "elogio", 6, slot=2),
                 _make_edge("Breno", "Milena", "nao_ganha", 6),
             ],
             weeks=[
-                {"week": 7, "format": "Bombas + Podio"},
+                {"week": 7, "format": "Ataques + Elogios"},
                 {"week": 6, "format": "Regua"},
             ],
             aggregates=[
-                {"week": 7, "scores": {"Breno": -0.5}, "reasons": {"Breno": ["💣 bomba"]}},
-                {"week": 6, "scores": {"Breno": 0.2}, "reasons": {"Breno": ["🏆 podio"]}},
+                {"week": 7, "scores": {"Breno": -0.5}, "reasons": {"Breno": ["💣 ataque"]}},
+                {"week": 6, "scores": {"Breno": 0.2}, "reasons": {"Breno": ["🏆 elogio"]}},
             ],
         )
 
@@ -198,10 +198,10 @@ class TestProfileSincerao:
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix={}, sinc_weeks_meta={7: "Bombas + Podio", 6: "Regua"})
         current_received = result["current"]["received"]
-        # Breno receives: bomba from Alberto, regua_fora from Milena in week 7
+        # Breno receives: ataque from Alberto, regua_fora from Milena in week 7
         assert len(current_received) == 2
         types = {i["type"] for i in current_received}
-        assert "bomba" in types
+        assert "ataque" in types
         assert "regua_fora" in types
         # Labels must be human-readable
         for i in current_received:
@@ -213,7 +213,7 @@ class TestProfileSincerao:
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix={}, sinc_weeks_meta={7: "Bombas + Podio", 6: "Regua"})
         current_given = result["current"]["given"]
-        # Breno gives: podio to Gabriela, bomba to Alberto in week 7
+        # Breno gives: elogio to Gabriela, ataque to Alberto in week 7
         assert len(current_given) == 2
         actors = {i["target"] for i in current_given}
         assert "Gabriela" in actors
@@ -225,11 +225,11 @@ class TestProfileSincerao:
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         s = result["summary"]
-        # Received: bomba(neg) + regua_fora(neg) in W7, podio(pos) in W6 = 2 neg, 1 pos
+        # Received: ataque(neg) + regua_fora(neg) in W7, elogio(pos) in W6 = 2 neg, 1 pos
         assert s["received_pos"] == 1
         assert s["received_neg"] == 2
         assert s["received_total"] == 3
-        # Given: podio(pos) + bomba(neg) in W7, nao_ganha(neg) in W6 = 1 pos, 2 neg
+        # Given: elogio(pos) + ataque(neg) in W7, nao_ganha(neg) in W6 = 1 pos, 2 neg
         assert s["given_pos"] == 1
         assert s["given_neg"] == 2
         assert s["given_total"] == 3
@@ -245,7 +245,7 @@ class TestProfileSincerao:
         assert weeks == [7, 6]
         # Week 7: 2 interactions received
         assert len(season_received[0]["interactions"]) == 2
-        # Week 6: 1 interaction received (podio from Jonas)
+        # Week 6: 1 interaction received (elogio from Jonas)
         assert len(season_received[1]["interactions"]) == 1
 
     def test_season_given_by_week(self, sinc_data_basic):
@@ -256,7 +256,7 @@ class TestProfileSincerao:
         season_given = result["season"]["given_by_week"]
         weeks = [w["week"] for w in season_given]
         assert weeks == [7, 6]
-        # Week 7: 2 given (podio + bomba)
+        # Week 7: 2 given (elogio + ataque)
         assert len(season_given[0]["interactions"]) == 2
         # Week 6: 1 given (nao_ganha)
         assert len(season_given[1]["interactions"]) == 1
@@ -264,7 +264,7 @@ class TestProfileSincerao:
     def test_contradiction_detection(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        # Breno gives bomba to Alberto but also gives Coração in queridometro
+        # Breno gives ataque to Alberto but also gives Coração in queridometro
         matrix = {("Breno", "Alberto Cowboy"): "Coração"}
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix=matrix, sinc_weeks_meta={})
@@ -283,7 +283,7 @@ class TestProfileSincerao:
     def test_no_contradiction_without_heart(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        # Breno gives bomba to Alberto but gives Cobra (no contradiction)
+        # Breno gives ataque to Alberto but gives Cobra (no contradiction)
         matrix = {("Breno", "Alberto Cowboy"): "Cobra"}
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix=matrix, sinc_weeks_meta={})
@@ -294,9 +294,9 @@ class TestProfileSincerao:
 
         result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
                                           latest_matrix={}, sinc_weeks_meta={})
-        bomba_items = [i for i in result["current"]["received"] if i["type"] == "bomba"]
+        ataque_items = [i for i in result["current"]["received"] if i["type"] == "ataque"]
         # "maior traidor(a)" -> "maior traidor" for Breno (masculine)
-        assert bomba_items[0]["label"] == "maior traidor"
+        assert ataque_items[0]["label"] == "maior traidor"
 
     def test_regua_fora_gets_human_label(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
@@ -305,7 +305,7 @@ class TestProfileSincerao:
                                           latest_matrix={}, sinc_weeks_meta={})
         fora_items = [i for i in result["current"]["received"] if i["type"] == "regua_fora"]
         assert len(fora_items) == 1
-        assert fora_items[0]["label"] == "fora da regua"  # NOT "regua_fora"
+        assert fora_items[0]["label"] == "fora da régua"  # NOT "regua_fora"
 
     def test_current_week_field(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
@@ -319,9 +319,9 @@ class TestProfileSincerao:
         from builders.index_data_builder import _build_profile_sincerao
 
         sinc_data = _make_sinc_data([
-            _make_edge("Breno", "Gabriela", "bomba", 8, tema="maior traidor(a)"),
-            _make_edge("Breno", "Milena", "bomba", 8, tema="maior traidor(a)"),
-            _make_edge("Jonas Sulzbach", "Breno", "bomba", 8, tema="maior traidor(a)"),
+            _make_edge("Breno", "Gabriela", "ataque", 8, tema="maior traidor(a)"),
+            _make_edge("Breno", "Milena", "ataque", 8, tema="maior traidor(a)"),
+            _make_edge("Jonas Sulzbach", "Breno", "ataque", 8, tema="maior traidor(a)"),
         ])
         result = _build_profile_sincerao(
             "Breno",
@@ -360,7 +360,7 @@ class TestProfileSincerao_InteractionShape:
         from builders.index_data_builder import _build_profile_sincerao
 
         sinc_data = _make_sinc_data([
-            _make_edge("Alberto Cowboy", "Breno", "bomba", 7, tema="maior traidor(a)"),
+            _make_edge("Alberto Cowboy", "Breno", "ataque", 7, tema="maior traidor(a)"),
         ])
         result = _build_profile_sincerao("Breno", sinc_data, current_week=7,
                                           latest_matrix={}, sinc_weeks_meta={})
@@ -375,7 +375,7 @@ class TestProfileSincerao_InteractionShape:
         from builders.index_data_builder import _build_profile_sincerao
 
         sinc_data = _make_sinc_data([
-            _make_edge("Breno", "Gabriela", "podio", 7, slot=1),
+            _make_edge("Breno", "Gabriela", "elogio", 7, slot=1),
         ])
         result = _build_profile_sincerao("Breno", sinc_data, current_week=7,
                                           latest_matrix={}, sinc_weeks_meta={})
@@ -393,10 +393,10 @@ class TestRadar:
         from builders.index_data_builder import _compute_sincerao_radar
 
         edges = [
-            _make_edge("A", "Breno", "bomba", 7),
-            _make_edge("B", "Breno", "bomba", 7),
+            _make_edge("A", "Breno", "ataque", 7),
+            _make_edge("B", "Breno", "ataque", 7),
             _make_edge("C", "Breno", "nao_ganha", 7),
-            _make_edge("A", "Milena", "bomba", 7),
+            _make_edge("A", "Milena", "ataque", 7),
         ]
         radar = _compute_sincerao_radar(edges, week=7, latest_matrix={})
         assert radar["most_targeted_neg"]["names"] == ["Breno"]
@@ -406,9 +406,9 @@ class TestRadar:
         from builders.index_data_builder import _compute_sincerao_radar
 
         edges = [
-            _make_edge("A", "Gabriela", "podio", 7, slot=1),
-            _make_edge("B", "Gabriela", "podio", 7, slot=2),
-            _make_edge("A", "Breno", "podio", 7, slot=1),
+            _make_edge("A", "Gabriela", "elogio", 7, slot=1),
+            _make_edge("B", "Gabriela", "elogio", 7, slot=2),
+            _make_edge("A", "Breno", "elogio", 7, slot=1),
         ]
         radar = _compute_sincerao_radar(edges, week=7, latest_matrix={})
         assert radar["most_praised"]["names"] == ["Gabriela"]
@@ -418,8 +418,8 @@ class TestRadar:
         from builders.index_data_builder import _compute_sincerao_radar
 
         edges = [
-            _make_edge("A", "Breno", "bomba", 7),
-            _make_edge("A", "Milena", "bomba", 7),
+            _make_edge("A", "Breno", "ataque", 7),
+            _make_edge("A", "Milena", "ataque", 7),
         ]
         radar = _compute_sincerao_radar(edges, week=7, latest_matrix={})
         assert sorted(radar["most_targeted_neg"]["names"]) == ["Breno", "Milena"]
@@ -429,9 +429,9 @@ class TestRadar:
         from builders.index_data_builder import _compute_sincerao_radar
 
         edges = [
-            _make_edge("Breno", "Alberto Cowboy", "bomba", 7),
+            _make_edge("Breno", "Alberto Cowboy", "ataque", 7),
             _make_edge("Breno", "Milena", "nao_ganha", 7),
-            _make_edge("Jonas Sulzbach", "Gabriela", "bomba", 7),
+            _make_edge("Jonas Sulzbach", "Gabriela", "ataque", 7),
         ]
         matrix = {
             ("Breno", "Alberto Cowboy"): "Coração",
@@ -453,7 +453,7 @@ class TestRadar:
     def test_radar_contradictions_accept_unaccented_matrix_label(self):
         from builders.index_data_builder import _compute_sincerao_radar
 
-        edges = [_make_edge("Breno", "Alberto Cowboy", "bomba", 7)]
+        edges = [_make_edge("Breno", "Alberto Cowboy", "ataque", 7)]
         matrix = {("Breno", "Alberto Cowboy"): "Coracao"}  # legacy/unaccented
         radar = _compute_sincerao_radar(edges, week=7, latest_matrix=matrix)
         assert radar["most_contradictions"]["names"] == ["Breno"]
@@ -463,9 +463,9 @@ class TestRadar:
         from builders.index_data_builder import _compute_sincerao_radar
 
         edges = [
-            _make_edge("Breno", "Milena", "bomba", 7),        # active pair
-            _make_edge("Eliminado", "Milena", "bomba", 7),    # inactive actor
-            _make_edge("Breno", "Eliminado", "podio", 7),     # inactive target
+            _make_edge("Breno", "Milena", "ataque", 7),        # active pair
+            _make_edge("Eliminado", "Milena", "ataque", 7),    # inactive actor
+            _make_edge("Breno", "Eliminado", "elogio", 7),     # inactive target
         ]
         radar = _compute_sincerao_radar(
             edges,
@@ -487,7 +487,7 @@ class TestSincWeekResolution:
         from builders.index_data_builder import _resolve_sinc_week
 
         sinc_data = _make_sinc_data(
-            edges=[_make_edge("A", "B", "bomba", 7)],
+            edges=[_make_edge("A", "B", "ataque", 7)],
             aggregates=[{"week": 7, "scores": {"B": -1}}],
         )
         week_used, available = _resolve_sinc_week(sinc_data, current_week=8)

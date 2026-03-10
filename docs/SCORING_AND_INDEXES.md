@@ -27,7 +27,7 @@ Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read t
 - **Power events** (manual + auto events): usually **one actor → one target**.
 - These are **sparse** compared to queridômetro (daily), so they should be **modifiers**, not the base.
 - Weekly effects (risk) **do not carry**; historical effects (animosity) accumulate without decay (events persist in participants' memory).
-- **Sincerão edges** (manual): explicit A → B signals (pódio, "não ganha", bombas/temas).
+- **Sincerão edges** (manual): explicit A → B signals (elogios, "não ganha", ataques/temas).
   - Use as **small modifiers** to the sentiment index (see Sincerão framework below).
 - **Bate-Volta** (manual): vencedor sai do paredão e conta como **evento positivo** no Planta Index.
 
@@ -151,7 +151,7 @@ Uma ruptura é detectada quando:
   - `troca_vip` +0.4 (promovido à VIP por dinâmica), `troca_xepa` −0.4 (rebaixado à Xepa por dinâmica, backlash 0.5)
   - `mira_do_lider` −0.5 (público, backlash 0.5; descontinuado após semana 1)
   - Ganha-Ganha é público: quem foi vetado tende a gerar **animosidade leve** contra quem vetou (backlash menor).
-  - Sincerão negativo é público: gera **backlash leve** no alvo (bomba/“não ganha”).
+  - Sincerão negativo é público: gera **backlash leve** no alvo (ataque/”não ganha”).
   - **Nenhum tipo de evento sofre decay** no rolling — todos acumulam com peso integral. Razão: no BBB, eventos significativos (indicações, Sincerão, votos) criam mágoas duradouras e alianças que não se dissolvem com o tempo. O queridômetro usa scoring streak-aware (70% reativo + 30% memória + penalidade de ruptura).
   - **Self-inflicted** events do not create A→B edges.
   - **Consensus** (ex.: Alberto + Brigido) = **full weight for each actor**.
@@ -159,7 +159,7 @@ Uma ruptura é detectada quando:
   - **Eventos públicos** são amplificados (fator 1.2); secretos = 0.5.
 - **Sincerão edges**:
   - pódio slot 1/2/3 = +0.7/+0.5/+0.3
-  - "não ganha" −1.0, "bomba" −0.8
+  - "não ganha" −1.0, "ataque" −0.8
 - **VIP** (líder → VIPs da semana): +0.2
   - Usa a lista VIP do **primeiro dia** de cada reinado do líder (antes de novos participantes distorcerem a lista).
   - Novos entrantes que recebem VIP automático do programa (não escolha do líder) são **excluídos**.
@@ -202,7 +202,7 @@ A diferença entre os dois modos é **apenas o queridômetro base** (qual snapsh
 Score(A→B) = Q(base 3d) + Σ eventos (peso integral, sem decay)
 ```
 
-**Por que sem decay?** No BBB, eventos do jogo (indicações, votos, Sincerão, contragolpes) criam impacto duradouro — participantes não "esquecem" uma indicação ou bomba do Sincerão só porque passaram semanas. Exemplos reais: Sarah e Juliano viraram inimigos após Sincerão; Leandro não perdoou Brigido e Alberto após indicação. O queridômetro é o único sinal "fraco" (obrigatório, secreto, sem consequência direta) e já usa janela curta de 3 dias como base — não precisa de decay adicional.
+**Por que sem decay?** No BBB, eventos do jogo (indicações, votos, Sincerão, contragolpes) criam impacto duradouro — participantes não "esquecem" uma indicação ou ataque do Sincerão só porque passaram semanas. Exemplos reais: Sarah e Juliano viraram inimigos após Sincerão; Leandro não perdoou Brigido e Alberto após indicação. O queridômetro é o único sinal "fraco" (obrigatório, secreto, sem consequência direta) e já usa janela curta de 3 dias como base — não precisa de decay adicional.
 
 ### Relationship Summary Score (A ↔ B)
 For symmetric views (alliances / rivalries):
@@ -358,7 +358,7 @@ Because it's **rare** and typically **1-to-1**, it should **modify** the sentime
 ```json
 {
   "date": "YYYY-MM-DD",
-  "format": "pódio + quem não ganha | bombas | etc",
+  "format": "pódio + quem não ganha | ataques/temas | etc",
   "participacao": "todos | protagonistas da semana + plateia",
   "protagonistas": ["..."],
   "temas_publico": ["mais falso", "..."],
@@ -372,10 +372,10 @@ Because it's **rare** and typically **1-to-1**, it should **modify** the sentime
 Store an optional list of **edges**:
 ```json
 "edges": [
-  { "actor": "A", "target": "B", "type": "podio", "slot": 1 },
-  { "actor": "A", "target": "C", "type": "podio", "slot": 2 },
+  { "actor": "A", "target": "B", "type": "elogio", "slot": 1 },
+  { "actor": "A", "target": "C", "type": "elogio", "slot": 2 },
   { "actor": "A", "target": "D", "type": "nao_ganha" },
-  { "actor": "A", "target": "E", "type": "bomba", "tema": "mais falso" }
+  { "actor": "A", "target": "E", "type": "ataque", "tema": "mais falso" }
 ]
 ```
 
@@ -392,14 +392,14 @@ Store an optional list of **edges**:
 - `planta` (plateia): −0.3
 
 **Per-pair edges (directional)** — used in `build_relations_scores()` via `builders/sincerao.py`:
-- `podio slot 1`: +0.6
-- `podio slot 2`: +0.4
-- `podio slot 3`: +0.2
+- `elogio slot 1`: +0.6
+- `elogio slot 2`: +0.4
+- `elogio slot 3`: +0.2
 - `nao_ganha`: −0.8
-- `bomba/tema`: −0.6
+- `ataque/tema`: −0.6
 - `paredao_perfeito`: −0.3
 - `prova_eliminou`: −0.15
-- Backlash factors: `nao_ganha` 0.3, `bomba` 0.4 (target → actor)
+- Backlash factors: `nao_ganha` 0.3, `ataque` 0.4 (target → actor)
 
 ### Alignment score (Sincerão × Queridômetro)
 ```

@@ -41,11 +41,7 @@ _EDGE_DISPLAY: dict[str, tuple[str, str]] = {
     "anjo": ("😇", "Anjo"),
 }
 
-_EMOJI_MAP: dict[str, str] = {
-    "Coração": "❤️", "Planta": "🌱", "Cobra": "🐍", "Mala": "💼",
-    "Biscoito": "🍪", "Coração partido": "💔", "Alvo": "🎯",
-    "Vômito": "🤮", "Mentiroso": "🤥",
-}
+_EMOJI_MAP = REACTION_EMOJI
 _SPOTLIGHT_POWER_TYPES = {"mira_do_lider", "indicacao", "monstro", "barrado_baile", "veto_bate_volta"}
 _SPOTLIGHT_SUMMARY_META: dict[str, tuple[str, str]] = {
     "mira_do_lider": (POWER_EVENT_EMOJI.get("mira_do_lider", "🔭"), POWER_EVENT_LABELS.get("mira_do_lider", "Mira do Líder")),
@@ -53,7 +49,7 @@ _SPOTLIGHT_SUMMARY_META: dict[str, tuple[str, str]] = {
     "monstro": (POWER_EVENT_EMOJI.get("monstro", "👹"), POWER_EVENT_LABELS.get("monstro", "Monstro")),
     "barrado_baile": (POWER_EVENT_EMOJI.get("barrado_baile", "🚫"), POWER_EVENT_LABELS.get("barrado_baile", "Barrado no Baile")),
     "veto_bate_volta": ("🌀", "Veto no Bate-Volta"),
-    "bomba": ("💣", "Bomba"),
+    "ataque": ("💣", "Ataque"),
     "nao_ganha": ("🚫", "Não ganha"),
     "paredao_perfeito": ("🧱", "Paredão Perfeito"),
     "regua_fora": ("📏", "Fora da Régua"),
@@ -64,7 +60,7 @@ _SPOTLIGHT_EVENT_ORDER = {
     "monstro": 3,
     "barrado_baile": 4,
     "veto_bate_volta": 5,
-    "bomba": 6,
+    "ataque": 6,
     "nao_ganha": 7,
     "paredao_perfeito": 8,
     "regua_fora": 9,

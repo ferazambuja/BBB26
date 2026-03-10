@@ -51,11 +51,11 @@ RELATION_POWER_WEIGHTS = {
 }
 
 RELATION_SINC_WEIGHTS = {
-    "podio": {1: 0.7, 2: 0.5, 3: 0.3},
+    "elogio": {1: 0.7, 2: 0.5, 3: 0.3},
     "regua": {1: 0.7, 2: 0.5, 3: 0.3, 4: 0.2, 5: 0.1, 6: 0.0, 7: -0.05, 8: -0.10, 9: -0.15, 10: -0.20},
     "regua_fora": -1.0,
     "nao_ganha": -1.0,
-    "bomba": -0.8,
+    "ataque": -0.8,
     "paredao_perfeito": -0.3,
     "prova_eliminou": -0.15,
     "quem_sai": -0.15,
@@ -63,7 +63,7 @@ RELATION_SINC_WEIGHTS = {
 RELATION_SINC_BACKLASH_FACTOR = {
     "regua_fora": 0.3,
     "nao_ganha": 0.3,
-    "bomba": 0.4,
+    "ataque": 0.4,
     "paredao_perfeito": 0.2,
     "prova_eliminou": 0.15,
     "quem_sai": 0.2,
@@ -473,7 +473,7 @@ def _build_sincerao_edges_section(sincerao_edges: dict | None, add_edge_raw: Any
         actor = edge.get("actor")
         target = edge.get("target")
         etype = edge.get("type")
-        if etype in ("podio", "regua"):
+        if etype in ("elogio", "regua"):
             slot = edge.get("slot")
             base_weight = RELATION_SINC_WEIGHTS[etype].get(slot, 0.0)
         else:
