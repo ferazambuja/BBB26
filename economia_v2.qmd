@@ -444,7 +444,7 @@ if cf_by_part:
             <span class="eco-bar-value">{v:.0f}%</span>
             </div>''')
         emit('</div>')
-        emit('<p style="text-align:center; color:#888; font-size:0.82em; margin-top:4px;">% médio do saldo usado nas compras da semana</p>')
+        emit('<p style="text-align:center; color:#888; font-size:var(--fs-sm); margin-top:4px;">% médio do saldo usado nas compras da semana</p>')
         emit('</details>')
     else:
         print("*Dados de compras insuficientes.*")
@@ -582,7 +582,7 @@ if punicao_events:
         <summary style="padding: 10px 14px; cursor: pointer; background: #222; border-radius: 6px; font-weight: 600;">
         🚨 Semana {w} — {n_evts} punição{"ões" if n_evts != 1 else ""}, {total_w:,} estalecas
         </summary>
-        <div style="padding: 8px 14px; font-size: 0.88em;">''')
+        <div style="padding: 8px 14px; font-size: var(--fs-md);">''')
         for e in evts:
             date = e["game_date"]
             changes = ", ".join(f"{n}: {v:,}" for n, v in e["changes"].items())
@@ -661,9 +661,9 @@ if tcn_parts:
         </div>
         <p class="eco-participant-value" style="color: #e6550d;">{len(dates)}×</p>
         </summary>
-        <div style="padding: 6px 12px 10px; font-size: 0.85em; color: #aaa;">
+        <div style="padding: 6px 12px 10px; font-size: var(--fs-sm); color: #aaa;">
         <p style="margin:2px 0;">📅 Datas em que zerou:</p>
-        {"".join(f'<span style="display:inline-block;background:#333;padding:2px 8px;margin:2px;border-radius:4px;font-size:0.9em;">{d}</span>' for d in sorted(dates))}
+        {"".join(f'<span style="display:inline-block;background:#333;padding:2px 8px;margin:2px;border-radius:4px;font-size:var(--fs-md);">{d}</span>' for d in sorted(dates))}
         </div>
         </details>
         ''')
@@ -1092,7 +1092,7 @@ else:
         <span class="eco-vip-count-nums"><span>{vc}×</span> <span>{xc}×</span></span>
         </div>''')
     emit('</div>')
-    emit('<p style="text-align:center; color:#888; font-size:0.82em; margin-top:4px;"><span style="color:#f1c40f;">■</span> VIP <span style="color:#7f8c8d;">■</span> Xepa</p>')
+    emit('<p style="text-align:center; color:#888; font-size:var(--fs-sm); margin-top:4px;"><span style="color:#f1c40f;">■</span> VIP <span style="color:#7f8c8d;">■</span> Xepa</p>')
     emit('</details>')
 ```
 
@@ -1113,7 +1113,7 @@ if leader_periods:
         <summary style="padding: 10px 14px; cursor: pointer; background: #222; border-radius: 6px; font-weight: 600;">
         {leader_av} 👑 {leader} ({start} → {end}) — VIP: {len(lp["vip"])} | Xepa: {len(lp["xepa"])}
         </summary>
-        <div style="padding: 8px 14px; font-size: 0.88em; color: #ccc;">
+        <div style="padding: 8px 14px; font-size: var(--fs-md); color: #ccc;">
         <p><strong>VIP ({len(lp["vip"])}):</strong> {", ".join(lp["vip"])}</p>
         <p><strong>Xepa ({len(lp["xepa"])}):</strong> {", ".join(lp["xepa"])}</p>
         </div></details>''')
@@ -1132,7 +1132,7 @@ if investigation_notes:
     <summary style="padding: 10px 14px; cursor: pointer; background: #222; border-radius: 6px; font-weight: 600;">
     🔍 Notas de Investigação ({} anotações)
     </summary>
-    <div style="padding: 8px 14px; font-size: 0.88em; color: #aaa;">'''.format(len(investigation_notes)))
+    <div style="padding: 8px 14px; font-size: var(--fs-md); color: #aaa;">'''.format(len(investigation_notes)))
     for note in investigation_notes:
         emit(f'<p style="margin:4px 0;">W{note["week"]} ({note["date"]}): {note["note"]}</p>')
     emit('</div></details>')
@@ -1158,13 +1158,13 @@ if cf_events:
         xepa_pct = ev["xepa_avg_pct"]
 
         emit(f'''<details style="margin: 6px 0; border: 1px solid #333; border-radius: 4px;">
-        <summary style="padding: 8px 12px; cursor: pointer; font-weight: 600; font-size: 0.9em;">
+        <summary style="padding: 8px 12px; cursor: pointer; font-weight: 600; font-size: var(--fs-md);">
         Semana {w} — {total:,} estalecas ({n} participantes)
-        <span style="color: #FFD700; font-size: 0.85em;">VIP {vip_pct:.0f}%</span> /
-        <span style="color: #888; font-size: 0.85em;">Xepa {xepa_pct:.0f}%</span>
+        <span style="color: #FFD700; font-size: var(--fs-sm);">VIP {vip_pct:.0f}%</span> /
+        <span style="color: #888; font-size: var(--fs-sm);">Xepa {xepa_pct:.0f}%</span>
         </summary>
         <div style="padding: 6px 12px;">
-        <table style="width:100%; border-collapse:collapse; font-size: 0.85em;">
+        <table style="width:100%; border-collapse:collapse; font-size: var(--fs-sm);">
         <thead><tr style="border-bottom: 1px solid #555;">
         <th style="text-align:left; padding:4px 8px;">Participante</th>
         <th style="text-align:right; padding:4px 8px;">Saldo Antes</th>
@@ -1176,7 +1176,7 @@ if cf_events:
         for p in ev["participants"]:
             pct = p["pct_of_balance"]
             pct_color = "#d73027" if pct > 80 else "#fee08b" if pct > 50 else "#1a9850"
-            vip_badge = '<span style="background:#FFD700;color:#000;padding:1px 5px;border-radius:3px;font-size:0.75em;font-weight:700;">VIP</span>' if p["vip"] else '<span style="color:#888;font-size:0.75em;">Xepa</span>'
+            vip_badge = '<span style="background:#FFD700;color:#000;padding:1px 5px;border-radius:3px;font-size:var(--fs-xs);font-weight:700;">VIP</span>' if p["vip"] else '<span style="color:#888;font-size:var(--fs-xs);">Xepa</span>'
 
             emit(f'''<tr style="border-bottom: 1px solid #333;">
             <td style="padding:4px 8px;">{p["name"]}</td>

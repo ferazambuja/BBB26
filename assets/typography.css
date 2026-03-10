@@ -11,47 +11,47 @@
 
 /* ── Custom properties: mobile-first base (< 576px) ── */
 :root {
-  --fs-2xs: 0.60rem;
-  --fs-xs:  0.65rem;
-  --fs-sm:  0.70rem;
-  --fs-md:  0.75rem;
-  --fs-base: 0.82rem;
-  --fs-lg:  0.90rem;
-  --fs-xl:  1.00rem;
-  --fs-2xl: 1.15rem;
-  --fs-3xl: 1.30rem;
-  --fs-4xl: 1.50rem;
+  --fs-2xs: 0.68rem;
+  --fs-xs:  0.75rem;
+  --fs-sm:  0.83rem;
+  --fs-md:  0.92rem;
+  --fs-base: 1.02rem;
+  --fs-lg:  1.12rem;
+  --fs-xl:  1.24rem;
+  --fs-2xl: 1.42rem;
+  --fs-3xl: 1.66rem;
+  --fs-4xl: 1.96rem;
 }
 
 /* ── Landscape phones (576px+) ── */
 @media (min-width: 576px) {
   :root {
-    --fs-2xs: 0.62rem;
-    --fs-xs:  0.67rem;
-    --fs-sm:  0.72rem;
-    --fs-md:  0.78rem;
-    --fs-base: 0.86rem;
-    --fs-lg:  0.95rem;
-    --fs-xl:  1.05rem;
-    --fs-2xl: 1.20rem;
-    --fs-3xl: 1.40rem;
-    --fs-4xl: 1.65rem;
+    --fs-2xs: 0.70rem;
+    --fs-xs:  0.77rem;
+    --fs-sm:  0.85rem;
+    --fs-md:  0.95rem;
+    --fs-base: 1.04rem;
+    --fs-lg:  1.15rem;
+    --fs-xl:  1.28rem;
+    --fs-2xl: 1.48rem;
+    --fs-3xl: 1.74rem;
+    --fs-4xl: 2.06rem;
   }
 }
 
 /* ── Tablets / desktop (768px+) ── */
 @media (min-width: 768px) {
   :root {
-    --fs-2xs: 0.65rem;
-    --fs-xs:  0.70rem;
-    --fs-sm:  0.75rem;
-    --fs-md:  0.82rem;
-    --fs-base: 0.90rem;
-    --fs-lg:  1.00rem;
-    --fs-xl:  1.10rem;
-    --fs-2xl: 1.30rem;
-    --fs-3xl: 1.50rem;
-    --fs-4xl: 1.80rem;
+    --fs-2xs: 0.72rem;
+    --fs-xs:  0.79rem;
+    --fs-sm:  0.87rem;
+    --fs-md:  0.97rem;
+    --fs-base: 1.07rem;
+    --fs-lg:  1.18rem;
+    --fs-xl:  1.32rem;
+    --fs-2xl: 1.54rem;
+    --fs-3xl: 1.82rem;
+    --fs-4xl: 2.18rem;
   }
 }
 
@@ -75,59 +75,48 @@
 .lh-tight   { line-height: 1.2; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * Responsive headings (mobile-first)
+ * Core text roles (mobile-first)
  * ═══════════════════════════════════════════════════════════════════════════ */
 h1, .h1 {
-  font-size: 1.6rem;
+  font-size: var(--fs-4xl);
   margin-bottom: 1rem;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
 }
 
 h2, .h2 {
-  font-size: 1.4rem;
+  font-size: var(--fs-3xl);
   margin-top: 2rem;
   margin-bottom: 0.8rem;
+  line-height: 1.12;
 }
 
 h3, .h3 {
-  font-size: 1.25rem;
+  font-size: var(--fs-2xl);
   margin-top: 1.5rem;
   margin-bottom: 0.6rem;
+  line-height: 1.18;
 }
 
 h4, .h4 {
-  font-size: 1.1rem;
+  font-size: var(--fs-xl);
   margin-top: 1.2rem;
   margin-bottom: 0.5rem;
+  line-height: 1.24;
 }
 
 h5, .h5 {
-  font-size: 1.0rem;
+  font-size: var(--fs-lg);
   margin-top: 1rem;
   margin-bottom: 0.4rem;
+  line-height: 1.28;
 }
 
 h6, .h6 {
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   margin-top: 0.8rem;
   margin-bottom: 0.3rem;
-}
-
-@media (min-width: 576px) {
-  h1, .h1 { font-size: 1.9rem; }
-  h2, .h2 { font-size: 1.6rem; }
-  h3, .h3 { font-size: 1.35rem; }
-  h4, .h4 { font-size: 1.15rem; }
-  h5, .h5 { font-size: 1.05rem; }
-  h6, .h6 { font-size: 1.0rem; }
-}
-
-@media (min-width: 768px) {
-  h1, .h1 { font-size: 2.2rem; }
-  h2, .h2 { font-size: 1.8rem; }
-  h3, .h3 { font-size: 1.5rem; }
-  h4, .h4 { font-size: 1.25rem; }
-  h5, .h5 { font-size: 1.1rem; }
-  h6, .h6 { font-size: 1.05rem; }
+  line-height: 1.34;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -136,16 +125,8 @@ h6, .h6 {
 
 /* Base body text */
 body {
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   line-height: 1.7;
-}
-
-@media (min-width: 576px) {
-  body { font-size: 1.0rem; }
-}
-
-@media (min-width: 768px) {
-  body { font-size: 1.05rem; }
 }
 
 /* Paragraphs */
@@ -161,7 +142,7 @@ ul, ol {
 
 /* Tables */
 table {
-  font-size: var(--fs-base);
+  font-size: var(--fs-md);
 }
 
 th, td {
@@ -170,21 +151,17 @@ th, td {
 
 /* Callouts */
 .callout {
-  font-size: var(--fs-lg);
+  font-size: var(--fs-base);
 }
 
 .callout-title {
-  font-size: var(--fs-xl);
+  font-size: var(--fs-lg);
   font-weight: 600;
 }
 
 /* Code blocks */
 pre, code {
-  font-size: 0.90rem;
-}
-
-@media (min-width: 768px) {
-  pre, code { font-size: 0.95rem; }
+  font-size: var(--fs-md);
 }
 
 /* Value boxes */
@@ -198,20 +175,16 @@ pre, code {
 
 /* Navigation */
 .navbar-brand {
-  font-size: 1.1rem;
-}
-
-@media (min-width: 768px) {
-  .navbar-brand { font-size: 1.2rem; }
+  font-size: var(--fs-xl);
 }
 
 .nav-link {
-  font-size: var(--fs-lg);
+  font-size: var(--fs-base);
 }
 
 /* Footer */
 .page-footer {
-  font-size: var(--fs-base);
+  font-size: var(--fs-sm);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -462,7 +435,7 @@ table th {
   .mobile-pruned-table {
     table-layout: fixed !important;
     width: 100% !important;
-    font-size: 0.76rem !important;
+    font-size: var(--fs-xs) !important;
   }
 
   .mobile-pruned-table th,

@@ -11,7 +11,7 @@
   border: 1px solid rgba(255, 255, 255, 0.16);
   color: #d7ecff;
   text-decoration: none;
-  font-size: 0.86rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -38,14 +38,14 @@
 
 .provas-kpi-value {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: var(--fs-2xl);
   font-weight: 800;
   color: #fff;
 }
 
 .provas-kpi-label {
   margin: 0.2rem 0 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   color: #c7ced9;
   letter-spacing: 0.01em;
 }
@@ -78,7 +78,7 @@
 
 .provas-top5-kicker {
   margin: 0 0 0.55rem;
-  font-size: 0.79rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0.07em;
   font-weight: 800;
   color: #f4f7ff;
@@ -102,7 +102,7 @@
 .provas-top5-rank {
   margin: 0;
   text-align: center;
-  font-size: 0.83rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: #c1cada;
 }
@@ -120,14 +120,14 @@
 
 .provas-top5-name {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: var(--fs-md);
   font-weight: 700;
   color: #fff;
 }
 
 .provas-top5-value {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   font-weight: 800;
   color: #fdfdfd;
 }
@@ -153,14 +153,14 @@
 
 .provas-top5-row-reason-toggle {
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: #a5d8ff;
 }
 
 .provas-top5-row-reason-text {
   margin: 0.18rem 0 0;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: #c7d6ec;
 }
 
@@ -176,7 +176,7 @@
 .provas-top5-empty,
 .provas-top5-caption {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   color: #c5ccda;
 }
 
@@ -200,7 +200,7 @@
 
 .provas-curiosity-title {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: #dee9f8;
 }
@@ -222,7 +222,7 @@
 
 .provas-curiosity-name {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: #fff;
 }
@@ -230,7 +230,7 @@
 .provas-curiosity-value,
 .provas-curiosity-empty {
   margin: 0.1rem 0 0;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: #c6d4e6;
 }
 
@@ -286,7 +286,7 @@
 }
 
 .provas-player-name {
-  font-size: 0.98rem;
+  font-size: var(--fs-base);
   font-weight: 800;
   color: #fff;
 }
@@ -297,7 +297,7 @@
   align-items: center;
   padding: 0.12rem 0.42rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
 }
 
@@ -313,7 +313,7 @@
 
 .provas-player-total {
   margin: 0.22rem 0 0;
-  font-size: 1.12rem;
+  font-size: var(--fs-lg);
   font-weight: 800;
   color: #e9f4ff;
 }
@@ -334,12 +334,12 @@
 }
 
 .provas-player-metric .label {
-  font-size: 0.68rem;
+  font-size: var(--fs-2xs);
   color: #aeb8c9;
 }
 
 .provas-player-metric .value {
-  font-size: 0.83rem;
+  font-size: var(--fs-sm);
   color: #fff;
   font-weight: 700;
 }
@@ -355,7 +355,7 @@
   background: rgba(255, 255, 255, 0.03);
   border-radius: 9px;
   padding: 0.42rem;
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: #d5deed;
   display: flex;
   justify-content: space-between;
@@ -363,7 +363,7 @@
 }
 
 .provas-player-type-card strong {
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   color: #fff;
 }
 
@@ -373,7 +373,7 @@
 
 .provas-player-section-title {
   margin: 0 0 0.4rem;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: #c6d6ea;
 }
@@ -387,7 +387,7 @@
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   color: #d4deef;
 }
 
@@ -421,13 +421,13 @@
 }
 
 .provas-prova-summary-main {
-  font-size: 0.88rem;
+  font-size: var(--fs-md);
   font-weight: 700;
   color: #fff;
 }
 
 .provas-prova-summary-meta {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: #afbdd2;
 }
 
@@ -448,13 +448,13 @@
   border: 1px solid rgba(122, 200, 255, 0.25);
   border-radius: 999px;
   padding: 0.2rem 0.5rem;
-  font-size: 0.72rem;
+  font-size: var(--fs-2xs);
   color: #d8edff;
 }
 
 .provas-excluded {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   color: #f0bec0;
 }
 
@@ -466,20 +466,20 @@
 
 .provas-phase-title {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: #e5efff;
 }
 
 .provas-phase-note {
   margin: 0.2rem 0 0;
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: #b5c4da;
 }
 
 .provas-phase-empty {
   margin: 0.32rem 0 0;
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: #9fb0c8;
 }
 
@@ -491,7 +491,7 @@
 .provas-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
 }
 
 .provas-table th,
@@ -514,7 +514,7 @@
 
 .provas-points-summary {
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: #bfe6ff;
 }
@@ -529,7 +529,7 @@
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   background: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
   padding: 0.34rem;
@@ -549,7 +549,7 @@
   border-radius: 12px;
   padding: 0.8rem;
   margin-bottom: 0.8rem;
-  font-size: 0.86rem;
+  font-size: var(--fs-md);
   color: #d2dced;
 }
 
@@ -568,14 +568,14 @@
 
 .provas-points-card h4 {
   margin: 0 0 0.4rem;
-  font-size: 0.86rem;
+  font-size: var(--fs-md);
   color: #f0f5ff;
 }
 
 .provas-points-formula,
 .provas-muted {
   margin: 0.45rem 0 0;
-  font-size: 0.77rem;
+  font-size: var(--fs-xs);
   color: #b7c5db;
 }
 
@@ -585,7 +585,7 @@ body.provas-page .collapse-toggle {
   border-color: rgba(122, 200, 255, 0.38);
   border-radius: 999px;
   padding: 0.3rem 0.65rem;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: #bfe4ff;
   background: transparent;

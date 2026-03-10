@@ -307,38 +307,38 @@ body.paredao-page #title-block-header .title {
 
 body.paredao-page #title-block-header .subtitle {
   max-width: 62ch;
-  font-size: clamp(0.98rem, 0.94rem + 0.28vw, 1.12rem);
+  font-size: var(--fs-base);
   line-height: 1.46;
   color: #ccd4df;
 }
 
 body.paredao-page main.content {
-  font-size: 1rem;
+  font-size: var(--fs-base);
   line-height: 1.68;
 }
 
 body.paredao-page main.content h2 {
-  font-size: clamp(1.34rem, 1.18rem + 0.5vw, 1.64rem);
+  font-size: var(--fs-2xl);
   line-height: 1.14;
   margin-top: 1.75rem;
   margin-bottom: 0.62rem;
 }
 
 body.paredao-page main.content h3 {
-  font-size: clamp(1.14rem, 1.04rem + 0.34vw, 1.34rem);
+  font-size: var(--fs-xl);
   line-height: 1.2;
   margin-top: 1.35rem;
   margin-bottom: 0.52rem;
 }
 
 body.paredao-page main.content h4 {
-  font-size: clamp(1.02rem, 0.97rem + 0.22vw, 1.16rem);
+  font-size: var(--fs-lg);
   line-height: 1.28;
 }
 
 body.paredao-page main.content h5,
 body.paredao-page main.content h6 {
-  font-size: clamp(0.96rem, 0.93rem + 0.14vw, 1.04rem);
+  font-size: var(--fs-base);
   line-height: 1.3;
 }
 
@@ -346,29 +346,29 @@ body.paredao-page main.content p,
 body.paredao-page main.content li,
 body.paredao-page main.content td,
 body.paredao-page main.content th {
-  font-size: 0.98rem;
+  font-size: var(--fs-base);
   line-height: 1.66;
 }
 
 body.paredao-page main.content .meta-inline {
-  font-size: 0.86rem;
+  font-size: var(--fs-sm);
   line-height: 1.42;
 }
 
 body.paredao-page .nav-tabs .nav-link {
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   font-weight: 700;
   line-height: 1.18;
 }
 
 body.paredao-page .paredao-history-summary {
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   line-height: 1.25;
 }
 
 body.paredao-page .paredao-history-table,
 body.paredao-page table.table {
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   line-height: 1.5;
 }
 
@@ -406,16 +406,11 @@ body.paredao-page table.table {
   color: #d7dee8;
 }
 
-body.paredao-page .paredao-spotlight-title {
-  font-size: clamp(1.24rem, 1.08rem + 0.52vw, 1.52rem);
-  line-height: 1.12;
-}
-
 body.paredao-page .paredao-spotlight-thesis,
 body.paredao-page .paredao-spotlight-caveat,
 body.paredao-page .paredao-spotlight-note,
 body.paredao-page .paredao-spotlight-proof {
-  font-size: 0.98rem;
+  font-size: var(--fs-base);
   line-height: 1.6;
 }
 
@@ -448,7 +443,7 @@ body.paredao-page .paredao-spotlight-proof {
 
 body.paredao-page .paredao-spotlight-card-title,
 body.paredao-page .paredao-spotlight-section-title {
-  font-size: 1rem;
+  font-size: var(--fs-base);
   line-height: 1.28;
 }
 
@@ -473,7 +468,7 @@ body.paredao-page .paredao-spotlight-section-title {
 }
 
 body.paredao-page .paredao-spotlight-pill {
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   line-height: 1.34;
 }
 
@@ -521,7 +516,7 @@ body.paredao-page .paredao-spotlight-pill {
 }
 
 body.paredao-page .paredao-spotlight-subtitle {
-  font-size: 0.94rem;
+  font-size: var(--fs-md);
   line-height: 1.26;
 }
 
@@ -567,7 +562,7 @@ body.paredao-page .paredao-spotlight-subtitle {
 }
 
 body.paredao-page .paredao-spotlight-summary-item {
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   line-height: 1.36;
 }
 
@@ -945,11 +940,11 @@ body.paredao-page .paredao-spotlight-summary-item {
   body.paredao-page .paredao-spotlight-caveat,
   body.paredao-page .paredao-spotlight-note,
   body.paredao-page .paredao-spotlight-proof {
-    font-size: 0.95rem;
+    font-size: var(--fs-md);
   }
 
   body.paredao-page .nav-tabs .nav-link {
-    font-size: 0.86rem;
+    font-size: var(--fs-sm);
   }
 
   .paredao-spotlight {
@@ -1347,7 +1342,7 @@ body.paredao-page .paredao-spotlight-summary-item {
   }
   .sinc-chip,
   .profile-sinc-chip {
-    font-size: 11px;
+    font-size: var(--fs-xs);
     padding: 0.14rem 0.38rem;
   }
   .profile-sinc-label {
@@ -1863,4 +1858,31 @@ body.paredao-page .paredao-spotlight-summary-item {
 .u-s489 { width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:4px; }
 .u-s490 { width:32px;height:32px;border-radius:50%; }
 .u-s491 { width:90px; }
+
+@media (max-width: 575.98px) {
+  .u-s371 {
+    grid-template-columns: 1fr;
+  }
+
+  .u-s371 > * {
+    min-width: 0;
+  }
+
+  .dashboard-card-header-main {
+    align-items: flex-start;
+  }
+
+  .dashboard-card-header-meta {
+    gap: 0.3rem 0.4rem;
+  }
+
+  .pair-story-grid {
+    grid-template-columns: minmax(64px, 1fr) auto minmax(64px, 1fr);
+    gap: 0.65rem;
+  }
+
+  .pair-story-transition {
+    font-size: var(--fs-base);
+  }
+}
 /* ── Auto Utility Styles (H3) END ── */

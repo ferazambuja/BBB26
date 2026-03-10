@@ -131,7 +131,7 @@ execute:
 
 @media (max-width: 575px) {
   .paredao-history-summary {
-    font-size: 0.93rem;
+    font-size: var(--fs-md);
     padding: 0.58rem 0.66rem;
   }
 
@@ -140,7 +140,7 @@ execute:
   }
 
   .paredao-history-table {
-    font-size: 0.86rem;
+    font-size: var(--fs-sm);
     min-width: 0;
   }
 
@@ -187,7 +187,7 @@ execute:
     content: attr(data-label);
     color: #b8c9e8;
     font-weight: 600;
-    font-size: 0.78rem;
+    font-size: var(--fs-xs);
     letter-spacing: 0.01em;
   }
 
