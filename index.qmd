@@ -476,16 +476,21 @@ def av_group_border(name: str) -> str:
 def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
     """Card header with icon, title, optional link, badge, data source tag, and subtitle."""
     title_html = title
-    link_html = f' <a href="{link}" class="fs-xs u-s254">ver mais ↗</a>' if link else ""
-    badge_html = f' <span class="fs-xs u-s187">{badge}</span>' if badge else ""
-    source_html = f' <span class="fs-2xs u-s253">{source_tag}</span>' if source_tag else ""
-    subtitle_html = f'<div class="fs-sm u-s258">{subtitle}</div>' if subtitle else ""
-    return (f'<div class="u-s073">'
-            f'<div class="u-s333">'
-            f'<span class="fs-2xl">{icon}</span>'
-            f'<span class="fs-base u-s392">{title_html}</span>'
-            f'{badge_html}{source_html}{link_html}'
+    meta_parts = []
+    if badge:
+        meta_parts.append(f'<span class="dashboard-card-badge fs-xs u-s187">{badge}</span>')
+    if source_tag:
+        meta_parts.append(f'<span class="dashboard-card-source fs-2xs u-s253">{source_tag}</span>')
+    if link:
+        meta_parts.append(f'<a href="{link}" class="dashboard-card-link fs-xs u-s254">ver mais ↗</a>')
+    meta_html = f'<div class="dashboard-card-header-meta">{"".join(meta_parts)}</div>' if meta_parts else ""
+    subtitle_html = f'<div class="dashboard-card-subtitle fs-sm u-s258">{subtitle}</div>' if subtitle else ""
+    return (f'<div class="u-s073 dashboard-card-header">'
+            f'<div class="dashboard-card-header-main">'
+            f'<span class="dashboard-card-icon fs-2xl">{icon}</span>'
+            f'<span class="dashboard-card-title fs-base u-s392">{title_html}</span>'
             f'</div>'
+            f'{meta_html}'
             f'{subtitle_html}</div>')
 
 def stat_chip(value, label, color="#888"):
@@ -501,26 +506,35 @@ def progress_bar(value, max_val, color="#3498db", height=6):
             f'<div style="width:{pct:.0f}%;height:100%;background:{color};border-radius:{height//2}px;"></div></div>')
 
 
-def relationship_story_card(giver, receiver, shift_label, meta_text, *, tone="dramatic", giver_border=None, receiver_border=None):
+def pair_story_card(
+    giver: str,
+    receiver: str,
+    transition_html: str,
+    meta_text: str,
+    *,
+    border_color: str,
+    left_border: str | None = None,
+    right_border: str | None = None,
+):
     """Centered pair card used by dramatic changes, hostilities, and alliance breaks."""
-    giver_short = giver.split()[0]
-    receiver_short = receiver.split()[0]
-    giver_border = giver_border or av_group_border(giver)
-    receiver_border = receiver_border or av_group_border(receiver)
+    left_border = left_border or av_group_border(giver)
+    right_border = right_border or av_group_border(receiver)
     return (
-        f'<div class="relationship-story-card tone-{tone}">'
-        f'<div class="relationship-story-row">'
-        f'<div class="relationship-story-person">'
-        f'{av(giver, 46, giver_border)}'
-        f'<span class="relationship-story-name">{escape(giver_short)}</span>'
+        f'<div class="pair-story-card" style="border-left:3px solid {border_color};">'
+        f'<div class="pair-story-grid">'
+        f'<div class="pair-story-side">'
+        f'{av(giver, 42, left_border)}'
+        f'<span class="pair-story-name">{escape(giver.split()[0])}</span>'
         f'</div>'
-        f'<div class="relationship-story-shift">{escape(shift_label)}</div>'
-        f'<div class="relationship-story-person">'
-        f'{av(receiver, 46, receiver_border)}'
-        f'<span class="relationship-story-name">{escape(receiver_short)}</span>'
+        f'<div class="pair-story-center">'
+        f'<div class="pair-story-transition">{transition_html}</div>'
+        f'<div class="pair-story-meta">{escape(meta_text)}</div>'
+        f'</div>'
+        f'<div class="pair-story-side">'
+        f'{av(receiver, 42, right_border)}'
+        f'<span class="pair-story-name">{escape(receiver.split()[0])}</span>'
         f'</div>'
         f'</div>'
-        f'<div class="relationship-story-meta">{escape(meta_text)}</div>'
         f'</div>'
     )
 
@@ -581,30 +595,30 @@ else:
             medals = ["🥇", "🥈", "🥉", "4º", "5º"]
             inline_podium = podium_all[:5]
             overflow_podium = podium_all[5:]
-            podium_html = '<div>'
-            podium_html += '<div class="fs-2xs u-s060">⬆ Mais queridos</div>'
-            podium_html += '<div class="u-s065">'
+            podium_html = '<div class="ranking-column">'
+            podium_html += '<div class="fs-2xs u-s060 ranking-column__label">⬆ Mais queridos</div>'
+            podium_html += '<div class="u-s065 ranking-column__list">'
             for i, p in enumerate(inline_podium):
                 name = p["name"]
                 score = p["score"]
                 border = av_group_border(name)
                 label = medals[i] if i < len(medals) else f"{i+1}º"
                 podium_html += (
-                    f'<div class="u-s344">'
+                    f'<div class="u-s344 ranking-entry ranking-entry--positive">'
                     f'{av(name, 42, border)}'
                     f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
                     f'</div>'
                 )
             podium_html += '</div></div>'
             if overflow_podium:
-                podium_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_podium))
+                podium_html += '<details class="sinc-more ranking-column__more"><summary>+{} restantes</summary><div class="u-s065 ranking-column__list">'.format(len(overflow_podium))
                 for i, p in enumerate(overflow_podium, start=len(inline_podium) + 1):
                     name = p["name"]
                     score = p["score"]
                     border = av_group_border(name)
                     label = f"{i}º"
                     podium_html += (
-                        f'<div class="u-s344">'
+                        f'<div class="u-s344 ranking-entry ranking-entry--positive">'
                         f'{av(name, 42, border)}'
                         f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
                         f'</div>'
@@ -616,28 +630,28 @@ else:
             if bottom_all:
                 inline_bottom = bottom_all[:5]
                 overflow_bottom = bottom_all[5:]
-                bottom_html = '<div>'
-                bottom_html += '<div class="fs-2xs u-s060">⬇ Menos queridos</div>'
-                bottom_html += '<div class="u-s065">'
+                bottom_html = '<div class="ranking-column">'
+                bottom_html += '<div class="fs-2xs u-s060 ranking-column__label">⬇ Menos queridos</div>'
+                bottom_html += '<div class="u-s065 ranking-column__list">'
                 for p in inline_bottom:
                     name = p["name"]
                     score = p["score"]
                     score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
                     bottom_html += (
-                        f'<div class="u-s340">'
+                        f'<div class="u-s340 ranking-entry ranking-entry--negative">'
                         f'{av(name, 42, av_group_border(name))}'
                         f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                         f'</div>'
                     )
                 bottom_html += '</div></div>'
                 if overflow_bottom:
-                    bottom_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_bottom))
+                    bottom_html += '<details class="sinc-more ranking-column__more"><summary>+{} restantes</summary><div class="u-s065 ranking-column__list">'.format(len(overflow_bottom))
                     for p in overflow_bottom:
                         name = p["name"]
                         score = p["score"]
                         score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
                         bottom_html += (
-                            f'<div class="u-s340">'
+                            f'<div class="u-s340 ranking-entry ranking-entry--negative">'
                             f'{av(name, 42, av_group_border(name))}'
                             f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                             f'</div>'
@@ -656,14 +670,14 @@ else:
             if inline_deltas:
                 inline_names = {d["name"] for d in inline_deltas}
                 overflow_deltas = [d for d in delta_all if d.get("name") not in inline_names]
-                movers_html = '<div>'
-                movers_html += f'<div class="fs-2xs u-s060">{movers_label}</div>'
-                movers_html += '<div class="u-s065">'
+                movers_html = '<div class="ranking-column">'
+                movers_html += f'<div class="fs-2xs u-s060 ranking-column__label">{movers_label}</div>'
+                movers_html += '<div class="u-s065 ranking-column__list">'
                 for d in inline_deltas:
                     is_up = d.get("delta", 0) >= 0
                     name = d["name"]
                     icon = "📈" if is_up else "📉"
-                    row_cls = "u-s345" if is_up else "u-s341"
+                    row_cls = "u-s345 ranking-entry ranking-entry--delta-up" if is_up else "u-s341 ranking-entry ranking-entry--delta-down"
                     text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
                     movers_html += (
                         f'<div class="{row_cls}">'
@@ -673,17 +687,17 @@ else:
                     )
                 movers_html += '</div></div>'
                 if overflow_deltas:
-                    movers_html += '<details class="sinc-more"><summary>+{} restantes</summary><div class="u-s065">'.format(len(overflow_deltas))
+                    movers_html += '<details class="sinc-more ranking-column__more"><summary>+{} restantes</summary><div class="u-s065 ranking-column__list">'.format(len(overflow_deltas))
                     for d in overflow_deltas:
                         is_up = d.get("delta", 0) >= 0
                         name = d["name"]
                         icon = "📈" if is_up else "📉"
-                        row_cls = "u-s345" if is_up else "u-s341"
+                        row_cls = "u-s345 ranking-entry ranking-entry--delta-up" if is_up else "u-s341 ranking-entry ranking-entry--delta-down"
                         text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
                         movers_html += (
                             f'<div class="{row_cls}">'
-                            f'{av(name, 42, av_group_border(name))}'
-                            f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
+                                f'{av(name, 42, av_group_border(name))}'
+                                f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
                             f'</div>'
                         )
                     movers_html += '</div></details>'
@@ -787,28 +801,32 @@ else:
                 if is_hostile:
                     old_e = it.get("old_emoji", "?")
                     new_e = it.get("new_emoji", it.get("emoji", "?"))
-                    shift_txt = f"{old_e} → {new_e}"
+                    transition_html = (
+                        f'<span class="pair-story-origin">{old_e}</span>'
+                        f'<span class="pair-story-arrow">→</span>'
+                        f'<span class="pair-story-destination">{new_e}</span>'
+                    )
                     meta_txt = f"Hostilidade unilateral · {when_txt}"
-                    g_color, r_color = "#f39c12", "#e74c3c"
-                    tone = "hostile"
+                    row_border = "#f39c12"
                 else:
                     old_e = it.get("old_emoji", "?")
                     new_e = it.get("new_emoji", "?")
                     sev = it.get("severity", 0)
-                    sev_txt = "Mudança alta" if sev >= 1.5 else ("Mudança média" if sev >= 1.0 else "Mudança leve")
-                    shift_txt = f"{old_e} → {new_e}"
-                    meta_txt = f"{sev_txt} · {when_txt}"
-                    g_color, r_color = "#666", "#27ae60" if new_e == "❤️" else "#e74c3c"
-                    tone = "dramatic"
+                    sev_txt = "alta" if sev >= 1.5 else ("média" if sev >= 1.0 else "leve")
+                    transition_html = (
+                        f'<span class="pair-story-origin">{old_e}</span>'
+                        f'<span class="pair-story-arrow">→</span>'
+                        f'<span class="pair-story-destination">{new_e}</span>'
+                    )
+                    meta_txt = f"Mudança {sev_txt} · {when_txt}"
+                    row_border = "#e74c3c" if sev >= 1.5 else "#8e44ad"
 
-                return relationship_story_card(
+                return pair_story_card(
                     g,
                     r,
-                    shift_txt,
+                    transition_html,
                     meta_txt,
-                    tone=tone,
-                    giver_border=g_color,
-                    receiver_border=r_color,
+                    border_color=row_border,
                 )
 
             inline_items = items[:4]
@@ -1252,14 +1270,21 @@ else:
                     date_fmt = ""
                 age_txt = days_ago_str(date_str, break_ref_date)
                 when_txt = f"{date_fmt} ({age_txt})" if date_fmt and age_txt else (date_fmt or age_txt)
-                sev_txt = "Rompimento grave" if sev == "strong" else "Rompimento"
-                meta_txt = f"{sev_txt} · {when_txt}" if when_txt else sev_txt
-                return relationship_story_card(
+                sev_border = "#e74c3c" if sev == "strong" else "#8e44ad"
+                meta_txt = f"Rompimento{' grave' if sev == 'strong' else ''}"
+                if when_txt:
+                    meta_txt += f" · {when_txt}"
+                transition_html = (
+                    f'<span class="pair-story-origin">{streak}d ❤️</span>'
+                    f'<span class="pair-story-arrow">→</span>'
+                    f'<span class="pair-story-destination">{new_e}</span>'
+                )
+                return pair_story_card(
                     g,
                     r,
-                    f"{streak}d ❤️ → {new_e}",
+                    transition_html,
                     meta_txt,
-                    tone="break",
+                    border_color=sev_border,
                 )
 
             inline_items = items[:4]

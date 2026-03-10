@@ -63,8 +63,12 @@ def test_index_keeps_restored_highlight_layout_hooks():
 
     assert 'movers_label = card.get("movers_label", "📅 Variação vs ontem")' in index
     assert "Mudanças Dramáticas (Recente)" not in index
-    assert "relationship-story-card" in index
-    assert "relationship-story-card" in css
+    assert "dashboard-card-header" in index
+    assert "dashboard-card-header" in css
+    assert "pair-story-card" in index
+    assert "pair-story-card" in css
+    assert "ranking-column" in index
+    assert ".ranking-column" in css
     assert "blindado-tag-list" in index
     assert "blindado-tag" in css
     assert "Autoimune" in index

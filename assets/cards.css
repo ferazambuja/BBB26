@@ -172,6 +172,43 @@ th.th-soft {
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
+.dashboard-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.dashboard-card-header-main {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.dashboard-card-icon {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.dashboard-card-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-card-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+}
+
+.dashboard-card-subtitle {
+  margin-top: 0.05rem;
+}
+
 /* ── Dark card (general purpose) ── */
 .dark-card {
   background: #2a2a2a;
@@ -761,67 +798,75 @@ body.paredao-page .paredao-spotlight-summary-item {
 }
 
 /* ── Homepage relationship and blindados cards ── */
-.relationship-story-card {
+.pair-story-card {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.8rem 0.9rem;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255,255,255,0.05);
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
 }
 
-.relationship-story-card.tone-dramatic {
-  background: linear-gradient(135deg, rgba(142, 68, 173, 0.12), rgba(231, 76, 60, 0.08));
-  border-color: rgba(142, 68, 173, 0.26);
-}
-
-.relationship-story-card.tone-hostile {
-  background: linear-gradient(135deg, rgba(243, 156, 18, 0.12), rgba(231, 76, 60, 0.12));
-  border-color: rgba(243, 156, 18, 0.3);
-}
-
-.relationship-story-card.tone-break {
-  background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(52, 73, 94, 0.12));
-  border-color: rgba(231, 76, 60, 0.22);
-}
-
-.relationship-story-row {
+.pair-story-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 0.75rem;
+  grid-template-columns: minmax(72px, 1fr) auto minmax(72px, 1fr);
+  gap: 0.85rem;
   align-items: center;
 }
 
-.relationship-story-person {
+.pair-story-side {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.28rem;
+  gap: 0.35rem;
   min-width: 0;
   text-align: center;
 }
 
-.relationship-story-name {
-  color: #eef2f7;
+.pair-story-name {
   font-size: var(--fs-sm);
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.2;
+  color: #f1f1f1;
+  word-break: break-word;
 }
 
-.relationship-story-shift {
-  color: #f6c453;
-  font-size: var(--fs-md);
-  font-weight: 800;
+.pair-story-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
   text-align: center;
-  white-space: nowrap;
 }
 
-.relationship-story-meta {
-  color: #b8c0cc;
-  font-size: var(--fs-sm);
+.pair-story-transition {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.pair-story-origin {
+  color: #f3f3f3;
+}
+
+.pair-story-arrow {
+  color: #a6a6a6;
+}
+
+.pair-story-destination {
+  color: #f3f3f3;
+}
+
+.pair-story-meta {
+  font-size: var(--fs-xs);
+  color: #b0b0b0;
   line-height: 1.4;
-  text-align: center;
 }
 
 .blindado-tag-list {
@@ -868,6 +913,43 @@ body.paredao-page .paredao-spotlight-summary-item {
   color: #e4c6ff;
 }
 
+.ranking-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.ranking-column__label {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+}
+
+.ranking-column__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.44rem;
+  min-width: 0;
+}
+
+.ranking-column__more {
+  margin-top: 0.1rem;
+}
+
+.ranking-entry {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.ranking-entry span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 768px) {
   body.paredao-page #title-block-header .title {
     font-size: clamp(1.55rem, 1.28rem + 0.9vw, 1.9rem);
@@ -911,12 +993,21 @@ body.paredao-page .paredao-spotlight-summary-item {
     grid-template-columns: 1fr;
   }
 
-  .relationship-story-row {
-    gap: 0.45rem;
+  .dashboard-card-header-main {
+    align-items: flex-start;
   }
 
-  .relationship-story-shift {
-    font-size: var(--fs-sm);
+  .dashboard-card-header-meta {
+    gap: 0.3rem 0.4rem;
+  }
+
+  .pair-story-grid {
+    grid-template-columns: minmax(64px, 1fr) auto minmax(64px, 1fr);
+    gap: 0.65rem;
+  }
+
+  .pair-story-transition {
+    font-size: var(--fs-base);
   }
 }
 
