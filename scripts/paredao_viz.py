@@ -455,18 +455,20 @@ def render_paredao_index_card(payload: dict | None, avatars: dict[str, str]) -> 
     nominees_html = "".join(_render_paredao_nominee_card(n, avatars, compact=True) for n in payload.get("nominees", []))
     fact = payload.get("memory_line") or (payload.get("fact_lines") or [None])[0]
     trust_badge = payload.get("trust_badge", {})
-    trust_html = ""
+    notes: list[str] = []
     if trust_badge.get("visible"):
-        trust_html = (
-            f'<a class="paredao-index-trust" href="{safe_html(trust_badge.get("href", "paredoes.html#nosso-modelo-back-test"))}">'
+        notes.append(
+            f'<a class="paredao-index-note is-link" href="{safe_html(trust_badge.get("href", "paredoes.html#nosso-modelo-back-test"))}">'
             f'🧮 {safe_html(trust_badge.get("text", ""))}'
             f'</a>'
         )
+    if fact:
+        notes.append(f'<div class="paredao-index-note">{safe_html(fact)}</div>')
+    notes_html = f'<div class="paredao-index-notes">{"".join(notes)}</div>' if notes else ""
     return (
         f'<div class="paredao-index-card is-{payload.get("state")}">'
         f'<div class="paredao-index-grid">{nominees_html}</div>'
-        f'{trust_html}'
-        f'{f"<div class=\"paredao-index-fact\">{safe_html(fact)}</div>" if fact else ""}'
+        f'{notes_html}'
         f'</div>'
     )
 

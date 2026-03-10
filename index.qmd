@@ -417,12 +417,12 @@ hl_cards = index_data.get("highlights", {}).get("cards", [])
 
 CARD_STORY_ORDER = {
     "context": 0,
+    "paredao": 5,
     "ranking": 10,
     "changes": 20,
     "dramatic": 30,
     "hostilities": 40,
     "sincerao": 50,
-    "paredao": 60,
     "breaks": 70,
     "blindados": 80,
     "impact": 90,
@@ -539,11 +539,6 @@ def pair_story_card(
     )
 
 
-def render_blindado_tag(text, tone="neutral"):
-    """Small pill for blindados detail tags."""
-    return f'<span class="blindado-tag tone-{tone}">{escape(text)}</span>'
-
-
 if not hl_cards:
     print(f'''<div class="dark-card tc u-s468">
 📅 Primeiro dia de dados — sem comparações disponíveis ainda.</div>''')
@@ -591,74 +586,87 @@ else:
                 subtitle="Score de hoje (❤️ = +1, negativas = −0.5 a −1). Dado do dia, não acumulado."
             )
 
-            # ── Top (inline + in-card toggle for all) ──
+            def _toggle(n):
+                return (
+                    f'<details class="sinc-more" style="margin-top:4px;">'
+                    f'<summary style="list-style:none;cursor:pointer;text-align:center;'
+                    f'padding:4px 0;color:#666;font-size:var(--fs-xs);">'
+                    f'<span style="background:rgba(255,255,255,0.08);padding:2px 14px;'
+                    f'border-radius:10px;">⋯ {n}</span></summary>'
+                )
+
+            # ── Top (main layout + in-card toggle) ──
             medals = ["🥇", "🥈", "🥉", "4º", "5º"]
-            inline_podium = podium_all[:5]
-            overflow_podium = podium_all[5:]
-            podium_html = '<div class="ranking-column">'
-            podium_html += '<div class="fs-2xs u-s060 ranking-column__label">⬆ Mais queridos</div>'
-            podium_html += '<div class="u-s065 ranking-column__list">'
+            podium_positive = [p for p in podium_all if p["score"] > 0]
+            inline_podium = podium_positive[:5]
+            overflow_podium = podium_positive[5:]
+            podium_html = '<div>'
+            podium_html += '<div class="fs-2xs u-s060">⬆ Mais queridos</div>'
+            podium_html += '<div class="u-s065">'
             for i, p in enumerate(inline_podium):
                 name = p["name"]
                 score = p["score"]
-                border = av_group_border(name)
                 label = medals[i] if i < len(medals) else f"{i+1}º"
                 podium_html += (
-                    f'<div class="u-s344 ranking-entry ranking-entry--positive">'
-                    f'{av(name, 42, border)}'
+                    f'<div class="u-s344">'
+                    f'{av(name, 42, "#27ae60")}'
                     f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
                     f'</div>'
                 )
-            podium_html += '</div></div>'
+            podium_html += '</div>'
             if overflow_podium:
-                podium_html += '<details class="sinc-more ranking-column__more"><summary>+{} restantes</summary><div class="u-s065 ranking-column__list">'.format(len(overflow_podium))
+                podium_html += _toggle(len(overflow_podium))
+                podium_html += '<div class="u-s065">'
                 for i, p in enumerate(overflow_podium, start=len(inline_podium) + 1):
                     name = p["name"]
                     score = p["score"]
-                    border = av_group_border(name)
-                    label = f"{i}º"
                     podium_html += (
-                        f'<div class="u-s344 ranking-entry ranking-entry--positive">'
-                        f'{av(name, 42, border)}'
-                        f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
+                        f'<div class="u-s344">'
+                        f'{av(name, 42, "#27ae60")}'
+                        f'<span class="fs-md u-s026">{i}º {name.split()[0]} {score:+.1f}</span>'
                         f'</div>'
                     )
                 podium_html += '</div></details>'
+            podium_html += '</div>'
 
-            # ── Bottom (inline + in-card toggle for all) ──
+            # ── Bottom (main layout + in-card toggle) ──
             bottom_html = ""
             if bottom_all:
-                inline_bottom = bottom_all[:5]
-                overflow_bottom = bottom_all[5:]
-                bottom_html = '<div class="ranking-column">'
-                bottom_html += '<div class="fs-2xs u-s060 ranking-column__label">⬇ Menos queridos</div>'
-                bottom_html += '<div class="u-s065 ranking-column__list">'
-                for p in inline_bottom:
-                    name = p["name"]
-                    score = p["score"]
-                    score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
-                    bottom_html += (
-                        f'<div class="u-s340 ranking-entry ranking-entry--negative">'
-                        f'{av(name, 42, av_group_border(name))}'
-                        f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
-                        f'</div>'
-                    )
-                bottom_html += '</div></div>'
-                if overflow_bottom:
-                    bottom_html += '<details class="sinc-more ranking-column__more"><summary>+{} restantes</summary><div class="u-s065 ranking-column__list">'.format(len(overflow_bottom))
-                    for p in overflow_bottom:
+                bottom_negative = [p for p in bottom_all if p["score"] < 0]
+                inline_bottom = bottom_negative[:6]
+                overflow_bottom = bottom_negative[6:]
+                if inline_bottom:
+                    bottom_html = '<div>'
+                    bottom_html += '<div class="fs-2xs u-s060">⬇ Menos queridos</div>'
+                    bottom_html += '<div class="u-s065">'
+                    for p in inline_bottom:
                         name = p["name"]
                         score = p["score"]
-                        score_color = "#e74c3c" if score < 0 else ("#f39c12" if score < 3 else "#aaa")
+                        score_color = "#e74c3c" if score < -1 else "#f39c12"
                         bottom_html += (
-                            f'<div class="u-s340 ranking-entry ranking-entry--negative">'
-                            f'{av(name, 42, av_group_border(name))}'
+                            f'<div class="u-s340">'
+                            f'{av(name, 42, "#e74c3c")}'
                             f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                             f'</div>'
                         )
-                    bottom_html += '</div></details>'
+                    bottom_html += '</div>'
+                    if overflow_bottom:
+                        bottom_html += _toggle(len(overflow_bottom))
+                        bottom_html += '<div class="u-s065">'
+                        for p in overflow_bottom:
+                            name = p["name"]
+                            score = p["score"]
+                            score_color = "#e74c3c" if score < -1 else "#f39c12"
+                            bottom_html += (
+                                f'<div class="u-s340">'
+                                f'{av(name, 42, "#e74c3c")}'
+                                f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
+                                f'</div>'
+                            )
+                        bottom_html += '</div></details>'
+                    bottom_html += '</div>'
 
-            # ── Movers (inline + in-card toggle for all deltas) ──
+            # ── Movers (main layout + in-card toggle) ──
             movers_html = ""
             mup_list = mup if isinstance(mup, list) else ([mup] if mup else [])
             mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
@@ -670,37 +678,41 @@ else:
             if inline_deltas:
                 inline_names = {d["name"] for d in inline_deltas}
                 overflow_deltas = [d for d in delta_all if d.get("name") not in inline_names]
-                movers_html = '<div class="ranking-column">'
-                movers_html += f'<div class="fs-2xs u-s060 ranking-column__label">{movers_label}</div>'
-                movers_html += '<div class="u-s065 ranking-column__list">'
+                movers_html = '<div>'
+                movers_html += f'<div class="fs-2xs u-s060">{movers_label}</div>'
+                movers_html += '<div class="u-s065">'
                 for d in inline_deltas:
                     is_up = d.get("delta", 0) >= 0
                     name = d["name"]
                     icon = "📈" if is_up else "📉"
-                    row_cls = "u-s345 ranking-entry ranking-entry--delta-up" if is_up else "u-s341 ranking-entry ranking-entry--delta-down"
+                    row_cls = "u-s345" if is_up else "u-s341"
                     text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                    border = "#27ae60" if is_up else "#e74c3c"
                     movers_html += (
                         f'<div class="{row_cls}">'
-                        f'{av(name, 42, av_group_border(name))}'
+                        f'{av(name, 42, border)}'
                         f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
                         f'</div>'
                     )
-                movers_html += '</div></div>'
+                movers_html += '</div>'
                 if overflow_deltas:
-                    movers_html += '<details class="sinc-more ranking-column__more"><summary>+{} restantes</summary><div class="u-s065 ranking-column__list">'.format(len(overflow_deltas))
+                    movers_html += _toggle(len(overflow_deltas))
+                    movers_html += '<div class="u-s065">'
                     for d in overflow_deltas:
                         is_up = d.get("delta", 0) >= 0
                         name = d["name"]
                         icon = "📈" if is_up else "📉"
-                        row_cls = "u-s345 ranking-entry ranking-entry--delta-up" if is_up else "u-s341 ranking-entry ranking-entry--delta-down"
+                        row_cls = "u-s345" if is_up else "u-s341"
                         text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                        border = "#27ae60" if is_up else "#e74c3c"
                         movers_html += (
                             f'<div class="{row_cls}">'
-                                f'{av(name, 42, av_group_border(name))}'
-                                f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
+                            f'{av(name, 42, border)}'
+                            f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
                             f'</div>'
                         )
                     movers_html += '</div></details>'
+                movers_html += '</div>'
 
             # 3-column grid on desktop, stacks on mobile
             print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
@@ -1030,7 +1042,7 @@ else:
         elif ctype == "paredao":
             payload = card.get("payload") or {}
             status_badge = payload.get("status_label", "Em votação")
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
+            print(f'''<div class="info-panel highlight-card-span-3" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), status_badge, source_tag="🧮 Nosso Modelo", subtitle="Leitura atual do paredão; quando fechar, o card troca para o resultado oficial.")}
 {render_paredao_index_card(payload, AVATARS)}
 </div>''')
@@ -1327,14 +1339,19 @@ else:
                 par_color = "#27ae60" if paredao_count == 0 else ("#f39c12" if paredao_count == 1 else "#e74c3c")
                 par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
                 bar_pct = min(100, prot / n_par * 100) if n_par > 0 else 0
-                tags = []
+                prot_badges = []
                 if has_bv and bv_text:
-                    tags.append(render_blindado_tag(bv_text, "escape"))
+                    prot_badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>{escape(bv_text)}</span>"
+                    )
                 for tag in protection_tags:
-                    tone = "autoimmune" if tag.get("label") == "Autoimune" else ("leader" if tag.get("label") == "Líder" else "immune")
-                    tags.append(render_blindado_tag(tag.get("text", ""), tone))
-                tags_html = "".join(tags)
-                extra_badges = f"<div class='blindado-tag-list'>{tags_html}</div>" if tags_html else ""
+                    label = tag.get("label")
+                    tone_style = "background:#2d1b3f;color:#d9b3ff;" if label == "Líder" else "background:#123b2a;color:#8fe3b8;"
+                    prot_badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;{tone_style}'>{escape(tag.get('text', ''))}</span>"
+                    )
+                prot_badges_html = " ".join(prot_badges)
+                extra_badges = f"<div style='margin-top:3px;'>{prot_badges_html}</div>" if prot_badges_html else ""
 
                 return (
                     f'<div class="u-s056" style="align-items:flex-start;">'

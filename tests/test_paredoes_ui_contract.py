@@ -67,11 +67,32 @@ def test_index_keeps_restored_highlight_layout_hooks():
     assert "dashboard-card-header" in css
     assert "pair-story-card" in index
     assert "pair-story-card" in css
-    assert "ranking-column" in index
-    assert ".ranking-column" in css
-    assert "blindado-tag-list" in index
-    assert "blindado-tag" in css
-    assert "Autoimune" in index
+    assert "ranking-column" not in index
+    assert ".ranking-column" not in css
+    assert 'av(name, 42, "#27ae60")' in index
+    assert 'av(name, 42, "#e74c3c")' in index
+    assert "blindado-tag-list" not in index
+    assert "render_blindado_tag" not in index
+    assert "background:#1b3f5c;color:#9dd3ff;" in index
+    assert "background:#123b2a;color:#8fe3b8;" in index
+    assert "background:#2d1b3f;color:#d9b3ff;" in index
+    assert "blindado-tag" not in css
+    assert 'protection_tags = it.get("protection_tags", [])' in index
+    assert "tag.get('text', '')" in index
+    assert 'podium_positive = [p for p in podium_all if p["score"] > 0]' in index
+    assert "highlight-card-span-3" in index
+    assert ".highlight-card-span-3" in css
+    assert "width: 100%" in css
+    assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in css
+    assert "@media (max-width: 1100px)" in css
+    assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in css
+
+
+def test_index_places_paredao_before_ranking_in_highlight_order():
+    index = _read(INDEX_QMD)
+
+    assert '"paredao": 5' in index
+    assert '"ranking": 10' in index
 
 
 def test_backtest_explanation_uses_portuguese_label_with_stable_anchor():

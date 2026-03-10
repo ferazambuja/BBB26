@@ -98,3 +98,4 @@ def test_live_and_index_renderers_share_the_new_card_language(_repo_data):
     assert 'class="paredao-index-card' in index_html
     assert "Babu" in index_html
     assert 'href="paredoes.html#nosso-modelo-back-test"' in index_html
+    assert 'class="paredao-index-note' in index_html
