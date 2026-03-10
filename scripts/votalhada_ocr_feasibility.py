@@ -12,6 +12,7 @@ import csv
 import difflib
 import io
 import json
+from collections import Counter
 import re
 import subprocess
 import sys
@@ -584,6 +585,103 @@ def _extract_top_table_lines(image_path: Path) -> list[str]:
     return lines
 
 
+def _make_top_right_time_crop(
+    image_path: Path,
+    start_ratio: float = 0.14,
+    end_ratio: float = 0.44,
+    left_ratio: float = 0.66,
+    right_ratio: float = 0.98,
+) -> Path:
+    identify = subprocess.run(
+        ["magick", "identify", "-format", "%w %h", str(image_path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    width_str, height_str = identify.stdout.strip().split()
+    width, height = int(width_str), int(height_str)
+    top = int(height * start_ratio)
+    bottom = int(height * end_ratio)
+    left = int(width * left_ratio)
+    right = int(width * right_ratio)
+    crop_w = max(1, right - left)
+    crop_h = max(1, bottom - top)
+
+    with tempfile.NamedTemporaryFile(
+        prefix="ocr_top_right_time_",
+        suffix=".png",
+        dir=Path.cwd(),
+        delete=False,
+    ) as tmp:
+        out_path = Path(tmp.name)
+
+    subprocess.run(
+        [
+            "magick",
+            str(image_path),
+            "-crop",
+            f"{crop_w}x{crop_h}+{left}+{top}",
+            "+repage",
+            "-colorspace",
+            "Gray",
+            "-contrast-stretch",
+            "0x12%",
+            "-resize",
+            "280%",
+            str(out_path),
+        ],
+        check=True,
+    )
+    return out_path
+
+
+def _extract_top_right_hora_from_text(text: str) -> str | None:
+    candidates: list[str] = []
+    normalized = text.replace("\n", " ")
+
+    for m in re.finditer(r"(?<!\d)(\d{1,2})\s*[:hH]\s*(\d{2})(?!\d)", normalized):
+        token = f"{int(m.group(1)):02d}:{m.group(2)}"
+        norm = _normalize_hora_token(token)
+        if norm:
+            candidates.append(norm)
+
+    for m in re.finditer(r"(?<!\d)(\d{3,4})(?!\d)", normalized):
+        norm = _normalize_hora_token(m.group(1))
+        if norm:
+            candidates.append(norm)
+
+    if not candidates:
+        return None
+
+    counts = Counter(candidates)
+    best = sorted(
+        counts.items(),
+        key=lambda item: (-item[1], SERIES_SCHEDULE_SLOTS.index(item[0]) if item[0] in SERIES_EXPECTED_SLOT_SET else 999),
+    )
+    return best[0][0]
+
+
+def extract_top_right_hora_from_image(image_path: Path) -> str | None:
+    temp_crop = _make_top_right_time_crop(image_path)
+    try:
+        texts = [
+            _run_tesseract_text(temp_crop, psm=7),
+            _run_tesseract_text(temp_crop, psm=6),
+            _run_tesseract_text(temp_crop, psm=13),
+        ]
+    finally:
+        temp_crop.unlink(missing_ok=True)
+
+    candidates = [t for t in (_extract_top_right_hora_from_text(text) for text in texts) if t]
+    if not candidates:
+        return None
+    counts = Counter(candidates)
+    return sorted(
+        counts.items(),
+        key=lambda item: (-item[1], SERIES_SCHEDULE_SLOTS.index(item[0]) if item[0] in SERIES_EXPECTED_SLOT_SET else 999),
+    )[0][0]
+
+
 def _make_bottom_table_crop(image_path: Path, top_ratio: float = 0.40) -> Path:
     identify = subprocess.run(
         ["magick", "identify", "-format", "%w %h", str(image_path)],
@@ -1107,7 +1205,22 @@ def parse_consolidado_snapshot(
         series = _coerce_single_row_series_date_from_image(series, source_image)
     series, time_corrections, time_warnings = _apply_series_time_sanity(series, participants)
 
-    capture_hora = series[-1]["hora"] if series else None
+    capture_hora_bottom = series[-1]["hora"] if series else None
+    capture_hora_top_time = extract_top_right_hora_from_image(source_image) if source_image is not None else None
+    capture_hora_top: str | None = None
+    if capture_hora_top_time:
+        if capture_hora_bottom and " " in capture_hora_bottom:
+            capture_hora_top = f"{capture_hora_bottom.split()[0]} {capture_hora_top_time}"
+        else:
+            capture_hora_top = capture_hora_top_time
+
+    capture_hora_conflict = bool(
+        capture_hora_top
+        and capture_hora_bottom
+        and capture_hora_top.split()[-1] != capture_hora_bottom.split()[-1]
+    )
+    capture_hora_resolved = capture_hora_bottom or capture_hora_top
+    capture_hora = capture_hora_resolved
 
     if not cons_from_row:
         if series:
@@ -1138,6 +1251,10 @@ def parse_consolidado_snapshot(
             participants[2]: cons_vals[2],
             "total_votos": cons_votes,
         },
+        "capture_hora_top": capture_hora_top,
+        "capture_hora_bottom": capture_hora_bottom,
+        "capture_hora_resolved": capture_hora_resolved,
+        "capture_hora_conflict": capture_hora_conflict,
         "plataformas": plataformas_payload,
         "serie_temporal": series,
         "time_corrections": time_corrections,
@@ -1160,6 +1277,9 @@ def validate_snapshot(
     consolidado = parsed.get("consolidado", {})
     plataformas = parsed.get("plataformas", {})
     serie = parsed.get("serie_temporal", [])
+    capture_hora_top = parsed.get("capture_hora_top")
+    capture_hora_bottom = parsed.get("capture_hora_bottom")
+    capture_hora_conflict = bool(parsed.get("capture_hora_conflict"))
 
     # Sum checks.
     cons_sum = sum(float(consolidado.get(name, 0.0)) for name in participants)
@@ -1193,6 +1313,11 @@ def validate_snapshot(
         for plat_name in platform_keys:
             if name not in plataformas.get(plat_name, {}):
                 errors.append(f"missing participant in {plat_name}: {name}")
+
+    if capture_hora_conflict:
+        errors.append(
+            f"capture_hora mismatch: top={capture_hora_top} vs bottom={capture_hora_bottom}"
+        )
 
     # Time-series monotonic votes.
     if serie:

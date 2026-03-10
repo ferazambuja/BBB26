@@ -5,10 +5,12 @@ from pathlib import Path
 import pytest
 
 from votalhada_ocr_feasibility import (
+    _extract_top_right_hora_from_text,
     _apply_series_time_sanity,
     _clean_series_rows,
     _run_tesseract_text,
     classify_ocr_text,
+    extract_top_right_hora_from_image,
     extract_series_rows_from_image,
     parse_consolidado_snapshot,
     select_best_consolidado_image,
@@ -242,8 +244,18 @@ def test_parse_consolidado_snapshot_extracts_expected_fields():
     assert len(parsed["serie_temporal"]) == 3
     assert parsed["serie_temporal"][-1]["hora"] == "03/mar 18:00"
     assert parsed["capture_hora"] == "03/mar 18:00"
+    assert parsed["capture_hora_top"] is None
+    assert parsed["capture_hora_bottom"] == "03/mar 18:00"
+    assert parsed["capture_hora_resolved"] == "03/mar 18:00"
+    assert parsed["capture_hora_conflict"] is False
     assert "time_corrections" in parsed
     assert "time_warnings" in parsed
+
+
+def test_extract_top_right_hora_from_text_normalizes_common_patterns():
+    assert _extract_top_right_hora_from_text("08:00") == "08:00"
+    assert _extract_top_right_hora_from_text(" 8h00 ") == "08:00"
+    assert _extract_top_right_hora_from_text("0800") == "08:00"
 
 
 def test_validate_snapshot_accepts_valid_data():
@@ -263,6 +275,17 @@ def test_validate_snapshot_rejects_non_monotonic_series_votes():
     errors = validate_snapshot(parsed, participants)
 
     assert any("non-monotonic" in e for e in errors)
+
+
+def test_validate_snapshot_rejects_capture_hora_conflict():
+    participants = ["Alberto Cowboy", "Breno", "Jordana"]
+    parsed = parse_consolidado_snapshot(SAMPLE_CONSOLIDADO_OCR, participants)
+    parsed["capture_hora_top"] = "03/mar 08:00"
+    parsed["capture_hora_bottom"] = "03/mar 18:00"
+    parsed["capture_hora_conflict"] = True
+
+    errors = validate_snapshot(parsed, participants)
+    assert any("capture_hora mismatch" in e for e in errors)
 
 
 def test_validate_snapshot_rejects_bad_consolidado_sum():
@@ -603,3 +626,46 @@ def test_regression_2026_02_17_keeps_real_22_00_slot():
 
     horas = [row["hora"] for row in parsed["serie_temporal"]]
     assert "15/fev 22:00" in horas
+
+
+def test_extract_top_right_hora_from_real_2026_03_10_11_06_image():
+    image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-10_11-06-00.png")
+    if not image.exists():
+        pytest.skip("Regression image 2026-03-10 11:06 not available")
+
+    hora = extract_top_right_hora_from_image(image)
+    assert hora == "08:00"
+
+
+def test_regression_2026_03_10_11_06_flags_capture_hora_conflict():
+    image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-10_11-06-00.png")
+    if not image.exists():
+        pytest.skip("Regression image 2026-03-10 11:06 not available")
+
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    text = _run_tesseract_text(image, psm=6)
+    alt = _run_tesseract_text(image, psm=4)
+    parsed = parse_consolidado_snapshot(text, participants, alt_text=alt, source_image=image)
+    errors = validate_snapshot(parsed, participants)
+
+    assert parsed["capture_hora_top"] == "10/mar 08:00"
+    assert parsed["capture_hora_bottom"] == "10/mar 22:00"
+    assert parsed["capture_hora_conflict"] is True
+    assert any("capture_hora mismatch" in e for e in errors)
+
+
+def test_regression_2026_03_10_16_06_flags_capture_hora_conflict():
+    image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-10_16-06-00.png")
+    if not image.exists():
+        pytest.skip("Regression image 2026-03-10 16:06 not available")
+
+    participants = ["Babu Santana", "Chaiany", "Milena"]
+    text = _run_tesseract_text(image, psm=6)
+    alt = _run_tesseract_text(image, psm=4)
+    parsed = parse_consolidado_snapshot(text, participants, alt_text=alt, source_image=image)
+    errors = validate_snapshot(parsed, participants)
+
+    assert parsed["capture_hora_top"] == "10/mar 12:00"
+    assert parsed["capture_hora_bottom"] == "10/mar 23:30"
+    assert parsed["capture_hora_conflict"] is True
+    assert any("capture_hora mismatch" in e for e in errors)

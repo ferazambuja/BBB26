@@ -200,8 +200,8 @@ def _build_active_fact_lines(nominees: list[dict], vote_mode: str) -> list[str]:
         gap = abs((lead.get("model_pct") or 0.0) - (runner.get("model_pct") or 0.0))
         if gap < 2.0:
             facts.append(
-                f"Empate técnico no Nosso Modelo: {lead['first_name']} {lead['model_pct']:.1f}% "
-                f"vs {runner['first_name']} {runner['model_pct']:.1f}%."
+                f"Empate técnico no Nosso Modelo: {lead['first_name']} {lead['model_pct']:.2f}% "
+                f"vs {runner['first_name']} {runner['model_pct']:.2f}%."
             )
         elif vote_mode == "save":
             facts.append(
@@ -244,8 +244,8 @@ def _build_memory_line(payload_nominees: list[dict], model_prediction: dict | No
         return None
     pct = prediction[selected]
     if vote_mode == "save":
-        return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.1f}% para seguir no jogo."
-    return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.1f}%."
+        return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.2f}% para seguir no jogo."
+    return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.2f}%."
 
 
 def build_paredao_card_payload(
@@ -358,13 +358,13 @@ def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, comp
     avatar_size = 52 if compact else 72
     pct = nominee.get("display_pct")
     pct_html = (
-        f'<div class="paredao-card-pct">{pct:.1f}%</div>'
+        f'<div class="paredao-card-pct">{pct:.2f}%</div>'
         if pct is not None else '<div class="paredao-card-pct paredao-card-pct--empty">—</div>'
     )
     width = max(0.0, min(100.0, pct if pct is not None else 0.0))
     bar_html = (
         f'<div class="paredao-card-bar-track"><div class="paredao-card-bar-fill" '
-        f'style="width:{width:.1f}%; background:{nominee["accent_color"]};"></div></div>'
+        f'style="width:{width:.2f}%; background:{nominee["accent_color"]};"></div></div>'
         if pct is not None else ""
     )
     chip_html = ""
@@ -537,7 +537,7 @@ def render_nominee_cards_em_andamento(
         # Prediction percentage + bar
         if poll_predictions and pct > 0:
             bar_color = accent
-            lines.append(f'<div class="fs-2xl" style="font-weight:bold; color:{accent}; margin:0.2rem 0;">{pct:.1f}%</div>')
+            lines.append(f'<div class="fs-2xl" style="font-weight:bold; color:{accent}; margin:0.2rem 0;">{pct:.2f}%</div>')
             lines.append(f'<div style="background:rgba(255,255,255,0.1); border-radius:4px; height:6px; width:100%; margin:0.2rem 0;">')
             lines.append(f'<div style="background:{bar_color}; height:100%; border-radius:4px; width:{min(pct, 100):.0f}%;"></div>')
             lines.append(f'</div>')
@@ -613,7 +613,7 @@ def render_nominee_cards_finalized(
             lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
         lines.append(f'<div class="fs-base" style="font-weight:bold; color:#fff; margin-bottom:0.3rem;">{first_name}</div>')
         lines.append(f'<span class="fs-2xs" style="display:inline-block; padding:0.2rem 0.5rem; background:{badge_bg}; color:#fff; border-radius:8px; font-weight:bold;">{badge_text}</span>')
-        lines.append(f'<div class="fs-2xl" style="color:#fff; font-weight:bold; margin-top:0.3rem;">{voto_total:.1f}%</div>')
+        lines.append(f'<div class="fs-2xl" style="color:#fff; font-weight:bold; margin-top:0.3rem;">{voto_total:.2f}%</div>')
         lines.append('</div>')
     lines.append('</div>')
     return '\n'.join(lines)
@@ -688,7 +688,7 @@ def _format_short_date(date_str: str | None) -> str:
 def _format_pct(value: float | int | None) -> str:
     if value is None:
         return "0,0"
-    return f"{float(value):.1f}".replace(".", ",")
+    return f"{float(value):.2f}".replace(".", ",")
 
 
 def _next_day_short(date_str: str | None) -> str:
@@ -881,7 +881,7 @@ def render_featured_story(story: dict | None) -> str:
         lines.append('<div class="paredao-spotlight-grid">')
         lines.append('<div class="paredao-spotlight-card">')
         lines.append('<div class="paredao-spotlight-card-title">Milena como alvo direto</div>')
-        lines.append(f'<div class="paredao-spotlight-metric">{combined_power.get("toward_target_pct", 0):.1f}%</div>')
+        lines.append(f'<div class="paredao-spotlight-metric">{combined_power.get("toward_target_pct", 0):.2f}%</div>')
         lines.append(
             f'<div class="paredao-spotlight-note">{combined_power.get("toward_target", 0)} de '
             f'{combined_power.get("total", 0)} decisões negativas de Alberto e Jonas miraram diretamente em Milena.</div>'
@@ -889,7 +889,7 @@ def render_featured_story(story: dict | None) -> str:
         lines.append('</div>')
         lines.append('<div class="paredao-spotlight-card">')
         lines.append('<div class="paredao-spotlight-card-title">Milena ou Ana Paula</div>')
-        lines.append(f'<div class="paredao-spotlight-metric">{combined_power.get("toward_target_or_ally_pct", 0):.1f}%</div>')
+        lines.append(f'<div class="paredao-spotlight-metric">{combined_power.get("toward_target_or_ally_pct", 0):.2f}%</div>')
         lines.append(
             f'<div class="paredao-spotlight-note">{combined_power.get("toward_target_or_ally", 0)} de '
             f'{combined_power.get("total", 0)} decisões negativas foram contra Milena ou Ana Paula, o eixo mais próximo dela no jogo.</div>'

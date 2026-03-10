@@ -1163,7 +1163,7 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
             name=nome.split()[0],
             line=dict(width=2 if compact else 3, color=nominee_colors[nome]),
             marker=dict(size=4 if compact else 6),
-            hovertemplate=f'{nome}: ' + '%{y:.1f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
+            hovertemplate=f'{nome}: ' + '%{y:.2f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
         ))
 
     if resultado_real:
@@ -1173,7 +1173,7 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
                 fig.add_hline(
                     y=real_val, line_dash='dash', line_width=1,
                     line_color=nominee_colors.get(nome, '#888'),
-                    annotation_text=f"Real: {real_val:.1f}%",
+                    annotation_text=f"Real: {real_val:.2f}%",
                     annotation_position='right',
                     annotation_font=dict(size=9, color=nominee_colors.get(nome, '#888')),
                 )
