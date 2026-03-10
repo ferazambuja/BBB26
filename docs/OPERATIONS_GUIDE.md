@@ -803,13 +803,20 @@ From the OCR output JSON:
 - `validation_errors` must be empty
 - `parsed.serie_temporal` must be non-empty
 - `parsed.capture_hora` must exist
+- inspect `parsed.time_corrections` and `parsed.time_warnings` (report them in update notes)
 
 Current parser safeguards for known Votalhada card quirks:
 - Platform sums allow small display-rounding drift (up to ~`0.60`), because some source cards visibly round to values like `100.55` or `100.37` on YouTube.
 - If a series row has valid date/time + 3 percentages but OCR misses the rightmost votes cell, parser backfills votes from consolidado/platform totals.
 - For single-row fallback captures, parser uses the image filename date (`YYYY-MM-DD`) to correct clearly noisy OCR day/month tokens.
+- For suspicious rollover OCR slips (`03:00`/`03:30`), parser applies guarded repair to `08:00`/`08:30` and logs it under `time_corrections`.
 
 If any validation error appears, stop and inspect with vision before editing `data/votalhada/polls.json`.
+
+Time sanity checklist before applying:
+- `capture_hora` must match the latest bottom-table row and the top-right hour on the selected consolidado card.
+- repeated `HH:MM` across different days is valid (do not collapse by time-only).
+- if `time_corrections` is non-empty, verify corrected rows with vision before writing `polls.json`.
 
 ### 4. Historical series handling (critical for next week)
 
