@@ -491,6 +491,10 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
 
     v_avatar = avatar_img(v_name, avatars, 58, border_color="#9b59b6") if v_name != "—" else ""
     m_avatar = avatar_img(m_name, avatars, 58, border_color="#00bc8c") if m_name != "—" else ""
+    votalhada_line = (
+        '<a class="poll-compare-trust is-votalhada" href="paredoes.html#precisão-das-enquetes-votalhada">'
+        'Ver precisão histórica →</a>'
+    )
     trust_line = (
         '<a class="poll-compare-trust" href="paredoes.html#nosso-modelo-back-test">'
         'Ver teste retrospectivo →</a>'
@@ -548,6 +552,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'<div class="poll-compare-side is-votalhada">'
         f'<div class="poll-compare-brand">📊 VOTALHADA</div>'
         f'<div class="poll-compare-blurb">Média por volume de votos das fontes.</div>'
+        f'{votalhada_line}'
         f'<div class="poll-compare-winner">{v_avatar}<div>'
         f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
         f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
