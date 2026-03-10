@@ -813,11 +813,6 @@ Current parser safeguards for known Votalhada card quirks:
 - For single-row fallback captures, parser uses the image filename date (`YYYY-MM-DD`) to correct clearly noisy OCR day/month tokens.
 - For suspicious rollover OCR slips (`03:00`/`03:30`), parser applies guarded repair to `08:00`/`08:30` and logs it under `time_corrections`.
 
-Current parser safeguards for known Votalhada card quirks:
-- Platform sums allow small display-rounding drift (up to ~`0.60`), because some source cards visibly round to values like `100.55` or `100.37` on YouTube.
-- If a series row has valid date/time + 3 percentages but OCR misses the rightmost votes cell, parser backfills votes from consolidado/platform totals.
-- For single-row fallback captures, parser uses the image filename date (`YYYY-MM-DD`) to correct clearly noisy OCR day/month tokens.
-
 If any validation error appears, stop and inspect with vision before editing `data/votalhada/polls.json`.
 
 Time sanity checklist before applying:
