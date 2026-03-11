@@ -476,7 +476,10 @@ if ultimo:
             _coleta_time = poll.get("data_coleta", "?")[11:16] if len(poll.get("data_coleta", "")) > 11 else ""
             total_votos = consolidado.get('total_votos', 0)
             total_str = f"{total_votos:,.0f}".replace(',', '.')
+            _methodology_note = poll.get("metodologia", {}).get("disclaimer_publico")
             print(f'<p class="text-muted fs-base">Coleta: {_coleta_date} {_coleta_time} · {total_str} votos · Fonte: <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a></p>\n')
+            if _methodology_note:
+                print(f'<p class="text-warning small u-s002">⚠️ {_methodology_note}</p>\n')
 
             # Compute precision model prediction
             _prec = calculate_precision_weights(polls_data)

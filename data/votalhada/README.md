@@ -4,6 +4,14 @@
 
 [Votalhada](https://votalhada.blogspot.com/) is a Brazilian blog that aggregates poll results from multiple platforms (websites, Twitter/X, YouTube, Instagram) during BBB paredões. They collect data from dozens of sources and compute weighted averages to predict elimination results.
 
+## Temporary Policy — 2026-03-10
+
+As of **March 10, 2026** (`10/mar 21:00` BRT), Votalhada changed the final poll card:
+- removed the historical timed series from the final summary card
+- replaced the old vote-weighted consolidado with `MÉDIA FINAL PONDERADA (0,3 x 0,7)`
+
+For this week, OCR feasibility is **paused for operational updates**. Use **vision/manual extraction** from the visible card values and recompute the consolidado with the **previous Votalhada formula**: weighted average by platform vote count. If needed, append a **synthetic series row** for the visible capture time.
+
 ## Quick Workflow
 
 **Option A — Manual fetch + latest-capture OCR gate (recommended)**
@@ -66,7 +74,7 @@ This mode intentionally audits older noisy/conflicted captures too. Use it to im
 2. `votalhada_auto_update.py --dry-run`
 3. `votalhada_auto_update.py --apply --build`
 
-The local scheduler is disabled by default.
+The local scheduler is disabled by default. For the current week, prefer **vision/manual extraction** over OCR for the final card.
 
 If a local scheduler is running, stop it:
 
@@ -95,7 +103,7 @@ Votalhada typically updates images at **Monday** 1:00, 8:00, 12:00, 15:00, 18:00
 python scripts/fetch_votalhada_images.py --paredao N
 ```
 
-### Step 2: Run latest-capture OCR gate
+### Step 2: OCR gate or temporary manual fallback
 
 ```bash
 python scripts/votalhada_auto_update.py \
@@ -112,6 +120,13 @@ Latest-capture gate behavior:
 4. Validates sums/totals/monotonic series before output
 
 Fallback parser behavior (`votalhada_ocr_feasibility.py`) remains available for debugging.
+
+Temporary fallback for the current formula/layout change:
+- inspect the latest final card visually
+- capture the platform rows (`Sites`, `YouTube`, `Twitter`, `Instagram`)
+- ignore the displayed `0,3 x 0,7` formula for now
+- recompute the consolidado with the previous vote-weighted method
+- add a synthetic `serie_temporal` row when the final card no longer includes the timed table
 
 Dry-run acceptance criteria:
 
@@ -255,7 +270,7 @@ print([i['nome'] for i in par['indicados_finais']])
 
 When handling Votalhada OCR:
 
-1. Prefer `scripts/votalhada_ocr_feasibility.py` output over manual transcription.
+1. Temporary override for week 8 final capture: prefer vision/manual extraction over OCR when the final Votalhada card uses `0,3 x 0,7` and omits the timed series.
 2. Use only the selected consolidado image for extraction (same file for top and bottom crops).
 3. Accept dynamic schema variants:
    - 3-platform rows

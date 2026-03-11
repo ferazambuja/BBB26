@@ -732,6 +732,13 @@ Before each elimination (~21h BRT), collect poll data from [Votalhada](https://v
 
 Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
 
+**Temporary OCR feasibility note (March 10, 2026):**
+- the latest Votalhada final card removed the timed series table
+- the latest Votalhada final card switched to `MÉDIA FINAL PONDERADA (0,3 x 0,7)`
+- for this week, operational updates should use **vision/manual extraction**
+- recompute the consolidado with the **previous** Votalhada formula: weighted average by platform vote count
+- if you need the latest time point in `serie_temporal`, append a **synthetic row** based on the visible final card values
+
 **Current ops policy**: use manual fetches/updates. The default production flow is:
 
 1. `fetch_votalhada_images.py`
@@ -798,7 +805,7 @@ python scripts/votalhada_platform_consistency_audit.py \
   --output tmp/votalhada_ocr/platform_consistency_latest.json
 ```
 
-### 2. Run latest-capture OCR gate (recommended)
+### 2. Run latest-capture OCR gate (recommended when layout is stable)
 
 Preferred validate-only command:
 
@@ -821,6 +828,8 @@ Review the dry-run output before applying:
 - `gate_errors` must be empty
 - `parsed.capture_hora` must exist
 - `parsed.serie_temporal` must be non-empty
+
+If the final card has the new `0,3 x 0,7` layout and no timed series table, do **not** trust OCR operationally for that capture. Switch to vision/manual extraction and recompute the legacy vote-weighted consolidado instead.
 
 ### 3. Apply and rebuild
 
@@ -905,6 +914,10 @@ Current parser safeguards for known Votalhada card quirks:
 - If a series row has valid date/time + 3 percentages but OCR misses the rightmost votes cell, parser backfills votes from consolidado/platform totals.
 - For single-row fallback captures, parser uses the image filename date (`YYYY-MM-DD`) to correct clearly noisy OCR day/month tokens.
 - For suspicious rollover OCR slips (`03:00`/`03:30`), parser applies guarded repair to `08:00`/`08:30` and logs it under `time_corrections`.
+
+Current limitation:
+- the parser and gating flow still assume the older final-card layout with a timed series table
+- if Votalhada keeps the `0,3 x 0,7` final card next week, OCR logic will need rework before it becomes the operational source of truth again
 
 If any validation error appears, stop and inspect with vision before editing `data/votalhada/polls.json`.
 

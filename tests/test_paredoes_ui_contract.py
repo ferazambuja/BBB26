@@ -141,3 +141,15 @@ def test_paredoes_tabs_include_current_open_week():
     content = _read(PAREDOES_QMD)
     assert "paredoes_visiveis = [p for p in paredoes if p.get('status') in ('finalizado', 'em_andamento')]" in content
     assert "for i, paredao in enumerate(reversed(paredoes_visiveis))" in content
+
+
+def test_paredao_and_archive_pages_have_votalhada_formula_change_disclaimer_hooks():
+    live = _read(PAREDAO_QMD)
+    archive = _read(PAREDOES_QMD)
+
+    assert 'poll.get("metodologia", {}).get("disclaimer_publico")' in live
+    assert "0,3 x 0,7" in live
+    assert "fórmula anterior" in live
+    assert "10 de março de 2026" in archive
+    assert "0,3 x 0,7" in archive
+    assert "fórmula anterior" in archive

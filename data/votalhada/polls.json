@@ -1000,46 +1000,47 @@
     {
       "numero": 8,
       "data_paredao": "2026-03-10",
-      "data_coleta": "2026-03-10T18:00:00-03:00",
+      "data_coleta": "2026-03-10T21:00:00-03:00",
       "participantes": [
         "Babu Santana",
         "Chaiany",
         "Milena"
       ],
       "consolidado": {
-        "Babu Santana": 54.73,
-        "Chaiany": 2.68,
-        "Milena": 42.67,
-        "total_votos": 8706603,
-        "predicao_eliminado": "Babu Santana"
+        "Babu Santana": 54.22,
+        "Chaiany": 2.63,
+        "Milena": 43.23,
+        "total_votos": 9032157,
+        "predicao_eliminado": "Babu Santana",
+        "nota": "Temporariamente recalculado com a fórmula anterior do Votalhada (média ponderada pelo número de votos por plataforma); o card exibido pelo Votalhada passou a mostrar '0,3 x 0,7' em 10/mar/2026."
       },
       "plataformas": {
         "sites": {
-          "Babu Santana": 44.23,
-          "Chaiany": 1.6,
-          "Milena": 54.18,
-          "votos": 4549561,
+          "Babu Santana": 43.78,
+          "Chaiany": 1.55,
+          "Milena": 54.67,
+          "votos": 4821587,
           "fontes_count": 14
         },
         "youtube": {
-          "Babu Santana": 57.58,
+          "Babu Santana": 57.63,
           "Chaiany": 4.58,
-          "Milena": 38.29,
-          "votos": 1678900,
+          "Milena": 38.24,
+          "votos": 1720500,
           "fontes_count": 24
         },
         "twitter": {
           "Babu Santana": 77.77,
           "Chaiany": 8.75,
           "Milena": 13.49,
-          "votos": 585058,
+          "votos": 587599,
           "fontes_count": 20
         },
         "instagram": {
           "Babu Santana": 70.33,
           "Chaiany": 1.73,
           "Milena": 27.93,
-          "votos": 1893084,
+          "votos": 1902471,
           "fontes_count": 14
         }
       },
@@ -1099,8 +1100,23 @@
           "Chaiany": 2.68,
           "Milena": 42.67,
           "votos": 8706603
+        },
+        {
+          "hora": "10/mar 21:00",
+          "Babu Santana": 54.22,
+          "Chaiany": 2.63,
+          "Milena": 43.23,
+          "votos": 9032157
         }
       ],
+      "metodologia": {
+        "modo": "manual_vision_legacy_weighted",
+        "disclaimer_publico": "Em 10 de março de 2026, o Votalhada passou a exibir uma nova 'Média Final Ponderada (0,3 x 0,7)' e removeu a série horária do card final. Temporariamente, este site mantém a fórmula anterior, ponderada pelo número de votos de cada plataforma, enquanto analisamos a mudança.",
+        "formula_votalhada_exibida": "0,3 x 0,7: 0,3 * Sites + 0,7 * média simples de YouTube, Twitter e Instagram",
+        "formula_nossa": "Média ponderada pelo número de votos de cada plataforma (fórmula anterior do Votalhada)",
+        "coleta_modo": "visao_manual",
+        "serie_temporal": "Linha sintética 10/mar 21:00 calculada com a fórmula anterior a partir dos valores visíveis no card final."
+      },
       "imagens": [
         "data/votalhada/2026_03_08/consolidados_2026-03-09_06-40.png",
         "data/votalhada/2026_03_08/consolidados_2_2026-03-09_06-40.png",
@@ -1141,7 +1157,12 @@
         "data/votalhada/2026_03_08/consolidados_2_2026-03-10_21-06-00.png",
         "data/votalhada/2026_03_08/consolidados_3_2026-03-10_21-06-00.png",
         "data/votalhada/2026_03_08/consolidados_4_2026-03-10_21-06-00.png",
-        "data/votalhada/2026_03_08/consolidados_5_2026-03-10_21-06-00.png"
+        "data/votalhada/2026_03_08/consolidados_5_2026-03-10_21-06-00.png",
+        "data/votalhada/2026_03_08/consolidados_2026-03-11_00-37-24.png",
+        "data/votalhada/2026_03_08/consolidados_2_2026-03-11_00-37-24.png",
+        "data/votalhada/2026_03_08/consolidados_3_2026-03-11_00-37-24.png",
+        "data/votalhada/2026_03_08/consolidados_4_2026-03-11_00-37-24.png",
+        "data/votalhada/2026_03_08/consolidados_5_2026-03-11_00-37-24.png"
       ],
       "fontes": [
         "https://votalhada.blogspot.com/2026/03/pesquisa8.html"
