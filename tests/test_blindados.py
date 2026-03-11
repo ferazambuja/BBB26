@@ -325,6 +325,109 @@ class TestNominationClassification:
         assert by_d["X"] == 1
 
 
+class TestVisadosAndDisplayLimitContract:
+    def _build_ctx(self):
+        active_set = {"Ana", "Breno", "Caio", "Duda", "Eva", "Fabi"}
+        paredoes = [
+            {
+                "numero": 1,
+                "formacao": {"lider": "Eva", "bate_volta": {"vencedor": "Breno"}},
+                "indicados_finais": [
+                    {"nome": "Ana", "como": "Casa (3 votos)"},
+                    {"nome": "Caio", "como": "Líder"},
+                ],
+                "votos_casa": {"V1": "Ana", "V2": "Ana", "V3": "Duda", "V4": "Caio"},
+            },
+            {
+                "numero": 2,
+                "formacao": {"lider": "Ana", "bate_volta": {"vencedor": "Eva"}},
+                "indicados_finais": [
+                    {"nome": "Caio", "como": "Casa (4 votos)"},
+                    {"nome": "Duda", "como": "Contragolpe"},
+                ],
+                "votos_casa": {"V1": "Caio", "V2": "Caio", "V3": "Caio", "V4": "Ana"},
+            },
+            {
+                "numero": 3,
+                "paredao_falso": True,
+                "formacao": {"lider": "Breno"},
+                "indicados_finais": [
+                    {"nome": "Ana", "como": "Casa (2 votos)"},
+                    {"nome": "Duda", "como": "Líder"},
+                ],
+                "votos_casa": {"V1": "Ana", "V2": "Duda", "V3": "Duda"},
+            },
+        ]
+        return {"active_set": active_set, "paredoes": {"paredoes": paredoes}}
+
+    def test_blindados_items_respect_display_limit(self):
+        _highlights, cards = _compute_static_cards(self._build_ctx())
+        blindados = next(card for card in cards if card.get("type") == "blindados")
+        assert blindados["items"] == blindados["items_all"][: blindados["display_limit"]]
+        assert len(blindados["items"]) <= blindados["display_limit"]
+        assert len(blindados["items_all"]) == len(self._build_ctx()["active_set"])
+
+    def test_visados_card_exists_with_expected_shape(self):
+        _highlights, cards = _compute_static_cards(self._build_ctx())
+        visados = next(card for card in cards if card.get("type") == "visados")
+        assert visados["display_limit"] == 4
+        assert visados["items"] == visados["items_all"][: visados["display_limit"]]
+        assert len(visados["items_all"]) == len(self._build_ctx()["active_set"])
+        required = {
+            "name",
+            "paredao",
+            "bv_escapes",
+            "votes_total",
+            "votes_recent",
+            "votes_available",
+            "available",
+            "intensity_prevote",
+            "by_lider",
+            "by_casa",
+            "by_dynamic",
+            "nom_text",
+            "fake_paredao_count",
+            "fake_paredao_nums",
+            "total",
+        }
+        for item in visados["items_all"]:
+            missing = required - set(item.keys())
+            assert not missing, f"{item['name']} missing fields: {missing}"
+
+    def test_visados_sort_order_deterministic(self):
+        _highlights, cards = _compute_static_cards(self._build_ctx())
+        visados = next(card for card in cards if card.get("type") == "visados")
+        items = visados["items_all"]
+        for i in range(len(items) - 1):
+            a, b = items[i], items[i + 1]
+            key_a = (
+                -a["paredao"],
+                -a["bv_escapes"],
+                -a["votes_recent"],
+                -a["intensity_prevote"],
+                -a["votes_total"],
+                a["name"],
+            )
+            key_b = (
+                -b["paredao"],
+                -b["bv_escapes"],
+                -b["votes_recent"],
+                -b["intensity_prevote"],
+                -b["votes_total"],
+                b["name"],
+            )
+            assert key_a <= key_b, f"Sort violation: {a['name']} should come before {b['name']}"
+
+    def test_visados_marks_fake_paredao_cycles(self):
+        _highlights, cards = _compute_static_cards(self._build_ctx())
+        visados = next(card for card in cards if card.get("type") == "visados")
+        by_name = {it["name"]: it for it in visados["items_all"]}
+        assert by_name["Ana"]["fake_paredao_count"] == 1
+        assert by_name["Ana"]["fake_paredao_nums"] == [3]
+        assert by_name["Duda"]["fake_paredao_count"] == 1
+        assert by_name["Duda"]["fake_paredao_nums"] == [3]
+
+
 # ── Contract test (uses real data if available) ──────────────────────────────
 
 class TestBlindadosContract:

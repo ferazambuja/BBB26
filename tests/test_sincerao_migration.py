@@ -780,3 +780,41 @@ class TestProfileSincerao_Contract:
             assert "bombas" not in sinc
             assert "all_interactions" not in sinc
             assert "sinc_contra" not in prof  # moved into sincerao.summary
+
+
+class TestStaticCardOrderingContract:
+    def test_visados_renders_after_blindados(self):
+        from builders.index_data_builder import build_index_data
+
+        data = build_index_data()
+        cards = data.get("highlights", {}).get("cards", [])
+        types = [c.get("type") for c in cards]
+        if "blindados" not in types or "visados" not in types:
+            pytest.skip("blindados/visados cards not present")
+
+        blindados_idx = types.index("blindados")
+        visados_idx = types.index("visados")
+        assert visados_idx == blindados_idx + 1, (
+            f"visados must come immediately after blindados, got indexes "
+            f"{blindados_idx} and {visados_idx}"
+        )
+
+    def test_qmd_story_order_places_visados_after_blindados(self):
+        import re
+
+        qmd_path = Path(__file__).resolve().parents[1] / "index.qmd"
+        if not qmd_path.exists():
+            pytest.skip("index.qmd not available")
+        text = qmd_path.read_text(encoding="utf-8")
+        m = re.search(r"CARD_STORY_ORDER\s*=\s*\{(?P<body>.*?)\n\}", text, re.S)
+        assert m, "CARD_STORY_ORDER map not found in index.qmd"
+        body = m.group("body")
+        keys = re.findall(r'"([^"]+)"\s*:', body)
+        assert "blindados" in keys
+        assert "visados" in keys
+        blindados_idx = keys.index("blindados")
+        visados_idx = keys.index("visados")
+        assert visados_idx == blindados_idx + 1, (
+            f"index.qmd CARD_STORY_ORDER must place visados immediately after blindados; "
+            f"got {blindados_idx} and {visados_idx}"
+        )

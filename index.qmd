@@ -435,6 +435,7 @@ CARD_STORY_ORDER = {
     "sincerao": 50,
     "breaks": 70,
     "blindados": 80,
+    "visados": 85,
     "impact": 90,
     "positive_impact": 100,
     "vulnerability": 110,
@@ -1335,9 +1336,11 @@ else:
         # ── 🛡️ Mais Blindados ──
         elif ctype == "blindados":
             items = card.get("items", [])
+            items_all = card.get("items_all") or items
+            display_limit = int(card.get("display_limit") or len(items) or 5)
             n_par = card.get("n_paredoes", 1)
-            inline_items = items[:5]
-            overflow_items = items[5:]
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
 
             def _blindado_row(it: dict) -> str:
                 name = it["name"]
@@ -1357,16 +1360,19 @@ else:
                 prot_badges = []
                 if has_bv and bv_text:
                     prot_badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>{escape(bv_text)}</span>"
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>{escape(bv_text)}</span>"
                     )
                 for tag in protection_tags:
                     label = tag.get("label")
                     tone_style = "background:#2d1b3f;color:#d9b3ff;" if label == "Líder" else "background:#123b2a;color:#8fe3b8;"
                     prot_badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;{tone_style}'>{escape(tag.get('text', ''))}</span>"
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;{tone_style}white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>{escape(tag.get('text', ''))}</span>"
                     )
-                prot_badges_html = " ".join(prot_badges)
-                extra_badges = f"<div style='margin-top:3px;'>{prot_badges_html}</div>" if prot_badges_html else ""
+                prot_badges_html = "".join(prot_badges)
+                extra_badges = (
+                    f"<div style='margin-top:3px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;'>{prot_badges_html}</div>"
+                    if prot_badges_html else ""
+                )
 
                 return (
                     f'<div class="u-s056" style="align-items:flex-start;">'
@@ -1397,6 +1403,97 @@ else:
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais protegidos nas votações da casa. Menos paredões + mais proteções = mais blindado.")}
+{rows_html}
+</div>''')
+
+        # ── 🎯 Mais Visados ──
+        elif ctype == "visados":
+            items = card.get("items", [])
+            items_all = card.get("items_all") or items
+            display_limit = int(card.get("display_limit") or len(items) or 5)
+            n_par = card.get("n_paredoes", 1)
+            recent_window = card.get("recent_window", 3)
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
+            max_votes = max((it.get("votes_total", 0) for it in items_all), default=1) or 1
+
+            def _visado_row(it: dict) -> str:
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                paredao_count = it.get("paredao", 0)
+                votes_total = it.get("votes_total", 0)
+                votes_recent = it.get("votes_recent", 0)
+                intensity = float(it.get("intensity_prevote", 0.0))
+                bv_count = it.get("bv_escapes", 0)
+                fake_count = it.get("fake_paredao_count", 0)
+                fake_nums = it.get("fake_paredao_nums", [])
+                by_lider = it.get("by_lider", 0)
+                by_casa = it.get("by_casa", 0)
+                by_dynamic = it.get("by_dynamic", 0)
+
+                border = "#c0392b" if paredao_count >= 2 else ("#d35400" if votes_total >= 2 else "#8e44ad")
+                par_color = "#c0392b" if paredao_count >= 2 else ("#e67e22" if paredao_count == 1 else "#7f8c8d")
+                par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
+                bar_pct = min(100, votes_total / max_votes * 100) if max_votes > 0 else 0
+                intensity_pct = round(intensity * 100)
+
+                badges = []
+                if bv_count:
+                    badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Escapou Bate-Volta {bv_count}x</span>"
+                    )
+                if fake_count:
+                    fake_txt = ", ".join(f"{n}º" for n in fake_nums)
+                    badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Paredão falso {fake_count}x ({fake_txt})</span>"
+                    )
+                if by_lider:
+                    badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Líder {by_lider}x</span>"
+                    )
+                if by_casa:
+                    badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Casa {by_casa}x</span>"
+                    )
+                if by_dynamic:
+                    badges.append(
+                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Dinâmica {by_dynamic}x</span>"
+                    )
+                badges_html = "".join(badges)
+                extra_badges = (
+                    f"<div style='margin-top:3px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;'>{badges_html}</div>"
+                    if badges_html else ""
+                )
+
+                return (
+                    f'<div class="u-s056" style="align-items:flex-start;">'
+                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    f'<span class="fs-sm" style="color:{par_color};font-weight:700;">{par_label}</span>'
+                    f'</div>'
+                    f'<div class="u-s014">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e67e22;border-radius:3px;"></div>'
+                    f'</div>'
+                    f'<div class="fs-2xs" style="color:#888;">{votes_total} voto{"s" if votes_total != 1 else ""} total · {votes_recent} recente{"s" if votes_recent != 1 else ""} ({recent_window} ciclos) · intensidade {intensity_pct}%</div>'
+                    f'{extra_badges}'
+                    f'</div></div>'
+                )
+
+            rows_html = '<div class="u-s058">'
+            rows_html += "".join(_visado_row(it) for it in inline_items)
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s058">{"".join(_visado_row(it) for it in overflow_items)}</div>'
+                    f'</details>'
+                )
+            rows_html += '</div>'
+
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais pressionados por paredão, votos recentes e intensidade de votos quando elegíveis.")}
 {rows_html}
 </div>''')
 
