@@ -41,7 +41,10 @@ from data_utils import (
     avatar_html,
     avatar_img,
     get_nominee_badge,
+    group_cronologia_events,
     render_cronologia_html,
+    render_cronologia_mobile_review_html,
+    render_cronologia_variant,
     normalize_actors,
     patch_missing_raio_x,
     # Poll/prediction
@@ -972,6 +975,102 @@ class TestRenderCronologiaHtml:
         idx_w2 = html.index("Semana 2")
         idx_w1 = html.index("Semana 1")
         assert idx_w2 < idx_w1  # Week 2 before Week 1
+
+    def test_live_cronologia_html_combines_desktop_baseline_and_mobile_open_variant(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Jordana escolhe o veto",
+                "detail": "Ficou com R$ 20 mil, abriu mão da informação privilegiada e vetou Ana Paula.",
+            }
+        ]
+
+        html = render_cronologia_html(events)
+
+        assert 'cronologia-live-desktop' in html
+        assert 'cronologia-live-mobile' in html
+        assert 'cronologia-mobile-table--open' in html
+        assert html.count("Jordana escolhe o veto") == 2
+
+    def test_group_cronologia_events_orders_weeks_dates_and_events_descending(self):
+        events = [
+            {"date": "2026-01-13", "week": 1, "category": "entrada", "title": "Older Week", "detail": "", "emoji": ""},
+            {"date": "2026-01-20", "week": 2, "category": "lider", "title": "First Day Early", "detail": "", "emoji": ""},
+            {"date": "2026-01-20", "week": 2, "category": "lider", "title": "First Day Late", "detail": "", "emoji": ""},
+            {"date": "2026-01-21", "week": 2, "category": "prova", "title": "Newest Day", "detail": "", "emoji": ""},
+        ]
+
+        grouped = group_cronologia_events(events)
+
+        assert [week["week"] for week in grouped] == [2, 1]
+        assert [day["date"] for day in grouped[0]["dates"]] == ["2026-01-21", "2026-01-20"]
+        assert [ev["title"] for ev in grouped[0]["dates"][1]["events"]] == ["First Day Late", "First Day Early"]
+
+    def test_render_cronologia_variant_two_row_open_preserves_full_detail_in_full_width_row(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Jordana escolhe o veto",
+                "detail": "Ficou com R$ 20 mil, abriu mão da informação privilegiada e vetou Ana Paula.",
+            }
+        ]
+
+        html = render_cronologia_variant(group_cronologia_events(events), "two_row_open")
+
+        assert 'cronologia-mobile-table--open' in html
+        assert 'cronologia-mobile-event-main--inline' in html
+        assert 'cronologia-badge--inline' in html
+        assert 'colspan="2"' in html
+        assert "R$ 20 mil" in html
+        assert "Jordana escolhe o veto" in html
+
+    def test_render_cronologia_variant_two_row_disclosure_uses_native_details(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Jordana escolhe o veto",
+                "detail": "Ficou com R$ 20 mil, abriu mão da informação privilegiada e vetou Ana Paula.",
+            }
+        ]
+
+        html = render_cronologia_variant(group_cronologia_events(events), "two_row_disclosure")
+
+        assert 'cronologia-mobile-table--disclosure' in html
+        assert '<details class="cronologia-detail-toggle">' in html
+        assert "Abrir detalhe" in html
+        assert "R$ 20 mil" in html
+
+    def test_render_cronologia_mobile_review_html_stacks_all_variants(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "resultado",
+                "emoji": "🏁",
+                "title": "Babu eliminado",
+                "detail": "Saiu com 68.62% dos votos.",
+            }
+        ]
+
+        html = render_cronologia_mobile_review_html(events)
+
+        assert 'id="baseline-current"' in html
+        assert 'id="variant-open"' in html
+        assert 'id="variant-disclosure"' in html
+        assert 'id="variant-day-panel"' in html
+        assert "Controle atual" in html
+        assert "Detalhe sempre aberto" in html
+        assert "Detalhe sob demanda" in html
+        assert "Painel inline por evento" in html
 
 
 class TestNormalizeActors:

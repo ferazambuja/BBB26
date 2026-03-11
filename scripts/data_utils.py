@@ -1004,6 +1004,232 @@ TIMELINE_CAT_LABELS = {
 }
 
 
+def group_cronologia_events(timeline_events: list[dict]) -> list[dict]:
+    """Group timeline events by week and date in display order."""
+    weeks: dict[int, dict[str, list[dict]]] = {}
+    for ev in timeline_events:
+        week = ev.get("week", 0)
+        date_str = ev.get("date", "")
+        weeks.setdefault(week, {}).setdefault(date_str, []).append(ev)
+
+    grouped: list[dict] = []
+    for week_num, dates_dict in sorted(weeks.items(), key=lambda item: item[0], reverse=True):
+        dates: list[dict] = []
+        for date_str, date_events in sorted(dates_dict.items(), key=lambda item: item[0], reverse=True):
+            dates.append({
+                "date": date_str,
+                "events": list(reversed(date_events)),
+            })
+        grouped.append({"week": week_num, "dates": dates})
+    return grouped
+
+
+def _prepare_cronologia_event(ev: dict) -> dict:
+    """Normalize one timeline event for chronology renderers."""
+    cat = ev.get("category", "")
+    color = TIMELINE_CAT_COLORS.get(cat, "#666")
+    label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
+    emoji = safe_html(ev.get("emoji", ""))
+    title = safe_html(ev.get("title", ""))
+    detail = safe_html(ev.get("detail", ""))
+    is_scheduled = ev.get("status") == "scheduled"
+    time_info = safe_html(ev.get("time", ""))
+
+    badge_class = "cronologia-badge cronologia-badge--scheduled" if is_scheduled else "cronologia-badge"
+    badge = (
+        f'<span class="{badge_class} fs-md" style="--cronologia-badge-color:{color};">{label}</span>'
+    )
+    time_badge = (
+        f'<span class="cronologia-time-badge fs-sm">{time_info}</span>'
+        if time_info else ""
+    )
+    title_prefix = f"{emoji} " if emoji else ""
+    title_html = (
+        f'<span class="cronologia-event-title">{title_prefix}{title}</span>'
+        f'{time_badge}'
+    )
+    detail_text = f'🔮 {detail}' if is_scheduled and detail else detail
+    if is_scheduled and not detail_text:
+        detail_text = "🔮 Previsto"
+
+    return {
+        "badge_html": badge,
+        "title_html": title_html,
+        "detail_html": detail_text,
+        "detail_text": detail_text,
+        "label": label,
+        "is_scheduled": is_scheduled,
+    }
+
+
+def _render_cronologia_rows(
+    grouped_events: list[dict],
+    columns: int,
+    row_builder,
+) -> list[str]:
+    """Render chronology week/date scaffolding around event rows."""
+    parts: list[str] = []
+    for week_group in grouped_events:
+        parts.append(
+            f'<tr><td colspan="{columns}" class="cron-week">Semana {week_group["week"]}</td></tr>'
+        )
+        for day_group in week_group["dates"]:
+            parts.append(
+                f'<tr><td colspan="{columns}" class="cron-date">📅 {day_group["date"]}</td></tr>'
+            )
+            for ev in day_group["events"]:
+                parts.extend(row_builder(_prepare_cronologia_event(ev)))
+    return parts
+
+
+def _render_cronologia_baseline(grouped_events: list[dict]) -> str:
+    parts = [
+        '<div class="cronologia-shell cronologia-shell--baseline">',
+        '<div class="cronologia-table-wrap">',
+        '<table class="cronologia-table">',
+        '<thead>',
+        '<tr class="cronologia-head-row">',
+        '<th class="col-badge">Tipo</th>',
+        '<th class="cronologia-head-label">Evento</th>',
+        '<th class="cronologia-head-label">Detalhe</th>',
+        '</tr></thead><tbody>',
+    ]
+
+    def row_builder(item: dict) -> list[str]:
+        row_class = (
+            "cronologia-row cronologia-row--scheduled cronologia-row--dashed"
+            if item["is_scheduled"] else
+            "cronologia-row"
+        )
+        return [
+            (
+                f'<tr class="{row_class}">'
+                f'<td class="col-badge">{item["badge_html"]}</td>'
+                f'<td>{item["title_html"]}</td>'
+                f'<td class="col-detail">{item["detail_html"]}</td>'
+                f'</tr>'
+            )
+        ]
+
+    parts.extend(_render_cronologia_rows(grouped_events, 3, row_builder))
+    parts.extend(['</tbody></table></div></div>'])
+    return "".join(parts)
+
+
+def _render_cronologia_mobile_table(grouped_events: list[dict], variant: str) -> str:
+    variant_class_map = {
+        "two_row_open": "cronologia-mobile-table--open",
+        "two_row_disclosure": "cronologia-mobile-table--disclosure",
+    }
+    table_class = variant_class_map[variant]
+    parts = [
+        '<div class="cronologia-shell cronologia-shell--review">',
+        '<div class="cronologia-table-wrap">',
+        f'<table class="cronologia-mobile-table {table_class}">',
+        '<thead>',
+        '<tr class="cronologia-head-row">',
+        '<th class="col-badge">Tipo</th>',
+        '<th class="cronologia-head-label">Evento</th>',
+        '</tr></thead><tbody>',
+    ]
+
+    def row_builder(item: dict) -> list[str]:
+        row_class = (
+            "cronologia-row cronologia-row--scheduled cronologia-row--dashed"
+            if item["is_scheduled"] else
+            "cronologia-row"
+        )
+        detail_html = item["detail_html"] or "Sem detalhe adicional."
+        if variant == "two_row_open":
+            inline_badge_html = item["badge_html"].replace(
+                "cronologia-badge",
+                "cronologia-badge cronologia-badge--inline",
+                1,
+            )
+            return [
+                (
+                    f'<tr class="{row_class}">'
+                    f'<td colspan="2" class="cronologia-mobile-event-main cronologia-mobile-event-main--inline">'
+                    f'<div class="cronologia-mobile-event-inline">{inline_badge_html}'
+                    f'<span class="cronologia-mobile-event-inline-text">{item["title_html"]}</span></div>'
+                    f'</td>'
+                    f'</tr>'
+                ),
+                (
+                    f'<tr class="cronologia-row cronologia-row--detail">'
+                    f'<td colspan="2" class="cronologia-mobile-event-detail">{detail_html}</td>'
+                    f'</tr>'
+                ),
+            ]
+
+        detail_row = (
+            f'<tr class="cronologia-row cronologia-row--detail">'
+            f'<td colspan="2" class="cronologia-mobile-event-detail">{detail_html}</td>'
+            f'</tr>'
+        )
+        if variant == "two_row_disclosure":
+            detail_row = (
+                f'<tr class="cronologia-row cronologia-row--detail">'
+                f'<td colspan="2" class="cronologia-mobile-event-detail">'
+                f'<details class="cronologia-detail-toggle">'
+                f'<summary>Abrir detalhe</summary>'
+                f'<div class="cronologia-mobile-event-detail-body">{detail_html}</div>'
+                f'</details>'
+                f'</td>'
+                f'</tr>'
+            )
+
+        return [
+            (
+                f'<tr class="{row_class}">'
+                f'<td class="col-badge">{item["badge_html"]}</td>'
+                f'<td class="cronologia-mobile-event-main">{item["title_html"]}</td>'
+                f'</tr>'
+            ),
+            detail_row,
+        ]
+
+    parts.extend(_render_cronologia_rows(grouped_events, 2, row_builder))
+    parts.extend(['</tbody></table></div></div>'])
+    return "".join(parts)
+
+
+def _render_cronologia_day_panel(grouped_events: list[dict]) -> str:
+    parts = ['<div class="cronologia-shell cronologia-shell--review cronologia-day-panel">']
+    for week_group in grouped_events:
+        parts.append(f'<section class="cronologia-week-panel"><h4 class="cron-week">Semana {week_group["week"]}</h4>')
+        for day_group in week_group["dates"]:
+            parts.append(f'<div class="cronologia-day-card"><div class="cron-date">📅 {day_group["date"]}</div>')
+            for ev in day_group["events"]:
+                item = _prepare_cronologia_event(ev)
+                detail_html = item["detail_html"] or "Sem detalhe adicional."
+                parts.append(
+                    '<details class="cronologia-panel-item">'
+                    f'<summary class="cronologia-panel-summary"><span class="cronologia-panel-badge">{item["badge_html"]}</span>'
+                    f'<span class="cronologia-panel-title">{item["title_html"]}</span></summary>'
+                    f'<div class="cronologia-panel-detail">{detail_html}</div>'
+                    '</details>'
+                )
+            parts.append('</div>')
+        parts.append('</section>')
+    parts.append('</div>')
+    return "".join(parts)
+
+
+def render_cronologia_variant(grouped_events: list[dict], variant: str) -> str:
+    """Render one chronology variant from grouped timeline data."""
+    if not grouped_events:
+        return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+
+    if variant == "baseline":
+        return _render_cronologia_baseline(grouped_events)
+    if variant in {"two_row_open", "two_row_disclosure"}:
+        return _render_cronologia_mobile_table(grouped_events, variant)
+    if variant == "day_panel":
+        return _render_cronologia_day_panel(grouped_events)
+    raise ValueError(f"Unsupported chronology variant: {variant}")
+
+
 def render_cronologia_html(timeline_events: list[dict]) -> str:
     """Render game timeline as an HTML table with week and date divider rows.
 
@@ -1013,100 +1239,78 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
     """
     if not timeline_events:
         return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+    grouped_events = group_cronologia_events(timeline_events)
+    return "".join([
+        '<div class="cronologia-live-switch">',
+        '<div class="cronologia-live-desktop">',
+        render_cronologia_variant(grouped_events, "baseline"),
+        '</div>',
+        '<div class="cronologia-live-mobile">',
+        render_cronologia_variant(grouped_events, "two_row_open"),
+        '</div>',
+        '</div>',
+    ])
 
-    # Group by week → date → events
-    weeks: dict[int, dict[str, list[dict]]] = {}
-    for ev in timeline_events:
-        w = ev.get("week", 0)
-        d = ev.get("date", "")
-        weeks.setdefault(w, {}).setdefault(d, []).append(ev)
-    sorted_weeks = sorted(weeks.items(), key=lambda x: x[0], reverse=True)
 
-    parts = [
-        '<style>'
-        '.cronologia-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }'
-        '.cronologia-table th, .cronologia-table td { padding:6px 8px; }'
-        '.cronologia-table .col-badge { text-align:center; min-width:100px; }'
-        '.cronologia-table .col-detail { color:#999; font-size:var(--fs-base); }'
-        '.cron-week { background:#16213e; font-weight:bold; color:#ffc107; padding:6px 8px; }'
-        '.cron-date { background:#1e1e2e; color:#aaa; font-size:var(--fs-md); padding:4px 8px; '
-        'border-bottom:1px solid #333; }'
-        '@media (max-width: 640px) {'
-        '  .cronologia-table { font-size: var(--fs-md); }'
-        '  .cronologia-table td, .cronologia-table th { padding: 5px 6px; }'
-        '  .cronologia-table .col-badge { min-width:70px; }'
-        '  .cronologia-table .col-badge span { font-size:var(--fs-xs) !important; padding:2px 4px !important; }'
-        '}'
-        '@media (max-width: 400px) {'
-        '  .cronologia-table { font-size: var(--fs-sm); }'
-        '  .cronologia-table td, .cronologia-table th { padding: 4px 4px; }'
-        '}'
-        '</style>'
-        '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
-        '<table class="cronologia-table">'
-        '<thead style="position:sticky; top:0; z-index:1;">'
-        '<tr style="background:#1a1a2e; color:#eee;">'
-        '<th class="col-badge">Tipo</th>'
-        '<th style="text-align:left;">Evento</th>'
-        '<th style="text-align:left;">Detalhe</th>'
-        '</tr></thead><tbody>',
+def render_cronologia_mobile_review_html(timeline_events: list[dict]) -> str:
+    """Render stacked chronology review variants for mobile comparison."""
+    if not timeline_events:
+        return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+
+    grouped_events = group_cronologia_events(timeline_events)
+    total_events = sum(len(day["events"]) for week in grouped_events for day in week["dates"])
+    total_weeks = len(grouped_events)
+    total_days = sum(len(week["dates"]) for week in grouped_events)
+
+    sections = [
+        (
+            "baseline-current",
+            "Controle atual",
+            "Tabela de 3 colunas mantida como referência para comparar legibilidade e densidade.",
+            render_cronologia_variant(grouped_events, "baseline"),
+        ),
+        (
+            "variant-open",
+            "Detalhe sempre aberto",
+            "Cada evento vira uma linha principal curta e uma linha de detalhe em largura total.",
+            render_cronologia_variant(grouped_events, "two_row_open"),
+        ),
+        (
+            "variant-disclosure",
+            "Detalhe sob demanda",
+            "A mesma estrutura de duas linhas, mas o detalhe abre via native disclosure para reduzir fadiga visual.",
+            render_cronologia_variant(grouped_events, "two_row_disclosure"),
+        ),
+        (
+            "variant-day-panel",
+            "Painel inline por evento",
+            "Cada data vira um bloco e cada evento abre seu detalhe no próprio fluxo, sem scroll horizontal.",
+            render_cronologia_variant(grouped_events, "day_panel"),
+        ),
     ]
 
-    for week_num, dates_dict in sorted_weeks:
-        # Week header row
-        parts.append(
-            f'<tr><td colspan="3" class="cron-week">Semana {week_num}</td></tr>'
-        )
-        # Dates within week: reverse chronological
-        sorted_dates = sorted(dates_dict.items(), key=lambda x: x[0], reverse=True)
-        for date_str, date_events in sorted_dates:
-            # Date divider row
-            parts.append(
-                f'<tr><td colspan="3" class="cron-date">📅 {date_str}</td></tr>'
-            )
-            # Events within date: reverse order (latest first)
-            for ev in reversed(date_events):
-                cat = ev.get("category", "")
-                color = TIMELINE_CAT_COLORS.get(cat, "#666")
-                label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
-                emoji = ev.get("emoji", "")
-                title = safe_html(ev.get("title", ""))
-                detail = safe_html(ev.get("detail", ""))
-                is_scheduled = ev.get("status") == "scheduled"
-                time_info = ev.get("time", "")
-
-                if is_scheduled:
-                    badge = (
-                        f'<span class="fs-md" style="background:transparent; color:{color}; border:1px dashed {color};'
-                        f' padding:2px 6px; border-radius:4px; white-space:nowrap;">{label}</span>'
-                    )
-                    time_badge = (
-                        f' <span class="fs-sm" style="background:#ffc107; color:#000; padding:1px 5px;'
-                        f' border-radius:3px; white-space:nowrap;">{time_info}</span>'
-                        if time_info else ''
-                    )
-                    row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
-                    title_cell = f'{emoji} {title}{time_badge}'
-                    detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
-                else:
-                    badge = (
-                        f'<span class="fs-md" style="background:{color}; color:#fff; padding:2px 6px;'
-                        f' border-radius:4px; white-space:nowrap;">{label}</span>'
-                    )
-                    row_style = 'border-bottom:1px solid #333;'
-                    title_cell = f'{emoji} {title}'
-                    detail_text = detail
-
-                parts.append(
-                    f'<tr style="{row_style}">'
-                    f'<td class="col-badge">{badge}</td>'
-                    f'<td>{title_cell}</td>'
-                    f'<td class="col-detail">{detail_text}</td>'
-                    f'</tr>'
-                )
-
-    parts.append('</tbody></table></div>')
-    return ''.join(parts)
+    parts = [
+        '<div class="cronologia-review">',
+        '<div class="cronologia-review-intro">',
+        '<h2 class="fs-2xl">Cronologia do Jogo: revisão mobile</h2>',
+        '<p class="cronologia-review-copy">Mockups funcionais ligados ao timeline real, desenhados para o viewport padrão de 390×844.</p>',
+        '<div class="cronologia-review-stats">',
+        f'<span><strong>{total_events}</strong> eventos</span>',
+        f'<span><strong>{total_days}</strong> datas</span>',
+        f'<span><strong>{total_weeks}</strong> semanas</span>',
+        '</div>',
+        '</div>',
+    ]
+    for section_id, title, copy, body in sections:
+        parts.extend([
+            f'<section id="{section_id}" class="cronologia-review-block">',
+            f'<h3 class="fs-xl">{title}</h3>',
+            f'<p class="cronologia-review-copy">{copy}</p>',
+            body,
+            '</section>',
+        ])
+    parts.append('</div>')
+    return "".join(parts)
 
 
 # ── Votalhada helpers ──────────────────────────────────────────────────────────
