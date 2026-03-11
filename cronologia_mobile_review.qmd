@@ -1,0 +1,47 @@
+---
+title: "BBB 26 — Cronologia Mobile Review"
+subtitle: "Comparação funcional de variantes mobile para a Cronologia do Jogo"
+description: "Mockups funcionais da cronologia mobile usando o timeline real do BBB 26."
+lang: pt-BR
+format:
+  html:
+    code-tools: false
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| label: setup
+#| include: false
+
+from pathlib import Path
+
+import sys
+sys.path.append(str(Path("scripts").resolve()))
+
+from data_utils import (
+    require_clean_manual_events,
+    setup_bbb_dark_theme,
+    load_game_timeline,
+    render_cronologia_mobile_review_html,
+)
+
+require_clean_manual_events()
+setup_bbb_dark_theme()
+```
+
+# Cronologia Mobile Review
+
+Página de comparação interna para revisar variações reais da `Cronologia do Jogo` no viewport mobile padrão (`390×844`).
+
+```{python}
+#| label: mobile-review
+#| output: asis
+
+timeline_events = load_game_timeline().get("events", [])
+if timeline_events:
+    print(render_cronologia_mobile_review_html(timeline_events))
+else:
+    print("<p class='text-muted'>Nenhum evento na cronologia.</p>")
+```

@@ -2334,3 +2334,382 @@ body.paredao-page .paredao-spotlight-summary-item {
   }
 }
 /* ── Auto Utility Styles (H3) END ── */
+
+/* ── Cronologia do Jogo (baseline + mobile review) ───────────────────────── */
+
+.cronologia-shell {
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cronologia-live-mobile {
+  display: none;
+}
+
+.cronologia-table-wrap {
+  max-height: 600px;
+  overflow-x: auto;
+  overflow-y: auto;
+  border-radius: 8px;
+  scrollbar-gutter: stable both-edges;
+}
+
+.cronologia-table,
+.cronologia-mobile-table {
+  border-collapse: collapse;
+  font-size: var(--fs-base);
+}
+
+.cronologia-table {
+  width: 100%;
+  min-width: 443px;
+}
+
+.cronologia-mobile-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.cronologia-shell--review .cronologia-table-wrap {
+  overflow-x: visible;
+}
+
+.cronologia-table th,
+.cronologia-table td,
+.cronologia-mobile-table th,
+.cronologia-mobile-table td {
+  padding: 0.42rem 0.55rem;
+  vertical-align: top;
+}
+
+.cronologia-head-row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #1a1a2e;
+  color: #eee;
+}
+
+.cronologia-head-label {
+  text-align: left;
+}
+
+.cronologia-table .col-badge,
+.cronologia-mobile-table .col-badge {
+  text-align: center;
+}
+
+.cronologia-table .col-badge {
+  min-width: 100px;
+}
+
+.cronologia-mobile-table .col-badge {
+  width: 7.1rem;
+}
+
+.col-detail {
+  color: #999;
+  font-size: var(--fs-base);
+}
+
+.cron-week {
+  background: #16213e;
+  color: #ffc107;
+  font-weight: 700;
+  padding: 0.4rem 0.55rem;
+}
+
+.cron-date {
+  background: #1e1e2e;
+  color: #aaa;
+  font-size: var(--fs-md);
+  padding: 0.3rem 0.55rem;
+  border-bottom: 1px solid #333;
+}
+
+.cronologia-row {
+  border-bottom: 1px solid #333;
+}
+
+.cronologia-row--scheduled {
+  border-bottom: 1px dashed #444;
+  opacity: 0.85;
+}
+
+.cronologia-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  background: var(--cronologia-badge-color, #666);
+  color: #fff;
+  white-space: normal;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cronologia-badge--scheduled {
+  background: transparent;
+  color: var(--cronologia-badge-color, #666);
+  border: 1px dashed var(--cronologia-badge-color, #666);
+}
+
+.cronologia-event-title {
+  color: #f2f4f8;
+}
+
+.cronologia-time-badge {
+  display: inline-block;
+  margin-left: 0.32rem;
+  padding: 0.08rem 0.34rem;
+  border-radius: 3px;
+  background: #ffc107;
+  color: #000;
+  white-space: nowrap;
+}
+
+.cronologia-mobile-event-main,
+.cronologia-panel-title {
+  min-width: 0;
+  color: #f2f4f8;
+}
+
+.cronologia-mobile-event-main--inline {
+  padding-bottom: 0.2rem;
+}
+
+.cronologia-mobile-event-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.45rem 0.55rem;
+}
+
+.cronologia-mobile-event-inline-text {
+  min-width: 0;
+  color: #f2f4f8;
+  flex: 1 1 11rem;
+}
+
+.cronologia-badge--inline {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.cronologia-mobile-event-detail,
+.cronologia-panel-detail {
+  color: #c5ccd7;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.cronologia-row--detail td {
+  padding-top: 0.15rem;
+}
+
+.cronologia-mobile-table--open .cronologia-row--detail td,
+.cronologia-mobile-table--disclosure .cronologia-row--detail td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.cronologia-detail-toggle {
+  width: 100%;
+}
+
+.cronologia-detail-toggle > summary {
+  cursor: pointer;
+  color: #dfe6f1;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  list-style: none;
+}
+
+.cronologia-detail-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+
+.cronologia-detail-toggle > summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 0.35rem;
+  color: #ffc107;
+  transition: transform 0.18s ease;
+}
+
+.cronologia-detail-toggle[open] > summary::before,
+.cronologia-panel-item[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.cronologia-mobile-event-detail-body {
+  margin-top: 0.45rem;
+}
+
+.cronologia-review {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cronologia-review-intro,
+.cronologia-review-block {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.95rem 1rem;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.cronologia-review-copy {
+  color: #bfc7d5;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.cronologia-review-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.cronologia-review-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.24rem 0.52rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #dfe6f1;
+  font-size: var(--fs-xs);
+}
+
+.cronologia-day-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.75rem;
+}
+
+.cronologia-week-panel,
+.cronologia-day-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cronologia-day-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cronologia-panel-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cronologia-panel-item:first-of-type {
+  border-top: 0;
+}
+
+.cronologia-panel-summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(6.6rem, 7.1rem) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cronologia-panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.cronologia-panel-summary::before {
+  content: "▸";
+  position: absolute;
+  right: 0.9rem;
+  top: 0.72rem;
+  color: #ffc107;
+}
+
+.cronologia-panel-badge {
+  min-width: 0;
+}
+
+.cronologia-panel-detail {
+  padding: 0 0.75rem 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .cronologia-table,
+  .cronologia-mobile-table {
+    font-size: var(--fs-md);
+  }
+
+  .cronologia-table th,
+  .cronologia-table td,
+  .cronologia-mobile-table th,
+  .cronologia-mobile-table td {
+    padding: 0.34rem 0.42rem;
+  }
+
+  .cronologia-table .col-badge {
+    min-width: 70px;
+  }
+
+  .cronologia-badge {
+    font-size: var(--fs-xs) !important;
+    padding: 0.1rem 0.3rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .cronologia-live-desktop {
+    display: none;
+  }
+
+  .cronologia-live-mobile {
+    display: block;
+  }
+
+  .cronologia-shell--review .cronologia-table-wrap {
+    max-height: none;
+  }
+
+  .cronologia-mobile-table .col-badge,
+  .cronologia-panel-summary {
+    width: 100%;
+  }
+
+  .cronologia-panel-summary {
+    grid-template-columns: minmax(6.25rem, 6.85rem) minmax(0, 1fr);
+    padding-right: 2.1rem;
+  }
+
+  .cronologia-review-intro,
+  .cronologia-review-block {
+    padding: 0.8rem 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .cronologia-table,
+  .cronologia-mobile-table {
+    font-size: var(--fs-sm);
+  }
+
+  .cronologia-table th,
+  .cronologia-table td,
+  .cronologia-mobile-table th,
+  .cronologia-mobile-table td {
+    padding: 0.25rem 0.28rem;
+  }
+}
