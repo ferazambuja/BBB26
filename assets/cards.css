@@ -2348,7 +2348,7 @@ body.paredao-page .paredao-spotlight-summary-item {
 }
 
 .cronologia-table-wrap {
-  max-height: 600px;
+  max-height: clamp(320px, 44vh, 460px);
   overflow-x: auto;
   overflow-y: auto;
   border-radius: 8px;
@@ -2678,10 +2678,6 @@ body.paredao-page .paredao-spotlight-summary-item {
 
   .cronologia-live-mobile {
     display: block;
-  }
-
-  .cronologia-shell--review .cronologia-table-wrap {
-    max-height: none;
   }
 
   .cronologia-mobile-table .col-badge,

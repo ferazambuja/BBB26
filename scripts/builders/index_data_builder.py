@@ -3393,10 +3393,16 @@ def build_index_data() -> dict | None:
 
     hl["cards"] = [c for c in hl["cards"] if c.get("type") != "paredao"]
     if paredao_card and paredao_card.get("state") != "empty":
+        is_finalized_paredao = paredao_card.get("state") == "finalized"
         hl["cards"].append({
             "type": "paredao",
             "icon": "🗳️",
-            "title": "Paredão Ativo",
+            "title": "Último Paredão" if is_finalized_paredao else "Paredão Ativo",
+            "subtitle": (
+                "Resumo do paredão encerrado; o card volta ao modo ativo quando o próximo for formado."
+                if is_finalized_paredao
+                else "Leitura atual do paredão; quando fechar, o card troca para o resultado oficial."
+            ),
             "color": paredao_card.get("status_color", "#e74c3c"),
             "link": "paredao.html",
             "payload": paredao_card,

@@ -1058,7 +1058,7 @@ else:
                 payload = build_paredao_card_payload(PAREDAO_ATUAL, _pa_poll, VOTALHADA_POLLS, _pa_history)
             status_badge = payload.get("status_label", "Em votação")
             print(f'''<div class="info-panel highlight-card-span-3" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), status_badge, source_tag="🧮 Nosso Modelo", subtitle="Leitura atual do paredão; quando fechar, o card troca para o resultado oficial.")}
+{card_header(card["icon"], card["title"], card.get("link"), status_badge, source_tag="🧮 Nosso Modelo", subtitle=card.get("subtitle", "Leitura atual do paredão; quando fechar, o card troca para o resultado oficial."))}
 {render_paredao_index_card(payload, AVATARS)}
 </div>''')
 

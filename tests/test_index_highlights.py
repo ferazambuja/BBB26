@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from builders.index_data_builder import _compute_daily_movers_cards
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _participant(name: str, hearts: int, vomit: int = 0) -> dict:
     return {
@@ -44,3 +46,9 @@ def test_ranking_highlight_falls_back_to_week_when_day_is_flat():
     assert ranking["delta_all"], "Expected weekly fallback rows when yesterday deltas are flat"
     assert ranking["delta_all"][0]["name"] == "Ana"
     assert ranking["delta_all"][0]["delta"] > 0
+
+
+def test_index_template_uses_dynamic_paredao_subtitle():
+    content = (REPO_ROOT / "index.qmd").read_text(encoding="utf-8")
+
+    assert 'subtitle=card.get("subtitle"' in content

@@ -11,6 +11,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
+from builders.index_data_builder import build_index_data
 from data_utils import (
     calculate_precision_weights,
     get_poll_for_paredao,
@@ -164,6 +165,16 @@ def test_finalized_payload_uses_official_results_and_grayscale(_repo_data):
     assert eliminated["use_grayscale"] is True
     assert payload["memory_line"]
     assert "Nosso Modelo" in payload["memory_line"]
+
+
+def test_build_index_data_uses_inactive_paredao_copy_after_result():
+    data = build_index_data()
+
+    card = next(card for card in data["highlights"]["cards"] if card["type"] == "paredao")
+
+    assert card["payload"]["state"] == "finalized"
+    assert card["title"] == "Último Paredão"
+    assert card["subtitle"] == "Resumo do paredão encerrado; o card volta ao modo ativo quando o próximo for formado."
 
 
 def test_live_and_index_renderers_share_the_new_card_language(_repo_data):
