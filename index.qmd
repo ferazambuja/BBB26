@@ -726,7 +726,7 @@ else:
                 movers_html += '</div>'
 
             # 3-column grid on desktop, stacks on mobile
-            print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
+            print(f'''<div class="dark-card ranking-highlight-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
 {header}
 <div class="u-s370">
 {podium_html}
