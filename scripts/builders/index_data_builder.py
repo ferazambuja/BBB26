@@ -50,6 +50,7 @@ ROLE_TYPES = {
 }
 
 BLINDADOS_REASON_ORDER = ["Autoimune", "Líder", "Imune"]
+VISADOS_RECENT_WINDOW = 3
 
 SINC_TYPE_META: dict[str, dict[str, str]] = {
     "elogio":            {"label": "elogio",             "emoji": "🏆", "valence": "pos"},
@@ -1699,14 +1700,22 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
     paredoes_with_votes = [p for p in paredoes_list if p.get("votos_casa")]
     if paredoes_with_votes:
         n_paredoes = len(paredoes_with_votes)
+        display_limit = 4
+        recent_window = VISADOS_RECENT_WINDOW
+        recent_cycle_nums = {
+            par.get("numero", 0)
+            for par in sorted(paredoes_with_votes, key=lambda p: p.get("numero", 0))[-recent_window:]
+        }
 
         # Per-participant accumulators
         on_paredao: Counter[str] = Counter()        # times in indicados_finais
         protected: Counter[str] = Counter()          # times as Líder/immune/anjo_autoimune
         available: Counter[str] = Counter()           # times eligible for house votes
         house_votes_avail: Counter[str] = Counter()   # votes received when available
+        recent_house_votes: Counter[str] = Counter()  # house votes received in recent window
         bv_escape_count: Counter[str] = Counter()     # BV escapes (count, not boolean)
         bv_escape_detail: dict[str, list[int]] = defaultdict(list)
+        fake_paredao_detail: dict[str, list[int]] = defaultdict(list)
         protection_detail: dict[str, list[tuple[int, str]]] = defaultdict(list)
 
         # Bug fix 3: count ALL house votes in a separate pre-pass
@@ -1719,6 +1728,8 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
                 if t in active_set:
                     all_house_votes[t] += 1
                     last_voted_paredao[t] = max(last_voted_paredao.get(t, 0), num)
+                    if num in recent_cycle_nums:
+                        recent_house_votes[t] += 1
 
         # Bug fix 3 (cont): classify nomination method from como field
         by_lider: Counter[str] = Counter()
@@ -1742,6 +1753,10 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
             form = par.get("formacao", {})
             indicados = {(ind["nome"] if isinstance(ind, dict) else ind)
                          for ind in par.get("indicados_finais", [])}
+            if par.get("paredao_falso"):
+                for indicado in indicados:
+                    if indicado in active_set:
+                        fake_paredao_detail[indicado].append(num)
 
             # Use extract_paredao_eligibility for cant_be_voted
             elig = extract_paredao_eligibility(par)
@@ -1782,12 +1797,18 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
                         if t.strip() == name
                     )
 
-        items = []
+        blindados_items_all = []
+        visados_items_all = []
         for name in active_set:
             n_par = on_paredao.get(name, 0)
             n_bv = bv_escape_count.get(name, 0)
             n_prot = protected.get(name, 0)
             n_avail = available.get(name, 0)
+            votes_total = all_house_votes.get(name, 0)
+            votes_available = house_votes_avail.get(name, 0)
+            votes_recent = recent_house_votes.get(name, 0)
+            intensity_prevote = round(votes_available / n_avail, 4) if n_avail > 0 else 0.0
+            fake_nums = sorted(fake_paredao_detail.get(name, []))
 
             # Protection breakdown for display
             reason_counts = Counter(r for _, r in protection_detail.get(name, []))
@@ -1824,15 +1845,15 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
                 nom_parts.append(f"Dinâmica {by_dynamic[name]}x")
             nom_text = ", ".join(nom_parts)
 
-            items.append({
+            blindados_items_all.append({
                 "name": name,
                 "paredao": n_par,
                 "bv_escapes": n_bv,
                 "exposure": n_par + n_bv,
                 "protected": n_prot,
                 "available": n_avail,
-                "votes_total": all_house_votes.get(name, 0),
-                "votes_available": house_votes_avail.get(name, 0),
+                "votes_total": votes_total,
+                "votes_available": votes_available,
                 "by_lider": by_lider.get(name, 0),
                 "by_casa": by_casa.get(name, 0),
                 "by_dynamic": by_dynamic.get(name, 0),
@@ -1843,22 +1864,63 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
                 "last_voted_paredao": last_voted_paredao.get(name, 0),
                 "total": n_paredoes,
                 # Backward compat
-                "votes": all_house_votes.get(name, 0),
+                "votes": votes_total,
                 "bv_escape": n_bv > 0,
+            })
+            visados_items_all.append({
+                "name": name,
+                "paredao": n_par,
+                "bv_escapes": n_bv,
+                "available": n_avail,
+                "votes_total": votes_total,
+                "votes_available": votes_available,
+                "votes_recent": votes_recent,
+                "intensity_prevote": intensity_prevote,
+                "by_lider": by_lider.get(name, 0),
+                "by_casa": by_casa.get(name, 0),
+                "by_dynamic": by_dynamic.get(name, 0),
+                "nom_text": nom_text,
+                "last_voted_paredao": last_voted_paredao.get(name, 0),
+                "fake_paredao_count": len(fake_nums),
+                "fake_paredao_nums": fake_nums,
+                "total": n_paredoes,
             })
 
         # Sort: fewer exposure → more protected → fewer votes → name (deterministic)
-        items.sort(key=lambda x: (x["exposure"], -x["protected"], x["votes_total"], x["name"]))
+        blindados_items_all.sort(key=lambda x: (x["exposure"], -x["protected"], x["votes_total"], x["name"]))
+        visados_items_all.sort(
+            key=lambda x: (
+                -x["paredao"],
+                -x["bv_escapes"],
+                -x["votes_recent"],
+                -x["intensity_prevote"],
+                -x["votes_total"],
+                x["name"],
+            )
+        )
+        blindados_items = blindados_items_all[:display_limit]
+        visados_items = visados_items_all[:display_limit]
 
         cards.append({
             "type": "blindados",
             "icon": "\U0001f6e1\ufe0f", "title": "Mais Blindados",
             "color": "#3498db", "link": "paredoes.html",
-            "total": len(items),
-            "display_limit": 4,
-            "items": items,
-            "items_all": items,
+            "total": len(blindados_items_all),
+            "display_limit": display_limit,
+            "items": blindados_items,
+            "items_all": blindados_items_all,
             "n_paredoes": n_paredoes,
+        })
+        cards.append({
+            "type": "visados",
+            "icon": "🎯", "title": "Mais Visados",
+            "color": "#e67e22", "link": "paredoes.html",
+            "total": len(visados_items_all),
+            "display_limit": display_limit,
+            "items": visados_items,
+            "items_all": visados_items_all,
+            "n_paredoes": n_paredoes,
+            "recent_window": recent_window,
         })
 
     # ── VIP / Xepa (separate cards) ──
