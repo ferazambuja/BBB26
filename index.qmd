@@ -27,14 +27,20 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
-    load_paredoes_raw, load_index_data, load_game_timeline,
+    load_paredoes_raw, load_paredoes_transformed,
+    load_votalhada_polls, get_poll_for_paredao,
+    load_index_data, load_game_timeline,
     avatar_html as _avatar_html,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     ANALYSIS_DESCRIPTIONS, render_cronologia_html,
 )
-from paredao_viz import render_paredao_index_card
+from paredao_viz import (
+    build_paredao_card_payload,
+    build_paredao_history,
+    render_paredao_index_card,
+)
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
@@ -52,6 +58,10 @@ if not index_data:
 latest = index_data.get("latest", {})
 MEMBER_OF = index_data.get("member_of", {})
 AVATARS = index_data.get("avatars", {})
+PAREDOES_RAW = load_paredoes_raw().get("paredoes", [])
+PAREDOES_TRANSFORMED = load_paredoes_transformed(member_of=MEMBER_OF)
+PAREDAO_ATUAL = PAREDOES_TRANSFORMED[-1] if PAREDOES_TRANSFORMED else None
+VOTALHADA_POLLS = load_votalhada_polls()
 
 meta_generated_at = index_data.get("_metadata", {}).get("generated_at")
 try:
@@ -1041,6 +1051,11 @@ else:
         # ── 🗳️ Paredão ──
         elif ctype == "paredao":
             payload = card.get("payload") or {}
+            if PAREDAO_ATUAL:
+                _pa_numero = PAREDAO_ATUAL.get("numero")
+                _pa_history = build_paredao_history(PAREDOES_RAW, _pa_numero)
+                _pa_poll = get_poll_for_paredao(VOTALHADA_POLLS, _pa_numero)
+                payload = build_paredao_card_payload(PAREDAO_ATUAL, _pa_poll, VOTALHADA_POLLS, _pa_history)
             status_badge = payload.get("status_label", "Em votação")
             print(f'''<div class="info-panel highlight-card-span-3" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), status_badge, source_tag="🧮 Nosso Modelo", subtitle="Leitura atual do paredão; quando fechar, o card troca para o resultado oficial.")}

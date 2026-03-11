@@ -295,6 +295,85 @@ def _build_card_curiosity_line(
         except Exception:
             leader_swaps = 0
 
+        # Always freeze turnaround messaging once the configured closing time has passed,
+        # regardless of momentum threshold.
+        try:
+            coleta_raw = str(poll.get("data_coleta", "")).replace("Z", "+00:00")
+            coleta_dt = datetime.fromisoformat(coleta_raw) if coleta_raw else None
+
+            close_raw = poll.get("fechamento_votacao")
+            if close_raw:
+                close_dt = datetime.fromisoformat(str(close_raw).replace("Z", "+00:00"))
+            else:
+                close_date = str(poll.get("data_paredao", ""))
+                close_dt = datetime.fromisoformat(f"{close_date}T22:45:00-03:00") if close_date else None
+
+            if coleta_dt and close_dt:
+                if coleta_dt.tzinfo is None:
+                    coleta_dt = coleta_dt.replace(tzinfo=timezone.utc)
+                else:
+                    coleta_dt = coleta_dt.astimezone(timezone.utc)
+                if close_dt.tzinfo is None:
+                    close_dt = close_dt.replace(tzinfo=timezone.utc)
+                else:
+                    close_dt = close_dt.astimezone(timezone.utc)
+
+                now_utc = datetime.now(timezone.utc)
+                now_ref = now_utc.replace(
+                    minute=(now_utc.minute // 15) * 15,
+                    second=0,
+                    microsecond=0,
+                )
+                effective_start = max(coleta_dt, now_ref)
+                hours_left = (close_dt - effective_start).total_seconds() / 3600.0
+                if hours_left <= 0.05:
+                    closing_rate_h = 0.0
+                    try:
+                        year_ref = int(str(poll.get("data_paredao", "2026")).split("-")[0])
+                        t0 = parse_votalhada_hora(str(past.get("hora", "")), year=year_ref)
+                        t1 = parse_votalhada_hora(str(last.get("hora", "")), year=year_ref)
+                        if t0.tzinfo is None:
+                            t0 = t0.replace(tzinfo=timezone.utc)
+                        else:
+                            t0 = t0.astimezone(timezone.utc)
+                        if t1.tzinfo is None:
+                            t1 = t1.replace(tzinfo=timezone.utc)
+                        else:
+                            t1 = t1.astimezone(timezone.utc)
+                        span_hours = max(0.01, (t1 - t0).total_seconds() / 3600.0)
+                        closing_rate_h = closing / span_hours
+                    except Exception:
+                        pass
+
+                    m_gap = None
+                    m_rank = None
+                    if model_values:
+                        m_rank = sorted(
+                            [(nome, float(model_values.get(nome, 0) or 0)) for nome in participantes],
+                            key=lambda x: (-x[1], x[0]),
+                        )
+                        if len(m_rank) >= 2:
+                            m_gap = abs(m_rank[0][1] - m_rank[1][1])
+                    if m_gap is not None and m_rank:
+                        model_lead = m_rank[0][0].split()[0]
+                        model_runner = m_rank[1][0].split()[0]
+                        chips = [
+                            {"label": "Diferença no fechamento", "value": f"{m_gap:.1f} p.p."},
+                            {"label": f"Ritmo final ({model_runner})", "value": f"{closing_rate_h:+.2f} p.p./h"},
+                        ]
+                        return (
+                            f"**Encerramento da votação atingido**. A leitura de virada foi congelada no fechamento.\n"
+                            f"Última fotografia do modelo: **{model_lead}** à frente de **{model_runner}**. "
+                            f"Agora o painel aguarda nova coleta final do Votalhada e o resultado oficial.",
+                            chips,
+                        )
+                    return (
+                        "**Encerramento da votação atingido**. O painel agora aguarda atualização final do Votalhada e resultado oficial.",
+                        [],
+                    )
+        except Exception:
+            pass
+
         if closing > 0.25 and gap_now > 0:
             # Friendly time-to-close language; avoid over-technical wording.
             try:

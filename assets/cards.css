@@ -1145,6 +1145,62 @@ body.paredao-page .paredao-spotlight-summary-item {
   color: #f0c453;
 }
 
+/* ── Platform precision tables (desktop + mobile) ── */
+.poll-precision-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.poll-precision-table {
+  min-width: 720px;
+  margin-bottom: 0.35rem;
+}
+
+.poll-precision-table th,
+.poll-precision-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.poll-precision-table th:first-child,
+.poll-precision-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #1d1f26;
+}
+
+.poll-precision-table thead th:first-child {
+  z-index: 2;
+}
+
+.poll-precision-row-votalhada td {
+  background: rgba(155, 89, 182, 0.12);
+}
+
+.poll-precision-row-model td {
+  background: rgba(0, 188, 140, 0.12);
+}
+
+/* ── Elimination summary table (mobile-safe) ── */
+.poll-elim-summary-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.poll-elim-summary {
+  min-width: 680px;
+  margin-bottom: 0.25rem;
+}
+
+.poll-elim-summary th,
+.poll-elim-summary td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 /* ── Poll insights (curated curiosidades) ── */
 .poll-insights {
   margin: 0.85rem 0 1.05rem;
@@ -1312,6 +1368,14 @@ body.paredao-page .paredao-spotlight-summary-item {
 
   .poll-compare-strip {
     grid-template-columns: 1fr;
+  }
+
+  .poll-precision-table {
+    min-width: 640px;
+  }
+
+  .poll-elim-summary {
+    min-width: 620px;
   }
 
   .paredao-card-appearance-badge {

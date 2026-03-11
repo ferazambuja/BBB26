@@ -55,7 +55,10 @@ def test_live_and_index_pages_use_shared_paredao_card_renderers():
     assert "render_paredao_live_card" in live
     assert "render_poll_comparison_card" in live
     assert "render_paredao_index_card" in index
-    assert 'index_data.get("paredao", {}).get("card")' in index
+    assert "build_paredao_card_payload" in index
+    assert "build_paredao_history" in index
+    assert "load_votalhada_polls" in index
+    assert "get_poll_for_paredao" in index
     assert "nosso-modelo-back-test" in helper
     assert "teste retrospectivo" in helper
 
@@ -153,3 +156,37 @@ def test_paredao_and_archive_pages_have_votalhada_formula_change_disclaimer_hook
     assert "10 de março de 2026" in archive
     assert "0,3 x 0,7" in archive
     assert "fórmula anterior" in archive
+
+
+def test_platform_tables_avoid_flex_utility_row_classes():
+    live = _read(PAREDAO_QMD)
+    archive = _read(PAREDOES_QMD)
+
+    assert '<tr class="u-s049"' not in live
+    assert '<tr class="u-s048"' not in live
+    assert '<tr class="u-s049"' not in archive
+    assert '<tr class="u-s048"' not in archive
+
+
+def test_platform_precision_table_has_mobile_scroll_wrapper():
+    archive = _read(PAREDOES_QMD)
+    css = _read(CARDS_CSS)
+
+    assert "poll-precision-table" in archive
+    assert "poll-precision-table-wrap" in archive
+    assert ".poll-precision-table-wrap" in css
+    assert ".poll-precision-table" in css
+
+
+def test_elimination_summary_uses_fixed_columns_without_dynamic_nan_paths():
+    archive = _read(PAREDOES_QMD)
+    css = _read(CARDS_CSS)
+
+    assert "'Eliminado(a)'" in archive
+    assert "'→ Q. Secreto'" not in archive
+    assert "'Grupo':" not in archive
+    assert "_col_label" not in archive
+    assert "poll-elim-summary-wrap" in archive
+    assert "poll-elim-summary" in archive
+    assert ".poll-elim-summary-wrap" in css
+    assert ".poll-elim-summary" in css

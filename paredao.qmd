@@ -479,7 +479,14 @@ if ultimo:
             _methodology_note = poll.get("metodologia", {}).get("disclaimer_publico")
             print(f'<p class="text-muted fs-base">Coleta: {_coleta_date} {_coleta_time} · {total_str} votos · Fonte: <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a></p>\n')
             if _methodology_note:
-                print(f'<p class="text-warning small u-s002">⚠️ {_methodology_note}</p>\n')
+                _mn = str(_methodology_note).lower()
+                _is_formula_change_note = (
+                    "0,3 x 0,7" in _mn
+                    or "fórmula anterior" in _mn
+                    or "formula anterior" in _mn
+                )
+                if not _is_formula_change_note:
+                    print(f'<p class="text-warning small u-s002">⚠️ {_methodology_note}</p>\n')
                 print(
                     '<p class="text-muted small u-s002">'
                     'Desde 10 de março de 2026, o Votalhada passou a exibir a média <strong>0,3 x 0,7</strong>; '
@@ -1788,7 +1795,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             total_votos = consolidado.get('total_votos', 0)
             total_str = f"{total_votos:,.0f}".replace(',', '.')
-            print(f'<tr class="u-s049"><td class="u-s002">📊 Votalhada</td>')
+            print('<tr class="poll-precision-row-votalhada"><td class="u-s002">📊 Votalhada</td>')
             _cfvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
@@ -1801,7 +1808,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             # Model row
             if _model_pred_fin:
-                print(f'<tr class="u-s048"><td class="u-s002">🧮 Nosso Modelo</td>')
+                print('<tr class="poll-precision-row-model"><td class="u-s002">🧮 Nosso Modelo</td>')
                 _mfvals = [_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _model_pred_fin['prediction'].get(nome, 0)

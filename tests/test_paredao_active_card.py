@@ -44,8 +44,20 @@ def _repo_data():
     }
 
 
+def _latest_entry_as_active(repo_data: dict) -> dict:
+    current = copy.deepcopy(repo_data["paredoes"][-1])
+    current["status"] = "em_andamento"
+    current.pop("resultado", None)
+    for participant in current.get("participantes", []):
+        participant.pop("resultado", None)
+        participant.pop("voto_unico", None)
+        participant.pop("voto_torcida", None)
+        participant.pop("voto_total", None)
+    return current
+
+
 def test_active_payload_uses_model_order_and_two_facts(_repo_data):
-    current = _repo_data["paredoes"][-1]
+    current = _latest_entry_as_active(_repo_data)
     assert current["status"] == "em_andamento"
     history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
@@ -67,17 +79,21 @@ def test_active_payload_uses_model_order_and_two_facts(_repo_data):
     assert any("Babu" in fact for fact in payload["fact_lines"])
     assert any("Milena" in fact for fact in payload["fact_lines"])
     assert payload["curiosity_line"]
-    assert "%" in payload["curiosity_line"] or "p.p." in payload["curiosity_line"] or "pontos percentuais" in payload["curiosity_line"].lower()
+    if "encerramento da votação atingido" not in payload["curiosity_line"].lower():
+        assert "%" in payload["curiosity_line"] or "p.p." in payload["curiosity_line"] or "pontos percentuais" in payload["curiosity_line"].lower()
     assert "janela" not in payload["curiosity_line"].lower()
-    assert "pontos percentuais" in payload["curiosity_line"].lower()
     assert payload.get("curiosity_chips")
-    assert any("Ritmo atual" in str(c.get("label", "")) for c in payload["curiosity_chips"])
-    assert any("Ritmo necessário" in str(c.get("label", "")) for c in payload["curiosity_chips"])
+    if "encerramento da votação atingido" in payload["curiosity_line"].lower():
+        assert any("Diferença no fechamento" in str(c.get("label", "")) for c in payload["curiosity_chips"])
+        assert any("Ritmo final" in str(c.get("label", "")) for c in payload["curiosity_chips"])
+    else:
+        assert any("Ritmo atual" in str(c.get("label", "")) for c in payload["curiosity_chips"])
+        assert any("Ritmo necessário" in str(c.get("label", "")) for c in payload["curiosity_chips"])
     assert any("p.p./h" in str(c.get("value", "")) for c in payload["curiosity_chips"])
 
 
 def test_curiosity_after_close_freezes_projection(_repo_data):
-    current = _repo_data["paredoes"][-1]
+    current = _latest_entry_as_active(_repo_data)
     history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
     closed_poll = copy.deepcopy(poll)
@@ -91,8 +107,38 @@ def test_curiosity_after_close_freezes_projection(_repo_data):
     assert any("Diferença no fechamento" in str(c.get("label", "")) for c in payload["curiosity_chips"])
 
 
+def test_curiosity_after_close_freezes_even_without_positive_momentum(_repo_data):
+    current = _latest_entry_as_active(_repo_data)
+    history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
+    poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
+    closed_poll = copy.deepcopy(poll)
+    closed_poll["fechamento_votacao"] = "2000-01-01T22:45:00-03:00"
+    serie = closed_poll.get("serie_temporal", [])
+    assert len(serie) >= 3
+
+    participants = closed_poll.get("participantes", [])
+    consolidado = closed_poll.get("consolidado", {})
+    ranked = sorted(
+        [(name, float(consolidado.get(name, 0) or 0)) for name in participants],
+        key=lambda x: (-x[1], x[0]),
+    )
+    assert len(ranked) >= 2
+    lead = ranked[0][0]
+    runner = ranked[1][0]
+    # Force near-zero momentum so the close-state text is not gated by "closing > 0.25".
+    serie[-1][lead] = serie[-3][lead]
+    serie[-1][runner] = serie[-3][runner]
+
+    payload = build_paredao_card_payload(current, closed_poll, _repo_data["polls_data"], history)
+
+    assert payload["curiosity_line"]
+    assert "encerramento da votação atingido" in payload["curiosity_line"].lower()
+    assert payload.get("curiosity_chips")
+    assert any("Diferença no fechamento" in str(c.get("label", "")) for c in payload["curiosity_chips"])
+
+
 def test_active_payload_without_model_prediction_stays_neutral(_repo_data):
-    current = _repo_data["paredoes"][-1]
+    current = _latest_entry_as_active(_repo_data)
     history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
 
     payload = build_paredao_card_payload(current, None, {"paredoes": []}, history)
@@ -113,15 +159,15 @@ def test_finalized_payload_uses_official_results_and_grayscale(_repo_data):
 
     assert payload["state"] == "finalized"
     eliminated = next(n for n in payload["nominees"] if n["is_eliminated"])
-    assert eliminated["name"] == "Maxiane"
-    assert eliminated["display_pct"] == pytest.approx(63.21)
+    assert eliminated["name"] == "Babu Santana"
+    assert eliminated["display_pct"] == pytest.approx(68.62)
     assert eliminated["use_grayscale"] is True
     assert payload["memory_line"]
     assert "Nosso Modelo" in payload["memory_line"]
 
 
 def test_live_and_index_renderers_share_the_new_card_language(_repo_data):
-    current = _repo_data["paredoes"][-1]
+    current = _latest_entry_as_active(_repo_data)
     history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
     payload = build_paredao_card_payload(current, poll, _repo_data["polls_data"], history)
@@ -147,7 +193,7 @@ def test_live_and_index_renderers_share_the_new_card_language(_repo_data):
 
 
 def test_repeat_nominees_render_top_right_appearance_badges(_repo_data):
-    current = _repo_data["paredoes"][-1]
+    current = _latest_entry_as_active(_repo_data)
     history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
     payload = build_paredao_card_payload(current, poll, _repo_data["polls_data"], history)

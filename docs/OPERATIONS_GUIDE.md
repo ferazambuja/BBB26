@@ -22,6 +22,7 @@
 | **Paredão formation** (Sunday night) | Sunday ~22h45 | [Paredão Formation Checklist](#paredão-formation-checklist-sunday) |
 | **Collect Votalhada polls** (Tuesday) | Tuesday ~21h | [Votalhada Collection Checklist](#votalhada-collection-checklist-tuesday) |
 | **Elimination result** (Tuesday) | Tuesday ~23h | [Elimination Result Checklist](#elimination-result-checklist-tuesday) |
+| **Cartola stale after elimination** | Tuesday ~23h | [Elimination Result Checklist → participant exit + Cartola sanity check](#elimination-result-checklist-tuesday) |
 | **Sincerão data** (Monday) | Monday ~22h | [Sincerão Update](#sincerão-update-monday) |
 | **Ganha-Ganha / Barrado / power events** | Various | [Manual Data Files](#manual-data-files--when-and-how) |
 | **Add scheduled events for upcoming week** | After dynamics article | [Scheduled Events](#scheduled-events-upcoming-week) |
@@ -1078,6 +1079,29 @@ Set the status to `finalizado`, add vote results, and add the article to `fontes
 
 **Where to find data**: The scraped article, or search `BBB 26 Nº paredão porcentagem resultado`.
 
+### 1b. Update `data/manual_events.json` → `participants` (required for real elimination)
+
+For a normal (non-fake) elimination, register the participant exit entry:
+
+```json
+{
+  "participants": {
+    "Name": {
+      "status": "eliminado",
+      "exit_date": "YYYY-MM-DD",
+      "paredao_numero": N,
+      "fontes": ["<resultado-url>"]
+    }
+  }
+}
+```
+
+- Use `status: "eliminado"` or `status: "eliminada"` (both accepted).
+- For `desistente`/`desclassificado`, the same shape applies: `status` + `exit_date` + `fontes`.
+- **Do not use legacy keys** like `date`, `week`, `paredao`, `detail` in `participants` — they are not the operational contract for Cartola exit scoring.
+- **Paredão Falso**: do not add participant exit in `participants` (the person remains active and gets `quarto_secreto` points from `paredoes.json`).
+- **Why this is mandatory**: without this entry, Cartola may keep the eliminated participant as active and miss the `eliminado` (−20) event.
+
 ### 2. Update `data/votalhada/polls.json`
 
 Add `resultado_real` to the paredão's poll entry:
@@ -1096,6 +1120,22 @@ Add `resultado_real` to the paredão's poll entry:
 - Use `voto_total` (not `voto_unico` or `voto_torcida`) for the percentages — this matches what Votalhada predicted against.
 - Set `predicao_correta` to `true` if `consolidado.predicao_eliminado` matches `resultado_real.eliminado`, otherwise `false`.
 - For Paredão Falso: "eliminado" = who went to Quarto Secreto (most voted to save).
+
+### 2b. Rebuild + Cartola sanity check (required before commit)
+
+```bash
+python scripts/build_derived_data.py
+
+# Normal elimination: eliminated participant must have week-N "eliminado" and active=false
+jq '.leaderboard[] | select(.name=="Name") | {name,active,week_events:(.events|map(select(.week==N)))}' data/derived/cartola_data.json
+
+# Paredão falso: selected participant must have "quarto_secreto" (not "eliminado")
+jq '.leaderboard[] | select(.name=="Name") | {name,active,week_events:(.events|map(select(.week==N)))}' data/derived/cartola_data.json
+```
+
+Expected:
+- Normal elimination: event list includes `["eliminado", -20, "YYYY-MM-DD"]`, and `active: false`.
+- Paredão Falso: event list includes `["quarto_secreto", 40, "YYYY-MM-DD"]`, and participant remains active.
 
 ### 3. Record Ganha-Ganha (same night, ~23h30)
 
@@ -1128,7 +1168,7 @@ Add **two things** to `data/manual_events.json`:
       "escolha": "informação privilegiada",
       "abriu_mao": "R$ 10 mil (dobrar para R$ 20 mil)"
     },
-    "informacao": "Content of the privileged information revealed (if chosen)",
+    "informacao": "Content of the privileged information if disclosed in the article",
     "fontes": ["<article-url>"]
   }
 }
@@ -1144,7 +1184,9 @@ Add **two things** to `data/manual_events.json`:
 | `decisao.quem` | Name | Person who chose between prize and info |
 | `decisao.escolha` | `"informação privilegiada"` or `"R$ X mil"` | What they picked |
 | `decisao.abriu_mao` | String | What they gave up |
-| `informacao` | String or `null` | Content of privileged info (if chosen) |
+| `informacao` | String or `null` | Content of privileged info when the article reveals it, even if the participant chose the cash instead |
+
+If the participant takes the money, keep `decisao.escolha` / `decisao.abriu_mao` aligned with the cash outcome and still fill `informacao` whenever gshow reveals the hidden message to the audience after the choice.
 
 #### B. Two `power_events` entries
 
@@ -1196,7 +1238,7 @@ Once `build_derived_data.py` runs and the site deploys, the following update **a
 
 | What | Where | Details |
 |------|-------|---------|
-| **Cartola BBB points** | `cartola_data.json` → `cartola.qmd` | `eliminado` (+15 for survivors) or `quarto_secreto` (+40) points awarded. All auto-detected from `paredoes.json` status + `paredao_falso` flag. |
+| **Cartola BBB points** | `cartola_data.json` → `cartola.qmd` | For normal paredão: `emparedado` (−15), `eliminado` (−20), `nao_eliminado_paredao` (+20), plus `nao_emparedado` (+10)/`nao_recebeu_votos` (+5) when applicable. For fake: selected participant gets `quarto_secreto` (+40). |
 | **Paredão archival** | `paredao_analysis.json` → `paredoes.qmd` | Finalized paredão moves to the archive page with full analysis (votos da casa, reaction heatmap, formation timeline). |
 | **Prediction model recalibration** | `vote_prediction.json` → `paredao.qmd` | The **Modelo Ponderado por Precisão** recalculates weights using all finalized `resultado_real` entries. RMSE per platform, weights, and backtest results update automatically. |
 | **Votação page** | `votacao.qmd` | Voto Único vs Voto Torcida analysis updates with the new paredão's voting breakdown. |
@@ -1216,7 +1258,7 @@ When `paredao_falso: true` is set in `paredoes.json`, the entire display layer a
 | **Timeline** (`game_timeline.json`) | "Breno eliminado (54.66%)" 🏁 | "Breno → Quarto Secreto (54.66%)" 🔮 |
 | **Transformed resultado** (`load_paredoes_transformed`) | `ELIMINADA` | `QUARTO_SECRETO` |
 | **Nominee badge** (`get_nominee_badge()`) | "ELIMINADO" 🔴 red | "🔮 Q. SECRETO" 🔮 purple |
-| **paredoes.qmd summary table** | Column: "Eliminado(a)" | Column: "→ Q. Secreto" |
+| **paredoes.qmd summary table** | "Eliminado(a)" (normal) | Same column; fake week marked by 🔮 in "Nº" |
 | **paredoes.qmd tab label** | "7º Paredão (Breno)" | "7º Paredão Falso (Breno)" |
 | **paredoes.qmd history rows** | "Elim." red | "🔮 Q. Secreto" purple |
 | **paredao.qmd precision label** | "(eliminado)" | "(→ quarto secreto)" |
@@ -1369,11 +1411,15 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `weekly_events` — Big Fone, Sincerão, Anjo details, confessão de voto, dedo-duro
 - `special_events` — dinâmicas especiais
 - `scheduled_events` — upcoming events (with auto-dedup)
-- `participants` — desistências, desclassificações
+- `participants` — **all exits** (eliminações, desistências, desclassificações)
 
 **Pitfalls**:
 - Names must match API exactly (see `docs/ARCHITECTURE.md` → data contracts)
 - Consensus events: use `"actor": "A + B + C"` + `"actors": ["A","B","C"]`
+- `participants` must use the current contract:
+  - required keys: `status`, `exit_date`
+  - recommended: `paredao_numero` (for eliminações), `fontes`
+  - avoid legacy keys in this object (`date`, `week`, `paredao`, `detail`)
 - `build_derived_data.py` hard-fails on audit issues — fix before pushing
 
 **Full schema**: `docs/MANUAL_EVENTS_GUIDE.md`
@@ -1677,6 +1723,33 @@ python scripts/audit_manual_events.py    # check what's wrong
 # Fix data/manual_events.json
 python scripts/build_derived_data.py     # re-run
 ```
+
+### Cartola did not update after elimination (stale leaderboard)
+
+Symptoms:
+- Paredão is `finalizado` in `data/paredoes.json`, but eliminated participant still appears `active: true` in `data/derived/cartola_data.json`.
+- Missing `eliminado` (−20) event in the elimination week.
+
+Checklist:
+```bash
+# 1) Ensure participant exit exists in manual_events contract (not legacy keys)
+jq '.participants["Name"]' data/manual_events.json
+
+# 2) Rebuild
+python scripts/build_derived_data.py
+
+# 3) Confirm week events + active flag
+jq '.leaderboard[] | select(.name=="Name") | {name,active,week_events:(.events|map(select(.week==N)))}' data/derived/cartola_data.json
+```
+
+Expected for normal elimination:
+- `active: false`
+- week `N` includes `["eliminado", -20, "YYYY-MM-DD"]`
+
+If still wrong:
+- Verify `data/manual_events.json -> participants["Name"]` uses `status`, `exit_date`, `paredao_numero`, `fontes`.
+- Remove legacy participant keys (`date`, `week`, `paredao`, `detail`) for that entry.
+- Rebuild again.
 
 ### Merge conflict on `data/derived/`
 

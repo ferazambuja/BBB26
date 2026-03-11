@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-03-07",
+  "_last_updated": "2026-03-10",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -87,10 +87,19 @@
     },
     "Maxiane": {
       "status": "eliminada",
-      "date": "2026-02-25",
-      "week": 6,
-      "paredao": 6,
-      "detail": "Eliminada no 6º Paredão com 63,21% dos votos (Voto Único 66,20% + Voto Torcida 56,20%). Disputou com Chaiany (0,68%) e Milena (36,11%)."
+      "exit_date": "2026-02-25",
+      "paredao_numero": 6,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-maxiane-e-a-sexta-eliminada-do-reality.ghtml"
+      ]
+    },
+    "Babu Santana": {
+      "status": "eliminado",
+      "exit_date": "2026-03-10",
+      "paredao_numero": 8,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-babu-santana-e-o-setimo-eliminado-do-reality.ghtml"
+      ]
     }
   },
   "weekly_events": [
@@ -4187,6 +4196,29 @@
           {"actor": "Jordana", "target": "Babu Santana", "type": "ataque", "slot": 3, "tema": "frouxo"}
         ],
         "edges_notes": "Formato pódio negativo: cada participante escolheu 3 alvos (1º/2º/3º lugar) e deu uma medalha (covarde/frouxo/arregão). Todos os 42 edges usam tipo 'ataque' com tema = medalha dada. O campo 'slot' preserva a posição no pódio (1/2/3) — scoring atual trata ataque com peso flat (-0.8 relações, -0.6 edges)."
+      },
+      "ganha_ganha": {
+        "date": "2026-03-10",
+        "resultado": "Ana Paula Renault vetou Leandro; Jordana escolheu R$ 20 mil (abriu mão da informação privilegiada).",
+        "sorteados": [
+          "Leandro",
+          "Jordana",
+          "Ana Paula Renault"
+        ],
+        "cartas": "Leandro e Jordana abriram cartões com R$ 10 mil + informação privilegiada. Ana Paula Renault ficou com o poder de veto.",
+        "veto": {
+          "por": "Ana Paula Renault",
+          "quem": "Leandro"
+        },
+        "decisao": {
+          "quem": "Jordana",
+          "escolha": "R$ 20 mil",
+          "abriu_mao": "informação privilegiada + R$ 10 mil"
+        },
+        "informacao": "Nesta semana, tem Máquina do Poder!",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil-no-bbb-26.ghtml"
+        ]
       }
     }
   ],
@@ -6129,6 +6161,38 @@
       "awareness": "known",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-8-paredao-do-bbb-26-babu-santana-chaiany-e-milena-formam-a-berlinda.ghtml"
+      ]
+    },
+    {
+      "date": "2026-03-10",
+      "week": 8,
+      "type": "veto_ganha_ganha",
+      "actor": "Leandro",
+      "target": "Ana Paula Renault",
+      "source": "Ganha-Ganha",
+      "detail": "Foi vetado por Ana Paula Renault na dinâmica do Ganha-Ganha.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil-no-bbb-26.ghtml"
+      ]
+    },
+    {
+      "date": "2026-03-10",
+      "week": 8,
+      "type": "ganha_ganha_escolha",
+      "actor": "Jordana",
+      "target": "Ana Paula Renault",
+      "source": "Ganha-Ganha",
+      "detail": "Ficou com a decisão após o veto de Ana Paula Renault em Leandro. Escolheu R$ 20 mil, abrindo mão da informação privilegiada.",
+      "impacto": "positivo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil-no-bbb-26.ghtml"
       ]
     }
   ],
