@@ -1768,11 +1768,14 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
             for name in active_set:
                 if name in indicados:
                     on_paredao[name] += 1
-                elif name in protected_names:
+                if name in protected_names:
                     protected[name] += 1
                     reason = "Líder" if name in lider_names else ("Imune" if name == imun else "Autoimune")
                     protection_detail[name].append((num, reason))
-                elif name not in cant_be_voted:
+
+                # Pre-vote eligibility for receiving house votes. This intentionally
+                # includes participants later nominated by house vote.
+                if name not in cant_be_voted:
                     available[name] += 1
                     house_votes_avail[name] += sum(
                         1 for _v, t in (par.get("votos_casa") or {}).items()

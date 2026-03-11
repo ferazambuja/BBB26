@@ -82,6 +82,81 @@ class TestExtractEligibilityDualLeaders:
         assert result["lider"] == "Jonas"
 
 
+class TestExtractEligibilityPreVoteDynamics:
+    def test_consenso_anjo_monstro_target_in_cant_be_voted(self):
+        entry = {
+            "formacao": {
+                "lider": "L",
+                "consenso_anjo_monstro": {"target": "Babu"},
+            },
+            "indicados_finais": [{"nome": "Babu", "como": "Consenso Anjo+Monstro"}],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Babu" in result["cant_be_voted"]
+        assert result["ineligible_reasons"]["Babu"] == "Consenso Anjo+Monstro"
+
+    def test_duelo_de_risco_emparedado_in_cant_be_voted(self):
+        entry = {
+            "formacao": {
+                "lider": "L",
+                "duelo_de_risco": {"emparedado": "Chaiany"},
+            },
+            "indicados_finais": [{"nome": "Chaiany", "como": "Duelo de Risco"}],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Chaiany" in result["cant_be_voted"]
+        assert result["ineligible_reasons"]["Chaiany"] == "Duelo de Risco"
+
+    def test_exilado_indicado_in_cant_be_voted(self):
+        entry = {
+            "formacao": {
+                "lider": "L",
+                "exilado": {"indicado": "Alberto Cowboy"},
+            },
+            "indicados_finais": [{"nome": "Alberto Cowboy", "como": "Exilado"}],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Alberto Cowboy" in result["cant_be_voted"]
+        assert result["ineligible_reasons"]["Alberto Cowboy"] == "Exilado"
+
+    def test_fallback_bloco_do_paredao_from_como(self):
+        entry = {
+            "formacao": {"lider": "L"},
+            "indicados_finais": [{"nome": "Solange Couto", "como": "Bloco do Paredão (sem consenso)"}],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Solange Couto" in result["cant_be_voted"]
+        assert result["ineligible_reasons"]["Solange Couto"] == "Bloco do Paredão"
+
+    def test_house_vote_nominee_remains_votable(self):
+        entry = {
+            "formacao": {"lider": "L"},
+            "indicados_finais": [{"nome": "Leandro", "como": "Casa (10 votos)"}],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Leandro" not in result["cant_be_voted"]
+
+    def test_mais_votada_nominee_remains_votable(self):
+        entry = {
+            "formacao": {"lider": "L"},
+            "indicados_finais": [{"nome": "Samira", "como": "Mais votada pela casa (3 votos)"}],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Samira" not in result["cant_be_voted"]
+
+    def test_contragolpe_quem_variant_in_cant_be_voted(self):
+        entry = {
+            "formacao": {
+                "lider": "L",
+                "contragolpe": {"por": "Chaiany", "quem": "Maxiane"},
+            },
+            "indicados_finais": [{"nome": "Maxiane", "como": "Contragolpe (indicada por Chaiany)"}],
+        }
+        result = extract_paredao_eligibility(entry)
+        assert "Maxiane" in result["cant_be_voted"]
+        assert result["ineligible_reasons"]["Maxiane"] == "Contragolpe"
+
+
 # ── BV escape counting ──────────────────────────────────────────────────────
 
 def _make_paredao(num, lider, indicados, bv_vencedor=None, bv_vencedores=None, votos_casa=None):
@@ -301,6 +376,76 @@ class TestBlindadosContract:
             assert "bv_escape" in item
             assert item["votes"] == item["votes_total"]
             assert item["bv_escape"] == (item["bv_escapes"] > 0)
+
+
+class TestExtractEligibilityRealCases:
+    def test_real_paredoes_dynamic_and_house_vote_cases(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "paredoes.json"
+        if not path.exists():
+            pytest.skip("paredoes.json not available")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        by_num = {p.get("numero"): p for p in data.get("paredoes", [])}
+
+        p3 = extract_paredao_eligibility(by_num[3])
+        p5 = extract_paredao_eligibility(by_num[5])
+        p6 = extract_paredao_eligibility(by_num[6])
+        p7 = extract_paredao_eligibility(by_num[7])
+        p8 = extract_paredao_eligibility(by_num[8])
+
+        # Pre-vote dynamic nominees should be excluded from house target pool.
+        assert "Solange Couto" in p5["cant_be_voted"]   # Bloco do Paredão
+        assert "Chaiany" in p6["cant_be_voted"]         # Duelo de Risco
+        assert "Maxiane" in p6["cant_be_voted"]         # Contragolpe (quem)
+        assert "Alberto Cowboy" in p7["cant_be_voted"]  # Exilado
+        assert "Babu Santana" in p8["cant_be_voted"]    # Consenso Anjo+Monstro
+
+        # House-vote nominees remain part of eligible target pool pre-vote.
+        assert "Samira" not in p5["cant_be_voted"]      # Mais votada pela casa
+        assert "Leandro" not in p3["cant_be_voted"]     # Casa (10 votos)
+
+
+class TestStaticCardsEligibilityAccounting:
+    def test_available_matches_pre_vote_eligibility(self):
+        root = Path(__file__).resolve().parents[1]
+        paredoes_path = root / "data" / "paredoes.json"
+        latest_path = root / "data" / "latest.json"
+        if not paredoes_path.exists() or not latest_path.exists():
+            pytest.skip("required data files not available")
+
+        with open(paredoes_path, encoding="utf-8") as f:
+            paredoes = json.load(f).get("paredoes", [])
+        with open(latest_path, encoding="utf-8") as f:
+            latest = json.load(f)
+        participants = latest.get("participants", latest if isinstance(latest, list) else [])
+        active_set = {
+            p.get("name")
+            for p in participants
+            if p.get("name") and not p.get("characteristics", {}).get("eliminated")
+        }
+        if not active_set:
+            pytest.skip("no active participants in latest.json")
+
+        _highlights, cards = _compute_static_cards({"active_set": active_set, "paredoes": {"paredoes": paredoes}})
+        blindados = next(card for card in cards if card.get("type") == "blindados")
+        items = {item["name"]: item for item in blindados.get("items_all", [])}
+
+        expected_available: dict[str, int] = {name: 0 for name in active_set}
+        for par in paredoes:
+            if not par.get("votos_casa"):
+                continue
+            elig = extract_paredao_eligibility(par)
+            cant_be_voted = elig.get("cant_be_voted", set())
+            for name in active_set:
+                if name not in cant_be_voted:
+                    expected_available[name] += 1
+
+        for name in active_set:
+            if name not in items:
+                continue
+            assert items[name]["available"] == expected_available[name], (
+                f"{name}: available={items[name]['available']} expected={expected_available[name]}"
+            )
 
 
 class TestBlindadosDisplayDetails:

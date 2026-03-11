@@ -23,6 +23,7 @@
 | **Collect Votalhada polls** (Tuesday) | Tuesday ~21h | [Votalhada Collection Checklist](#votalhada-collection-checklist-tuesday) |
 | **Elimination result** (Tuesday) | Tuesday ~23h | [Elimination Result Checklist](#elimination-result-checklist-tuesday) |
 | **Cartola stale after elimination** | Tuesday ~23h | [Elimination Result Checklist → participant exit + Cartola sanity check](#elimination-result-checklist-tuesday) |
+| **Recalibrate Votalhada model after result** | Tuesday ~23h | [Elimination Result Checklist → model sanity check](#elimination-result-checklist-tuesday) |
 | **Sincerão data** (Monday) | Monday ~22h | [Sincerão Update](#sincerão-update-monday) |
 | **Ganha-Ganha / Barrado / power events** | Various | [Manual Data Files](#manual-data-files--when-and-how) |
 | **Add scheduled events for upcoming week** | After dynamics article | [Scheduled Events](#scheduled-events-upcoming-week) |
@@ -1121,7 +1122,7 @@ Add `resultado_real` to the paredão's poll entry:
 - Set `predicao_correta` to `true` if `consolidado.predicao_eliminado` matches `resultado_real.eliminado`, otherwise `false`.
 - For Paredão Falso: "eliminado" = who went to Quarto Secreto (most voted to save).
 
-### 2b. Rebuild + Cartola sanity check (required before commit)
+### 2b. Rebuild + Cartola + model sanity check (required before commit)
 
 ```bash
 python scripts/build_derived_data.py
@@ -1136,6 +1137,39 @@ jq '.leaderboard[] | select(.name=="Name") | {name,active,week_events:(.events|m
 Expected:
 - Normal elimination: event list includes `["eliminado", -20, "YYYY-MM-DD"]`, and `active: false`.
 - Paredão Falso: event list includes `["quarto_secreto", 40, "YYYY-MM-DD"]`, and participant remains active.
+
+Model sanity check (Votalhada + Nosso Modelo, after `resultado_real` update):
+
+```bash
+python - <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sys.path.append("scripts")
+from data_utils import calculate_precision_weights, backtest_precision_model
+
+polls = json.loads(Path("data/votalhada/polls.json").read_text(encoding="utf-8"))
+finalized = [p for p in polls.get("paredoes", []) if p.get("resultado_real")]
+precision = calculate_precision_weights(polls)
+backtest = backtest_precision_model(polls) or {}
+agg = (backtest.get("aggregate") or {})
+
+print({
+    "finalized_with_resultado_real": len(finalized),
+    "precision_n_paredoes": precision.get("n_paredoes"),
+    "weights": precision.get("weights"),
+    "model_correct": agg.get("model_correct"),
+    "votalhada_correct": agg.get("consolidado_correct"),
+    "n_paredoes_backtest": agg.get("n_paredoes"),
+})
+PY
+```
+
+Expected:
+- `precision_n_paredoes` equals `finalized_with_resultado_real`
+- `n_paredoes_backtest` equals `finalized_with_resultado_real`
+- `weights` are non-empty when enough finalized paredões exist
 
 ### 3. Record Ganha-Ganha (same night, ~23h30)
 
