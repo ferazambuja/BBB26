@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-09
+> **Last updated**: 2026-03-10
 
 ---
 
@@ -732,6 +732,21 @@ Before each elimination (~21h BRT), collect poll data from [Votalhada](https://v
 
 Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
 
+**Current ops policy**: use manual fetches/updates. The default production flow is:
+
+1. `fetch_votalhada_images.py`
+2. `votalhada_auto_update.py --dry-run`
+3. `votalhada_auto_update.py --apply --build`
+
+The local scheduler is disabled by default for live ops right now.
+
+If a local scheduler is already running, stop it before continuing:
+
+```bash
+pkill -f schedule_votalhada_fetch.py
+pkill -f "tail -f logs/votalhada_scheduler.log"
+```
+
 **Vote-window baseline (for trend projections):**
 - Voting usually opens on Sunday/Monday after the live show.
 - Voting usually closes around **Tuesday 22:45 BRT** (official result shortly after).
@@ -766,7 +781,7 @@ N=8; echo "https://votalhada.blogspot.com/$(date -u -d '-3 hours' +%Y/%m)/pesqui
 N=8; echo "https://votalhada.blogspot.com/$(TZ=America/Sao_Paulo date +%Y/%m)/pesquisa${N}.html"
 ```
 
-Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures. Use `--no-timestamp` to overwrite instead.
+Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures for OCR training/regression work. Prefer keeping that history; do not use `--no-timestamp` unless you explicitly want overwrite mode.
 
 **Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
 
@@ -783,7 +798,78 @@ python scripts/votalhada_platform_consistency_audit.py \
   --output tmp/votalhada_ocr/platform_consistency_latest.json
 ```
 
-### 2. Run OCR parser (Consolidado-only)
+### 2. Run latest-capture OCR gate (recommended)
+
+Preferred validate-only command:
+
+```bash
+python scripts/votalhada_auto_update.py \
+  --paredao N \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --dry-run \
+  --output tmp/votalhada_ocr/paredao_N_latest.json
+```
+
+This is the production gate:
+- auto-selects the best consolidado card by content
+- validates only the **latest timestamped capture set** in the folder
+- keeps older images available for OCR training instead of treating them as release blockers
+- blocks apply if the parsed capture is not newer than `polls.json`
+
+Review the dry-run output before applying:
+- `validation_errors` must be empty
+- `gate_errors` must be empty
+- `parsed.capture_hora` must exist
+- `parsed.serie_temporal` must be non-empty
+
+### 3. Apply and rebuild
+
+```bash
+python scripts/votalhada_auto_update.py \
+  --paredao N \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --apply \
+  --build \
+  --output tmp/votalhada_ocr/paredao_N_apply.json
+```
+
+This apply step:
+- updates `data/votalhada/polls.json`
+- keeps prior image history and appends only the new capture set
+- rebuilds derived data after the apply
+
+Optional render check after apply:
+
+```bash
+quarto render paredao.qmd
+```
+
+### Optional debugging and audit tools
+
+Focused batch gate for the same latest capture set:
+
+```bash
+python scripts/votalhada_ocr_batch_validate.py \
+  --images-root data/votalhada \
+  --folders YYYY_MM_DD \
+  --paredao N \
+  --fail-on-errors
+```
+
+For OCR research / historical audits, run the same validator against the full folder history:
+
+```bash
+python scripts/votalhada_ocr_batch_validate.py \
+  --images-root data/votalhada \
+  --folders YYYY_MM_DD \
+  --paredao N \
+  --scope full-history \
+  --fail-on-errors
+```
+
+`full-history` is expected to surface older noisy/conflicted captures. That does **not** mean the current latest capture is bad.
+
+Fallback raw parser (Consolidado-only)
 
 Use the OCR parser on the fetched folder:
 
@@ -806,7 +892,7 @@ The parser supports dynamic top-table schemas seen across BBB25/BBB26:
 - 4-platform with `Outras Redes`
 - split rows `Média Threads` + `Média Instagram`
 
-### 3. Validation gate (must pass before update)
+### Validation reference
 
 From the OCR output JSON:
 - `validation_errors` must be empty
@@ -827,7 +913,17 @@ Time sanity checklist before applying:
 - repeated `HH:MM` across different days is valid (do not collapse by time-only).
 - if `time_corrections` is non-empty, verify corrected rows with vision before writing `polls.json`.
 
-### 4. Historical series handling (critical for next week)
+Recommended OCR regression tests before changing parser behavior:
+
+```bash
+pytest -q \
+  tests/test_votalhada_ocr_batch_validate.py \
+  tests/test_votalhada_ocr_feasibility.py \
+  tests/test_votalhada_platform_consistency_audit.py \
+  tests/test_fetch_votalhada_images.py
+```
+
+### Historical series handling
 
 `serie_temporal` in consolidado is cumulative: each new capture adds rows over time.
 
@@ -858,17 +954,30 @@ Expected behavior:
 - `curr_rows >= prev_rows` in most captures
 - If `curr_capture_hora` is newer, the latest vote total should not decrease
 
-### 5. Apply to `data/votalhada/polls.json`
+### Detailed apply reference
 
 After OCR validation passes:
+Preferred apply command:
+
+```bash
+python scripts/votalhada_auto_update.py \
+  --paredao N \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --apply \
+  --build \
+  --output tmp/votalhada_ocr/paredao_N_apply.json
+```
+
+What it does:
 1. append new series rows by `hora`
 2. overwrite latest `consolidado` and `plataformas`
 3. set `predicao_eliminado` to participant with highest consolidado %
 4. update `data_coleta`
+5. preserve all historical image paths already stored in `polls.json`
 
 **AI Agent Instructions**: See `data/votalhada/README.md` → "AI Agent Instructions" for detailed parsing rules.
 
-### 6. Paredão Falso ("Quem SALVAR?") handling
+### Paredão Falso ("Quem SALVAR?") handling
 
 For Paredão Falso polls, set these extra fields in the poll entry:
 
@@ -883,7 +992,7 @@ For Paredão Falso polls, set these extra fields in the poll entry:
 - **`predicao_eliminado`** in `consolidado` — set to the **most** voted participant (same as normal paredões).
 - QMD pages auto-detect `tipo_voto` and display "Quem você quer SALVAR?" header + Paredão Falso warning banner.
 
-### 7. Verify name matching
+### Verify name matching
 
 Votalhada uses short names. Always match to API names:
 
@@ -895,7 +1004,7 @@ Votalhada uses short names. Always match to API names:
 | "Sol" | "Sol Vega" |
 | "Floss" | "Juliano Floss" |
 
-### 8. Rebuild, commit, push + deploy
+### Rebuild, commit, push + deploy
 
 ```bash
 # Rebuild derived data (updates prediction model weights)

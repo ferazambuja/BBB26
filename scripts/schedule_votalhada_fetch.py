@@ -5,8 +5,9 @@ Windows in Sao Paulo time:
   - Monday: 01:00, 08:00, 12:00, 15:00, 18:00, 21:00
   - Tuesday: 08:00, 12:00, 15:00, 18:00, 21:00
 
-This runner is timezone-aware. Keep it running locally (tmux/screen/background)
-and it will trigger `scripts/fetch_votalhada_images.py` at each window.
+This runner is timezone-aware and can trigger `scripts/fetch_votalhada_images.py`
+at each window. It is disabled by default for live ops; prefer the manual flow:
+fetch -> dry-run gate -> apply/build.
 """
 
 from __future__ import annotations
@@ -125,7 +126,7 @@ def _run_fetch(cmd: list[str]) -> int:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Schedule Votalhada captures at usual Sao Paulo update windows.",
+        description="Schedule Votalhada captures for research/debugging. Disabled by default for live ops.",
     )
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--paredao", type=int, help="Paredao number (recommended).")

@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 from votalhada_ocr_feasibility import (
@@ -17,6 +19,41 @@ from votalhada_ocr_feasibility import (
     parse_consolidado_snapshot,
     validate_snapshot,
 )
+
+
+def _extract_capture_suffix(path: Path) -> str | None:
+    match = re.search(r"_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(?:-\d{2})?)\.png$", path.name)
+    return match.group(1) if match else None
+
+
+def _capture_suffix_dt(raw: str) -> datetime | None:
+    for fmt in ("%Y-%m-%d_%H-%M-%S", "%Y-%m-%d_%H-%M"):
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def select_validation_images(images: list[Path], scope: str = "latest-capture") -> list[Path]:
+    if scope == "full-history":
+        return sorted(images)
+
+    timestamped_groups: dict[str, list[Path]] = {}
+    for image in images:
+        suffix = _extract_capture_suffix(image)
+        if suffix is None:
+            continue
+        timestamped_groups.setdefault(suffix, []).append(image)
+
+    if not timestamped_groups:
+        return sorted(images)
+
+    latest_suffix = max(
+        timestamped_groups,
+        key=lambda raw: (_capture_suffix_dt(raw) or datetime.min, raw),
+    )
+    return sorted(timestamped_groups[latest_suffix])
 
 
 def _load_polls() -> dict:
@@ -69,6 +106,12 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--folder-glob", type=str, default="2026_*")
     p.add_argument("--folders", nargs="*", help="Optional explicit folder names under images root.")
     p.add_argument("--paredao", type=int, help="Force participant names by paredao number.")
+    p.add_argument(
+        "--scope",
+        choices=["latest-capture", "full-history"],
+        default="latest-capture",
+        help="Validate only the latest timestamped capture set (default) or all historical images in each folder.",
+    )
     p.add_argument("--output", type=Path, default=Path("tmp/votalhada_ocr/batch_validate.json"))
     p.add_argument("--vision-dir", type=Path, default=Path("tmp/votalhada_vision"))
     p.add_argument("--no-vision-crops", action="store_true", help="Do not emit vision helper crops.")
@@ -87,6 +130,8 @@ def main() -> int:
 
     summary = {
         "folders": [str(f) for f in folders],
+        "scope": args.scope,
+        "available_png": 0,
         "total_png": 0,
         "labels": {"consolidado_data": 0, "platform_breakdown": 0, "noise": 0, "unknown": 0},
         "consolidado_total": 0,
@@ -98,7 +143,9 @@ def main() -> int:
 
     for folder in folders:
         participants = _participants_for_folder(folder, polls_data, args.paredao)
-        images = sorted(folder.glob("*.png"))
+        available_images = sorted(folder.glob("*.png"))
+        images = select_validation_images(available_images, scope=args.scope)
+        summary["available_png"] += len(available_images)
         summary["total_png"] += len(images)
 
         if not participants:
@@ -107,6 +154,7 @@ def main() -> int:
                     "folder": str(folder),
                     "status": "skipped",
                     "reason": "participants_not_resolved",
+                    "scope": args.scope,
                 }
             )
             continue
