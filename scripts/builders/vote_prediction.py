@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timezone
+import unicodedata
 from typing import Any
 
 from data_utils import (
     MILD_NEGATIVE, STRONG_NEGATIVE,
     SENTIMENT_WEIGHTS,
     build_reaction_matrix, patch_missing_raio_x,
+    resolve_leaders,
 )
 
 # ── Vote Prediction constants ──
@@ -20,6 +22,37 @@ VOTE_PREDICTION_CONFIG = {
     "bloc_overlap_boost": -0.3,           # boost for bloc coordination
     "confidence_thresholds": {"alta": 0.5, "media": 0.2},
 }
+
+
+def _normalize_text_token(value: str | None) -> str:
+    """Normalize text for tolerant token comparisons."""
+    if not value:
+        return ""
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    return " ".join(ascii_text.lower().strip().split())
+
+
+def _is_house_vote_nomination(como_text: str) -> bool:
+    """Return True when 'como' indicates the house vote sent this person to paredão."""
+    return "casa" in como_text or "mais votad" in como_text
+
+
+def _dynamic_reason_from_como(como_text: str) -> str | None:
+    """Best-effort mapping for pre-vote dynamic nominations stored only in 'como' text."""
+    if "bloco do paredao" in como_text:
+        return "Bloco do Paredão"
+    if "consenso anjo+monstro" in como_text:
+        return "Consenso Anjo+Monstro"
+    if "duelo de risco" in como_text:
+        return "Duelo de Risco"
+    if "exilado" in como_text:
+        return "Exilado"
+    if "big fone" in como_text:
+        return "Big Fone"
+    if "caixas-surpresa" in como_text or "caixas surpresa" in como_text:
+        return "Caixas-Surpresa"
+    return None
 
 
 def extract_paredao_eligibility(paredao_entry: dict) -> dict:
@@ -43,6 +76,16 @@ def extract_paredao_eligibility(paredao_entry: dict) -> dict:
     dinamica = form.get("dinamica", {}) or {}
     dinamica_indicado = dinamica.get("indicado")
 
+    # Week-specific dynamic nominees that also happen before house vote
+    consenso_anjo_monstro = form.get("consenso_anjo_monstro", {}) or {}
+    consenso_anjo_monstro_target = (
+        consenso_anjo_monstro.get("target") or consenso_anjo_monstro.get("indicado")
+    )
+    duelo_de_risco = form.get("duelo_de_risco", {}) or {}
+    duelo_de_risco_emparedado = duelo_de_risco.get("emparedado")
+    exilado = form.get("exilado", {}) or {}
+    exilado_indicado = exilado.get("indicado")
+
     # Final nominees (for reference, not for eligibility filtering)
     indicados_finais = [ind["nome"] for ind in paredao_entry.get("indicados_finais", [])]
 
@@ -50,16 +93,17 @@ def extract_paredao_eligibility(paredao_entry: dict) -> dict:
     impedidos = set(paredao_entry.get("impedidos_votar", []) or [])
     anulados = set(paredao_entry.get("votos_anulados", []) or [])
 
-    # Can't be voted by house: líder, líder's indicado, imunizado, anjo autoimune,
+    # Can't be voted by house: líder(es), líder's indicado, imunizado, anjo autoimune,
     # dinâmica/big_fone indicado (already on paredão before house vote)
     # NOTE: indicados_finais includes people voted BY the house — they ARE eligible targets.
     # We only exclude people who were placed on paredão BEFORE the house vote.
     cant_be_voted = set()
     reasons = {}
 
-    if lider:
-        cant_be_voted.add(lider)
-        reasons[lider] = "Líder"
+    lider_names = resolve_leaders(form)
+    for l in lider_names:
+        cant_be_voted.add(l)
+        reasons[l] = "Líder"
 
     # Líder's indicado is already on paredão before house vote
     indicado_lider = form.get("indicado_lider")
@@ -80,16 +124,46 @@ def extract_paredao_eligibility(paredao_entry: dict) -> dict:
         cant_be_voted.add(dinamica_indicado)
         reasons[dinamica_indicado] = "Dinâmica"
 
+    if consenso_anjo_monstro_target:
+        cant_be_voted.add(consenso_anjo_monstro_target)
+        reasons[consenso_anjo_monstro_target] = "Consenso Anjo+Monstro"
+
+    if duelo_de_risco_emparedado:
+        cant_be_voted.add(duelo_de_risco_emparedado)
+        reasons[duelo_de_risco_emparedado] = "Duelo de Risco"
+
+    if exilado_indicado:
+        cant_be_voted.add(exilado_indicado)
+        reasons[exilado_indicado] = "Exilado"
+
     # Contragolpe: the target goes to paredão (already there before house vote)
     contragolpe = form.get("contragolpe", {}) or {}
-    if contragolpe.get("para"):
-        cant_be_voted.add(contragolpe["para"])
-        reasons.setdefault(contragolpe["para"], "Contragolpe")
+    contragolpe_target = contragolpe.get("para") or contragolpe.get("quem")
+    if contragolpe_target:
+        cant_be_voted.add(contragolpe_target)
+        reasons.setdefault(contragolpe_target, "Contragolpe")
 
-    # Can't vote: líder + impedidos + anulados
+    # Fallback for historical/manual entries where pre-vote dynamic nomination
+    # exists only in indicados_finais[].como (for example "Bloco do Paredão").
+    for ind in paredao_entry.get("indicados_finais", []):
+        if not isinstance(ind, dict):
+            continue
+        nome = (ind.get("nome") or "").strip()
+        if not nome or nome in cant_be_voted:
+            continue
+        como_text = _normalize_text_token(ind.get("como"))
+        if not como_text or _is_house_vote_nomination(como_text):
+            continue
+        if "lider" in como_text:
+            continue
+        dynamic_reason = _dynamic_reason_from_como(como_text)
+        if dynamic_reason:
+            cant_be_voted.add(nome)
+            reasons.setdefault(nome, dynamic_reason)
+
+    # Can't vote: líder(es) + impedidos + anulados
     cant_vote = set()
-    if lider:
-        cant_vote.add(lider)
+    cant_vote.update(lider_names)
     cant_vote.update(impedidos)
     # Note: anulados CAN vote (their vote just doesn't count), but we exclude them
     # since their votes have no effect on who goes to paredão
@@ -100,6 +174,7 @@ def extract_paredao_eligibility(paredao_entry: dict) -> dict:
         "cant_vote": cant_vote,
         "ineligible_reasons": reasons,
         "lider": lider,
+        "lider_names": lider_names,
         "indicados_finais": indicados_finais,
     }
 

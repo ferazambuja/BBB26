@@ -1,0 +1,665 @@
+/* Economia page-specific styles — gold/amber theme for estalecas */
+
+body.economia-page {
+  --eco-bg: #1f2127;
+  --eco-card: #292c34;
+  --eco-card-soft: #242730;
+  --eco-border: rgba(255, 255, 255, 0.12);
+  --eco-text: #e8ecf1;
+  --eco-muted: #b0bbc6;
+  --eco-gold: #f1c40f;
+  --eco-gold-dim: rgba(241, 196, 15, 0.18);
+  --eco-positive: #1a9850;
+  --eco-negative: #d73027;
+  --eco-warning: #fee08b;
+}
+
+body.economia-page section,
+body.economia-page article,
+body.economia-page nav {
+  scroll-margin-top: 88px;
+}
+
+/* ── Hero banner ── */
+
+.eco-hero {
+  background: linear-gradient(140deg, rgba(241, 196, 15, 0.16), rgba(218, 165, 32, 0.12));
+  border: 1px solid rgba(241, 196, 15, 0.3);
+  border-radius: 14px;
+  padding: 1.15rem 1.2rem;
+  margin-top: 0.8rem;
+}
+
+.eco-kicker {
+  color: #ffe08a;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.eco-hero-title {
+  margin: 0.35rem 0 0.55rem;
+  font-size: var(--fs-3xl);
+}
+
+.eco-hero-subtitle {
+  margin: 0;
+  color: #dce4eb;
+}
+
+/* ── KPI stat cards ── */
+
+.eco-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0 0.4rem;
+}
+
+.eco-kpi {
+  border-radius: 11px;
+  border: 1px solid var(--eco-border);
+  padding: 0.75rem 0.8rem;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.24);
+  min-height: 88px;
+}
+
+.eco-kpi--gold {
+  background: linear-gradient(140deg, rgba(241, 196, 15, 0.28), rgba(158, 108, 8, 0.22));
+}
+
+.eco-kpi--red {
+  background: linear-gradient(140deg, rgba(231, 76, 60, 0.25), rgba(128, 35, 25, 0.24));
+}
+
+.eco-kpi--green {
+  background: linear-gradient(140deg, rgba(46, 204, 113, 0.26), rgba(17, 83, 45, 0.22));
+}
+
+.eco-kpi--blue {
+  background: linear-gradient(140deg, rgba(52, 152, 219, 0.28), rgba(39, 92, 127, 0.2));
+}
+
+.eco-kpi-value {
+  margin: 0;
+  color: #fff;
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+}
+
+.eco-kpi-label {
+  margin: 0.25rem 0 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ── Narrative cards ── */
+
+.eco-narrative {
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid var(--eco-gold);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  margin: 12px 0 16px;
+  color: #dce4eb;
+  font-size: var(--fs-base);
+  line-height: 1.55;
+}
+
+.eco-narrative strong {
+  color: #fff;
+}
+
+.eco-narrative--method {
+  border-left-color: #555;
+}
+
+.eco-narrative--red {
+  border-left-color: var(--eco-negative);
+}
+
+.eco-narrative--green {
+  border-left-color: var(--eco-positive);
+}
+
+/* ── Card grids ── */
+
+.eco-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.85rem;
+  margin: 0.75rem 0;
+}
+
+/* ── Participant cards ── */
+
+.eco-participant-card {
+  border-radius: 12px;
+  border: 1px solid var(--eco-border);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+  padding: 0.8rem;
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.eco-participant-card--eliminated {
+  opacity: 0.75;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.eco-participant-card--eliminated img {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.eco-participant-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.eco-participant-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.eco-participant-name {
+  margin: 0;
+  color: #fff;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.eco-participant-detail {
+  margin: 0.15rem 0 0;
+  color: var(--eco-muted);
+  font-size: var(--fs-sm);
+}
+
+.eco-participant-value {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.eco-exit-label {
+  color: #999;
+  font-size: var(--fs-xs);
+  font-style: italic;
+}
+
+/* ── Curiosity cards ── */
+
+.eco-curiosity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.eco-curiosity-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid #666;
+  padding: 12px 16px;
+  border-radius: 0 6px 6px 0;
+}
+
+.eco-curiosity-title {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: #fff;
+}
+
+.eco-curiosity-detail {
+  margin: 0.25rem 0 0;
+  color: #aaa;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.eco-curiosity-link {
+  display: inline-block;
+  color: var(--eco-gold);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin-left: 4px;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+.eco-curiosity-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* ── Quem Zerou — drill-down cards ── */
+.eco-card-grid details.eco-participant-card {
+  cursor: pointer;
+}
+.eco-card-grid details.eco-participant-card > summary {
+  list-style: none;
+}
+.eco-card-grid details.eco-participant-card > summary::-webkit-details-marker {
+  display: none;
+}
+.eco-card-grid details.eco-participant-card > summary::after {
+  content: "▸";
+  font-size: var(--fs-sm);
+  color: #666;
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+.eco-card-grid details[open].eco-participant-card > summary::after {
+  transform: rotate(90deg);
+  color: var(--eco-gold);
+}
+
+/* ── Máquina do Poder card ── */
+
+.eco-maquina-card {
+  background: linear-gradient(160deg, rgba(241, 196, 15, 0.1), rgba(218, 165, 32, 0.06));
+  border: 1px solid rgba(241, 196, 15, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin: 0.75rem 0;
+}
+
+.eco-maquina-card h4 {
+  margin: 0 0 0.5rem;
+  color: #ffe08a;
+}
+
+.eco-maquina-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--eco-text);
+  font-size: var(--fs-base);
+}
+
+.eco-maquina-item:last-child {
+  border-bottom: 0;
+}
+
+.eco-maquina-winner {
+  background: rgba(241, 196, 15, 0.15);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  margin-top: 0.6rem;
+  font-weight: 700;
+  color: #ffe08a;
+}
+
+/* ── Section headers ── */
+
+.eco-section-title {
+  margin: 1.5rem 0 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid rgba(241, 196, 15, 0.2);
+}
+
+/* ── Jump nav ── */
+
+.eco-jump-nav {
+  margin: 0.85rem 0 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.eco-jump-link {
+  color: #ffe9a8;
+  text-decoration: none;
+  background: rgba(241, 196, 15, 0.1);
+  border: 1px solid rgba(241, 196, 15, 0.3);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: var(--fs-base);
+  white-space: nowrap;
+}
+
+.eco-jump-link:hover,
+.eco-jump-link:focus-visible {
+  color: #fff;
+  background: rgba(241, 196, 15, 0.2);
+  border-color: rgba(241, 196, 15, 0.5);
+}
+
+/* ── HTML horizontal bars (mobile-friendly Plotly replacement) ── */
+
+.eco-bar-chart {
+  max-width: 800px;
+  margin: 0.5rem auto;
+}
+
+.eco-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+}
+
+.eco-bar-label {
+  flex: 0 0 130px;
+  text-align: right;
+  font-size: var(--fs-sm);
+  color: var(--eco-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eco-bar-track {
+  flex: 1;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.eco-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.eco-bar-value {
+  flex: 0 0 50px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--eco-muted);
+}
+
+.eco-bar-title {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--eco-text);
+  margin: 0.8rem 0 0.4rem;
+  text-align: center;
+}
+
+/* ── VIP/Xepa HTML table ── */
+
+.eco-vip-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  display: block;
+}
+
+.eco-vip-table th,
+.eco-vip-table td {
+  padding: 5px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.eco-vip-table th {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--eco-muted);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.eco-vip-table td:first-child,
+.eco-vip-table th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--eco-card);
+  z-index: 2;
+}
+
+.eco-vip-cell--vip {
+  background: rgba(241, 196, 15, 0.25);
+  color: #ffe08a;
+  font-weight: 700;
+}
+
+.eco-vip-cell--xepa {
+  background: rgba(127, 140, 141, 0.15);
+  color: #aaa;
+}
+
+.eco-vip-cell--fora {
+  background: rgba(85, 85, 85, 0.15);
+  color: #666;
+  font-size: var(--fs-sm);
+}
+
+.eco-vip-count-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+}
+
+.eco-vip-count-label {
+  flex: 0 0 130px;
+  text-align: right;
+  font-size: var(--fs-sm);
+  color: var(--eco-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eco-vip-count-bars {
+  flex: 1;
+  display: flex;
+  height: 20px;
+}
+
+.eco-vip-count-vip {
+  background: var(--eco-gold);
+  border-radius: 3px 0 0 3px;
+  height: 100%;
+}
+
+.eco-vip-count-xepa {
+  background: #7f8c8d;
+  border-radius: 0 3px 3px 0;
+  height: 100%;
+}
+
+.eco-vip-count-nums {
+  flex: 0 0 80px;
+  font-size: var(--fs-sm);
+  color: var(--eco-muted);
+  display: flex;
+  gap: 6px;
+}
+
+.eco-vip-count-nums span:first-child {
+  color: var(--eco-gold);
+}
+
+/* ── VIP/Xepa compras comparison (HTML) ── */
+
+.eco-compras-week {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: var(--fs-md);
+}
+
+.eco-compras-week-label {
+  flex: 0 0 40px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--eco-muted);
+}
+
+.eco-compras-week-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eco-compras-bar-vip,
+.eco-compras-bar-xepa {
+  height: 14px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  min-width: 30px;
+}
+
+.eco-compras-bar-vip {
+  background: var(--eco-gold);
+  color: #000;
+}
+
+.eco-compras-bar-xepa {
+  background: #7f8c8d;
+  color: #fff;
+}
+
+.eco-compras-ratio {
+  flex: 0 0 60px;
+  font-size: var(--fs-xs);
+  color: #aaa;
+  text-align: right;
+}
+
+/* ── Eliminated toggle ── */
+
+.eco-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0.6rem 0 0.2rem;
+}
+
+.eco-toggle-label {
+  font-size: var(--fs-sm);
+  color: var(--eco-muted);
+}
+
+.eco-toggle {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.eco-toggle input { opacity: 0; width: 0; height: 0; }
+
+.eco-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #444;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.eco-toggle-slider::before {
+  content: "";
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 16px; height: 16px;
+  background: #ccc;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.eco-toggle input:checked + .eco-toggle-slider {
+  background: var(--eco-gold);
+}
+
+.eco-toggle input:checked + .eco-toggle-slider::before {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+/* Hide eliminated participants when toggle is on */
+body.hide-eliminated [data-eliminated] {
+  display: none !important;
+}
+
+/* ── Mobile overrides ── */
+
+@media (max-width: 575.98px) {
+  .eco-hero-title {
+    font-size: var(--fs-2xl);
+  }
+
+  .eco-kpi-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .eco-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eco-curiosity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eco-participant-card {
+    gap: 0.5rem;
+    padding: 0.65rem;
+  }
+
+  .eco-participant-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .eco-participant-value {
+    font-size: var(--fs-xl);
+  }
+
+  .eco-maquina-card {
+    padding: 0.8rem;
+  }
+
+  .eco-bar-label,
+  .eco-vip-count-label {
+    flex: 0 0 100px;
+    font-size: var(--fs-xs);
+  }
+
+  .eco-bar-value {
+    flex: 0 0 42px;
+    font-size: var(--fs-xs);
+  }
+
+  .eco-vip-table {
+    font-size: var(--fs-xs);
+  }
+
+  .eco-vip-table th,
+  .eco-vip-table td {
+    padding: 4px 5px;
+  }
+}

@@ -5,24 +5,24 @@ project:
     - data/derived/*.json
   render:
     - index.qmd
-    - datas.qmd
     - evolucao.qmd
+    - cronologia_mobile_review.qmd
+    - economia.qmd
     - relacoes.qmd
     - paredao.qmd
     - paredoes.qmd
     - cartola.qmd
     - provas.qmd
-    - clusters.qmd
     - votacao.qmd
-    - planta_debug.qmd
-    - relacoes_debug.qmd
-    - mockup_cards.qmd
+    - economia_v2.qmd
 
 website:
   title: "BBB 26 — Painel de Reações"
   site-url: https://ferazambuja.github.io/BBB26/
-  open-graph: true
-  twitter-card: true
+  open-graph:
+    locale: pt_BR
+  twitter-card:
+    card-style: summary_large_image
   image: assets/social-preview.jpg
   search: false
   navbar:
@@ -32,6 +32,8 @@ website:
         text: "Painel"
       - href: evolucao.qmd
         text: "Evolução"
+      - href: economia.qmd
+        text: "Estalecas VIP/Xepa"
       - href: relacoes.qmd
         text: "Relações"
       - href: paredao.qmd
@@ -44,21 +46,14 @@ website:
         text: "Paredões"
       - href: votacao.qmd
         text: "Votação"
-      - text: "Mais"
-        menu:
-          - href: datas.qmd
-            text: "Datas"
-          - href: clusters.qmd
-            text: "Clusters"
-          - href: planta_debug.qmd
-            text: "Planta (debug)"
-          - href: relacoes_debug.qmd
-            text: "Relações (debug)"
   page-footer:
     center: |
       Projeto independente de análise de dados, sem vínculo com a TV Globo ou o BBB · Dados da API pública do GloboPlay + registros manuais (podem conter erros ou atrasos) · [Reportar problema](https://github.com/ferazambuja/BBB26/issues)
     background: dark
   repo-url: https://github.com/ferazambuja/BBB26
+
+filters:
+  - filters/og-url.lua
 
 format:
   html:
@@ -75,8 +70,12 @@ format:
       - assets/page-nav.css
       - assets/cards.css
       - assets/cartola.css
+      - assets/provas.css
+      - assets/economia.css
+      - assets/economia-v2.css
     include-in-header:
       - text: |
+          <meta property="og:type" content="website">
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap" rel="stylesheet">
@@ -86,4 +85,7 @@ format:
       - text: |
           <script src="assets/plotly-fullscreen.js"></script>
           <script src="assets/page-nav.js"></script>
+          <script src="assets/title-block-dedupe.js"></script>
+          <script src="assets/collapse-ui.js"></script>
           <script src="assets/cartola-ui.js"></script>
+          <script src="assets/provas-ui.js"></script>

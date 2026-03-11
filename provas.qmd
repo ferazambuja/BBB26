@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Provas"
 subtitle: "Resultados e classificação geral das provas"
+description: "Resultados e classificação geral das provas do BBB 26"
 lang: pt-BR
 format:
   html:
@@ -10,586 +11,812 @@ execute:
   warning: false
 ---
 
-```{=html}
-<script>
-(() => {
-  const maxCols = 4;
-  const isMobile = () => window.matchMedia("(max-width: 575px)").matches;
-
-  const pruneWideTables = () => {
-    if (!isMobile()) return;
-    document.querySelectorAll("table").forEach((table) => {
-      if (table.dataset.mobilePruned === "1") return;
-      const firstRow = table.rows[0];
-      if (!firstRow) return;
-      const colCount = firstRow.cells.length;
-      if (colCount <= maxCols) return;
-
-      table.dataset.mobilePruned = "1";
-      table.classList.add("mobile-pruned-table");
-      Array.from(table.rows).forEach((row) => {
-        Array.from(row.cells).forEach((cell, idx) => {
-          if (idx >= maxCols) cell.classList.add("mobile-pruned-hidden");
-        });
-      });
-
-      const note = document.createElement("div");
-      note.className = "mobile-pruned-note fs-2xs";
-      note.textContent = `Mobile compacto: mostrando ${maxCols} de ${colCount} colunas.`;
-      table.insertAdjacentElement("afterend", note);
-    });
-  };
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", pruneWideTables, { once: true });
-  } else {
-    pruneWideTables();
-  }
-})();
-</script>
-```
-
 ```{python}
 #| label: setup
 #| include: false
 
 from pathlib import Path
+import re
+import statistics
+from collections import defaultdict
 import sys
 
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    require_clean_manual_events, setup_bbb_dark_theme, load_participants_index,
-    load_prova_rankings, load_provas_raw,
+    require_clean_manual_events,
+    setup_bbb_dark_theme,
+    load_participants_index,
+    load_prova_rankings,
+    load_provas_raw,
     GROUP_COLORS,
 )
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
 
-# Load derived rankings
+
+def emit(html: str) -> None:
+    print("\n".join(line.lstrip() for line in html.splitlines()))
+
+
+def slugify_name(name: str) -> str:
+    base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return base or "participante"
+
+
 rankings = load_prova_rankings()
+leaderboard = rankings.get("leaderboard", [])
+scoring = rankings.get("_metadata", {}).get("scoring", {})
 
-leaderboard = rankings["leaderboard"]
-provas_summary = rankings["provas_summary"]
-scoring = rankings["_metadata"]["scoring"]
-
-# Load raw provas (phase-by-phase detail)
 provas_raw = load_provas_raw()
+provas_list = provas_raw.get("provas", [])
 
-provas_list = provas_raw["provas"]
-
-# Load participant index (avatars, groups, status)
 participants_index = load_participants_index()
-
-PINFO = {p["name"]: p for p in participants_index["participants"]}
+PINFO = {p["name"]: p for p in participants_index.get("participants", [])}
 
 TIPO_EMOJI = {"lider": "👑", "anjo": "😇", "bate_volta": "⚔️"}
 TIPO_LABEL = {"lider": "Líder", "anjo": "Anjo", "bate_volta": "Bate e Volta"}
 TIPO_COLOR = {"lider": "#f1c40f", "anjo": "#3498db", "bate_volta": "#e74c3c"}
 
-def get_avatar(name):
+
+def get_avatar(name: str) -> str:
     return PINFO.get(name, {}).get("avatar", "")
 
-def get_grupo(name):
+
+def get_grupo(name: str) -> str:
     return PINFO.get(name, {}).get("grupo", "Pipoca")
 
-def is_active(name):
+
+def is_active(name: str) -> bool:
     return PINFO.get(name, {}).get("active", True)
 
-def get_status(name):
+
+def get_status(name: str) -> str:
     return PINFO.get(name, {}).get("status", "")
-```
 
-```{python}
-#| label: destaques
-#| output: asis
 
-# ══════════════════════════════════════════════════════════════════════════════
-# DESTAQUES - Key highlights
-# ══════════════════════════════════════════════════════════════════════════════
+def get_winners(prova: dict) -> list[str]:
+    winners = prova.get("vencedores")
+    if isinstance(winners, list) and winners:
+        return [w for w in winners if isinstance(w, str) and w.strip()]
+    winner = prova.get("vencedor")
+    if isinstance(winner, str) and winner.strip():
+        return [winner]
+    return []
 
-highlights = []
-
-leader = leaderboard[0] if leaderboard else None
-if leader:
-    highlights.append(f"🏆 **{leader['name']}** lidera com **{leader['total_points']} pts** e **{leader['wins']} vitória(s)**")
 
 total_provas = len(provas_list)
-highlights.append(f"📋 **{total_provas}** provas registradas (Semanas 1–2)")
+ranked_participants = len(leaderboard)
 
-# Most wins
-max_wins = max((p["wins"] for p in leaderboard), default=0)
-if max_wins > 0:
-    winners = [p["name"] for p in leaderboard if p["wins"] == max_wins]
-    if len(winners) == 1:
-        highlights.append(f"🥇 Mais vitórias: **{winners[0]}** ({max_wins})")
-    else:
-        highlights.append(f"🥇 Mais vitórias ({max_wins}): **{', '.join(winners)}**")
+unique_winner_names = set()
+for prova in provas_list:
+    unique_winner_names.update(get_winners(prova))
 
-# Best avg (min 2 provas)
-eligible = [p for p in leaderboard if p["provas_participated"] >= 2 and p["avg_points"] > 0]
-if eligible:
-    best_avg = max(eligible, key=lambda p: p["avg_points"])
-    highlights.append(f"📊 Melhor média (min 2 provas): **{best_avg['name']}** ({best_avg['avg_points']:.1f} pts/prova)")
+all_weighted_points = [
+    detail.get("weighted_pts")
+    for p in leaderboard
+    for detail in p.get("detail", [])
+    if detail.get("weighted_pts") is not None
+]
+global_avg_points = round(sum(all_weighted_points) / len(all_weighted_points), 2) if all_weighted_points else 0.0
 
-if highlights:
-    print('''
-<div class="info-panel u-s050">
-<div class="u-s035">Destaques — Provas</div>
-<ul class="u-s073">
+leaderboard_sorted = sorted(
+    leaderboard,
+    key=lambda p: (-p.get("total_points", 0), -p.get("wins", 0), p.get("name", "")),
+)
+
+lowest_total_active = sorted(
+    [p for p in leaderboard if is_active(p['name'])],
+    key=lambda p: (p.get("total_points", 0), p.get("wins", 0), p.get("name", "")),
+)
+
+# qualidade mínima: provas_participated >= 6
+best_avg = sorted(
+    [p for p in leaderboard if p["provas_participated"] >= 6],
+    key=lambda p: (-p.get("avg_points", 0), -p.get("total_points", 0), p.get("name", "")),
+)
+
+top3_rate_candidates = []
+for p in leaderboard:
+    if p["provas_participated"] >= 6:
+        top3_rate = (p.get("top3", 0) / p.get("provas_participated", 1)) if p.get("provas_participated") else 0
+        top3_rate_candidates.append({**p, "top3_rate": top3_rate})
+
+best_top3_rate = sorted(
+    top3_rate_candidates,
+    key=lambda p: (-p.get("top3_rate", 0), -p.get("top3", 0), -p.get("total_points", 0), p.get("name", "")),
+)
+
+
+def build_type_totals(participant: dict) -> dict[str, float]:
+    totals = {"lider": 0.0, "anjo": 0.0, "bate_volta": 0.0}
+    for detail in participant.get("detail", []):
+        tipo = detail.get("tipo")
+        pts = detail.get("weighted_pts")
+        if tipo in totals and pts is not None:
+            totals[tipo] += pts
+    return {k: round(v, 2) for k, v in totals.items()}
+
+
+def build_reason_for_total(participant: dict) -> str:
+    return (
+        f"{participant.get('wins', 0)} vitória(s) · "
+        f"{participant.get('top3', 0)} pódio(s) · "
+        f"{participant.get('provas_participated', 0)} prova(s) disputada(s)"
+    )
+
+
+def build_reason_for_avg(participant: dict) -> str:
+    return (
+        f"média {participant.get('avg_points', 0):.2f} por prova · "
+        f"{participant.get('provas_participated', 0)} participações"
+    )
+
+
+def build_reason_for_top3_rate(participant: dict) -> str:
+    rate = participant.get("top3_rate", 0)
+    return (
+        f"taxa de pódio {rate * 100:.1f}% · "
+        f"{participant.get('top3', 0)}/{participant.get('provas_participated', 0)}"
+    )
+
+
+def best_type_specialist(tipo: str, min_count: int) -> dict | None:
+    candidates = []
+    for participant in leaderboard:
+        pts = [
+            d.get("weighted_pts")
+            for d in participant.get("detail", [])
+            if d.get("tipo") == tipo and d.get("weighted_pts") is not None
+        ]
+        if len(pts) < min_count:
+            continue
+        total = round(sum(pts), 2)
+        avg = round(total / len(pts), 2)
+        candidates.append(
+            {
+                "name": participant.get("name"),
+                "total": total,
+                "avg": avg,
+                "count": len(pts),
+                "active": is_active(participant.get("name")),
+                "status": get_status(participant.get("name")),
+                "avatar": get_avatar(participant.get("name")),
+            }
+        )
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: (-item["total"], -item["avg"], item["name"]))
+    return candidates[0]
+
+
+def most_consistent(min_participation: int) -> dict | None:
+    candidates = []
+    for participant in leaderboard:
+        pts = [
+            d.get("weighted_pts")
+            for d in participant.get("detail", [])
+            if d.get("weighted_pts") is not None
+        ]
+        if len(pts) < min_participation:
+            continue
+        sd = statistics.pstdev(pts)
+        candidates.append(
+            {
+                "name": participant.get("name"),
+                "sd": round(sd, 3),
+                "avg": round(sum(pts) / len(pts), 2),
+                "count": len(pts),
+                "active": is_active(participant.get("name")),
+                "status": get_status(participant.get("name")),
+                "avatar": get_avatar(participant.get("name")),
+            }
+        )
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: (item["sd"], -item["avg"], item["name"]))
+    return candidates[0]
+
+
+lider_specialist = best_type_specialist("lider", 3)
+anjo_specialist = best_type_specialist("anjo", 3)
+bv_specialist = best_type_specialist("bate_volta", 1)
+consistent_specialist = most_consistent(6)
+```
+
+<div class="provas-page" id="provas-page" hidden></div>
+
+```{python}
+#| label: shell-top
+#| output: asis
+
+emit(f'''
+<nav id="provas-quick-jump" class="provas-jump-nav" aria-label="Atalhos da página Provas">
+  <a class="provas-jump-link" href="#participantes">Participantes</a>
+  <a class="provas-jump-link" href="#provas">Provas</a>
+  <a class="provas-jump-link" href="#pontuacao">Sistema de Pontuação</a>
+</nav>
+
+<section class="provas-kpi-grid" aria-label="Indicadores gerais de provas">
+  <article class="provas-kpi provas-kpi-total">
+    <p class="provas-kpi-value">{total_provas}</p>
+    <p class="provas-kpi-label">Provas Registradas</p>
+  </article>
+  <article class="provas-kpi provas-kpi-winners">
+    <p class="provas-kpi-value">{len(unique_winner_names)}</p>
+    <p class="provas-kpi-label">Vencedores Únicos</p>
+  </article>
+  <article class="provas-kpi provas-kpi-players">
+    <p class="provas-kpi-value">{ranked_participants}</p>
+    <p class="provas-kpi-label">Participantes Rankeados</p>
+  </article>
+  <article class="provas-kpi provas-kpi-avg">
+    <p class="provas-kpi-value">{global_avg_points:.2f}</p>
+    <p class="provas-kpi-label">Média Global por Participação</p>
+  </article>
+</section>
 ''')
-    for h in highlights:
-        print(f"<li>{h}</li>")
-    print("</ul></div>")
 ```
 
 ```{python}
-#| label: kpi-boxes
+#| label: trajectory-top5
 #| output: asis
 
-# ══════════════════════════════════════════════════════════════════════════════
-# KPI Value Boxes
-# ══════════════════════════════════════════════════════════════════════════════
 
-unique_winners = len(set(p["vencedor"] for p in provas_list))
-
-# Best average (min 2 provas)
-eligible_avg = [p for p in leaderboard if p["provas_participated"] >= 2 and p["avg_points"] > 0]
-best_avg_p = max(eligible_avg, key=lambda p: p["avg_points"]) if eligible_avg else None
-
-print(f'''
-<div class="stat-row">
-
-<div class="stat-card u-s045">
-<div class="stat-value">{total_provas}</div>
-<div class="stat-label">📋 Provas</div>
-</div>
-
-<div class="stat-card u-s006">
-<div class="stat-value">{unique_winners}</div>
-<div class="stat-label">🏆 Vencedores únicos</div>
-</div>
-
-<div class="stat-card u-s003">
-<div class="stat-value">{best_avg_p["avg_points"]:.1f}</div>
-<div class="stat-label">📊 Melhor média ({best_avg_p["name"].split()[0]})</div>
-</div>
-
-</div>
+def render_top5_card(
+    tone_class: str,
+    title: str,
+    rows: list[dict],
+    value_formatter,
+    reason_formatter,
+    empty_text: str,
+    caption: str,
+    bar_value_getter,
+):
+    if not rows:
+        emit(f'''
+<article class="provas-top5-card {tone_class}">
+  <p class="provas-top5-kicker">{title}</p>
+  <p class="provas-top5-empty">{empty_text}</p>
+  <p class="provas-top5-caption">{caption}</p>
+</article>
 ''')
-```
+        return
 
-# Classificação Geral {#ranking}
+    max_abs = max(abs(bar_value_getter(item)) for item in rows) or 1
 
-Ranking baseado em pontos ponderados: posição na prova gera pontos-base, multiplicados pelo tipo (Líder 1.5x, Anjo 1.0x, Bate e Volta 0.75x).
+    emit(f'''
+<article class="provas-top5-card {tone_class}">
+  <p class="provas-top5-kicker">{title}</p>
+  <div class="provas-top5-list">
+''')
 
-```{python}
-#| label: leaderboard-cards
-#| output: asis
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Leaderboard Cards (matching cartola.qmd style)
-# ══════════════════════════════════════════════════════════════════════════════
-
-if leaderboard:
-    print('<div class="info-grid u-s071">')
-
-    for i, p in enumerate(leaderboard):
-        rank = i + 1
-        name = p["name"]
-        avatar_url = get_avatar(name)
-        grupo = get_grupo(name)
+    for index, row in enumerate(rows[:5], start=1):
+        name = row.get("name", "?")
+        avatar = get_avatar(name)
         active = is_active(name)
         status = get_status(name)
+        row_class = " is-inactive" if not active else ""
+        status_badge = f'<span class="provas-status-badge">{status or "saiu"}</span>' if not active else ""
 
-        total = p["total_points"]
-        avg = p["avg_points"]
-        wins = p["wins"]
-        top3 = p["top3"]
-        participated = p["provas_participated"]
-        available = p["provas_available"]
-        rate = p["participation_rate"]
+        value = value_formatter(row)
+        reason = reason_formatter(row)
+        bar_value = bar_value_getter(row)
+        width = abs(bar_value) / max_abs * 100
 
-        # Border color logic
-        if not active:
-            border_color = '#6c757d'
-        elif rank == 1:
-            border_color = '#f1c40f'
-        elif rank == 2:
-            border_color = '#aaa'
-        elif rank == 3:
-            border_color = '#cd7f32'
-        elif total > 0:
-            border_color = '#3498db'
-        else:
-            border_color = '#444'
-
-        # Status badge for eliminated/quit
-        status_badge = ''
-        if not active and status:
-            status_badge = f'<span class="fs-xs u-s002">{status}</span>'
-
-        # Group badge
-        grupo_color = GROUP_COLORS.get(grupo, '#666')
-        grupo_badge = f'<span class="fs-xs" style="background: {grupo_color}; color: #fff; padding: 0.1rem 0.4rem; border-radius: 4px; margin-left: 0.5rem;">{grupo}</span>'
-
-        # Tags
-        tags = []
-        if wins > 0:
-            tags.append(f'<span class="fs-sm u-s021">🏆 {wins} vitória{"s" if wins > 1 else ""}</span>')
-        if top3 > 0:
-            tags.append(f'<span class="fs-sm u-s021">🥉 {top3} top-3</span>')
-        tags.append(f'<span class="fs-sm u-s021">📊 avg {avg:.1f} pts</span>')
-        tags.append(f'<span class="fs-sm u-s021">📋 {participated}/{available} provas</span>')
-        tags_html = f'<div class="u-s078">{"".join(tags)}</div>'
-
-        # Points display
-        pts_color = '#f1c40f' if rank == 1 else ('#27ae60' if total > 0 else '#888')
-        rank_display = f"{rank}º"
-
-        print(f'''
-<div style="background: #2a2a2a; border-radius: 12px; border-left: 5px solid {border_color}; padding: 1rem; display: flex; gap: 1rem; align-items: flex-start;">
-<div class="u-s062">
+        emit(f'''
+<div class="provas-top5-row{row_class}" title="{reason}">
+  <p class="provas-top5-rank">{index}</p>
 ''')
-        if avatar_url:
-            print(f'<img src="{avatar_url}" alt="{name}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {border_color}; object-fit: cover;">')
+        if avatar:
+            emit(f'<img src="{avatar}" alt="Avatar {name}" class="provas-top5-avatar">')
         else:
-            print(f'<div class="fs-3xl" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid {border_color}; background: #444; display: flex; align-items: center; justify-content: center; color: #888;">?</div>')
+            emit('<div class="provas-top5-avatar provas-avatar-fallback">?</div>')
 
-        if rank <= 3:
-            rank_emoji = '🥇' if rank == 1 else ('🥈' if rank == 2 else '🥉')
-            print(f'<div class="fs-xl u-s106">{rank_emoji}</div>')
-
-        print(f'''
-</div>
-<div class="u-s063">
-<div class="u-s050">
-<div>
-<span class="fs-xl u-s010">{rank_display} {name}</span>
-{grupo_badge}
-{status_badge}
-</div>
-<div class="fs-3xl" style="font-weight: bold; color: {pts_color};">{total}</div>
-</div>
-{tags_html}
-</div>
+        emit(f'''
+  <div class="provas-top5-main">
+    <p class="provas-top5-name">{name}</p>
+    {status_badge}
+    <div class="provas-top5-bar"><div class="provas-top5-fill" style="width:{width:.1f}%;"></div></div>
+    <details class="card-reason">
+      <summary class="card-reason-toggle">Ver motivo</summary>
+      <p class="card-reason-text">{reason}</p>
+    </details>
+  </div>
+  <p class="provas-top5-value">{value}</p>
 </div>
 ''')
 
-    print('</div>')
-else:
-    print('<p class="text-muted">Nenhum participante encontrado.</p>')
+    emit(f'''
+  </div>
+  <p class="provas-top5-caption">{caption}</p>
+</article>
+''')
+
+
+emit('<section class="provas-top5-grid" aria-label="Destaques de trajetória e qualidade">')
+
+render_top5_card(
+    "tone-positive",
+    "TOP 5 PONTUAÇÃO ACUMULADA",
+    leaderboard_sorted,
+    value_formatter=lambda row: f"{row.get('total_points', 0):+.2f}",
+    reason_formatter=build_reason_for_total,
+    empty_text="Sem dados de pontuação acumulada.",
+    caption="temporada completa · inclui participantes ativos e eliminados",
+    bar_value_getter=lambda row: row.get("total_points", 0),
+)
+
+render_top5_card(
+    "tone-negative",
+    "TOP 5 MENOR PONTUAÇÃO ACUMULADA",
+    lowest_total_active,
+    value_formatter=lambda row: f"{row.get('total_points', 0):+.2f}",
+    reason_formatter=build_reason_for_total,
+    empty_text="Sem participantes ativos elegíveis.",
+    caption="temporada completa · apenas participantes ainda no jogo",
+    bar_value_getter=lambda row: row.get("total_points", 0),
+)
+
+render_top5_card(
+    "tone-neutral",
+    "TOP 5 MELHOR MÉDIA",
+    best_avg,
+    value_formatter=lambda row: f"{row.get('avg_points', 0):.2f}",
+    reason_formatter=build_reason_for_avg,
+    empty_text="Dados insuficientes (mínimo de 6 provas).",
+    caption="qualidade por prova · mínimo de 6 participações",
+    bar_value_getter=lambda row: row.get("avg_points", 0),
+)
+
+render_top5_card(
+    "tone-neutral",
+    "TOP 5 MELHOR TAXA DE PÓDIO",
+    best_top3_rate,
+    value_formatter=lambda row: f"{row.get('top3_rate', 0) * 100:.1f}%",
+    reason_formatter=build_reason_for_top3_rate,
+    empty_text="Dados insuficientes (mínimo de 6 provas).",
+    caption="consistência de elite · mínimo de 6 participações",
+    bar_value_getter=lambda row: row.get("top3_rate", 0),
+)
+
+print('</section>')
+
+
+def render_curiosity_card(title: str, payload: dict | None, value_label: str, fallback: str):
+    if payload is None:
+        emit(f'''
+<article class="provas-curiosity-card">
+  <p class="provas-curiosity-title">{title}</p>
+  <p class="provas-curiosity-empty">{fallback}</p>
+</article>
+''')
+        return
+
+    avatar = payload.get("avatar", "")
+    name = payload.get("name", "?")
+    status_badge = f'<span class="provas-status-badge">{payload.get("status") or "saiu"}</span>' if not payload.get("active", True) else ""
+
+    emit(f'''
+<article class="provas-curiosity-card">
+  <p class="provas-curiosity-title">{title}</p>
+  <div class="provas-curiosity-main">
+''')
+    if avatar:
+        emit(f'<img src="{avatar}" alt="Avatar {name}" class="provas-curiosity-avatar">')
+    else:
+        emit('<div class="provas-curiosity-avatar provas-avatar-fallback">?</div>')
+
+    emit(f'''
+    <div>
+      <p class="provas-curiosity-name">{name}</p>
+      {status_badge}
+      <p class="provas-curiosity-value">{value_label(payload)}</p>
+    </div>
+  </div>
+</article>
+''')
+
+
+emit('<section class="provas-curiosities-grid" aria-label="Curiosidades objetivas de performance">')
+
+render_curiosity_card(
+    "Especialista em Prova do Líder",
+    lider_specialist,
+    value_label=lambda p: f"{p['total']:+.2f} em {p['count']} prova(s) de líder",
+    fallback="dados ainda insuficientes",
+)
+render_curiosity_card(
+    "Especialista em Prova do Anjo",
+    anjo_specialist,
+    value_label=lambda p: f"{p['total']:+.2f} em {p['count']} prova(s) de anjo",
+    fallback="dados ainda insuficientes",
+)
+render_curiosity_card(
+    "Destaque em Bate e Volta",
+    bv_specialist,
+    value_label=lambda p: f"{p['total']:+.2f} em {p['count']} bate e volta",
+    fallback="dados ainda insuficientes",
+)
+render_curiosity_card(
+    "Maior consistência",
+    consistent_specialist,
+    value_label=lambda p: f"desvio {p['sd']:.3f} · média {p['avg']:.2f} ({p['count']} provas)",
+    fallback="dados ainda insuficientes",
+)
+
+print('</section>')
 ```
 
-# Resultados por Prova {#provas}
+## Participantes {#participantes}
 
-Detalhamento por prova: classificação fase a fase, duplas, desclassificações e pontuações.
+Cards completos com foco na trajetória acumulada, consistência e especialidades por tipo de prova.
+
+<div id="ranking" class="provas-legacy-anchor" aria-hidden="true"></div>
 
 ```{python}
-#| label: per-prova-tabs
+#| label: participant-cards
 #| output: asis
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Per-Prova Results in Tabset
-# ══════════════════════════════════════════════════════════════════════════════
-
-if provas_list:
-    print('::: {.panel-tabset}\n')
-
-    for prova in provas_list:
-        num = prova["numero"]
-        tipo = prova["tipo"]
-        emoji = TIPO_EMOJI.get(tipo, "🏅")
-        label = TIPO_LABEL.get(tipo, tipo.title())
-        color = TIPO_COLOR.get(tipo, "#888")
-        date = prova["date"]
-        nome = prova["nome"]
-        vencedor = prova["vencedor"]
-        vencedor_avatar = get_avatar(vencedor)
-        n_participantes = prova["participantes_total"]
-        week = prova["week"]
-        formato = prova.get("formato", "")
-        excluidos = prova.get("excluidos", [])
-        fases = prova.get("fases", [])
-
-        print(f'## {emoji} #{num} {label} (Sem {week})\n')
-
-        # Header card
-        print(f'''
-<div style="background: #2a2a2a; border-radius: 12px; border-left: 5px solid {color}; padding: 1rem; margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-''')
-        if vencedor_avatar:
-            print(f'<img src="{vencedor_avatar}" alt="{vencedor}" style="width: 55px; height: 55px; border-radius: 50%; border: 3px solid {color}; object-fit: cover;">')
-        print(f'''
-<div class="u-s381">
-<div class="fs-xl u-s010">{nome}</div>
-<div class="fs-base u-s219">📅 {date} &middot; {emoji} {label} &middot; Semana {week} &middot; {n_participantes} participantes</div>
-<div class="u-s411">
-<span class="fs-base" style="background: {color}; color: #fff; padding: 0.2rem 0.6rem; border-radius: 5px; font-weight: bold;">🏆 Vencedor: {vencedor}</span>
-</div>
-</div>
-</div>
-''')
-
-        # Excluded list
-        if excluidos:
-            nomes_exc = ", ".join([f"**{e['nome']}** ({e['motivo']})" for e in excluidos])
-            print(f'\n<div class="table-md u-s115">🚫 Não participaram: {nomes_exc}</div>\n')
-
-        # Phase breakdown
-        for fase in fases:
-            fase_num = fase["fase"]
-            fase_tipo = fase.get("tipo", "individual")
-            classificacao = fase.get("classificacao", [])
-            nota = fase.get("nota", "")
-            is_duo = fase_tipo == "dupla"
-
-            fase_label = "Dupla" if is_duo else "Individual"
-            print(f'\n**Fase {fase_num} — {fase_label}**')
-            if nota:
-                print(f' <span class="text-muted table-md">({nota})</span>')
-            print()
-
-            if classificacao:
-                print('<div class="u-s430">')
-                print('<table class="table-full fs-base">')
-                print('<thead><tr class="u-s028">')
-                print('<th class="tc cell-compact text-muted u-s483">Pos</th>')
-                if is_duo:
-                    print('<th class="tl cell-compact text-muted">Dupla</th>')
-                else:
-                    print('<th class="tl cell-compact text-muted">Participante</th>')
-                if any(e.get("pontuacao") is not None for e in classificacao):
-                    print('<th class="tr cell-compact text-muted">Pontuação</th>')
-                print('</tr></thead><tbody>')
-
-                has_scores = any(e.get("pontuacao") is not None for e in classificacao)
-
-                for entry in classificacao:
-                    pos = entry.get("pos", "?")
-                    is_dq = entry.get("dq", False)
-                    is_tied = entry.get("tied", False)
-
-                    # Position styling
-                    if is_dq:
-                        pos_display = '<span class="u-s223">DQ</span>'
-                        row_class = 'u-s227'
-                    elif pos == 1:
-                        pos_display = f'<span class="u-s024">🥇 {pos}º</span>'
-                        row_class = 'u-s229'
-                    elif pos == 2:
-                        pos_display = f'<span class="u-s220">🥈 {pos}º</span>'
-                        row_class = 'u-s022'
-                    elif pos == 3:
-                        pos_display = f'<span class="u-s222">🥉 {pos}º</span>'
-                        row_class = 'u-s221'
-                    else:
-                        pos_display = f'{pos}º'
-                        row_class = 'u-s021'
-
-                    tied_icon = ' <span class="text-muted table-sm">= empate</span>' if is_tied else ''
-
-                    # Name(s)
-                    if is_duo:
-                        dupla = entry.get("dupla", [])
-                        name_display = " + ".join(dupla)
-                    else:
-                        name_display = entry.get("nome", "?")
-
-                    pontuacao_cell = ""
-                    if has_scores:
-                        score = entry.get("pontuacao")
-                        pontuacao_cell = f'<td class="tr cell-compact u-s213">{score if score is not None else "—"}</td>'
-
-                    print(f'<tr class="sep-bottom {row_class}">')
-                    print(f'<td class="tc cell-compact">{pos_display}{tied_icon}</td>')
-                    print(f'<td class="tl cell-compact" style="font-weight: {"bold" if pos <= 3 and not is_dq else "normal"};">{name_display}</td>')
-                    if pontuacao_cell:
-                        print(pontuacao_cell)
-                    print('</tr>')
-
-                print('</tbody></table>')
-                print('</div>')
-
-        # Bracket visualization for duel-format competitions
-        for fase in fases:
-            quartas = fase.get("classificacao_quartas")
-            semis = fase.get("classificacao_semis")
-            final = fase.get("classificacao_final")
-            if quartas and semis and final:
-                print(f'\n**Chave de Duelos — Fase {fase["fase"]}**\n')
-
-                def bracket_cell(name, is_winner=False, is_dq=False, nota=""):
-                    style = "padding: 4px 8px; white-space: nowrap;"
-                    css_class = "fs-base"
-                    if is_dq:
-                        style += " color: #e74c3c; text-decoration: line-through;"
-                        suffix = ' <span class="fs-xs u-s005">(DQ)</span>'
-                    elif is_winner:
-                        style += " color: #f1c40f; font-weight: bold;"
-                        suffix = ""
-                    else:
-                        style += " color: #aaa;"
-                        suffix = ""
-                    return f'<div class="{css_class}" style="{style}">{name}{suffix}</div>'
-
-                def matchup_box(duelo, round_label=""):
-                    j = duelo["jogadores"]
-                    v = duelo["vencedor"]
-                    nota = duelo.get("nota", "")
-                    dq_names = set()
-                    if "desclassificad" in nota.lower():
-                        for n in j:
-                            if n != v:
-                                dq_names.add(n)
-                    cells = ""
-                    for name in j:
-                        cells += bracket_cell(name, is_winner=(name == v), is_dq=(name in dq_names))
-                    box = f'<div class="u-s202">'
-                    box += cells
-                    box += f'</div>'
-                    return box
-
-                # Build the bracket as a 3-column flex layout
-                print('<div class="u-s308">')
-
-                # Column 1: Quartas
-                print('<div class="u-s048">')
-                print('<div class="tc text-muted fs-sm u-s067">Quartas</div>')
-                for d in quartas:
-                    print(matchup_box(d))
-                print('</div>')
-
-                # Column 2: Semis
-                print('<div class="u-s048">')
-                print('<div class="tc text-muted fs-sm u-s067">Semis</div>')
-                for d in semis:
-                    print(matchup_box(d))
-                print('</div>')
-
-                # Column 3: Final
-                print('<div class="u-s304">')
-                print('<div class="tc text-muted fs-sm u-s067">Final</div>')
-                for d in final:
-                    print(matchup_box(d))
-                    winner = d["vencedor"]
-                    print(f'<div class="tc fs-lg u-s414">🏆 <span class="u-s024">{winner}</span></div>')
-                print('</div>')
-
-                print('</div>')
-
-        # Points awarded for this prova (from leaderboard detail)
-        multiplier = scoring["type_multipliers"].get(tipo, 1.0)
-        mult_label = f"{multiplier:.1f}x" if multiplier != 1.0 else "1.0x"
-
-        scored_entries = []
-        for p in leaderboard:
-            for d in p.get("detail", []):
-                if d["prova"] == num and d["position"] is not None and d["weighted_pts"] is not None:
-                    scored_entries.append({
-                        "name": p["name"],
-                        "position": d["position"],
-                        "base_pts": d["base_pts"],
-                        "weighted_pts": d["weighted_pts"],
-                    })
-        scored_entries.sort(key=lambda x: (0 if isinstance(x["position"], int) else 1, x["position"] if isinstance(x["position"], int) else 999))
-
-        if scored_entries:
-            print(f'\n<details class="u-s072"><summary class="fs-base u-s295">📊 Pontos atribuídos (multiplicador {label}: {mult_label})</summary>')
-            print('<div class="u-s431">')
-            print('<table class="table-full table-md">')
-            print('<thead><tr class="u-s028">')
-            print('<th class="tl text-muted u-s026">Participante</th>')
-            print('<th class="tc text-muted u-s026">Pos</th>')
-            print('<th class="tr text-muted u-s026">Base</th>')
-            print(f'<th class="tr text-muted u-s026">× {mult_label}</th>')
-            print('</tr></thead><tbody>')
-            for se in scored_entries:
-                pos_str = "DQ" if se["position"] == "dq" else f'{se["position"]}º'
-                pts_color = '#27ae60' if se["weighted_pts"] > 0 else '#888'
-                print(f'<tr class="sep-bottom">')
-                print(f'<td class="text-light u-s026">{se["name"]}</td>')
-                print(f'<td class="tc u-s104">{pos_str}</td>')
-                print(f'<td class="tr u-s104">{se["base_pts"]}</td>')
-                print(f'<td class="tr" style="padding: 0.3rem; color: {pts_color}; font-weight: bold;">{se["weighted_pts"]}</td>')
-                print('</tr>')
-            print('</tbody></table>')
-            print('</div></details>')
-
-        print()
-
-    print(':::')
+if not leaderboard_sorted:
+    print('<p class="text-muted">Nenhum participante encontrado.</p>')
 else:
-    print('*Nenhuma prova registrada ainda.*\n')
+    emit('<section class="provas-player-cards-grid" aria-label="Cards de participantes no ranking de provas">')
+
+    for participant in leaderboard_sorted:
+        name = participant.get("name", "?")
+        total = participant.get("total_points", 0)
+        avg = participant.get("avg_points", 0)
+        wins = participant.get("wins", 0)
+        top3 = participant.get("top3", 0)
+        participated = participant.get("provas_participated", 0)
+        available = participant.get("provas_available", 0)
+        rate = participant.get("participation_rate", 0)
+
+        active = is_active(name)
+        status = get_status(name)
+        avatar = get_avatar(name)
+        grupo = get_grupo(name)
+
+        type_totals = build_type_totals(participant)
+        podium_rate = (top3 / participated) if participated else 0
+
+        accent = GROUP_COLORS.get(grupo, "#666")
+        state_attr = ' data-player-state="inactive"' if not active else ""
+        status_badge = f'<span class="provas-status-badge">{status or "saiu"}</span>' if not active else ""
+        name_slug = slugify_name(name)
+
+        recent = [
+            detail
+            for detail in participant.get("detail", [])
+            if detail.get("weighted_pts") is not None
+        ]
+        recent.sort(key=lambda item: item.get("prova", 0), reverse=True)
+        recent = recent[:5]
+
+        emit(f'''
+<article id="provas-player-{name_slug}" class="provas-player-card" style="--card-accent:{accent};"{state_attr}>
+  <header class="provas-player-head">
+    <div class="provas-player-avatar-wrap">
+''')
+        if avatar:
+            emit(f'<img src="{avatar}" alt="Avatar {name}" class="provas-player-avatar">')
+        else:
+            emit('<div class="provas-player-avatar provas-avatar-fallback">?</div>')
+
+        emit(f'''
+    </div>
+    <div class="provas-player-identity">
+      <p class="provas-player-name-line">
+        <span class="provas-player-name">{name}</span>
+        <span class="provas-group-badge">{grupo}</span>
+      </p>
+      {status_badge}
+      <p class="provas-player-total">{total:+.2f}</p>
+    </div>
+  </header>
+
+  <div class="provas-player-metrics">
+    <div class="provas-player-metric"><span class="label">Média</span><span class="value">{avg:.2f}</span></div>
+    <div class="provas-player-metric"><span class="label">Pódio</span><span class="value">{podium_rate * 100:.1f}%</span></div>
+    <div class="provas-player-metric"><span class="label">Vitórias</span><span class="value">{wins}</span></div>
+    <div class="provas-player-metric"><span class="label">Participação</span><span class="value">{participated}/{available}</span></div>
+    <div class="provas-player-metric"><span class="label">Presença</span><span class="value">{rate * 100:.0f}%</span></div>
+  </div>
+
+  <div class="provas-player-type-grid">
+    <div class="provas-player-type-card"><span>👑 Líder</span><strong>{type_totals['lider']:+.2f}</strong></div>
+    <div class="provas-player-type-card"><span>😇 Anjo</span><strong>{type_totals['anjo']:+.2f}</strong></div>
+    <div class="provas-player-type-card"><span>⚔️ Bate e Volta</span><strong>{type_totals['bate_volta']:+.2f}</strong></div>
+  </div>
+
+  <section class="provas-player-recent">
+    <p class="provas-player-section-title">Últimas provas com pontuação válida</p>
+    <div class="provas-player-recent-list">
+''')
+
+        if recent:
+            for entry in recent:
+                tipo = entry.get("tipo", "")
+                emoji = TIPO_EMOJI.get(tipo, "🏅")
+                label = TIPO_LABEL.get(tipo, tipo.title())
+                prova_num = entry.get("prova", "?")
+                pts = entry.get("weighted_pts", 0)
+                tone = "points-pos" if pts > 0 else ("points-neg" if pts < 0 else "points-zero")
+                emit(f'''
+      <div class="provas-player-recent-row">
+        <span class="name">{emoji} Prova #{prova_num} · {label}</span>
+        <span class="value {tone}">{pts:+.2f}</span>
+      </div>
+''')
+        else:
+            emit('''
+      <div class="provas-player-recent-row">
+        <span class="name">Sem pontuações registradas.</span>
+        <span class="value points-zero">0</span>
+      </div>
+''')
+
+        emit('''
+    </div>
+  </section>
+</article>
+''')
+
+    print('</section>')
 ```
 
-# Sistema de Pontuação {#pontuacao}
+## Provas {#provas}
 
-<div class="info-panel u-s018">
+Leitura cronológica das provas com fases, classificações e pontos atribuídos.
+
+```{python}
+#| label: provas-history
+#| output: asis
+
+if not provas_list:
+    print('*Nenhuma prova registrada ainda.*')
+else:
+    provas_sorted = sorted(provas_list, key=lambda prova: prova.get("numero", 0), reverse=True)
+    emit('<section class="provas-history-accordion" aria-label="Histórico detalhado das provas">')
+
+    for idx, prova in enumerate(provas_sorted):
+        numero = prova.get("numero", "?")
+        tipo = prova.get("tipo", "")
+        week = prova.get("week", "?")
+        nome = prova.get("nome", "Prova")
+        date = prova.get("date", "")
+        emoji = TIPO_EMOJI.get(tipo, "🏅")
+        tipo_label = TIPO_LABEL.get(tipo, tipo.title())
+        participantes_total = prova.get("participantes_total", 0)
+        winners = get_winners(prova)
+        winner_line = ", ".join(winners) if winners else "—"
+        fases = prova.get("fases", [])
+        excluidos = prova.get("excluidos", [])
+        open_attr = " open" if idx == 0 else ""
+
+        emit(f'''
+<details class="provas-prova-details"{open_attr}>
+  <summary class="provas-prova-summary">
+    <span class="provas-prova-summary-main">{emoji} #{numero} · {tipo_label} · {nome}</span>
+    <span class="provas-prova-summary-meta">{date} · Semana {week} · {participantes_total} participantes</span>
+  </summary>
+  <div class="provas-prova-body">
+    <div class="provas-prova-headline">
+      <span class="provas-chip">🏆 Vencedor(es): {winner_line}</span>
+      <span class="provas-chip">📅 {date}</span>
+      <span class="provas-chip">📋 {len(fases)} fase(s)</span>
+    </div>
+''')
+
+        if excluidos:
+            excluded_text = ", ".join(f"{entry.get('nome', '?')} ({entry.get('motivo', 'sem motivo')})" for entry in excluidos)
+            emit(f'<p class="provas-excluded">🚫 Não participaram: {excluded_text}</p>')
+
+        for fase in fases:
+            fase_num = fase.get("fase", "?")
+            fase_tipo = fase.get("tipo", "individual")
+            fase_label = "Dupla" if fase_tipo == "dupla" else "Individual"
+            nota = fase.get("nota", "")
+            classificacao = fase.get("classificacao", [])
+            has_scores = any(entry.get("pontuacao") is not None for entry in classificacao)
+
+            emit(f'''
+<section class="provas-phase-block">
+  <p class="provas-phase-title">Fase {fase_num} · {fase_label}</p>
+''')
+            if nota:
+                emit(f'<p class="provas-phase-note">{nota}</p>')
+
+            if classificacao:
+                emit('''
+  <div class="provas-table-wrap">
+    <table class="provas-table">
+      <thead>
+        <tr>
+          <th>Pos</th>
+          <th>Participante(s)</th>
+''')
+                if has_scores:
+                    emit("          <th>Pontuação</th>")
+                emit('''
+        </tr>
+      </thead>
+      <tbody>
+''')
+
+                for entry in classificacao:
+                    pos = entry.get("pos")
+                    dq = bool(entry.get("dq") or entry.get("eliminados"))
+                    tied = bool(entry.get("tied"))
+
+                    if "dupla" in entry:
+                        entry_name = " + ".join(entry.get("dupla", []))
+                    elif "membros" in entry:
+                        entry_name = " + ".join(entry.get("membros", []))
+                    else:
+                        entry_name = entry.get("nome", "?")
+
+                    pos_str = "DQ" if dq else (f"{pos}º" if pos is not None else "—")
+                    tie_mark = " = empate" if tied else ""
+                    score = entry.get("pontuacao")
+
+                    emit(f'''
+        <tr>
+          <td>{pos_str}{tie_mark}</td>
+          <td>{entry_name}</td>
+''')
+                    if has_scores:
+                        emit(f"          <td>{score if score is not None else '—'}</td>")
+                    emit("        </tr>")
+
+                emit('''
+      </tbody>
+    </table>
+  </div>
+''')
+            else:
+                emit('<p class="provas-phase-empty">Sem classificação detalhada.</p>')
+
+            emit('</section>')
+
+        scored_entries = []
+        for participant in leaderboard:
+            for detail in participant.get("detail", []):
+                if detail.get("prova") != numero:
+                    continue
+                if detail.get("weighted_pts") is None:
+                    continue
+                scored_entries.append(
+                    {
+                        "name": participant.get("name", "?"),
+                        "position": detail.get("position"),
+                        "base_pts": detail.get("base_pts"),
+                        "weighted_pts": detail.get("weighted_pts"),
+                    }
+                )
+
+        scored_entries.sort(
+            key=lambda item: (
+                2 if item["position"] == "dq" else (1 if item["position"] is None else 0),
+                item["position"] if isinstance(item["position"], int) else 999,
+                item["name"],
+            )
+        )
+
+        if scored_entries:
+            collapse_id = f"provas-collapse-{numero}"
+            emit(f'''
+<details class="provas-points-details">
+  <summary class="provas-points-summary">📊 Pontos atribuídos nesta prova</summary>
+  <div id="{collapse_id}" class="provas-points-list">
+''')
+
+            for row_index, row in enumerate(scored_entries):
+                extra_class = " collapse-extra" if row_index >= 6 else ""
+                pos = row.get("position")
+                pos_str = "DQ" if pos == "dq" else (f"{pos}º" if isinstance(pos, int) else "—")
+                pts = row.get("weighted_pts", 0)
+                tone = "points-pos" if pts > 0 else ("points-neg" if pts < 0 else "points-zero")
+                emit(f'''
+    <div class="provas-point-row{extra_class}">
+      <span class="name">{row.get('name', '?')}</span>
+      <span class="meta">{pos_str} · base {row.get('base_pts', '—')}</span>
+      <span class="value {tone}">{pts:+.2f}</span>
+    </div>
+''')
+
+            emit('''
+  </div>
+''')
+            if len(scored_entries) > 6:
+                emit(f'''
+<button type="button"
+  class="collapse-toggle"
+  id="provas-collapse-toggle-{numero}"
+  data-target="{collapse_id}"
+  data-label-more="Ver pontuações completas"
+  data-label-less="Ver resumo de pontuações">
+  Ver pontuações completas
+</button>
+''')
+            emit('</details>')
+
+        emit('''
+  </div>
+</details>
+''')
+
+    print('</section>')
+```
+
+## Sistema de Pontuação {#pontuacao}
+
+<div class="provas-rules-block">
 
 **Como funciona o ranking de provas**
 
-Cada prova atribui pontos com base na **posição final** do participante. Os pontos-base são multiplicados pelo **tipo da prova**, valorizando provas de maior importância estratégica.
+O ranking combina posição final e importância estratégica de cada tipo de prova.
 
-- **Posições sem dados** (não apareceram nas fontes) recebem `null` — não contam no cálculo.
-- **Excluídos** (líder da semana, sorteio) não são penalizados — a prova não entra no denominador.
-- **DQ** (desclassificação durante a prova) = 0 pontos, mas conta como participação.
-- Participantes eliminados/desistentes são incluídos no ranking com as provas disputadas.
+- Posição final define os pontos-base.
+- Cada tipo de prova aplica um multiplicador específico.
+- Desclassificação (DQ) pontua zero na prova.
+- Participantes que não estavam elegíveis para disputar não são penalizados.
 
 </div>
 
 ```{python}
-#| label: scoring-tables
+#| label: points-reference
 #| output: asis
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Scoring Reference Tables
-# ══════════════════════════════════════════════════════════════════════════════
+placement_pts = scoring.get("placement_points", {})
+default_pts = scoring.get("placement_default", 0)
+multipliers = scoring.get("type_multipliers", {})
 
-placement_pts = scoring["placement_points"]
-default_pts = scoring["placement_default"]
-multipliers = scoring["type_multipliers"]
-
-print('''
-<div class="info-grid">
-
-<div class="u-s124">
-<h4 class="u-s215">🏅 Pontos por Posição</h4>
-<table class="table-full fs-base">
+emit('''
+<div class="provas-points-grid">
+  <section class="provas-points-card">
+    <h4>🏅 Pontos por posição</h4>
+    <table class="provas-table">
+      <thead>
+        <tr><th>Posição</th><th>Pontos-base</th></tr>
+      </thead>
+      <tbody>
 ''')
 
-for pos, pts in sorted(placement_pts.items(), key=lambda x: int(x[0])):
-    medal = '🥇' if pos == '1' else ('🥈' if pos == '2' else ('🥉' if pos == '3' else ''))
-    print(f'<tr><td class="text-light u-s019">{medal} {pos}º lugar</td><td class="tr u-s214">{pts}</td></tr>')
+for pos, pts in sorted(placement_pts.items(), key=lambda item: int(item[0])):
+    medal = "🥇" if pos == "1" else ("🥈" if pos == "2" else ("🥉" if pos == "3" else ""))
+    emit(f"        <tr><td>{medal} {pos}º</td><td>{pts}</td></tr>")
 
-print(f'<tr><td class="text-muted u-s019">9º+ lugar</td><td class="tr text-muted u-s386">{default_pts}</td></tr>')
-print(f'<tr><td class="u-s226">DQ (desclassificado)</td><td class="tr u-s023">0</td></tr>')
+emit(f"        <tr><td>9º+ lugar</td><td>{default_pts}</td></tr>")
+emit("        <tr><td>DQ</td><td>0</td></tr>")
 
-print('''
-</table>
-</div>
+emit('''
+      </tbody>
+    </table>
+  </section>
 
-<div class="u-s122">
-<h4 class="u-s230">⚖️ Multiplicadores por Tipo</h4>
-<table class="table-full fs-base">
+  <section class="provas-points-card">
+    <h4>⚖️ Multiplicadores por tipo</h4>
+    <table class="provas-table">
+      <thead>
+        <tr><th>Tipo</th><th>Multiplicador</th></tr>
+      </thead>
+      <tbody>
 ''')
 
-for tipo, mult in sorted(multipliers.items(), key=lambda x: -x[1]):
+for tipo, mult in sorted(multipliers.items(), key=lambda item: -item[1]):
     emoji = TIPO_EMOJI.get(tipo, "🏅")
     label = TIPO_LABEL.get(tipo, tipo.title())
-    color = TIPO_COLOR.get(tipo, "#888")
-    print(f'<tr><td class="text-light u-s019">{emoji} {label}</td><td class="tr" style="color: {color}; font-weight: bold; padding: 0.3rem 0;">{mult:.2f}×</td></tr>')
+    emit(f"        <tr><td>{emoji} {label}</td><td>{mult:.2f}×</td></tr>")
 
-print('''
-</table>
-<p class="text-muted fs-md u-s412">Fórmula: <code>pontos_base × multiplicador</code></p>
-</div>
-
+emit('''
+      </tbody>
+    </table>
+    <p class="provas-points-formula">Fórmula: <code>pontos_base × multiplicador</code></p>
+  </section>
 </div>
 ''')
-```
 
-::: {.callout-note title="Fontes de Dados"}
-- **Provas**: registradas manualmente em `data/provas.json` a partir de fontes GShow e transmissão ao vivo
-- **Rankings**: calculados automaticamente por `scripts/build_derived_data.py` → `data/derived/prova_rankings.json`
-:::
+emit('<p class="provas-muted">Painel orientado a desempenho acumulado, com atualização conforme os resultados oficiais das provas.</p>')
+```

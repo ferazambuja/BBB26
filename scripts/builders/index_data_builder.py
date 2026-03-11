@@ -19,9 +19,10 @@ from data_utils import (
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
-    genero,
+    genero, resolve_leaders, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao,
 )
 from builders.vote_prediction import extract_paredao_eligibility
+from paredao_viz import build_paredao_history, build_paredao_card_payload
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 DATA_DIR = _PROJECT_ROOT / "data" / "snapshots"
@@ -48,13 +49,16 @@ ROLE_TYPES = {
     "Paredão": "emparedado",
 }
 
+BLINDADOS_REASON_ORDER = ["Autoimune", "Líder", "Imune"]
+VISADOS_RECENT_WINDOW = 3
+
 SINC_TYPE_META: dict[str, dict[str, str]] = {
-    "podio":             {"label": "podio",              "emoji": "🏆", "valence": "pos"},
+    "elogio":            {"label": "elogio",             "emoji": "🏆", "valence": "pos"},
     "regua":             {"label": "regua",              "emoji": "📏", "valence": "pos"},
-    "bomba":             {"label": "bomba",              "emoji": "💣", "valence": "neg"},
-    "nao_ganha":         {"label": "nao ganha",          "emoji": "🚫", "valence": "neg"},
-    "paredao_perfeito":  {"label": "paredao perfeito",   "emoji": "🏛️", "valence": "neg"},
-    "regua_fora":        {"label": "fora da regua",      "emoji": "❌", "valence": "neg"},
+    "ataque":            {"label": "ataque",             "emoji": "💣", "valence": "neg"},
+    "nao_ganha":         {"label": "não ganha",           "emoji": "🚫", "valence": "neg"},
+    "paredao_perfeito":  {"label": "paredão perfeito",   "emoji": "🏛️", "valence": "neg"},
+    "regua_fora":        {"label": "fora da régua",      "emoji": "❌", "valence": "neg"},
     "quem_sai":          {"label": "quem sai",           "emoji": "🚪", "valence": "neg"},
     "prova_eliminou":    {"label": "eliminado na prova", "emoji": "⚡", "valence": "neg"},
 }
@@ -73,7 +77,7 @@ def _resolve_gendered_tema(tema: str, target: str) -> str:
 def resolve_sinc_label(edge_type: str, tema: str | None, target: str) -> str:
     """Produce a human-readable label for a Sincerao interaction.
 
-    If the edge has a tema (e.g. bomba themes), use it with gender resolution.
+    If the edge has a tema (e.g. ataque themes), use it with gender resolution.
     Otherwise, fall back to SINC_TYPE_META label. Unknown types are humanized
     (underscores replaced with spaces) and a warning is logged.
     """
@@ -667,11 +671,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     for par in paredoes_list:
         formacao = par.get("formacao", {})
         lider_by_paredao[par["numero"]] = formacao.get("lider")
-        # Support dual leaders: lideres array or fallback to single lider
-        _lideres = formacao.get("lideres", [])
-        if not _lideres and formacao.get("lider"):
-            _lideres = [formacao["lider"]]
-        lideres_by_paredao[par["numero"]] = _lideres
+        lideres_by_paredao[par["numero"]] = resolve_leaders(formacao)
 
     n_weeks = len(WEEK_END_DATES)
     for week_num in range(1, n_weeks + 2):  # +1 for open current week
@@ -711,6 +711,30 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
                     period_vip.append(nm)
                 elif grp == "xepa":
                     period_xepa.append(nm)
+
+        # Cold-start fix: if start_date snapshot has all-VIP (no Xepa), the API
+        # hadn't set up VIP/Xepa yet (premiere night). Scan forward within the
+        # period to find a snapshot with a proper VIP/Xepa split.
+        if period_vip and not period_xepa and len(period_vip) > 10:
+            for ds in daily_snapshots:
+                if ds["date"] < start_date or ds["date"] > end_date:
+                    continue
+                if ds is snap:
+                    continue
+                _vip, _xepa = [], []
+                for p in ds["participants"]:
+                    nm = p.get("name")
+                    if not nm:
+                        continue
+                    grp = (p.get("characteristics", {}).get("group") or "").lower()
+                    if grp == "vip":
+                        _vip.append(nm)
+                    elif grp == "xepa":
+                        _xepa.append(nm)
+                if _xepa:  # Found a snapshot with proper split
+                    period_vip = _vip
+                    period_xepa = _xepa
+                    break
 
         for nm in period_vip:
             vip_weeks_selected[nm] += 1
@@ -860,6 +884,45 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
     yesterday_active = [p for p in yesterday["participants"]
                         if not p.get("characteristics", {}).get("eliminated")]
     sentiment_yesterday = {p["name"]: calc_sentiment(p) for p in yesterday_active}
+    today_participants = {p["name"]: p for p in today_active if p.get("name")}
+
+    def _score_profile(participant: dict) -> dict[str, Any]:
+        hearts = 0
+        negatives = 0
+        impact_parts: list[tuple[float, str]] = []
+        for rxn in participant.get("characteristics", {}).get("receivedReactions", []):
+            label = _canonical_reaction_label(rxn.get("label"))
+            amt_raw = rxn.get("amount", 0)
+            try:
+                amount = int(amt_raw)
+            except Exception:
+                continue
+            if amount <= 0:
+                continue
+            if label in POSITIVE:
+                hearts += amount
+            else:
+                negatives += amount
+            weight = SENTIMENT_WEIGHTS.get(label, 0)
+            impact = round(weight * amount, 1)
+            emoji = REACTION_EMOJI.get(label, label or "•")
+            impact_parts.append((abs(impact), f"{emoji} {amount}x ({impact:+.1f})"))
+
+        impact_parts.sort(key=lambda x: x[0], reverse=True)
+        top_impacts = " · ".join(part for _, part in impact_parts[:3])
+        reason = f"Score = soma ponderada de reações recebidas. ❤️ {hearts} | negativas {negatives}."
+        if top_impacts:
+            reason += f" Maiores impactos: {top_impacts}."
+        return {
+            "hearts": hearts,
+            "negative": negatives,
+            "reason": reason,
+        }
+
+    score_profiles = {
+        name: _score_profile(participant)
+        for name, participant in today_participants.items()
+    }
 
     # -- Ranking leader + podium + movers --
     if sentiment_today:
@@ -878,27 +941,61 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             else:
                 break
 
+        def _rank_item(name: str, score: float) -> dict[str, Any]:
+            profile = score_profiles.get(name, {})
+            return {
+                "name": name,
+                "score": score,
+                "hearts": profile.get("hearts", 0),
+                "negative": profile.get("negative", 0),
+                "reason": profile.get("reason", ""),
+            }
+
         sorted_today = sorted(sentiment_today.items(), key=lambda x: x[1], reverse=True)
-        podium_all = [{"name": n, "score": s} for n, s in sorted_today]
-        bottom_all = [{"name": n, "score": s} for n, s in reversed(sorted_today)]
+        podium_all = [_rank_item(n, s) for n, s in sorted_today]
+        bottom_all = [_rank_item(n, s) for n, s in reversed(sorted_today)]
         podium = podium_all[:6]
         bottom3 = bottom_all[:6]
 
-        deltas = {}
-        for name, score in sentiment_today.items():
-            if name in sentiment_yesterday:
-                deltas[name] = round(score - sentiment_yesterday[name], 1)
+        def _build_delta_items(reference_scores: dict[str, float], reason_prefix: str) -> list[dict[str, Any]]:
+            items: list[dict[str, Any]] = []
+            for n, today_score in sentiment_today.items():
+                if n not in reference_scores:
+                    continue
+                previous_score = reference_scores[n]
+                delta = round(today_score - previous_score, 1)
+                if delta == 0:
+                    continue
+                items.append({
+                    "name": n,
+                    "delta": delta,
+                    "today_score": round(today_score, 1),
+                    "yesterday_score": round(previous_score, 1),
+                    "reason": (
+                        f"{reason_prefix}: score de hoje ({today_score:+.1f}) "
+                        f"− score de referência ({previous_score:+.1f}) = {delta:+.1f}."
+                    ),
+                })
+            items.sort(key=lambda x: (abs(x["delta"]), x["delta"]), reverse=True)
+            return items
 
-        movers_up = []
-        movers_down = []
-        delta_all = []
-        if deltas:
-            sorted_deltas = sorted(deltas.items(), key=lambda x: x[1], reverse=True)
-            movers_up = [{"name": n, "delta": d} for n, d in sorted_deltas if d > 0.5][:3]
-            movers_down = [{"name": n, "delta": d} for n, d in sorted_deltas if d < -0.5][-3:]
-            movers_down.sort(key=lambda x: x["delta"])  # most negative first
-            delta_all = [{"name": n, "delta": d} for n, d in sorted_deltas if d != 0]
-            delta_all.sort(key=lambda x: (abs(x["delta"]), x["delta"]), reverse=True)
+        day_delta_all = _build_delta_items(sentiment_yesterday, "Variação vs ontem")
+        week_reference = {}
+        if len(daily_snapshots) >= 7:
+            week_snapshot = daily_snapshots[-7]
+            week_reference = {
+                p["name"]: calc_sentiment(p)
+                for p in week_snapshot.get("participants", [])
+                if not p.get("characteristics", {}).get("eliminated") and p.get("name")
+            }
+        week_delta_all = _build_delta_items(week_reference, "Variação na semana") if week_reference else []
+
+        delta_all = day_delta_all or week_delta_all
+        movers_scope = "day" if day_delta_all else ("week" if week_delta_all else "none")
+        movers_label = "📅 Variação vs ontem" if movers_scope == "day" else "📅 Variação na semana"
+        movers_up = [item for item in delta_all if item["delta"] > 0.5][:3]
+        movers_down = [item for item in delta_all if item["delta"] < -0.5][:3]
+        movers_down.sort(key=lambda x: x["delta"])  # most negative first
 
         cards.append({
             "type": "ranking",
@@ -914,6 +1011,8 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             "movers_up": movers_up,
             "movers_down": movers_down,
             "delta_all": delta_all,
+            "movers_scope": movers_scope,
+            "movers_label": movers_label if delta_all else "",
         })
 
         streak_text = f" pelo {streak}º dia consecutivo" if streak > 1 else ""
@@ -953,11 +1052,14 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             "color": "#3498db", "link": "evolucao.html#pulso",
             "total": n_changes,
             "reference_date": today.get("date"),
+            "from_date": yesterday.get("date"),
+            "to_date": today.get("date"),
             "pct": int(pct_changed),
             "total_possible": total_possible,
             "improve": n_improve,
             "worsen": n_worsen,
             "lateral": n_lateral,
+            "net": (n_improve - n_worsen),
             "hearts_gained": hearts_gained,
             "hearts_lost": hearts_lost,
         })
@@ -1033,66 +1135,81 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
     dramatic_today = [d for d in dramatic_all if d.get("date") == today.get("date")]
     hostilities_today = [h for h in hostilities_all if h.get("date") == today.get("date")]
 
-    dramatic_scope = "today" if dramatic_today else "recent"
-    hostilities_scope = "today" if hostilities_today else "recent"
+    list_display_limit = 4
+    dramatic_state = "today" if dramatic_today else ("recent" if dramatic_all else "empty")
+    hostilities_state = "today" if hostilities_today else ("recent" if hostilities_all else "empty")
     dramatic_selected = dramatic_today if dramatic_today else dramatic_all[:12]
     hostilities_selected = hostilities_today if hostilities_today else hostilities_all[:12]
 
+    cards.append({
+        "type": "dramatic",
+        "icon": "💥", "title": "Mudanças Dramáticas",
+        "color": "#e74c3c", "link": "evolucao.html#pulso",
+        "total": len(dramatic_selected),
+        "reference_date": today.get("date"),
+        "items": dramatic_selected,
+        "scope": dramatic_state,  # backward-compatible alias
+        "state": dramatic_state,
+        "display_limit": list_display_limit,
+        "today_count": len(dramatic_today),
+        "latest_date": dramatic_selected[0].get("date", "") if dramatic_selected else "",
+        "event_latest_date": dramatic_all[0].get("date", "") if dramatic_all else "",
+    })
     if dramatic_selected:
-        cards.append({
-            "type": "dramatic",
-            "icon": "💥", "title": "Mudanças Dramáticas",
-            "color": "#e74c3c", "link": "evolucao.html#pulso",
-            "total": len(dramatic_selected),
-            "reference_date": today.get("date"),
-            "items": dramatic_selected,
-            "scope": dramatic_scope,
-            "today_count": len(dramatic_today),
-            "latest_date": dramatic_selected[0].get("date", ""),
-        })
         lines = [f"**{d['giver'].split()[0]}** → **{d['receiver'].split()[0]}** ({d['old_emoji']}→{d['new_emoji']})"
                  for d in dramatic_selected[:4]]
         extra = len(dramatic_selected) - 4
-        if dramatic_scope == "today":
+        if dramatic_state == "today":
             highlights.append(
                 f"💥 **{len(dramatic_selected)} mudanças dramáticas** [hoje](evolucao.html#pulso): "
                 + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
             )
-        else:
+        elif dramatic_state == "recent":
             latest_txt = dramatic_selected[0].get("date", "")
             highlights.append(
                 f"💥 **Sem mudanças dramáticas hoje** — últimos casos em [histórico recente](evolucao.html#pulso)"
                 f" (mais recente: {latest_txt}): "
                 + " · ".join(lines[:3]) + (f" (+{extra} mais)" if extra > 0 else "")
             )
+    else:
+        highlights.append(
+            "💥 **Sem mudanças dramáticas registradas** no período disponível."
+        )
 
+    cards.append({
+        "type": "hostilities",
+        "icon": "⚠️", "title": "Novas Hostilidades",
+        "color": "#f39c12", "link": "relacoes.html#hostilidades-dia",
+        "total": len(hostilities_selected),
+        "reference_date": today.get("date"),
+        "items": hostilities_selected,
+        "scope": hostilities_state,  # backward-compatible alias
+        "state": hostilities_state,
+        "display_limit": list_display_limit,
+        "today_count": len(hostilities_today),
+        "latest_date": hostilities_selected[0].get("date", "") if hostilities_selected else "",
+        "event_latest_date": hostilities_all[0].get("date", "") if hostilities_all else "",
+    })
     if hostilities_selected:
-        cards.append({
-            "type": "hostilities",
-            "icon": "⚠️", "title": "Novas Hostilidades",
-            "color": "#f39c12", "link": "relacoes.html#hostilidades-dia",
-            "total": len(hostilities_selected),
-            "reference_date": today.get("date"),
-            "items": hostilities_selected,
-            "scope": hostilities_scope,
-            "today_count": len(hostilities_today),
-            "latest_date": hostilities_selected[0].get("date", ""),
-        })
         lines = [f"{h['giver'].split()[0]} → {h['receiver'].split()[0]} ({h['emoji']})"
                  for h in hostilities_selected[:4]]
         extra = len(hostilities_selected) - 4
-        if hostilities_scope == "today":
+        if hostilities_state == "today":
             highlights.append(
                 f"⚠️ **{len(hostilities_selected)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades-dia)"
                 f": {' · '.join(lines)}{f' +{extra} mais' if extra > 0 else ''}"
             )
-        else:
+        elif hostilities_state == "recent":
             latest_txt = hostilities_selected[0].get("date", "")
             highlights.append(
                 f"⚠️ **Sem novas hostilidades hoje** — últimos casos em [histórico recente](relacoes.html#hostilidades-dia)"
                 f" (mais recente: {latest_txt}): {' · '.join(lines[:3])}"
                 f"{f' +{extra} mais' if extra > 0 else ''}"
             )
+    else:
+        highlights.append(
+            "⚠️ **Sem hostilidades unilaterais registradas** no período disponível."
+        )
 
     return highlights, cards
 
@@ -1181,7 +1298,7 @@ def _compute_sincerao_highlight(
         if edge.get("week") != sinc_week_used:
             continue
         etype = edge.get("type")
-        if etype not in ["podio", "nao_ganha", "bomba"]:
+        if etype not in ["elogio", "nao_ganha", "ataque"]:
             continue
         actor = edge.get("actor")
         target = edge.get("target")
@@ -1195,8 +1312,8 @@ def _compute_sincerao_highlight(
         rxn = _canonical_reaction_label(rxn)
         rxn_weight = SENTIMENT_WEIGHTS.get(rxn, 0)
         rxn_sign = "pos" if rxn_weight > 0 else ("neg" if rxn_weight < 0 else "neu")
-        edge_sign = "pos" if etype == "podio" else "neg"
-        tipo_label = {"podio": "pódio", "nao_ganha": "não ganha", "bomba": "bomba"}.get(etype, etype)
+        edge_sign = "pos" if etype == "elogio" else "neg"
+        tipo_label = SINC_TYPE_META.get(etype, {}).get("label", etype)
         row = {
             "ator": actor, "alvo": target,
             "tipo": etype, "tipo_label": tipo_label,
@@ -1277,23 +1394,68 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
 
         alvo_accum: dict[str, float] = defaultdict(float)
         alvo_recent: dict[str, float] = defaultdict(float)
+        alvo_detail_accum: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {"vote_score": 0.0, "power_score": 0.0, "vote_count": 0, "power_count": 0}
+        )
+        alvo_detail_recent: dict[str, dict[str, Any]] = defaultdict(
+            lambda: {"vote_score": 0.0, "power_score": 0.0, "vote_count": 0, "power_count": 0}
+        )
         for e in edges:
             w = e.get("weight", 0)
             if w >= 0 or e.get("backlash"):
                 continue
             if e["type"] not in ("power_event", "vote"):
                 continue
-            alvo_accum[e["target"]] += w
+            target = e["target"]
+            is_vote = e["type"] == "vote"
+            alvo_accum[target] += w
             age = max(0, current_wk - e.get("week", current_wk))
-            alvo_recent[e["target"]] += w * (ALVO_DECAY ** age)
+            w_recent = w * (ALVO_DECAY ** age)
+            alvo_recent[target] += w_recent
+            if is_vote:
+                alvo_detail_accum[target]["vote_score"] += w
+                alvo_detail_accum[target]["vote_count"] += 1
+                alvo_detail_recent[target]["vote_score"] += w_recent
+                alvo_detail_recent[target]["vote_count"] += 1
+            else:
+                alvo_detail_accum[target]["power_score"] += w
+                alvo_detail_accum[target]["power_count"] += 1
+                alvo_detail_recent[target]["power_score"] += w_recent
+                alvo_detail_recent[target]["power_count"] += 1
 
-        def _build_alvo_items(scores: dict[str, float]) -> list[dict]:
+        def _build_alvo_items(scores: dict[str, float], detail: dict[str, dict[str, Any]]) -> list[dict]:
             ranked = [(n, scores.get(n, 0)) for n in active_set if scores.get(n, 0) < -5]
             ranked.sort(key=lambda x: x[1])
-            return [{"name": n, "score": round(s, 1)} for n, s in ranked]
+            out = []
+            for n, s in ranked:
+                d = detail.get(n, {})
+                vote_score = round(d.get("vote_score", 0.0), 1)
+                power_score = round(d.get("power_score", 0.0), 1)
+                vote_count = int(d.get("vote_count", 0))
+                power_count = int(d.get("power_count", 0))
+                # Build human-readable reason
+                parts = []
+                if vote_count:
+                    parts.append(f"recebeu {vote_count} voto(s) da casa")
+                if power_count:
+                    parts.append(f"foi alvo de {power_count} evento(s) de poder (indicação, monstro, etc.)")
+                reason = (
+                    f"{n.split()[0]} {' e '.join(parts)}."
+                    if parts else f"{n.split()[0]} acumulou eventos negativos ao longo do jogo."
+                )
+                out.append({
+                    "name": n,
+                    "score": round(s, 1),
+                    "vote_score": vote_score,
+                    "power_score": power_score,
+                    "vote_count": vote_count,
+                    "power_count": power_count,
+                    "reason": reason,
+                })
+            return out
 
-        items_accum_all = _build_alvo_items(alvo_accum)
-        items_recent_all = _build_alvo_items(alvo_recent)
+        items_accum_all = _build_alvo_items(alvo_accum, alvo_detail_accum)
+        items_recent_all = _build_alvo_items(alvo_recent, alvo_detail_recent)
         items_accum = items_accum_all[:5]
         items_recent = items_recent_all[:5]
 
@@ -1323,6 +1485,9 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
                          "duelo_de_risco", "imunidade", "troca_xepa", "troca_vip"}
     if edges:
         aggressor_scores: dict[str, float] = defaultdict(float)
+        aggressor_type_counts: dict[str, Counter[str]] = defaultdict(Counter)
+        aggressor_type_scores: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        aggressor_events_count: dict[str, int] = defaultdict(int)
         for e in edges:
             w = e.get("weight", 0)
             if w >= 0 or e.get("backlash"):
@@ -1331,12 +1496,46 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
                 continue
             if e.get("event_type") not in DELIBERATE_EVENTS:
                 continue
-            aggressor_scores[e["actor"]] += w
+            actor = e["actor"]
+            event_type = e.get("event_type", "")
+            aggressor_scores[actor] += w
+            aggressor_events_count[actor] += 1
+            aggressor_type_counts[actor][event_type] += 1
+            aggressor_type_scores[actor][event_type] += w
 
         active_aggr = [(n, aggressor_scores.get(n, 0)) for n in active_set if aggressor_scores.get(n, 0) < -2]
         active_aggr.sort(key=lambda x: x[1])
         if active_aggr:
-            aggr_items_all = [{"name": n, "score": round(s, 1)} for n, s in active_aggr]
+            aggr_items_all = []
+            for n, s in active_aggr:
+                type_count = aggressor_type_counts.get(n, Counter())
+                type_score = aggressor_type_scores.get(n, {})
+                top_types = sorted(
+                    type_count.items(),
+                    key=lambda kv: (abs(type_score.get(kv[0], 0.0)), kv[1]),
+                    reverse=True,
+                )[:2]
+                top_types_txt = []
+                for et, count in top_types:
+                    label = POWER_EVENT_LABELS.get(et, et.replace("_", " "))
+                    score_part = type_score.get(et, 0.0)
+                    top_types_txt.append(f"{label} ({count}x, {score_part:.1f})")
+                # Build human-readable reason
+                evt_total = aggressor_events_count.get(n, 0)
+                top_labels = []
+                for et, count in top_types:
+                    label = POWER_EVENT_LABELS.get(et, et.replace("_", " "))
+                    top_labels.append(f"{count}x {label}")
+                if top_labels:
+                    reason = f"{n.split()[0]} fez {evt_total} ação(ões) de poder: {', '.join(top_labels)}."
+                else:
+                    reason = f"{n.split()[0]} fez {evt_total} ação(ões) de poder deliberadas ao longo do jogo."
+                aggr_items_all.append({
+                    "name": n,
+                    "score": round(s, 1),
+                    "events_count": aggressor_events_count.get(n, 0),
+                    "reason": reason,
+                })
             aggr_items = aggr_items_all[:5]
             cards.append({
                 "type": "mais_agressor",
@@ -1359,6 +1558,7 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
         for name_v in active_names:
             ff_count = 0
             enemies = []
+            enemy_details = []
             pairs_me = relations_pairs.get(name_v, {})
             for other in active_names:
                 if other == name_v:
@@ -1368,12 +1568,29 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
                 if my_score > 0 and their_score < 0:
                     ff_count += 1
                     enemies.append(other)
+                    enemy_details.append({
+                        "name": other,
+                        "my_score": round(my_score, 1),
+                        "their_score": round(their_score, 1),
+                    })
             if ff_count >= 3:
+                enemy_preview = " · ".join(
+                    f"{d['name'].split()[0]} (você {d['my_score']:+.1f} / ele {d['their_score']:+.1f})"
+                    for d in enemy_details[:3]
+                )
+                reason = (
+                    "Vulnerabilidade = pessoas em que você confia (score > 0), "
+                    "mas que têm score negativo contra você."
+                )
+                if enemy_preview:
+                    reason += f" Casos principais: {enemy_preview}."
                 vuln_items.append({
                     "name": name_v,
                     "count": ff_count,
                     "enemies": enemies[:5],
+                    "enemy_details": enemy_details[:5],
                     "level": "critical" if ff_count >= 5 else "warning",
+                    "reason": reason,
                 })
         vuln_items.sort(key=lambda x: x["count"], reverse=True)
         if vuln_items:
@@ -1440,6 +1657,8 @@ def _compute_breaks_and_context_cards(
             "total": len(active_breaks),
             "strong_count": len(strong),
             "reference_date": reference_date or latest.get("date"),
+            "display_limit": 4,
+            "event_latest_date": break_items[0].get("date", "") if break_items else "",
             "items": break_items,
         })
         lines = [f"{b['giver']} → {b['receiver']} ({b['streak']}d ❤️ → {b['new_emoji']})"
@@ -1481,84 +1700,227 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
     paredoes_with_votes = [p for p in paredoes_list if p.get("votos_casa")]
     if paredoes_with_votes:
         n_paredoes = len(paredoes_with_votes)
+        display_limit = 4
+        recent_window = VISADOS_RECENT_WINDOW
+        recent_cycle_nums = {
+            par.get("numero", 0)
+            for par in sorted(paredoes_with_votes, key=lambda p: p.get("numero", 0))[-recent_window:]
+        }
 
         # Per-participant accumulators
         on_paredao: Counter[str] = Counter()        # times in indicados_finais
         protected: Counter[str] = Counter()          # times as Líder/immune/anjo_autoimune
         available: Counter[str] = Counter()           # times eligible for house votes
-        house_votes: Counter[str] = Counter()         # votes received when available
-        bv_escapes_set: set[str] = set()
+        house_votes_avail: Counter[str] = Counter()   # votes received when available
+        recent_house_votes: Counter[str] = Counter()  # house votes received in recent window
+        bv_escape_count: Counter[str] = Counter()     # BV escapes (count, not boolean)
+        bv_escape_detail: dict[str, list[int]] = defaultdict(list)
+        fake_paredao_detail: dict[str, list[int]] = defaultdict(list)
         protection_detail: dict[str, list[tuple[int, str]]] = defaultdict(list)
+
+        # Bug fix 3: count ALL house votes in a separate pre-pass
+        all_house_votes: Counter[str] = Counter()
+        last_voted_paredao: dict[str, int] = {}
+        for par in paredoes_with_votes:
+            num = par.get("numero", 0)
+            for _voter, target in (par.get("votos_casa") or {}).items():
+                t = target.strip()
+                if t in active_set:
+                    all_house_votes[t] += 1
+                    last_voted_paredao[t] = max(last_voted_paredao.get(t, 0), num)
+                    if num in recent_cycle_nums:
+                        recent_house_votes[t] += 1
+
+        # Bug fix 3 (cont): classify nomination method from como field
+        by_lider: Counter[str] = Counter()
+        by_casa: Counter[str] = Counter()
+        by_dynamic: Counter[str] = Counter()
+        for par in paredoes_with_votes:
+            for ind in par.get("indicados_finais", []):
+                nome = ind.get("nome", "") if isinstance(ind, dict) else ind
+                como = (ind.get("como", "") if isinstance(ind, dict) else "").lower()
+                if not nome or nome not in active_set:
+                    continue
+                if "líder" in como:
+                    by_lider[nome] += 1
+                elif "casa" in como or "mais votad" in como:
+                    by_casa[nome] += 1
+                else:
+                    by_dynamic[nome] += 1
 
         for par in paredoes_with_votes:
             num = par.get("numero", 0)
             form = par.get("formacao", {})
             indicados = {(ind["nome"] if isinstance(ind, dict) else ind)
                          for ind in par.get("indicados_finais", [])}
+            if par.get("paredao_falso"):
+                for indicado in indicados:
+                    if indicado in active_set:
+                        fake_paredao_detail[indicado].append(num)
 
             # Use extract_paredao_eligibility for cant_be_voted
             elig = extract_paredao_eligibility(par)
             cant_be_voted = elig["cant_be_voted"]
 
-            # Identify protected positions (subset of cant_be_voted)
-            lider = form.get("lider")
+            # Bug fix 1: resolve dual leadership for protected_names
+            lider_names = resolve_leaders(form)
             imun = (form.get("imunizado") or {}).get("quem") if isinstance(form.get("imunizado"), dict) else None
             anjo = form.get("anjo") if form.get("anjo_autoimune") else None
-            protected_names = {n for n in [lider, imun, anjo] if n}
+            protected_names = set(lider_names)
+            if imun:
+                protected_names.add(imun)
+            if anjo:
+                protected_names.add(anjo)
 
-            # BV escapes
+            # Bug fix 2: BV escape counting (supports vencedores array)
             bv = form.get("bate_volta", {}) or {}
-            bv_winner = bv.get("vencedor")
-            if bv_winner and bv_winner not in indicados:
-                bv_escapes_set.add(bv_winner)
+            bv_winners = bv.get("vencedores") or ([bv["vencedor"]] if bv.get("vencedor") else [])
+            for bw in bv_winners:
+                if bw and bw not in indicados:
+                    bv_escape_count[bw] += 1
+                    bv_escape_detail[bw].append(num)
 
             for name in active_set:
                 if name in indicados:
                     on_paredao[name] += 1
-                elif name in protected_names:
+                if name in protected_names:
                     protected[name] += 1
-                    reason = "Líder" if name == lider else ("Imune" if name == imun else "Anjo")
+                    reason = "Líder" if name in lider_names else ("Imune" if name == imun else "Autoimune")
                     protection_detail[name].append((num, reason))
-                elif name not in cant_be_voted:
+
+                # Pre-vote eligibility for receiving house votes. This intentionally
+                # includes participants later nominated by house vote.
+                if name not in cant_be_voted:
                     available[name] += 1
-                    house_votes[name] += sum(
+                    house_votes_avail[name] += sum(
                         1 for _v, t in (par.get("votos_casa") or {}).items()
                         if t.strip() == name
                     )
 
-        items = []
+        blindados_items_all = []
+        visados_items_all = []
         for name in active_set:
             n_par = on_paredao.get(name, 0)
+            n_bv = bv_escape_count.get(name, 0)
             n_prot = protected.get(name, 0)
             n_avail = available.get(name, 0)
-            n_votes = house_votes.get(name, 0)
-            has_bv = name in bv_escapes_set
+            votes_total = all_house_votes.get(name, 0)
+            votes_available = house_votes_avail.get(name, 0)
+            votes_recent = recent_house_votes.get(name, 0)
+            intensity_prevote = round(votes_available / n_avail, 4) if n_avail > 0 else 0.0
+            fake_nums = sorted(fake_paredao_detail.get(name, []))
 
             # Protection breakdown for display
             reason_counts = Counter(r for _, r in protection_detail.get(name, []))
-            prot_text = ", ".join(f"{r} {c}x" for r, c in reason_counts.items()) if reason_counts else ""
+            reason_numbers: dict[str, list[int]] = defaultdict(list)
+            for par_num, reason in protection_detail.get(name, []):
+                reason_numbers[reason].append(par_num)
+            ordered_reasons = [r for r in BLINDADOS_REASON_ORDER if reason_counts.get(r)]
+            prot_text = ", ".join(f"{r} {reason_counts[r]}x" for r in ordered_reasons) if ordered_reasons else ""
+            protection_tags = [
+                {
+                    "label": reason,
+                    "count": reason_counts[reason],
+                    "nums": sorted(reason_numbers[reason]),
+                    "text": f"{reason} {reason_counts[reason]}x ({', '.join(f'{n}º' for n in sorted(reason_numbers[reason]))})",
+                }
+                for reason in ordered_reasons
+            ]
 
-            items.append({
+            # BV escape text
+            if n_bv > 0:
+                par_nums = bv_escape_detail.get(name, [])
+                nums_str = ", ".join(f"{n}º" for n in par_nums)
+                bv_text = f"Escapou Bate-Volta {n_bv}x ({nums_str})"
+            else:
+                bv_text = ""
+
+            # Nomination breakdown text
+            nom_parts = []
+            if by_lider.get(name, 0):
+                nom_parts.append(f"Líder {by_lider[name]}x")
+            if by_casa.get(name, 0):
+                nom_parts.append(f"Casa {by_casa[name]}x")
+            if by_dynamic.get(name, 0):
+                nom_parts.append(f"Dinâmica {by_dynamic[name]}x")
+            nom_text = ", ".join(nom_parts)
+
+            blindados_items_all.append({
                 "name": name,
                 "paredao": n_par,
+                "bv_escapes": n_bv,
+                "exposure": n_par + n_bv,
                 "protected": n_prot,
                 "available": n_avail,
-                "votes": n_votes,
-                "bv_escape": has_bv,
+                "votes_total": votes_total,
+                "votes_available": votes_available,
+                "by_lider": by_lider.get(name, 0),
+                "by_casa": by_casa.get(name, 0),
+                "by_dynamic": by_dynamic.get(name, 0),
+                "nom_text": nom_text,
                 "prot_text": prot_text,
+                "protection_tags": protection_tags,
+                "bv_text": bv_text,
+                "last_voted_paredao": last_voted_paredao.get(name, 0),
+                "total": n_paredoes,
+                # Backward compat
+                "votes": votes_total,
+                "bv_escape": n_bv > 0,
+            })
+            visados_items_all.append({
+                "name": name,
+                "paredao": n_par,
+                "bv_escapes": n_bv,
+                "available": n_avail,
+                "votes_total": votes_total,
+                "votes_available": votes_available,
+                "votes_recent": votes_recent,
+                "intensity_prevote": intensity_prevote,
+                "by_lider": by_lider.get(name, 0),
+                "by_casa": by_casa.get(name, 0),
+                "by_dynamic": by_dynamic.get(name, 0),
+                "nom_text": nom_text,
+                "last_voted_paredao": last_voted_paredao.get(name, 0),
+                "fake_paredao_count": len(fake_nums),
+                "fake_paredao_nums": fake_nums,
                 "total": n_paredoes,
             })
 
-        # Sort: fewer paredão → more protected → fewer votes
-        items.sort(key=lambda x: (x["paredao"], -x["protected"], x["votes"]))
+        # Sort: fewer exposure → more protected → fewer votes → name (deterministic)
+        blindados_items_all.sort(key=lambda x: (x["exposure"], -x["protected"], x["votes_total"], x["name"]))
+        visados_items_all.sort(
+            key=lambda x: (
+                -x["paredao"],
+                -x["bv_escapes"],
+                -x["votes_recent"],
+                -x["intensity_prevote"],
+                -x["votes_total"],
+                x["name"],
+            )
+        )
+        blindados_items = blindados_items_all[:display_limit]
+        visados_items = visados_items_all[:display_limit]
 
         cards.append({
             "type": "blindados",
             "icon": "\U0001f6e1\ufe0f", "title": "Mais Blindados",
             "color": "#3498db", "link": "paredoes.html",
-            "total": len(items),
-            "items": items,
+            "total": len(blindados_items_all),
+            "display_limit": display_limit,
+            "items": blindados_items,
+            "items_all": blindados_items_all,
             "n_paredoes": n_paredoes,
+        })
+        cards.append({
+            "type": "visados",
+            "icon": "🎯", "title": "Mais Visados",
+            "color": "#e67e22", "link": "paredoes.html",
+            "total": len(visados_items_all),
+            "display_limit": display_limit,
+            "items": visados_items,
+            "items_all": visados_items_all,
+            "n_paredoes": n_paredoes,
+            "recent_window": recent_window,
         })
 
     # ── VIP / Xepa (separate cards) ──
@@ -2229,8 +2591,8 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     for par in paredoes_with_votes:
         num = par.get("numero", 0)
         form = par.get("formacao", {})
-        if form.get("lider"):
-            house_vote_ineligible[form["lider"]].append((num, "Líder"))
+        for l in resolve_leaders(form):
+            house_vote_ineligible[l].append((num, "Líder"))
         for ind in par.get("indicados_finais", []):
             n = ind.get("nome", "") if isinstance(ind, dict) else ind
             if n:
@@ -3074,11 +3436,39 @@ def build_index_data() -> dict | None:
         ctx["avatars"], ctx["member_of"], ctx["roles_current"], ctx["latest_matrix"], pair_sentiment,
     )
 
-    paredao_names = hl["paredao_names"]
+    latest_paredao = None
+    paredao_card = None
+    transformed_paredoes = load_paredoes_transformed(member_of=ctx["member_of"])
+    if transformed_paredoes:
+        latest_paredao = transformed_paredoes[-1]
+        polls_data = load_votalhada_polls()
+        current_poll = get_poll_for_paredao(polls_data, latest_paredao["numero"])
+        history = build_paredao_history(ctx["paredoes"].get("paredoes", []), latest_paredao["numero"])
+        paredao_card = build_paredao_card_payload(latest_paredao, current_poll, polls_data, history)
+
+    paredao_names = [n["name"] for n in paredao_card.get("nominees", [])] if paredao_card else hl["paredao_names"]
     paredao_status = {
         "names": sorted(paredao_names),
-        "status": "Em Votação" if paredao_names else "Aguardando formação",
+        "status": (paredao_card or {}).get("status_label", "Em Votação" if paredao_names else "Aguardando formação"),
+        "card": paredao_card,
     }
+
+    hl["cards"] = [c for c in hl["cards"] if c.get("type") != "paredao"]
+    if paredao_card and paredao_card.get("state") != "empty":
+        is_finalized_paredao = paredao_card.get("state") == "finalized"
+        hl["cards"].append({
+            "type": "paredao",
+            "icon": "🗳️",
+            "title": "Último Paredão" if is_finalized_paredao else "Paredão Ativo",
+            "subtitle": (
+                "Resumo do paredão encerrado; o card volta ao modo ativo quando o próximo for formado."
+                if is_finalized_paredao
+                else "Leitura atual do paredão; quando fechar, o card troca para o resultado oficial."
+            ),
+            "color": paredao_card.get("status_color", "#e74c3c"),
+            "link": "paredao.html",
+            "payload": paredao_card,
+        })
 
     payload = {
         "_metadata": {"generated_at": datetime.now(timezone.utc).isoformat()},

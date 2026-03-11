@@ -27,6 +27,8 @@ These are local-only and must not be pushed:
 
 - `CLAUDE.md`
 - `.private/**`
+- `.claude/**` (including local worktrees)
+- `.worktrees/**`
 - planning/review/WIP docs (for example: TODO trackers, code review notes, tech debt scratch docs, layout audits, implementation plans)
 
 ## Default Rule

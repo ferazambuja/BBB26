@@ -187,16 +187,20 @@ def fetch_and_save():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-derived", action="store_true", help="Skip building derived data files")
+    parser.add_argument("--fetch-only", action="store_true",
+                        help="Only fetch and save; skip all post-processing (lightweight, needs only requests)")
     args = parser.parse_args()
 
     path, changed = fetch_and_save()
 
-    if not args.skip_derived:
-        from build_derived_data import build_derived_data
-        build_derived_data()
-    else:
+    if args.fetch_only:
+        pass  # fetch_and_save() already ran; exit without heavy imports
+    elif args.skip_derived:
         # Still run audit to avoid silently accepting inconsistent manual data
         from audit_manual_events import main as audit_main
         audit_main()
+    else:
+        from build_derived_data import build_derived_data
+        build_derived_data()
 
     exit(0 if path else 1)

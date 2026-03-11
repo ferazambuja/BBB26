@@ -1,8 +1,11 @@
 """Prova rankings builder — competition performance scoring and leaderboard."""
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 # ── Prova Rankings constants ──
@@ -43,14 +46,27 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
     excluded_names = {e["nome"] for e in prova.get("excluidos", [])}
 
     # Determine who participated: everyone in the house on prova date minus excluded
+    # Active participants: only check first_seen (last_seen is just latest snapshot, may lag)
+    # Inactive participants: check last_seen >= prova_date (they left the house)
     available_names = set()
     for name, info in pi_map.items():
         first = info.get("first_seen", "")
         last = info.get("last_seen", "")
-        if first and first <= prova_date and (not last or last >= prova_date):
-            available_names.add(name)
+        active = info.get("active", True)
+        if first and first <= prova_date:
+            if active or not last or last >= prova_date:
+                available_names.add(name)
         elif not first:
             available_names.add(name)
+
+    # Validate available_names is not empty (catches date-range mismatches)
+    expected_total = prova.get("participantes_total", 0)
+    if expected_total > 0 and not available_names:
+        raise ValueError(
+            f"Prova #{numero}: participantes_total={expected_total} but 0 participants "
+            f"matched for date {prova_date}. Check participants_index date ranges "
+            f"(last_seen may lag behind prova date for active participants)."
+        )
 
     # Build final positions from phases
     positions: dict[str, Any] = {}
@@ -108,6 +124,34 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
         if name not in positions:
             positions[name] = None
 
+    # Validate winner is ranked at position 1
+    vencedor = prova.get("vencedor")
+    if vencedor and positions.get(vencedor) != 1:
+        actual_pos = positions.get(vencedor, "missing")
+        raise ValueError(
+            f"Prova #{numero}: vencedor '{vencedor}' has position {actual_pos}, "
+            f"expected 1. Check classificacao entries."
+        )
+
+    # Validate participantes_total matches accounted participants.
+    # DQ entries are still explicit placements in the source data and should
+    # not trigger a false "missing rankings" warning by themselves.
+    accounted_count = sum(1 for p in positions.values() if p is not None)
+    if expected_total > 0 and accounted_count > 0 and accounted_count != expected_total:
+        missing_count = expected_total - accounted_count
+        if missing_count > 0 and prova.get("nota_ranking"):
+            logger.info(
+                "Prova #%d: ranking incompleto explicitamente documentado em nota_ranking "
+                "(accounted=%d, expected=%d).",
+                numero, accounted_count, expected_total,
+            )
+        else:
+            logger.warning(
+                "Prova #%d: participantes_total=%d but %d participants are accounted for. "
+                "Check classificacao completeness.",
+                numero, expected_total, accounted_count,
+            )
+
     return {
         "numero": numero,
         "tipo": tipo,
@@ -116,8 +160,8 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
         "positions": positions,
         "available_names": available_names,
         "excluded_names": excluded_names,
-        "vencedor": prova.get("vencedor"),
-        "participantes_total": prova.get("participantes_total", 0),
+        "vencedor": vencedor,
+        "participantes_total": expected_total,
     }
 
 

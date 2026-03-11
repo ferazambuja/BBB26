@@ -53,6 +53,7 @@ def build_daily_roles(daily_snapshots: list[dict]) -> list[dict]:
     for snap in daily_snapshots:
         roles_map = {r: [] for r in ROLES}
         vip = []
+        xepa = []
         participants_list = []
 
         for p in snap["participants"]:
@@ -64,13 +65,17 @@ def build_daily_roles(daily_snapshots: list[dict]) -> list[dict]:
             for role in roles:
                 if role in roles_map:
                     roles_map[role].append(name)
-            if p.get("characteristics", {}).get("group") == "Vip":
+            group = (p.get("characteristics", {}).get("group") or "")
+            if group == "Vip":
                 vip.append(name)
+            elif group == "Xepa":
+                xepa.append(name)
 
         daily_roles.append({
             "date": snap["date"],
             "roles": roles_map,
             "vip": sorted(vip),
+            "xepa": sorted(xepa),
             "participants": sorted(participants_list),
             "participant_count": len(participants_list),
         })

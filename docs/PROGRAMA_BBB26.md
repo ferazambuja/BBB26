@@ -73,6 +73,22 @@ O Anjo também escolhe quem recebe o **Castigo do Monstro**, que **perde 300 est
 O castigo dura **até o dia da eliminação** (e não apenas até a formação do Paredão).  
 A prova do Anjo ocorre **no dia seguinte** à Prova do Líder (sexta ou sábado), com exceções por veto do Líder.
 
+### Estalecas, Vacilômetro e Tá Com Nada
+**Estalecas** são a moeda interna da casa. Toda semana, cada participante recebe estalecas (VIP: 1.000, Xepa: 500) para compras coletivas de alimentos. Punições individuais (infrações como falar sem microfone, não fazer o Raio-X, sair do Quarto do Líder com alguém dentro) descontam estalecas do infrator.
+
+O **Vacilômetro** é um medidor coletivo de infrações da casa. Cada punição gravíssima (−500 estalecas) incrementa o Vacilômetro. Quando o Vacilômetro "explode" (atinge o limite definido pela produção), a casa inteira entra no **Tá Com Nada**.
+
+**Tá Com Nada** é uma **punição coletiva** — não individual. Quando ativada:
+- **Todos** os participantes são afetados, incluindo quem está no VIP.
+- Geladeira e armários são **lacrados**; alimentos são confiscados.
+- A casa recebe apenas um **kit sobrevivência**: arroz, sal, óleo, tempero e café.
+- As restrições são **piores que a Xepa** — não há distinção VIP/Xepa durante o castigo.
+- Dura até a **próxima formação de Líder** (quinta-feira).
+
+**BBB 26**: o Tá Com Nada aconteceu **uma vez**, em **02/02/2026** (Semana 3). O Vacilômetro explodiu após infrações acumuladas de Juliano Floss (Raio-X), Maxiane (Quarto do Líder), Ana Paula Renault (Raio-X) e Milena (comeu abacaxi do VIP estando na Xepa). **Fonte**: [GShow — O que é o Tá Com Nada no BBB 26?](https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/o-que-e-o-ta-com-nada-no-bbb-26-entenda-a-consequencia.ghtml)
+
+**Importante para análise**: "Tá Com Nada" NÃO é sinônimo de "saldo zero". Um participante pode zerar seu saldo por compras ou punições sem que o Vacilômetro tenha explodido. A detecção de `ta_com_nada` no código (`balance.py`) rastreia transições de saldo para zero, que é um indicador diferente do Tá Com Nada do programa.
+
 ### Cartola BBB
 Extensão do **Cartola FC**: usuários escalam participantes e pontuam por eventos do programa.  
 Inclui “mini‑games” para palpites e perguntas sobre o reality.

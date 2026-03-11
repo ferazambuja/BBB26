@@ -1,6 +1,7 @@
 ---
 title: "🧭 Relações — Debug"
 subtitle: "Tally completo do score A→B (queridômetro + eventos)"
+description: "Tally completo do score de relações A→B no BBB 26 — queridômetro + eventos"
 ---
 
 ```{=html}
@@ -938,7 +939,7 @@ else:
 
     html += f'<div class="u-s313">'
     html += f'<span class="fs-base" style="background:{verdict_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">{verdict}</span>'
-    html += f'<span class="fs-base u-s001">Alvo real: <strong class="u-s282">{ACTUAL_TARGET}</strong></span>'
+    html += f'<span class="fs-base meta-inline">Alvo real: <strong class="u-s282">{ACTUAL_TARGET}</strong></span>'
     html += '</div>'
 
     # --- Main table: all consensus targets ranked, with per-attendee breakdown ---
@@ -1114,7 +1115,7 @@ else:
 
     # --- Nota sobre consensus_pct ---
     html += '<div class="text-muted fs-md u-s419">'
-    html += '<strong class="u-s001">Nota sobre consensus %:</strong> '
+    html += '<strong class="meta-inline">Nota sobre consensus %:</strong> '
     html += 'Jonas era #3 por consensus_pct (54% vs 64% de Brigido/Gabriela). '
     html += 'Essa métrica mede "qual % de hipotéticos 3ºs atendentes concordariam" — útil como análise de robustez, '
     html += 'mas não como preditor quando os atores já são conhecidos. O combined score dos 3 atores reais é a métrica correta.'
@@ -1352,9 +1353,9 @@ else:
         html_vp += '<div class="u-s133">'
         html_vp += '<h4 class="u-s240">📊 Acurácia acumulada (todos os paredões com votos)</h4>'
         html_vp += '<div class="u-s329">'
-        html_vp += f'<div class="tc u-s047"><div class="fs-md u-s001">Modelo Aprimorado</div><div class="text-pos fs-4xl">{enh_pct:.1f}%</div><div class="text-muted table-md">{enh["correct"]}/{enh["total"]}</div></div>'
-        html_vp += f'<div class="tc u-s047"><div class="fs-md u-s001">Baseline (sentimento)</div><div class="fs-4xl u-s043">{base_pct:.1f}%</div><div class="text-muted table-md">{base["correct"]}/{base["total"]}</div></div>'
-        html_vp += f'<div class="tc u-s047"><div class="fs-md u-s001">Diferença</div><div class="fs-4xl" style="color:{diff_color}; font-weight:bold;">{diff_str}</div><div class="text-muted table-md">aprimorado vs baseline</div></div>'
+        html_vp += f'<div class="tc u-s047"><div class="fs-md meta-text">Modelo Aprimorado</div><div class="text-pos fs-4xl">{enh_pct:.1f}%</div><div class="text-muted table-md">{enh["correct"]}/{enh["total"]}</div></div>'
+        html_vp += f'<div class="tc u-s047"><div class="fs-md meta-text">Baseline (sentimento)</div><div class="fs-4xl u-s043">{base_pct:.1f}%</div><div class="text-muted table-md">{base["correct"]}/{base["total"]}</div></div>'
+        html_vp += f'<div class="tc u-s047"><div class="fs-md meta-text">Diferença</div><div class="fs-4xl" style="color:{diff_color}; font-weight:bold;">{diff_str}</div><div class="text-muted table-md">aprimorado vs baseline</div></div>'
         html_vp += '</div></div>'
 
     # ══════════════════════════════════════════════════════════════

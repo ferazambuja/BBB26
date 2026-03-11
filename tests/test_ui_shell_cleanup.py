@@ -25,8 +25,10 @@ def test_quarto_does_not_include_disclaimer_injected_block():
 def test_quarto_includes_social_metadata_defaults():
     config = _read(QUARTO_CONFIG)
     assert "site-url:" in config
-    assert "open-graph: true" in config
-    assert "twitter-card: true" in config
+    assert "open-graph:" in config
+    assert "locale: pt_BR" in config
+    assert "twitter-card:" in config
+    assert "card-style: summary_large_image" in config
     assert "image: assets/social-preview.jpg" in config
 
 
@@ -42,7 +44,6 @@ def test_quarto_uses_text_first_navbar_labels():
         'text: "Provas"',
         'text: "Paredões"',
         'text: "Votação"',
-        'text: "Mais"',
     ]
     for label in expected_labels:
         assert label in config

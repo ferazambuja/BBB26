@@ -27,9 +27,20 @@ Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read t
 - **Power events** (manual + auto events): usually **one actor → one target**.
 - These are **sparse** compared to queridômetro (daily), so they should be **modifiers**, not the base.
 - Weekly effects (risk) **do not carry**; historical effects (animosity) accumulate without decay (events persist in participants' memory).
-- **Sincerão edges** (manual): explicit A → B signals (pódio, "não ganha", bombas/temas).
+- **Sincerão edges** (manual): explicit A → B signals (elogios, "não ganha", ataques/temas).
   - Use as **small modifiers** to the sentiment index (see Sincerão framework below).
 - **Bate-Volta** (manual): vencedor sai do paredão e conta como **evento positivo** no Planta Index.
+
+### Economia (compras fairness) — derived fields
+- Source: `build_balance_events()` + `build_compras_fairness()` in `scripts/builders/balance.py`.
+- `compras` events are inferred from snapshot delta patterns (collective losses), not manually entered.
+- `data/derived/balance_events.json` → `compras_fairness.events[]` includes:
+  - `% do saldo`: `vip_avg_pct`, `xepa_avg_pct`
+  - Per-capita weekly spend: `vip_per_capita_spent`, `xepa_per_capita_spent`, `house_per_capita_spent`
+  - Group-size context: `vip_n`, `xepa_n`, `vip_total_spent`, `xepa_total_spent`
+  - Distance signals:
+    - vs house week average: `vip_vs_house_delta`, `xepa_vs_house_delta`
+    - vs own-group historical average: `vip_vs_own_avg_delta`, `xepa_vs_own_avg_delta`
 
 ### Why power events are "modifiers"
 - They are **rare** and usually **one-to-one** (actor → target).
@@ -140,7 +151,7 @@ Uma ruptura é detectada quando:
   - `troca_vip` +0.4 (promovido à VIP por dinâmica), `troca_xepa` −0.4 (rebaixado à Xepa por dinâmica, backlash 0.5)
   - `mira_do_lider` −0.5 (público, backlash 0.5; descontinuado após semana 1)
   - Ganha-Ganha é público: quem foi vetado tende a gerar **animosidade leve** contra quem vetou (backlash menor).
-  - Sincerão negativo é público: gera **backlash leve** no alvo (bomba/“não ganha”).
+  - Sincerão negativo é público: gera **backlash leve** no alvo (ataque/”não ganha”).
   - **Nenhum tipo de evento sofre decay** no rolling — todos acumulam com peso integral. Razão: no BBB, eventos significativos (indicações, Sincerão, votos) criam mágoas duradouras e alianças que não se dissolvem com o tempo. O queridômetro usa scoring streak-aware (70% reativo + 30% memória + penalidade de ruptura).
   - **Self-inflicted** events do not create A→B edges.
   - **Consensus** (ex.: Alberto + Brigido) = **full weight for each actor**.
@@ -148,7 +159,7 @@ Uma ruptura é detectada quando:
   - **Eventos públicos** são amplificados (fator 1.2); secretos = 0.5.
 - **Sincerão edges**:
   - pódio slot 1/2/3 = +0.7/+0.5/+0.3
-  - "não ganha" −1.0, "bomba" −0.8
+  - "não ganha" −1.0, "ataque" −0.8
 - **VIP** (líder → VIPs da semana): +0.2
   - Usa a lista VIP do **primeiro dia** de cada reinado do líder (antes de novos participantes distorcerem a lista).
   - Novos entrantes que recebem VIP automático do programa (não escolha do líder) são **excluídos**.
@@ -191,7 +202,7 @@ A diferença entre os dois modos é **apenas o queridômetro base** (qual snapsh
 Score(A→B) = Q(base 3d) + Σ eventos (peso integral, sem decay)
 ```
 
-**Por que sem decay?** No BBB, eventos do jogo (indicações, votos, Sincerão, contragolpes) criam impacto duradouro — participantes não "esquecem" uma indicação ou bomba do Sincerão só porque passaram semanas. Exemplos reais: Sarah e Juliano viraram inimigos após Sincerão; Leandro não perdoou Brigido e Alberto após indicação. O queridômetro é o único sinal "fraco" (obrigatório, secreto, sem consequência direta) e já usa janela curta de 3 dias como base — não precisa de decay adicional.
+**Por que sem decay?** No BBB, eventos do jogo (indicações, votos, Sincerão, contragolpes) criam impacto duradouro — participantes não "esquecem" uma indicação ou ataque do Sincerão só porque passaram semanas. Exemplos reais: Sarah e Juliano viraram inimigos após Sincerão; Leandro não perdoou Brigido e Alberto após indicação. O queridômetro é o único sinal "fraco" (obrigatório, secreto, sem consequência direta) e já usa janela curta de 3 dias como base — não precisa de decay adicional.
 
 ### Relationship Summary Score (A ↔ B)
 For symmetric views (alliances / rivalries):
@@ -347,7 +358,7 @@ Because it's **rare** and typically **1-to-1**, it should **modify** the sentime
 ```json
 {
   "date": "YYYY-MM-DD",
-  "format": "pódio + quem não ganha | bombas | etc",
+  "format": "pódio + quem não ganha | ataques/temas | etc",
   "participacao": "todos | protagonistas da semana + plateia",
   "protagonistas": ["..."],
   "temas_publico": ["mais falso", "..."],
@@ -361,10 +372,10 @@ Because it's **rare** and typically **1-to-1**, it should **modify** the sentime
 Store an optional list of **edges**:
 ```json
 "edges": [
-  { "actor": "A", "target": "B", "type": "podio", "slot": 1 },
-  { "actor": "A", "target": "C", "type": "podio", "slot": 2 },
+  { "actor": "A", "target": "B", "type": "elogio", "slot": 1 },
+  { "actor": "A", "target": "C", "type": "elogio", "slot": 2 },
   { "actor": "A", "target": "D", "type": "nao_ganha" },
-  { "actor": "A", "target": "E", "type": "bomba", "tema": "mais falso" }
+  { "actor": "A", "target": "E", "type": "ataque", "tema": "mais falso" }
 ]
 ```
 
@@ -381,14 +392,14 @@ Store an optional list of **edges**:
 - `planta` (plateia): −0.3
 
 **Per-pair edges (directional)** — used in `build_relations_scores()` via `builders/sincerao.py`:
-- `podio slot 1`: +0.6
-- `podio slot 2`: +0.4
-- `podio slot 3`: +0.2
+- `elogio slot 1`: +0.6
+- `elogio slot 2`: +0.4
+- `elogio slot 3`: +0.2
 - `nao_ganha`: −0.8
-- `bomba/tema`: −0.6
+- `ataque/tema`: −0.6
 - `paredao_perfeito`: −0.3
 - `prova_eliminou`: −0.15
-- Backlash factors: `nao_ganha` 0.3, `bomba` 0.4 (target → actor)
+- Backlash factors: `nao_ganha` 0.3, `ataque` 0.4 (target → actor)
 
 ### Alignment score (Sincerão × Queridômetro)
 ```
@@ -437,7 +448,8 @@ Higher = more aligned; lower = contradiction.
 - **Salvo do paredão (+25)**: quando emparedado é salvo por dinâmica (ex.: Bate-Volta/Big Fone). **Não recebe "Não emparedado"**, mas acumula com **Emparedado**. Se foi emparedado com janela fechada e salvo com janela aberta, vale apenas **Emparedado**.
 - **Não eliminado no paredão (+20)**: indicado que permanece após votação.
 - **Não emparedado (+10)**: disponível para votação e não foi ao paredão; **não vale para imunizados (Líder/Anjo) nem salvos**.
-- **VIP (+5)**: não acumula com Líder.
+- **VIP (+5)**: não acumula com Líder. Fonte primária: `provas.json` (`tipo=lider` → `vip`), com fallback API. Promoções por dinâmica (`troca_vip`) também podem gerar `+5` na rodada.
+- **Tá com Nada**: não há categoria própria de pontuação Cartola oficial para essa condição.
 - **Não recebeu votos da casa (+5)**: disponíveis para votação **sem votos**; não vale para Líder e imunizados.
 - **Palpites (+5)**: pontos extras por acerto de palpites (não modelado no dashboard).
 - **Janela de escalação**: quando aberta, **dinâmicas não pontuam** (não modelamos janela; calculamos pelos eventos reais).
@@ -828,6 +840,62 @@ Ambos os métodos acertaram o eliminado em 6/6 paredões. A diferença está na 
 - **Funções**: `calculate_precision_weights()`, `predict_precision_weighted()`, `backtest_precision_model()` em `scripts/data_utils.py`
 - **Páginas**: `paredao.qmd` (previsão em andamento + resultado finalizado), `paredoes.qmd` (resumo de precisão + back-test + tabs por paredão)
 - **Cores**: teal `#00bc8c` para o modelo (consistente com o tema BBB dark)
+
+---
+
+## Mais Blindados (Índice de Proteção)
+
+Ranks active participants by how protected they are from house votes. Computed in `_compute_static_cards()` in `scripts/builders/index_data_builder.py`, stored in `data/derived/index_data.json` → `highlights.cards` (type `"blindados"`).
+
+### Protection Types
+
+All three provide **full immunity** from house votes (equal weight):
+
+| Status | How Obtained |
+|--------|-------------|
+| **Líder** | Won Prova do Líder |
+| **Imune** | Anjo immunized them |
+| **Anjo (autoimune)** | Anjo chose self-immunity |
+
+### Fields
+
+| Field | Description |
+|-------|-------------|
+| `exposure` | `paredao + bv_escapes` — total times at risk of elimination |
+| `paredao` | Times in `indicados_finais` (final nominee list) |
+| `bv_escapes` | Times won Bate-Volta and escaped (not in `indicados_finais`) |
+| `protected` | Times as Líder, Imune, or Anjo autoimune |
+| `available` | Times eligible for house votes (not protected, not on paredão, not otherwise ineligible) |
+| `votes_total` | ALL house votes received across all paredões (regardless of status) |
+| `votes_available` | House votes received only when in the "available" bucket |
+| `by_lider` | Times nominated by Líder (`como` contains "líder") |
+| `by_casa` | Times nominated by house vote (`como` contains "casa" or "mais votad") |
+| `by_dynamic` | Times nominated by other mechanism (Contragolpe, Big Fone, Exilado, etc.) |
+| `nom_text` | Display text, e.g., "Líder 3x, Dinâmica 1x" |
+| `prot_text` | Protection breakdown, e.g., "Líder 4x, Imune 1x" |
+| `bv_text` | BV escape detail, e.g., "Escapou Bate-Volta 2x (5º, 8º)" |
+| `last_voted_paredao` | Most recent paredão number where participant received house votes |
+| `total` | Total paredões with house votes (denominator) |
+
+### Sort Order
+
+```
+(exposure ASC, protected DESC, votes_total ASC, name ASC)
+```
+
+Name as final tiebreaker for deterministic ordering. No composite score — raw fields are transparent and debuggable.
+
+### Key Implementation Details
+
+- **Dual leadership**: `resolve_leaders()` in `data_utils.py` resolves individual names from `formacao.lideres` array, falling back to single `formacao.lider`. Used at 5 call sites.
+- **BV escape detection**: Reads `formacao.bate_volta.vencedores` (array) or `vencedor` (string). Winner NOT in `indicados_finais` = escaped. Counter, not boolean.
+- **Two vote metrics**: `votes_total` counts ALL house votes (separate pre-pass over `votos_casa`). `votes_available` counts only votes when participant was in the "available" bucket. `votes_total >= votes_available` always.
+- **Nomination classification**: Parsed from `indicados_finais[].como` field using substring matching.
+
+### Surfaces
+
+- **`index.qmd`**: Primary card with avatar, exposure label, protection bar, badges (BV, nomination, protection)
+- **`paredoes.qmd`**: Complementary eligibility-ratio view (eligible / total paredões), with BV context
 
 ---
 

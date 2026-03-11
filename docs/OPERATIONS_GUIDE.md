@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-06
+> **Last updated**: 2026-03-10
 
 ---
 
@@ -22,6 +22,8 @@
 | **Paredão formation** (Sunday night) | Sunday ~22h45 | [Paredão Formation Checklist](#paredão-formation-checklist-sunday) |
 | **Collect Votalhada polls** (Tuesday) | Tuesday ~21h | [Votalhada Collection Checklist](#votalhada-collection-checklist-tuesday) |
 | **Elimination result** (Tuesday) | Tuesday ~23h | [Elimination Result Checklist](#elimination-result-checklist-tuesday) |
+| **Cartola stale after elimination** | Tuesday ~23h | [Elimination Result Checklist → participant exit + Cartola sanity check](#elimination-result-checklist-tuesday) |
+| **Recalibrate Votalhada model after result** | Tuesday ~23h | [Elimination Result Checklist → model sanity check](#elimination-result-checklist-tuesday) |
 | **Sincerão data** (Monday) | Monday ~22h | [Sincerão Update](#sincerão-update-monday) |
 | **Ganha-Ganha / Barrado / power events** | Various | [Manual Data Files](#manual-data-files--when-and-how) |
 | **Add scheduled events for upcoming week** | After dynamics article | [Scheduled Events](#scheduled-events-upcoming-week) |
@@ -38,7 +40,7 @@
 This repository is public. Agents must enforce a strict documentation boundary:
 
 - Public docs: only approved pillar docs (see `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`).
-- Private docs: local-only and never pushed (`.private/**`, `CLAUDE.md`, WIP/review/planning docs).
+- Private docs/tooling: local-only and never pushed (`.private/**`, `CLAUDE.md`, `.claude/**`, `.worktrees/**`, WIP/review/planning docs).
 - If visibility is unclear, default to private and place under `.private/docs/`.
 
 Pre-push checklist:
@@ -171,10 +173,11 @@ Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for m
 | W2 | Mon Jan 26 | Bombas com temas do público | Plateia define planta (Solange) |
 | W3 | Mon Feb 2 | Pior futebol do mundo | Escalação com papéis negativos |
 | W4 | Mon Feb 9 | Quem Sou Eu? (adivinhação) | Plateia define mais apagada (Marciele) |
-| W5 | Mon Feb 16 | **MISSING** — needs data | Done hastily on live show, not yet classified |
+| W5 | Mon Feb 16 | Cancelado (Carnaval) | Globo exibiu desfiles. Sincerão feito ao vivo de forma abreviada. Dados mínimos registrados (3 edges: previsões dos emparedados). |
 | W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
 | W7 | Mon Mar 2 | Linha Direta — maior traidor(a) | Each participant calls one person they consider the biggest traitor |
-| W8 | TBD | TBD | |
+| W8 | Mon Mar 9 | Pódio dos Medrosos | 3 medalhas (covarde, frouxo/a, arregão/a). Cowboy mais visado (6×), Leandro zero |
+| W9 | TBD | TBD | |
 
 ### Week Dynamic History (Friday — varies each week)
 
@@ -190,6 +193,7 @@ Separate from Sincerão. Announced in the dynamics article (published ~Thursday)
 | W6 | Sincerinho Paredão Perfeito + Big Fone + Duelo de Risco | `sincerao` + `special_events` |
 | W7 | O Exilado + Paredão Falso + Quarto Secreto | `special_events` |
 | W8 | Liderança Dupla + Consenso Anjo/Monstro + Contragolpe | `special_events` |
+| W9 | TBD | TBD |
 
 ### Recurring Events Checklist (per week)
 
@@ -223,8 +227,97 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/  # if available
    ```
 
+   **VIP article sourcing**: The VIP composition article is typically published within hours of the Prova do Líder result. Search the Líder's GShow profile page or the Cartola BBB section for the VIP/Xepa article. Add to `fontes` in both `paredoes.json` and `provas.json`.
+   - **Required field in `provas.json` (tipo=`lider`)**: add `vip` (array with point-eligible VIP names for the round) and `vip_source`.
+   - `vip_source` values:
+     - `oficial_gshow` when list is confirmed by article.
+     - `api_fallback` only when no reliable article/list is available yet.
+   - Cartola safeguard uses `provas.lider.vip` as primary source and API as fallback. Unexpected extra names from API in strict weeks fail the build.
+
 2. **Update `data/provas.json`** — add Prova do Líder results (phases, scores, placements).
    Include `fontes` with `{url, arquivo, titulo}` format pointing to scraped files.
+   See templates below (standard and resistance prova formats).
+
+   **Resistance/dupla provas — full elimination order**:
+   - For resistance or elimination-format provas, record **ALL participants** in order of exit (last out = pos 1)
+   - For dupla provas, both members share the same position
+   - `participantes_total` = number who actually competed (total active minus excluded)
+   - `excluidos: []` required even if empty
+   - Reference: Prova #1 (26h resistance, 20 participants fully ranked) is the model
+   - Source: GShow publishes individual "Nª dupla a deixar a prova" articles — scrape each for provenance
+
+   **Why complete rankings matter**: Every `classificacao` position feeds into `prova_rankings.json` scoring. Unranked participants receive 0 points. Record ALL positions — not just the winner. For multi-phase provas, include both phase results so the builder can compute final positions with offsets. See [How to extract positions from articles](#how-to-extract-positions-from-articles) in the Anjo checklist for a step-by-step guide on turning article text into `classificacao` entries.
+
+   **Scoring reference** (hardcoded in `scripts/builders/provas.py`):
+
+   | Position | Base Points | × Líder (1.5) | × Anjo (1.0) | × Bate e Volta (0.75) |
+   |----------|------------|---------------|--------------|----------------------|
+   | 1st      | 10         | 15.0          | 10.0         | 7.5                  |
+   | 2nd      | 7          | 10.5          | 7.0          | 5.25                 |
+   | 3rd      | 5          | 7.5           | 5.0          | 3.75                 |
+   | 4th      | 4          | 6.0           | 4.0          | 3.0                  |
+   | 5th      | 3          | 4.5           | 3.0          | 2.25                 |
+   | 6th      | 2          | 3.0           | 2.0          | 1.5                  |
+   | 7th-8th  | 1          | 1.5           | 1.0          | 0.75                 |
+   | 9th+     | 0.5        | 0.75          | 0.5          | 0.375                |
+   | DQ       | 0          | 0             | 0            | 0                    |
+
+   **`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current week.
+
+   **Líder prova template** (add to `provas` array):
+   ```json
+   {
+     "numero": N,
+     "tipo": "lider",
+     "week": W,
+     "date": "YYYY-MM-DD",
+     "nome": "Nª Prova do Líder — Description",
+     "formato": "format_type",
+     "vencedor": "Winner Name",
+     "vip": ["Name1", "Name2", "Name3", "Name4"],
+     "vip_source": "oficial_gshow",
+     "participantes_total": 14,
+     "excluidos": [],
+     "nota": "Brief description of how the prova worked and who won.",
+     "fases": [
+       {"fase": 1, "tipo": "...", "classificacao": [{"pos": 1, "nome": "Winner"}, ...]}
+     ],
+     "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+   }
+   ```
+
+   **Resistance prova template** (full elimination order):
+   ```json
+   {
+     "numero": N,
+     "tipo": "lider",
+     "week": W,
+     "date": "YYYY-MM-DD",
+     "nome": "Nª Prova do Líder — Resistência em Duplas",
+     "formato": "resistencia_duplas",
+     "vencedor": "Winner Name",
+     "vencedores": ["Winner1", "Winner2"],
+     "vip": ["Name1", "Name2", "Name3"],
+     "vip_source": "oficial_gshow",
+     "participantes_total": 14,
+     "excluidos": [],
+     "nota": "Description of the resistance prova.",
+     "fases": [
+       {
+         "fase": 1,
+         "tipo": "resistencia_duplas",
+         "classificacao": [
+           {"pos": 1, "nome": "Winner1", "nota": "Última dupla (7ª)"},
+           {"pos": 1, "nome": "Winner2", "nota": "Última dupla (7ª)"},
+           {"pos": 3, "nome": "Name3", "nota": "6ª dupla a sair"},
+           {"pos": 3, "nome": "Name4", "nota": "6ª dupla a sair"},
+           {"pos": 13, "nome": "NameN", "nota": "1ª dupla a sair"}
+         ]
+       }
+     ],
+     "fontes": [{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}]
+   }
+   ```
 
 3. **Create paredão skeleton in `data/paredoes.json`** — even before formation details.
    This is **critical** for `leader_periods` to show the correct Líder for the week.
@@ -265,7 +358,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 
 These are picked up automatically by `build_daily_roles()` from snapshots:
 - **Líder role** — appears in `characteristics.roles` (usually within hours of the ceremony)
-- **VIP/Xepa groups** — appears in `characteristics.group` (same timing)
+- **VIP/Xepa groups** — appears in `characteristics.group` (fallback/audit source; official VIP scoring source is `provas.lider.vip`)
 - **Roles cleared briefly** during transition (roles empty for a few hours → normal)
 
 ### Later (when Líder term ends)
@@ -329,7 +422,69 @@ Add a new entry to the `provas` array:
 
 **Phase rules**: Each phase has its own `classificacao`. For binary-outcome finals (e.g., "correct box"), use **winner only** (no rankings for losers). For timed/scored phases, include all participants with positions.
 
-**Excluded**: Líder always excluded (doesn't play). Others excluded by sorteio, punishment, etc.
+**`nota_ranking`**: When the source only reveals finalists, classificados, or the winner, add a short `nota_ranking` explaining exactly what is missing. This marks the prova as intentionally partial, keeps the limitation explicit in the data, and suppresses the generic completeness warning during `build_derived_data.py`.
+
+**Scoring**: Every position feeds into `prova_rankings.json`. Record ALL placements, not just the winner. The build will **warn** if `participantes_total` doesn't match the number of ranked participants, and **hard-fail** if the winner isn't at position 1. See scoring table in [Líder Checklist](#líder-transition-checklist-thursday-night).
+
+**`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current week.
+
+**Excluded**: Líder always excluded (doesn't play). For dual leadership weeks, **both Líderes** are excluded (reduces field by 2). Others excluded by sorteio, punishment, etc.
+
+#### How to extract positions from articles
+
+Articles rarely give clean rankings. Follow this process to turn article text into `classificacao` entries:
+
+**Step 1 — Count participants.** Active house count minus `excluidos` = `participantes_total`. All of them must appear in at least one phase's `classificacao`.
+
+**Step 2 — Identify what the article tells you.** Typical patterns:
+- Names of eliminated participants per round
+- Names of finalists
+- Winner
+
+**Step 3 — Deduce missing positions.** If the article names 6 eliminated in round 1 and 3 finalists, the remaining participants (total minus eliminated minus finalists) were eliminated in intermediate rounds. Use tied positions for them.
+
+**Step 4 — Choose phase structure.** Use the minimum number of phases that captures all known data:
+
+| Article gives you | Use this structure |
+|---|---|
+| Full per-round results | One fase per round, each with complete classificacao |
+| Eliminatória results + final winner only | 2 fases: (1) eliminatória pass/fail, (2) winner-only final |
+| Eliminatória + finalists but not intermediate rounds | 2 fases: (1) eliminatória, (2) classificatória with finalists ranked + intermediates tied |
+| Only the winner | 1 fase with winner at pos 1 (other participants get `null` — no ranking points) |
+
+**Step 5 — Assign positions.** Rules:
+- **Survivors of a pass/fail phase**: all share `pos: 1` (they all "won" that phase)
+- **Eliminated together**: all share the same position (e.g., 6 eliminated share `pos: 7` if 6 advanced)
+- **Unknown ordering within a group**: use `"tied": true` on each entry
+- **Phase offsets (2-phase provas)**: the builder auto-adds `n_phase2` to phase 1 positions, so phase 1 eliminated at `pos: 7` become final position `7 + 6 = 13` (if phase 2 has 6 entries)
+
+**Example** — 12 participants, article says "6 eliminated in round 1; finalists were Milena, Samira, Leandro; Milena won":
+```json
+{"fase": 1, "tipo": "eliminatoria", "classificacao": [
+  {"pos": 1, "nome": "Milena", "nota": "Avançou"},
+  {"pos": 1, "nome": "Samira", "nota": "Avançou"},
+  {"pos": 1, "nome": "Leandro", "nota": "Avançou"},
+  {"pos": 1, "nome": "Ana Paula Renault", "nota": "Avançou"},
+  {"pos": 1, "nome": "Babu Santana", "nota": "Avançou"},
+  {"pos": 1, "nome": "Solange Couto", "nota": "Avançou"},
+  {"pos": 7, "nome": "Breno", "nota": "Eliminado na eliminatória"},
+  {"pos": 7, "nome": "Chaiany", "nota": "Eliminada na eliminatória"},
+  {"pos": 7, "nome": "Gabriela", "nota": "Eliminada na eliminatória"},
+  {"pos": 7, "nome": "Jordana", "nota": "Eliminada na eliminatória"},
+  {"pos": 7, "nome": "Juliano Floss", "nota": "Eliminado na eliminatória"},
+  {"pos": 7, "nome": "Marciele", "nota": "Eliminada na eliminatória"}
+]},
+{"fase": 2, "tipo": "classificatoria", "classificacao": [
+  {"pos": 1, "nome": "Milena"},
+  {"pos": 2, "nome": "Samira", "nota": "Finalista", "tied": true},
+  {"pos": 2, "nome": "Leandro", "nota": "Finalista", "tied": true},
+  {"pos": 4, "nome": "Ana Paula Renault", "nota": "Eliminada na classificatória", "tied": true},
+  {"pos": 4, "nome": "Babu Santana", "nota": "Eliminado na classificatória", "tied": true},
+  {"pos": 4, "nome": "Solange Couto", "nota": "Eliminada na classificatória", "tied": true}
+]}
+```
+
+This produces final rankings: Milena 1st (10pts), Samira/Leandro tied 2nd (7pts each), Ana Paula/Babu/Solange tied 4th (4pts each), 6 eliminated share 13th (0.5pts each via offset: pos 7 + 6 phase2 entries).
 
 ### 3. Update `data/manual_events.json` → `weekly_events[N].anjo`
 
@@ -356,13 +511,18 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 
 **Fill-later fields** (Sunday [Presente do Anjo](#presente-do-anjo-checklist-sunday-afternoon)): `almoco_date`, `almoco_convidados`, `escolha`, `usou_extra_poder`, `imunizado`. Fill after the Sunday afternoon show.
 
-**Monstro**: API auto-detects the role. Fill `monstro` name from article or API. `monstro_tipo` and `monstro_motivo` when article available.
+**Monstro**: API auto-detects the role. Fill `monstro` name from article or API.
+- `monstro_tipo`: descriptive name of the castigo (e.g., "Monstro Movendo Areia", "Castigo do Monstro — Fantasia de abóbora")
+- `monstro_motivo`: Anjo's stated reason + consequences (e.g., loss of estalecas, VIP→Xepa)
+- Note: GShow sometimes publishes a separate "Castigo do Monstro" article — scrape it if available and add to `fontes`
 
 **Cartola `monstro_retirado_vip`**: Auto-detected. If the Monstro recipient was in VIP in the previous snapshot, the -5 penalty is automatically applied. No manual entry needed.
 
 ### 4. Clean up scheduled events
 
 Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the auto-dedup handles timeline, but cleaner to remove.
+
+**Note**: Anjo/Monstro timeline events come from API role auto-detection (snapshots), not from `weekly_events.anjo`. Removing scheduled events before the next API snapshot creates a temporary gap in the timeline display — this is normal and self-corrects after the next snapshot arrives.
 
 ### 5. Rebuild + commit + push
 
@@ -377,6 +537,10 @@ git push
 - **Anjo role** — `characteristics.roles` contains `"Anjo"`
 - **Monstro role** — `characteristics.roles` contains `"Monstro"`
 - Both appear in `auto_events.json` and `roles_daily.json` after rebuild
+
+### Note on Cartola articles
+
+GShow publishes Cartola-specific recap articles for Líder, Anjo, VIP, Monstro, etc. (e.g., "Alberto Cowboy soma pontos no Cartola BBB"). These are **informational/provenance only** — all Cartola points are auto-detected by `build_derived_data.py`. Optionally scrape and add to `fontes` in `provas.json` or `paredoes.json` for traceability.
 
 ---
 
@@ -455,9 +619,10 @@ git push
 | W4 | Alberto Cowboy | video_familia | Jonas Sulzbach, Sarah Andrade, Edilson | Edilson |
 | W5 | Gabriela | video_familia | Chaiany, Jordana | Chaiany |
 | W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
-| W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | TBD |
+| W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
+| W8 | Milena | video_familia | Ana Paula Renault, Juliano Floss, Samira | Ana Paula Renault |
 
-**Pattern**: 7/7 Anjos chose family video. The 2nd immunity has never been used.
+**Pattern**: 8/8 Anjos chose family video. The 2nd immunity has never been used.
 
 ---
 
@@ -515,6 +680,16 @@ Add power events for the formation:
 
 Also update `weekly_events[N].anjo.imunizado` with who the Anjo immunized at formation. The `escolha` and other Presente do Anjo fields should already be filled from the [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) (Sunday afternoon).
 
+**Dual Líderes consensus**: When dual Líderes indicate in consensus, record as a single `indicacao` power_event with `"actor": "Name1 + Name2"` (display string) and `"actors": ["Name1", "Name2"]` (array for edge creation). Fill `formacao.indicado_lider` as normal. This produces 1 timeline row + 2 correct relationship edges.
+
+**Consenso Anjo + Monstro**: When the week's dynamic requires Anjo and Monstro to consensus-nominate:
+- If consensus reached: add a `power_event` with `"type": "consenso_anjo_monstro"`, `"actor": "Anjo + Monstro"`, `"actors": ["Anjo Name", "Monstro Name"]`, `"target": "Nominee"`. Add to `indicados_finais` with `"como": "Consenso Anjo+Monstro"`.
+- If no consensus: both Anjo and Monstro go to paredão. Add each to `indicados_finais` with `"como": "Consenso falhou"`. No `power_event` needed.
+
+**Two immunity fields** (both must be filled at formation):
+- `weekly_events[N].anjo.imunizado` = simple string name (used for scoring edges)
+- `paredoes[N].formacao.imunizado` = object `{"por": "Anjo Name", "quem": "Immunized Name"}` (used for display)
+
 ### 4. Update `data/provas.json` (if Bate e Volta happened)
 
 Add a Bate e Volta prova entry with the results.
@@ -559,6 +734,35 @@ Before each elimination (~21h BRT), collect poll data from [Votalhada](https://v
 
 Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
 
+**Temporary OCR feasibility note (March 10, 2026):**
+- the latest Votalhada final card removed the timed series table
+- the latest Votalhada final card switched to `MÉDIA FINAL PONDERADA (0,3 x 0,7)`
+- for this week, operational updates should use **vision/manual extraction**
+- recompute the consolidado with the **previous** Votalhada formula: weighted average by platform vote count
+- if you need the latest time point in `serie_temporal`, append a **synthetic row** based on the visible final card values
+
+**Current ops policy**: use manual fetches/updates. The default production flow is:
+
+1. `fetch_votalhada_images.py`
+2. `votalhada_auto_update.py --dry-run`
+3. `votalhada_auto_update.py --apply --build`
+
+The local scheduler is disabled by default for live ops right now.
+
+If a local scheduler is already running, stop it before continuing:
+
+```bash
+pkill -f schedule_votalhada_fetch.py
+pkill -f "tail -f logs/votalhada_scheduler.log"
+```
+
+**Vote-window baseline (for trend projections):**
+- Voting usually opens on Sunday/Monday after the live show.
+- Voting usually closes around **Tuesday 22:45 BRT** (official result shortly after).
+- Near finals, this close window can shift. In those weeks, set an explicit close override in `data/votalhada/polls.json` for that paredão:
+  - `fechamento_votacao` (ISO, with timezone), e.g. `"2026-04-14T23:15:00-03:00"`.
+  - If missing, dashboards assume Tuesday 22:45 BRT by default.
+
 ### 1. Fetch poll images with the script
 
 ```bash
@@ -567,6 +771,11 @@ python scripts/fetch_votalhada_images.py --paredao N
 
 # Or by direct URL
 python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/YYYY/MM/pesquisaN.html"
+
+# Optional: save platform-card audit JSON + fail on anomalies
+python scripts/fetch_votalhada_images.py --paredao N \
+  --platform-audit-output tmp/votalhada_ocr/platform_consistency_latest.json \
+  --platform-audit-strict
 ```
 
 **URL pattern**: Votalhada always uses `https://votalhada.blogspot.com/{year}/{month}/pesquisa{N}.html`. The script derives this automatically from `paredoes.json` when the skeleton exists. If no skeleton exists yet (e.g., new paredão not created), the script falls back to the **current BRT month/year** — so `--paredao 8` works immediately without needing a `paredoes.json` entry.
@@ -581,11 +790,97 @@ N=8; echo "https://votalhada.blogspot.com/$(date -u -d '-3 hours' +%Y/%m)/pesqui
 N=8; echo "https://votalhada.blogspot.com/$(TZ=America/Sao_Paulo date +%Y/%m)/pesquisa${N}.html"
 ```
 
-Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures. Use `--no-timestamp` to overwrite instead.
+Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures for OCR training/regression work. Prefer keeping that history; do not use `--no-timestamp` unless you explicitly want overwrite mode.
 
 **Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
 
-### 2. Run OCR parser (Consolidado-only)
+After each fetch, the script automatically runs a **platform-card consistency audit** (Sites/YouTube/Twitter/Instagram):
+- checks displayed `Média` row sums (PT-BR decimals with comma) and flags source-side drifts like YouTube `100,37`
+- reports `ok` / `anomaly` / `inconclusive` per platform card
+- use `--skip-platform-audit` to disable if needed
+
+Standalone audit command (same logic):
+
+```bash
+python scripts/votalhada_platform_consistency_audit.py \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --output tmp/votalhada_ocr/platform_consistency_latest.json
+```
+
+### 2. Run latest-capture OCR gate (recommended when layout is stable)
+
+Preferred validate-only command:
+
+```bash
+python scripts/votalhada_auto_update.py \
+  --paredao N \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --dry-run \
+  --output tmp/votalhada_ocr/paredao_N_latest.json
+```
+
+This is the production gate:
+- auto-selects the best consolidado card by content
+- validates only the **latest timestamped capture set** in the folder
+- keeps older images available for OCR training instead of treating them as release blockers
+- blocks apply if the parsed capture is not newer than `polls.json`
+
+Review the dry-run output before applying:
+- `validation_errors` must be empty
+- `gate_errors` must be empty
+- `parsed.capture_hora` must exist
+- `parsed.serie_temporal` must be non-empty
+
+If the final card has the new `0,3 x 0,7` layout and no timed series table, do **not** trust OCR operationally for that capture. Switch to vision/manual extraction and recompute the legacy vote-weighted consolidado instead.
+
+### 3. Apply and rebuild
+
+```bash
+python scripts/votalhada_auto_update.py \
+  --paredao N \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --apply \
+  --build \
+  --output tmp/votalhada_ocr/paredao_N_apply.json
+```
+
+This apply step:
+- updates `data/votalhada/polls.json`
+- keeps prior image history and appends only the new capture set
+- rebuilds derived data after the apply
+
+Optional render check after apply:
+
+```bash
+quarto render paredao.qmd
+```
+
+### Optional debugging and audit tools
+
+Focused batch gate for the same latest capture set:
+
+```bash
+python scripts/votalhada_ocr_batch_validate.py \
+  --images-root data/votalhada \
+  --folders YYYY_MM_DD \
+  --paredao N \
+  --fail-on-errors
+```
+
+For OCR research / historical audits, run the same validator against the full folder history:
+
+```bash
+python scripts/votalhada_ocr_batch_validate.py \
+  --images-root data/votalhada \
+  --folders YYYY_MM_DD \
+  --paredao N \
+  --scope full-history \
+  --fail-on-errors
+```
+
+`full-history` is expected to surface older noisy/conflicted captures. That does **not** mean the current latest capture is bad.
+
+Fallback raw parser (Consolidado-only)
 
 Use the OCR parser on the fetched folder:
 
@@ -608,16 +903,42 @@ The parser supports dynamic top-table schemas seen across BBB25/BBB26:
 - 4-platform with `Outras Redes`
 - split rows `Média Threads` + `Média Instagram`
 
-### 3. Validation gate (must pass before update)
+### Validation reference
 
 From the OCR output JSON:
 - `validation_errors` must be empty
 - `parsed.serie_temporal` must be non-empty
 - `parsed.capture_hora` must exist
+- inspect `parsed.time_corrections` and `parsed.time_warnings` (report them in update notes)
+
+Current parser safeguards for known Votalhada card quirks:
+- Platform sums allow small display-rounding drift (up to ~`0.60`), because some source cards visibly round to values like `100.55` or `100.37` on YouTube.
+- If a series row has valid date/time + 3 percentages but OCR misses the rightmost votes cell, parser backfills votes from consolidado/platform totals.
+- For single-row fallback captures, parser uses the image filename date (`YYYY-MM-DD`) to correct clearly noisy OCR day/month tokens.
+- For suspicious rollover OCR slips (`03:00`/`03:30`), parser applies guarded repair to `08:00`/`08:30` and logs it under `time_corrections`.
+
+Current limitation:
+- the parser and gating flow still assume the older final-card layout with a timed series table
+- if Votalhada keeps the `0,3 x 0,7` final card next week, OCR logic will need rework before it becomes the operational source of truth again
 
 If any validation error appears, stop and inspect with vision before editing `data/votalhada/polls.json`.
 
-### 4. Historical series handling (critical for next week)
+Time sanity checklist before applying:
+- `capture_hora` must match the latest bottom-table row and the top-right hour on the selected consolidado card.
+- repeated `HH:MM` across different days is valid (do not collapse by time-only).
+- if `time_corrections` is non-empty, verify corrected rows with vision before writing `polls.json`.
+
+Recommended OCR regression tests before changing parser behavior:
+
+```bash
+pytest -q \
+  tests/test_votalhada_ocr_batch_validate.py \
+  tests/test_votalhada_ocr_feasibility.py \
+  tests/test_votalhada_platform_consistency_audit.py \
+  tests/test_fetch_votalhada_images.py
+```
+
+### Historical series handling
 
 `serie_temporal` in consolidado is cumulative: each new capture adds rows over time.
 
@@ -648,17 +969,30 @@ Expected behavior:
 - `curr_rows >= prev_rows` in most captures
 - If `curr_capture_hora` is newer, the latest vote total should not decrease
 
-### 5. Apply to `data/votalhada/polls.json`
+### Detailed apply reference
 
 After OCR validation passes:
+Preferred apply command:
+
+```bash
+python scripts/votalhada_auto_update.py \
+  --paredao N \
+  --images-dir data/votalhada/YYYY_MM_DD \
+  --apply \
+  --build \
+  --output tmp/votalhada_ocr/paredao_N_apply.json
+```
+
+What it does:
 1. append new series rows by `hora`
 2. overwrite latest `consolidado` and `plataformas`
 3. set `predicao_eliminado` to participant with highest consolidado %
 4. update `data_coleta`
+5. preserve all historical image paths already stored in `polls.json`
 
 **AI Agent Instructions**: See `data/votalhada/README.md` → "AI Agent Instructions" for detailed parsing rules.
 
-### 6. Paredão Falso ("Quem SALVAR?") handling
+### Paredão Falso ("Quem SALVAR?") handling
 
 For Paredão Falso polls, set these extra fields in the poll entry:
 
@@ -673,7 +1007,7 @@ For Paredão Falso polls, set these extra fields in the poll entry:
 - **`predicao_eliminado`** in `consolidado` — set to the **most** voted participant (same as normal paredões).
 - QMD pages auto-detect `tipo_voto` and display "Quem você quer SALVAR?" header + Paredão Falso warning banner.
 
-### 7. Verify name matching
+### Verify name matching
 
 Votalhada uses short names. Always match to API names:
 
@@ -685,7 +1019,7 @@ Votalhada uses short names. Always match to API names:
 | "Sol" | "Sol Vega" |
 | "Floss" | "Juliano Floss" |
 
-### 8. Rebuild, commit, push + deploy
+### Rebuild, commit, push + deploy
 
 ```bash
 # Rebuild derived data (updates prediction model weights)
@@ -746,6 +1080,29 @@ Set the status to `finalizado`, add vote results, and add the article to `fontes
 
 **Where to find data**: The scraped article, or search `BBB 26 Nº paredão porcentagem resultado`.
 
+### 1b. Update `data/manual_events.json` → `participants` (required for real elimination)
+
+For a normal (non-fake) elimination, register the participant exit entry:
+
+```json
+{
+  "participants": {
+    "Name": {
+      "status": "eliminado",
+      "exit_date": "YYYY-MM-DD",
+      "paredao_numero": N,
+      "fontes": ["<resultado-url>"]
+    }
+  }
+}
+```
+
+- Use `status: "eliminado"` or `status: "eliminada"` (both accepted).
+- For `desistente`/`desclassificado`, the same shape applies: `status` + `exit_date` + `fontes`.
+- **Do not use legacy keys** like `date`, `week`, `paredao`, `detail` in `participants` — they are not the operational contract for Cartola exit scoring.
+- **Paredão Falso**: do not add participant exit in `participants` (the person remains active and gets `quarto_secreto` points from `paredoes.json`).
+- **Why this is mandatory**: without this entry, Cartola may keep the eliminated participant as active and miss the `eliminado` (−20) event.
+
 ### 2. Update `data/votalhada/polls.json`
 
 Add `resultado_real` to the paredão's poll entry:
@@ -764,6 +1121,55 @@ Add `resultado_real` to the paredão's poll entry:
 - Use `voto_total` (not `voto_unico` or `voto_torcida`) for the percentages — this matches what Votalhada predicted against.
 - Set `predicao_correta` to `true` if `consolidado.predicao_eliminado` matches `resultado_real.eliminado`, otherwise `false`.
 - For Paredão Falso: "eliminado" = who went to Quarto Secreto (most voted to save).
+
+### 2b. Rebuild + Cartola + model sanity check (required before commit)
+
+```bash
+python scripts/build_derived_data.py
+
+# Normal elimination: eliminated participant must have week-N "eliminado" and active=false
+jq '.leaderboard[] | select(.name=="Name") | {name,active,week_events:(.events|map(select(.week==N)))}' data/derived/cartola_data.json
+
+# Paredão falso: selected participant must have "quarto_secreto" (not "eliminado")
+jq '.leaderboard[] | select(.name=="Name") | {name,active,week_events:(.events|map(select(.week==N)))}' data/derived/cartola_data.json
+```
+
+Expected:
+- Normal elimination: event list includes `["eliminado", -20, "YYYY-MM-DD"]`, and `active: false`.
+- Paredão Falso: event list includes `["quarto_secreto", 40, "YYYY-MM-DD"]`, and participant remains active.
+
+Model sanity check (Votalhada + Nosso Modelo, after `resultado_real` update):
+
+```bash
+python - <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sys.path.append("scripts")
+from data_utils import calculate_precision_weights, backtest_precision_model
+
+polls = json.loads(Path("data/votalhada/polls.json").read_text(encoding="utf-8"))
+finalized = [p for p in polls.get("paredoes", []) if p.get("resultado_real")]
+precision = calculate_precision_weights(polls)
+backtest = backtest_precision_model(polls) or {}
+agg = (backtest.get("aggregate") or {})
+
+print({
+    "finalized_with_resultado_real": len(finalized),
+    "precision_n_paredoes": precision.get("n_paredoes"),
+    "weights": precision.get("weights"),
+    "model_correct": agg.get("model_correct"),
+    "votalhada_correct": agg.get("consolidado_correct"),
+    "n_paredoes_backtest": agg.get("n_paredoes"),
+})
+PY
+```
+
+Expected:
+- `precision_n_paredoes` equals `finalized_with_resultado_real`
+- `n_paredoes_backtest` equals `finalized_with_resultado_real`
+- `weights` are non-empty when enough finalized paredões exist
 
 ### 3. Record Ganha-Ganha (same night, ~23h30)
 
@@ -796,7 +1202,7 @@ Add **two things** to `data/manual_events.json`:
       "escolha": "informação privilegiada",
       "abriu_mao": "R$ 10 mil (dobrar para R$ 20 mil)"
     },
-    "informacao": "Content of the privileged information revealed (if chosen)",
+    "informacao": "Content of the privileged information if disclosed in the article",
     "fontes": ["<article-url>"]
   }
 }
@@ -812,7 +1218,9 @@ Add **two things** to `data/manual_events.json`:
 | `decisao.quem` | Name | Person who chose between prize and info |
 | `decisao.escolha` | `"informação privilegiada"` or `"R$ X mil"` | What they picked |
 | `decisao.abriu_mao` | String | What they gave up |
-| `informacao` | String or `null` | Content of privileged info (if chosen) |
+| `informacao` | String or `null` | Content of privileged info when the article reveals it, even if the participant chose the cash instead |
+
+If the participant takes the money, keep `decisao.escolha` / `decisao.abriu_mao` aligned with the cash outcome and still fill `informacao` whenever gshow reveals the hidden message to the audience after the choice.
 
 #### B. Two `power_events` entries
 
@@ -864,7 +1272,7 @@ Once `build_derived_data.py` runs and the site deploys, the following update **a
 
 | What | Where | Details |
 |------|-------|---------|
-| **Cartola BBB points** | `cartola_data.json` → `cartola.qmd` | `eliminado` (+15 for survivors) or `quarto_secreto` (+40) points awarded. All auto-detected from `paredoes.json` status + `paredao_falso` flag. |
+| **Cartola BBB points** | `cartola_data.json` → `cartola.qmd` | For normal paredão: `emparedado` (−15), `eliminado` (−20), `nao_eliminado_paredao` (+20), plus `nao_emparedado` (+10)/`nao_recebeu_votos` (+5) when applicable. For fake: selected participant gets `quarto_secreto` (+40). |
 | **Paredão archival** | `paredao_analysis.json` → `paredoes.qmd` | Finalized paredão moves to the archive page with full analysis (votos da casa, reaction heatmap, formation timeline). |
 | **Prediction model recalibration** | `vote_prediction.json` → `paredao.qmd` | The **Modelo Ponderado por Precisão** recalculates weights using all finalized `resultado_real` entries. RMSE per platform, weights, and backtest results update automatically. |
 | **Votação page** | `votacao.qmd` | Voto Único vs Voto Torcida analysis updates with the new paredão's voting breakdown. |
@@ -884,7 +1292,7 @@ When `paredao_falso: true` is set in `paredoes.json`, the entire display layer a
 | **Timeline** (`game_timeline.json`) | "Breno eliminado (54.66%)" 🏁 | "Breno → Quarto Secreto (54.66%)" 🔮 |
 | **Transformed resultado** (`load_paredoes_transformed`) | `ELIMINADA` | `QUARTO_SECRETO` |
 | **Nominee badge** (`get_nominee_badge()`) | "ELIMINADO" 🔴 red | "🔮 Q. SECRETO" 🔮 purple |
-| **paredoes.qmd summary table** | Column: "Eliminado(a)" | Column: "→ Q. Secreto" |
+| **paredoes.qmd summary table** | "Eliminado(a)" (normal) | Same column; fake week marked by 🔮 in "Nº" |
 | **paredoes.qmd tab label** | "7º Paredão (Breno)" | "7º Paredão Falso (Breno)" |
 | **paredoes.qmd history rows** | "Elim." red | "🔮 Q. Secreto" purple |
 | **paredao.qmd precision label** | "(eliminado)" | "(→ quarto secreto)" |
@@ -896,6 +1304,15 @@ When `paredao_falso: true` is set in `paredoes.json`, the entire display layer a
 Generic analytical text uses "mais votado" instead of "eliminado" across all pattern/accuracy displays (works for both types).
 
 **No manual overrides needed** — the `paredao_falso: true` flag drives all display logic.
+
+### Quarto Secreto Return
+
+When a participant returns from Quarto Secreto:
+- **API auto-detects** the `Imune` role — no manual participant entry needed.
+- The returned participant has full queridômetro data (reactions given and received).
+- `weekly_events[N].quarto_secreto` schema (see W7 data for reference): `{"retorno_date": "YYYY-MM-DD", "convidado": "Name", "escolha": "..."}`.
+- `quarto_secreto_convite` edge (+0.20) is auto-created from `weekly_events[N].quarto_secreto.convidado` in the relations builder.
+- Immunity lasts for the next paredão formation only.
 
 ---
 
@@ -934,7 +1351,7 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
       "mutual_confrontations": [["A", "B"]]
     },
     "edges": [
-      {"actor": "A", "target": "B", "type": "bomba", "tema": "maior traidor(a)"}
+      {"actor": "A", "target": "B", "type": "ataque", "tema": "maior traidor(a)"}
     ],
     "edges_notes": "Context about edge extraction"
   }
@@ -945,14 +1362,21 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 
 | Type | Weight | When to use |
 |------|--------|-------------|
-| `podio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Participant puts someone on their podium |
+| `elogio` (+ `slot`: 1/2/3) | +0.6 / +0.4 / +0.2 | Directed positive endorsement (e.g., positive podium “quem ganha”) |
 | `regua` | +0.25 (aggregate mention) | Participant places someone in Top-3 priority/régua |
 | `nao_ganha` | −0.8 | Participant says someone won't win |
 | `regua_fora` | −0.5 (aggregate mention) | Participant leaves someone out of the régua |
-| `bomba` (+ `tema`) | −0.6 | Directed confrontation: bomb themes, "maior traidor(a)", etc. |
+| `ataque` (+ `tema`) | −0.6 | Directed negative confrontation: themes, medals, accusations, etc. |
 | `paredao_perfeito` | −0.3 | Participant nominates someone for ideal paredão |
 | `prova_eliminou` | −0.15 | Eliminated someone in a Sincerão sub-game |
 | `quem_sai` | contextual (negative signal) | Explicit “quem sai hoje” indication |
+
+**Negative podium formats** (e.g., “Pódio dos Medrosos” W8): When the podium theme is negative (calling someone cowardly, etc.), use `ataque` with `tema` = the specific medal/label given (e.g., `”covarde”`, `”frouxo”`, `”arregão”`). Add `”slot”: 1/2/3` to preserve rank position (scoring is flat −0.8 per edge, but slot preserves data granularity). Do **NOT** use `elogio` for negative podiums — `elogio` is hardcoded positive in the scoring pipeline.
+
+**`stats` structure varies by format:**
+- Positive formats: use `podio_top` (most podium placements), `sem_podio` (not placed), `nao_ganha_top`
+- Negative / ataque formats: use `most_targeted` (most targeted), `not_targeted` (not targeted), `mutual_confrontations`
+- Directed formats (Linha Direta): use `most_targeted`, `not_targeted`, `mutual_confrontations`
 
 After rebuild, verify type coverage and unknown types:
 
@@ -962,7 +1386,7 @@ jq '.sincerao.type_coverage' data/derived/index_data.json
 
 If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py` before publishing.
 
-**Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `bomba` 0.4.
+**Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `ataque` 0.4.
 
 **Full Sincerão schema**: See `docs/SCORING_AND_INDEXES.md` → Sincerão Framework.
 
@@ -1021,11 +1445,15 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `weekly_events` — Big Fone, Sincerão, Anjo details, confessão de voto, dedo-duro
 - `special_events` — dinâmicas especiais
 - `scheduled_events` — upcoming events (with auto-dedup)
-- `participants` — desistências, desclassificações
+- `participants` — **all exits** (eliminações, desistências, desclassificações)
 
 **Pitfalls**:
 - Names must match API exactly (see `docs/ARCHITECTURE.md` → data contracts)
 - Consensus events: use `"actor": "A + B + C"` + `"actors": ["A","B","C"]`
+- `participants` must use the current contract:
+  - required keys: `status`, `exit_date`
+  - recommended: `paredao_numero` (for eliminações), `fontes`
+  - avoid legacy keys in this object (`date`, `week`, `paredao`, `detail`)
 - `build_derived_data.py` hard-fails on audit issues — fix before pushing
 
 **Full schema**: `docs/MANUAL_EVENTS_GUIDE.md`
@@ -1040,6 +1468,8 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `resultado.votos.{name}.{voto_unico, voto_torcida, voto_total}` — NOT `percentuais`
 - `fontes` are objects: `{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}`
 - For fake eliminations, add `"paredao_falso": true`
+- At new paredão creation, always confirm this question: **"Fechamento previsto continua terça ~22:45 BRT?"**
+  - If the answer is "no" (common near finals), register the real closing schedule in `data/votalhada/polls.json` using `fechamento_votacao`.
 
 **Full schema**: See `docs/ARCHITECTURE.md` (data contracts) + templates in this guide.
 
@@ -1048,6 +1478,8 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 **When**: After Prova do Líder (Thursday), Prova do Anjo (Saturday), Bate e Volta (Sunday).
 
 **Workflow**: Add entry to the `provas` array with `numero`, `tipo`, `week`, `date`, `vencedor`, `fases`, `fontes`. See [Anjo Checklist](#anjo--monstro-update-checklist-saturday) and [Líder Checklist](#líder-transition-checklist-thursday-night) for templates.
+
+If the ranking is intentionally partial, include `nota_ranking` in the prova entry instead of leaving the limitation implicit.
 
 ### 4. `data/votalhada/polls.json`
 
@@ -1078,10 +1510,55 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 
 **What's auto-detected**:
 - From API snapshots: `lider`, `anjo`, `monstro`, `imunizado`, `emparedado`, `vip`
+- VIP strict source: `provas.json` (`tipo=lider` → `vip`, `vip_source`) plus `power_events.type=troca_vip`
 - From manual data: `atendeu_big_fone`, `desistente`, `eliminado`, `desclassificado`
 - From paredões: `salvo_paredao`, `nao_eliminado_paredao`, `nao_emparedado`, `nao_recebeu_votos`
 - Cross-checked: `monstro_retirado_vip` (Monstro recipient was in VIP in previous snapshot)
 - Paredão Falso: `quarto_secreto` (+40, from `paredao_falso: true` + finalized result)
+
+### VIP scoring references (for audits)
+
+Scrape and keep these pages in `docs/scraped/` for future verification:
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/o-que-e-cartola-bbb-entenda-como-funciona-a-novidade-do-reality.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/lider-samira-define-novo-vip-saiba-como-fica-a-pontuacao-na-setima-rodada-do-cartola-bbb.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/bloco-do-paredao-termina-com-tres-emparedados-e-pontuacao-negativa-no-cartola-bbb.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/noticia/bloco-do-paredao-samira-altera-vip-e-xepa-e-troca-edilson-por-ana-paula-renault.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/ana-paula-renault-recebe-o-castigo-do-monstro-e-sofre-duas-pontuacoes-negativas-no-cartola-bbb.ghtml
+
+---
+
+## Economia / Compras Detection (automatic vs manual)
+
+### How compras is detected today
+
+`compras` is **auto-detected** in the derived pipeline from snapshot balance deltas.
+
+- Source builder: `scripts/builders/balance.py` (`build_balance_events()`).
+- Rule of thumb:
+  - If losses affect >=80% of active participants (collective pattern), classify as `compras`.
+  - Tiny gains in the same transition are tolerated (keeps event as `compras`).
+  - Significant mixed gains/losses become `dinamica`.
+- Output artifact: `data/derived/balance_events.json`:
+  - `events[]` (includes `type="compras"`)
+  - `compras_fairness.events[]` (VIP/Xepa percentages + per-capita economics fields)
+
+### What is manual (and what is not)
+
+- There is **no dedicated manual compras event entry** in `manual_events.json`.
+- Manual files still matter for context:
+  - `special_events` can reclassify certain balance events as special dynamics (e.g., Máquina do Poder).
+  - Sources and narrative context are documented manually in weekly/special event records.
+
+### Operator checks when numbers look suspicious
+
+1. Confirm snapshots exist around the date (`data/snapshots/` cadence and timestamps).
+2. Rebuild derived data:
+   ```bash
+   python scripts/build_derived_data.py
+   ```
+3. Inspect the detected event in `data/derived/balance_events.json` (`events` + `compras_fairness`).
+4. Compare against official/source notes for that week (`docs/PROGRAMA_BBB26.md`, scraped sources).
+5. If a special dynamic was misclassified, update `manual_events.json` (`special_events`) and rebuild.
 
 ---
 
@@ -1238,94 +1715,36 @@ Ensure no `tmp/` capture artifacts are staged.
 
 ---
 
-## Capture Timing Analysis
+## Capture Timing & Polling Strategy
 
-### Current status (as of 2026-03-04)
+### Current strategy (as of 2026-03-09)
 
-- Temporary probes are **active** and the timing review is still open.
-- Do **not** treat "median 15:00 BRT" as confirmed while probe validation is running.
-- Review closure target: **2026-03-08 (BRT)**.
+The workflow uses **15-minute polling** (`*/15 * * * *`). This replaced the previous approach of fixed cron slots + temporary probes.
 
-### What probes are checking
+- `fetch_data.py` runs every 15 minutes but only takes ~30 seconds (uses `--fetch-only`, no heavy deps).
+- Snapshots are saved **only when the data hash changes** — dedup rate ~61%.
+- Expected: ~5–15 actual snapshots/day out of 96 polls.
+- The build-deploy job only runs when data actually changed (or on manual dispatch).
 
-The probes are validating when new queridômetro data first appears after the morning baseline:
+### Why 15-minute polling
+
+Probe-era analysis (Mar 3–8) confirmed that queridômetro reactions, balance changes, and role updates happen at **unpredictable times** throughout the day — not just around 15:00 BRT as previously assumed. Examples: 10:36 BRT on Mar 3; 11:50, 12:45, 13:52 BRT on Mar 4. High-frequency polling catches all granular events (punições, compras, mesada, role changes) as they happen.
+
+### How dedup works
 
 - Source of truth: `_metadata.reactions_hash` in each snapshot.
-- Detection method: compare consecutive snapshots; a hash change means reactions changed.
-- Collector behavior: `fetch_data.py` only saves when the full payload hash changes (no duplicate snapshots).
+- Detection method: `fetch_data.py` computes a hash of the full API payload; saves only if the hash differs from the last snapshot.
+- No duplicate snapshots are created — same data = no new file.
 
-Quick verification commands:
-
-```bash
-# Probe crons exist and are enabled
-rg -n "cron: '30 12-18|cron: '0 13-19" .github/workflows/daily-update.yml
-
-# Probe-era analysis (default start: 2026-03-03)
-python scripts/analyze_capture_timing.py
-
-# Historical comparison (all snapshots)
-python scripts/analyze_capture_timing.py --full-history
-```
-
-### Current cron schedule
-
-**Permanent slots** (4x/day):
-
-| UTC | BRT | Purpose |
-|-----|-----|---------|
-| 03:00 | 00:00 | Night — post-episode changes (Sun Líder/Anjo, Tue elimination) |
-| 09:00 | 06:00 | Pre-Raio-X baseline — balance/estalecas |
-| 18:00 | 15:00 | Post-Raio-X — **primary capture** |
-| 21:00 | 18:00 | Evening — balance/role changes |
-
-**Saturday extras** (Anjo + Monstro usually Saturday afternoon):
-
-| UTC | BRT | Purpose |
-|-----|-----|---------|
-| 20:00 | 17:00 | Post-Anjo challenge (runs ~14h-17h) |
-| 23:00 | 20:00 | Post-Monstro pick |
-
-**Total**: 6 runs/day (weekdays), 8 on Saturdays.
-
-### Temporary timing probes (active since 2026-03-03)
-
-To pinpoint the exact queridômetro update time, extra probes run every 30 min from **09:30 to 16:00 BRT**:
-
-| BRT | UTC | Cron expression |
-|-----|-----|-----------------|
-| 09:30 | 12:30 | `30 12-18 * * *` |
-| 10:00 | 13:00 | `0 13-19 * * *` |
-| 10:30 | 13:30 | `30 12-18 * * *` |
-| 11:00 | 14:00 | `0 13-19 * * *` |
-| 11:30 | 14:30 | `30 12-18 * * *` |
-| 12:00 | 15:00 | `0 13-19 * * *` |
-| 12:30 | 15:30 | `30 12-18 * * *` |
-| 13:00 | 16:00 | `0 13-19 * * *` |
-| 13:30 | 16:30 | `30 12-18 * * *` |
-| 14:00 | 17:00 | `0 13-19 * * *` |
-| 14:30 | 17:30 | `30 12-18 * * *` |
-| 15:00 | 18:00 | `0 13-19 * * *` (overlaps permanent slot) |
-| 15:30 | 18:30 | `30 12-18 * * *` |
-| 16:00 | 19:00 | `0 13-19 * * *` |
-
-Probe-era captures already include morning and early-afternoon updates (examples: **10:36 BRT** on Mar 3; **11:50**, **12:45**, **13:52 BRT** on Mar 4), confirming that the old "only around 15:00" assumption was incorrect.
-
-**Analyzing results**:
+### Verification
 
 ```bash
-# Probe-era decision view (default)
-python scripts/analyze_capture_timing.py
+# Check cron schedule
+head -20 .github/workflows/daily-update.yml
 
-# Full history (for context only; mixes pre-probe and probe eras)
+# Timing analysis (historical)
 python scripts/analyze_capture_timing.py --full-history
 ```
-
-### End-of-week closure checklist (2026-03-08 BRT)
-
-After the review checkpoint:
-1. Remove the two temporary cron lines from `.github/workflows/daily-update.yml`
-2. Keep or move the permanent 15:00 BRT slot based on probe-era evidence
-3. Update timing statements in all related docs (`README.md`, `CLAUDE.md`, this guide, and timing comments in scripts/workflow)
 
 ---
 
@@ -1338,6 +1757,33 @@ python scripts/audit_manual_events.py    # check what's wrong
 # Fix data/manual_events.json
 python scripts/build_derived_data.py     # re-run
 ```
+
+### Cartola did not update after elimination (stale leaderboard)
+
+Symptoms:
+- Paredão is `finalizado` in `data/paredoes.json`, but eliminated participant still appears `active: true` in `data/derived/cartola_data.json`.
+- Missing `eliminado` (−20) event in the elimination week.
+
+Checklist:
+```bash
+# 1) Ensure participant exit exists in manual_events contract (not legacy keys)
+jq '.participants["Name"]' data/manual_events.json
+
+# 2) Rebuild
+python scripts/build_derived_data.py
+
+# 3) Confirm week events + active flag
+jq '.leaderboard[] | select(.name=="Name") | {name,active,week_events:(.events|map(select(.week==N)))}' data/derived/cartola_data.json
+```
+
+Expected for normal elimination:
+- `active: false`
+- week `N` includes `["eliminado", -20, "YYYY-MM-DD"]`
+
+If still wrong:
+- Verify `data/manual_events.json -> participants["Name"]` uses `status`, `exit_date`, `paredao_numero`, `fontes`.
+- Remove legacy participant keys (`date`, `week`, `paredao`, `detail`) for that entry.
+- Rebuild again.
 
 ### Merge conflict on `data/derived/`
 

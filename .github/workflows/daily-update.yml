@@ -1,71 +1,93 @@
 name: BBB26 Daily Update
 
-# Capture timing strategy (all times UTC, BRT = UTC-3):
+# 15-minute polling strategy
 #
-# PERMANENT SLOTS:
-# | UTC  | BRT   | Purpose |
-# |------|-------|---------|
-# | 09:00| 06:00 | Pre-Raio-X baseline — balance/estalecas changes (punishments etc) |
-# | 18:00| 15:00 | Post-Raio-X — primary capture (timing under active probe review) |
-# | 21:00| 18:00 | Evening — catches balance/role changes |
-# | 03:00| 00:00 | Night — catches post-episode changes (Sun Líder/Anjo, Tue elimination) |
+# The fetch job runs every 15 minutes but only takes ~30 seconds.
+# It uses --fetch-only (needs only `requests`, no heavy deps).
+# fetch_data.py saves ONLY if the data hash changed — dedup rate ~61%.
+# Expected: ~5-15 actual snapshots/day out of 96 polls.
 #
-# SATURDAY EXTRAS (Anjo challenge + Monstro usually Saturday afternoon):
-# | UTC  | BRT   | Purpose |
-# |------|-------|---------|
-# | 20:00| 17:00 | Sat — post-Anjo probe (challenge ~14h–17h) |
-# | 23:00| 20:00 | Sat — post-Monstro (Anjo picks Monstro after win) |
+# The build-deploy job only runs when data actually changed (or manual dispatch).
+# This avoids wasting compute on the full pipeline (pytest + build + quarto render).
 #
-# TEMPORARY PROBES (remove after ~3-5 days):
-# Goal: pinpoint exact queridômetro update time.
-# Probes were re-enabled on 2026-03-03 after conflicting historical estimates.
-# End-of-week review target: 2026-03-08 (BRT) before removing probes.
-# Every 30 min from 09:30–16:00 BRT = 12:30–19:00 UTC.
-# fetch_data.py saves only if data hash changed, so no duplicate snapshots.
-# Analyze results with: python scripts/analyze_capture_timing.py
-#
-# The fetch script saves ONLY if data actually changed (hash comparison).
-# Multiple snapshots per day are fine — they track different game states.
-# For reaction analysis, the dashboard uses the LAST snapshot of each day.
-# Timing monitor: python scripts/analyze_capture_timing.py
+# Balance changes, role changes, and reaction updates happen at unpredictable
+# times throughout the day. 15-min polling catches granular balance events
+# (punições, compras, mesada) as they happen.
 
 on:
   schedule:
-    # ── Permanent slots ──
-    - cron: '0 3 * * *'    # 00:00 BRT - Night (post-episode)
-    - cron: '0 9 * * *'    # 06:00 BRT - Pre-Raio-X baseline
-    - cron: '0 18 * * *'   # 15:00 BRT - Post-Raio-X (primary)
-    - cron: '0 21 * * *'   # 18:00 BRT - Evening
-    # ── Saturday extras (Anjo/Monstro) ──
-    - cron: '0 20 * * 6'   # 17:00 BRT Sat - Post-Anjo challenge
-    - cron: '0 23 * * 6'   # 20:00 BRT Sat - Post-Monstro pick
-    # ── TEMPORARY: queridômetro timing probes (09:30–16:00 BRT) ──
-    # Remove after confirming update window (~3-5 days)
-    - cron: '30 12-18 * * *'  # 09:30, 10:30, 11:30, 12:30, 13:30, 14:30, 15:30 BRT
-    - cron: '0 13-19 * * *'   # 10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00 BRT
-  workflow_dispatch:  # Allow manual trigger
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_dispatch:  # Allow manual trigger (always runs full pipeline)
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+# NOTE: No workflow-level concurrency group. A lightweight 31-second schedule
+# poll must NOT cancel a 4+ minute manual build+deploy. Concurrency is set
+# per-job: build uses cancel-in-progress (avoid duplicate renders), deploy
+# uses cancel-in-progress (latest site wins on Pages API).
 
-# ── Job 1: build (read-only) ──────────────────────────────────────────
-# Runs tests, fetches data, builds derived JSON, renders Quarto site.
-# No write access to repo contents — limits blast radius if a dependency
-# or script is compromised.
+# ── Job 1: fetch (lightweight, always runs, ~30 sec) ─────────────────────
+# Only needs `requests`. Fetches API, saves snapshot if data changed,
+# commits directly. No heavy deps, no build, no render.
 jobs:
-  build:
+  fetch:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write  # Commits snapshots directly
     outputs:
-      data_changed: ${{ steps.fetch.outputs.data_changed }}
+      data_changed: ${{ steps.check.outputs.data_changed }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for git operations
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal deps
+        run: pip install requests
+
+      - name: Fetch latest data
+        run: python scripts/fetch_data.py --fetch-only
+
+      - name: Check for changes and commit
+        id: check
+        run: |
+          if git status --porcelain | grep -q "data/"; then
+            echo "data_changed=true" >> $GITHUB_OUTPUT
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git add data/snapshots/ data/latest.json
+            git commit -m "data: snapshot $(date -u +%Y-%m-%d_%H-%M) UTC"
+            git push
+          else
+            echo "data_changed=false" >> $GITHUB_OUTPUT
+            echo "No data changes detected — skipping build."
+          fi
+
+  # ── Job 2: build (read-only, conditional) ────────────────────────────────
+  # Only runs when data changed OR manual dispatch.
+  # Checks out the latest commit (including Job 1's snapshot commit).
+  build:
+    needs: fetch
+    if: needs.fetch.outputs.data_changed == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: "build"
+      cancel-in-progress: true  # Avoid duplicate renders; latest data wins
+    permissions:
+      contents: read
+    outputs:
+      data_changed: ${{ needs.fetch.outputs.data_changed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main  # Get Job 1's commit
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -78,17 +100,6 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
-
-      - name: Fetch latest data
-        id: fetch
-        run: |
-          python scripts/fetch_data.py --skip-derived
-          # Check if any new files were created
-          if git status --porcelain | grep -q "data/"; then
-            echo "data_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "data_changed=false" >> $GITHUB_OUTPUT
-          fi
 
       - name: Validate JSON snapshots
         run: |
@@ -141,7 +152,6 @@ jobs:
           path: '_site'
 
       - name: Upload data artifact
-        if: steps.fetch.outputs.data_changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: new-data
@@ -150,13 +160,16 @@ jobs:
             docs/MANUAL_EVENTS_AUDIT.md
           include-hidden-files: false
 
-  # ── Job 2: deploy (write access) ─────────────────────────────────────
-  # Deploys the site FIRST, then commits data changes.
+  # ── Job 3: deploy (write access) ─────────────────────────────────────
+  # Deploys the site FIRST, then commits derived data changes.
   # This ensures a failed deploy does not leave orphaned data commits
   # with a stale site (H-2: deploy rollback).
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: "pages"
+      cancel-in-progress: true  # Latest site wins on Pages API
     permissions:
       contents: write
       pages: write
@@ -174,23 +187,23 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Checkout repository
-        if: needs.build.outputs.data_changed == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Download data artifact
-        if: needs.build.outputs.data_changed == 'true'
         uses: actions/download-artifact@v4
         with:
           name: new-data
           path: .
 
-      - name: Commit data changes
-        if: needs.build.outputs.data_changed == 'true'
+      - name: Commit derived data changes
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add data/ docs/MANUAL_EVENTS_AUDIT.md
-          git diff --staged --quiet || git commit -m "data: snapshot $(date -u +%Y-%m-%d_%H-%M) UTC"
+          git diff --staged --quiet || git commit -m "data: derived update $(date -u +%Y-%m-%d_%H-%M) UTC"
+          # Pull --rebase to handle race with 15-min fetch polls that may have
+          # pushed a new snapshot commit between build checkout and now.
+          git pull --rebase origin main || true
           git push

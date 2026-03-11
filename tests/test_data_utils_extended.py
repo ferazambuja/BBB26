@@ -41,7 +41,10 @@ from data_utils import (
     avatar_html,
     avatar_img,
     get_nominee_badge,
+    group_cronologia_events,
     render_cronologia_html,
+    render_cronologia_mobile_review_html,
+    render_cronologia_variant,
     normalize_actors,
     patch_missing_raio_x,
     # Poll/prediction
@@ -973,6 +976,102 @@ class TestRenderCronologiaHtml:
         idx_w1 = html.index("Semana 1")
         assert idx_w2 < idx_w1  # Week 2 before Week 1
 
+    def test_live_cronologia_html_combines_desktop_baseline_and_mobile_open_variant(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Jordana escolhe o veto",
+                "detail": "Ficou com R$ 20 mil, abriu mão da informação privilegiada e vetou Ana Paula.",
+            }
+        ]
+
+        html = render_cronologia_html(events)
+
+        assert 'cronologia-live-desktop' in html
+        assert 'cronologia-live-mobile' in html
+        assert 'cronologia-mobile-table--open' in html
+        assert html.count("Jordana escolhe o veto") == 2
+
+    def test_group_cronologia_events_orders_weeks_dates_and_events_descending(self):
+        events = [
+            {"date": "2026-01-13", "week": 1, "category": "entrada", "title": "Older Week", "detail": "", "emoji": ""},
+            {"date": "2026-01-20", "week": 2, "category": "lider", "title": "First Day Early", "detail": "", "emoji": ""},
+            {"date": "2026-01-20", "week": 2, "category": "lider", "title": "First Day Late", "detail": "", "emoji": ""},
+            {"date": "2026-01-21", "week": 2, "category": "prova", "title": "Newest Day", "detail": "", "emoji": ""},
+        ]
+
+        grouped = group_cronologia_events(events)
+
+        assert [week["week"] for week in grouped] == [2, 1]
+        assert [day["date"] for day in grouped[0]["dates"]] == ["2026-01-21", "2026-01-20"]
+        assert [ev["title"] for ev in grouped[0]["dates"][1]["events"]] == ["First Day Late", "First Day Early"]
+
+    def test_render_cronologia_variant_two_row_open_preserves_full_detail_in_full_width_row(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Jordana escolhe o veto",
+                "detail": "Ficou com R$ 20 mil, abriu mão da informação privilegiada e vetou Ana Paula.",
+            }
+        ]
+
+        html = render_cronologia_variant(group_cronologia_events(events), "two_row_open")
+
+        assert 'cronologia-mobile-table--open' in html
+        assert 'cronologia-mobile-event-main--inline' in html
+        assert 'cronologia-badge--inline' in html
+        assert 'colspan="2"' in html
+        assert "R$ 20 mil" in html
+        assert "Jordana escolhe o veto" in html
+
+    def test_render_cronologia_variant_two_row_disclosure_uses_native_details(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Jordana escolhe o veto",
+                "detail": "Ficou com R$ 20 mil, abriu mão da informação privilegiada e vetou Ana Paula.",
+            }
+        ]
+
+        html = render_cronologia_variant(group_cronologia_events(events), "two_row_disclosure")
+
+        assert 'cronologia-mobile-table--disclosure' in html
+        assert '<details class="cronologia-detail-toggle">' in html
+        assert "Abrir detalhe" in html
+        assert "R$ 20 mil" in html
+
+    def test_render_cronologia_mobile_review_html_stacks_all_variants(self):
+        events = [
+            {
+                "date": "2026-03-10",
+                "week": 8,
+                "category": "resultado",
+                "emoji": "🏁",
+                "title": "Babu eliminado",
+                "detail": "Saiu com 68.62% dos votos.",
+            }
+        ]
+
+        html = render_cronologia_mobile_review_html(events)
+
+        assert 'id="baseline-current"' in html
+        assert 'id="variant-open"' in html
+        assert 'id="variant-disclosure"' in html
+        assert 'id="variant-day-panel"' in html
+        assert "Controle atual" in html
+        assert "Detalhe sempre aberto" in html
+        assert "Detalhe sob demanda" in html
+        assert "Painel inline por evento" in html
+
 
 class TestNormalizeActors:
     """Test normalize_actors() with more edge cases."""
@@ -1318,6 +1417,24 @@ class TestMakePollTimeseries:
         poll = polls_json_data["paredoes"][0]
         fig = make_poll_timeseries(poll, compact=True)
         assert fig.layout.height == 350
+        assert fig.layout.legend.orientation == "h"
+        assert fig.layout.legend.yanchor == "top"
+        assert fig.layout.legend.y < 0
+        assert fig.layout.margin.b >= 85
+
+    def test_with_model_prediction_adds_overlay_markers(self, polls_json_data):
+        from data_utils import make_poll_timeseries
+        setup_bbb_dark_theme()
+        poll = polls_json_data["paredoes"][0]
+        prediction = {nome: poll["consolidado"].get(nome, 0) for nome in poll["participantes"]}
+        fig = make_poll_timeseries(poll, model_prediction={"prediction": prediction})
+        assert fig is not None
+        # Base lines + per-participant model projected history lines.
+        assert len(fig.data) == len(poll["participantes"]) * 2
+        model_traces = [tr for tr in fig.data if getattr(getattr(tr, "line", None), "dash", None) == "dot"]
+        assert len(model_traces) == len(poll["participantes"])
+        assert all(len(tr.y) == len(poll["serie_temporal"]) for tr in model_traces)
+        assert "linha pontilhada" in fig.layout.title.text
 
     def test_empty_serie_temporal(self):
         from data_utils import make_poll_timeseries

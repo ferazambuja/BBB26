@@ -71,7 +71,7 @@ GROUP_COLORS = {
 
 POWER_EVENT_EMOJI = {
     'lider': '👑', 'anjo': '😇', 'monstro': '👹',
-    'imunidade': '🛡️', 'indicacao': '🎯', 'contragolpe': '🌀',
+    'imunidade': '🛡️', 'indicacao': '🎯', 'consenso_anjo_monstro': '🤝', 'contragolpe': '🌀',
     'voto_duplo': '🗳️', 'voto_anulado': '🚫', 'perdeu_voto': '⛔',
     'bate_volta': '🛟',
     'veto_ganha_ganha': '🚫', 'ganha_ganha_escolha': '🎁',
@@ -83,7 +83,7 @@ POWER_EVENT_EMOJI = {
 
 POWER_EVENT_LABELS = {
     'lider': 'Líder', 'anjo': 'Anjo', 'monstro': 'Monstro',
-    'imunidade': 'Imunidade', 'indicacao': 'Indicação', 'contragolpe': 'Contragolpe',
+    'imunidade': 'Imunidade', 'indicacao': 'Indicação', 'consenso_anjo_monstro': 'Consenso Anjo+Monstro', 'contragolpe': 'Contragolpe',
     'voto_duplo': 'Voto 2x', 'voto_anulado': 'Voto anulado', 'perdeu_voto': 'Perdeu voto',
     'bate_volta': 'Bate-Volta',
     'veto_ganha_ganha': 'Veto (Ganha-Ganha)', 'ganha_ganha_escolha': 'Escolha (Ganha-Ganha)',
@@ -275,8 +275,8 @@ WEEK_END_DATES: list[str] = [
     "2026-02-12",  # Week 4 — Jonas Sulzbach Líder; 4º Paredão Feb 10; barrado Feb 11; Jonas Líder Feb 13
     "2026-02-18",  # Week 5 — Jonas Sulzbach Líder; 5º Paredão Feb 17; barrado Feb 18
     "2026-02-25",  # Week 6 — Jonas Sulzbach Líder; 6º Paredão Feb 25; barrado Feb 25
-    # Week 7 remains open until the next Líder cycle is confirmed in data.
-    # Add week-7 boundary (likely 2026-03-05) only after the new Líder is crowned.
+    "2026-03-05",  # Week 7 — Samira Líder; 7º Paredão (Falso) Mar 3; dupla liderança (W8) definida Mar 6
+    # Week 8 remains open until the next Líder cycle is confirmed in data.
 ]
 
 
@@ -516,6 +516,11 @@ def load_game_timeline() -> dict:
 def load_paredao_analysis() -> dict:
     """Load data/derived/paredao_analysis.json."""
     return _load_json_file("data/derived/paredao_analysis.json", {})
+
+
+def load_balance_events() -> dict:
+    """Load data/derived/balance_events.json."""
+    return _load_json_file("data/derived/balance_events.json", {"events": [], "by_participant": {}, "weekly_summary": []})
 
 
 def load_reaction_matrices() -> dict:
@@ -972,6 +977,7 @@ TIMELINE_CAT_COLORS = {
     "paredao_votacao": "#e74c3c",
     "paredao_contragolpe": "#d35400",
     "paredao_bate_volta": "#f39c12",
+    "consenso_anjo_monstro": "#8e44ad",
 }
 
 TIMELINE_CAT_LABELS = {
@@ -994,7 +1000,234 @@ TIMELINE_CAT_LABELS = {
     "paredao_votacao": "Votação",
     "paredao_contragolpe": "Contragolpe",
     "paredao_bate_volta": "Bate-Volta",
+    "consenso_anjo_monstro": "Consenso Anjo+Monstro",
 }
+
+
+def group_cronologia_events(timeline_events: list[dict]) -> list[dict]:
+    """Group timeline events by week and date in display order."""
+    weeks: dict[int, dict[str, list[dict]]] = {}
+    for ev in timeline_events:
+        week = ev.get("week", 0)
+        date_str = ev.get("date", "")
+        weeks.setdefault(week, {}).setdefault(date_str, []).append(ev)
+
+    grouped: list[dict] = []
+    for week_num, dates_dict in sorted(weeks.items(), key=lambda item: item[0], reverse=True):
+        dates: list[dict] = []
+        for date_str, date_events in sorted(dates_dict.items(), key=lambda item: item[0], reverse=True):
+            dates.append({
+                "date": date_str,
+                "events": list(reversed(date_events)),
+            })
+        grouped.append({"week": week_num, "dates": dates})
+    return grouped
+
+
+def _prepare_cronologia_event(ev: dict) -> dict:
+    """Normalize one timeline event for chronology renderers."""
+    cat = ev.get("category", "")
+    color = TIMELINE_CAT_COLORS.get(cat, "#666")
+    label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
+    emoji = safe_html(ev.get("emoji", ""))
+    title = safe_html(ev.get("title", ""))
+    detail = safe_html(ev.get("detail", ""))
+    is_scheduled = ev.get("status") == "scheduled"
+    time_info = safe_html(ev.get("time", ""))
+
+    badge_class = "cronologia-badge cronologia-badge--scheduled" if is_scheduled else "cronologia-badge"
+    badge = (
+        f'<span class="{badge_class} fs-md" style="--cronologia-badge-color:{color};">{label}</span>'
+    )
+    time_badge = (
+        f'<span class="cronologia-time-badge fs-sm">{time_info}</span>'
+        if time_info else ""
+    )
+    title_prefix = f"{emoji} " if emoji else ""
+    title_html = (
+        f'<span class="cronologia-event-title">{title_prefix}{title}</span>'
+        f'{time_badge}'
+    )
+    detail_text = f'🔮 {detail}' if is_scheduled and detail else detail
+    if is_scheduled and not detail_text:
+        detail_text = "🔮 Previsto"
+
+    return {
+        "badge_html": badge,
+        "title_html": title_html,
+        "detail_html": detail_text,
+        "detail_text": detail_text,
+        "label": label,
+        "is_scheduled": is_scheduled,
+    }
+
+
+def _render_cronologia_rows(
+    grouped_events: list[dict],
+    columns: int,
+    row_builder,
+) -> list[str]:
+    """Render chronology week/date scaffolding around event rows."""
+    parts: list[str] = []
+    for week_group in grouped_events:
+        parts.append(
+            f'<tr><td colspan="{columns}" class="cron-week">Semana {week_group["week"]}</td></tr>'
+        )
+        for day_group in week_group["dates"]:
+            parts.append(
+                f'<tr><td colspan="{columns}" class="cron-date">📅 {day_group["date"]}</td></tr>'
+            )
+            for ev in day_group["events"]:
+                parts.extend(row_builder(_prepare_cronologia_event(ev)))
+    return parts
+
+
+def _render_cronologia_baseline(grouped_events: list[dict]) -> str:
+    parts = [
+        '<div class="cronologia-shell cronologia-shell--baseline">',
+        '<div class="cronologia-table-wrap">',
+        '<table class="cronologia-table">',
+        '<thead>',
+        '<tr class="cronologia-head-row">',
+        '<th class="col-badge">Tipo</th>',
+        '<th class="cronologia-head-label">Evento</th>',
+        '<th class="cronologia-head-label">Detalhe</th>',
+        '</tr></thead><tbody>',
+    ]
+
+    def row_builder(item: dict) -> list[str]:
+        row_class = (
+            "cronologia-row cronologia-row--scheduled cronologia-row--dashed"
+            if item["is_scheduled"] else
+            "cronologia-row"
+        )
+        return [
+            (
+                f'<tr class="{row_class}">'
+                f'<td class="col-badge">{item["badge_html"]}</td>'
+                f'<td>{item["title_html"]}</td>'
+                f'<td class="col-detail">{item["detail_html"]}</td>'
+                f'</tr>'
+            )
+        ]
+
+    parts.extend(_render_cronologia_rows(grouped_events, 3, row_builder))
+    parts.extend(['</tbody></table></div></div>'])
+    return "".join(parts)
+
+
+def _render_cronologia_mobile_table(grouped_events: list[dict], variant: str) -> str:
+    variant_class_map = {
+        "two_row_open": "cronologia-mobile-table--open",
+        "two_row_disclosure": "cronologia-mobile-table--disclosure",
+    }
+    table_class = variant_class_map[variant]
+    parts = [
+        '<div class="cronologia-shell cronologia-shell--review">',
+        '<div class="cronologia-table-wrap">',
+        f'<table class="cronologia-mobile-table {table_class}">',
+        '<thead>',
+        '<tr class="cronologia-head-row">',
+        '<th class="col-badge">Tipo</th>',
+        '<th class="cronologia-head-label">Evento</th>',
+        '</tr></thead><tbody>',
+    ]
+
+    def row_builder(item: dict) -> list[str]:
+        row_class = (
+            "cronologia-row cronologia-row--scheduled cronologia-row--dashed"
+            if item["is_scheduled"] else
+            "cronologia-row"
+        )
+        detail_html = item["detail_html"] or "Sem detalhe adicional."
+        if variant == "two_row_open":
+            inline_badge_html = item["badge_html"].replace(
+                "cronologia-badge",
+                "cronologia-badge cronologia-badge--inline",
+                1,
+            )
+            return [
+                (
+                    f'<tr class="{row_class}">'
+                    f'<td colspan="2" class="cronologia-mobile-event-main cronologia-mobile-event-main--inline">'
+                    f'<div class="cronologia-mobile-event-inline">{inline_badge_html}'
+                    f'<span class="cronologia-mobile-event-inline-text">{item["title_html"]}</span></div>'
+                    f'</td>'
+                    f'</tr>'
+                ),
+                (
+                    f'<tr class="cronologia-row cronologia-row--detail">'
+                    f'<td colspan="2" class="cronologia-mobile-event-detail">{detail_html}</td>'
+                    f'</tr>'
+                ),
+            ]
+
+        detail_row = (
+            f'<tr class="cronologia-row cronologia-row--detail">'
+            f'<td colspan="2" class="cronologia-mobile-event-detail">{detail_html}</td>'
+            f'</tr>'
+        )
+        if variant == "two_row_disclosure":
+            detail_row = (
+                f'<tr class="cronologia-row cronologia-row--detail">'
+                f'<td colspan="2" class="cronologia-mobile-event-detail">'
+                f'<details class="cronologia-detail-toggle">'
+                f'<summary>Abrir detalhe</summary>'
+                f'<div class="cronologia-mobile-event-detail-body">{detail_html}</div>'
+                f'</details>'
+                f'</td>'
+                f'</tr>'
+            )
+
+        return [
+            (
+                f'<tr class="{row_class}">'
+                f'<td class="col-badge">{item["badge_html"]}</td>'
+                f'<td class="cronologia-mobile-event-main">{item["title_html"]}</td>'
+                f'</tr>'
+            ),
+            detail_row,
+        ]
+
+    parts.extend(_render_cronologia_rows(grouped_events, 2, row_builder))
+    parts.extend(['</tbody></table></div></div>'])
+    return "".join(parts)
+
+
+def _render_cronologia_day_panel(grouped_events: list[dict]) -> str:
+    parts = ['<div class="cronologia-shell cronologia-shell--review cronologia-day-panel">']
+    for week_group in grouped_events:
+        parts.append(f'<section class="cronologia-week-panel"><h4 class="cron-week">Semana {week_group["week"]}</h4>')
+        for day_group in week_group["dates"]:
+            parts.append(f'<div class="cronologia-day-card"><div class="cron-date">📅 {day_group["date"]}</div>')
+            for ev in day_group["events"]:
+                item = _prepare_cronologia_event(ev)
+                detail_html = item["detail_html"] or "Sem detalhe adicional."
+                parts.append(
+                    '<details class="cronologia-panel-item">'
+                    f'<summary class="cronologia-panel-summary"><span class="cronologia-panel-badge">{item["badge_html"]}</span>'
+                    f'<span class="cronologia-panel-title">{item["title_html"]}</span></summary>'
+                    f'<div class="cronologia-panel-detail">{detail_html}</div>'
+                    '</details>'
+                )
+            parts.append('</div>')
+        parts.append('</section>')
+    parts.append('</div>')
+    return "".join(parts)
+
+
+def render_cronologia_variant(grouped_events: list[dict], variant: str) -> str:
+    """Render one chronology variant from grouped timeline data."""
+    if not grouped_events:
+        return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+
+    if variant == "baseline":
+        return _render_cronologia_baseline(grouped_events)
+    if variant in {"two_row_open", "two_row_disclosure"}:
+        return _render_cronologia_mobile_table(grouped_events, variant)
+    if variant == "day_panel":
+        return _render_cronologia_day_panel(grouped_events)
+    raise ValueError(f"Unsupported chronology variant: {variant}")
 
 
 def render_cronologia_html(timeline_events: list[dict]) -> str:
@@ -1006,100 +1239,78 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
     """
     if not timeline_events:
         return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+    grouped_events = group_cronologia_events(timeline_events)
+    return "".join([
+        '<div class="cronologia-live-switch">',
+        '<div class="cronologia-live-desktop">',
+        render_cronologia_variant(grouped_events, "baseline"),
+        '</div>',
+        '<div class="cronologia-live-mobile">',
+        render_cronologia_variant(grouped_events, "two_row_open"),
+        '</div>',
+        '</div>',
+    ])
 
-    # Group by week → date → events
-    weeks: dict[int, dict[str, list[dict]]] = {}
-    for ev in timeline_events:
-        w = ev.get("week", 0)
-        d = ev.get("date", "")
-        weeks.setdefault(w, {}).setdefault(d, []).append(ev)
-    sorted_weeks = sorted(weeks.items(), key=lambda x: x[0], reverse=True)
 
-    parts = [
-        '<style>'
-        '.cronologia-table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }'
-        '.cronologia-table th, .cronologia-table td { padding:6px 8px; }'
-        '.cronologia-table .col-badge { text-align:center; min-width:100px; }'
-        '.cronologia-table .col-detail { color:#999; font-size:var(--fs-base); }'
-        '.cron-week { background:#16213e; font-weight:bold; color:#ffc107; padding:6px 8px; }'
-        '.cron-date { background:#1e1e2e; color:#aaa; font-size:var(--fs-md); padding:4px 8px; '
-        'border-bottom:1px solid #333; }'
-        '@media (max-width: 640px) {'
-        '  .cronologia-table { font-size: var(--fs-md); }'
-        '  .cronologia-table td, .cronologia-table th { padding: 5px 6px; }'
-        '  .cronologia-table .col-badge { min-width:70px; }'
-        '  .cronologia-table .col-badge span { font-size:var(--fs-xs) !important; padding:2px 4px !important; }'
-        '}'
-        '@media (max-width: 400px) {'
-        '  .cronologia-table { font-size: var(--fs-sm); }'
-        '  .cronologia-table td, .cronologia-table th { padding: 4px 4px; }'
-        '}'
-        '</style>'
-        '<div style="max-height:600px; overflow-y:auto; border:1px solid #444; border-radius:8px; padding:0;">'
-        '<table class="cronologia-table">'
-        '<thead style="position:sticky; top:0; z-index:1;">'
-        '<tr style="background:#1a1a2e; color:#eee;">'
-        '<th class="col-badge">Tipo</th>'
-        '<th style="text-align:left;">Evento</th>'
-        '<th style="text-align:left;">Detalhe</th>'
-        '</tr></thead><tbody>',
+def render_cronologia_mobile_review_html(timeline_events: list[dict]) -> str:
+    """Render stacked chronology review variants for mobile comparison."""
+    if not timeline_events:
+        return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+
+    grouped_events = group_cronologia_events(timeline_events)
+    total_events = sum(len(day["events"]) for week in grouped_events for day in week["dates"])
+    total_weeks = len(grouped_events)
+    total_days = sum(len(week["dates"]) for week in grouped_events)
+
+    sections = [
+        (
+            "baseline-current",
+            "Controle atual",
+            "Tabela de 3 colunas mantida como referência para comparar legibilidade e densidade.",
+            render_cronologia_variant(grouped_events, "baseline"),
+        ),
+        (
+            "variant-open",
+            "Detalhe sempre aberto",
+            "Cada evento vira uma linha principal curta e uma linha de detalhe em largura total.",
+            render_cronologia_variant(grouped_events, "two_row_open"),
+        ),
+        (
+            "variant-disclosure",
+            "Detalhe sob demanda",
+            "A mesma estrutura de duas linhas, mas o detalhe abre via native disclosure para reduzir fadiga visual.",
+            render_cronologia_variant(grouped_events, "two_row_disclosure"),
+        ),
+        (
+            "variant-day-panel",
+            "Painel inline por evento",
+            "Cada data vira um bloco e cada evento abre seu detalhe no próprio fluxo, sem scroll horizontal.",
+            render_cronologia_variant(grouped_events, "day_panel"),
+        ),
     ]
 
-    for week_num, dates_dict in sorted_weeks:
-        # Week header row
-        parts.append(
-            f'<tr><td colspan="3" class="cron-week">Semana {week_num}</td></tr>'
-        )
-        # Dates within week: reverse chronological
-        sorted_dates = sorted(dates_dict.items(), key=lambda x: x[0], reverse=True)
-        for date_str, date_events in sorted_dates:
-            # Date divider row
-            parts.append(
-                f'<tr><td colspan="3" class="cron-date">📅 {date_str}</td></tr>'
-            )
-            # Events within date: reverse order (latest first)
-            for ev in reversed(date_events):
-                cat = ev.get("category", "")
-                color = TIMELINE_CAT_COLORS.get(cat, "#666")
-                label = TIMELINE_CAT_LABELS.get(cat, cat.replace("_", " ").capitalize())
-                emoji = ev.get("emoji", "")
-                title = safe_html(ev.get("title", ""))
-                detail = safe_html(ev.get("detail", ""))
-                is_scheduled = ev.get("status") == "scheduled"
-                time_info = ev.get("time", "")
-
-                if is_scheduled:
-                    badge = (
-                        f'<span class="fs-md" style="background:transparent; color:{color}; border:1px dashed {color};'
-                        f' padding:2px 6px; border-radius:4px; white-space:nowrap;">{label}</span>'
-                    )
-                    time_badge = (
-                        f' <span class="fs-sm" style="background:#ffc107; color:#000; padding:1px 5px;'
-                        f' border-radius:3px; white-space:nowrap;">{time_info}</span>'
-                        if time_info else ''
-                    )
-                    row_style = 'border-bottom:1px dashed #444; opacity:0.85;'
-                    title_cell = f'{emoji} {title}{time_badge}'
-                    detail_text = f'🔮 {detail}' if detail else '🔮 Previsto'
-                else:
-                    badge = (
-                        f'<span class="fs-md" style="background:{color}; color:#fff; padding:2px 6px;'
-                        f' border-radius:4px; white-space:nowrap;">{label}</span>'
-                    )
-                    row_style = 'border-bottom:1px solid #333;'
-                    title_cell = f'{emoji} {title}'
-                    detail_text = detail
-
-                parts.append(
-                    f'<tr style="{row_style}">'
-                    f'<td class="col-badge">{badge}</td>'
-                    f'<td>{title_cell}</td>'
-                    f'<td class="col-detail">{detail_text}</td>'
-                    f'</tr>'
-                )
-
-    parts.append('</tbody></table></div>')
-    return ''.join(parts)
+    parts = [
+        '<div class="cronologia-review">',
+        '<div class="cronologia-review-intro">',
+        '<h2 class="fs-2xl">Cronologia do Jogo: revisão mobile</h2>',
+        '<p class="cronologia-review-copy">Mockups funcionais ligados ao timeline real, desenhados para o viewport padrão de 390×844.</p>',
+        '<div class="cronologia-review-stats">',
+        f'<span><strong>{total_events}</strong> eventos</span>',
+        f'<span><strong>{total_days}</strong> datas</span>',
+        f'<span><strong>{total_weeks}</strong> semanas</span>',
+        '</div>',
+        '</div>',
+    ]
+    for section_id, title, copy, body in sections:
+        parts.extend([
+            f'<section id="{section_id}" class="cronologia-review-block">',
+            f'<h3 class="fs-xl">{title}</h3>',
+            f'<p class="cronologia-review-copy">{copy}</p>',
+            body,
+            '</section>',
+        ])
+    parts.append('</div>')
+    return "".join(parts)
 
 
 # ── Votalhada helpers ──────────────────────────────────────────────────────────
@@ -1116,13 +1327,19 @@ def parse_votalhada_hora(hora_str: str, year: int = 2026) -> datetime:
     return datetime(year, MONTH_MAP_PT[month_str], int(day_str), hour, minute)
 
 
-def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact: bool = False) -> go.Figure | None:
+def make_poll_timeseries(
+    poll: dict,
+    resultado_real: dict | None = None,
+    compact: bool = False,
+    model_prediction: dict | None = None,
+) -> go.Figure | None:
     """Build a Plotly figure for Votalhada poll time series.
 
     Args:
         poll: Poll dict with 'serie_temporal' and 'participantes'.
         resultado_real: Optional result dict with real vote percentages.
         compact: If True, use smaller markers/lines and shorter height (for archive tabs).
+        model_prediction: Optional model output dict with {"prediction": {name: pct}}.
     """
     import plotly.graph_objects as go  # noqa: PLC0415 — optional dep, lazy import
 
@@ -1156,8 +1373,75 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
             name=nome.split()[0],
             line=dict(width=2 if compact else 3, color=nominee_colors[nome]),
             marker=dict(size=4 if compact else 6),
-            hovertemplate=f'{nome}: ' + '%{y:.1f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
+            hovertemplate=f'{nome}: ' + '%{y:.2f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
         ))
+
+    # Overlay projected model history from the consolidado series.
+    # We only store consolidado by timestamp; platform-level historical snapshots
+    # are not persisted, so the model history is an anchored projection.
+    model_values = (model_prediction or {}).get("prediction", {}) if model_prediction else {}
+    if model_values:
+        latest = serie[-1]
+        factors: dict[str, float] = {}
+        for nome in participantes:
+            base_latest = float(latest.get(nome, 0) or 0)
+            model_latest = float(model_values.get(nome, base_latest) or base_latest)
+            if base_latest <= 1e-6:
+                factor = 1.0
+            else:
+                factor = model_latest / base_latest
+            factors[nome] = max(0.05, min(20.0, factor))
+
+        model_series: dict[str, list[float]] = {nome: [] for nome in participantes}
+        for pt in serie:
+            raw = {
+                nome: max(0.0, float(pt.get(nome, 0) or 0) * factors.get(nome, 1.0))
+                for nome in participantes
+            }
+            raw_total = sum(raw.values())
+            if raw_total > 0:
+                norm = 100.0 / raw_total
+                for nome in participantes:
+                    model_series[nome].append(raw[nome] * norm)
+            else:
+                for nome in participantes:
+                    model_series[nome].append(float(pt.get(nome, 0) or 0))
+
+        # Anchor the latest point to the current model output.
+        for nome in participantes:
+            if nome in model_values and model_series[nome]:
+                model_series[nome][-1] = float(model_values.get(nome, 0) or 0)
+
+        # Re-normalize latest point to 100 if needed after anchoring.
+        latest_sum = sum(model_series[nome][-1] for nome in participantes if model_series[nome])
+        if latest_sum > 0 and abs(latest_sum - 100.0) > 0.05:
+            corr = 100.0 / latest_sum
+            for nome in participantes:
+                if model_series[nome]:
+                    model_series[nome][-1] = model_series[nome][-1] * corr
+
+        for nome in participantes:
+            if nome not in model_values:
+                continue
+            fig.add_trace(go.Scatter(
+                x=times,
+                y=model_series.get(nome, []),
+                mode='lines+markers',
+                name=f'{nome.split()[0]} · Modelo',
+                showlegend=False,
+                line=dict(
+                    width=1.7 if compact else 2.1,
+                    color=nominee_colors.get(nome, '#ddd'),
+                    dash='dot',
+                ),
+                marker=dict(
+                    size=3 if compact else 4,
+                    symbol='diamond-open',
+                    color=nominee_colors.get(nome, '#ddd'),
+                    line=dict(color='#f5f5f5', width=0.8),
+                ),
+                hovertemplate=f'{nome} (Nosso Modelo estimado): ' + '%{y:.2f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
+            ))
 
     if resultado_real:
         for nome in participantes:
@@ -1166,12 +1450,14 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
                 fig.add_hline(
                     y=real_val, line_dash='dash', line_width=1,
                     line_color=nominee_colors.get(nome, '#888'),
-                    annotation_text=f"Real: {real_val:.1f}%",
+                    annotation_text=f"Real: {real_val:.2f}%",
                     annotation_position='right',
                     annotation_font=dict(size=9, color=nominee_colors.get(nome, '#888')),
                 )
 
     subtitle = f"{first_t} → {last_t}" if compact else f"Janela: {first_t} → {last_t}"
+    if model_values:
+        subtitle += " · linha pontilhada = Nosso Modelo (histórico estimado)"
     fig.update_layout(
         title=dict(
             text=f"Evolução das Enquetes<br><sup>{subtitle}</sup>",
@@ -1179,8 +1465,15 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
         ),
         xaxis_title="", yaxis_title="Votos (%)",
         height=350 if compact else 380,
-        margin=dict(t=80, b=50, r=80),
-        legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        margin=dict(t=80, b=92 if compact else 104, r=80),
+        legend=dict(
+            orientation='h',
+            yanchor='top',
+            y=-0.18 if compact else -0.22,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=10 if compact else 11),
+        ),
         hovermode='x unified',
     )
     return fig
@@ -1677,6 +1970,21 @@ def avatar_html(name: str, avatars: dict[str, str], size: int = 24, show_name: b
 def avatar_img(name: str, avatars: dict[str, str], size: int = 24, **kwargs: object) -> str:
     """Generate just the avatar image HTML (no name text). Convenience wrapper."""
     return avatar_html(name, avatars, size=size, show_name=False, **kwargs)
+
+
+# ── Paredão / formação helpers ───────────────────────────────────────────────
+
+def resolve_leaders(form: dict) -> list[str]:
+    """Resolve individual leader names from formacao dict.
+
+    Supports dual leadership (lideres array) with fallback to single lider.
+    """
+    lideres = form.get("lideres") or []
+    if not lideres:
+        lider = form.get("lider")
+        if lider:
+            lideres = [lider]
+    return lideres
 
 
 # ── Gender & nominee helpers ─────────────────────────────────────────────────

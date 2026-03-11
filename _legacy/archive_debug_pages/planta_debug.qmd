@@ -1,6 +1,7 @@
 ---
 title: "🌱 Planta Index — Debug"
 subtitle: "Tally completo dos sinais que formam o índice"
+description: "Tally completo dos sinais que formam o índice Planta do BBB 26"
 ---
 
 ```{python}
@@ -196,9 +197,9 @@ sinc_by_person = defaultdict(list)
 for edge in sinc_edges:
     etype = edge.get("type")
     label = {
-        "podio": "Pódio",
+        "elogio": "Elogio",
         "nao_ganha": "Não ganha",
-        "bomba": "Bomba",
+        "ataque": "Ataque",
     }.get(etype, etype)
     actor = edge.get("actor")
     target = edge.get("target")
@@ -398,7 +399,7 @@ else:
     rows = []
     for item in contrad:
         tipo = item.get("tipo")
-        label = "Não ganha" if tipo == "nao_ganha" else ("Bomba" if tipo == "bomba" else tipo)
+        label = "Não ganha" if tipo == "nao_ganha" else ("Ataque" if tipo == "ataque" else tipo)
         rxn = item.get("reacao") or ""
         rxn_txt = REACTION_EMOJI.get(rxn, rxn or "—")
         rows.append({
@@ -450,7 +451,7 @@ else:
             rows = []
             for item in aligned_neg[:5]:
                 tipo = item.get("tipo")
-                label = "Não ganha" if tipo == "nao_ganha" else ("Bomba" if tipo == "bomba" else tipo)
+                label = "Não ganha" if tipo == "nao_ganha" else ("Ataque" if tipo == "ataque" else tipo)
                 rxn = item.get("reacao") or ""
                 rxn_txt = REACTION_EMOJI.get(rxn, rxn or "—")
                 rows.append({

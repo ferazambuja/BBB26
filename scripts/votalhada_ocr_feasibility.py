@@ -12,6 +12,7 @@ import csv
 import difflib
 import io
 import json
+from collections import Counter
 import re
 import subprocess
 import sys
@@ -36,6 +37,7 @@ MONTH_MAP_PT = {
     "nov": 11,
     "dez": 12,
 }
+MONTH_MAP_PT_REV = {v: k for k, v in MONTH_MAP_PT.items()}
 
 DEFAULT_NAME_ALIASES = {
     "A COWBOY": "Alberto Cowboy",
@@ -45,6 +47,22 @@ DEFAULT_NAME_ALIASES = {
 
 CONSOLIDADO_SUM_TOLERANCE = 0.25
 SERIES_SUM_TOLERANCE = 0.75
+PLATFORM_SUM_TOLERANCE = 0.60
+SERIES_SCHEDULE_SLOTS = [
+    "00:00",
+    "01:00",
+    "01:30",
+    "08:00",
+    "08:30",
+    "12:00",
+    "15:00",
+    "17:30",
+    "18:00",
+    "21:00",
+    "22:00",
+    "23:30",
+]
+SERIES_EXPECTED_SLOT_SET = set(SERIES_SCHEDULE_SLOTS)
 
 
 def _strip_accents(text: str) -> str:
@@ -170,10 +188,16 @@ def select_best_consolidado_image(
     diagnostics: dict[str, dict[str, int | str]] = {}
 
     def _extract_ts(path: Path) -> datetime | None:
-        m = re.search(r"_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})\.png$", path.name)
+        m = re.search(r"_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(?:-\d{2})?)\.png$", path.name)
         if not m:
             return None
-        return datetime.strptime(m.group(1), "%Y-%m-%d_%H-%M")
+        raw = m.group(1)
+        for fmt in ("%Y-%m-%d_%H-%M-%S", "%Y-%m-%d_%H-%M"):
+            try:
+                return datetime.strptime(raw, fmt)
+            except ValueError:
+                continue
+        return None
 
     for path in image_paths:
         text = ocr(path)
@@ -205,27 +229,44 @@ def select_best_consolidado_image(
 
 def _extract_row_values(lines: list[str], label: str) -> tuple[list[float], int]:
     label_norm = _norm(label)
-    candidates: list[tuple[float, int, list[float], int]] = []
+    # Candidate sort keys:
+    # - reconstructed_penalty: prefer full rows (0) over 3-token reconstructed rows (1)
+    # - sum_gap: keep values closest to 100%
+    # - -votes: tie-break toward larger vote count
+    candidates: list[tuple[int, float, int, list[float], int]] = []
     for line in lines:
         if label_norm not in _norm(line):
             continue
         tokens = re.findall(r"\d[\d\.,]*", line)
-        if len(tokens) < 4:
+        if len(tokens) >= 4:
+            p1 = _as_float_percent(tokens[0])
+            p2 = _as_float_percent(tokens[1])
+            p3 = _as_float_percent(tokens[2])
+            votes = _as_int_votes(tokens[-1])
+            if None in (p1, p2, p3, votes):
+                continue
+            repaired = _repair_triplet([p1, p2, p3])
+            if any(v < 0 or v > 100 for v in repaired):
+                continue
+            sum_gap = abs(sum(repaired) - 100.0)
+            candidates.append((0, sum_gap, -int(votes), repaired, int(votes)))
             continue
-        p1 = _as_float_percent(tokens[0])
-        p2 = _as_float_percent(tokens[1])
-        p3 = _as_float_percent(tokens[2])
-        votes = _as_int_votes(tokens[3])
-        if None in (p1, p2, p3, votes):
-            continue
-        repaired = _repair_triplet([p1, p2, p3])
-        if any(v < 0 or v > 100 for v in repaired):
-            continue
-        sum_gap = abs(sum(repaired) - 100.0)
-        candidates.append((sum_gap, -int(votes), repaired, int(votes)))
+
+        # OCR occasionally drops the first percentage in a platform row,
+        # leaving only [p2, p3, votes]. Reconstruct p1 as the complement.
+        if len(tokens) == 3:
+            p2 = _as_float_percent(tokens[0])
+            p3 = _as_float_percent(tokens[1])
+            votes3 = _as_int_votes(tokens[2])
+            if None not in (p2, p3, votes3):
+                p1 = round(100.0 - float(p2) - float(p3), 2)
+                repaired3 = _repair_triplet([p1, float(p2), float(p3)])
+                if all(0 <= v <= 100 for v in repaired3):
+                    sum_gap3 = abs(sum(repaired3) - 100.0)
+                    candidates.append((1, sum_gap3, -int(votes3), repaired3, int(votes3)))
     if candidates:
-        candidates.sort(key=lambda item: (item[0], item[1]))
-        _, _, best_pcts, best_votes = candidates[0]
+        candidates.sort(key=lambda item: (item[0], item[1], item[2]))
+        _, _, _, best_pcts, best_votes = candidates[0]
         return best_pcts, best_votes
     raise ValueError(f"Could not parse row for label '{label}'")
 
@@ -339,7 +380,7 @@ def _normalize_hora_token(token: str) -> str | None:
 
 def _coerce_time_progression(time_str: str, previous: str | None) -> str:
     """Coerce likely OCR time slips to the nearest plausible scheduled slot."""
-    schedule = ["01:00", "01:30", "08:00", "12:00", "15:00", "17:30", "18:00", "21:00"]
+    schedule = SERIES_SCHEDULE_SLOTS
 
     def to_minutes(t: str) -> int:
         hh, mm = map(int, t.split(":"))
@@ -366,6 +407,39 @@ def _parse_hora_pt(hora: str, year: int = 2026) -> datetime:
     hh, mm = time_part.split(":")
     month = MONTH_MAP_PT[month_str.lower()]
     return datetime(year, month, int(day_str), int(hh), int(mm))
+
+
+def _coerce_single_row_series_date_from_image(rows: list[dict], source_image: Path) -> list[dict]:
+    if len(rows) != 1:
+        return rows
+
+    m = re.search(r"_(\d{4})-(\d{2})-(\d{2})_", source_image.name)
+    if not m:
+        return rows
+    month_abbr = MONTH_MAP_PT_REV.get(int(m.group(2)))
+    if month_abbr is None:
+        return rows
+    day_from_name = int(m.group(3))
+
+    hora = str(rows[0].get("hora", ""))
+    if " " not in hora:
+        return rows
+    day_month, time_part = hora.split(maxsplit=1)
+    if "/" not in day_month:
+        return rows
+    parsed_day_str, parsed_month = day_month.split("/", maxsplit=1)
+    if not parsed_day_str.isdigit():
+        return rows
+    parsed_day = int(parsed_day_str)
+    parsed_month = parsed_month.lower()
+
+    # For single-row fallback captures, trust image timestamp if OCR date is clearly off.
+    if parsed_month != month_abbr or abs(parsed_day - day_from_name) >= 2:
+        corrected = rows[0].copy()
+        corrected["hora"] = f"{day_from_name:02d}/{month_abbr} {time_part}"
+        return [corrected]
+
+    return rows
 
 
 def _normalize_day_month_token(token: str) -> str | None:
@@ -509,6 +583,103 @@ def _extract_top_table_lines(image_path: Path) -> list[str]:
         temp_crop.unlink(missing_ok=True)
     lines = [line.strip() for line in (text_psm6 + "\n" + text_psm4).splitlines() if line.strip()]
     return lines
+
+
+def _make_top_right_time_crop(
+    image_path: Path,
+    start_ratio: float = 0.14,
+    end_ratio: float = 0.44,
+    left_ratio: float = 0.66,
+    right_ratio: float = 0.98,
+) -> Path:
+    identify = subprocess.run(
+        ["magick", "identify", "-format", "%w %h", str(image_path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    width_str, height_str = identify.stdout.strip().split()
+    width, height = int(width_str), int(height_str)
+    top = int(height * start_ratio)
+    bottom = int(height * end_ratio)
+    left = int(width * left_ratio)
+    right = int(width * right_ratio)
+    crop_w = max(1, right - left)
+    crop_h = max(1, bottom - top)
+
+    with tempfile.NamedTemporaryFile(
+        prefix="ocr_top_right_time_",
+        suffix=".png",
+        dir=Path.cwd(),
+        delete=False,
+    ) as tmp:
+        out_path = Path(tmp.name)
+
+    subprocess.run(
+        [
+            "magick",
+            str(image_path),
+            "-crop",
+            f"{crop_w}x{crop_h}+{left}+{top}",
+            "+repage",
+            "-colorspace",
+            "Gray",
+            "-contrast-stretch",
+            "0x12%",
+            "-resize",
+            "280%",
+            str(out_path),
+        ],
+        check=True,
+    )
+    return out_path
+
+
+def _extract_top_right_hora_from_text(text: str) -> str | None:
+    candidates: list[str] = []
+    normalized = text.replace("\n", " ")
+
+    for m in re.finditer(r"(?<!\d)(\d{1,2})\s*[:hH]\s*(\d{2})(?!\d)", normalized):
+        token = f"{int(m.group(1)):02d}:{m.group(2)}"
+        norm = _normalize_hora_token(token)
+        if norm:
+            candidates.append(norm)
+
+    for m in re.finditer(r"(?<!\d)(\d{3,4})(?!\d)", normalized):
+        norm = _normalize_hora_token(m.group(1))
+        if norm:
+            candidates.append(norm)
+
+    if not candidates:
+        return None
+
+    counts = Counter(candidates)
+    best = sorted(
+        counts.items(),
+        key=lambda item: (-item[1], SERIES_SCHEDULE_SLOTS.index(item[0]) if item[0] in SERIES_EXPECTED_SLOT_SET else 999),
+    )
+    return best[0][0]
+
+
+def extract_top_right_hora_from_image(image_path: Path) -> str | None:
+    temp_crop = _make_top_right_time_crop(image_path)
+    try:
+        texts = [
+            _run_tesseract_text(temp_crop, psm=7),
+            _run_tesseract_text(temp_crop, psm=6),
+            _run_tesseract_text(temp_crop, psm=13),
+        ]
+    finally:
+        temp_crop.unlink(missing_ok=True)
+
+    candidates = [t for t in (_extract_top_right_hora_from_text(text) for text in texts) if t]
+    if not candidates:
+        return None
+    counts = Counter(candidates)
+    return sorted(
+        counts.items(),
+        key=lambda item: (-item[1], SERIES_SCHEDULE_SLOTS.index(item[0]) if item[0] in SERIES_EXPECTED_SLOT_SET else 999),
+    )[0][0]
 
 
 def _make_bottom_table_crop(image_path: Path, top_ratio: float = 0.40) -> Path:
@@ -710,7 +881,11 @@ def extract_series_rows_from_image(image_path: Path, participants: list[str]) ->
     return max(candidates, key=_series_quality)
 
 
-def _parse_series_rows(lines: list[str], participants: list[str]) -> list[dict]:
+def _parse_series_rows(
+    lines: list[str],
+    participants: list[str],
+    fallback_votes: int | None = None,
+) -> list[dict]:
     rows: list[dict] = []
     in_series = False
     current_date: str | None = None
@@ -759,16 +934,27 @@ def _parse_series_rows(lines: list[str], participants: list[str]) -> list[dict]:
                 continue
             numeric_tokens.append(tok)
 
-        if len(numeric_tokens) < 4:
+        if len(numeric_tokens) < 3:
             continue
 
-        vote_idx = len(numeric_tokens) - 1
-        votos = _as_int_votes(numeric_tokens[vote_idx])
-        if votos is None:
-            continue
+        pct_source_tokens: list[str]
+        votos: int | None
+        if len(numeric_tokens) >= 4:
+            vote_idx = len(numeric_tokens) - 1
+            votos = _as_int_votes(numeric_tokens[vote_idx])
+            if votos is None:
+                continue
+            pct_source_tokens = numeric_tokens[:vote_idx]
+        else:
+            # Some early cards render/ocr series rows without the rightmost vote cell.
+            # Use consolidated total only as a fallback for these partial rows.
+            if fallback_votes is None:
+                continue
+            votos = int(fallback_votes)
+            pct_source_tokens = numeric_tokens
 
         pct_values = []
-        for tok in numeric_tokens[:vote_idx]:
+        for tok in pct_source_tokens:
             val = _as_float_percent(tok)
             if val is None:
                 continue
@@ -838,6 +1024,88 @@ def _series_quality(rows: list[dict]) -> tuple[int, int]:
     return (len(rows), int(rows[-1].get("votos", 0)))
 
 
+def _apply_series_time_sanity(
+    rows: list[dict],
+    participants: list[str],
+) -> tuple[list[dict], list[dict], list[str]]:
+    """Apply conservative repairs/warnings for OCR time noise in series rows."""
+    if not rows:
+        return [], [], []
+
+    ordered = sorted(rows, key=lambda r: _parse_hora_pt(r["hora"]))
+    corrections: list[dict] = []
+    warnings: list[str] = []
+    repaired: list[dict] = []
+
+    for idx, row in enumerate(ordered):
+        hora = str(row.get("hora", ""))
+        if " " not in hora or "/" not in hora:
+            warnings.append(f"unrecognized_hora_format:{hora}")
+            repaired.append(row)
+            continue
+
+        day_token, time_token = hora.split(maxsplit=1)
+        target_time = time_token
+
+        # Guarded repairs:
+        # - OCR often misreads 08:00/08:30 as 03:00/03:30
+        # - either as next-day first slot, or as same-day duplicate beside true 08:xx
+        if time_token in {"03:00", "03:30"} and repaired:
+            prev_day, prev_time = repaired[-1]["hora"].split()
+            candidate_time = "08:00" if time_token == "03:00" else "08:30"
+            next_times_same_day = []
+            same_day_duplicate_votes = False
+            for future_row in ordered[idx + 1 :]:
+                future_hora = str(future_row.get("hora", ""))
+                if not future_hora.startswith(f"{day_token} "):
+                    continue
+                _, future_time = future_hora.split(maxsplit=1)
+                next_times_same_day.append(future_time)
+                if (
+                    future_time == candidate_time
+                    and int(future_row.get("votos", 0)) == int(row.get("votos", 0))
+                ):
+                    same_day_duplicate_votes = True
+
+            likely_day_rollover = (
+                prev_day != day_token
+                and prev_time in {"18:00", "21:00", "22:00", "23:30"}
+                and any(t in {"12:00", "15:00", "17:30", "18:00", "21:00", "22:00"} for t in next_times_same_day)
+            )
+            if same_day_duplicate_votes or likely_day_rollover:
+                target_time = candidate_time
+
+        if target_time != time_token:
+            corrected_hora = f"{day_token} {target_time}"
+            same_day_known = {
+                r["hora"].split(maxsplit=1)[1]
+                for r in repaired
+                if str(r.get("hora", "")).startswith(f"{day_token} ")
+            }
+            if target_time in same_day_known:
+                warnings.append(f"time_correction_skipped_duplicate:{hora}->{corrected_hora}")
+            else:
+                corrected = row.copy()
+                corrected["hora"] = corrected_hora
+                repaired.append(corrected)
+                corrections.append(
+                    {
+                        "from": hora,
+                        "to": corrected_hora,
+                        "reason": "rollover_03_to_08_repair",
+                    }
+                )
+                continue
+
+        if target_time not in SERIES_EXPECTED_SLOT_SET:
+            warnings.append(f"unexpected_time_slot:{day_token} {target_time}")
+
+        repaired.append(row)
+
+    cleaned = _clean_series_rows(repaired, participants)
+    return cleaned, corrections, warnings
+
+
 def _extract_platform_rows(lines: list[str], participants: list[str]) -> dict:
     rows: dict[str, dict] = {}
 
@@ -856,7 +1124,7 @@ def _extract_platform_rows(lines: list[str], participants: list[str]) -> dict:
     # Core rows expected in both legacy and current layouts.
     put_row("sites", ["Sites"])
     put_row("youtube", ["YouTube"])
-    put_row("twitter", ["Twitter", "X - Twitter", "X-Twitter"])
+    put_row("twitter", ["Twitter", "X - Twitter", "X-Twitter", "Twrittor", "Twritter", "Twiter"])
 
     # Dynamic extra schemas:
     # - old 3-platform layout: none of these appears
@@ -897,6 +1165,14 @@ def parse_consolidado_snapshot(
 
     plataformas_payload = _extract_platform_rows(lines, participants)
     note = _extract_note(text)
+    try:
+        cons_vals, cons_votes = _extract_consolidado_row(text + "\n" + (alt_text or ""))
+        cons_from_row = True
+    except ValueError:
+        cons_vals = []
+        cons_votes = 0
+        cons_from_row = False
+
     series = _clean_series_rows(_parse_series_rows(lines_primary, participants), participants)
     if source_image is not None:
         series_from_image = _clean_series_rows(
@@ -905,11 +1181,48 @@ def parse_consolidado_snapshot(
         )
         if _series_quality(series_from_image) > _series_quality(series):
             series = series_from_image
-    capture_hora = series[-1]["hora"] if series else None
 
-    try:
-        cons_vals, cons_votes = _extract_consolidado_row(text + "\n" + (alt_text or ""))
-    except ValueError:
+    fallback_series_votes: int | None = None
+    if cons_from_row:
+        fallback_series_votes = int(cons_votes)
+    else:
+        platform_keys = _platform_keys_for_totals(plataformas_payload)
+        if platform_keys:
+            fallback_series_votes = sum(int(plataformas_payload[p]["votos"]) for p in platform_keys)
+
+    if not series and fallback_series_votes is not None:
+        series_no_votes = _clean_series_rows(
+            _parse_series_rows(
+                lines_primary + lines_alt,
+                participants,
+                fallback_votes=int(fallback_series_votes),
+            ),
+            participants,
+        )
+        if _series_quality(series_no_votes) > _series_quality(series):
+            series = series_no_votes
+    if source_image is not None:
+        series = _coerce_single_row_series_date_from_image(series, source_image)
+    series, time_corrections, time_warnings = _apply_series_time_sanity(series, participants)
+
+    capture_hora_bottom = series[-1]["hora"] if series else None
+    capture_hora_top_time = extract_top_right_hora_from_image(source_image) if source_image is not None else None
+    capture_hora_top: str | None = None
+    if capture_hora_top_time:
+        if capture_hora_bottom and " " in capture_hora_bottom:
+            capture_hora_top = f"{capture_hora_bottom.split()[0]} {capture_hora_top_time}"
+        else:
+            capture_hora_top = capture_hora_top_time
+
+    capture_hora_conflict = bool(
+        capture_hora_top
+        and capture_hora_bottom
+        and capture_hora_top.split()[-1] != capture_hora_bottom.split()[-1]
+    )
+    capture_hora_resolved = capture_hora_bottom or capture_hora_top
+    capture_hora = capture_hora_resolved
+
+    if not cons_from_row:
         if series:
             last = series[-1]
             cons_vals = [float(last[participants[0]]), float(last[participants[1]]), float(last[participants[2]])]
@@ -938,8 +1251,14 @@ def parse_consolidado_snapshot(
             participants[2]: cons_vals[2],
             "total_votos": cons_votes,
         },
+        "capture_hora_top": capture_hora_top,
+        "capture_hora_bottom": capture_hora_bottom,
+        "capture_hora_resolved": capture_hora_resolved,
+        "capture_hora_conflict": capture_hora_conflict,
         "plataformas": plataformas_payload,
         "serie_temporal": series,
+        "time_corrections": time_corrections,
+        "time_warnings": time_warnings,
     }
     if note:
         payload["consolidado"]["nota"] = note
@@ -958,6 +1277,9 @@ def validate_snapshot(
     consolidado = parsed.get("consolidado", {})
     plataformas = parsed.get("plataformas", {})
     serie = parsed.get("serie_temporal", [])
+    capture_hora_top = parsed.get("capture_hora_top")
+    capture_hora_bottom = parsed.get("capture_hora_bottom")
+    capture_hora_conflict = bool(parsed.get("capture_hora_conflict"))
 
     # Sum checks.
     cons_sum = sum(float(consolidado.get(name, 0.0)) for name in participants)
@@ -971,7 +1293,7 @@ def validate_snapshot(
     for plat_name in platform_keys:
         pdata = plataformas.get(plat_name, {})
         s = sum(float(pdata.get(name, 0.0)) for name in participants)
-        if abs(s - 100.0) > sum_tolerance:
+        if abs(s - 100.0) > max(sum_tolerance, PLATFORM_SUM_TOLERANCE):
             errors.append(f"{plat_name} sum mismatch: {s:.2f}")
 
     # Total-vote reconciliation.
@@ -991,6 +1313,11 @@ def validate_snapshot(
         for plat_name in platform_keys:
             if name not in plataformas.get(plat_name, {}):
                 errors.append(f"missing participant in {plat_name}: {name}")
+
+    if capture_hora_conflict:
+        errors.append(
+            f"capture_hora mismatch: top={capture_hora_top} vs bottom={capture_hora_bottom}"
+        )
 
     # Time-series monotonic votes.
     if serie:

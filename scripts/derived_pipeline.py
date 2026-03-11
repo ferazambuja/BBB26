@@ -61,6 +61,8 @@ from builders import (  # noqa: F401 — re-exports
     build_paredao_analysis, build_paredao_badges,
     # vote_prediction
     build_vote_prediction, extract_paredao_eligibility, VOTE_PREDICTION_CONFIG,
+    # balance
+    build_balance_events,
 )
 
 from builders.relations import get_all_snapshots  # noqa: F401
@@ -291,7 +293,14 @@ def build_derived_data() -> None:
     write_json(DERIVED_DIR / "vote_prediction.json", vote_prediction)
 
     # Build paredão analysis + badges
-    paredao_analysis = build_paredao_analysis(daily_snapshots, paredoes)
+    paredao_analysis = build_paredao_analysis(
+        daily_snapshots,
+        paredoes,
+        manual_events,
+        auto_events,
+        sincerao_edges,
+        relations_scores,
+    )
     write_json(DERIVED_DIR / "paredao_analysis.json", {
         "_metadata": {"generated_at": now, "source": "snapshots+paredoes+manual_events"},
         **paredao_analysis,
@@ -309,7 +318,13 @@ def build_derived_data() -> None:
     })
 
     # Build Cartola data
-    cartola_data = build_cartola_data(daily_snapshots, manual_events, paredoes, participants_index)
+    cartola_data = build_cartola_data(
+        daily_snapshots,
+        manual_events,
+        paredoes,
+        participants_index,
+        provas_data=provas_data,
+    )
     write_json(DERIVED_DIR / "cartola_data.json", cartola_data)
 
     # Build precomputed reaction matrices
@@ -318,6 +333,10 @@ def build_derived_data() -> None:
         "_metadata": {"generated_at": now, "source": "snapshots"},
         **reaction_matrices,
     })
+
+    # Build balance events (uses ALL snapshots, not daily-only)
+    balance_events = build_balance_events(snapshots)
+    write_json(DERIVED_DIR / "balance_events.json", balance_events)
 
     # Build index data (for index.qmd)
     from build_index_data import build_index_data

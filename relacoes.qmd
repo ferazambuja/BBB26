@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Relações"
 subtitle: "O mapa social do BBB 26: alianças, rivalidades, rupturas e contradições"
+description: "O mapa social do BBB 26: alianças, rivalidades, rupturas e contradições"
 lang: pt-BR
 format:
   html:
@@ -238,7 +239,7 @@ if daily_changes:
                 f'padding:0.6rem; text-align:center; border-top:3px solid {color};">'
                 f'<div class="fs-4xl">{emoji}</div>'
                 f'<div class="fs-2xl" style="font-weight:bold; color:{color};">{value}</div>'
-                f'<div class="fs-sm u-s001">{label}</div></div>')
+                f'<div class="fs-sm meta-text">{label}</div></div>')
 
     cards = [
         _stat_card("💔", hl, "Corações perdidos", "#e74c3c"),
@@ -953,8 +954,7 @@ if clusters_data:
         print(f"- **{name}**: {', '.join(members[:6])}" + (f" +{len(members)-6}" if len(members) > 6 else "") +
               f" (coesão: {cohesion:.2f})")
 
-    print(f"""
-[🧪 Ver análise completa de clusters →](clusters.html)
+    print("""
 :::
 """)
 else:

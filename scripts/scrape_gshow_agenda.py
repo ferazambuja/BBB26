@@ -3,13 +3,17 @@
 Scrape GShow BBB 26 agenda (programacao do dia) for a given date.
 
 The agenda page is client-rendered (React), so we use a headless browser
-(Playwright via Node.js) to extract the schedule after JavaScript loads.
+(Python Playwright) to extract the schedule after JavaScript loads.
 
 IMPORTANT: Date offset
   The URL at /agenda/YYYY-MM-DD.ghtml covers events from the PREVIOUS day.
   Example: /agenda/2026-03-05.ghtml -> "Aconteceu no BBB 26 no dia 04 de marco"
   The --date argument is the EVENT date (what happened), not the URL date.
   The script adds +1 day automatically to build the correct URL.
+
+Requirements:
+  pip install playwright
+  python -m playwright install chromium
 
 Usage:
   # What happened on March 4?
@@ -32,9 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import sys
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -51,17 +53,10 @@ DEFAULT_HEADERS = {
     "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
 }
 
-# JS extraction script run inside Playwright
+# JS extraction code run inside the browser via page.evaluate().
+# This runs in the DOM context — it must be JavaScript regardless of the driver.
 _EXTRACT_JS = r"""
-(async () => {
-  const { chromium } = require('playwright');
-  const url = process.argv[2];
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  await page.goto(url, {waitUntil: 'domcontentloaded', timeout: 30000});
-  await page.waitForTimeout(8000);
-
-  const data = await page.evaluate(() => {
+() => {
     const result = {heading: '', summary: '', sections: [], timestamp: ''};
     const timeRe = /(\d{1,2}h\d{0,2})/;
     const periodRe = /(No período da (?:manhã|tarde)|A partir de \d{1,2}h\d{0,2})/;
@@ -102,7 +97,6 @@ _EXTRACT_JS = r"""
       const region = acc.querySelector('[class*="MuiAccordion-region"]');
       if (!summary || !region) return;
 
-      // Extract items from this accordion
       const items = [];
       region.querySelectorAll('a[href]').forEach(a => {
         const href = a.href || '';
@@ -111,10 +105,8 @@ _EXTRACT_JS = r"""
         const titleEl = a.querySelector('[class*="titleDefault"]');
         if (titleEl) title = titleEl.textContent.trim();
         if (!title) title = a.textContent.trim();
-        // Strip duration prefix (e.g. "4 min" or "25 seg")
         title = title.replace(/^\d+\s*(?:min|seg|h)\s*/i, '').trim();
         if (!title || title.length < 10) return;
-        // Dedup by href
         if (seen.has(href)) return;
         seen.add(href);
 
@@ -132,12 +124,10 @@ _EXTRACT_JS = r"""
 
       if (items.length === 0) return;
 
-      // Parse label and time from summary text
       const rawLabel = summary.textContent.trim();
       let label = rawLabel;
       let time = '';
 
-      // Extract time from label (e.g. "Mesacast BBB19h30" -> "Mesacast BBB", "19h30")
       const descRe = /(Durante o programa|Após a Eliminação|No período da (?:manhã|tarde)|A partir de \d{1,2}h\d{0,2})/;
       const dMatch = rawLabel.match(descRe);
       if (dMatch) {
@@ -157,7 +147,6 @@ _EXTRACT_JS = r"""
         }
       }
 
-      // Dedup sections (4 accordions per section for viewport sizes)
       const key = label + '|' + time;
       if (seen.has('section:' + key)) return;
       seen.add('section:' + key);
@@ -170,11 +159,7 @@ _EXTRACT_JS = r"""
     if (tsMatch) result.timestamp = tsMatch[1];
 
     return result;
-  });
-
-  console.log(JSON.stringify(data));
-  await browser.close();
-})();
+}
 """
 
 
@@ -186,50 +171,30 @@ def agenda_url(event_date: str) -> str:
 
 def scrape_agenda_playwright(event_date: str) -> dict:
     """
-    Scrape agenda using Playwright headless browser (renders JavaScript).
+    Scrape agenda using Python Playwright headless browser (renders JavaScript).
 
-    Requires: Node.js + playwright npm package (installed in /tmp or globally).
+    Requires: pip install playwright && python -m playwright install chromium
     """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise RuntimeError(
+            "Python playwright not installed.\n"
+            "Run: pip install playwright && python -m playwright install chromium\n"
+            "Or use --static mode for basic extraction."
+        )
+
     url = agenda_url(event_date)
 
-    # Write the extraction script to a temp file
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".cjs", delete=False) as f:
-        f.write(_EXTRACT_JS)
-        script_path = f.name
-
-    env = {**__import__("os").environ, "NODE_PATH": "/tmp/node_modules"}
-    try:
-        result = subprocess.run(
-            ["node", script_path, url],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env,
-        )
-    except FileNotFoundError:
-        raise RuntimeError("Node.js not found. Install Node.js or use --static mode.")
-    except subprocess.TimeoutExpired:
-        raise RuntimeError(f"Playwright timed out loading {url}")
-    finally:
-        Path(script_path).unlink(missing_ok=True)
-
-    if result.returncode != 0:
-        stderr = result.stderr.strip()
-        if "Cannot find module" in stderr or "Cannot find package" in stderr:
-            raise RuntimeError(
-                "Playwright not installed. Run: cd /tmp && npm install playwright\n"
-                "Or use --static mode for basic extraction."
-            )
-        raise RuntimeError(f"Playwright failed: {stderr[:500]}")
-
-    # Parse JSON from stdout (skip non-JSON lines)
-    for line in result.stdout.strip().splitlines():
-        line = line.strip()
-        if line.startswith("{"):
-            raw = json.loads(line)
-            break
-    else:
-        raise RuntimeError(f"No JSON output from Playwright. stdout: {result.stdout[:300]}")
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        try:
+            page = browser.new_page()
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(8000)
+            raw = page.evaluate(_EXTRACT_JS)
+        finally:
+            browser.close()
 
     # Flatten sections into a schedule list with section/time metadata
     schedule = []
