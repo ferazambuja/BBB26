@@ -216,10 +216,14 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 ### Additional Pages
 
 - `cartola.qmd` — Cartola BBB points leaderboard
-- `planta_debug.qmd` — Planta Index debug breakdown
-- `datas.qmd` — Date View (explore queridômetro by date)
-- `clusters.qmd` — Affinity clusters analysis
-- `relacoes_debug.qmd` — Relations scoring debug + Líder nomination prediction
+
+### Archived Debug Pages
+
+The following pages are archived (not rendered in the active site navbar):
+- `_legacy/archive_debug_pages/planta_debug.qmd` — Planta Index debug breakdown
+- `_legacy/archive_debug_pages/datas.qmd` — Date View (explore queridômetro by date)
+- `_legacy/archive_debug_pages/clusters.qmd` — Affinity clusters analysis
+- `_legacy/archive_debug_pages/relacoes_debug.qmd` — Relations scoring debug + Líder nomination prediction
 
 ### Design Decisions
 

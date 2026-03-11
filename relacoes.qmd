@@ -954,8 +954,7 @@ if clusters_data:
         print(f"- **{name}**: {', '.join(members[:6])}" + (f" +{len(members)-6}" if len(members) > 6 else "") +
               f" (coesão: {cohesion:.2f})")
 
-    print(f"""
-[🧪 Ver análise completa de clusters →](clusters.html)
+    print("""
 :::
 """)
 else:

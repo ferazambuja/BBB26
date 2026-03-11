@@ -44,7 +44,6 @@ def test_quarto_uses_text_first_navbar_labels():
         'text: "Provas"',
         'text: "Paredões"',
         'text: "Votação"',
-        'text: "Mais"',
     ]
     for label in expected_labels:
         assert label in config
