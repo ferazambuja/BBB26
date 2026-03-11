@@ -1029,6 +1029,8 @@ class TestRenderCronologiaHtml:
         assert 'colspan="2"' in html
         assert "R$ 20 mil" in html
         assert "Jordana escolhe o veto" in html
+        assert "<thead>" not in html
+        assert "cronologia-head-row" not in html
 
     def test_render_cronologia_variant_two_row_disclosure_uses_native_details(self):
         events = [
@@ -1048,6 +1050,8 @@ class TestRenderCronologiaHtml:
         assert '<details class="cronologia-detail-toggle">' in html
         assert "Abrir detalhe" in html
         assert "R$ 20 mil" in html
+        assert "<thead>" not in html
+        assert "cronologia-head-row" not in html
 
     def test_render_cronologia_mobile_review_html_stacks_all_variants(self):
         events = [

@@ -1126,11 +1126,7 @@ def _render_cronologia_mobile_table(grouped_events: list[dict], variant: str) ->
         '<div class="cronologia-shell cronologia-shell--review">',
         '<div class="cronologia-table-wrap">',
         f'<table class="cronologia-mobile-table {table_class}">',
-        '<thead>',
-        '<tr class="cronologia-head-row">',
-        '<th class="col-badge">Tipo</th>',
-        '<th class="cronologia-head-label">Evento</th>',
-        '</tr></thead><tbody>',
+        '<tbody>',
     ]
 
     def row_builder(item: dict) -> list[str]:
