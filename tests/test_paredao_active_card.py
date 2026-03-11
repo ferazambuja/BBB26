@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import sys
 from pathlib import Path
@@ -59,12 +60,35 @@ def test_active_payload_uses_model_order_and_two_facts(_repo_data):
     assert payload["nominees"][1]["color_role"] == "warning"
     assert payload["nominees"][2]["color_role"] == "safe"
     assert payload["trust_badge"]["visible"] is True
-    assert "mais preciso" in payload["trust_badge"]["text"]
-    assert "teste retrospectivo" in payload["trust_badge"]["text"]
+    assert "acertou todos os paredões" in payload["trust_badge"]["text"]
+    assert "Votalhada errou 1" in payload["trust_badge"]["text"]
     assert payload["trust_badge"]["href"] == "paredoes.html#nosso-modelo-back-test"
     assert len(payload["fact_lines"]) == 2
     assert any("Babu" in fact for fact in payload["fact_lines"])
     assert any("Milena" in fact for fact in payload["fact_lines"])
+    assert payload["curiosity_line"]
+    assert "%" in payload["curiosity_line"] or "p.p." in payload["curiosity_line"] or "pontos percentuais" in payload["curiosity_line"].lower()
+    assert "janela" not in payload["curiosity_line"].lower()
+    assert "pontos percentuais" in payload["curiosity_line"].lower()
+    assert payload.get("curiosity_chips")
+    assert any("Ritmo atual" in str(c.get("label", "")) for c in payload["curiosity_chips"])
+    assert any("Ritmo necessário" in str(c.get("label", "")) for c in payload["curiosity_chips"])
+    assert any("p.p./h" in str(c.get("value", "")) for c in payload["curiosity_chips"])
+
+
+def test_curiosity_after_close_freezes_projection(_repo_data):
+    current = _repo_data["paredoes"][-1]
+    history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
+    poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
+    closed_poll = copy.deepcopy(poll)
+    closed_poll["fechamento_votacao"] = "2000-01-01T22:45:00-03:00"
+
+    payload = build_paredao_card_payload(current, closed_poll, _repo_data["polls_data"], history)
+
+    assert payload["curiosity_line"]
+    assert "encerramento da votação atingido" in payload["curiosity_line"].lower()
+    assert payload.get("curiosity_chips")
+    assert any("Diferença no fechamento" in str(c.get("label", "")) for c in payload["curiosity_chips"])
 
 
 def test_active_payload_without_model_prediction_stays_neutral(_repo_data):
@@ -77,6 +101,7 @@ def test_active_payload_without_model_prediction_stays_neutral(_repo_data):
     assert payload["trust_badge"]["visible"] is False
     assert all(n.get("model_pct") is None for n in payload["nominees"])
     assert all(n["color_role"] == "neutral" for n in payload["nominees"])
+    assert payload["curiosity_line"] is None
 
 
 def test_finalized_payload_uses_official_results_and_grayscale(_repo_data):
@@ -108,11 +133,35 @@ def test_live_and_index_renderers_share_the_new_card_language(_repo_data):
     assert "Nosso Modelo" in live_html
     assert "Votalhada" in live_html
     assert 'href="paredoes.html#nosso-modelo-back-test"' in live_html
-    assert "teste retrospectivo" in live_html
+    assert "acertou todos os paredões" in live_html
+    assert 'class="paredao-card-curiosity"' in live_html
+    assert 'class="paredao-curiosity-chips' in live_html
+    assert "p.p./h = pontos percentuais por hora" in live_html
     assert 'class="paredao-index-card' in index_html
     assert "Babu" in index_html
     assert 'href="paredoes.html#nosso-modelo-back-test"' in index_html
     assert 'class="paredao-index-note' in index_html
+    assert 'class="paredao-index-curiosity"' in index_html
+    assert 'class="paredao-curiosity-chips' in index_html
+    assert "p.p./h = pontos percentuais por hora" in index_html
+
+
+def test_repeat_nominees_render_top_right_appearance_badges(_repo_data):
+    current = _repo_data["paredoes"][-1]
+    history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
+    poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
+    payload = build_paredao_card_payload(current, poll, _repo_data["polls_data"], history)
+
+    expected_badges = sum(1 for n in payload["nominees"] if n.get("appearance_count", 1) > 1)
+    assert expected_badges > 0
+
+    live_html = render_paredao_live_card(payload, _repo_data["avatars"])
+    index_html = render_paredao_index_card(payload, _repo_data["avatars"])
+
+    assert live_html.count("paredao-card-appearance-badge") == expected_badges
+    assert index_html.count("paredao-card-appearance-badge") == expected_badges
+    assert ">1x<" not in live_html
+    assert ">1x<" not in index_html
 
 
 def test_poll_comparison_payload_includes_confidence_and_delta(_repo_data):

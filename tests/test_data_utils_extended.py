@@ -1323,6 +1323,20 @@ class TestMakePollTimeseries:
         assert fig.layout.legend.y < 0
         assert fig.layout.margin.b >= 85
 
+    def test_with_model_prediction_adds_overlay_markers(self, polls_json_data):
+        from data_utils import make_poll_timeseries
+        setup_bbb_dark_theme()
+        poll = polls_json_data["paredoes"][0]
+        prediction = {nome: poll["consolidado"].get(nome, 0) for nome in poll["participantes"]}
+        fig = make_poll_timeseries(poll, model_prediction={"prediction": prediction})
+        assert fig is not None
+        # Base lines + per-participant model projected history lines.
+        assert len(fig.data) == len(poll["participantes"]) * 2
+        model_traces = [tr for tr in fig.data if getattr(getattr(tr, "line", None), "dash", None) == "dot"]
+        assert len(model_traces) == len(poll["participantes"])
+        assert all(len(tr.y) == len(poll["serie_temporal"]) for tr in model_traces)
+        assert "linha pontilhada" in fig.layout.title.text
+
     def test_empty_serie_temporal(self):
         from data_utils import make_poll_timeseries
         poll = {"serie_temporal": [], "participantes": ["A"]}

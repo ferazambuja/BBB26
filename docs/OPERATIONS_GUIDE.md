@@ -732,6 +732,13 @@ Before each elimination (~21h BRT), collect poll data from [Votalhada](https://v
 
 Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
 
+**Vote-window baseline (for trend projections):**
+- Voting usually opens on Sunday/Monday after the live show.
+- Voting usually closes around **Tuesday 22:45 BRT** (official result shortly after).
+- Near finals, this close window can shift. In those weeks, set an explicit close override in `data/votalhada/polls.json` for that paredão:
+  - `fechamento_votacao` (ISO, with timezone), e.g. `"2026-04-14T23:15:00-03:00"`.
+  - If missing, dashboards assume Tuesday 22:45 BRT by default.
+
 ### 1. Fetch poll images with the script
 
 ```bash
@@ -1259,6 +1266,8 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `resultado.votos.{name}.{voto_unico, voto_torcida, voto_total}` — NOT `percentuais`
 - `fontes` are objects: `{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}`
 - For fake eliminations, add `"paredao_falso": true`
+- At new paredão creation, always confirm this question: **"Fechamento previsto continua terça ~22:45 BRT?"**
+  - If the answer is "no" (common near finals), register the real closing schedule in `data/votalhada/polls.json` using `fechamento_votacao`.
 
 **Full schema**: See `docs/ARCHITECTURE.md` (data contracts) + templates in this guide.
 

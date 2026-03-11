@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
+import re
 
 from data_utils import (
     GROUP_COLORS,
@@ -19,6 +20,7 @@ from data_utils import (
     backtest_precision_model,
     calculate_precision_weights,
     genero,
+    parse_votalhada_hora,
     predict_precision_weighted,
     safe_html,
 )
@@ -104,6 +106,15 @@ _PAREDAO_ROLE_COLORS: dict[str, str] = {
 }
 
 
+def _rich_text(text: str | None) -> str:
+    """Escape user text and render simple **bold** emphasis."""
+    if not text:
+        return ""
+    escaped = safe_html(text)
+    rendered = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
+    return rendered.replace("\n", "<br>")
+
+
 def _is_finalized_paredao(entry: dict | None) -> bool:
     if not entry:
         return False
@@ -160,16 +171,25 @@ def _build_trust_badge(polls_data: dict | None) -> dict:
 
     model_correct = aggregate.get("model_correct", 0)
     consolidado_correct = aggregate.get("consolidado_correct", 0)
-    text = (
-        f"Nosso Modelo mais preciso que o Votalhada no teste retrospectivo: "
-        f"{model_correct}/{n_paredoes} e {model_mae:.1f} p.p. "
-        f"vs {consolidado_correct}/{n_paredoes} e {consolidado_mae:.1f} p.p."
-    )
-    short_text = (
-        f"Mais preciso no teste retrospectivo: "
-        f"{model_correct}/{n_paredoes} · {model_mae:.1f} p.p. "
-        f"vs {consolidado_correct}/{n_paredoes} · {consolidado_mae:.1f}"
-    )
+    votalhada_wrong = max(0, n_paredoes - consolidado_correct)
+    if model_correct == n_paredoes:
+        text = (
+            f"No retrospectivo, nosso modelo acertou todos os paredões ({model_correct}/{n_paredoes}). "
+            f"O Votalhada errou {votalhada_wrong} ({consolidado_correct}/{n_paredoes}). "
+            f"Erro médio: {model_mae:.1f} p.p. vs {consolidado_mae:.1f} p.p."
+        )
+        short_text = (
+            f"Acertamos {model_correct}/{n_paredoes}; Votalhada {consolidado_correct}/{n_paredoes} "
+            f"(errou {votalhada_wrong})."
+        )
+    else:
+        text = (
+            f"No retrospectivo: nosso modelo {model_correct}/{n_paredoes} (erro {model_mae:.1f} p.p.) "
+            f"vs Votalhada {consolidado_correct}/{n_paredoes} (erro {consolidado_mae:.1f} p.p.)."
+        )
+        short_text = (
+            f"Retrospectivo: modelo {model_correct}/{n_paredoes} vs Votalhada {consolidado_correct}/{n_paredoes}."
+        )
     return {
         "visible": True,
         "text": text,
@@ -235,6 +255,228 @@ def _build_active_fact_lines(nominees: list[dict], vote_mode: str) -> list[str]:
     return facts[:2]
 
 
+def _build_card_curiosity_line(
+    poll: dict | None,
+    model_prediction: dict | None,
+    vote_mode: str,
+) -> tuple[str | None, list[dict]]:
+    """Build a single dynamic curiosity line for active paredão/index cards."""
+    if not poll:
+        return None, []
+
+    participantes = poll.get("participantes", [])
+    consolidado = poll.get("consolidado", {})
+    if len(participantes) < 2:
+        return None, []
+
+    v_rank = sorted(
+        [(nome, float(consolidado.get(nome, 0) or 0)) for nome in participantes],
+        key=lambda x: (-x[1], x[0]),
+    )
+
+    model_values = (model_prediction or {}).get("prediction", {}) if model_prediction else {}
+
+    # Priority 1: momentum from the latest windows.
+    serie = poll.get("serie_temporal", [])
+    if len(serie) >= 3 and len(v_rank) >= 2:
+        lead, runner = v_rank[0][0], v_rank[1][0]
+        gap_now = max(0.0, v_rank[0][1] - v_rank[1][1])
+        k = min(3, len(serie) - 1)
+        past = serie[-(k + 1)]
+        last = serie[-1]
+        lead_delta = float(last.get(lead, 0) or 0) - float(past.get(lead, 0) or 0)
+        runner_delta = float(last.get(runner, 0) or 0) - float(past.get(runner, 0) or 0)
+        closing = runner_delta - lead_delta
+
+        leader_swaps = 0
+        try:
+            leaders = [max(participantes, key=lambda n: float(pt.get(n, 0) or 0)) for pt in serie]
+            leader_swaps = sum(1 for i in range(1, len(leaders)) if leaders[i] != leaders[i - 1])
+        except Exception:
+            leader_swaps = 0
+
+        if closing > 0.25 and gap_now > 0:
+            # Friendly time-to-close language; avoid over-technical wording.
+            try:
+                year_ref = int(str(poll.get("data_paredao", "2026")).split("-")[0])
+                t0 = parse_votalhada_hora(str(past.get("hora", "")), year=year_ref)
+                t1 = parse_votalhada_hora(str(last.get("hora", "")), year=year_ref)
+                if t0.tzinfo is None:
+                    t0 = t0.replace(tzinfo=timezone.utc)
+                else:
+                    t0 = t0.astimezone(timezone.utc)
+                if t1.tzinfo is None:
+                    t1 = t1.replace(tzinfo=timezone.utc)
+                else:
+                    t1 = t1.astimezone(timezone.utc)
+                span_hours = max(0.01, (t1 - t0).total_seconds() / 3600.0)
+                closing_rate_h = closing / span_hours
+
+                coleta_raw = str(poll.get("data_coleta", "")).replace("Z", "+00:00")
+                coleta_dt = datetime.fromisoformat(coleta_raw) if coleta_raw else None
+
+                close_raw = poll.get("fechamento_votacao")
+                if close_raw:
+                    close_dt = datetime.fromisoformat(str(close_raw).replace("Z", "+00:00"))
+                else:
+                    close_date = str(poll.get("data_paredao", ""))
+                    close_dt = datetime.fromisoformat(f"{close_date}T22:45:00-03:00") if close_date else None
+
+                if coleta_dt and close_dt:
+                    # Standardize in UTC so countdown stays consistent across environments.
+                    if coleta_dt.tzinfo is None:
+                        coleta_dt = coleta_dt.replace(tzinfo=timezone.utc)
+                    else:
+                        coleta_dt = coleta_dt.astimezone(timezone.utc)
+                    if close_dt.tzinfo is None:
+                        close_dt = close_dt.replace(tzinfo=timezone.utc)
+                    else:
+                        close_dt = close_dt.astimezone(timezone.utc)
+
+                    _now_utc = datetime.now(timezone.utc)
+                    now_ref = _now_utc.replace(
+                        minute=(_now_utc.minute // 15) * 15,
+                        second=0,
+                        microsecond=0,
+                    )
+                    effective_start = max(coleta_dt, now_ref)
+                    hours_left = (close_dt - effective_start).total_seconds() / 3600.0
+                    m_gap = None
+                    m_rank = None
+                    if model_values:
+                        m_rank = sorted(
+                            [(nome, float(model_values.get(nome, 0) or 0)) for nome in participantes],
+                            key=lambda x: (-x[1], x[0]),
+                        )
+                        if len(m_rank) >= 2:
+                            m_gap = abs(m_rank[0][1] - m_rank[1][1])
+                    if hours_left > 0.05:
+
+                        if m_gap is not None and m_gap >= 12.0 and m_rank:
+                            model_lead = m_rank[0][0].split()[0]
+                            model_runner = m_rank[1][0].split()[0]
+                            eta_txt = "1 hora" if hours_left < 1.5 else f"{hours_left:.1f} horas"
+                            required_rate_h = m_gap / max(hours_left, 0.01)
+                            chips = [
+                                {"label": "Diferença para virar", "value": f"{m_gap:.1f} p.p."},
+                            ]
+                            if closing_rate_h > 0.01:
+                                pace_ratio = required_rate_h / closing_rate_h
+                                chips.extend(
+                                    [
+                                        {"label": f"Ritmo atual ({model_runner})", "value": f"{closing_rate_h:.2f} p.p./h"},
+                                        {"label": "Ritmo necessário", "value": f"{required_rate_h:.2f} p.p./h ({pace_ratio:.1f}x)"},
+                                    ]
+                                )
+                                pace_txt = (
+                                    f"No ritmo recente, **{model_runner}** está aproximando, mas ainda muito abaixo do necessário "
+                                    f"para virar a tempo."
+                                )
+                            else:
+                                chips.extend(
+                                    [
+                                        {"label": f"Ritmo atual ({model_runner})", "value": "≈ 0.00 p.p./h"},
+                                        {"label": "Ritmo necessário", "value": f"{required_rate_h:.2f} p.p./h"},
+                                    ]
+                                )
+                                pace_txt = (
+                                    f"Nas últimas atualizações, **{model_runner}** praticamente não reduziu a diferença."
+                                )
+                            if vote_mode == "save":
+                                objective_txt = (
+                                    f"Para **{model_runner}** tomar a liderança e ir para o **Quarto Secreto** "
+                                    f"no lugar de **{model_lead}** até o **encerramento da votação**"
+                                )
+                            else:
+                                objective_txt = (
+                                    f"Para **{model_runner}** ultrapassar **{model_lead}** e virar o mais votado para sair "
+                                    f"até o **encerramento da votação**"
+                                )
+                            return (
+                                f"**Cenário hoje está bem definido** no **Nosso Modelo**.\n"
+                                f"{objective_txt} (em cerca de **{eta_txt}**), precisa tirar **{m_gap:.1f} pontos percentuais** de diferença.\n"
+                                f"{pace_txt} **Veja os indicadores abaixo** para o ritmo atual vs necessário.",
+                                chips,
+                            )
+
+                        required_rate_h = gap_now / hours_left
+                        projected_gain = closing_rate_h * hours_left
+                        if projected_gain >= gap_now:
+                            swap_txt = f" A liderança já trocou {leader_swaps}x." if leader_swaps > 0 else ""
+                            return (
+                                f"Disputa aberta: no ritmo atual, {runner.split()[0]} pode encostar até o encerramento da votação."
+                                f"{swap_txt}",
+                                [],
+                            )
+                        else:
+                            missing = max(0.0, gap_now - projected_gain)
+                            swap_txt = f" A liderança já trocou {leader_swaps}x." if leader_swaps > 0 else ""
+                            return (
+                                f"Ritmo atual ajuda {runner.split()[0]}, mas ainda faltariam cerca de "
+                                f"{missing:.1f} p.p. para virar até o encerramento da votação.{swap_txt}",
+                                [],
+                            )
+                    else:
+                        if m_gap is not None and m_rank:
+                            model_lead = m_rank[0][0].split()[0]
+                            model_runner = m_rank[1][0].split()[0]
+                            chips = [
+                                {"label": "Diferença no fechamento", "value": f"{m_gap:.1f} p.p."},
+                                {"label": f"Ritmo final ({model_runner})", "value": f"{closing_rate_h:+.2f} p.p./h"},
+                            ]
+                            return (
+                                f"**Encerramento da votação atingido**. A leitura de virada foi congelada no fechamento.\n"
+                                f"Última fotografia do modelo: **{model_lead}** à frente de **{model_runner}**. "
+                                f"Agora o painel aguarda nova coleta final do Votalhada e o resultado oficial.",
+                                chips,
+                            )
+                        return (
+                            "**Encerramento da votação atingido**. O painel agora aguarda atualização final do Votalhada e resultado oficial.",
+                            [],
+                        )
+            except Exception:
+                pass
+            return (
+                f"Ritmo: {runner.split()[0]} está reduzindo {closing:.2f} p.p. na disputa mais recente.",
+                [],
+            )
+        if closing < -0.25:
+            return f"Ritmo: {lead.split()[0]} só aumentou a vantagem nas últimas {k} atualizações.", []
+        if gap_now <= 2.0:
+            swap_txt = f" A liderança já trocou {leader_swaps}x." if leader_swaps > 0 else ""
+            return (
+                f"Disputa aberta: diferença de {gap_now:.2f} p.p. entre "
+                f"{lead.split()[0]} e {runner.split()[0]}.{swap_txt}",
+                [],
+            )
+
+    # Priority 2: model vs Votalhada confidence/agreement.
+    if model_values:
+        m_rank = sorted(
+            [(nome, float(model_values.get(nome, 0) or 0)) for nome in participantes],
+            key=lambda x: (-x[1], x[0]),
+        )
+        if m_rank and v_rank:
+            m_gap = abs(m_rank[0][1] - m_rank[1][1]) if len(m_rank) >= 2 else None
+            v_gap = abs(v_rank[0][1] - v_rank[1][1]) if len(v_rank) >= 2 else None
+            target = "seguir no jogo" if vote_mode == "save" else "sair"
+            if m_rank[0][0] == v_rank[0][0]:
+                if m_gap is not None and v_gap is not None:
+                    return (
+                        f"Modelo e Votalhada concordam em {m_rank[0][0].split()[0]} para {target}; "
+                        f"confiança {m_gap:.1f} vs {v_gap:.1f} p.p.",
+                        [],
+                    )
+                return f"Modelo e Votalhada concordam em {m_rank[0][0].split()[0]} para {target}.", []
+            return (
+                f"Divergência: Modelo aponta {m_rank[0][0].split()[0]} ({m_rank[0][1]:.2f}%) "
+                f"e Votalhada aponta {v_rank[0][0].split()[0]} ({v_rank[0][1]:.2f}%).",
+                [],
+            )
+
+    return None, []
+
+
 def _build_memory_line(payload_nominees: list[dict], model_prediction: dict | None, vote_mode: str) -> str | None:
     if not model_prediction:
         return None
@@ -267,6 +509,7 @@ def build_paredao_card_payload(
             "nominees": [],
             "trust_badge": {"visible": False, "text": "", "short_text": "", "aggregate": {}},
             "fact_lines": [],
+            "curiosity_line": None,
             "memory_line": None,
             "link_href": "paredao.html",
         }
@@ -328,6 +571,10 @@ def build_paredao_card_payload(
             nominee["accent_color"] = _PAREDAO_ROLE_COLORS[role]
 
     fact_lines = _build_active_fact_lines(nominees, vote_mode) if state == "active" else []
+    curiosity_line = None
+    curiosity_chips: list[dict] = []
+    if state == "active":
+        curiosity_line, curiosity_chips = _build_card_curiosity_line(poll, model_prediction, vote_mode)
     memory_line = _build_memory_line(nominees, model_prediction, vote_mode) if state == "finalized" else None
 
     numero = paredao_entry.get("numero")
@@ -348,9 +595,28 @@ def build_paredao_card_payload(
         "nominees": nominees,
         "trust_badge": trust_badge,
         "fact_lines": fact_lines,
+        "curiosity_line": curiosity_line,
+        "curiosity_chips": curiosity_chips,
         "memory_line": memory_line,
         "link_href": "paredao.html",
     }
+
+
+def _render_curiosity_chips(chips: list[dict] | None, *, compact: bool = False) -> str:
+    if not chips:
+        return ""
+    chip_items = "".join(
+        (
+            '<div class="paredao-curiosity-chip">'
+            f'<div class="paredao-curiosity-chip-label">{safe_html(str(c.get("label", "")))}</div>'
+            f'<div class="paredao-curiosity-chip-value">{safe_html(str(c.get("value", "")))}</div>'
+            "</div>"
+        )
+        for c in chips[:3]
+    )
+    modifier = " is-compact" if compact else ""
+    legend = '<div class="paredao-curiosity-legend">p.p./h = pontos percentuais por hora</div>'
+    return f'<div class="paredao-curiosity-chips{modifier}">{chip_items}</div>{legend}'
 
 
 def _format_pct(value: float | None) -> str:
@@ -577,9 +843,13 @@ def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, comp
         f'style="width:{width:.2f}%; background:{nominee["accent_color"]};"></div></div>'
         if pct is not None else ""
     )
-    chip_html = ""
-    if nominee.get("history_label"):
-        chip_html = f'<span class="paredao-card-chip">{safe_html(nominee["history_label"])}</span>'
+    appearance_count = int(nominee.get("appearance_count", 1) or 1)
+    appearance_badge_html = ""
+    if appearance_count > 1:
+        appearance_badge_html = (
+            f'<span class="paredao-card-appearance-badge" '
+            f'title="{appearance_count}º paredão">{appearance_count}x</span>'
+        )
     avatar = avatar_img(
         nominee["name"],
         avatars,
@@ -589,13 +859,13 @@ def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, comp
     )
     return (
         f'<div class="{modifier} is-{nominee["color_role"]}">'
+        f'{appearance_badge_html}'
         f'<div class="paredao-card-avatar">{avatar}</div>'
         f'<div class="paredao-card-main">'
         f'<div class="paredao-card-name">{safe_html(nominee["first_name"])}</div>'
         f'{pct_html}'
         f'{bar_html}'
         f'<div class="paredao-card-route">{safe_html(nominee["route_short"])}</div>'
-        f'{chip_html}'
         f'</div>'
         f'</div>'
     )
@@ -629,7 +899,14 @@ def render_paredao_live_card(payload: dict | None, avatars: dict[str, str]) -> s
 
     nominees_html = "".join(_render_paredao_nominee_card(n, avatars) for n in payload.get("nominees", []))
     facts = payload.get("fact_lines", [])
-    facts_html = "".join(f'<li>{safe_html(fact)}</li>' for fact in facts)
+    facts_html = "".join(f"<li>{_rich_text(fact)}</li>" for fact in facts)
+    curiosity_line = payload.get("curiosity_line")
+    curiosity_chips = payload.get("curiosity_chips") or []
+    curiosity_html = (
+        f'<div class="paredao-card-curiosity">💡 {_rich_text(curiosity_line)}</div>'
+        if curiosity_line else ""
+    )
+    curiosity_chips_html = _render_curiosity_chips(curiosity_chips)
     memory_line = payload.get("memory_line")
     collection = payload.get("collection_label")
 
@@ -647,8 +924,10 @@ def render_paredao_live_card(payload: dict | None, avatars: dict[str, str]) -> s
         f'{_render_trust_badge(payload.get("trust_badge", {}))}'
         f'</div>'
         f'<div class="paredao-live-grid">{nominees_html}</div>'
+        f'{curiosity_html}'
+        f'{curiosity_chips_html}'
         f'{f"<ul class=\"paredao-card-facts\">{facts_html}</ul>" if facts else ""}'
-        f'{f"<div class=\"paredao-card-memory\">{safe_html(memory_line)}</div>" if memory_line else ""}'
+        f'{f"<div class=\"paredao-card-memory\">{_rich_text(memory_line)}</div>" if memory_line else ""}'
         f'</div>'
     )
 
@@ -659,6 +938,8 @@ def render_paredao_index_card(payload: dict | None, avatars: dict[str, str]) -> 
         return '<div class="paredao-index-card is-empty"><div class="paredao-index-empty">Nenhum paredão ativo no momento.</div></div>'
 
     nominees_html = "".join(_render_paredao_nominee_card(n, avatars, compact=True) for n in payload.get("nominees", []))
+    curiosity_line = payload.get("curiosity_line")
+    curiosity_chips = payload.get("curiosity_chips") or []
     fact = payload.get("memory_line") or (payload.get("fact_lines") or [None])[0]
     trust_badge = payload.get("trust_badge", {})
     notes: list[str] = []
@@ -668,8 +949,11 @@ def render_paredao_index_card(payload: dict | None, avatars: dict[str, str]) -> 
             f'🧮 {safe_html(trust_badge.get("text", ""))}'
             f'</a>'
         )
-    if fact:
-        notes.append(f'<div class="paredao-index-note">{safe_html(fact)}</div>')
+    if curiosity_line:
+        notes.append(f'<div class="paredao-index-curiosity">💡 {_rich_text(curiosity_line)}</div>')
+        notes.append(_render_curiosity_chips(curiosity_chips, compact=True))
+    elif fact:
+        notes.append(f'<div class="paredao-index-note">{_rich_text(fact)}</div>')
     notes_html = f'<div class="paredao-index-notes">{"".join(notes)}</div>' if notes else ""
     return (
         f'<div class="paredao-index-card is-{payload.get("state")}">'
