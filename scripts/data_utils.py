@@ -1123,13 +1123,19 @@ def parse_votalhada_hora(hora_str: str, year: int = 2026) -> datetime:
     return datetime(year, MONTH_MAP_PT[month_str], int(day_str), hour, minute)
 
 
-def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact: bool = False) -> go.Figure | None:
+def make_poll_timeseries(
+    poll: dict,
+    resultado_real: dict | None = None,
+    compact: bool = False,
+    model_prediction: dict | None = None,
+) -> go.Figure | None:
     """Build a Plotly figure for Votalhada poll time series.
 
     Args:
         poll: Poll dict with 'serie_temporal' and 'participantes'.
         resultado_real: Optional result dict with real vote percentages.
         compact: If True, use smaller markers/lines and shorter height (for archive tabs).
+        model_prediction: Optional model output dict with {"prediction": {name: pct}}.
     """
     import plotly.graph_objects as go  # noqa: PLC0415 — optional dep, lazy import
 
@@ -1166,6 +1172,73 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
             hovertemplate=f'{nome}: ' + '%{y:.2f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
         ))
 
+    # Overlay projected model history from the consolidado series.
+    # We only store consolidado by timestamp; platform-level historical snapshots
+    # are not persisted, so the model history is an anchored projection.
+    model_values = (model_prediction or {}).get("prediction", {}) if model_prediction else {}
+    if model_values:
+        latest = serie[-1]
+        factors: dict[str, float] = {}
+        for nome in participantes:
+            base_latest = float(latest.get(nome, 0) or 0)
+            model_latest = float(model_values.get(nome, base_latest) or base_latest)
+            if base_latest <= 1e-6:
+                factor = 1.0
+            else:
+                factor = model_latest / base_latest
+            factors[nome] = max(0.05, min(20.0, factor))
+
+        model_series: dict[str, list[float]] = {nome: [] for nome in participantes}
+        for pt in serie:
+            raw = {
+                nome: max(0.0, float(pt.get(nome, 0) or 0) * factors.get(nome, 1.0))
+                for nome in participantes
+            }
+            raw_total = sum(raw.values())
+            if raw_total > 0:
+                norm = 100.0 / raw_total
+                for nome in participantes:
+                    model_series[nome].append(raw[nome] * norm)
+            else:
+                for nome in participantes:
+                    model_series[nome].append(float(pt.get(nome, 0) or 0))
+
+        # Anchor the latest point to the current model output.
+        for nome in participantes:
+            if nome in model_values and model_series[nome]:
+                model_series[nome][-1] = float(model_values.get(nome, 0) or 0)
+
+        # Re-normalize latest point to 100 if needed after anchoring.
+        latest_sum = sum(model_series[nome][-1] for nome in participantes if model_series[nome])
+        if latest_sum > 0 and abs(latest_sum - 100.0) > 0.05:
+            corr = 100.0 / latest_sum
+            for nome in participantes:
+                if model_series[nome]:
+                    model_series[nome][-1] = model_series[nome][-1] * corr
+
+        for nome in participantes:
+            if nome not in model_values:
+                continue
+            fig.add_trace(go.Scatter(
+                x=times,
+                y=model_series.get(nome, []),
+                mode='lines+markers',
+                name=f'{nome.split()[0]} · Modelo',
+                showlegend=False,
+                line=dict(
+                    width=1.7 if compact else 2.1,
+                    color=nominee_colors.get(nome, '#ddd'),
+                    dash='dot',
+                ),
+                marker=dict(
+                    size=3 if compact else 4,
+                    symbol='diamond-open',
+                    color=nominee_colors.get(nome, '#ddd'),
+                    line=dict(color='#f5f5f5', width=0.8),
+                ),
+                hovertemplate=f'{nome} (Nosso Modelo estimado): ' + '%{y:.2f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
+            ))
+
     if resultado_real:
         for nome in participantes:
             real_val = resultado_real.get(nome, 0)
@@ -1179,6 +1252,8 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
                 )
 
     subtitle = f"{first_t} → {last_t}" if compact else f"Janela: {first_t} → {last_t}"
+    if model_values:
+        subtitle += " · linha pontilhada = Nosso Modelo (histórico estimado)"
     fig.update_layout(
         title=dict(
             text=f"Evolução das Enquetes<br><sup>{subtitle}</sup>",
@@ -1186,8 +1261,15 @@ def make_poll_timeseries(poll: dict, resultado_real: dict | None = None, compact
         ),
         xaxis_title="", yaxis_title="Votos (%)",
         height=350 if compact else 380,
-        margin=dict(t=80, b=50, r=80),
-        legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        margin=dict(t=80, b=92 if compact else 104, r=80),
+        legend=dict(
+            orientation='h',
+            yanchor='top',
+            y=-0.18 if compact else -0.22,
+            xanchor='center',
+            x=0.5,
+            font=dict(size=10 if compact else 11),
+        ),
         hovermode='x unified',
     )
     return fig

@@ -48,13 +48,22 @@ def test_live_and_index_pages_use_shared_paredao_card_renderers():
     helper = _read(PAREDAO_VIZ)
 
     assert "build_paredao_card_payload" in helper
+    assert "build_poll_comparison_payload" in helper
     assert "render_paredao_live_card" in helper
     assert "render_paredao_index_card" in helper
+    assert "render_poll_comparison_card" in helper
     assert "render_paredao_live_card" in live
+    assert "render_poll_comparison_card" in live
     assert "render_paredao_index_card" in index
     assert 'index_data.get("paredao", {}).get("card")' in index
     assert "nosso-modelo-back-test" in helper
     assert "teste retrospectivo" in helper
+
+
+def test_live_page_shows_history_after_prediction_without_details_collapse():
+    live = _read(PAREDAO_QMD)
+    assert "<details class=\"paredao-history-box\"" not in live
+    assert "📋 Histórico em paredões anteriores" in live
 
 
 def test_index_keeps_restored_highlight_layout_hooks():
@@ -97,10 +106,10 @@ def test_index_places_paredao_before_ranking_in_highlight_order():
 
 def test_backtest_explanation_uses_portuguese_label_with_stable_anchor():
     archive = _read(PAREDOES_QMD)
-    live = _read(PAREDAO_QMD)
+    helper = _read(PAREDAO_VIZ)
 
     assert "## 🧮 Nosso Modelo — Teste retrospectivo {#nosso-modelo-back-test}" in archive
-    assert "Ver teste retrospectivo" in live
+    assert "Ver teste retrospectivo" in helper
 
 
 def test_paredoes_spotlight_has_mobile_first_styles():
