@@ -534,6 +534,8 @@ def render_rank_chip(
     is_top: bool,
     *,
     avatar_html_fn,
+    avatars: dict | None = None,
+    avatar_size: int = 30,
     force_count: int | None = None,
 ) -> str:
     name = entry.get("name", "")
@@ -545,7 +547,17 @@ def render_rank_chip(
         "safe": "#3498db",
     }
     border_color = lane_colors.get(lane_type, "#666")
-    avatar = avatar_html_fn(name, border_color)
+    if avatars is None:
+        avatar = avatar_html_fn(name, border_color)
+    else:
+        avatar = avatar_html_fn(
+            name,
+            avatars,
+            size=avatar_size,
+            show_name=False,
+            border_color=border_color,
+            fallback_initials=True,
+        )
     top_cls = " top" if is_top else ""
     return (
         f'<a href="{_profile_href(name)}" class="sinc-person-chip {lane_type}{top_cls}">'
@@ -566,7 +578,10 @@ def render_ranked_lane(
     lane_type: str,
     *,
     inline_max: int,
-    render_rank_chip_fn,
+    render_rank_chip_fn=None,
+    avatar_html_fn=None,
+    avatars: dict | None = None,
+    avatar_size: int = 30,
     highlight_top: bool = True,
     force_count: int | None = None,
 ) -> str:
@@ -578,6 +593,21 @@ def render_ranked_lane(
     top_count = ranked[0].get("count", 0)
     inline_items = ranked[:inline_max]
     overflow_items = ranked[inline_max:]
+    if render_rank_chip_fn is None:
+        if avatar_html_fn is None:
+            raise ValueError("render_ranked_lane requires render_rank_chip_fn or avatar_html_fn")
+
+        def render_rank_chip_fn(entry_item, entry_lane_type, entry_is_top, force_count=None):
+            return render_rank_chip(
+                entry_item,
+                entry_lane_type,
+                entry_is_top,
+                avatar_html_fn=avatar_html_fn,
+                avatars=avatars,
+                avatar_size=avatar_size,
+                force_count=force_count,
+            )
+
     lane.append('<div class="sinc-people-grid">')
     lane.extend(
         render_rank_chip_fn(
@@ -757,7 +787,7 @@ def render_blindado_row(item: dict, *, n_par: int, avatar_fn) -> str:
     votes = _coerce_int(item.get("votes", 0), default=0)
     has_bv = bool(item.get("bv_escape", False))
     bv_text = item.get("bv_text", "")
-    protection_tags = item.get("protection_tags", [])
+    protection_tags = item.get("protection_tags") or []
 
     border = "#3498db" if protected >= 3 else ("#27ae60" if paredao_count == 0 else "#f39c12")
     par_color = "#27ae60" if paredao_count == 0 else ("#f39c12" if paredao_count == 1 else "#e74c3c")
@@ -769,6 +799,8 @@ def render_blindado_row(item: dict, *, n_par: int, avatar_fn) -> str:
             f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>{_escape_text(bv_text)}</span>"
         )
     for tag in protection_tags:
+        if not isinstance(tag, dict):
+            continue
         label = tag.get("label")
         tone_style = "background:#2d1b3f;color:#d9b3ff;" if label == "Líder" else "background:#123b2a;color:#8fe3b8;"
         badges.append(
@@ -807,7 +839,13 @@ def render_visado_row(item: dict, *, max_votes: int, recent_window: int, avatar_
     intensity = _coerce_float(item.get("intensity_prevote", 0.0))
     bv_count = _coerce_int(item.get("bv_escapes", 0), default=0)
     fake_count = _coerce_int(item.get("fake_paredao_count", 0), default=0)
-    fake_nums = item.get("fake_paredao_nums", [])
+    fake_nums_raw = item.get("fake_paredao_nums")
+    if fake_nums_raw in (None, ""):
+        fake_nums = []
+    elif isinstance(fake_nums_raw, (list, tuple)):
+        fake_nums = [num for num in fake_nums_raw if num not in (None, "")]
+    else:
+        fake_nums = [fake_nums_raw]
     by_lider = _coerce_int(item.get("by_lider", 0), default=0)
     by_casa = _coerce_int(item.get("by_casa", 0), default=0)
     by_dynamic = _coerce_int(item.get("by_dynamic", 0), default=0)
@@ -825,8 +863,9 @@ def render_visado_row(item: dict, *, max_votes: int, recent_window: int, avatar_
         )
     if fake_count:
         fake_txt = ", ".join(f"{num}º" for num in fake_nums)
+        fake_suffix = f" ({_escape_text(fake_txt)})" if fake_txt else ""
         badges.append(
-            f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Paredão falso {fake_count}x ({_escape_text(fake_txt)})</span>"
+            f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Paredão falso {fake_count}x{fake_suffix}</span>"
         )
     if by_lider:
         badges.append(

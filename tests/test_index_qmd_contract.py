@@ -65,9 +65,7 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "make_evolution_chart" in content
     assert "render_overflow_toggle as _render_overflow_toggle" in content
     assert "render_dramatic_event_row" in content
-    assert "render_rank_chip as _render_rank_chip" in content
     assert "render_ranked_lane as _render_ranked_lane" in content
-    assert "render_pair_lane as _render_pair_lane" in content
     assert "render_toggle_pair_lane as _render_toggle_pair_lane" in content
     assert "render_alvo_rows as _render_alvo_rows" in content
     assert "render_break_row as _render_break_row" in content
@@ -142,3 +140,10 @@ def test_index_qmd_batch_c_helpers_are_no_longer_defined_inline():
     assert "_blindado_row" not in names
     assert "_visado_row" not in names
     assert "_render_vx_row" not in names
+
+
+def test_index_qmd_no_longer_uses_local_lambda_glue_for_sincerao_lanes():
+    content = INDEX_QMD.read_text(encoding="utf-8")
+
+    assert "_rank_avatar_html = lambda" not in content
+    assert "_rank_chip = lambda" not in content

@@ -714,6 +714,27 @@ def test_render_ranked_lane_wraps_overflow_rank_chips_in_details():
     assert "<chip Milena attack False None>" in html
 
 
+def test_render_ranked_lane_can_build_chips_without_qmd_lambda_glue():
+    html = render_ranked_lane(
+        "Atacados",
+        "💣",
+        [{"name": "Ana Paula Renault", "count": 2}],
+        "Sem ataques na semana.",
+        "attack",
+        inline_max=2,
+        avatar_html_fn=lambda name, avatars, size, show_name, border_color, fallback_initials: (
+            f"<avatar {name} border={border_color} size={size} fallback={fallback_initials}>"
+        ),
+        avatars={"Ana Paula Renault": "x"},
+        avatar_size=30,
+    )
+
+    assert "💣 Atacados" in html
+    assert "<avatar Ana Paula Renault border=#e67e22 size=30 fallback=True>" in html
+    assert "Ana" in html
+    assert "2x" in html
+
+
 def test_render_pair_lane_and_toggle_pair_lane_wrap_pair_chips():
     pairs = [
         {"ator": "Ana Paula Renault", "alvo": "Babu Santana", "tipo_label": "Protege", "emoji": "😡"},
@@ -830,6 +851,25 @@ def test_render_blindado_row_renders_badges_and_counts():
     assert "Casa 1x" in html
 
 
+def test_render_blindado_row_tolerates_null_protection_tags():
+    html = render_blindado_row(
+        {
+            "name": "Ana Paula Renault",
+            "paredao": 0,
+            "protected": 1,
+            "available": 3,
+            "votes": 0,
+            "protection_tags": None,
+        },
+        n_par=4,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "<avatar Ana Paula Renault #27ae60>" in html
+    assert "protegido 1x" in html
+    assert "display:flex;flex-direction:column" not in html
+
+
 def test_render_visado_row_renders_pressure_badges():
     html = render_visado_row(
         {
@@ -860,6 +900,27 @@ def test_render_visado_row_renders_pressure_badges():
     assert "Líder 2x" in html
     assert "Casa 1x" in html
     assert "Dinâmica 1x" in html
+
+
+def test_render_visado_row_tolerates_null_fake_paredao_nums():
+    html = render_visado_row(
+        {
+            "name": "Babu Santana",
+            "paredao": 1,
+            "votes_total": 4,
+            "votes_recent": 2,
+            "intensity_prevote": 0.4,
+            "fake_paredao_count": 2,
+            "fake_paredao_nums": None,
+        },
+        max_votes=6,
+        recent_window=3,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "<avatar Babu Santana #d35400>" in html
+    assert "Paredão falso 2x" in html
+    assert "Paredão falso 2x ()" not in html
 
 
 def test_render_vx_row_formats_day_share_and_bar():

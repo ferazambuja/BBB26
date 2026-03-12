@@ -65,12 +65,10 @@ from index_viz import (
     render_avatar_row as _render_avatar_row,
     render_blindado_row as _render_blindado_row,
     render_break_row as _render_break_row,
-    render_pair_lane as _render_pair_lane,
     render_overflow_toggle as _render_overflow_toggle,
     render_pair_chip,
     render_profile_sinc_row,
     render_pulse_row,
-    render_rank_chip as _render_rank_chip,
     render_ranked_lane as _render_ranked_lane,
     render_saldo_card,
     plant_color,
@@ -458,22 +456,6 @@ else:
                     reaction_ref_pt = reaction_reference_date
                 subtitle = f"{subtitle} Reações de referência: {reaction_ref_pt}."
 
-            _rank_avatar_html = lambda name, border_color: _avatar_html(
-                name,
-                AVATARS,
-                size=30,
-                show_name=False,
-                border_color=border_color,
-                fallback_initials=True,
-            )
-            _rank_chip = lambda entry, lane_type, is_top, force_count=None: _render_rank_chip(
-                entry,
-                lane_type,
-                is_top,
-                avatar_html_fn=_rank_avatar_html,
-                force_count=force_count,
-            )
-
             lanes = [
                 _render_ranked_lane(
                     "Atacados",
@@ -482,7 +464,9 @@ else:
                     "Sem ataques na semana.",
                     "attack",
                     inline_max=INLINE_MAX_RANKED,
-                    render_rank_chip_fn=_rank_chip,
+                    avatar_html_fn=_avatar_html,
+                    avatars=AVATARS,
+                    avatar_size=30,
                 ),
             ]
 
@@ -495,7 +479,9 @@ else:
                         "Sem elogios na semana.",
                         "praise",
                         inline_max=INLINE_MAX_RANKED,
-                        render_rank_chip_fn=_rank_chip,
+                        avatar_html_fn=_avatar_html,
+                        avatars=AVATARS,
+                        avatar_size=30,
                     )
                 )
 
@@ -508,7 +494,9 @@ else:
                     "Ninguém ficou poupado na semana.",
                     "safe",
                     inline_max=INLINE_MAX_RANKED,
-                    render_rank_chip_fn=_rank_chip,
+                    avatar_html_fn=_avatar_html,
+                    avatars=AVATARS,
+                    avatar_size=30,
                     highlight_top=False,
                     force_count=0,
                 )
