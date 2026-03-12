@@ -363,6 +363,43 @@ def test_render_saldo_card_renders_expected_markup_and_overflow():
     assert "width:10%" in html
 
 
+def test_render_saldo_card_tolerates_non_numeric_display_limit_and_bar_pct():
+    payload = {
+        "title": "Saldo de Estalecas",
+        "display_limit": "not-a-number",
+        "items_all": [
+            {
+                "name": "Ana Paula Renault",
+                "rank_label": "🥇",
+                "border_color": "#123456",
+                "balance": 1500,
+                "balance_color": "#1a9850",
+                "bar_pct": "oops",
+            },
+            {
+                "name": "Babu Santana",
+                "rank_label": "🥈",
+                "border_color": "#654321",
+                "balance": 300,
+                "balance_color": "#66bd63",
+                "bar_pct": "35.7",
+            },
+        ],
+    }
+
+    html = render_saldo_card(
+        payload,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "Saldo de Estalecas" in html
+    assert "<avatar Ana Paula Renault #123456>" in html
+    assert "<avatar Babu Santana #654321>" in html
+    assert "width:0%" in html
+    assert "width:36%" in html
+    assert "+1 restantes" not in html
+
+
 def test_recent_swings_tracks_top_movers_over_recent_window():
     rows = [
         {"date": "2026-03-01", "name": "Ana", "score": 1.0},
@@ -471,6 +508,23 @@ def test_actor_event_and_avatar_row_helpers_use_explicit_dependencies():
     assert "<avatar Ana Paula Renault #abcdef>" in row_html
     assert "<avatar Babu Santana #abcdef>" in row_html
     assert "+1.5" in row_html
+
+
+def test_render_avatar_row_respects_max_show_limit():
+    row_html = render_avatar_row(
+        [
+            "Ana Paula Renault",
+            "Babu Santana",
+            "Milena",
+        ],
+        "#abcdef",
+        max_show=2,
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "<avatar Ana Paula Renault #abcdef>" in row_html
+    assert "<avatar Babu Santana #abcdef>" in row_html
+    assert "<avatar Milena #abcdef>" not in row_html
 
 
 def test_make_evolution_chart_accepts_iso_datetime_strings():

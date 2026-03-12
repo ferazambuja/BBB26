@@ -9,15 +9,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="module")
-def rendered_index_html() -> str:
+def rendered_index_html(tmp_path_factory: pytest.TempPathFactory) -> str:
+    output_dir = tmp_path_factory.mktemp("index-render-contract")
     subprocess.run(
-        ["quarto", "render"],
+        ["quarto", "render", "index.qmd", "--output-dir", str(output_dir)],
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,
         text=True,
     )
-    return (REPO_ROOT / "_site" / "index.html").read_text(encoding="utf-8")
+    return (output_dir / "index.html").read_text(encoding="utf-8")
 
 
 def test_rendered_index_uses_scoped_table_wrappers_without_inline_style_blocks(rendered_index_html: str):

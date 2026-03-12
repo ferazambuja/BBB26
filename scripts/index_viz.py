@@ -34,6 +34,15 @@ def _coerce_float(value, default=0.0) -> float:
         return default
 
 
+def _coerce_int(value, default=0) -> int:
+    if value in (None, ""):
+        return default
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
 def _parse_datetime_like(value) -> datetime:
     if isinstance(value, datetime):
         dt = value
@@ -118,7 +127,10 @@ def render_saldo_card(payload: dict, *, avatar_fn) -> str:
     if not items_all:
         return ""
 
-    display_limit = int(payload.get("display_limit") or len(items_all) or 5)
+    default_limit = len(items_all) or 5
+    display_limit = _coerce_int(payload.get("display_limit"), default=default_limit)
+    if display_limit <= 0:
+        display_limit = default_limit
     inline_items = items_all[:display_limit]
     overflow_items = items_all[display_limit:]
 
@@ -131,6 +143,7 @@ def render_saldo_card(payload: dict, *, avatar_fn) -> str:
             balance_text = f"{balance:,.1f}"
         else:
             balance_text = _escape_text(balance)
+        bar_pct = max(0.0, min(100.0, _coerce_float(item.get("bar_pct", 0), default=0.0)))
         return (
             f'<div class="u-s056">'
             f'{avatar_fn(name, 42, item.get("border_color", "#999"))}'
@@ -140,7 +153,7 @@ def render_saldo_card(payload: dict, *, avatar_fn) -> str:
             f'<span class="fs-base" style="color:{item.get("balance_color", "#888")};font-weight:700;">{balance_text}</span>'
             f'</div>'
             f'<div class="u-s014">'
-            f'<div style="width:{float(item.get("bar_pct", 0)):.0f}%;height:100%;background:{item.get("balance_color", "#888")};border-radius:3px;"></div>'
+            f'<div style="width:{bar_pct:.0f}%;height:100%;background:{item.get("balance_color", "#888")};border-radius:3px;"></div>'
             f'</div>'
             f'</div></div>'
         )
@@ -549,8 +562,12 @@ def render_avatar_row(items, border_color, max_show=999, *, avatar_fn):
     """Row of avatars with name + score under each. Shows ALL by default."""
     if not items:
         return '<span class="fs-md u-s058">—</span>'
+    limit = _coerce_int(max_show, default=len(items))
+    if limit <= 0:
+        return '<span class="fs-md u-s058">—</span>'
+    visible_items = items[:limit]
     html = '<div class="avatar-row">'
-    for item in items:
+    for item in visible_items:
         if isinstance(item, str):
             name = item
             score_html = ""
