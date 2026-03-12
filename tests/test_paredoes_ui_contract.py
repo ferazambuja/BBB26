@@ -87,12 +87,12 @@ def test_index_keeps_restored_highlight_layout_hooks():
     assert 'av(name, 42, "#e74c3c")' in index
     assert "blindado-tag-list" not in index
     assert "render_blindado_tag" not in index
-    assert "background:#1b3f5c;color:#9dd3ff;" in index
-    assert "background:#123b2a;color:#8fe3b8;" in index
-    assert "background:#2d1b3f;color:#d9b3ff;" in index
+    assert "background:#1b3f5c;color:#9dd3ff;" in helper
+    assert "background:#123b2a;color:#8fe3b8;" in helper
+    assert "background:#2d1b3f;color:#d9b3ff;" in helper
     assert "blindado-tag" not in css
-    assert 'protection_tags = it.get("protection_tags", [])' in index
-    assert "tag.get('text', '')" in index
+    assert 'protection_tags = item.get("protection_tags", [])' in helper
+    assert "tag.get('text', '')" in helper
     assert 'podium_positive = [p for p in podium_all if p["score"] > 0]' in index
     assert "highlight-card-span-3" in index
     assert ".highlight-card-span-3" in css
