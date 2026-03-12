@@ -16,7 +16,7 @@
 | Task | When | Go to |
 |------|------|-------|
 | **Update after ANY manual edit** | After editing any data file | [Git Workflow](#git-workflow) |
-| **Publish local public commits quickly (recommended)** | After committing on `local/private-main` | [Git Workflow → One-command publish](#one-command-publish-recommended) |
+| **Publish local public commits safely (recommended)** | After committing on `local/private-main` | [Git Workflow → Report-first publish](#report-first-publish-recommended) |
 | **New Líder crowned** (Thursday) | Thursday ~22h | [Líder Transition Checklist](#líder-transition-checklist-thursday-night) |
 | **Prova do Anjo results** (Saturday) | Saturday afternoon | [Anjo / Monstro Checklist](#anjo--monstro-update-checklist-saturday) |
 | **Presente do Anjo** (Sunday afternoon) | Sunday ~14h-17h | [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) |
@@ -99,27 +99,49 @@ gh workflow run daily-update.yml
 git checkout local/private-main
 ```
 
-### One-command publish (recommended)
+### Report-first publish (recommended)
 
-Use the helper script for the default release path:
+Use the helper script in two explicit steps:
 
 ```bash
+# 1) Analyze first (default mode, no branch mutation)
 scripts/sync_public.sh
+
+# 2) Apply only after reviewing the report
+scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
 ```
 
-What it does:
-- checks out `main` and runs `git pull --rebase origin main`
-- cherry-picks all pending `public:` commits from `local/private-main` in order
-- if conflicts are only in `data/derived/*.json`, auto-resolves by keeping `main` versions
-- runs `python scripts/build_derived_data.py` when manual/derived data is involved
-- commits rebuilt artifacts if needed, pushes `main`, then returns to your starting branch
+Default `scripts/sync_public.sh` behavior:
+- fetches latest `origin/main` (unless `--no-fetch`)
+- inspects pending `public:` commits from `local/private-main`
+- simulates cherry-picks in an isolated temporary worktree
+- writes report to `.private/docs/CONFLICT_REPORTS/*.md`
+- classifies conflicts as `generated`, `manual-critical`, or `other`
+- marks `safe_to_proceed: yes|no`
+
+`--apply` mode behavior:
+- requires `--report <path>`
+- verifies report metadata matches current source/target SHAs
+- aborts if report says `safe_to_proceed: no`
+- then executes cherry-pick/push flow (with generated-file auto-resolution only)
+
+Conflict classes:
+- `generated`: `data/derived/*`, `data/latest.json`, `data/snapshots/*`
+- `manual-critical`: `data/manual_events.json`, `data/paredoes.json`, `data/provas.json`, `data/votalhada/polls.json`
+- `other`: any remaining file paths
+
+Agent triage requirement (before apply):
+- summarize conflicting files + classes in the report
+- confirm whether generated-only auto-resolution is correct for this run
+- if any `manual-critical`/`other`, document chosen manual strategy first
 
 Useful flags:
 
 ```bash
-scripts/sync_public.sh --no-push
-scripts/sync_public.sh --no-rebuild
-scripts/sync_public.sh --stay-on-target
+scripts/sync_public.sh --report .private/docs/CONFLICT_REPORTS/my-report.md
+scripts/sync_public.sh --apply --report <path> --no-push
+scripts/sync_public.sh --apply --report <path> --no-rebuild
+scripts/sync_public.sh --apply --report <path> --stay-on-target
 scripts/sync_public.sh --source <branch> --target <branch> --remote <name>
 ```
 
@@ -140,10 +162,16 @@ git config rebase.autoStash true
 
 ### Handling Push Conflicts
 
-Preferred fix (rerun the helper):
+Preferred fix (rerun report first):
 
 ```bash
 scripts/sync_public.sh
+```
+
+Then apply only if `safe_to_proceed: yes`:
+
+```bash
+scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
 ```
 
 Manual fallback if you need explicit control:
@@ -159,7 +187,22 @@ git add data/ && git commit -m "public: data: rebuild derived after merge"
 git push origin main
 ```
 
-Derived files are always regenerated — the source of truth is the manual files + snapshots.
+Derived files are always regenerated — the source of truth is manual files + snapshots.
+
+### Bot-managed vs Manual-managed files
+
+Current `daily-update.yml` behavior:
+
+- GitHub Actions bot updates:
+  - `data/snapshots/*`
+  - `data/latest.json`
+  - `data/derived/*`
+  - `docs/MANUAL_EVENTS_AUDIT.md`
+- Manual source files (not bot-written by current workflow):
+  - `data/manual_events.json`
+  - `data/paredoes.json`
+  - `data/provas.json`
+  - `data/votalhada/polls.json`
 
 ### Handling Extraordinary Events
 
@@ -1710,7 +1753,8 @@ Scrape and keep these pages in `docs/scraped/` for future verification:
 | Situation | Command |
 |-----------|---------|
 | After editing any manual data file | `python scripts/build_derived_data.py` |
-| Publish `public:` commits with conflict-safe sync | `scripts/sync_public.sh` |
+| Analyze publish conflicts (report-first) | `scripts/sync_public.sh` |
+| Apply publish after report approval | `scripts/sync_public.sh --apply --report <path>` |
 | Fetch fresh API data manually | `python scripts/fetch_data.py` |
 | Deploy to site immediately | `gh workflow run daily-update.yml` |
 | Verify site rendering locally | `quarto render` (~3 min) |

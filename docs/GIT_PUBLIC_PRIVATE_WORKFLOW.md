@@ -24,16 +24,22 @@ git checkout main
 ## Public Release Flow
 
 ```bash
-# 1) Move to public branch
+# 1) Generate conflict report (safe default)
+scripts/sync_public.sh
+
+# 2) Review .private/docs/CONFLICT_REPORTS/<report>.md
+#    and confirm safe_to_proceed: yes
+
+# 3) Apply publish flow
+scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
+```
+
+Manual fallback remains available:
+
+```bash
 git checkout main
-
-# 2) Pull latest public state
 git pull --rebase origin main
-
-# 3) Cherry-pick only public commits from local branch
 git cherry-pick <public-commit-sha-1> <public-commit-sha-2>
-
-# 4) Push public branch
 git push origin main
 ```
 
@@ -50,3 +56,5 @@ Use a pre-push hook (see `.githooks/pre-push`) to block:
 
 - pushes from `local/*` branches
 - pushes where private denylist files are tracked on branch tip
+- human commits to `main` that do not start with `public:`
+- bot commits to `main` that do not start with `data:`

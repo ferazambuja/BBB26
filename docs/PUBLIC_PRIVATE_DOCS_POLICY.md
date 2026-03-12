@@ -29,6 +29,7 @@ These are local-only and must not be pushed:
 - `.private/**`
 - `.claude/**` (including local worktrees)
 - `.worktrees/**`
+- `.private/docs/CONFLICT_REPORTS/**`
 - planning/review/WIP docs (for example: TODO trackers, code review notes, tech debt scratch docs, layout audits, implementation plans)
 
 ## Default Rule
@@ -43,3 +44,13 @@ Before `git commit` or `git push`, agents must:
 2. Run `git diff --cached --name-only` and verify no private paths are staged.
 3. Run `git ls-files` checks (or hook) to confirm denylist files are not tracked on the public branch tip.
 4. If a private doc is needed for execution context, keep it under `.private/docs/` only.
+5. On `main`, enforce commit prefix policy for pushed commits:
+   - human commits: `public:`
+   - `github-actions[bot]` commits: `data:`
+
+## CI Policy Report (non-blocking)
+
+`Public Policy Report` runs on pushes to `main` and manual dispatch.
+
+- It reports (but does not block) denylist tracking and commit prefix violations.
+- It is intended as an early warning signal for direct-push workflows.

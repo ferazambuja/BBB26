@@ -1,0 +1,97 @@
+name: Public Policy Report
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Evaluate public/private and commit-prefix policy
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          forbidden_regex='^(CLAUDE\.md|TODO\.md|docs/TODO_WORKFLOW\.md|docs/TODO_DONE_LOG\.md|docs/CODE_REVIEW_.*\.md|docs/TECH_DEBT\.md|docs/MOBILE_LAYOUT_AUDIT_.*\.md|docs/plans/|\.private/|\.claude/|\.worktrees/)'
+          zero_sha='0000000000000000000000000000000000000000'
+          has_issues=false
+
+          echo "## Public Policy Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if git ls-tree -r --name-only HEAD | grep -Eq "$forbidden_regex"; then
+            has_issues=true
+            echo "### Denylist Violations" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Tracked denylist paths found on branch tip:" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            git ls-tree -r --name-only HEAD | grep -E "$forbidden_regex" | sed 's/^/- `/' | sed 's/$/`/' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Denylist check: no tracked private paths on branch tip." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "$zero_sha" ]]; then
+            range="${BEFORE_SHA}..${AFTER_SHA}"
+          else
+            range="${AFTER_SHA}~20..${AFTER_SHA}"
+          fi
+
+          if ! git rev-list "$range" >/dev/null 2>&1; then
+            range="$AFTER_SHA"
+          fi
+
+          mapfile -t commits < <(git rev-list --no-merges "$range")
+          if [[ ${#commits[@]} -eq 0 ]]; then
+            echo "- Prefix check: no new non-merge commits found in push range." >> "$GITHUB_STEP_SUMMARY"
+          else
+            bad_lines=()
+            for sha in "${commits[@]}"; do
+              author="$(git show -s --format=%an "$sha")"
+              subject="$(git show -s --format=%s "$sha")"
+              if [[ "$author" == "github-actions[bot]" ]]; then
+                if [[ "$subject" != data:* ]]; then
+                  bad_lines+=("$sha|bot|$subject")
+                fi
+              else
+                if [[ "$subject" != public:* ]]; then
+                  bad_lines+=("$sha|human|$subject")
+                fi
+              fi
+            done
+
+            if [[ ${#bad_lines[@]} -gt 0 ]]; then
+              has_issues=true
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "### Prefix Policy Violations" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "| Commit | Actor | Subject |" >> "$GITHUB_STEP_SUMMARY"
+              echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+              for row in "${bad_lines[@]}"; do
+                IFS='|' read -r sha actor subject <<< "$row"
+                echo "| \`$sha\` | $actor | $subject |" >> "$GITHUB_STEP_SUMMARY"
+              done
+            else
+              echo "- Prefix check: all pushed commits match policy (human=\`public:\`, bot=\`data:\`)." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$has_issues" == true ]]; then
+            echo "**Result:** Issues detected. This report is non-blocking; fix in follow-up commit." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Result:** No policy issues detected." >> "$GITHUB_STEP_SUMMARY"
+          fi

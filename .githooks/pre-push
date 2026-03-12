@@ -19,6 +19,55 @@ if git ls-tree -r --name-only HEAD | grep -Eq "$forbidden_regex"; then
   exit 1
 fi
 
+# Enforce commit prefix policy for pushes to main.
+# - Human commits on main must start with `public:`
+# - Bot commits are allowed only when they start with `data:`
+zero_sha='0000000000000000000000000000000000000000'
+main_push_commits=()
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [[ "$local_ref" == "refs/heads/main" ]] || continue
+  if [[ "$local_sha" == "$zero_sha" ]]; then
+    continue
+  fi
+  if [[ "$remote_sha" == "$zero_sha" ]]; then
+    range="$local_sha"
+  else
+    range="${remote_sha}..${local_sha}"
+  fi
+  while read -r sha; do
+    found=false
+    for existing in "${main_push_commits[@]}"; do
+      if [[ "$existing" == "$sha" ]]; then
+        found=true
+        break
+      fi
+    done
+    if [[ "$found" == false ]]; then
+      main_push_commits+=("$sha")
+    fi
+  done < <(git rev-list --no-merges "$range")
+done
+
+if [[ ${#main_push_commits[@]} -gt 0 ]]; then
+  for sha in "${main_push_commits[@]}"; do
+    author="$(git show -s --format=%an "$sha")"
+    subject="$(git show -s --format=%s "$sha")"
+    if [[ "$author" == "github-actions[bot]" ]]; then
+      if [[ "$subject" != data:* ]]; then
+        echo "[BLOCKED] Bot commit on main must start with 'data:'"
+        echo "  $sha $subject"
+        exit 1
+      fi
+      continue
+    fi
+    if [[ "$subject" != public:* ]]; then
+      echo "[BLOCKED] Human commit on main must start with 'public:'"
+      echo "  $sha $subject"
+      exit 1
+    fi
+  done
+fi
+
 # Block embedded repositories (gitlinks/submodules) in public history.
 if git ls-tree -r HEAD | awk '$1=="160000"{print $4}' | grep -q .; then
   echo "[BLOCKED] Embedded git repositories (gitlinks) detected on branch tip."
