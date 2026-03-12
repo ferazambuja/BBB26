@@ -17,13 +17,10 @@ execute:
 #| include: false
 
 import pandas as pd
-import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from functools import partial
-from html import escape
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
