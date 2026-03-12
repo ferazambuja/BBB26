@@ -64,6 +64,7 @@ from index_viz import (
     render_pair_chip,
     render_profile_sinc_row,
     render_pulse_row,
+    render_saldo_card,
     plant_color,
     render_status_chip,
     stat_chip,
@@ -1126,70 +1127,9 @@ else:
             pass  # handled above in section header
 
     # ── 💰 Saldo de Estalecas (always last card, from profiles data) ──
-    saldo_profiles = sorted(
-        [p for p in index_data.get("profiles", []) if p.get("active", True)],
-        key=lambda x: x.get("balance", 0), reverse=True
-    )
-    if saldo_profiles:
-        max_bal = max(abs(p.get("balance", 0)) for p in saldo_profiles) or 1
-        inline_profiles = saldo_profiles[:5]
-        overflow_profiles = saldo_profiles[5:]
-        saldo_rows = '<div class="u-s355">'
-        medals = ["🥇", "🥈", "🥉", "4º", "5º"]
-        for i, p in enumerate(inline_profiles):
-            name = p["name"]
-            bal = p.get("balance", 0)
-            grupo = p.get("group", "")
-            cor = GROUP_COLORS.get(grupo, "#999")
-            bal_color = "#1a9850" if bal > 1000 else ("#66bd63" if bal > 0 else ("#888" if bal == 0 else "#e74c3c"))
-            label = medals[i] if i < len(medals) else f"{i+1}º"
-            bar_pct = min(100, abs(bal) / max_bal * 100) if max_bal > 0 else 0
-            saldo_rows += (
-                f'<div class="u-s056">'
-                f'{av(name, 42, cor)}'
-                f'<div class="u-s066">'
-                f'<div class="u-s059">'
-                f'<span class="fs-md u-s068">{label} {name.split()[0]}</span>'
-                f'<span class="fs-base" style="color:{bal_color};font-weight:700;">{bal:,}</span>'
-                f'</div>'
-                f'<div class="u-s014">'
-                f'<div style="width:{bar_pct:.0f}%;height:100%;background:{bal_color};border-radius:3px;"></div>'
-                f'</div>'
-                f'</div></div>'
-            )
-        if overflow_profiles:
-            saldo_rows += (
-                f'<details class="sinc-more">'
-                f'<summary>+{len(overflow_profiles)} restantes</summary>'
-                f'<div class="u-s355">'
-            )
-            for i, p in enumerate(overflow_profiles, start=len(inline_profiles) + 1):
-                name = p["name"]
-                bal = p.get("balance", 0)
-                grupo = p.get("group", "")
-                cor = GROUP_COLORS.get(grupo, "#999")
-                bal_color = "#1a9850" if bal > 1000 else ("#66bd63" if bal > 0 else ("#888" if bal == 0 else "#e74c3c"))
-                label = f"{i}º"
-                bar_pct = min(100, abs(bal) / max_bal * 100) if max_bal > 0 else 0
-                saldo_rows += (
-                    f'<div class="u-s056">'
-                    f'{av(name, 42, cor)}'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<span class="fs-md u-s068">{label} {name.split()[0]}</span>'
-                    f'<span class="fs-base" style="color:{bal_color};font-weight:700;">{bal:,}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:{bal_color};border-radius:3px;"></div>'
-                    f'</div>'
-                    f'</div></div>'
-                )
-            saldo_rows += '</div></details>'
-        saldo_rows += '</div>'
-        print(f'''<div class="info-panel u-s199">
-{card_header("💰", "Saldo de Estalecas", "evolucao.html#saldo", source_tag="📸 Dado do dia", subtitle="Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.")}
-{saldo_rows}
-</div>''')
+    saldo_card = index_data.get("saldo_card", {})
+    if saldo_card:
+        print(render_saldo_card(saldo_card, avatar_fn=av))
 
     print('</div>')  # close grid
 ```

@@ -34,6 +34,7 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "build_rxn_detail_html" in content
     assert "render_pulse_row" in content
     assert "render_pair_chip" in content
+    assert "render_saldo_card" in content
 
 
 def test_index_qmd_no_longer_defines_first_extracted_helpers_inline():
@@ -69,3 +70,5 @@ def test_index_qmd_no_longer_defines_first_extracted_helpers_inline():
     assert "def build_rxn_detail_html(" not in content
     assert "def _pulse_row(" not in content
     assert "def _pair_chip(" not in content
+    assert "saldo_profiles = sorted(" not in content
+    assert 'max_bal = max(abs(p.get("balance", 0)) for p in saldo_profiles)' not in content

@@ -19,7 +19,7 @@ from data_utils import (
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
-    genero, resolve_leaders, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao,
+    genero, resolve_leaders, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao, GROUP_COLORS,
 )
 from builders.vote_prediction import extract_paredao_eligibility
 from paredao_viz import build_paredao_history, build_paredao_card_payload
@@ -3345,6 +3345,56 @@ def _build_record_holder_curiosities(profiles: list[dict], ctx: dict[str, Any]) 
             prof["curiosities"] = [{"icon": c["icon"], "text": c["text"]} for c in prof.get("curiosities", [])[:MAX_CURIOSITIES]]
 
 
+def _build_saldo_card(profiles: list[dict], *, display_limit: int = 5) -> dict[str, Any] | None:
+    """Build a reusable saldo de estalecas card payload from profile view-models."""
+    if not profiles:
+        return None
+
+    saldo_profiles = sorted(
+        profiles,
+        key=lambda p: (-int(p.get("balance", 0) or 0), str(p.get("name", ""))),
+    )
+    if not saldo_profiles:
+        return None
+
+    max_bal = max(abs(int(p.get("balance", 0) or 0)) for p in saldo_profiles) or 1
+    medals = ["🥇", "🥈", "🥉", "4º", "5º"]
+    items_all = []
+    for idx, prof in enumerate(saldo_profiles, start=1):
+        balance = int(prof.get("balance", 0) or 0)
+        grupo = prof.get("group", "")
+        border_color = GROUP_COLORS.get(grupo, "#999")
+        balance_color = (
+            "#1a9850" if balance > 1000 else
+            ("#66bd63" if balance > 0 else ("#888" if balance == 0 else "#e74c3c"))
+        )
+        items_all.append({
+            "name": prof.get("name", ""),
+            "first_name": (prof.get("name", "") or "").split()[0] if prof.get("name") else "?",
+            "group": grupo,
+            "rank": idx,
+            "rank_label": medals[idx - 1] if idx <= len(medals) else f"{idx}º",
+            "border_color": border_color,
+            "balance": balance,
+            "balance_color": balance_color,
+            "bar_pct": min(100, abs(balance) / max_bal * 100) if max_bal > 0 else 0,
+        })
+
+    return {
+        "type": "saldo",
+        "icon": "💰",
+        "title": "Saldo de Estalecas",
+        "link": "evolucao.html#saldo",
+        "source_tag": "📸 Dado do dia",
+        "subtitle": "Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.",
+        "display_limit": display_limit,
+        "max_balance": max_bal,
+        "total": len(items_all),
+        "items": items_all[:display_limit],
+        "items_all": items_all,
+    }
+
+
 def _build_eliminated_list(ctx: dict[str, Any]) -> list[dict]:
     """Eliminated/exited participant list."""
     manual_events = ctx["manual_events"]
@@ -3419,6 +3469,7 @@ def build_index_data() -> dict | None:
 
     # 8. Record-holder curiosities (post-processing)
     _build_record_holder_curiosities(profiles, ctx)
+    saldo_card = _build_saldo_card(profiles)
 
     # 9. Eliminated list
     eliminated_list = _build_eliminated_list(ctx)
@@ -3543,6 +3594,7 @@ def build_index_data() -> dict | None:
         },
         "leader_periods": ctx["leader_periods"],
         "profiles": profiles,
+        "saldo_card": saldo_card,
         "eliminated": eliminated_list,
         "big_fone_consensus": big_fone_consensus,
     }

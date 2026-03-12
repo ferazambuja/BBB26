@@ -726,6 +726,17 @@ class TestTopLevelSincerao:
                               "last_voted_paredao"):
                     assert field in item, f"Missing field '{field}' in blindados item"
 
+        saldo = data.get("saldo_card")
+        assert saldo, "saldo_card payload must be present for shared-page reuse"
+        assert saldo.get("display_limit") == 5
+        items_all = saldo.get("items_all", [])
+        assert items_all, "saldo_card must expose full sorted rows"
+        balances = [item["balance"] for item in items_all]
+        assert balances == sorted(balances, reverse=True)
+        first = items_all[0]
+        for field in ("name", "rank", "rank_label", "border_color", "balance", "balance_color", "bar_pct"):
+            assert field in first, f"Missing field '{field}' in saldo_card item"
+
 
 class TestProfileSincerao_Contract:
     """Contract test for profiles[*].sincerao shape."""

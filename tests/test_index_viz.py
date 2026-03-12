@@ -38,6 +38,7 @@ from index_viz import (
     render_pair_chip,
     render_profile_sinc_row,
     render_pulse_row,
+    render_saldo_card,
     render_status_chip,
     stat_chip,
 )
@@ -308,6 +309,58 @@ def test_make_reaction_summary_html_renders_toggle_and_score_formatting():
     assert "background: #d73027; color: #fff; font-weight: bold;" in html
     assert "+11.0" in html
     assert "-6.0" in html
+
+
+def test_render_saldo_card_renders_expected_markup_and_overflow():
+    payload = {
+        "icon": "💰",
+        "title": "Saldo de Estalecas",
+        "link": "evolucao.html#saldo",
+        "source_tag": "📸 Dado do dia",
+        "subtitle": "Ranking dos participantes com mais estalecas.",
+        "display_limit": 2,
+        "items_all": [
+            {
+                "name": "Ana Paula Renault",
+                "rank_label": "🥇",
+                "border_color": "#123456",
+                "balance": 1500,
+                "balance_color": "#1a9850",
+                "bar_pct": 100,
+            },
+            {
+                "name": "Babu Santana",
+                "rank_label": "🥈",
+                "border_color": "#654321",
+                "balance": 300,
+                "balance_color": "#66bd63",
+                "bar_pct": 20,
+            },
+            {
+                "name": "Leandro",
+                "rank_label": "3º",
+                "border_color": "#999999",
+                "balance": -50,
+                "balance_color": "#e74c3c",
+                "bar_pct": 10,
+            },
+        ],
+    }
+
+    html = render_saldo_card(
+        payload,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "Saldo de Estalecas" in html
+    assert 'href="evolucao.html#saldo"' in html
+    assert "<avatar Ana Paula Renault #123456>" in html
+    assert "<avatar Leandro #999999>" in html
+    assert "1,500" in html
+    assert "-50" in html
+    assert "+1 restantes" in html
+    assert "width:100%" in html
+    assert "width:10%" in html
 
 
 def test_recent_swings_tracks_top_movers_over_recent_window():

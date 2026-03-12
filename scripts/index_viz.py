@@ -110,6 +110,61 @@ def render_pulse_row(label: str, value: int, color_row: str, *, total_delta: int
     )
 
 
+def render_saldo_card(payload: dict, *, avatar_fn) -> str:
+    if not payload:
+        return ""
+
+    items_all = list(payload.get("items_all") or payload.get("items") or [])
+    if not items_all:
+        return ""
+
+    display_limit = int(payload.get("display_limit") or len(items_all) or 5)
+    inline_items = items_all[:display_limit]
+    overflow_items = items_all[display_limit:]
+
+    def _row(item: dict) -> str:
+        name = item.get("name", "")
+        balance = item.get("balance", 0)
+        if isinstance(balance, (int, float)) and float(balance).is_integer():
+            balance_text = f"{int(balance):,}"
+        elif isinstance(balance, (int, float)):
+            balance_text = f"{balance:,.1f}"
+        else:
+            balance_text = _escape_text(balance)
+        return (
+            f'<div class="u-s056">'
+            f'{avatar_fn(name, 42, item.get("border_color", "#999"))}'
+            f'<div class="u-s066">'
+            f'<div class="u-s059">'
+            f'<span class="fs-md u-s068">{_escape_text(item.get("rank_label", ""))} {_escape_text(item.get("first_name") or _short_name(name))}</span>'
+            f'<span class="fs-base" style="color:{item.get("balance_color", "#888")};font-weight:700;">{balance_text}</span>'
+            f'</div>'
+            f'<div class="u-s014">'
+            f'<div style="width:{float(item.get("bar_pct", 0)):.0f}%;height:100%;background:{item.get("balance_color", "#888")};border-radius:3px;"></div>'
+            f'</div>'
+            f'</div></div>'
+        )
+
+    rows_html = '<div class="u-s355">'
+    rows_html += "".join(_row(item) for item in inline_items)
+    if overflow_items:
+        rows_html += (
+            f'<details class="sinc-more">'
+            f'<summary>+{len(overflow_items)} restantes</summary>'
+            f'<div class="u-s355">'
+            f'{"".join(_row(item) for item in overflow_items)}'
+            f'</div></details>'
+        )
+    rows_html += '</div>'
+
+    return (
+        f'<div class="info-panel u-s199">'
+        f'{card_header(payload.get("icon", "💰"), payload.get("title", "Saldo de Estalecas"), payload.get("link"), source_tag=payload.get("source_tag"), subtitle=payload.get("subtitle"))}'
+        f'{rows_html}'
+        f'</div>'
+    )
+
+
 def plant_color(score):
     if score >= 80:
         return "#2f7d46"
