@@ -24,6 +24,7 @@
 | **Elimination result** (Tuesday) | Tuesday ~23h | [Elimination Result Checklist](#elimination-result-checklist-tuesday) |
 | **Cartola stale after elimination** | Tuesday ~23h | [Elimination Result Checklist → participant exit + Cartola sanity check](#elimination-result-checklist-tuesday) |
 | **Recalibrate Votalhada model after result** | Tuesday ~23h | [Elimination Result Checklist → model sanity check](#elimination-result-checklist-tuesday) |
+| **Barrado no Baile** (Wednesday) | Wednesday daytime | [Barrado no Baile Checklist](#barrado-no-baile-checklist-wednesday) |
 | **Sincerão data** (Monday) | Monday ~22h | [Sincerão Update](#sincerão-update-monday) |
 | **Ganha-Ganha / Barrado / power events** | Various | [Manual Data Files](#manual-data-files--when-and-how) |
 | **Add scheduled events for upcoming week** | After dynamics article | [Scheduled Events](#scheduled-events-upcoming-week) |
@@ -155,7 +156,7 @@ Each BBB week follows a predictable pattern anchored to the Líder cycle. Two re
 | **Terça** | ~21h | Votalhada "Consolidados" | [Votalhada Checklist](#votalhada-collection-checklist-tuesday) | `votalhada/polls.json` |
 | **Terça** | ~23h | **Eliminação** ao vivo | [Elimination Checklist](#elimination-result-checklist-tuesday) | `paredoes.json` |
 | **Terça** | ~23h30 | **Ganha-Ganha** | [Manual Data Files](#1-datamanual_eventsjson) | `manual_events.json` |
-| **Quarta** | durante o dia | **Barrado no Baile** | [Manual Data Files](#1-datamanual_eventsjson) | `manual_events.json` |
+| **Quarta** | durante o dia | **Barrado no Baile** | [Barrado no Baile Checklist](#barrado-no-baile-checklist-wednesday) | `manual_events.json` |
 | **Quinta** | ~22h | **Prova do Líder** | [Líder Checklist](#líder-transition-checklist-thursday-night) | `provas.json`, `paredoes.json` |
 | **Sexta** | ~22h | **Week Dynamic** (varies) | Depends on dynamic | varies |
 | **Sábado** | ~14h-17h | **Prova do Anjo** | [Anjo Checklist](#anjo--monstro-update-checklist-saturday) | `provas.json`, `manual_events.json` |
@@ -1316,6 +1317,63 @@ When a participant returns from Quarto Secreto:
 
 ---
 
+## Barrado no Baile Checklist (Wednesday)
+
+Use this checklist when the Líder (or liderança dupla) bars someone from the Festa do Líder.
+
+### 0. Scrape the source article
+
+```bash
+python scripts/scrape_gshow.py "<barrado-no-baile-url>" -o docs/scraped/
+```
+
+Example source (liderança dupla):
+- `https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/barrado-no-baile-ana-paula-renault-e-escolhida-pelos-lideres-jonas-sulzbach-e-alberto-cowboy.ghtml`
+
+### 1. Add/update `data/manual_events.json` → `power_events`
+
+Add one `barrado_baile` event:
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "week": N,
+  "type": "barrado_baile",
+  "actor": "Lider A + Lider B",
+  "actors": ["Lider A", "Lider B"],
+  "target": "Emparedado",
+  "source": "Barrado no Baile",
+  "detail": "Líder(es) escolheu(ram) X para ficar fora da festa e enfrentar desafio.",
+  "fontes": ["<barrado-no-baile-url>"],
+  "impacto": "negativo",
+  "origem": "manual",
+  "visibility": "public",
+  "awareness": "known"
+}
+```
+
+Single-líder case: keep only `actor: "Name"` (the optional `actors` array is mainly for consensus/duo actions).
+
+### 2. Rebuild + validate
+
+```bash
+python scripts/build_derived_data.py
+
+# Verify the event was stored as expected
+jq '.power_events[] | select(.type=="barrado_baile" and .date=="YYYY-MM-DD")' data/manual_events.json
+```
+
+Expected:
+- `type = "barrado_baile"`
+- `actor`/`target` names match API spelling
+- source URL present in `fontes`
+
+### 3. Optional scheduled-event cleanup
+
+If `scheduled_events` already had a `barrado_baile` placeholder for that date/week, you can remove it after publishing to keep the file tidy (timeline dedup is automatic, so this is cleanup-only).
+
+---
+
 ## Sincerão Update (Monday)
 
 After the Monday live show (~22h BRT):
@@ -1450,6 +1508,7 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 **Pitfalls**:
 - Names must match API exactly (see `docs/ARCHITECTURE.md` → data contracts)
 - Consensus events: use `"actor": "A + B + C"` + `"actors": ["A","B","C"]`
+- Barrado no Baile with liderança dupla: use both `actor` (joined string) and `actors` (array) to preserve attribution.
 - `participants` must use the current contract:
   - required keys: `status`, `exit_date`
   - recommended: `paredao_numero` (for eliminações), `fontes`
