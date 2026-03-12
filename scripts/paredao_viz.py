@@ -988,6 +988,9 @@ def render_paredao_live_card(payload: dict | None, avatars: dict[str, str]) -> s
     curiosity_chips_html = _render_curiosity_chips(curiosity_chips)
     memory_line = payload.get("memory_line")
     collection = payload.get("collection_label")
+    collection_html = f'<div class="paredao-card-collection">{safe_html(collection)}</div>' if collection else ""
+    facts_list_html = f'<ul class="paredao-card-facts">{facts_html}</ul>' if facts else ""
+    memory_html = f'<div class="paredao-card-memory">{_rich_text(memory_line)}</div>' if memory_line else ""
 
     return (
         f'<div class="paredao-live-card is-{payload.get("state")}">'
@@ -998,15 +1001,15 @@ def render_paredao_live_card(payload: dict | None, avatars: dict[str, str]) -> s
         f'<h3 class="paredao-live-title">{safe_html(payload.get("headline", "Paredão"))}</h3>'
         f'<span class="paredao-card-status">{safe_html(payload.get("status_label", ""))}</span>'
         f'</div>'
-        f'{f"<div class=\"paredao-card-collection\">{safe_html(collection)}</div>" if collection else ""}'
+        f'{collection_html}'
         f'</div>'
         f'{_render_trust_badge(payload.get("trust_badge", {}))}'
         f'</div>'
         f'<div class="paredao-live-grid">{nominees_html}</div>'
         f'{curiosity_html}'
         f'{curiosity_chips_html}'
-        f'{f"<ul class=\"paredao-card-facts\">{facts_html}</ul>" if facts else ""}'
-        f'{f"<div class=\"paredao-card-memory\">{_rich_text(memory_line)}</div>" if memory_line else ""}'
+        f'{facts_list_html}'
+        f'{memory_html}'
         f'</div>'
     )
 
