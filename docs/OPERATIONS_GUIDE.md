@@ -1699,6 +1699,7 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 - VIP strict source: `provas.json` (`tipo=lider` → `vip`, `vip_source`) plus `power_events.type=troca_vip`
 - From manual data: `atendeu_big_fone`, `desistente`, `eliminado`, `desclassificado`
 - From paredões: `salvo_paredao`, `nao_eliminado_paredao`, `nao_emparedado`, `nao_recebeu_votos`
+  - Window exception: when `formacao.bate_volta.salvacao_com_janela_aberta: true` (or `janela_escalacao_aberta: true`), score only `emparedado` (skip `salvo_paredao`).
 - Cross-checked: `monstro_retirado_vip` (Monstro recipient was in VIP in previous snapshot)
 - Paredão Falso: `quarto_secreto` (+40, from `paredao_falso: true` + finalized result)
 

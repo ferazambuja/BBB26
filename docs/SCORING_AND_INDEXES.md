@@ -465,6 +465,7 @@ Higher = more aligned; lower = contradiction.
 - `salvo_paredao` — **Venceu o Bate e Volta** (escapou do paredão). Não acumula com `nao_emparedado`.
 - `nao_eliminado_paredao` — Indicados finais que **permaneceram** após o resultado.
 - `nao_emparedado` — Participantes **ativos** na semana **fora da lista final** do paredão.
+- Exceção de janela: em `formacao.bate_volta`, se `salvacao_com_janela_aberta: true` (ou `janela_escalacao_aberta: true`), o pipeline lança apenas `emparedado` (não lança `salvo_paredao`).
 
 ---
 

@@ -126,7 +126,7 @@ POINTS_LABELS = {
     'imunizado': 'Imunizado',
     'atendeu_big_fone': 'Big Fone',
     'salvo_paredao': 'Salvo do Paredão',
-    'nao_eliminado_paredao': 'Não Eliminado',
+    'nao_eliminado_paredao': 'Não Eliminado no Paredão',
     'nao_emparedado': 'Não Emparedado',
     'vip': 'VIP',
     'nao_recebeu_votos': 'Sem Votos da Casa',
