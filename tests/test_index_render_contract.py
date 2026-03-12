@@ -10,18 +10,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(scope="module")
 def rendered_index_html() -> str:
-    output_dir = REPO_ROOT / "tmp" / "pytest-index-render-contract"
-    output_dir_arg = Path("tmp/pytest-index-render-contract")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (REPO_ROOT / "index_files" / "execute-results").mkdir(parents=True, exist_ok=True)
     subprocess.run(
-        ["quarto", "render", "index.qmd", "--output-dir", str(output_dir_arg)],
+        ["quarto", "render"],
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,
         text=True,
     )
-    return (output_dir / "index.html").read_text(encoding="utf-8")
+    return (REPO_ROOT / "_site" / "index.html").read_text(encoding="utf-8")
 
 
 def test_rendered_index_uses_scoped_table_wrappers_without_inline_style_blocks(rendered_index_html: str):

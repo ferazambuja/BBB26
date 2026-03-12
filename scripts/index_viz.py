@@ -9,6 +9,22 @@ import plotly.graph_objects as go
 from data_utils import GROUP_COLORS, REACTION_EMOJI, SENTIMENT_WEIGHTS
 
 
+def _escape_text(value) -> str:
+    return escape("" if value is None else str(value))
+
+
+def _escape_attr(value) -> str:
+    return escape("" if value is None else str(value), quote=True)
+
+
+def _profile_slug(name) -> str:
+    return ("" if name is None else str(name)).lower().replace(" ", "-")
+
+
+def _profile_href(name) -> str:
+    return _escape_attr(f"#perfil-{_profile_slug(name)}")
+
+
 def _coerce_float(value, default=0.0) -> float:
     if value in (None, ""):
         return default
@@ -47,18 +63,18 @@ def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=No
     """Card header with icon, title, optional link, badge, source tag, and subtitle."""
     meta_parts = []
     if badge:
-        meta_parts.append(f'<span class="dashboard-card-badge fs-xs u-s187">{badge}</span>')
+        meta_parts.append(f'<span class="dashboard-card-badge fs-xs u-s187">{_escape_text(badge)}</span>')
     if source_tag:
-        meta_parts.append(f'<span class="dashboard-card-source fs-2xs u-s253">{source_tag}</span>')
+        meta_parts.append(f'<span class="dashboard-card-source fs-2xs u-s253">{_escape_text(source_tag)}</span>')
     if link:
-        meta_parts.append(f'<a href="{link}" class="dashboard-card-link fs-xs u-s254">ver mais ↗</a>')
+        meta_parts.append(f'<a href="{_escape_attr(link)}" class="dashboard-card-link fs-xs u-s254">ver mais ↗</a>')
     meta_html = f'<div class="dashboard-card-header-meta">{"".join(meta_parts)}</div>' if meta_parts else ""
-    subtitle_html = f'<div class="dashboard-card-subtitle fs-sm u-s258">{subtitle}</div>' if subtitle else ""
+    subtitle_html = f'<div class="dashboard-card-subtitle fs-sm u-s258">{_escape_text(subtitle)}</div>' if subtitle else ""
     return (
         f'<div class="u-s073 dashboard-card-header">'
         f'<div class="dashboard-card-header-main">'
         f'<span class="dashboard-card-icon fs-2xl">{icon}</span>'
-        f'<span class="dashboard-card-title fs-base u-s392">{title}</span>'
+        f'<span class="dashboard-card-title fs-base u-s392">{_escape_text(title)}</span>'
         f"</div>"
         f"{meta_html}"
         f"{subtitle_html}</div>"
@@ -69,8 +85,8 @@ def stat_chip(value, label, color="#888"):
     """Small stat chip."""
     return (
         f'<span class="u-s373">'
-        f'<span class="fs-xl" style="font-weight:700;color:{color};">{value}</span>'
-        f'<span class="fs-2xs u-s259">{label}</span></span>'
+        f'<span class="fs-xl" style="font-weight:700;color:{color};">{_escape_text(value)}</span>'
+        f'<span class="fs-2xs u-s259">{_escape_text(label)}</span></span>'
     )
 
 
@@ -87,7 +103,7 @@ def progress_bar(value, max_val, color="#3498db", height=6):
 def render_pulse_row(label: str, value: int, color_row: str, *, total_delta: int) -> str:
     return (
         f'<div style="display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;">'
-        f'<span class="fs-2xs" style="color:#aaa;">{label}</span>'
+        f'<span class="fs-2xs" style="color:#aaa;">{_escape_text(label)}</span>'
         f'{progress_bar(value, total_delta, color_row, height=6)}'
         f'<span class="fs-sm" style="color:{color_row};font-weight:700;">{value}</span>'
         f'</div>'
@@ -113,8 +129,8 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
             f'<details class="status-detail">'
             f'<summary style="background:{bg};border-left:3px solid {color};">'
             f'<span class="fs-lg">{emoji}</span>'
-            f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
-            f'<div class="fs-2xs u-s061">{label}</div></div>'
+            f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{_escape_text(level)}</div>'
+            f'<div class="fs-2xs u-s061">{_escape_text(label)}</div></div>'
             f'</summary>'
             f'<div class="status-breakdown u-s001">{detail_html}</div>'
             f"</details>"
@@ -123,8 +139,8 @@ def render_status_chip(emoji, label, level, color, detail_html=""):
         f'<div style="display:flex;align-items:center;gap:0.4rem;background:{bg};'
         f'padding:0.4rem 0.8rem;border-radius:8px;border-left:3px solid {color};flex:1;min-width:140px;">'
         f'<span class="fs-lg">{emoji}</span>'
-        f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
-        f'<div class="fs-2xs u-s061">{label}</div></div>'
+        f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{_escape_text(level)}</div>'
+        f'<div class="fs-2xs u-s061">{_escape_text(label)}</div></div>'
         f"</div>"
     )
 
@@ -139,10 +155,10 @@ def _fmt_signed(value, decimals=1):
 
 def _render_list(rows, empty_text, value_fmt):
     if not rows:
-        return f"<p class='ranking-mobile-note'>{empty_text}</p>"
+        return f"<p class='ranking-mobile-note'>{_escape_text(empty_text)}</p>"
     items = []
     for row in rows:
-        nm = _short_name(row["name"])
+        nm = _escape_text(_short_name(row["name"]))
         items.append(f"<li><strong>{nm}</strong>: {value_fmt(row)}</li>")
     return "<ul>" + "".join(items) + "</ul>"
 
@@ -320,7 +336,7 @@ def render_mobile_evolution_summary(data_rows, score_key, section_title, cta_hre
     return (
         '<div class="ranking-mobile-summary">\n'
         '<div class="ranking-mobile-card">\n'
-        f'<h4>📈 {section_title} — últimos 7 dias</h4>\n'
+        f'<h4>📈 {_escape_text(section_title)} — últimos 7 dias</h4>\n'
         f'<p class="ranking-mobile-note u-s011">Janela: {date_window}</p>\n'
         '<p class="ranking-mobile-note u-s439">Subidas</p>\n'
         f"{up_html}\n"
@@ -329,7 +345,7 @@ def render_mobile_evolution_summary(data_rows, score_key, section_title, cta_hre
         '</div>\n'
         '<div class="ranking-mobile-cta ranking-mobile-note">\n'
         'Série completa:\n'
-        f'<a href="{cta_href}" class="u-s059">abrir gráficos detalhados ↗</a>\n'
+        f'<a href="{_escape_attr(cta_href)}" class="u-s059">abrir gráficos detalhados ↗</a>\n'
         '</div>\n'
         '</div>'
     )
@@ -337,13 +353,12 @@ def render_mobile_evolution_summary(data_rows, score_key, section_title, cta_hre
 
 def av(name, size=48, border_color="#555", *, avatars, avatar_html):
     """Avatar image tag, clickable to the participant's profile."""
-    slug = name.lower().replace(" ", "-")
     return avatar_html(
         name,
         avatars,
         size=size,
         show_name=False,
-        link=f"#perfil-{slug}",
+        link=_profile_href(name),
         border_color=border_color,
         fallback_initials=True,
     )
@@ -374,15 +389,15 @@ def pair_story_card(
         f'<div class="pair-story-grid">'
         f'<div class="pair-story-side">'
         f'{avatar_fn(giver, 42, left_border)}'
-        f'<span class="pair-story-name">{escape(giver.split()[0])}</span>'
+        f'<span class="pair-story-name">{_escape_text(giver.split()[0])}</span>'
         f'</div>'
         f'<div class="pair-story-center">'
         f'<div class="pair-story-transition">{transition_html}</div>'
-        f'<div class="pair-story-meta">{escape(meta_text)}</div>'
+        f'<div class="pair-story-meta">{_escape_text(meta_text)}</div>'
         f'</div>'
         f'<div class="pair-story-side">'
         f'{avatar_fn(receiver, 42, right_border)}'
-        f'<span class="pair-story-name">{escape(receiver.split()[0])}</span>'
+        f'<span class="pair-story-name">{_escape_text(receiver.split()[0])}</span>'
         f'</div>'
         f'</div>'
         f'</div>'
@@ -394,8 +409,6 @@ def render_pair_chip(item: dict, *, mode: str) -> str:
     b_name = item.get("alvo", "")
     a_first = a_name.split()[0] if a_name else "?"
     b_first = b_name.split()[0] if b_name else "?"
-    a_slug = a_name.lower().replace(" ", "-")
-    b_slug = b_name.lower().replace(" ", "-")
     tipo = item.get("tipo_label", "?")
     emoji = item.get("emoji", "?")
     if mode == "contra":
@@ -404,9 +417,9 @@ def render_pair_chip(item: dict, *, mode: str) -> str:
         detail = f"{tipo} + {emoji}"
     return (
         f'<span class="sinc-chip-muted">'
-        f'<a href="#perfil-{a_slug}" class="sinc-chip">{a_first}</a>'
-        f' → <a href="#perfil-{b_slug}" class="sinc-chip">{b_first}</a> '
-        f'<span class="sinc-chip-muted">({detail})</span>'
+        f'<a href="{_profile_href(a_name)}" class="sinc-chip">{_escape_text(a_first)}</a>'
+        f' → <a href="{_profile_href(b_name)}" class="sinc-chip">{_escape_text(b_first)}</a> '
+        f'<span class="sinc-chip-muted">({_escape_text(detail)})</span>'
         f'</span>'
     )
 
@@ -430,7 +443,7 @@ def render_actor_avatars(
             color = color_lookup[actor]
         if actor in avatars and avatars[actor]:
             parts.append(
-                f'<img src="{avatars[actor]}" style="width:{size}px;height:{size}px;border-radius:50%;'
+                f'<img src="{_escape_attr(avatars[actor])}" style="width:{size}px;height:{size}px;border-radius:50%;'
                 f'border:1.5px solid {color};object-fit:cover;margin-right:-3px;">'
             )
             continue
@@ -471,8 +484,8 @@ def make_event_chips(events, border_color, color_lookup=None, *, render_actor_av
         chips.append(
             f"<span style='display:inline-flex; align-items:center; gap:0.25rem; background:#2f2f2f; "
             f"border:1px solid {chip_border}; color:#ddd; border-radius:8px; padding:0.2rem 0.5rem; "
-            f"margin:0.1rem; line-height:1.4;' title='{title}' class='fs-md'>"
-            f"{count_prefix}{emoji} {label} {actor_html}</span>"
+            f"margin:0.1rem; line-height:1.4;' title=\"{_escape_attr(title)}\" class=\"fs-md\">"
+            f"{count_prefix}{emoji} {_escape_text(label)} {actor_html}</span>"
         )
     return " ".join(chips)
 
@@ -498,7 +511,7 @@ def render_avatar_row(items, border_color, max_show=999, *, avatar_fn):
                 score_html = f'<div class="fs-2xs" style="color:{score_color};font-weight:600;">{my_score:+.1f}</div>'
             else:
                 score_html = ""
-        first_name = name.split()[0] if name else ""
+        first_name = _escape_text(name.split()[0] if name else "")
         html += (
             f'<div class="u-s352">'
             f'{avatar_fn(name, 48, border_color)}'
@@ -517,7 +530,7 @@ def render_profile_sinc_chip(ix: dict, who_key: str) -> str:
     valence_cls = "pos" if ix.get("valence", "neg") == "pos" else "neg"
     return (
         f"<span class='profile-sinc-chip {valence_cls}'>"
-        f"{emoji} {who_first} <span class='profile-sinc-chip-text'>{label}</span></span>"
+        f"{emoji} {_escape_text(who_first)} <span class='profile-sinc-chip-text'>{_escape_text(label)}</span></span>"
     )
 
 
@@ -536,7 +549,7 @@ def render_profile_sinc_row(
     row_html = (
         f"<div class='profile-sinc-row'>"
         f"{week_prefix}"
-        f"<span class='profile-sinc-label'>{row_label}</span>"
+        f"<span class='profile-sinc-label'>{_escape_text(row_label)}</span>"
         f"<div class='profile-sinc-chip-wrap'>{chips}</div>"
         f"</div>"
     )
@@ -563,13 +576,13 @@ def build_rxn_detail_html(detail_list, *, avatar_fn) -> str:
         avatars_html = "".join(
             f'<div class="u-s351">'
             f'{avatar_fn(name, 36, "#555")}'
-            f'<div class="fs-2xs u-s265">{name.split()[0]}</div>'
+            f'<div class="fs-2xs u-s265">{_escape_text(name.split()[0])}</div>'
             f'</div>'
             for name in names_list
         )
         rows.append(
             f'<div class="u-s037">'
-            f'<div class="fs-md u-s405">{emoji} ({len(names_list)})</div>'
+            f'<div class="fs-md u-s405">{_escape_text(emoji)} ({len(names_list)})</div>'
             f'<div class="u-s359">{avatars_html}</div>'
             f'</div>'
         )
@@ -951,11 +964,11 @@ def make_cross_table_html(cross_data, title_suffix=""):
     )
 
     for short_name in short_names:
-        html.append(f"<th>{short_name}</th>")
+        html.append(f"<th>{_escape_text(short_name)}</th>")
     html.append("</tr></thead><tbody>")
 
     for i, giver in enumerate(active_names):
-        html.append(f"<tr><th>{short_names[i]}</th>")
+        html.append(f"<tr><th>{_escape_text(short_names[i])}</th>")
         for j, receiver in enumerate(active_names):
             if giver == receiver:
                 html.append('<td class="u-s117">—</td>')
@@ -964,7 +977,7 @@ def make_cross_table_html(cross_data, title_suffix=""):
                 emoji = REACTION_EMOJI.get(rxn, "?") if rxn else "?"
                 style = _get_cross_table_cell_style(rxn)
                 tooltip = f"{giver} → {receiver}: {rxn or 'N/A'}"
-                html.append(f'<td style="{style}" title="{tooltip}">{emoji}</td>')
+                html.append(f'<td style="{style}" title="{_escape_attr(tooltip)}">{emoji}</td>')
         html.append("</tr>")
 
     html.append("</tbody></table></div>")
@@ -1037,7 +1050,7 @@ def make_reaction_summary_html(summary_data, collapsed_rows=5):
     for i, row in enumerate(summary_rows):
         row_class = "index-reaction-summary__row--collapsed" if i >= collapsed_rows else ""
         html.append(f'<tr class="{row_class}">')
-        html.append(f'<td>{row["name"]}</td>')
+        html.append(f'<td>{_escape_text(row["name"])}</td>')
         html.append(f'<td style="{heart_color(row["hearts"])}">{row["hearts"]}</td>')
         html.append(f'<td style="{neg_color(row["planta"])}">{row["planta"] or "·"}</td>')
         html.append(f'<td style="{neg_color(row["mala"])}">{row["mala"] or "·"}</td>')

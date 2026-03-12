@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from datetime import datetime
+from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
@@ -512,3 +513,121 @@ def test_render_pair_chip_formats_mode_specific_detail_text():
     assert 'href="#perfil-babu-santana"' in contra_html
     assert "(Protege mas dá 😡)" in contra_html
     assert "(Ataca + 😡)" in aligned_html
+
+
+def test_card_header_escapes_data_text_and_link_attributes():
+    html = card_header(
+        "🗳️",
+        '"><script>alert(1)</script>',
+        'paredao.html?x="bad"&y=<tag>',
+        badge="<b>badge</b>",
+        source_tag='src "quoted"',
+        subtitle="sub <line>",
+    )
+
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "&lt;b&gt;badge&lt;/b&gt;" in html
+    assert "src &quot;quoted&quot;" in html
+    assert "sub &lt;line&gt;" in html
+    assert 'href="paredao.html?x=&quot;bad&quot;&amp;y=&lt;tag&gt;"' in html
+
+
+def test_pair_story_card_escapes_names_and_meta_but_keeps_html_slots_raw():
+    html = pair_story_card(
+        "A<B",
+        'B"Q',
+        "<strong>vs</strong>",
+        "meta <bad>",
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name}>",
+        group_border_fn=lambda name: "#111111",
+        border_color="#abcdef",
+    )
+
+    assert "<strong>vs</strong>" in html
+    assert "meta &lt;bad&gt;" in html
+    assert "A&lt;B" in html
+    assert "B&quot;Q" in html
+    assert "<avatar A<B>" in html
+
+
+def test_event_chip_and_cross_table_escape_titles_names_and_tooltips():
+    chips_html = make_event_chips(
+        [{"emoji": "📞", "label": "<Big>", "actors": ['Ana "Q"'], "count": 2}],
+        "#654321",
+        render_actor_avatars_fn=lambda actors, border_color, color_lookup=None, size=24, skip_icons=None: "<actors>",
+    )
+
+    class _SpanParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.spans = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "span":
+                self.spans.append(dict(attrs))
+
+    parser = _SpanParser()
+    parser.feed(chips_html)
+    assert parser.spans, "event chips must produce a valid <span> start tag"
+    assert parser.spans[0].get("class") == "fs-md"
+    assert "line-height:1.4;" in parser.spans[0].get("style", "")
+    assert "Ana" in parser.spans[0].get("title", "")
+
+    assert "<Big>" not in chips_html
+    assert "&lt;Big&gt;" in chips_html
+    assert "Ana &quot;Q&quot;" in chips_html
+    assert "<actors>" in chips_html
+
+    cross_html = make_cross_table_html(
+        {
+            "names": ['Ana "Q"', "<Babu>"],
+            "matrix": [["", "Coração"], ["Cobra", ""]],
+        }
+    )
+    assert "<Babu>" not in cross_html
+    assert "&lt;Babu&gt;" in cross_html
+    assert "Ana &quot;Q&quot; → &lt;Babu&gt;: Coração" in cross_html
+
+
+def test_summary_and_profile_helpers_escape_rendered_names_and_labels():
+    summary_html = make_reaction_summary_html(
+        {
+            "rows": [
+                {
+                    "name": '<img src=x onerror=1>',
+                    "hearts": 3,
+                    "planta": 0,
+                    "mala": 0,
+                    "biscoito": 0,
+                    "coracao_partido": 0,
+                    "mentiroso": 0,
+                    "alvo": 0,
+                    "cobra": 0,
+                    "vomito": 0,
+                    "negative": 1,
+                    "score": 2.0,
+                }
+            ],
+            "max_hearts": 3,
+        }
+    )
+    assert '<img src=x onerror=1>' not in summary_html
+    assert '&lt;img src=x onerror=1&gt;' in summary_html
+
+    row_html = render_profile_sinc_row(
+        "Recebeu",
+        [{"emoji": "🔥", "actor": "<Ana>", "label": '"boom"'}],
+        "actor",
+        2,
+    )
+    assert "<Ana>" not in row_html
+    assert "&lt;Ana&gt;" in row_html
+    assert "&quot;boom&quot;" in row_html
+
+    detail_html = index_viz.build_rxn_detail_html(
+        [{"emoji": "❤️", "name": "<Ana>"}],
+        avatar_fn=lambda name, size=48, border_color="#555": "<avatar>",
+    )
+    assert "<Ana>" not in detail_html
+    assert "&lt;Ana&gt;" in detail_html
