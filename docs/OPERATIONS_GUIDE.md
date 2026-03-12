@@ -32,6 +32,7 @@
 | **Workflow failed on GitHub** | After failure | [Troubleshooting](#troubleshooting) |
 | **Push conflict with bot** | After `git push` fails | [Git Workflow → conflict resolution](#handling-push-conflicts) |
 | **Check public/private doc policy** | Before commit/push | [Public vs Private Docs Policy](#public-vs-private-documentation-policy-agents) |
+| **Deploy / render the site on GitHub** | After push to `main` | [Triggering Site Updates](#triggering-site-updates) |
 | **Which script to run?** | Any time | [Script Reference](#quick-reference-which-script-when) |
 
 ---
@@ -62,7 +63,7 @@ This repo uses a **dual-branch system**. See `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.m
 
 **Commit prefixes** (required): `private:` (local-only) | `public:` (safe to publish)
 
-The GitHub Actions bot auto-commits `data/` files at permanent slots (6x daily, 8 on Saturdays) plus any temporary probes that are active for timing audits.
+The GitHub Actions bot polls every 15 minutes and auto-commits `data/` files when the API data changes (~5–15 snapshots/day). See [Triggering Site Updates](#triggering-site-updates).
 
 ### Daily Work (on `local/private-main`)
 
@@ -99,7 +100,7 @@ git checkout local/private-main
 
 **Key rules**:
 - The bot only touches `data/` files on `main`. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
-- Bot cron runs at **00:00, 06:00, 15:00, 18:00 BRT** (+ 17:00, 20:00 on Saturdays).
+- Bot polls every **15 minutes** (`*/15 * * * *`); saves only when data hash changes.
 - Snapshot filenames are **UTC**. Game dates use `utc_to_game_date()` (UTC→BRT with 06:00 BRT cutoff).
 - **Pre-push hook** (`.githooks/pre-push`) blocks pushes from `local/*` branches and private denylist files.
 
@@ -138,6 +139,49 @@ git push origin main
 gh workflow run daily-update.yml          # 5. Deploy immediately
 git checkout local/private-main
 ```
+
+---
+
+## Triggering Site Updates
+
+The GitHub Pages site at `ferazambuja.github.io/BBB26/` updates through the `daily-update.yml` workflow. **Pushing to `main` does NOT trigger a render** — the workflow runs on cron and manual dispatch only.
+
+### Three ways the site updates
+
+| Method | When it runs | What happens |
+|--------|-------------|--------------|
+| **Auto (cron)** | Every 15 minutes | Fetches API → saves snapshot if data changed → builds + renders + deploys |
+| **Manual dispatch** | On demand | Runs the full pipeline immediately (fetch + build + render + deploy) |
+| **After push** | Never (automatic) | Push alone does **not** trigger a build — you must dispatch manually or wait for the next cron |
+
+### Manual dispatch (most common for code/layout changes)
+
+After pushing code, QMD, CSS, or manual data changes to `main`:
+
+```bash
+gh workflow run daily-update.yml
+```
+
+This triggers the full pipeline: fetch → pytest → build_derived_data → quarto render → deploy to Pages.
+
+### Monitoring a run
+
+```bash
+gh run list --limit 5                  # find recent runs
+gh run watch                           # live-follow the latest run
+gh run view <run-id> --log             # full logs for a specific run
+```
+
+### When to dispatch manually
+
+- After pushing **any** change to `main` (code, QMD, CSS, docs, manual data)
+- After a failed run that you've fixed locally
+- When you need the site updated faster than the 15-minute cron cycle
+
+### When you DON'T need to dispatch
+
+- After the bot auto-commits a new snapshot (the workflow already handles the full pipeline)
+- If only `data/` changed via the bot's cron poll (build+deploy runs automatically when data changes)
 
 ---
 
