@@ -472,6 +472,62 @@ def pair_story_card(
     )
 
 
+def render_overflow_toggle(count: int) -> str:
+    safe_count = max(0, _coerce_int(count, default=0))
+    return (
+        f'<details class="sinc-more" style="margin-top:4px;">'
+        f'<summary style="list-style:none;cursor:pointer;text-align:center;'
+        f'padding:4px 0;color:#666;font-size:var(--fs-xs);">'
+        f'<span style="background:rgba(255,255,255,0.08);padding:2px 14px;'
+        f'border-radius:10px;">⋯ {safe_count}</span></summary>'
+    )
+
+
+def render_dramatic_event_row(
+    item: dict,
+    *,
+    ref_date,
+    is_hostile: bool,
+    fmt_date_fn,
+    days_ago_fn,
+    pair_story_card_fn,
+) -> str:
+    giver = item["giver"]
+    receiver = item["receiver"]
+    date_str = item.get("date", "")
+    when = fmt_date_fn(date_str)
+    age_txt = days_ago_fn(date_str, ref_date)
+    when_txt = f"{when} ({age_txt})" if when and age_txt else (when or age_txt)
+
+    old_emoji = item.get("old_emoji", "?")
+    new_emoji = item.get("new_emoji", item.get("emoji", "?") if is_hostile else "?")
+    if not is_hostile:
+        new_emoji = item.get("new_emoji", "?")
+
+    transition_html = (
+        f'<span class="pair-story-origin">{_escape_text(old_emoji)}</span>'
+        f'<span class="pair-story-arrow">→</span>'
+        f'<span class="pair-story-destination">{_escape_text(new_emoji)}</span>'
+    )
+
+    if is_hostile:
+        meta_txt = f"Hostilidade unilateral · {when_txt}"
+        row_border = "#f39c12"
+    else:
+        severity = _coerce_float(item.get("severity", 0))
+        severity_text = "alta" if severity >= 1.5 else ("média" if severity >= 1.0 else "leve")
+        meta_txt = f"Mudança {severity_text} · {when_txt}"
+        row_border = "#e74c3c" if severity >= 1.5 else "#8e44ad"
+
+    return pair_story_card_fn(
+        giver,
+        receiver,
+        transition_html,
+        meta_txt,
+        border_color=row_border,
+    )
+
+
 def render_pair_chip(item: dict, *, mode: str) -> str:
     a_name = item.get("ator", "")
     b_name = item.get("alvo", "")

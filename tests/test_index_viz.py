@@ -33,8 +33,10 @@ from index_viz import (
     progress_bar,
     render_actor_avatars,
     render_avatar_row,
+    render_dramatic_event_row,
     render_mobile_evolution_summary,
     render_mobile_queridometro_summary,
+    render_overflow_toggle,
     render_pair_chip,
     render_profile_sinc_row,
     render_pulse_row,
@@ -620,6 +622,46 @@ def test_render_pair_chip_formats_mode_specific_detail_text():
     assert 'href="#perfil-babu-santana"' in contra_html
     assert "(Protege mas dá 😡)" in contra_html
     assert "(Ataca + 😡)" in aligned_html
+
+
+def test_render_overflow_toggle_renders_summary_count():
+    html = render_overflow_toggle(3)
+
+    assert html.startswith('<details class="sinc-more"')
+    assert "⋯ 3" in html
+    assert "</summary>" in html
+
+
+def test_render_dramatic_event_row_formats_hostility_transition():
+    html = render_dramatic_event_row(
+        {
+            "giver": "Ana Paula Renault",
+            "receiver": "Babu Santana",
+            "old_emoji": "❤️",
+            "new_emoji": "😡",
+            "date": "2026-03-08",
+        },
+        ref_date="2026-03-12",
+        is_hostile=True,
+        fmt_date_fn=fmt_date_br,
+        days_ago_fn=lambda date_str, ref_date: days_ago_str(
+            date_str,
+            ref_date,
+            anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date(),
+        ),
+        pair_story_card_fn=lambda giver, receiver, transition_html, meta_text, border_color: (
+            f"<pair giver='{giver}' receiver='{receiver}' border='{border_color}'>"
+            f"{transition_html}|{meta_text}</pair>"
+        ),
+    )
+
+    assert "giver='Ana Paula Renault'" in html
+    assert "receiver='Babu Santana'" in html
+    assert "border='#f39c12'" in html
+    assert "Hostilidade unilateral" in html
+    assert "08/03 (há 4 dias)" in html
+    assert "❤️" in html
+    assert "😡" in html
 
 
 def test_card_header_escapes_data_text_and_link_attributes():

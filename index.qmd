@@ -57,10 +57,12 @@ from index_viz import (
     make_event_chips as _make_event_chips,
     make_reaction_summary_html,
     pair_story_card as _pair_story_card,
+    render_dramatic_event_row as _render_dramatic_event_row,
     render_mobile_evolution_summary,
     render_mobile_queridometro_summary,
     render_actor_avatars as _render_actor_avatars,
     render_avatar_row as _render_avatar_row,
+    render_overflow_toggle as _render_overflow_toggle,
     render_pair_chip,
     render_profile_sinc_row,
     render_pulse_row,
@@ -199,15 +201,6 @@ else:
                 subtitle="Score de hoje (❤️ = +1, negativas = −0.5 a −1). Dado do dia, não acumulado."
             )
 
-            def _toggle(n):
-                return (
-                    f'<details class="sinc-more" style="margin-top:4px;">'
-                    f'<summary style="list-style:none;cursor:pointer;text-align:center;'
-                    f'padding:4px 0;color:#666;font-size:var(--fs-xs);">'
-                    f'<span style="background:rgba(255,255,255,0.08);padding:2px 14px;'
-                    f'border-radius:10px;">⋯ {n}</span></summary>'
-                )
-
             # ── Top (main layout + in-card toggle) ──
             medals = ["🥇", "🥈", "🥉", "4º", "5º"]
             podium_positive = [p for p in podium_all if p["score"] > 0]
@@ -228,7 +221,7 @@ else:
                 )
             podium_html += '</div>'
             if overflow_podium:
-                podium_html += _toggle(len(overflow_podium))
+                podium_html += _render_overflow_toggle(len(overflow_podium))
                 podium_html += '<div class="u-s065">'
                 for i, p in enumerate(overflow_podium, start=len(inline_podium) + 1):
                     name = p["name"]
@@ -264,7 +257,7 @@ else:
                         )
                     bottom_html += '</div>'
                     if overflow_bottom:
-                        bottom_html += _toggle(len(overflow_bottom))
+                        bottom_html += _render_overflow_toggle(len(overflow_bottom))
                         bottom_html += '<div class="u-s065">'
                         for p in overflow_bottom:
                             name = p["name"]
@@ -309,7 +302,7 @@ else:
                     )
                 movers_html += '</div>'
                 if overflow_deltas:
-                    movers_html += _toggle(len(overflow_deltas))
+                    movers_html += _render_overflow_toggle(len(overflow_deltas))
                     movers_html += '<div class="u-s065">'
                     for d in overflow_deltas:
                         is_up = d.get("delta", 0) >= 0
@@ -404,57 +397,26 @@ else:
                     subtitle=subtitle
                 )
 
-            def _event_row(it: dict) -> str:
-                g = it["giver"]
-                r = it["receiver"]
-                date_str = it.get("date", "")
-                when = fmt_date_br(date_str)
-                age_txt = days_ago_str(date_str, ref_date)
-                when_txt = when
-                if age_txt:
-                    when_txt = f"{when} ({age_txt})" if when else age_txt
-
-                if is_hostile:
-                    old_e = it.get("old_emoji", "?")
-                    new_e = it.get("new_emoji", it.get("emoji", "?"))
-                    transition_html = (
-                        f'<span class="pair-story-origin">{old_e}</span>'
-                        f'<span class="pair-story-arrow">→</span>'
-                        f'<span class="pair-story-destination">{new_e}</span>'
-                    )
-                    meta_txt = f"Hostilidade unilateral · {when_txt}"
-                    row_border = "#f39c12"
-                else:
-                    old_e = it.get("old_emoji", "?")
-                    new_e = it.get("new_emoji", "?")
-                    sev = it.get("severity", 0)
-                    sev_txt = "alta" if sev >= 1.5 else ("média" if sev >= 1.0 else "leve")
-                    transition_html = (
-                        f'<span class="pair-story-origin">{old_e}</span>'
-                        f'<span class="pair-story-arrow">→</span>'
-                        f'<span class="pair-story-destination">{new_e}</span>'
-                    )
-                    meta_txt = f"Mudança {sev_txt} · {when_txt}"
-                    row_border = "#e74c3c" if sev >= 1.5 else "#8e44ad"
-
-                return pair_story_card(
-                    g,
-                    r,
-                    transition_html,
-                    meta_txt,
-                    border_color=row_border,
-                )
-
             inline_items = items[:4]
             overflow_items = items[4:]
             pairs_html = '<div class="u-s358">'
-            pairs_html += "".join(_event_row(it) for it in inline_items)
+            pairs_html += "".join(
+                _render_dramatic_event_row(
+                    it,
+                    ref_date=ref_date,
+                    is_hostile=is_hostile,
+                    fmt_date_fn=fmt_date_br,
+                    days_ago_fn=days_ago_str,
+                    pair_story_card_fn=pair_story_card,
+                )
+                for it in inline_items
+            )
             if overflow_items:
                 pairs_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
                     f'<div class="u-s358">'
-                    f'{"".join(_event_row(it) for it in overflow_items)}'
+                    f'{"".join(_render_dramatic_event_row(it, ref_date=ref_date, is_hostile=is_hostile, fmt_date_fn=fmt_date_br, days_ago_fn=days_ago_str, pair_story_card_fn=pair_story_card) for it in overflow_items)}'
                     f'</div>'
                     f'</details>'
                 )

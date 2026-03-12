@@ -1,10 +1,43 @@
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INDEX_QMD = REPO_ROOT / "index.qmd"
+
+
+def _python_blocks() -> list[list[str]]:
+    blocks: list[list[str]] = []
+    in_python = False
+    current: list[str] = []
+    for line in INDEX_QMD.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```{python"):
+            in_python = True
+            current = []
+            continue
+        if stripped == "```" and in_python:
+            in_python = False
+            blocks.append(current)
+            current = []
+            continue
+        if in_python:
+            current.append(line)
+    return blocks
+
+
+def _function_names() -> set[str]:
+    names: set[str] = set()
+    for block in _python_blocks():
+        code = "\n".join(line for line in block if not line.strip().startswith("#|"))
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            continue
+        names.update(node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef))
+    return names
 
 
 def test_index_qmd_imports_extracted_index_viz_helpers():
@@ -30,6 +63,8 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "_render_avatar_row" in content
     assert "days_ago_str" in content
     assert "make_evolution_chart" in content
+    assert "render_overflow_toggle as _render_overflow_toggle" in content
+    assert "render_dramatic_event_row" in content
     assert "render_profile_sinc_row" in content
     assert "build_rxn_detail_html" in content
     assert "render_pulse_row" in content
@@ -72,3 +107,10 @@ def test_index_qmd_no_longer_defines_first_extracted_helpers_inline():
     assert "def _pair_chip(" not in content
     assert "saldo_profiles = sorted(" not in content
     assert 'max_bal = max(abs(p.get("balance", 0)) for p in saldo_profiles)' not in content
+
+
+def test_index_qmd_batch_a_helpers_are_no_longer_defined_inline():
+    names = _function_names()
+
+    assert "_toggle" not in names
+    assert "_event_row" not in names
