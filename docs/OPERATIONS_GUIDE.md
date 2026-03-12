@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-10
+> **Last updated**: 2026-03-12
 
 ---
 
@@ -16,6 +16,7 @@
 | Task | When | Go to |
 |------|------|-------|
 | **Update after ANY manual edit** | After editing any data file | [Git Workflow](#git-workflow) |
+| **Publish local public commits quickly (recommended)** | After committing on `local/private-main` | [Git Workflow → One-command publish](#one-command-publish-recommended) |
 | **New Líder crowned** (Thursday) | Thursday ~22h | [Líder Transition Checklist](#líder-transition-checklist-thursday-night) |
 | **Prova do Anjo results** (Saturday) | Saturday afternoon | [Anjo / Monstro Checklist](#anjo--monstro-update-checklist-saturday) |
 | **Presente do Anjo** (Sunday afternoon) | Sunday ~14h-17h | [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) |
@@ -98,6 +99,39 @@ gh workflow run daily-update.yml
 git checkout local/private-main
 ```
 
+### One-command publish (recommended)
+
+Use the helper script for the default release path:
+
+```bash
+scripts/sync_public.sh
+```
+
+What it does:
+- checks out `main` and runs `git pull --rebase origin main`
+- cherry-picks all pending `public:` commits from `local/private-main` in order
+- if conflicts are only in `data/derived/*.json`, auto-resolves by keeping `main` versions
+- runs `python scripts/build_derived_data.py` when manual/derived data is involved
+- commits rebuilt artifacts if needed, pushes `main`, then returns to your starting branch
+
+Useful flags:
+
+```bash
+scripts/sync_public.sh --no-push
+scripts/sync_public.sh --no-rebuild
+scripts/sync_public.sh --stay-on-target
+scripts/sync_public.sh --source <branch> --target <branch> --remote <name>
+```
+
+One-time local setup (recommended for repeated conflicts):
+
+```bash
+git config rerere.enabled true
+git config rerere.autoupdate true
+git config pull.rebase true
+git config rebase.autoStash true
+```
+
 **Key rules**:
 - The bot only touches `data/` files on `main`. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
 - Bot polls every **15 minutes** (`*/15 * * * *`); saves only when data hash changes.
@@ -106,7 +140,13 @@ git checkout local/private-main
 
 ### Handling Push Conflicts
 
-If push to `main` fails because the bot committed while you were publishing:
+Preferred fix (rerun the helper):
+
+```bash
+scripts/sync_public.sh
+```
+
+Manual fallback if you need explicit control:
 
 ```bash
 git checkout main
@@ -1670,6 +1710,7 @@ Scrape and keep these pages in `docs/scraped/` for future verification:
 | Situation | Command |
 |-----------|---------|
 | After editing any manual data file | `python scripts/build_derived_data.py` |
+| Publish `public:` commits with conflict-safe sync | `scripts/sync_public.sh` |
 | Fetch fresh API data manually | `python scripts/fetch_data.py` |
 | Deploy to site immediately | `gh workflow run daily-update.yml` |
 | Verify site rendering locally | `quarto render` (~3 min) |
