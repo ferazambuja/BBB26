@@ -5,6 +5,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 QUARTO_CONFIG = REPO_ROOT / "_quarto.yml"
+PROJECT_METADATA = REPO_ROOT / "_metadata.yml"
+SOCIAL_PREVIEW_SCRIPT = REPO_ROOT / "scripts" / "generate_social_preview.py"
 
 
 def _read(path: Path) -> str:
@@ -24,12 +26,18 @@ def test_quarto_does_not_include_disclaimer_injected_block():
 
 def test_quarto_includes_social_metadata_defaults():
     config = _read(QUARTO_CONFIG)
+    project_metadata = _read(PROJECT_METADATA)
+    preview_script = _read(SOCIAL_PREVIEW_SCRIPT)
     assert "site-url:" in config
     assert "open-graph:" in config
     assert "locale: pt_BR" in config
     assert "twitter-card:" in config
     assert "card-style: summary_large_image" in config
-    assert "image: assets/social-preview.jpg" in config
+    assert "image: assets/social-preview.png" in config
+    assert 'image: assets/social-preview.png' in project_metadata
+    assert 'output_path: str = "assets/social-preview.png"' in preview_script
+    assert '<link rel="icon" href="https://github.githubassets.com/favicons/favicon.svg" type="image/svg+xml">' in config
+    assert '<link rel="shortcut icon" href="https://github.githubassets.com/favicons/favicon.png" type="image/png">' in config
 
 
 def test_quarto_uses_text_first_navbar_labels():
@@ -74,7 +82,8 @@ def test_legacy_navigation_callouts_removed_from_pages():
 
 
 def test_shared_social_preview_exists():
-    assert (REPO_ROOT / "assets" / "social-preview.jpg").exists()
+    assert (REPO_ROOT / "assets" / "social-preview.png").exists()
+    assert not (REPO_ROOT / "assets" / "social-preview.jpg").exists()
 
 
 def test_accessibility_files_removed():

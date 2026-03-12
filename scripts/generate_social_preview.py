@@ -5,7 +5,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 
-def generate_social_preview(output_path: str = "assets/social-preview.jpg") -> None:
+def generate_social_preview(output_path: str = "assets/social-preview.png") -> None:
     W, H = 1200, 630
     BG_COLOR = (26, 26, 46)  # #1a1a2e — dark theme background
     ACCENT_GREEN = (0, 200, 83)  # BBB green accent
