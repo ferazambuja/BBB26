@@ -9,6 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
+import index_viz
 from data_utils import GROUP_COLORS, REACTION_EMOJI, setup_bbb_dark_theme
 from index_viz import (
     _fmt_signed,
@@ -33,6 +34,9 @@ from index_viz import (
     render_avatar_row,
     render_mobile_evolution_summary,
     render_mobile_queridometro_summary,
+    render_pair_chip,
+    render_profile_sinc_row,
+    render_pulse_row,
     render_status_chip,
     stat_chip,
 )
@@ -431,3 +435,80 @@ def test_make_evolution_chart_accepts_iso_datetime_strings():
     )
 
     assert fig is not None
+
+
+def test_render_profile_sinc_row_keeps_week_prefix_and_overflow_details():
+    interactions = [
+        {"emoji": "🔥", "actor": "Ana Paula Renault", "label": "puxou"},
+        {"emoji": "🎯", "actor": "Babu Santana", "label": "mirou"},
+        {"emoji": "⚡", "actor": "Chaiany", "label": "contradisse"},
+    ]
+
+    html = render_profile_sinc_row(
+        "Recebeu",
+        interactions,
+        "actor",
+        2,
+        week_prefix="<span class='profile-sinc-week'>S8</span>",
+    )
+
+    assert "profile-sinc-row" in html
+    assert "profile-sinc-week" in html
+    assert "Recebeu" in html
+    assert "🔥 Ana <span class='profile-sinc-chip-text'>puxou</span>" in html
+    assert "<summary>+1 desta semana</summary>" in html
+    assert "⚡ Chaiany <span class='profile-sinc-chip-text'>contradisse</span>" in html
+
+
+def test_build_rxn_detail_html_groups_names_by_emoji_and_renders_avatar_markup():
+    detail = [
+        {"emoji": "❤️", "name": "Ana Paula Renault"},
+        {"emoji": "❤️", "name": "Babu Santana"},
+        {"emoji": "😡", "name": "Chaiany"},
+    ]
+
+    html = index_viz.build_rxn_detail_html(
+        detail,
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {size} {border_color}>",
+    )
+
+    assert "❤️ (2)" in html
+    assert "😡 (1)" in html
+    assert "<avatar Ana Paula Renault 36 #555>" in html
+    assert "<avatar Babu Santana 36 #555>" in html
+    assert "<avatar Chaiany 36 #555>" in html
+
+
+def test_render_pulse_row_reuses_progress_bar_output():
+    html = render_pulse_row("Melhorias", 3, "#27ae60", total_delta=6)
+
+    assert "Melhorias" in html
+    assert ">3<" in html
+    assert "width:50%" in html
+    assert "background:#27ae60" in html
+
+
+def test_render_pair_chip_formats_mode_specific_detail_text():
+    contra_html = render_pair_chip(
+        {
+            "ator": "Ana Paula Renault",
+            "alvo": "Babu Santana",
+            "tipo_label": "Protege",
+            "emoji": "😡",
+        },
+        mode="contra",
+    )
+    aligned_html = render_pair_chip(
+        {
+            "ator": "Ana Paula Renault",
+            "alvo": "Babu Santana",
+            "tipo_label": "Ataca",
+            "emoji": "😡",
+        },
+        mode="aligned",
+    )
+
+    assert 'href="#perfil-ana-paula-renault"' in contra_html
+    assert 'href="#perfil-babu-santana"' in contra_html
+    assert "(Protege mas dá 😡)" in contra_html
+    assert "(Ataca + 😡)" in aligned_html

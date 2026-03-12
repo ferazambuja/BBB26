@@ -21,7 +21,6 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
-from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from html import escape
@@ -47,6 +46,7 @@ from paredao_viz import (
 from index_viz import (
     av as _av,
     av_group_border as _av_group_border,
+    build_rxn_detail_html,
     card_header,
     days_ago_str as _days_ago_str,
     fmt_date_br,
@@ -61,8 +61,10 @@ from index_viz import (
     render_mobile_queridometro_summary,
     render_actor_avatars as _render_actor_avatars,
     render_avatar_row as _render_avatar_row,
+    render_pair_chip,
+    render_profile_sinc_row,
+    render_pulse_row,
     plant_color,
-    progress_bar,
     render_status_chip,
     stat_chip,
 )
@@ -348,15 +350,6 @@ else:
             net = imp - wor
             net_txt = f"+{net}" if net > 0 else str(net)
 
-            def _pulse_row(label: str, value: int, color_row: str) -> str:
-                return (
-                    f'<div style="display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;">'
-                    f'<span class="fs-2xs" style="color:#aaa;">{label}</span>'
-                    f'{progress_bar(value, total_delta, color_row, height=6)}'
-                    f'<span class="fs-sm" style="color:{color_row};font-weight:700;">{value}</span>'
-                    f'</div>'
-                )
-
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Mudanças de ontem para hoje no queridômetro. Melhoria = reação ficou mais positiva; piora = mais negativa.")}
 <div class="u-s332">
@@ -364,9 +357,9 @@ else:
 <span class="fs-base u-s001">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
 <div style="display:grid;gap:6px;margin-top:4px;">
-{_pulse_row("Melhorias", imp, "#27ae60")}
-{_pulse_row("Pioras", wor, "#e74c3c")}
-{_pulse_row("Laterais", lat, "#888")}
+{render_pulse_row("Melhorias", imp, "#27ae60", total_delta=total_delta)}
+{render_pulse_row("Pioras", wor, "#e74c3c", total_delta=total_delta)}
+{render_pulse_row("Laterais", lat, "#888", total_delta=total_delta)}
 </div>
 <div class="fs-sm u-s362" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
 <span class="u-s054">+{hg} ❤️ ganhos</span>
@@ -572,36 +565,15 @@ else:
                 inline_items = pairs[:INLINE_MAX_PAIRS]
                 overflow_items = pairs[INLINE_MAX_PAIRS:]
 
-                def _pair_chip(item: dict) -> str:
-                    a_name = item.get("ator", "")
-                    b_name = item.get("alvo", "")
-                    a_first = a_name.split()[0] if a_name else "?"
-                    b_first = b_name.split()[0] if b_name else "?"
-                    a_slug = a_name.lower().replace(" ", "-")
-                    b_slug = b_name.lower().replace(" ", "-")
-                    tipo = item.get("tipo_label", "?")
-                    emoji = item.get("emoji", "?")
-                    if mode == "contra":
-                        detail = f"{tipo} mas dá {emoji}"
-                    else:
-                        detail = f"{tipo} + {emoji}"
-                    return (
-                        f'<span class="sinc-chip-muted">'
-                        f'<a href="#perfil-{a_slug}" class="sinc-chip">{a_first}</a>'
-                        f' → <a href="#perfil-{b_slug}" class="sinc-chip">{b_first}</a> '
-                        f'<span class="sinc-chip-muted">({detail})</span>'
-                        f'</span>'
-                    )
-
                 lane.append('<div class="sinc-chip-wrap">')
-                lane.extend(_pair_chip(it) for it in inline_items)
+                lane.extend(render_pair_chip(it, mode=mode) for it in inline_items)
                 lane.append('</div>')
                 if overflow_items:
                     lane.append(
                         f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
                         f'<div class="sinc-more-list">'
                     )
-                    lane.extend(_pair_chip(it) for it in overflow_items)
+                    lane.extend(render_pair_chip(it, mode=mode) for it in overflow_items)
                     lane.append('</div></details>')
                 lane.append('</div>')
                 return "".join(lane)
@@ -1849,48 +1821,15 @@ for p in profiles:
         HISTORY_INLINE_MAX = 10
         sinc_parts = []
 
-        def _render_profile_sinc_chip(ix: dict, who_key: str) -> str:
-            emoji = ix.get("emoji", "")
-            who_first = ix.get(who_key, "").split()[0] if ix.get(who_key) else ""
-            label = ix.get("label", "")
-            valence_cls = "pos" if ix.get("valence", "neg") == "pos" else "neg"
-            return (
-                f"<span class='profile-sinc-chip {valence_cls}'>"
-                f"{emoji} {who_first} <span class='profile-sinc-chip-text'>{label}</span></span>"
-            )
-
-        def _render_profile_row(row_label: str, interactions: list[dict], who_key: str, inline_max: int, week_prefix: str = "") -> str:
-            if not interactions:
-                return ""
-            inline = interactions[:inline_max]
-            overflow = interactions[inline_max:]
-            chips = "".join(_render_profile_sinc_chip(ix, who_key) for ix in inline)
-            row_html = (
-                f"<div class='profile-sinc-row'>"
-                f"{week_prefix}"
-                f"<span class='profile-sinc-label'>{row_label}</span>"
-                f"<div class='profile-sinc-chip-wrap'>{chips}</div>"
-                f"</div>"
-            )
-            if overflow:
-                overflow_chips = "".join(_render_profile_sinc_chip(ix, who_key) for ix in overflow)
-                row_html += (
-                    f"<details class='profile-sinc-more'>"
-                    f"<summary>+{len(overflow)} desta semana</summary>"
-                    f"<div class='profile-sinc-chip-wrap profile-sinc-overflow'>{overflow_chips}</div>"
-                    f"</details>"
-                )
-            return row_html
-
         # -- Current week (Recebeu / Fez) --
         current_rows = []
         current_received = sinc_current.get("received", [])
         if current_received:
-            current_rows.append(_render_profile_row("Recebeu", current_received, "actor", CURRENT_INLINE_MAX))
+            current_rows.append(render_profile_sinc_row("Recebeu", current_received, "actor", CURRENT_INLINE_MAX))
 
         current_given = sinc_current.get("given", [])
         if current_given:
-            current_rows.append(_render_profile_row("Fez", current_given, "target", CURRENT_INLINE_MAX))
+            current_rows.append(render_profile_sinc_row("Fez", current_given, "target", CURRENT_INLINE_MAX))
 
         if current_rows:
             sinc_parts.append(f"<div class='profile-sinc-current'>{''.join(current_rows)}</div>")
@@ -1920,7 +1859,7 @@ for p in profiles:
                 recv_ints = recv_lookup.get(wk, [])
                 if recv_ints:
                     week_parts.append(
-                        _render_profile_row(
+                        render_profile_sinc_row(
                             "Recebeu",
                             recv_ints,
                             "actor",
@@ -1932,7 +1871,7 @@ for p in profiles:
                 given_ints = given_lookup.get(wk, [])
                 if given_ints:
                     week_parts.append(
-                        _render_profile_row(
+                        render_profile_sinc_row(
                             "Fez",
                             given_ints,
                             "target",
@@ -2165,34 +2104,8 @@ for p in profiles:
     # Expandable per-person reaction detail
     received_detail = p.get("received_detail", [])
     given_detail = p.get("given_detail", [])
-
-    def build_rxn_detail_html(detail_list):
-        if not detail_list:
-            return ""
-        # Group by emoji
-        groups = OrderedDict()
-        for d in detail_list:
-            emoji = d.get("emoji", "?")
-            groups.setdefault(emoji, []).append(d["name"])
-        rows = []
-        for emoji, names_list in groups.items():
-            avatars_html = "".join(
-                f'<div class="u-s351">'
-                f'{av(n, 36, "#555")}'
-                f'<div class="fs-2xs u-s265">{n.split()[0]}</div>'
-                f'</div>'
-                for n in names_list
-            )
-            rows.append(
-                f'<div class="u-s037">'
-                f'<div class="fs-md u-s405">{emoji} ({len(names_list)})</div>'
-                f'<div class="u-s359">{avatars_html}</div>'
-                f'</div>'
-            )
-        return "".join(rows)
-
-    received_detail_html = build_rxn_detail_html(received_detail)
-    given_detail_html = build_rxn_detail_html(given_detail)
+    received_detail_html = build_rxn_detail_html(received_detail, avatar_fn=av)
+    given_detail_html = build_rxn_detail_html(given_detail, avatar_fn=av)
 
     # ═══ [4] RELATIONS GRID ═══
     relations_html = (

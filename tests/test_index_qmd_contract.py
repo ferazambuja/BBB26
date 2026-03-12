@@ -18,7 +18,6 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "fmt_date_br" in content
     assert "card_header" in content
     assert "stat_chip" in content
-    assert "progress_bar" in content
     assert "plant_color" in content
     assert "render_status_chip" in content
     assert "render_mobile_queridometro_summary" in content
@@ -31,6 +30,10 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "_render_avatar_row" in content
     assert "days_ago_str" in content
     assert "make_evolution_chart" in content
+    assert "render_profile_sinc_row" in content
+    assert "build_rxn_detail_html" in content
+    assert "render_pulse_row" in content
+    assert "render_pair_chip" in content
 
 
 def test_index_qmd_no_longer_defines_first_extracted_helpers_inline():
@@ -61,3 +64,8 @@ def test_index_qmd_no_longer_defines_first_extracted_helpers_inline():
     assert "def render_avatar_row(" not in content
     assert "def days_ago_str(" not in content
     assert "def make_evolution_chart(" not in content
+    assert "def _render_profile_sinc_chip(" not in content
+    assert "def _render_profile_row(" not in content
+    assert "def build_rxn_detail_html(" not in content
+    assert "def _pulse_row(" not in content
+    assert "def _pair_chip(" not in content

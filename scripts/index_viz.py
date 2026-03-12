@@ -84,6 +84,16 @@ def progress_bar(value, max_val, color="#3498db", height=6):
     )
 
 
+def render_pulse_row(label: str, value: int, color_row: str, *, total_delta: int) -> str:
+    return (
+        f'<div style="display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;">'
+        f'<span class="fs-2xs" style="color:#aaa;">{label}</span>'
+        f'{progress_bar(value, total_delta, color_row, height=6)}'
+        f'<span class="fs-sm" style="color:{color_row};font-weight:700;">{value}</span>'
+        f'</div>'
+    )
+
+
 def plant_color(score):
     if score >= 80:
         return "#2f7d46"
@@ -379,6 +389,28 @@ def pair_story_card(
     )
 
 
+def render_pair_chip(item: dict, *, mode: str) -> str:
+    a_name = item.get("ator", "")
+    b_name = item.get("alvo", "")
+    a_first = a_name.split()[0] if a_name else "?"
+    b_first = b_name.split()[0] if b_name else "?"
+    a_slug = a_name.lower().replace(" ", "-")
+    b_slug = b_name.lower().replace(" ", "-")
+    tipo = item.get("tipo_label", "?")
+    emoji = item.get("emoji", "?")
+    if mode == "contra":
+        detail = f"{tipo} mas dá {emoji}"
+    else:
+        detail = f"{tipo} + {emoji}"
+    return (
+        f'<span class="sinc-chip-muted">'
+        f'<a href="#perfil-{a_slug}" class="sinc-chip">{a_first}</a>'
+        f' → <a href="#perfil-{b_slug}" class="sinc-chip">{b_first}</a> '
+        f'<span class="sinc-chip-muted">({detail})</span>'
+        f'</span>'
+    )
+
+
 def render_actor_avatars(
     actors,
     border_color="#666",
@@ -476,6 +508,72 @@ def render_avatar_row(items, border_color, max_show=999, *, avatar_fn):
         )
     html += "</div>"
     return html
+
+
+def render_profile_sinc_chip(ix: dict, who_key: str) -> str:
+    emoji = ix.get("emoji", "")
+    who_first = ix.get(who_key, "").split()[0] if ix.get(who_key) else ""
+    label = ix.get("label", "")
+    valence_cls = "pos" if ix.get("valence", "neg") == "pos" else "neg"
+    return (
+        f"<span class='profile-sinc-chip {valence_cls}'>"
+        f"{emoji} {who_first} <span class='profile-sinc-chip-text'>{label}</span></span>"
+    )
+
+
+def render_profile_sinc_row(
+    row_label: str,
+    interactions: list[dict],
+    who_key: str,
+    inline_max: int,
+    week_prefix: str = "",
+) -> str:
+    if not interactions:
+        return ""
+    inline = interactions[:inline_max]
+    overflow = interactions[inline_max:]
+    chips = "".join(render_profile_sinc_chip(ix, who_key) for ix in inline)
+    row_html = (
+        f"<div class='profile-sinc-row'>"
+        f"{week_prefix}"
+        f"<span class='profile-sinc-label'>{row_label}</span>"
+        f"<div class='profile-sinc-chip-wrap'>{chips}</div>"
+        f"</div>"
+    )
+    if overflow:
+        overflow_chips = "".join(render_profile_sinc_chip(ix, who_key) for ix in overflow)
+        row_html += (
+            f"<details class='profile-sinc-more'>"
+            f"<summary>+{len(overflow)} desta semana</summary>"
+            f"<div class='profile-sinc-chip-wrap profile-sinc-overflow'>{overflow_chips}</div>"
+            f"</details>"
+        )
+    return row_html
+
+
+def build_rxn_detail_html(detail_list, *, avatar_fn) -> str:
+    if not detail_list:
+        return ""
+    groups = {}
+    for detail in detail_list:
+        emoji = detail.get("emoji", "?")
+        groups.setdefault(emoji, []).append(detail["name"])
+    rows = []
+    for emoji, names_list in groups.items():
+        avatars_html = "".join(
+            f'<div class="u-s351">'
+            f'{avatar_fn(name, 36, "#555")}'
+            f'<div class="fs-2xs u-s265">{name.split()[0]}</div>'
+            f'</div>'
+            for name in names_list
+        )
+        rows.append(
+            f'<div class="u-s037">'
+            f'<div class="fs-md u-s405">{emoji} ({len(names_list)})</div>'
+            f'<div class="u-s359">{avatars_html}</div>'
+            f'</div>'
+        )
+    return "".join(rows)
 
 
 def days_ago_str(date_str: str, ref_date: str | None = None, *, anchor_brt):
