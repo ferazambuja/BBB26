@@ -389,6 +389,9 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                 bv_winners_set = set(bv_winners_list)
                 for vencedor_bv in bv_winners_list:
                     if not has_event(vencedor_bv, week, 'imunizado'):
+                        # Bate e Volta winner was emparedado before escaping.
+                        add_event_points(vencedor_bv, week, 'emparedado',
+                                         CARTOLA_POINTS['emparedado'], paredao_date)
                         add_event_points(vencedor_bv, week, 'salvo_paredao',
                                          CARTOLA_POINTS['salvo_paredao'], paredao_date)
 
