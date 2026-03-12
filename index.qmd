@@ -62,14 +62,18 @@ from index_viz import (
     render_mobile_queridometro_summary,
     render_actor_avatars as _render_actor_avatars,
     render_avatar_row as _render_avatar_row,
+    render_pair_lane as _render_pair_lane,
     render_overflow_toggle as _render_overflow_toggle,
     render_pair_chip,
     render_profile_sinc_row,
     render_pulse_row,
+    render_rank_chip as _render_rank_chip,
+    render_ranked_lane as _render_ranked_lane,
     render_saldo_card,
     plant_color,
     render_status_chip,
     stat_chip,
+    render_toggle_pair_lane as _render_toggle_pair_lane,
 )
 
 require_clean_manual_events()
@@ -449,114 +453,46 @@ else:
                     reaction_ref_pt = reaction_reference_date
                 subtitle = f"{subtitle} Reações de referência: {reaction_ref_pt}."
 
-            def _rank_chip(entry: dict, lane_type: str, is_top: bool, *, force_count: int | None = None) -> str:
-                name = entry.get("name", "")
-                first = name.split()[0] if name else "?"
-                slug = name.lower().replace(" ", "-")
-                count = force_count if force_count is not None else int(entry.get("count", 0) or 0)
-                lane_colors = {
-                    "attack": "#e67e22",
-                    "praise": "#27ae60",
-                    "safe": "#3498db",
-                }
-                avatar = _avatar_html(
-                    name,
-                    AVATARS,
-                    size=30,
-                    show_name=False,
-                    border_color=lane_colors.get(lane_type, "#666"),
-                    fallback_initials=True,
-                )
-                top_cls = " top" if is_top else ""
-                return (
-                    f'<a href="#perfil-{slug}" class="sinc-person-chip {lane_type}{top_cls}">'
-                    f'<span class="sinc-person-avatar">{avatar}</span>'
-                    f'<span class="sinc-person-meta">'
-                    f'<span class="sinc-person-name">{first}</span>'
-                    f'<span class="sinc-count-badge {lane_type}">{count}x</span>'
-                    f'</span>'
-                    f'</a>'
-                )
-
-            def _render_ranked_lane(
-                title: str,
-                icon: str,
-                ranked: list[dict],
-                empty_text: str,
-                lane_type: str,
-                *,
-                highlight_top: bool = True,
-                force_count: int | None = None,
-            ) -> str:
-                lane = [f'<div class="sinc-lane"><div class="sinc-lane-head">{icon} {title}</div>']
-                if not ranked:
-                    lane.append(f'<div class="sinc-empty">{empty_text}</div></div>')
-                    return "".join(lane)
-
-                top_count = ranked[0].get("count", 0)
-                inline_items = ranked[:INLINE_MAX_RANKED]
-                overflow_items = ranked[INLINE_MAX_RANKED:]
-                lane.append('<div class="sinc-people-grid">')
-                lane.extend(
-                    _rank_chip(
-                        it,
-                        lane_type,
-                        highlight_top and it.get("count", 0) == top_count,
-                        force_count=force_count,
-                    )
-                    for it in inline_items
-                )
-                lane.append('</div>')
-                if overflow_items:
-                    lane.append(
-                        f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
-                        f'<div class="sinc-more-list"><div class="sinc-people-grid">'
-                    )
-                    lane.extend(_rank_chip(it, lane_type, False, force_count=force_count) for it in overflow_items)
-                    lane.append('</div></div></details>')
-                lane.append('</div>')
-                return "".join(lane)
-
-            def _render_pair_lane(title: str, icon: str, pairs: list[dict], mode: str, *, show_header: bool = True) -> str:
-                lane = ['<div class="sinc-lane">']
-                if show_header:
-                    lane.append(f'<div class="sinc-lane-head">{icon} {title}</div>')
-                if not pairs:
-                    lane.append('<div class="sinc-empty">Sem casos nesta semana.</div></div>')
-                    return "".join(lane)
-
-                inline_items = pairs[:INLINE_MAX_PAIRS]
-                overflow_items = pairs[INLINE_MAX_PAIRS:]
-
-                lane.append('<div class="sinc-chip-wrap">')
-                lane.extend(render_pair_chip(it, mode=mode) for it in inline_items)
-                lane.append('</div>')
-                if overflow_items:
-                    lane.append(
-                        f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
-                        f'<div class="sinc-more-list">'
-                    )
-                    lane.extend(render_pair_chip(it, mode=mode) for it in overflow_items)
-                    lane.append('</div></details>')
-                lane.append('</div>')
-                return "".join(lane)
-
-            def _render_toggle_pair_lane(title: str, icon: str, pairs: list[dict], mode: str) -> str:
-                count = len(pairs)
-                body = _render_pair_lane(title, icon, pairs, mode, show_header=False)
-                return (
-                    f'<details class="sinc-toggle">'
-                    f'<summary>{icon} {title} <span class="sinc-toggle-count">({count})</span></summary>'
-                    f'{body}'
-                    f'</details>'
-                )
+            _rank_avatar_html = lambda name, border_color: _avatar_html(
+                name,
+                AVATARS,
+                size=30,
+                show_name=False,
+                border_color=border_color,
+                fallback_initials=True,
+            )
+            _rank_chip = lambda entry, lane_type, is_top, force_count=None: _render_rank_chip(
+                entry,
+                lane_type,
+                is_top,
+                avatar_html_fn=_rank_avatar_html,
+                force_count=force_count,
+            )
 
             lanes = [
-                _render_ranked_lane("Atacados", "💣", neg_ranked, "Sem ataques na semana.", "attack"),
+                _render_ranked_lane(
+                    "Atacados",
+                    "💣",
+                    neg_ranked,
+                    "Sem ataques na semana.",
+                    "attack",
+                    inline_max=INLINE_MAX_RANKED,
+                    render_rank_chip_fn=_rank_chip,
+                ),
             ]
 
             if pos_ranked:
-                lanes.append(_render_ranked_lane("Elogiados", "🏆", pos_ranked, "Sem elogios na semana.", "praise"))
+                lanes.append(
+                    _render_ranked_lane(
+                        "Elogiados",
+                        "🏆",
+                        pos_ranked,
+                        "Sem elogios na semana.",
+                        "praise",
+                        inline_max=INLINE_MAX_RANKED,
+                        render_rank_chip_fn=_rank_chip,
+                    )
+                )
 
             safe_ranked = [{"name": n, "count": 0} for n in not_targeted]
             lanes.append(
@@ -566,14 +502,30 @@ else:
                     safe_ranked,
                     "Ninguém ficou poupado na semana.",
                     "safe",
+                    inline_max=INLINE_MAX_RANKED,
+                    render_rank_chip_fn=_rank_chip,
                     highlight_top=False,
                     force_count=0,
                 )
             )
 
             toggle_sections = [
-                _render_toggle_pair_lane("Contradições", "⚡", contras, "contra"),
-                _render_toggle_pair_lane("Conflito Confirmado", "🎯", aligned_neg, "aligned"),
+                _render_toggle_pair_lane(
+                    "Contradições",
+                    "⚡",
+                    contras,
+                    "contra",
+                    inline_max=INLINE_MAX_PAIRS,
+                    render_pair_chip_fn=render_pair_chip,
+                ),
+                _render_toggle_pair_lane(
+                    "Conflito Confirmado",
+                    "🎯",
+                    aligned_neg,
+                    "aligned",
+                    inline_max=INLINE_MAX_PAIRS,
+                    render_pair_chip_fn=render_pair_chip,
+                ),
             ]
             body_html = f'<div class="sinc-card">{"".join(lanes)}{"".join(toggle_sections)}</div>'
             count_txt = f"{len(neg_ranked) + len(pos_ranked)}" if (neg_ranked or pos_ranked) else ""

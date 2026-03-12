@@ -37,12 +37,16 @@ from index_viz import (
     render_mobile_evolution_summary,
     render_mobile_queridometro_summary,
     render_overflow_toggle,
+    render_pair_lane,
     render_pair_chip,
     render_profile_sinc_row,
     render_pulse_row,
+    render_rank_chip,
+    render_ranked_lane,
     render_saldo_card,
     render_status_chip,
     stat_chip,
+    render_toggle_pair_lane,
 )
 
 
@@ -662,6 +666,81 @@ def test_render_dramatic_event_row_formats_hostility_transition():
     assert "08/03 (há 4 dias)" in html
     assert "❤️" in html
     assert "😡" in html
+
+
+def test_render_rank_chip_renders_profile_link_avatar_and_count_badge():
+    html = render_rank_chip(
+        {"name": "Ana Paula Renault", "count": 3},
+        "attack",
+        True,
+        avatar_html_fn=lambda name, border_color: f"<avatar {name} {border_color}>",
+    )
+
+    assert 'href="#perfil-ana-paula-renault"' in html
+    assert "<avatar Ana Paula Renault #e67e22>" in html
+    assert "Ana" in html
+    assert "3x" in html
+    assert 'class="sinc-person-chip attack top"' in html
+
+
+def test_render_ranked_lane_wraps_overflow_rank_chips_in_details():
+    ranked = [
+        {"name": "Ana Paula Renault", "count": 4},
+        {"name": "Babu Santana", "count": 3},
+        {"name": "Milena", "count": 2},
+    ]
+
+    html = render_ranked_lane(
+        "Atacados",
+        "💣",
+        ranked,
+        "Sem ataques na semana.",
+        "attack",
+        inline_max=2,
+        render_rank_chip_fn=lambda entry, lane_type, is_top, force_count=None: (
+            f"<chip {entry['name']} {lane_type} {is_top} {force_count}>"
+        ),
+    )
+
+    assert "💣 Atacados" in html
+    assert "<chip Ana Paula Renault attack True None>" in html
+    assert "<chip Babu Santana attack False None>" in html
+    assert "<summary>+1 restantes</summary>" in html
+    assert "<chip Milena attack False None>" in html
+
+
+def test_render_pair_lane_and_toggle_pair_lane_wrap_pair_chips():
+    pairs = [
+        {"ator": "Ana Paula Renault", "alvo": "Babu Santana", "tipo_label": "Protege", "emoji": "😡"},
+        {"ator": "Milena", "alvo": "Chaiany", "tipo_label": "Ataca", "emoji": "🎯"},
+        {"ator": "Leandro", "alvo": "Jonas Sulzbach", "tipo_label": "Debocha", "emoji": "⚡"},
+    ]
+
+    lane_html = render_pair_lane(
+        "Contradições",
+        "⚡",
+        pairs,
+        "contra",
+        inline_max=2,
+        render_pair_chip_fn=lambda item, mode: f"<pairchip {item['ator']} {mode}>",
+    )
+    toggle_html = render_toggle_pair_lane(
+        "Conflito Confirmado",
+        "🎯",
+        pairs,
+        "aligned",
+        inline_max=2,
+        render_pair_chip_fn=lambda item, mode: f"<pairchip {item['ator']} {mode}>",
+    )
+
+    assert "⚡ Contradições" in lane_html
+    assert "<pairchip Ana Paula Renault contra>" in lane_html
+    assert "<summary>+1 restantes</summary>" in lane_html
+    assert "<pairchip Leandro contra>" in lane_html
+    assert 'class="sinc-toggle"' in toggle_html
+    assert "🎯 Conflito Confirmado" in toggle_html
+    assert "sinc-toggle-count" in toggle_html
+    assert "<pairchip Ana Paula Renault aligned>" in toggle_html
 
 
 def test_card_header_escapes_data_text_and_link_attributes():

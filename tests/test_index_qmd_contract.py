@@ -65,6 +65,10 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "make_evolution_chart" in content
     assert "render_overflow_toggle as _render_overflow_toggle" in content
     assert "render_dramatic_event_row" in content
+    assert "render_rank_chip as _render_rank_chip" in content
+    assert "render_ranked_lane as _render_ranked_lane" in content
+    assert "render_pair_lane as _render_pair_lane" in content
+    assert "render_toggle_pair_lane as _render_toggle_pair_lane" in content
     assert "render_profile_sinc_row" in content
     assert "build_rxn_detail_html" in content
     assert "render_pulse_row" in content
@@ -114,3 +118,12 @@ def test_index_qmd_batch_a_helpers_are_no_longer_defined_inline():
 
     assert "_toggle" not in names
     assert "_event_row" not in names
+
+
+def test_index_qmd_batch_b_helpers_are_no_longer_defined_inline():
+    names = _function_names()
+
+    assert "_rank_chip" not in names
+    assert "_render_ranked_lane" not in names
+    assert "_render_pair_lane" not in names
+    assert "_render_toggle_pair_lane" not in names

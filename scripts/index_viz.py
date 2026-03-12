@@ -528,6 +528,141 @@ def render_dramatic_event_row(
     )
 
 
+def render_rank_chip(
+    entry: dict,
+    lane_type: str,
+    is_top: bool,
+    *,
+    avatar_html_fn,
+    force_count: int | None = None,
+) -> str:
+    name = entry.get("name", "")
+    first = _short_name(name)
+    count = force_count if force_count is not None else _coerce_int(entry.get("count", 0), default=0)
+    lane_colors = {
+        "attack": "#e67e22",
+        "praise": "#27ae60",
+        "safe": "#3498db",
+    }
+    border_color = lane_colors.get(lane_type, "#666")
+    avatar = avatar_html_fn(name, border_color)
+    top_cls = " top" if is_top else ""
+    return (
+        f'<a href="{_profile_href(name)}" class="sinc-person-chip {lane_type}{top_cls}">'
+        f'<span class="sinc-person-avatar">{avatar}</span>'
+        f'<span class="sinc-person-meta">'
+        f'<span class="sinc-person-name">{_escape_text(first)}</span>'
+        f'<span class="sinc-count-badge {lane_type}">{count}x</span>'
+        f'</span>'
+        f'</a>'
+    )
+
+
+def render_ranked_lane(
+    title: str,
+    icon: str,
+    ranked: list[dict],
+    empty_text: str,
+    lane_type: str,
+    *,
+    inline_max: int,
+    render_rank_chip_fn,
+    highlight_top: bool = True,
+    force_count: int | None = None,
+) -> str:
+    lane = [f'<div class="sinc-lane"><div class="sinc-lane-head">{icon} {title}</div>']
+    if not ranked:
+        lane.append(f'<div class="sinc-empty">{_escape_text(empty_text)}</div></div>')
+        return "".join(lane)
+
+    top_count = ranked[0].get("count", 0)
+    inline_items = ranked[:inline_max]
+    overflow_items = ranked[inline_max:]
+    lane.append('<div class="sinc-people-grid">')
+    lane.extend(
+        render_rank_chip_fn(
+            item,
+            lane_type,
+            highlight_top and item.get("count", 0) == top_count,
+            force_count=force_count,
+        )
+        for item in inline_items
+    )
+    lane.append('</div>')
+    if overflow_items:
+        lane.append(
+            f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
+            f'<div class="sinc-more-list"><div class="sinc-people-grid">'
+        )
+        lane.extend(
+            render_rank_chip_fn(item, lane_type, False, force_count=force_count)
+            for item in overflow_items
+        )
+        lane.append('</div></div></details>')
+    lane.append('</div>')
+    return "".join(lane)
+
+
+def render_pair_lane(
+    title: str,
+    icon: str,
+    pairs: list[dict],
+    mode: str,
+    *,
+    inline_max: int,
+    render_pair_chip_fn,
+    show_header: bool = True,
+) -> str:
+    lane = ['<div class="sinc-lane">']
+    if show_header:
+        lane.append(f'<div class="sinc-lane-head">{icon} {title}</div>')
+    if not pairs:
+        lane.append('<div class="sinc-empty">Sem casos nesta semana.</div></div>')
+        return "".join(lane)
+
+    inline_items = pairs[:inline_max]
+    overflow_items = pairs[inline_max:]
+    lane.append('<div class="sinc-chip-wrap">')
+    lane.extend(render_pair_chip_fn(item, mode=mode) for item in inline_items)
+    lane.append('</div>')
+    if overflow_items:
+        lane.append(
+            f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
+            f'<div class="sinc-more-list">'
+        )
+        lane.extend(render_pair_chip_fn(item, mode=mode) for item in overflow_items)
+        lane.append('</div></details>')
+    lane.append('</div>')
+    return "".join(lane)
+
+
+def render_toggle_pair_lane(
+    title: str,
+    icon: str,
+    pairs: list[dict],
+    mode: str,
+    *,
+    inline_max: int,
+    render_pair_chip_fn,
+) -> str:
+    count = len(pairs)
+    body = render_pair_lane(
+        title,
+        icon,
+        pairs,
+        mode,
+        inline_max=inline_max,
+        render_pair_chip_fn=render_pair_chip_fn,
+        show_header=False,
+    )
+    return (
+        f'<details class="sinc-toggle">'
+        f'<summary>{icon} {title} <span class="sinc-toggle-count">({count})</span></summary>'
+        f'{body}'
+        f'</details>'
+    )
+
+
 def render_pair_chip(item: dict, *, mode: str) -> str:
     a_name = item.get("ator", "")
     b_name = item.get("alvo", "")
