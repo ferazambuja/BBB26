@@ -19,6 +19,9 @@ on:
     - cron: '*/15 * * * *'  # Every 15 minutes
   workflow_dispatch:  # Allow manual trigger (always runs full pipeline)
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # NOTE: No workflow-level concurrency group. A lightweight 31-second schedule
 # poll must NOT cancel a 4+ minute manual build+deploy. Concurrency is set
 # per-job: build uses cancel-in-progress (avoid duplicate renders), deploy
@@ -147,12 +150,12 @@ jobs:
         run: quarto render
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: '_site'
 
       - name: Upload data artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: new-data
           path: |
@@ -192,7 +195,7 @@ jobs:
           fetch-depth: 1
 
       - name: Download data artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: new-data
           path: .
