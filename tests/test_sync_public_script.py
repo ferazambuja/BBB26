@@ -1,20 +1,28 @@
 from __future__ import annotations
 
-import subprocess
+import os
 from pathlib import Path
+import shutil
+import subprocess
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "sync_public.sh"
 
 
-def _run(cmd: list[str], cwd: Path, check: bool = True) -> subprocess.CompletedProcess[str]:
+def _run(
+    cmd: list[str],
+    cwd: Path,
+    check: bool = True,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=cwd,
         check=check,
         text=True,
         capture_output=True,
+        env=env,
     )
 
 
@@ -49,6 +57,18 @@ def _init_repo(tmp_path: Path) -> Path:
     return repo
 
 
+def _path_without_rg(path: str) -> str:
+    rg_name = "rg.exe" if os.name == "nt" else "rg"
+    entries = []
+    for entry in path.split(os.pathsep):
+        if not entry:
+            continue
+        if (Path(entry) / rg_name).exists():
+            continue
+        entries.append(entry)
+    return os.pathsep.join(entries)
+
+
 def test_sync_public_default_mode_generates_report(tmp_path: Path) -> None:
     repo = _init_repo(tmp_path)
 
@@ -72,6 +92,43 @@ def test_sync_public_default_mode_generates_report(tmp_path: Path) -> None:
         ],
         cwd=repo,
         check=True,
+    )
+
+    assert report.exists(), result.stdout + result.stderr
+    content = report.read_text(encoding="utf-8")
+    assert "safe_to_proceed: yes" in content
+
+
+def test_sync_public_report_mode_works_without_rg_in_path(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+
+    _write(repo, "public.txt", "v1\n")
+    _git(repo, "add", "public.txt")
+    _git(repo, "commit", "-m", "public: add public marker")
+    _git(repo, "checkout", "main")
+
+    report = tmp_path / "report_no_rg.md"
+    env = dict(os.environ)
+    env["PATH"] = _path_without_rg(env.get("PATH", ""))
+    bash_bin = shutil.which("bash")
+    assert bash_bin is not None
+
+    result = _run(
+        [
+            bash_bin,
+            str(SCRIPT),
+            "--source",
+            "local/private-main",
+            "--target",
+            "main",
+            "--remote",
+            "origin",
+            "--report",
+            str(report),
+        ],
+        cwd=repo,
+        check=True,
+        env=env,
     )
 
     assert report.exists(), result.stdout + result.stderr

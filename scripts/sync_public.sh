@@ -55,6 +55,29 @@ die() {
   exit 1
 }
 
+has_rg() {
+  command -v rg >/dev/null 2>&1
+}
+
+stream_matches_regex() {
+  local regex="$1"
+  if has_rg; then
+    rg -q "$regex"
+  else
+    grep -Eq "$regex"
+  fi
+}
+
+first_file_match() {
+  local regex="$1"
+  local file="$2"
+  if has_rg; then
+    rg -N "$regex" "$file" | head -n1 || true
+  else
+    grep -E -m1 "$regex" "$file" || true
+  fi
+}
+
 require_clean_worktree() {
   if ! git diff --quiet || ! git diff --cached --quiet; then
     die "working tree is not clean. Commit or stash changes first."
@@ -81,7 +104,7 @@ is_public_commit() {
 
 needs_rebuild_for_commit() {
   local sha="$1"
-  git show --pretty='' --name-only "$sha" | rg -q \
+  git show --pretty='' --name-only "$sha" | stream_matches_regex \
     '^(data/manual_events\.json|data/paredoes\.json|data/provas\.json|data/votalhada/polls\.json|data/derived/.*\.json)$'
 }
 
@@ -307,8 +330,9 @@ write_report() {
 
 report_value() {
   local key="$1"
-  local value
-  value="$(rg -N "^${key}:" "$REPORT_PATH" | head -n1 | sed -E "s/^${key}:[[:space:]]*//")"
+  local line value
+  line="$(first_file_match "^${key}:" "$REPORT_PATH")"
+  value="$(printf '%s' "$line" | sed -E "s/^${key}:[[:space:]]*//")"
   [[ -n "$value" ]] || die "missing ${key} in report: $REPORT_PATH"
   printf '%s' "$value"
 }
@@ -471,7 +495,6 @@ parse_args() {
 
 parse_args "$@"
 
-command -v rg >/dev/null || die "rg is required"
 branch_exists "$SOURCE" || die "source branch not found: $SOURCE"
 branch_exists "$TARGET" || die "target branch not found: $TARGET"
 git remote get-url "$REMOTE" >/dev/null 2>&1 || die "remote not found: $REMOTE"
