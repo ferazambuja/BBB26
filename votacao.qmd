@@ -6,6 +6,10 @@ lang: pt-BR
 format:
   html:
     code-tools: false
+    body-classes: votacao-page
+    include-in-header:
+      text: |
+        <link rel="stylesheet" href="assets/votacao.css">
 execute:
   echo: false
   warning: false
@@ -15,9 +19,6 @@ execute:
 #| label: setup
 #| include: false
 
-import json
-import pandas as pd
-import numpy as np
 from pathlib import Path
 from collections import defaultdict
 
@@ -25,10 +26,12 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_paredoes_transformed,
-    load_votalhada_polls, get_poll_for_paredao,
     require_clean_manual_events, setup_bbb_dark_theme,
-    avatar_html, avatar_img,
-    GROUP_COLORS,
+)
+from votacao_viz import (
+    build_retro_vote_summary,
+    build_voting_health_summary,
+    render_votacao_retro_section,
 )
 
 require_clean_manual_events()
@@ -42,37 +45,6 @@ setup_bbb_dark_theme()
 # ═══════════════════════════════════════════════════════════════════════════
 # PARTE 1: O estrago do BBB 25
 # ═══════════════════════════════════════════════════════════════════════════
-
-# ── Mobile-first responsive styles ──
-print('<style>')
-print('.v-hdr-short { display: none; }')
-print('.v-feasibility-note { display: inline-flex; align-items: flex-start; gap: 0.34rem; line-height: 1.34; }')
-print('.v-feasibility-note .meta-inline { color: #dbe3ee; }')
-print('.v-table-swipe th, .v-table-swipe td { white-space: nowrap; }')
-print('.v-table-swipe th:first-child, .v-table-swipe td:first-child { position: sticky; left: 0; z-index: 1; background: #20232a; }')
-print('.v-scroll-hint::after { content: "↔ arraste para ver mais"; display: none; font-size: var(--fs-2xs); color: #97a9bf; text-align: right; margin-top: 0.35rem; }')
-print('@media (max-width: 575px) {')
-print('  .v-card { flex: 0 0 calc(50% - 0.4rem) !important; max-width: calc(50% - 0.4rem) !important; min-width: 0 !important; }')
-print('  .v-box { padding: 0.8rem !important; }')
-print('  .v-table th, .v-table td { padding: 0.25rem 0.3rem !important; font-size: var(--fs-sm) !important; }')
-print('  .v-hdr-full { display: none !important; }')
-print('  .v-hdr-short { display: inline !important; }')
-print('  .v-flex-stack { gap: 0.5rem !important; }')
-print('  .v-flex-stack > div { flex: 0 0 calc(50% - 0.3rem) !important; min-width: 0 !important; max-width: calc(50% - 0.3rem) !important; }')
-print('  .v-scroll-hint::after { display: block; }')
-print('  .v-table-swipe { min-width: 680px; }')
-print('  .v-table-retro { min-width: 760px; }')
-print('  .v-table-swipe th:first-child, .v-table-swipe td:first-child { z-index: 2; background: #252a34; }')
-print('  .v-table-feasibility thead { display: none; }')
-print('  .v-table-feasibility tbody, .v-table-feasibility tr, .v-table-feasibility td { display: block; width: 100%; }')
-print('  .v-table-feasibility tr { border: 1px solid rgba(255,255,255,0.16); border-radius: 8px; padding: 0.42rem 0.5rem; margin-bottom: 0.42rem; background: rgba(255,255,255,0.03); }')
-print('  .v-table-feasibility tr:last-child { margin-bottom: 0; }')
-print('  .v-table-feasibility td { border: 0; padding: 0.16rem 0; text-align: left !important; white-space: normal; display: grid; grid-template-columns: 6.2rem minmax(0,1fr); gap: 0.45rem; align-items: start; }')
-print('  .v-table-feasibility td::before { content: attr(data-label); color: #a9bbd2; font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.01em; }')
-print('  .v-table-feasibility td[data-label="Viável?"] .v-feasibility-note { justify-content: flex-start; }')
-print('}')
-print('</style>')
-
 print("## 📉 O estrago do BBB 25\n")
 
 # BBB 25 Final data (source: gshow.globo.com)
@@ -82,17 +54,17 @@ bbb25 = {
     "Joao Pedro": {"vu": 6.22, "vt": 3.22},
 }
 
-print('<div class="v-box u-s157">')
-print('<p class="fs-lg u-s008">')
+print('<div class="votacao-shell votacao-shell--danger">')
+print('<p class="votacao-lead">')
 print('Na final do <strong>BBB 25</strong>, Renata venceu com 51,90% da média ponderada — mas <strong>perdeu no Voto Único</strong> por 9 pontos percentuais (42,38% vs 51,40% de Guilherme). ')
 print('A vitória veio exclusivamente da <strong>Torcida organizada</strong> ("Team Ballet"), que despejou votos ilimitados: 61,41% contra 35,37%. ')
 print('O sistema 50/50 permitiu que uma minoria engajada <strong>anulasse a vontade da maioria</strong> expressa no Voto Único (CPF).</p>')
-print('<p class="fs-lg u-s008">')
+print('<p class="votacao-lead">')
 print('O resultado é <strong>consenso entre especialistas</strong> como um dos piores desfechos da história do programa:')
 print('</p>')
 
 # Impact stats
-print('<div class="v-flex-stack u-s320">')
+print('<div class="votacao-impact-grid">')
 
 stats = [
     ("📺", "17 pts", "Pior audiência", "da história do BBB — queda de 37% vs BBB 24"),
@@ -100,33 +72,28 @@ stats = [
     ("🏆", "25a", "Edição", "primeira final abaixo de 20 pts em São Paulo"),
 ]
 for emoji, val, label, detail in stats:
-    print(f'<div class="v-card u-s174">')
-    print(f'<div class="fs-sm u-s005">{emoji} {label}</div>')
-    print(f'<div class="fs-2xl tabnum u-s045">{val}</div>')
-    print(f'<div class="fs-sm meta-text">{detail}</div>')
+    print('<div class="votacao-impact-card">')
+    print(f'<div class="votacao-impact-label">{emoji} {label}</div>')
+    print(f'<div class="votacao-impact-value tabnum">{val}</div>')
+    print(f'<div class="votacao-impact-detail">{detail}</div>')
     print('</div>')
 print('</div>')
 
-print('<p class="fs-base u-s268">')
+print('<p class="votacao-sublead">')
 print('Para comparação: Juliette (BBB 21) tem 28,6M de seguidores, Arthur Aguiar (BBB 22) 14,8M, Davi Brito (BBB 24) 7,2M. ')
 print('Renata terminou a final com <strong>1.100.550 seguidores</strong> — recorde negativo, ')
 print('a campeã menos seguida dos últimos 10 anos. ')
 print('Os três finalistas do BBB 25 <strong>somados</strong> (2,7M) não alcançam um quinto dos seguidores de Davi Brito.</p>')
 
 # BBB 26 vs BBB 25 winner comparison
-print('<div class="u-s171">')
-print('<p class="fs-base u-s278">🔍 A prova do astroturfing: BBB 26 vs. a "campeã" do BBB 25</p>')
-print('<p class="fs-base u-s032">')
+print('<div class="votacao-proof-box">')
+print('<div class="votacao-kicker">BBB 25 x BBB 26</div>')
+print('<p class="votacao-proof-title">🔍 A prova do astroturfing: BBB 26 vs. a "campeã" do BBB 25</p>')
+print('<p class="votacao-sublead">')
 print('Três participantes Pipoca do BBB 26 — que não são as favoritas ')
 print('e não têm nenhum título — já têm mais seguidores que a campeã do BBB 25:</p>')
 
-print('<div class="scroll-x">')
-print('<table class="table-full fs-base v-table u-s445">')
-print('<thead><tr class="u-s022">')
-print('<th class="u-s012">Participante</th>')
-print('<th class="tc u-s012">Status</th>')
-print('<th class="tr tabnum u-s012">Seguidores</th>')
-print('</tr></thead><tbody>')
+print('<div class="votacao-card-grid">')
 
 followers = [
     ("Chaiany", "Pipoca (BBB 26)", "~2,9M", "#2ecc71", "Confinada, sem título"),
@@ -135,19 +102,17 @@ followers = [
     ("Renata", "Campeã (BBB 25)", "~1,1M", "#e74c3c", "Vencedora da edição"),
 ]
 for nome, status, seg, color, note in followers:
-    is_renata = nome == "Renata"
-    bg = "background:rgba(231,76,60,0.1);" if is_renata else ""
-    weight = "font-weight:700;" if is_renata else ""
-    print(f'<tr style="{bg}">')
-    print(f'<td style="padding:0.4rem 0.5rem; {weight}">{nome}</td>')
-    print(f'<td class="tc fs-sm u-s460">{status}</td>')
-    print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem; color:{color}; font-weight:700;">{seg}</td>')
-    print('</tr>')
+    accent = ' votacao-card--warning' if nome == "Renata" else ''
+    print(f'<div class="votacao-card{accent}">')
+    print(f'<div class="votacao-card-label">{nome}</div>')
+    print(f'<div class="votacao-card-detail">{status}</div>')
+    print(f'<div class="votacao-card-value tabnum" style="color:{color};">{seg}</div>')
+    print(f'<div class="votacao-card-detail">{note}</div>')
+    print('</div>')
 
-print('</tbody></table>')
 print('</div>')
 
-print('<p class="fs-sm u-s263">')
+print('<p class="votacao-sublead">')
 print('Chaiany — uma Pipoca que entrou com 3.610 seguidores — acumulou ')
 print('<strong>quase 3x mais seguidores</strong> que a campeã do BBB 25. ')
 print('Isso não é normal. Quando participantes anônimas de uma edição em andamento ')
@@ -156,9 +121,9 @@ print('o resultado anterior não reflete a vontade do público — ')
 print('foi fabricado por atores de má-fé com votos ilimitados.</p>')
 print('</div>')
 
-print('<blockquote class="u-s200">')
-print('<p class="fs-base u-s034">"Renata passa por cima do público e vira campeã do BBB 25"</p>')
-print('<p class="fs-sm u-s249">— <a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="meta-link">Pipoca Moderna</a></p>')
+print('<blockquote class="votacao-quote">')
+print('<p class="votacao-quote-text">"Renata passa por cima do público e vira campeã do BBB 25"</p>')
+print('<p class="votacao-quote-source">— <a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="meta-link">Pipoca Moderna</a></p>')
 print('</blockquote>')
 
 print('</div>')
@@ -185,20 +150,20 @@ w_break = d_vt / (d_vt - d_vu)  # 0.7427
 print("### Votação da Final — BBB 25\n")
 
 # Summary cards
-print('<div class="v-flex-stack u-s324">')
+print('<div class="votacao-card-grid">')
 for name, color, emoji in [("Renata", "#9b59b6", "👑"), ("Guilherme", "#3498db", "🥈"), ("Joao Pedro", "#95a5a6", "🥉")]:
     d = bbb25[name]
-    print(f'<div class="v-card" style="background:#111; border:1px solid {color}; border-radius:10px; padding:0.8rem 1rem; min-width:160px; flex:1; max-width:220px; text-align:center;">')
-    print(f'<div class="fs-lg" style="color:{color}; font-weight:700; margin-bottom:0.4rem;">{emoji} {name}</div>')
-    print(f'<div class="fs-sm meta-text">Voto Único</div>')
+    print('<div class="votacao-card">')
+    print(f'<div class="votacao-card-label" style="color:{color};">{emoji} {name}</div>')
+    print('<div class="votacao-card-detail">Voto Único</div>')
     vu_color = "#2ecc71" if d["vu"] > 50 else "#e74c3c" if d["vu"] < 10 else "#eee"
-    print(f'<div class="fs-xl tabnum" style="color:{vu_color}; font-weight:700;">{d["vu"]:.2f}%</div>')
-    print(f'<div class="fs-sm u-s031">Voto Torcida</div>')
+    print(f'<div class="votacao-card-value tabnum" style="color:{vu_color};">{d["vu"]:.2f}%</div>')
+    print('<div class="votacao-card-detail">Voto Torcida</div>')
     vt_color = "#2ecc71" if d["vt"] > 50 else "#e74c3c" if d["vt"] < 10 else "#eee"
-    print(f'<div class="fs-xl tabnum" style="color:{vt_color}; font-weight:700;">{d["vt"]:.2f}%</div>')
+    print(f'<div class="votacao-card-value tabnum" style="font-size:var(--fs-xl); color:{vt_color};">{d["vt"]:.2f}%</div>')
     media = d["vu"] * 0.5 + d["vt"] * 0.5
-    print(f'<div class="fs-sm u-s031">Média (50/50)</div>')
-    print(f'<div class="fs-xl tabnum u-s289">{media:.2f}%</div>')
+    print('<div class="votacao-card-detail">Média (50/50)</div>')
+    print(f'<div class="votacao-card-value tabnum" style="font-size:var(--fs-xl);">{media:.2f}%</div>')
     print('</div>')
 print('</div>')
 ```
@@ -222,13 +187,13 @@ w_break = d_vt / (d_vt - d_vu)
 
 print("## 🔧 A calibração: por que 70/30 e não 75/25?\n")
 
-print('<div class="v-box u-s011">')
-print('<p class="fs-lg u-s008">')
+print('<div class="votacao-shell votacao-shell--warning">')
+print('<p class="votacao-lead">')
 print('Diante do estrago, a Globo tinha uma decisão a tomar: <strong>proteger o programa ou proteger ')
 print('a última campeã</strong>. Adotar 75/25 resolveria o problema de verdade — mas qualquer analista ')
 print('faria a conta e concluiria que o novo sistema teria dado a vitória a Guilherme. ')
 print('Seria uma admissão pública de que o resultado do BBB 25 foi distorcido.</p>')
-print('<p class="fs-lg u-s283">')
+print('<p class="votacao-lead">')
 print('A Globo optou pela segunda via. A simulação abaixo revela que <strong>70/30 não é o peso ideal ')
 print('para proteger o programa</strong> — é o peso máximo que <strong>não constrange a campeã anterior</strong>. ')
 print('A margem até o limiar de inversão é de apenas <strong>4,3 pontos percentuais</strong>. ')
@@ -247,17 +212,10 @@ weights = [
     (0.80, "80/20", ""),
 ]
 
-print('<h4 class="u-s039">🔬 Simulação: diferentes pesos aplicados a final do BBB 25</h4>')
-print('<div class="scroll-x v-scroll-hint">')
-print('<table class="table-full fs-base v-table v-table-swipe u-s449">')
-print('<thead><tr class="u-s022">')
-print('<th class="u-s003"><span class="v-hdr-full">Peso </span>VU/VT</th>')
-print('<th class="tc u-s003">Nota</th>')
-print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Renata</span><span class="v-hdr-short">Ren.</span></th>')
-print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Guilherme</span><span class="v-hdr-short">Gui.</span></th>')
-print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Diferença</span><span class="v-hdr-short">Dif.</span></th>')
-print('<th class="tc u-s003"><span class="v-hdr-full">Vencedor</span><span class="v-hdr-short">Venc.</span></th>')
-print('</tr></thead><tbody>')
+print('<h4>🔬 Simulação: diferentes pesos aplicados à final do BBB 25</h4>')
+print('<div class="votacao-calibration-cards votacao-mobile-only">')
+
+weight_rows = []
 
 for w, label, note in weights:
     r = bbb25["Renata"]["vu"] * w + bbb25["Renata"]["vt"] * (1 - w)
@@ -267,39 +225,71 @@ for w, label, note in weights:
     winner = "EMPATE" if is_tie else ("Renata" if r > g else "Guilherme")
     w_color = "#9b59b6" if winner == "Renata" else ("#3498db" if winner == "Guilherme" else "#f39c12")
 
-    if note == "BBB 26":
-        row_bg = "background:rgba(230,126,34,0.08); border-left:3px solid #e67e22;"
-    elif note == "EMPATE":
-        row_bg = "background:rgba(243,156,18,0.12); border-left:3px solid #f39c12;"
-    elif note == "BBB 25 (real)":
-        row_bg = "background:rgba(155,89,182,0.08); border-left:3px solid #9b59b6;"
-    else:
-        row_bg = ""
-
-    note_html = f'<span class="fs-sm meta-inline">{note}</span>' if note else ''
+    note_badge = f'<span class="votacao-badge votacao-badge--eyebrow">{note}</span>' if note else ''
     diff_color = "#9b59b6" if diff > 0 else ("#3498db" if diff < 0 else "#f39c12")
     winner_icon = "👑" if winner == "Renata" else ("🏆" if winner == "Guilherme" else "⚖️")
+    weight_rows.append(
+        {
+            "label": label,
+            "note_html": note_badge,
+            "renata": r,
+            "guilherme": g,
+            "diff": diff,
+            "diff_color": diff_color,
+            "winner": winner,
+            "winner_color": w_color,
+            "winner_icon": winner_icon,
+            "tone": "warning" if note == "BBB 26" else "change" if note == "EMPATE" else "same" if note == "BBB 25 (real)" else "eyebrow",
+        }
+    )
 
-    print(f'<tr style="{row_bg}">')
-    print(f'<td class="u-s076">{label}</td>')
-    print(f'<td class="tc u-s012">{note_html}</td>')
-    print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem; color:{"#9b59b6" if r > g else "#aaa"};">{r:.2f}%</td>')
-    print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem; color:{"#3498db" if g > r else "#aaa"};">{g:.2f}%</td>')
-    print(f'<td class="tr tabnum" style="padding:0.4rem 0.5rem; color:{diff_color}; font-weight:bold;">{diff:+.2f}pp</td>')
-    print(f'<td class="tc u-s012">{winner_icon} <strong style="color:{w_color};">{winner}</strong></td>')
+for row in weight_rows:
+    badge = row["note_html"] if row["note_html"] else ""
+    print('<div class="votacao-calibration-card">')
+    print(f'<div class="votacao-calibration-label">{row["label"]} {badge}</div>')
+    print(f'<div class="votacao-calibration-detail">Renata {row["renata"]:.2f}% · Guilherme {row["guilherme"]:.2f}%</div>')
+    print(f'<div class="votacao-calibration-value tabnum" style="color:{row["diff_color"]};">{row["diff"]:+.2f}pp</div>')
+    print(f'<div class="votacao-calibration-detail">{row["winner_icon"]} <strong style="color:{row["winner_color"]};">{row["winner"]}</strong></div>')
+    print('</div>')
+
+print('</div>')
+
+print('<div class="votacao-compare-wrap votacao-scroll-hint votacao-desktop-only">')
+print('<table class="votacao-compare-table">')
+print('<caption>Simulação dos pesos VU/VT aplicados à final do BBB 25.</caption>')
+print('<thead><tr>')
+print('<th scope="col">Peso VU/VT</th>')
+print('<th scope="col">Nota</th>')
+print('<th scope="col">Renata</th>')
+print('<th scope="col">Guilherme</th>')
+print('<th scope="col">Diferença</th>')
+print('<th scope="col">Vencedor</th>')
+print('</tr></thead><tbody>')
+for row in weight_rows:
+    row_class = ""
+    if "BBB 26" in row["note_html"]:
+        row_class = ' class="votacao-row-highlight votacao-row-highlight--warning"'
+    elif "BBB 25" in row["note_html"]:
+        row_class = ' class="votacao-row-highlight"'
+    print(f'<tr{row_class}>')
+    print(f'<th scope="row">{row["label"]}</th>')
+    print(f'<td>{row["note_html"]}</td>')
+    print(f'<td class="votacao-number">{row["renata"]:.2f}%</td>')
+    print(f'<td class="votacao-number">{row["guilherme"]:.2f}%</td>')
+    print(f'<td class="votacao-number" style="color:{row["diff_color"]};">{row["diff"]:+.2f}pp</td>')
+    print(f'<td>{row["winner_icon"]} <strong style="color:{row["winner_color"]};">{row["winner"]}</strong></td>')
     print('</tr>')
-
 print('</tbody></table>')
 print('</div>')
 
 # Breakeven conclusion
-print('<div class="v-box u-s129">')
-print('<p class="fs-lg u-s038">💡 O limiar crítico: 74,3%</p>')
-print('<p class="fs-base u-s032">')
+print('<div class="votacao-emphasis-box votacao-emphasis-box--warning">')
+print('<p class="votacao-proof-title">💡 O limiar crítico: 74,3%</p>')
+print('<p class="votacao-sublead">')
 print(f'Com peso de <strong>74,3%</strong> no Voto Único, Renata e Guilherme empatariam exatamente. ')
 print(f'A partir de <strong>75/25</strong>, Guilherme venceria. A Globo parou em <strong>70/30</strong> — ')
 print(f'4,3 pontos percentuais antes do limiar que reescreveria o resultado do BBB 25.</p>')
-print('<p class="fs-base u-s032">')
+print('<p class="votacao-sublead">')
 print('Com 70/30, Renata ainda venceria (por 1,50pp em vez de 8,51pp). ')
 print('Mas isso significa que <strong>70/30 não teria impedido o estrago do BBB 25</strong>. ')
 print('A mesma torcida, com o mesmo mutirão, teria vencido do mesmo jeito. ')
@@ -318,64 +308,45 @@ print('</div>')
 
 paredoes_all = load_paredoes_transformed()
 paredoes_fin = [p for p in paredoes_all if p.get('status') == 'finalizado']
+health_summary = build_voting_health_summary(paredoes_fin)
+health_data = health_summary["rows"]
+max_danger = health_summary["max_danger"]
+max_danger_num = health_summary["max_danger_num"]
+max_flip_7030 = health_summary["max_flip_7030"]
+n_above_3 = health_summary["n_above_3"]
 
 print("## 🛡️ O buffer de 9 pontos: proteção real ou ilusão?\n")
 
-print('<div class="v-box u-s011">')
-print('<p class="fs-lg u-s008">')
+print('<div class="votacao-shell votacao-shell--warning">')
+print('<p class="votacao-lead">')
 print('A lógica do <strong>70/30</strong> parece sólida: o Voto Único (CPF) tem <strong>2,33x mais peso</strong> ')
 print('que o Voto da Torcida. Para uma torcida organizada anular uma vantagem no CPF, ')
 print('ela precisa gerar uma diferença <strong>2,33 vezes maior</strong> no voto ilimitado. ')
 print('Na prática:</p>')
-
-# Buffer examples table
-print('<div class="scroll-x">')
-print('<table class="table-full fs-base v-table v-table-feasibility u-s446">')
-print('<thead><tr class="u-s022">')
-print('<th class="u-s003">Vantagem no CPF</th>')
-print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Torcida precisa de</span><span class="v-hdr-short">VT necessário</span></th>')
-print('<th class="tc u-s003">Viável?</th>')
-print('</tr></thead><tbody>')
-
-# Note: n_above_3 etc. computed after health card loop below, but buffer table
-# is rendered BEFORE the health cards. Use pre-computed values from the same data.
-_hd = []
-for _p in paredoes_fin:
-    _pts = _p.get('participantes', [])
-    if not _pts or _pts[0].get('voto_unico') is None:
-        continue
-    _svu = sorted(_pts, key=lambda x: float(x.get('voto_unico', 0)), reverse=True)[:2]
-    _sv = float(_svu[1].get('voto_torcida', 0)) - float(_svu[1].get('voto_unico', 0))
-    _eg = float(_svu[0].get('voto_torcida', 0)) - float(_svu[0].get('voto_unico', 0))
-    _d = max(max(0, _sv), max(0, -_eg))
-    _hd.append(_d)
-_n_tot = len(_hd)
-_n3 = sum(1 for d in _hd if d >= 3)
-_n5 = sum(1 for d in _hd if d >= 5)
-_worst = max(_hd) if _hd else 0
-
+_worst = max_danger if health_data else 0
 examples = [
-    (3, f"Fácil — já superado em {_n3} dos {_n_tot} paredões do BBB 26", "#e74c3c", "⚠️"),
-    (5, f"Possível — pior caso observado: {_worst:.0f}pp", "#e67e22", "⚠️"),
-    (9, "Na teoria, difícil — mas a torcida do BBB 25 fez 26pp na final", "#f1c40f", "🔶"),
-    (15, "Quase impossível — exigiria domínio total do voto ilimitado", "#2ecc71", "✅"),
+    (3, f"Fácil — já superado em {n_above_3} dos {len(health_data)} paredões do BBB 26", "#ff9b93", "⚠️"),
+    (5, f"Possível — pior caso observado: {_worst:.0f}pp", "#ffba77", "⚠️"),
+    (9, "Na teoria, difícil — mas a torcida do BBB 25 fez 26pp na final", "#f4d36e", "🔶"),
+    (15, "Quase impossível — exigiria domínio total do voto ilimitado", "#88efb2", "✅"),
 ]
 
+print('<div class="votacao-buffer-grid">')
 for lead, note, color, icon in examples:
     needed = lead * (0.7 / 0.3)
-    print(f'<tr>')
-    print(f'<td class="u-s076" data-label="Vantagem no CPF">{lead}pp</td>')
-    print(f'<td class="tr tabnum" data-label="Torcida precisa de" style="padding:0.4rem 0.5rem; font-weight:700; color:{color};">{needed:.1f}pp</td>')
-    print(f'<td class="tc u-s012" data-label="Viável?"><span class="v-feasibility-note">{icon} <span class="fs-sm meta-inline">{note}</span></span></td>')
-    print(f'</tr>')
-
-print('</tbody></table>')
+    print('<div class="votacao-buffer-card">')
+    print(f'<div class="votacao-buffer-label">Vantagem no CPF</div>')
+    print(f'<div class="votacao-buffer-value tabnum">{lead}pp</div>')
+    print(f'<div class="votacao-buffer-label">Torcida precisa de</div>')
+    print(f'<div class="votacao-buffer-value tabnum" style="font-size:var(--fs-xl); color:{color};">{needed:.1f}pp</div>')
+    print(f'<div class="votacao-buffer-detail">{icon} {note}</div>')
+    print('</div>')
 print('</div>')
 
 # The killer finding
-print('<div class="u-s175">')
-print('<p class="fs-lg u-s039">⚠️ O 70/30 não teria salvado o BBB 25</p>')
-print('<p class="fs-base u-s034">')
+print('<div class="votacao-emphasis-box votacao-emphasis-box--alert">')
+print('<p class="votacao-proof-title">⚠️ O 70/30 não teria salvado o BBB 25</p>')
+print('<p class="votacao-sublead">')
 print('Na final do BBB 25, Guilherme liderava por 9,02pp no CPF. Pelo cálculo acima, ')
 print('a torcida precisaria de 21,0pp no Voto da Torcida para virar. ')
 print('A "Team Ballet" fez <strong>26,04pp</strong> — cinco pontos além do necessário. ')
@@ -388,7 +359,7 @@ print('</div>')
 # ── Saude da Votação: top-2 focus, directional analysis ──
 print("### 🩺 Saúde da Votação: quem a torcida tenta forçar?\n")
 
-print('<p class="fs-lg u-s008">')
+print('<p class="votacao-lead">')
 print('No BBB, <strong>vota-se para eliminar</strong> — quem recebe mais votos, sai. ')
 print('No Paredão Falso, a lógica inverte: <strong>vota-se para salvar</strong>, e o mais votado vai para o Quarto Secreto. ')
 print('Em ambos os casos, a batalha real é entre os <strong>dois mais votados</strong>; ')
@@ -400,142 +371,50 @@ print('de quem o povo escolheu. ')
 print('É a marca da manipulação: usar o voto ilimitado para tentar ')
 print('<strong>inverter a decisão do CPF</strong>.</p>')
 
-# Health cards per paredão — top-2 directional focus
-# Accumulate danger data for dynamic safety analysis below
-health_data = []
+print('<div class="votacao-health-grid">')
 
-print('<div class="v-flex-stack u-s318">')
-
-for p in paredoes_fin:
-    parts = p.get('participantes', [])
-    if not parts or parts[0].get('voto_unico') is None:
-        continue
-
-    num = p.get('numero', '?')
-    is_falso = p.get('paredao_falso', False)
-
-    # Sort by VU desc — top 2 are the real battle
-    sorted_by_vu = sorted(parts, key=lambda x: float(x.get('voto_unico', 0)), reverse=True)
-    top2 = sorted_by_vu[:2]
-    elim_p = top2[0]   # highest VU = people's choice (to eliminate in regular, to save in falso)
-    surv_p = top2[1]    # 2nd highest VU = torcida's preferred target
-
-    # Who was actually eliminated (highest voto_total)
-    actual_elim = max(parts, key=lambda x: float(x.get('voto_total', 0)))
-    povo_decidiu = elim_p.get('nome') == actual_elim.get('nome')
-
-    # Ranking inversion: VT's #1 ≠ VU's #1
-    sorted_by_vt = sorted(parts, key=lambda x: float(x.get('voto_torcida', 0)), reverse=True)
-    vt_top = sorted_by_vt[0]
-    ranking_invertido = elim_p.get('nome') != vt_top.get('nome')
-
-    # 2nd by VU: VT - VU (positive = torcida boosting → divergence from CPF)
-    surv_vu = float(surv_p.get('voto_unico', 0))
-    surv_vt = float(surv_p.get('voto_torcida', 0))
-    surv_inflation = surv_vt - surv_vu  # >0 = torcida boosting beyond CPF
-
-    # 1st by VU: VT - VU (negative = torcida deflecting → divergence from CPF)
-    elim_vu = float(elim_p.get('voto_unico', 0))
-    elim_vt = float(elim_p.get('voto_torcida', 0))
-    elim_gap = elim_vt - elim_vu  # <0 = torcida reducing CPF's choice
-
-    # Danger = max bad-direction gap
-    bad_surv = max(0, surv_inflation)    # targeting survivor
-    bad_elim = max(0, -elim_gap)         # protecting eliminated
-    danger = max(bad_surv, bad_elim)
-
-    health_data.append({
-        'num': num, 'danger': danger, 'is_falso': is_falso,
-        'surv_nome': surv_p.get('nome', ''), 'surv_inflation': surv_inflation,
-        'surv_vu': surv_vu, 'surv_vt': surv_vt,
-        'elim_nome': elim_p.get('nome', ''), 'elim_gap': elim_gap,
-        'elim_vu': elim_vu, 'elim_vt': elim_vt,
-        'povo_decidiu': povo_decidiu,
-        'ranking_invertido': ranking_invertido,
-        'vt_top_nome': vt_top.get('nome', ''),
-        'vt_top_pct': float(vt_top.get('voto_torcida', 0)),
-        'vt_top_vu': float(vt_top.get('voto_unico', 0)),
-    })
-
-    # Health color — based on danger level
-    if not povo_decidiu:
-        health_color = "#e74c3c"; health_label = "Torcida venceu"; health_icon = "🚨"
-    elif danger < 3:
-        health_color = "#2ecc71"; health_label = "Saudável"; health_icon = "💚"
-    elif danger < 7:
-        health_color = "#f1c40f"; health_label = "Pressão"; health_icon = "⚠️"
-    elif danger < 12:
-        health_color = "#e67e22"; health_label = "Risco"; health_icon = "🔶"
+for item in health_data:
+    if not item["povo_decidiu"]:
+        tone = "inverted"; health_label = "Torcida venceu"; health_icon = "🚨"
+    elif item["danger"] < 3:
+        tone = "healthy"; health_label = "Saudável"; health_icon = "💚"
+    elif item["danger"] < 7:
+        tone = "pressure"; health_label = "Pressão"; health_icon = "⚠️"
+    elif item["danger"] < 12:
+        tone = "risk"; health_label = "Risco"; health_icon = "🔶"
     else:
-        health_color = "#e74c3c"; health_label = "Crítico"; health_icon = "🔴"
+        tone = "critical"; health_label = "Crítico"; health_icon = "🔴"
 
-    surv_nome = surv_p.get('nome', '')
-    elim_nome = elim_p.get('nome', '')
+    focus_icon = "⬆️" if item["is_falso"] else "🎯"
+    shield_icon = "⬇️" if item["is_falso"] else "🛡️"
+    focus_line = f'{focus_icon} {item["surv_nome"]} {item["surv_inflation"]:+.1f}pp'
+    shield_line = f'{shield_icon} {item["elim_nome"]} {item["elim_gap"]:+.1f}pp'
+    label = f'{item["num"]}o Paredão Falso' if item["is_falso"] else f'{item["num"]}o Paredão'
 
-    # Line styling — icons differ for Paredão Falso
-    if surv_inflation > 2:
-        surv_icon = "⬆️" if is_falso else "🎯"
-        surv_txt_color = "#e74c3c" if surv_inflation > 7 else "#e67e22"
-        surv_txt = f'<strong>+{surv_inflation:.1f}pp</strong>'
-    else:
-        surv_icon = "—"
-        surv_txt_color = "#888"
-        surv_txt = f'{surv_inflation:+.1f}pp'
-
-    if elim_gap < -2:
-        elim_icon = "⬇️" if is_falso else "🛡️"
-        elim_txt_color = "#e67e22" if elim_gap < -7 else "#f1c40f"
-        elim_txt = f'<strong>{elim_gap:+.1f}pp</strong>'
-    else:
-        elim_icon = "—"
-        elim_txt_color = "#888"
-        elim_txt = f'{elim_gap:+.1f}pp'
-
-    badge = "✅ Povo decidiu" if povo_decidiu else "🚨 Torcida venceu"
-    badge_color = "#2ecc71" if povo_decidiu else "#e74c3c"
-
-    paredao_label = f'{num}o Paredão Falso' if is_falso else f'{num}o Paredão'
-    print(f'<div class="v-card" style="background:#111; border:1px solid {health_color}44; border-radius:8px; padding:0.6rem 0.8rem; flex:1; min-width:175px; max-width:240px;">')
-    print(f'<div class="fs-sm meta-text">{paredao_label}</div>')
-    print(f'<div class="fs-2xl tabnum" style="color:{health_color}; font-weight:750;">{danger:.1f}<span class="fs-sm">pp</span></div>')
-    print(f'<div class="fs-sm" style="color:{health_color}; font-weight:600;">{health_icon} {health_label}</div>')
-    if ranking_invertido:
-        print(f'<div class="fs-xs" style="color:#e74c3c; font-weight:700;">⚡ VT inverteu ranking</div>')
-    print(f'<div class="fs-xs" style="color:{surv_txt_color}; margin-top:0.3rem;">{surv_icon} {surv_nome} {surv_txt}</div>')
-    print(f'<div class="fs-xs" style="color:{elim_txt_color};">{elim_icon} {elim_nome} {elim_txt}</div>')
-    print(f'<div class="fs-xs" style="color:{badge_color}; margin-top:0.2rem; font-weight:600;">{badge}</div>')
+    print(f'<div class="votacao-health-card votacao-health-card--{tone}">')
+    print(f'<div class="votacao-health-label">{label}</div>')
+    print(f'<div class="votacao-health-value tabnum">{item["danger"]:.1f}pp</div>')
+    print(f'<div class="votacao-health-state">{health_icon} {health_label}</div>')
+    if item["ranking_invertido"]:
+        print('<div class="votacao-badge votacao-badge--change">VT inverteu ranking</div>')
+    print('<div class="votacao-health-lines">')
+    print(f'<div>{focus_line}</div>')
+    print(f'<div>{shield_line}</div>')
+    print(f'<div>{"✅ Povo decidiu" if item["povo_decidiu"] else "🚨 Torcida venceu"}</div>')
+    print('</div>')
     print('</div>')
 
 print('</div>')
 
-# Compute dynamic summary stats from health cards
-if health_data:
-    worst = max(health_data, key=lambda x: x['danger'])
-    max_danger = worst['danger']
-    max_danger_num = worst['num']
-    n_paredoes = len(health_data)
-    n_above_3 = sum(1 for d in health_data if d['danger'] >= 3)
-    n_above_5 = sum(1 for d in health_data if d['danger'] >= 5)
-    n_above_7 = sum(1 for d in health_data if d['danger'] >= 7)
-    n_healthy = sum(1 for d in health_data if d['danger'] < 3)
-    paredoes_above_3 = sorted([d for d in health_data if d['danger'] >= 3], key=lambda x: x['danger'], reverse=True)
-    p_above_3_labels = ', '.join(f"P{d['num']}" for d in paredoes_above_3)
-    max_flip_7030 = max_danger / (70 / 30)  # VU advantage this inflation can flip
-else:
-    max_danger = 17.18; max_danger_num = 4; n_paredoes = 0
-    n_above_3 = 0; n_above_5 = 0; n_above_7 = 0; n_healthy = 0
-    p_above_3_labels = ""; max_flip_7030 = 7.4
-
 # Legend
-print('<div class="fs-sm u-s029">')
+print('<div class="votacao-legend">')
 print('🎯 = torcida despejou VT além do VU (mirando para eliminar) · 🛡️ = torcida reteve VT abaixo do VU (protegendo) · Perigo = maior divergência VT&minus;VU<br>')
 print('No Paredão Falso (⬆️/⬇️): mesma lógica, mas vota-se para <strong>salvar</strong> — divergência indica torcida forçando salvação contra a escolha do CPF')
 print('</div>')
 
 # Editorial: the real problem — dynamically generated from health_data
 sorted_health = sorted(health_data, key=lambda x: x['danger'], reverse=True)
-
-print('<div class="v-box u-s170">')
+print('<div class="votacao-emphasis-box">')
 
 if sorted_health:
     w = sorted_health[0]  # worst paredão
@@ -545,7 +424,7 @@ if sorted_health:
     _wlabel = f'{w["num"]}o Paredão Falso' if _wf else f'{w["num"]}o Paredão'
     _w_acao = 'salvar' if _wf else 'eliminar'
 
-    print('<p class="fs-lg u-s008">')
+    print('<p class="votacao-lead">')
     print(f'O <strong>{_wlabel}</strong> é o caso mais grave. Pelo CPF, o povo decidiu: ')
     print(f'<strong>{w["elim_vu"]:.2f}%</strong> votaram para {_w_acao} {w["elim_nome"]}, contra apenas ')
     print(f'<strong>{w["surv_vu"]:.2f}%</strong> em {w["surv_nome"]}. ')
@@ -598,7 +477,7 @@ if sorted_health:
         first_inv = min(any_inversions, key=lambda x: x['num'])
         inv_label = f'{first_inv["num"]}o Paredão Falso' if first_inv.get('is_falso') else f'{first_inv["num"]}o Paredão'
 
-        print(f'<p class="fs-lg u-s008" style="border-left:3px solid #e74c3c; padding-left:0.8rem;">')
+        print('<p class="votacao-lead">')
         print(f'<strong>⚡ Marco inédito no {inv_label}:</strong> ')
         print(f'pela primeira vez no BBB 26, o Voto da Torcida e o Voto Único ')
         print(f'elegeram alvos diferentes — evidência direta de manipulação ')
@@ -624,7 +503,7 @@ if sorted_health:
         print(f'</p>')
 
     # Second paragraph: patterns
-    print('<p class="fs-lg u-s008">')
+    print('<p class="votacao-lead">')
 
     # Notable secondary paredões (danger >= 3)
     notable = [d for d in sorted_health[1:] if d['danger'] >= 3]
@@ -683,9 +562,9 @@ if sorted_health:
     print('Com pressões desse nível em paredões regulares, a pergunta inevitável é:</p>')
 
 # ── Safety assessment: connecting health data to protection levels ──
-print('<p class="fs-lg u-s038">⚠️ Estamos seguros? O 70/30 aguenta uma final?</p>')
+print('<p class="votacao-proof-title">⚠️ Estamos seguros? O 70/30 aguenta uma final?</p>')
 
-print('<p class="fs-lg u-s008">')
+print('<p class="votacao-lead">')
 print('Com o 70/30, o multiplicador é 2,33x — a torcida precisa gerar uma inflação ')
 print('2,33 vezes maior que a vantagem no CPF para virar o resultado. ')
 print(f'Mas a pior inflação que já vimos no BBB 26 (<strong>{max_danger:.2f}pp no P{max_danger_num}</strong>) ')
@@ -693,15 +572,7 @@ print(f'seria suficiente para anular uma vantagem de <strong>{max_flip_7030:.1f}
 print('Em uma final, com mobilização máxima, a inflação tende a ser ainda maior — ')
 print('no BBB 25, chegou a <strong>26pp</strong>.</p>')
 
-print('<div class="scroll-x v-scroll-hint">')
-print('<table class="table-full fs-base v-table v-table-swipe u-s448">')
-print('<thead><tr class="u-s022">')
-print('<th class="u-s003">Peso VU/VT</th>')
-print('<th class="tr tabnum u-s003">Multiplicador</th>')
-print(f'<th class="tr tabnum u-s003"><span class="v-hdr-full">Inflação P{max_danger_num} ({max_danger:.0f}pp) anula</span><span class="v-hdr-short">P{max_danger_num} anula</span></th>')
-print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Inflação BBB 25 (26pp) anula</span><span class="v-hdr-short">BBB25 anula</span></th>')
-print('<th class="tc u-s003">Seguro?</th>')
-print('</tr></thead><tbody>')
+print('<div class="votacao-safety-cards votacao-mobile-only">')
 
 safety_rows = [
     (50, 50, "BBB 25"),
@@ -715,65 +586,82 @@ for vu_w, vt_w, note in safety_rows:
     p4_flips = max_danger / mult    # VU advantage that worst observed inflation can flip
     bbb25_flips = 26.04 / mult  # VU advantage that BBB25-level inflation can flip
 
-    if note == "BBB 26":
-        bg = "background:rgba(230,126,34,0.08); border-left:3px solid #e67e22;"
-    elif note == "BBB 25":
-        bg = "background:rgba(155,89,182,0.08); border-left:3px solid #9b59b6;"
-    else:
-        bg = ""
-
     safe_icon = "🟢" if bbb25_flips < 5 else ("🟡" if bbb25_flips < 8 else "🔴")
-    note_html = f' <span class="fs-sm meta-inline">{note}</span>' if note else ''
+    note_badge = f'<span class="votacao-badge votacao-badge--eyebrow">{note}</span>' if note else ""
+    print('<div class="votacao-safety-card">')
+    print(f'<div class="votacao-safety-label">{vu_w}/{vt_w} {note_badge}</div>')
+    print(f'<div class="votacao-safety-detail">Multiplicador {mult:.1f}x</div>')
+    print(f'<div class="votacao-safety-value tabnum">{p4_flips:.1f}pp</div>')
+    print(f'<div class="votacao-safety-detail">Inflação BBB 25 anula {bbb25_flips:.1f}pp · {safe_icon}</div>')
+    print('</div>')
 
-    print(f'<tr style="{bg}">')
-    print(f'<td class="u-s076">{vu_w}/{vt_w}{note_html}</td>')
-    print(f'<td class="tr tabnum u-s012">{mult:.1f}x</td>')
-    print(f'<td class="tr tabnum u-s461">{p4_flips:.1f}pp</td>')
-    print(f'<td class="tr tabnum u-s462">{bbb25_flips:.1f}pp</td>')
-    print(f'<td class="tc u-s012">{safe_icon}</td>')
+print('</div>')
+
+print('<div class="votacao-compare-wrap votacao-scroll-hint votacao-desktop-only">')
+print('<table class="votacao-compare-table">')
+print('<caption>Quanto cada distribuição VU/VT consegue proteger diante da pior inflação observada e do caso BBB 25.</caption>')
+print('<thead><tr>')
+print('<th scope="col">Peso VU/VT</th>')
+print('<th scope="col">Multiplicador</th>')
+print(f'<th scope="col">Inflação P{max_danger_num} ({max_danger:.0f}pp) anula</th>')
+print('<th scope="col">Inflação BBB 25 (26pp) anula</th>')
+print('<th scope="col">Seguro?</th>')
+print('</tr></thead><tbody>')
+for vu_w, vt_w, note in safety_rows:
+    mult = vu_w / vt_w
+    p4_flips = max_danger / mult
+    bbb25_flips = 26.04 / mult
+    safe_icon = "🟢" if bbb25_flips < 5 else ("🟡" if bbb25_flips < 8 else "🔴")
+    note_badge = f' <span class="votacao-badge votacao-badge--eyebrow">{note}</span>' if note else ""
+    row_class = ' class="votacao-row-highlight votacao-row-highlight--warning"' if note == "BBB 26" else ' class="votacao-row-highlight"' if note == "BBB 25" else ""
+    print(f'<tr{row_class}>')
+    print(f'<th scope="row">{vu_w}/{vt_w}{note_badge}</th>')
+    print(f'<td class="votacao-number">{mult:.1f}x</td>')
+    print(f'<td class="votacao-number">{p4_flips:.1f}pp</td>')
+    print(f'<td class="votacao-number">{bbb25_flips:.1f}pp</td>')
+    print(f'<td>{safe_icon}</td>')
     print('</tr>')
-
 print('</tbody></table>')
 print('</div>')
 
-print('<p class="fs-sm u-s029">')
+print('<p class="votacao-legend">')
 print('"Anula" = vantagem máxima no CPF que a inflação consegue virar. Quanto menor, mais seguro.')
 print('</p>')
 
 # Verdict cards: current vs recommended
-print('<div class="v-flex-stack u-s321">')
+print('<div class="votacao-verdict-grid">')
 
-print('<div class="v-card u-s173">')
-print('<div class="fs-sm u-s276">SISTEMA ATUAL</div>')
-print('<div class="fs-2xl tabnum u-s279">70/30</div>')
-print('<div class="fs-lg u-s277">🔴 NÃO SEGURO</div>')
-print(f'<div class="fs-sm u-s031">Inflação de {max_danger:.0f}pp (já observada no P{max_danger_num})<br>anula <strong>{max_flip_7030:.1f}pp</strong> de vantagem no CPF</div>')
+print('<div class="votacao-verdict-card votacao-verdict-card--current">')
+print('<div class="votacao-verdict-label">SISTEMA ATUAL</div>')
+print('<div class="votacao-verdict-value tabnum">70/30</div>')
+print('<div class="votacao-verdict-state">🔴 NÃO SEGURO</div>')
+print(f'<div class="votacao-verdict-detail">Inflação de {max_danger:.0f}pp (já observada no P{max_danger_num})<br>anula <strong>{max_flip_7030:.1f}pp</strong> de vantagem no CPF</div>')
 print('</div>')
 
-print('<div class="v-card u-s190">')
-print('<div class="fs-sm u-s235">RECOMENDADO</div>')
-print('<div class="fs-2xl tabnum u-s237">80/20</div>')
-print('<div class="fs-lg u-s236">🟢 SEGURO</div>')
-print('<div class="fs-sm u-s031">Mesmo com inflação de 26pp (BBB 25)<br>só anula <strong>6,5pp</strong> de vantagem no CPF</div>')
+print('<div class="votacao-verdict-card votacao-verdict-card--recommended">')
+print('<div class="votacao-verdict-label">RECOMENDADO</div>')
+print('<div class="votacao-verdict-value tabnum">80/20</div>')
+print('<div class="votacao-verdict-state">🟢 SEGURO</div>')
+print('<div class="votacao-verdict-detail">Mesmo com inflação de 26pp (BBB 25)<br>só anula <strong>6,5pp</strong> de vantagem no CPF</div>')
 print('</div>')
 
 print('</div>')
 
 bbb25_flip_7030 = 26.04 / (70 / 30)
-print('<p class="fs-lg u-s008">')
+print('<p class="votacao-lead">')
 print(f'Com o <strong>70/30 atual</strong>, uma inflação nível P{max_danger_num} ({max_danger:.0f}pp) — que já aconteceu — anula ')
 print(f'uma vantagem de <strong>{max_flip_7030:.1f}pp no CPF</strong>. Em uma final acirrada, isso é margem ')
 print(f'de empate. Com mobilização máxima (nível BBB 25, 26pp), a torcida anularia ')
 print(f'<strong>{bbb25_flip_7030:.1f}pp</strong> — o suficiente para virar praticamente qualquer disputa.</p>')
 
-print('<p class="fs-lg u-s033">')
+print('<p class="votacao-lead">')
 print('Com <strong>80/20</strong>, o multiplicador salta para 4,0× — a mesma inflação de 26pp ')
 print('só anularia 6,5pp de vantagem no CPF. Disputas acirradas continuariam sendo ')
 print('decididas pelo povo, não por mutirões. Mas a Globo parou em 70/30 — ')
 print('exatamente <strong>4,3pp antes do limiar</strong> que reescreveria o resultado do BBB 25. ')
 print('A proteção do programa foi sacrificada para proteger uma campeã.</p>')
 
-print('<p class="fs-base u-s034">')
+print('<p class="votacao-sublead">')
 print('Enquanto mais de <strong>3 milhões de brasileiros</strong> votam por CPF — um voto cada, ')
 print('expressando sua opinião genuína — torcidas de má-fé com bots e coordenação ')
 print('despejam milhares de votos no componente ilimitado que ainda pesa 30%. ')
@@ -791,172 +679,44 @@ print('</div>')
 
 paredoes_all = load_paredoes_transformed()
 paredoes_finalizados = [p for p in paredoes_all if p.get('status') == 'finalizado']
-polls_data = load_votalhada_polls()
-finalized_polls = [po for po in (polls_data or {}).get('paredoes', []) if po.get('resultado_real')]
+retro_summary = build_retro_vote_summary(paredoes_finalizados)
 
-rows_5050 = []
-n_changed = 0
-
-for p in paredoes_finalizados:
-    parts = []
-    for part in p.get('participantes', []):
-        if part.get('voto_unico') is None or part.get('voto_torcida') is None:
-            continue
-        vu = float(part.get('voto_unico', 0))
-        vt = float(part.get('voto_torcida', 0))
-        v7030 = float(part.get('voto_total', 0))
-        v5050 = 0.5 * vu + 0.5 * vt
-        parts.append({
-            'nome': part.get('nome'),
-            'vu': vu,
-            'vt': vt,
-            'v7030': v7030,
-            'v5050': v5050,
-        })
-
-    if not parts:
-        continue
-
-    elim_7030 = max(parts, key=lambda x: x['v7030'])
-    elim_5050 = max(parts, key=lambda x: x['v5050'])
-    mudou = elim_7030['nome'] != elim_5050['nome']
-    if mudou:
-        n_changed += 1
-
-    rows_5050.append({
-        'paredao': p.get('numero'),
-        'parts': parts,
-        'elim_7030': elim_7030,
-        'elim_5050': elim_5050,
-        'mudou': mudou,
-        'is_falso': p.get('paredao_falso', False),
-    })
-
-if rows_5050:
+if retro_summary["rows"]:
     print("## 📊 Retroativo: paredões do BBB 26 sob o sistema antigo\n")
 
-    print('<p class="fs-lg u-s284">')
-    print('Se o BBB 26 usasse o sistema antigo <strong>50/50</strong> (igual ao BBB 25), ')
-    print('algum resultado teria sido diferente? A tabela abaixo recalcula cada paredão ')
-    print('finalizado com pesos iguais entre Voto Único e Voto da Torcida.</p>')
+    print('<div class="votacao-section">')
+    print('<p class="votacao-lead">')
+    print('Esta comparação existe para responder uma pergunta substantiva, não apenas estética: ')
+    print('o <strong>70/30</strong> já mudou algo no BBB 26 ou estamos apenas diante de uma ameaça futura? ')
+    print('A tabela de desktop e os cards de mobile recalculam cada paredão finalizado sob o sistema ')
+    print('antigo <strong>50/50</strong>, preservando exatamente os mesmos votos de CPF e de torcida. ')
+    print('O objetivo é isolar o efeito da regra sobre o resultado.</p>')
+    print(render_votacao_retro_section(retro_summary))
 
-    # Summary box
-    avg_delta = np.mean([
-        abs(r['elim_7030']['v7030'] - r['elim_7030']['v5050'])
-        for r in rows_5050
-    ]) if rows_5050 else 0.0
-
-    summary_color = "#2ecc71" if n_changed == 0 else "#e74c3c"
-    print(f'<div class="u-s183">')
-    print(f'<div class="fs-lg u-s388">')
-    print(f'<span style="color:{summary_color};">{n_changed}/{len(rows_5050)}</span> paredões mudariam de resultado com 50/50</div>')
-    print(f'<div class="fs-base u-s017">Diferença média no percentual do mais votado: <strong>{avg_delta:.2f} p.p.</strong></div>')
-    print('</div>')
-
-    # Detailed table — paredão number as group header row (saves one column for mobile)
-    print('<div class="scroll-x v-scroll-hint">')
-    print('<table class="table-full fs-base v-table v-table-swipe v-table-retro">')
-    print('<thead><tr class="u-s022">')
-    print('<th class="u-s003">Nome</th>')
-    print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Voto Único</span><span class="v-hdr-short">VU</span></th>')
-    print('<th class="tr tabnum u-s003"><span class="v-hdr-full">Voto Torcida</span><span class="v-hdr-short">VT</span></th>')
-    print('<th class="tr tabnum u-s003">70/30</th>')
-    print('<th class="tr tabnum u-s003">50/50</th>')
-    print('<th class="tr tabnum u-s003">&Delta;</th>')
-    print('<th class="tc u-s003">Status</th>')
-    print('</tr></thead><tbody>')
-
-    for row in rows_5050:
-        num = row['paredao']
-        _rf = row.get('is_falso', False)
-        parts_sorted = sorted(row['parts'], key=lambda x: x['v7030'], reverse=True)
-        mudou = row['mudou']
-
-        # Badge labels: "SALVO" for Paredão Falso (most voted = saved), "ELIM" for regular
-        _top_label = 'SALVO' if _rf else 'ELIM'
-
-        # Group header row — full-width paredão label
-        _p_label = f'{num}o Paredão Falso' if _rf else f'{num}o Paredão'
-        _p_badge = ''
-        if mudou:
-            _p_badge = ' <span class="fs-sm u-s154">resultado muda</span>'
-        elif not mudou:
-            _p_badge = ' <span class="fs-sm u-s007">✓ mesmo resultado</span>'
-        print(f'<tr class="u-s186"><td colspan="7" class="u-s463">{_p_label}{_p_badge}</td></tr>')
-
-        for i, pt in enumerate(parts_sorted):
-            is_elim_7030 = pt['nome'] == row['elim_7030']['nome']
-            is_elim_5050 = pt['nome'] == row['elim_5050']['nome']
-            delta = pt['v7030'] - pt['v5050']
-
-            # Row styling
-            if mudou and is_elim_7030:
-                bg = "background:rgba(231,76,60,0.1);"
-            elif mudou and is_elim_5050:
-                bg = "background:rgba(243,156,18,0.1);"
-            else:
-                bg = ""
-
-            # Status badges
-            _top_bg = '#2ecc71' if _rf else '#e74c3c'
-            badges = []
-            if is_elim_7030:
-                badges.append(f'<span class="fs-sm" style="background:{_top_bg}; color:#fff; padding:1px 6px; border-radius:4px;">{_top_label} 70/30</span>')
-            if is_elim_5050 and not is_elim_7030:
-                badges.append(f'<span class="fs-sm u-s155">{_top_label} 50/50</span>')
-            if not badges:
-                _others_label = 'não salvo' if _rf else 'salvo'
-                badges.append(f'<span class="u-s009">{_others_label}</span>')
-
-            delta_color = "#e74c3c" if delta > 0 else "#2ecc71" if delta < 0 else "#888"
-
-            # Bottom border on last row of group
-            row_border = " border-bottom:2px solid #444;" if i == len(parts_sorted) - 1 else ""
-
-            print(f'<tr style="{bg}{row_border}">')
-            print(f'<td class="u-s027">{pt["nome"]}</td>')
-            print(f'<td class="tr tabnum u-s027">{pt["vu"]:.2f}%</td>')
-            print(f'<td class="tr tabnum u-s027">{pt["vt"]:.2f}%</td>')
-            print(f'<td class="tr tabnum u-s459">{pt["v7030"]:.2f}%</td>')
-            print(f'<td class="tr tabnum u-s027">{pt["v5050"]:.2f}%</td>')
-            print(f'<td class="tr tabnum" style="padding:0.3rem 0.5rem; color:{delta_color};">{delta:+.2f}</td>')
-            print(f'<td class="tc u-s027">{" ".join(badges)}</td>')
-            print('</tr>')
-
-    print('</tbody></table></div>')
-
-    # Interpretation
-    if n_changed == 0:
-        print('<div class="u-s177">')
-        print('<p class="fs-lg u-s287">⚖️ Nenhum resultado alterado — por enquanto</p>')
-        print('<p class="fs-base u-s034">')
-        # Compute worst dangers dynamically for this cross-cell reference
-        _hd_retro = []
-        for _p in paredoes_finalizados:
-            _pts = _p.get('participantes', [])
-            if not _pts or _pts[0].get('voto_unico') is None:
-                continue
-            _svu = sorted(_pts, key=lambda x: float(x.get('voto_unico', 0)), reverse=True)[:2]
-            _sv = float(_svu[1].get('voto_torcida', 0)) - float(_svu[1].get('voto_unico', 0))
-            _eg = float(_svu[0].get('voto_torcida', 0)) - float(_svu[0].get('voto_unico', 0))
-            _d = max(max(0, _sv), max(0, -_eg))
-            _hd_retro.append({'num': _p.get('numero', '?'), 'danger': _d})
-        _sorted_retro = sorted(_hd_retro, key=lambda x: x['danger'], reverse=True)
-        _top_labels = ' e '.join(f'{d["danger"]:.0f}pp (P{d["num"]})' for d in _sorted_retro[:2])
-
-        print('Até agora, todos os resultados do BBB 26 teriam sido os mesmos com 50/50. ')
-        print('Mas isso não significa que o sistema está funcionando — significa que <strong>ainda ')
-        print(f'não chegou o teste de estresse</strong>. As disparidades de {_top_labels} ')
-        print('mostram que as torcidas estão forçando. Em uma final, com mobilização máxima, ')
-        print('o cenário pode ser muito diferente.</p>')
+    if retro_summary["n_changed"] == 0:
+        top_cases = sorted(health_data, key=lambda item: item["danger"], reverse=True)[:2]
+        top_labels = " e ".join(f'{item["danger"]:.0f}pp no P{item["num"]}' for item in top_cases)
+        print('<div class="votacao-summary-box">')
+        print('<p class="votacao-proof-title">⚖️ Nenhum resultado mudou, mas a pressão já aparece</p>')
+        print('<p class="votacao-sublead">')
+        print('Até aqui, o 70/30 segurou o placar oficial. Isso não prova que o sistema está saudável; ')
+        print('prova apenas que o BBB 26 ainda não encontrou um teste de estresse do tamanho da final do BBB 25. ')
+        if top_labels:
+            print(f'As maiores pressões já registradas, de <strong>{top_labels}</strong>, ')
+            print('mostram que as torcidas continuam tentando esticar o componente ilimitado. ')
+        print('O retroativo serve justamente para separar o resultado formal da intensidade da pressão ')
+        print('e mostrar que a folga atual é pequena.</p>')
         print('</div>')
     else:
-        print(f'<div class="u-s172">')
-        print(f'<p class="fs-lg u-s039">🔁 {n_changed} resultado(s) diferente(s)</p>')
-        print(f'<p class="fs-base u-s034">')
-        print(f'Em {n_changed} paredão(ões), o sistema 50/50 teria produzido um resultado diferente. ')
-        print(f'O peso 70/30 já fez diferença prática no BBB 26.</p>')
+        print('<div class="votacao-emphasis-box votacao-emphasis-box--warning">')
+        print('<p class="votacao-proof-title">🔁 O 70/30 já produziu diferença prática</p>')
+        print('<p class="votacao-sublead">')
+        print(f'Em <strong>{retro_summary["n_changed"]} paredão(ões)</strong>, o resultado oficial de 70/30 ')
+        print('já diverge do que o 50/50 entregaria. Isso confirma que esta comparação não é um apêndice visual: ')
+        print('o peso escolhido pela Globo altera, de fato, o destino do jogo.</p>')
         print('</div>')
+
+    print('</div>')
 
 else:
     print("*Aguardando paredões finalizados com dados de Voto Único/Torcida para simulação retroativa.*\n")
@@ -973,7 +733,7 @@ else:
 print("## 🎯 A teoria: contenção de danos sem admissão de culpa\n")
 
 # 3M CPF + R$1.5B impact cards
-print('<div class="v-flex-stack u-s319">')
+print('<div class="votacao-impact-grid">')
 
 impact_stats = [
     ("🗳️", "3M+", "CPFs votaram", "Recorde histórico de votos únicos — o brasileiro está engajado"),
@@ -981,16 +741,16 @@ impact_stats = [
     ("📊", "22%", "da receita publicitária", "BBB representa quase 1/4 do faturamento da Globo com anúncios"),
 ]
 for emoji, val, label, detail in impact_stats:
-    print(f'<div class="v-card u-s189">')
-    print(f'<div class="fs-sm u-s007">{emoji} {label}</div>')
-    print(f'<div class="fs-2xl tabnum u-s045">{val}</div>')
-    print(f'<div class="fs-sm meta-text">{detail}</div>')
+    print('<div class="votacao-impact-card">')
+    print(f'<div class="votacao-impact-label">{emoji} {label}</div>')
+    print(f'<div class="votacao-impact-value tabnum">{val}</div>')
+    print(f'<div class="votacao-impact-detail">{detail}</div>')
     print('</div>')
 print('</div>')
 
-print('<div class="v-box u-s160">')
+print('<div class="votacao-theory-box">')
 
-print('<p class="fs-lg u-s033">')
+print('<p class="votacao-lead">')
 print('Se a Globo tivesse adotado <strong>75/25</strong>, qualquer analista faria o mesmo cálculo ')
 print('apresentado aqui e concluiria: o novo sistema <strong>teria dado a vitória a Guilherme</strong>. ')
 print('Seria uma admissão pública de que o resultado do BBB 25 foi distorcido. ')
@@ -998,27 +758,16 @@ print('A Globo escolheu proteger uma campeã que já está sendo esquecida — '
 print('a menos seguida em 10 anos, vencedora da final de menor audiência da história — ')
 print('em vez de proteger o programa.</p>')
 
-print('<p class="fs-lg u-s033">')
+print('<p class="votacao-lead">')
 print('A ironia é brutal: como demonstrado acima, <strong>70/30 não teria impedido ')
 print('a vitória de Renata</strong>. O sistema escolhido pela Globo é fraco demais ')
 print('para impedir o cenário que motivou a mudança, e existe apenas para não ')
-# Compute worst inflation dynamically (cross-cell — paredoes_finalizados available here)
-_worst_infl = 0
-for _p in paredoes_finalizados:
-    _pts = _p.get('participantes', [])
-    if not _pts or _pts[0].get('voto_unico') is None:
-        continue
-    _svu = sorted(_pts, key=lambda x: float(x.get('voto_unico', 0)), reverse=True)[:2]
-    _sv = float(_svu[1].get('voto_torcida', 0)) - float(_svu[1].get('voto_unico', 0))
-    _eg = float(_svu[0].get('voto_torcida', 0)) - float(_svu[0].get('voto_unico', 0))
-    _worst_infl = max(_worst_infl, max(0, _sv), max(0, -_eg))
-
 print('constranger publicamente a campeã anterior. Enquanto isso, o BBB 26 já ')
-print(f'registrou disparidades de até <strong>{_worst_infl:.0f}pp</strong> entre Voto Único e Voto da Torcida — ')
+print(f'registrou disparidades de até <strong>{max_danger:.0f}pp</strong> entre Voto Único e Voto da Torcida — ')
 print('sinais claros de que os mesmos atores de má-fé estão ')
 print('testando os limites do novo sistema.</p>')
 
-print('<p class="fs-lg u-s033">')
+print('<p class="votacao-lead">')
 print('Os números do próprio BBB 26 expõem a contradição. De um lado, o brasileiro ')
 print('está mais engajado do que nunca: <strong>mais de 3 milhões de CPFs</strong> votaram ')
 print('em um único paredão — recorde absoluto da história do programa. Como Tadeu Schmidt ')
@@ -1026,18 +775,24 @@ print('celebrou: <em>"Nunca tivemos tantos votos únicos no BBB."</em> ')
 print('Isso prova que o público <strong>quer</strong> participar, quer ser ouvido. ')
 print('Do outro lado, torcidas organizadas com bots, mutirões e tempo ilimitado ')
 print('continuam despejando votos no componente que ainda pesa 30% do resultado, ')
-print(f'com disparidades que já chegam a {_worst_infl:.0f}pp em paredões regulares — ')
+print(f'com disparidades que já chegam a {max_danger:.0f}pp em paredões regulares — ')
 print('imagine o que fariam numa final.</p>')
+print('</div>')
 
-print('<p class="fs-lg u-s274">')
+print('<div class="votacao-emphasis-box votacao-emphasis-box--warning">')
+print('<p class="votacao-proof-title">💰 O ativo que a Globo decidiu expor</p>')
+print('<p class="votacao-sublead">')
 print('O BBB fatura <strong>R$ 1,5 bilhão</strong> por edição só em patrocínios — ')
 print('recorde histórico, com 15 marcas pagando até R$ 132 milhões por uma única cota. ')
 print('O programa alcança <strong>128 milhões de brasileiros</strong> em 80% dos lares, por 100 dias ')
 print('seguidos — mais que todas as outras TVs abertas e streamings combinados. ')
 print('Representa cerca de <strong>22% de toda a receita publicitária</strong> da Globo. ')
 print('É, disparado, o ativo mais valioso da emissora.</p>')
+print('</div>')
 
-print('<p class="fs-lg u-s280">')
+print('<div class="votacao-summary-box">')
+print('<p class="votacao-proof-title">🧭 A leitura final</p>')
+print('<p class="votacao-sublead">')
 print('A decisão de calibrar o sistema para não constranger uma campeã esquecível — ')
 print('em vez de blindar de verdade um programa de R$ 1,5 bilhão que alcança 128 milhões ')
 print('de pessoas — é, no mínimo, <strong>irresponsável</strong>. ')
@@ -1045,7 +800,7 @@ print('É uma aposta de que as torcidas de má-fé não vão repetir o estrago. 
 print('Mas os dados do BBB 26 já mostram que essa aposta está sendo testada, ')
 print('e o dano a credibilidade do sistema pode ser <strong>irreversível</strong>.</p>')
 
-print('<p class="fs-lg u-s034">')
+print('<p class="votacao-sublead">')
 print('O cidadão brasileiro que trabalha o dia inteiro, paga suas contas e assiste ao BBB ')
 print('como válvula de escape tem <strong>um único voto por CPF</strong>. ')
 print('É contra ele que torcidas de má-fé com recursos ilimitados e coordenação ')
@@ -1058,7 +813,7 @@ print('importante da televisão brasileira.</p>')
 print('</div>')
 
 # Sources
-print('<div class="fs-sm u-s247">')
+print('<div class="votacao-source-list">')
 print('<strong>Fontes:</strong> ')
 print('<a href="https://gshow.globo.com/realities/bbb/bbb-25/dentro-da-casa/noticia/quem-ganhou-o-bbb-25-renata-e-a-vencedora-do-reality.ghtml" target="_blank" class="meta-link">gshow.globo.com — Final BBB 25</a> · ')
 print('<a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="meta-link">Pipoca Moderna</a> · ')
