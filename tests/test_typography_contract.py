@@ -16,7 +16,6 @@ TARGET_FILES = [
     REPO_ROOT / "assets" / "cards.css",
     REPO_ROOT / "assets" / "navbar.css",
     REPO_ROOT / "assets" / "page-nav.css",
-    REPO_ROOT / "assets" / "toc-offcanvas.css",
     REPO_ROOT / "assets" / "cartola.css",
     REPO_ROOT / "assets" / "provas.css",
     REPO_ROOT / "assets" / "economia.css",
@@ -66,6 +65,12 @@ def test_global_typography_uses_token_roles_for_core_elements():
     ]
     for snippet in expected_snippets:
         assert snippet in css, f"missing core token role: {snippet}"
+
+
+def test_targeted_surfaces_do_not_track_removed_toc_offcanvas_assets():
+    target_names = {path.name for path in TARGET_FILES}
+    assert "toc-offcanvas.css" not in target_names
+    assert "toc-offcanvas.js" not in target_names
 
 
 def test_targeted_public_surfaces_avoid_raw_font_size_literals():

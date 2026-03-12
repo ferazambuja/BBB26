@@ -31,18 +31,40 @@ Painel que acompanha diariamente o **queridômetro** (reações entre participan
 ## Como funciona
 
 ```
-API GloboPlay → fetch_data.py → data/snapshots/*.json
-                                        ↓
-                              build_derived_data.py
-                                        ↓
-                              data/derived/*.json (20+ arquivos)
-                                        ↓
-                                  quarto render
-                                        ↓
-                                _site/ → GitHub Pages
+API GloboPlay → scripts/fetch_data.py → data/snapshots/*.json
+                                                ↓
+                                  scripts/build_derived_data.py
+                                                ↓
+                                   scripts/derived_pipeline.py
+                                                ↓
+                                  data/derived/*.json (20+ arquivos)
+                                                ↓
+                         scripts/*_viz.py helpers + thin *.qmd pages
+                                                ↓
+                                          quarto render
+                                                ↓
+                                        _site/ → GitHub Pages
 ```
 
 O GitHub Actions roda com slots permanentes em **00:00, 06:00, 15:00 e 18:00 BRT**, extras aos sábados (**17:00** e **20:00 BRT**) e probes temporários entre **09:30–16:00 BRT** para validar a janela real de atualização do queridômetro (revisão de fechamento prevista para **2026-03-08**).
+
+### Camadas de responsabilidade
+
+- `scripts/builders/*` e `scripts/derived_pipeline.py`:
+  computação de domínio, validações e geração de artefatos derivados.
+- `scripts/*_viz.py`:
+  helpers de renderização reutilizáveis, gráficos Plotly e fragmentos HTML.
+- `*.qmd`:
+  ordem da página, títulos, narrativa, e orquestração final do que renderiza.
+
+### Regra prática para código em QMD
+
+- Categoria A: helper testável de renderização/formatacão.
+  Mover para `scripts/*_viz.py`.
+- Categoria B: computação cara ou reutilizável.
+  Mover para builders + `data/derived/*`.
+- Categoria C: orquestração ordenada da página.
+  Manter no `.qmd`.
 
 ## Desenvolvimento local
 
@@ -56,6 +78,8 @@ python scripts/fetch_data.py
 
 # Reconstruir dados derivados (após edições manuais)
 python scripts/build_derived_data.py
+
+# Nota: build_derived_data.py delega para scripts/derived_pipeline.py
 
 # Renderizar o site
 quarto render

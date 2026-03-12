@@ -13,9 +13,13 @@ data/snapshots/*.json + data/latest.json
         ↓
 scripts/build_derived_data.py
         ↓
+scripts/derived_pipeline.py
+        ↓
 data/derived/*.json
         ↓
-Quarto render (*.qmd)
+scripts/*_viz.py helpers + thin Quarto pages (*.qmd)
+        ↓
+Quarto render
         ↓
 _site/ (GitHub Pages)
 ```
@@ -23,13 +27,15 @@ _site/ (GitHub Pages)
 ## Main Layers
 
 - `scripts/`:
-  - data ingestion, transformations, validations, and derived builders
+  - data ingestion, transformations, validations, derived builders, and render helpers
 - `data/`:
   - `snapshots/` raw captures
   - manual sources (`manual_events.json`, `paredoes.json`, `provas.json`, `votalhada/polls.json`)
   - `derived/` precomputed artifacts consumed by pages
+- `scripts/*_viz.py`:
+  - reusable render helpers, HTML fragment builders, and Plotly figure helpers
 - `*.qmd`:
-  - page rendering and visualization composition
+  - page rendering, section ordering, and final visualization composition
 - `_quarto.yml`:
   - site navigation, page render list, theme and global includes
 
@@ -38,6 +44,28 @@ _site/ (GitHub Pages)
 - Shared logic/constants should live in Python modules (not duplicated in QMD pages).
 - Heavy computation should be precomputed into `data/derived/`.
 - QMD pages should load data and render, not own business logic.
+- `scripts/build_derived_data.py` is a compatibility entrypoint; `scripts/derived_pipeline.py` is the real derived-data orchestrator.
+
+## Render-Layer Ownership
+
+- `scripts/builders/*`:
+  domain computation, reusable analysis state, and derived artifact generation.
+- `scripts/*_viz.py`:
+  render helpers with explicit parameters, reusable HTML fragments, and Plotly builders.
+- `*.qmd`:
+  headings, prose, state-driven section ordering, and final ordered rendering.
+
+## QMD Code Categories
+
+- Category A:
+  unit-testable render/formatting helpers.
+  Prefer moving to `scripts/*_viz.py`.
+- Category B:
+  expensive or reusable computation.
+  Prefer moving to builders and `data/derived/*`.
+- Category C:
+  ordered page orchestration and print chains tied to layout.
+  Keep in `.qmd` unless a clearly reusable fragment emerges.
 
 ## Critical Data Contracts
 
@@ -53,6 +81,10 @@ _site/ (GitHub Pages)
 - Site render:
   - `quarto render`
 - CI pipeline validates and rebuilds derived data before deploy.
+- Normal release order is:
+  - `python scripts/build_derived_data.py`
+  - `quarto render`
+  - publish `_site/`
 
 ## Related Public Docs
 

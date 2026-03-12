@@ -22,6 +22,11 @@ def test_quarto_does_not_load_nesta_pagina_assets():
     assert "assets/toc-offcanvas.js" not in config
 
 
+def test_toc_offcanvas_assets_are_removed_from_repo():
+    assert not (REPO_ROOT / "assets" / "toc-offcanvas.css").exists()
+    assert not (REPO_ROOT / "assets" / "toc-offcanvas.js").exists()
+
+
 def test_quarto_does_not_show_topbar_create_issue_action():
     config = _read_quarto_config()
     assert "repo-actions:" not in config
