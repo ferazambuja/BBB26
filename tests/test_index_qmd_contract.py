@@ -69,6 +69,11 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "render_ranked_lane as _render_ranked_lane" in content
     assert "render_pair_lane as _render_pair_lane" in content
     assert "render_toggle_pair_lane as _render_toggle_pair_lane" in content
+    assert "render_alvo_rows as _render_alvo_rows" in content
+    assert "render_break_row as _render_break_row" in content
+    assert "render_blindado_row as _render_blindado_row" in content
+    assert "render_visado_row as _render_visado_row" in content
+    assert "render_vx_row as _render_vx_row" in content
     assert "render_profile_sinc_row" in content
     assert "build_rxn_detail_html" in content
     assert "render_pulse_row" in content
@@ -127,3 +132,13 @@ def test_index_qmd_batch_b_helpers_are_no_longer_defined_inline():
     assert "_render_ranked_lane" not in names
     assert "_render_pair_lane" not in names
     assert "_render_toggle_pair_lane" not in names
+
+
+def test_index_qmd_batch_c_helpers_are_no_longer_defined_inline():
+    names = _function_names()
+
+    assert "_render_alvo_rows" not in names
+    assert "_break_row" not in names
+    assert "_blindado_row" not in names
+    assert "_visado_row" not in names
+    assert "_render_vx_row" not in names

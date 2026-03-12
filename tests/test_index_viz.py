@@ -32,7 +32,10 @@ from index_viz import (
     plant_color,
     progress_bar,
     render_actor_avatars,
+    render_alvo_rows,
     render_avatar_row,
+    render_blindado_row,
+    render_break_row,
     render_dramatic_event_row,
     render_mobile_evolution_summary,
     render_mobile_queridometro_summary,
@@ -47,6 +50,8 @@ from index_viz import (
     render_status_chip,
     stat_chip,
     render_toggle_pair_lane,
+    render_visado_row,
+    render_vx_row,
 )
 
 
@@ -741,6 +746,135 @@ def test_render_pair_lane_and_toggle_pair_lane_wrap_pair_chips():
     assert "🎯 Conflito Confirmado" in toggle_html
     assert "sinc-toggle-count" in toggle_html
     assert "<pairchip Ana Paula Renault aligned>" in toggle_html
+
+
+def test_render_alvo_rows_wraps_rows_and_overflow_details():
+    html = render_alvo_rows(
+        [
+            {"name": "Ana Paula Renault", "score": -4.0},
+            {"name": "Babu Santana", "score": -3.0},
+            {"name": "Milena", "score": -2.0},
+            {"name": "Chaiany", "score": -1.0},
+            {"name": "Leandro", "score": -0.5},
+            {"name": "Jonas Sulzbach", "score": -0.2},
+        ],
+        "alvo-recent",
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert 'id="alvo-recent"' in html
+    assert "<avatar Ana Paula Renault #c0392b>" in html
+    assert 'href="#perfil-ana-paula-renault"' in html
+    assert "<summary>+1 restantes</summary>" in html
+    assert "width:100%" in html
+
+
+def test_render_break_row_formats_break_card_metadata():
+    html = render_break_row(
+        {
+            "giver": "Ana Paula Renault",
+            "receiver": "Babu Santana",
+            "streak": 7,
+            "new_emoji": "😡",
+            "severity": "strong",
+            "date": "2026-03-08",
+        },
+        break_ref_date="2026-03-12",
+        fmt_date_fn=fmt_date_br,
+        days_ago_fn=lambda date_str, ref_date: days_ago_str(
+            date_str,
+            ref_date,
+            anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date(),
+        ),
+        pair_story_card_fn=lambda giver, receiver, transition_html, meta_text, border_color: (
+            f"<pair giver='{giver}' receiver='{receiver}' border='{border_color}'>"
+            f"{transition_html}|{meta_text}</pair>"
+        ),
+    )
+
+    assert "giver='Ana Paula Renault'" in html
+    assert "receiver='Babu Santana'" in html
+    assert "7d ❤️" in html
+    assert "😡" in html
+    assert "Rompimento grave" in html
+    assert "08/03 (há 4 dias)" in html
+    assert "border='#e74c3c'" in html
+
+
+def test_render_blindado_row_renders_badges_and_counts():
+    html = render_blindado_row(
+        {
+            "name": "Ana Paula Renault",
+            "paredao": 0,
+            "protected": 3,
+            "available": 5,
+            "votes": 1,
+            "bv_escape": True,
+            "bv_text": 'Escapou "BV"',
+            "protection_tags": [
+                {"label": "Líder", "text": "Líder 2x"},
+                {"label": "Casa", "text": "Casa 1x"},
+            ],
+        },
+        n_par=4,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "<avatar Ana Paula Renault #3498db>" in html
+    assert 'href="#perfil-ana-paula-renault"' in html
+    assert "0 paredões" in html
+    assert "1 voto em 5 elegíveis" in html
+    assert "protegido 3x" in html
+    assert "Escapou &quot;BV&quot;" in html
+    assert "Líder 2x" in html
+    assert "Casa 1x" in html
+
+
+def test_render_visado_row_renders_pressure_badges():
+    html = render_visado_row(
+        {
+            "name": "Babu Santana",
+            "paredao": 2,
+            "votes_total": 6,
+            "votes_recent": 3,
+            "intensity_prevote": 0.67,
+            "bv_escapes": 1,
+            "fake_paredao_count": 1,
+            "fake_paredao_nums": [5],
+            "by_lider": 2,
+            "by_casa": 1,
+            "by_dynamic": 1,
+        },
+        max_votes=6,
+        recent_window=3,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "<avatar Babu Santana #c0392b>" in html
+    assert "2 paredões" in html
+    assert "6 votos total" in html
+    assert "3 recentes (3 ciclos)" in html
+    assert "intensidade 67%" in html
+    assert "Escapou Bate-Volta 1x" in html
+    assert "Paredão falso 1x (5º)" in html
+    assert "Líder 2x" in html
+    assert "Casa 1x" in html
+    assert "Dinâmica 1x" in html
+
+
+def test_render_vx_row_formats_day_share_and_bar():
+    html = render_vx_row(
+        {"name": "Milena", "vip": 4, "total": 10},
+        day_key="vip",
+        accent="#f1c40f",
+        max_days=8,
+        avatar_fn=lambda name, size=38, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "<avatar Milena #f1c40f>" in html
+    assert 'href="#perfil-milena"' in html
+    assert "4d (40%)" in html
+    assert "width:50%" in html
 
 
 def test_card_header_escapes_data_text_and_link_attributes():

@@ -57,11 +57,14 @@ from index_viz import (
     make_event_chips as _make_event_chips,
     make_reaction_summary_html,
     pair_story_card as _pair_story_card,
+    render_alvo_rows as _render_alvo_rows,
     render_dramatic_event_row as _render_dramatic_event_row,
     render_mobile_evolution_summary,
     render_mobile_queridometro_summary,
     render_actor_avatars as _render_actor_avatars,
     render_avatar_row as _render_avatar_row,
+    render_blindado_row as _render_blindado_row,
+    render_break_row as _render_break_row,
     render_pair_lane as _render_pair_lane,
     render_overflow_toggle as _render_overflow_toggle,
     render_pair_chip,
@@ -74,6 +77,8 @@ from index_viz import (
     render_status_chip,
     stat_chip,
     render_toggle_pair_lane as _render_toggle_pair_lane,
+    render_visado_row as _render_visado_row,
+    render_vx_row as _render_vx_row,
 )
 
 require_clean_manual_events()
@@ -558,59 +563,8 @@ else:
             total = card.get("total", len(items_accum))
             card_id = "alvo-toggle"
 
-            def _render_alvo_rows(items, rid):
-                worst = abs(items[0]["score"]) if items else 1
-                html = f'<div id="{rid}" class="u-s058">'
-                inline_items = items[:5]
-                overflow_items = items[5:]
-                for it in inline_items:
-                    _name = it["name"]
-                    _slug = _name.lower().replace(" ", "-")
-                    score = it["score"]
-                    bar_pct = min(100, abs(score) / worst * 100)
-                    html += (
-                        f'<div class="u-s056">'
-                        f'<a href="#perfil-{_slug}" style="text-decoration:none">{av(_name, 42, "#c0392b")}</a>'
-                        f'<div class="u-s066">'
-                        f'<div class="u-s059">'
-                        f'<a href="#perfil-{_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_name.split()[0]}</a>'
-                        f'<span class="text-neg fs-sm">{score:.1f}</span>'
-                        f'</div>'
-                        f'<div class="u-s014">'
-                        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
-                        f'</div>'
-                        f'</div></div>'
-                    )
-                if overflow_items:
-                    html += (
-                        f'<details class="sinc-more">'
-                        f'<summary>+{len(overflow_items)} restantes</summary>'
-                        f'<div class="u-s058">'
-                    )
-                    for it in overflow_items:
-                        _name = it["name"]
-                        _slug = _name.lower().replace(" ", "-")
-                        score = it["score"]
-                        bar_pct = min(100, abs(score) / worst * 100)
-                        html += (
-                            f'<div class="u-s056">'
-                            f'<a href="#perfil-{_slug}" style="text-decoration:none">{av(_name, 42, "#c0392b")}</a>'
-                            f'<div class="u-s066">'
-                            f'<div class="u-s059">'
-                            f'<a href="#perfil-{_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_name.split()[0]}</a>'
-                            f'<span class="text-neg fs-sm">{score:.1f}</span>'
-                            f'</div>'
-                            f'<div class="u-s014">'
-                            f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
-                            f'</div>'
-                            f'</div></div>'
-                        )
-                    html += '</div></details>'
-                html += '</div>'
-                return html
-
-            accum_html = _render_alvo_rows(items_accum_all, f"{card_id}-accum")
-            recent_html = _render_alvo_rows(items_recent_all, f"{card_id}-recent")
+            accum_html = _render_alvo_rows(items_accum_all, f"{card_id}-accum", avatar_fn=av)
+            recent_html = _render_alvo_rows(items_recent_all, f"{card_id}-recent", avatar_fn=av)
 
             toggle_html = (
                 f'<div style="display:flex;gap:6px;margin-bottom:8px;">'
@@ -771,45 +725,24 @@ else:
             severity_badge = f"{strong_count} graves" if strong_count else None
             break_ref_date = card.get("reference_date") or latest.get("date")
 
-            def _break_row(it: dict) -> str:
-                g = it["giver"]
-                r = it["receiver"]
-                streak = it["streak"]
-                new_e = it.get("new_emoji", "?")
-                sev = it.get("severity", "mild")
-                date_str = it.get("date", "")
-                try:
-                    date_fmt = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
-                except Exception:
-                    date_fmt = ""
-                age_txt = days_ago_str(date_str, break_ref_date)
-                when_txt = f"{date_fmt} ({age_txt})" if date_fmt and age_txt else (date_fmt or age_txt)
-                sev_border = "#e74c3c" if sev == "strong" else "#8e44ad"
-                meta_txt = f"Rompimento{' grave' if sev == 'strong' else ''}"
-                if when_txt:
-                    meta_txt += f" · {when_txt}"
-                transition_html = (
-                    f'<span class="pair-story-origin">{streak}d ❤️</span>'
-                    f'<span class="pair-story-arrow">→</span>'
-                    f'<span class="pair-story-destination">{new_e}</span>'
-                )
-                return pair_story_card(
-                    g,
-                    r,
-                    transition_html,
-                    meta_txt,
-                    border_color=sev_border,
-                )
-
             inline_items = items[:4]
             overflow_items = items[4:]
             rows_html = '<div class="u-s357">'
-            rows_html += "".join(_break_row(it) for it in inline_items)
+            rows_html += "".join(
+                _render_break_row(
+                    it,
+                    break_ref_date=break_ref_date,
+                    fmt_date_fn=fmt_date_br,
+                    days_ago_fn=days_ago_str,
+                    pair_story_card_fn=pair_story_card,
+                )
+                for it in inline_items
+            )
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s357">{"".join(_break_row(it) for it in overflow_items)}</div>'
+                    f'<div class="u-s357">{"".join(_render_break_row(it, break_ref_date=break_ref_date, fmt_date_fn=fmt_date_br, days_ago_fn=days_ago_str, pair_story_card_fn=pair_story_card) for it in overflow_items)}</div>'
                     f'</details>'
                 )
             rows_html += '</div>'
@@ -828,61 +761,13 @@ else:
             inline_items = items_all[:display_limit]
             overflow_items = items_all[display_limit:]
 
-            def _blindado_row(it: dict) -> str:
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                paredao_count = it.get("paredao", 0)
-                prot = it.get("protected", 0)
-                avail = it.get("available", 0)
-                votes = it.get("votes", 0)
-                has_bv = it.get("bv_escape", False)
-                bv_text = it.get("bv_text", "")
-                protection_tags = it.get("protection_tags", [])
-
-                border = "#3498db" if prot >= 3 else ("#27ae60" if paredao_count == 0 else "#f39c12")
-                par_color = "#27ae60" if paredao_count == 0 else ("#f39c12" if paredao_count == 1 else "#e74c3c")
-                par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
-                bar_pct = min(100, prot / n_par * 100) if n_par > 0 else 0
-                prot_badges = []
-                if has_bv and bv_text:
-                    prot_badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>{escape(bv_text)}</span>"
-                    )
-                for tag in protection_tags:
-                    label = tag.get("label")
-                    tone_style = "background:#2d1b3f;color:#d9b3ff;" if label == "Líder" else "background:#123b2a;color:#8fe3b8;"
-                    prot_badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;{tone_style}white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>{escape(tag.get('text', ''))}</span>"
-                    )
-                prot_badges_html = "".join(prot_badges)
-                extra_badges = (
-                    f"<div style='margin-top:3px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;'>{prot_badges_html}</div>"
-                    if prot_badges_html else ""
-                )
-
-                return (
-                    f'<div class="u-s056" style="align-items:flex-start;">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:{par_color};font-weight:700;">{par_label}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#3498db;border-radius:3px;"></div>'
-                    f'</div>'
-                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} em {avail} {"elegível" if avail == 1 else "elegíveis"} · protegido {prot}x</div>'
-                    f'{extra_badges}'
-                    f'</div></div>'
-                )
-
             rows_html = '<div class="u-s058">'
-            rows_html += "".join(_blindado_row(it) for it in inline_items)
+            rows_html += "".join(_render_blindado_row(it, n_par=n_par, avatar_fn=av) for it in inline_items)
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s058">{"".join(_blindado_row(it) for it in overflow_items)}</div>'
+                    f'<div class="u-s058">{"".join(_render_blindado_row(it, n_par=n_par, avatar_fn=av) for it in overflow_items)}</div>'
                     f'</details>'
                 )
             rows_html += '</div>'
@@ -903,77 +788,21 @@ else:
             overflow_items = items_all[display_limit:]
             max_votes = max((it.get("votes_total", 0) for it in items_all), default=1) or 1
 
-            def _visado_row(it: dict) -> str:
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                paredao_count = it.get("paredao", 0)
-                votes_total = it.get("votes_total", 0)
-                votes_recent = it.get("votes_recent", 0)
-                intensity = float(it.get("intensity_prevote", 0.0))
-                bv_count = it.get("bv_escapes", 0)
-                fake_count = it.get("fake_paredao_count", 0)
-                fake_nums = it.get("fake_paredao_nums", [])
-                by_lider = it.get("by_lider", 0)
-                by_casa = it.get("by_casa", 0)
-                by_dynamic = it.get("by_dynamic", 0)
-
-                border = "#c0392b" if paredao_count >= 2 else ("#d35400" if votes_total >= 2 else "#8e44ad")
-                par_color = "#c0392b" if paredao_count >= 2 else ("#e67e22" if paredao_count == 1 else "#7f8c8d")
-                par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
-                bar_pct = min(100, votes_total / max_votes * 100) if max_votes > 0 else 0
-                intensity_pct = round(intensity * 100)
-
-                badges = []
-                if bv_count:
-                    badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Escapou Bate-Volta {bv_count}x</span>"
-                    )
-                if fake_count:
-                    fake_txt = ", ".join(f"{n}º" for n in fake_nums)
-                    badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Paredão falso {fake_count}x ({fake_txt})</span>"
-                    )
-                if by_lider:
-                    badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Líder {by_lider}x</span>"
-                    )
-                if by_casa:
-                    badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Casa {by_casa}x</span>"
-                    )
-                if by_dynamic:
-                    badges.append(
-                        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>Dinâmica {by_dynamic}x</span>"
-                    )
-                badges_html = "".join(badges)
-                extra_badges = (
-                    f"<div style='margin-top:3px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;'>{badges_html}</div>"
-                    if badges_html else ""
-                )
-
-                return (
-                    f'<div class="u-s056" style="align-items:flex-start;">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:{par_color};font-weight:700;">{par_label}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e67e22;border-radius:3px;"></div>'
-                    f'</div>'
-                    f'<div class="fs-2xs" style="color:#888;">{votes_total} voto{"s" if votes_total != 1 else ""} total · {votes_recent} recente{"s" if votes_recent != 1 else ""} ({recent_window} ciclos) · intensidade {intensity_pct}%</div>'
-                    f'{extra_badges}'
-                    f'</div></div>'
-                )
-
             rows_html = '<div class="u-s058">'
-            rows_html += "".join(_visado_row(it) for it in inline_items)
+            rows_html += "".join(
+                _render_visado_row(
+                    it,
+                    max_votes=max_votes,
+                    recent_window=recent_window,
+                    avatar_fn=av,
+                )
+                for it in inline_items
+            )
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s058">{"".join(_visado_row(it) for it in overflow_items)}</div>'
+                    f'<div class="u-s058">{"".join(_render_visado_row(it, max_votes=max_votes, recent_window=recent_window, avatar_fn=av) for it in overflow_items)}</div>'
                     f'</details>'
                 )
             rows_html += '</div>'
@@ -991,30 +820,9 @@ else:
             day_key = "vip" if is_vip else "xepa"
             max_days = max((it["total"] for it in items), default=1) or 1
 
-            def _render_vx_row(it):
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                days = it[day_key]
-                total = it["total"]
-                pct = round(days / total * 100) if total > 0 else 0
-                bar_pct = min(100, days / max_days * 100) if max_days > 0 else 0
-                return (
-                    f'<div class="u-s056">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 38, accent)}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-sm u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:{accent};font-weight:700;">{days}d ({pct}%)</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:{accent};border-radius:3px;"></div>'
-                    f'</div>'
-                    f'</div></div>'
-                )
-
             rows_html = '<div class="u-s058">'
             for it in items[:5]:
-                rows_html += _render_vx_row(it)
+                rows_html += _render_vx_row(it, day_key=day_key, accent=accent, max_days=max_days, avatar_fn=av)
             rows_html += '</div>'
 
             # Collapsible section for items beyond top 5
@@ -1027,7 +835,7 @@ else:
                     '<div class="u-s058">'
                 )
                 for it in rest:
-                    rows_html += _render_vx_row(it)
+                    rows_html += _render_vx_row(it, day_key=day_key, accent=accent, max_days=max_days, avatar_fn=av)
                 rows_html += '</div></details>'
 
             subtitle = "Quem passou mais dias no VIP ao longo do jogo." if is_vip else "Quem passou mais dias na Xepa ao longo do jogo."
