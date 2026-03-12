@@ -5,6 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 QUARTO_CONFIG = REPO_ROOT / "_quarto.yml"
+INDEX_VIZ = REPO_ROOT / "scripts" / "index_viz.py"
 
 
 def _read_quarto_config() -> str:
@@ -39,8 +40,10 @@ def test_index_list_cards_do_not_use_external_plus_n_more_links():
 
 def test_index_relative_dates_are_anchored_to_generated_date_not_latest_snapshot():
     index_qmd = (REPO_ROOT / "index.qmd").read_text(encoding="utf-8")
+    helper = INDEX_VIZ.read_text(encoding="utf-8")
     assert "DATA_GENERATED_DATE_BRT" in index_qmd
-    assert "delta = (_anchor_brt - d0).days" in index_qmd
+    assert "anchor_brt=DATA_GENERATED_DATE_BRT" in index_qmd
+    assert "delta = (anchor_brt - d0).days" in helper
 
 
 def test_quarto_renders_cronologia_mobile_review_page_without_navbar_entry():

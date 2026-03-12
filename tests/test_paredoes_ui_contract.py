@@ -7,6 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PAREDOES_QMD = REPO_ROOT / "paredoes.qmd"
 PAREDAO_QMD = REPO_ROOT / "paredao.qmd"
 INDEX_QMD = REPO_ROOT / "index.qmd"
+INDEX_VIZ = REPO_ROOT / "scripts" / "index_viz.py"
 PAREDAO_VIZ = REPO_ROOT / "scripts" / "paredao_viz.py"
 CARDS_CSS = REPO_ROOT / "assets" / "cards.css"
 
@@ -71,13 +72,14 @@ def test_live_page_shows_history_after_prediction_without_details_collapse():
 
 def test_index_keeps_restored_highlight_layout_hooks():
     index = _read(INDEX_QMD)
+    helper = _read(INDEX_VIZ)
     css = _read(CARDS_CSS)
 
     assert 'movers_label = card.get("movers_label", "📅 Variação vs ontem")' in index
     assert "Mudanças Dramáticas (Recente)" not in index
-    assert "dashboard-card-header" in index
+    assert "dashboard-card-header" in helper
     assert "dashboard-card-header" in css
-    assert "pair-story-card" in index
+    assert "pair-story-card" in helper
     assert "pair-story-card" in css
     assert "ranking-column" not in index
     assert ".ranking-column" not in css

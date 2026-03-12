@@ -2,9 +2,692 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from html import escape
 import plotly.graph_objects as go
 
 from data_utils import GROUP_COLORS, REACTION_EMOJI, SENTIMENT_WEIGHTS
+
+
+def _coerce_float(value, default=0.0) -> float:
+    if value in (None, ""):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_datetime_like(value) -> datetime:
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        text = str(value).strip()
+        if not text:
+            raise ValueError("missing date")
+        try:
+            dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError:
+            dt = datetime.strptime(text, "%Y-%m-%d")
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+def fmt_date_br(date_str: str) -> str:
+    if not date_str:
+        return ""
+    try:
+        return _parse_datetime_like(date_str).strftime("%d/%m")
+    except Exception:
+        return date_str
+
+
+def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
+    """Card header with icon, title, optional link, badge, source tag, and subtitle."""
+    meta_parts = []
+    if badge:
+        meta_parts.append(f'<span class="dashboard-card-badge fs-xs u-s187">{badge}</span>')
+    if source_tag:
+        meta_parts.append(f'<span class="dashboard-card-source fs-2xs u-s253">{source_tag}</span>')
+    if link:
+        meta_parts.append(f'<a href="{link}" class="dashboard-card-link fs-xs u-s254">ver mais ↗</a>')
+    meta_html = f'<div class="dashboard-card-header-meta">{"".join(meta_parts)}</div>' if meta_parts else ""
+    subtitle_html = f'<div class="dashboard-card-subtitle fs-sm u-s258">{subtitle}</div>' if subtitle else ""
+    return (
+        f'<div class="u-s073 dashboard-card-header">'
+        f'<div class="dashboard-card-header-main">'
+        f'<span class="dashboard-card-icon fs-2xl">{icon}</span>'
+        f'<span class="dashboard-card-title fs-base u-s392">{title}</span>'
+        f"</div>"
+        f"{meta_html}"
+        f"{subtitle_html}</div>"
+    )
+
+
+def stat_chip(value, label, color="#888"):
+    """Small stat chip."""
+    return (
+        f'<span class="u-s373">'
+        f'<span class="fs-xl" style="font-weight:700;color:{color};">{value}</span>'
+        f'<span class="fs-2xs u-s259">{label}</span></span>'
+    )
+
+
+def progress_bar(value, max_val, color="#3498db", height=6):
+    """Mini progress bar."""
+    pct = min(100, value / max_val * 100) if max_val > 0 else 0
+    radius = height // 2
+    return (
+        f'<div style="background:rgba(255,255,255,0.08);border-radius:{radius}px;height:{height}px;width:100%;overflow:hidden;">'
+        f'<div style="width:{pct:.0f}%;height:100%;background:{color};border-radius:{radius}px;"></div></div>'
+    )
+
+
+def plant_color(score):
+    if score >= 80:
+        return "#2f7d46"
+    if score >= 60:
+        return "#6c8a3c"
+    if score >= 40:
+        return "#b9772a"
+    return "#a94442"
+
+
+def render_status_chip(emoji, label, level, color, detail_html=""):
+    """Tappable status indicator with optional breakdown."""
+    r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+    bg = f"rgba({r},{g},{b},0.12)"
+    if detail_html:
+        return (
+            f'<details class="status-detail">'
+            f'<summary style="background:{bg};border-left:3px solid {color};">'
+            f'<span class="fs-lg">{emoji}</span>'
+            f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
+            f'<div class="fs-2xs u-s061">{label}</div></div>'
+            f'</summary>'
+            f'<div class="status-breakdown u-s001">{detail_html}</div>'
+            f"</details>"
+        )
+    return (
+        f'<div style="display:flex;align-items:center;gap:0.4rem;background:{bg};'
+        f'padding:0.4rem 0.8rem;border-radius:8px;border-left:3px solid {color};flex:1;min-width:140px;">'
+        f'<span class="fs-lg">{emoji}</span>'
+        f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
+        f'<div class="fs-2xs u-s061">{label}</div></div>'
+        f"</div>"
+    )
+
+
+def _short_name(name):
+    return (name or "?").split()[0]
+
+
+def _fmt_signed(value, decimals=1):
+    return f"{value:+.{decimals}f}"
+
+
+def _render_list(rows, empty_text, value_fmt):
+    if not rows:
+        return f"<p class='ranking-mobile-note'>{empty_text}</p>"
+    items = []
+    for row in rows:
+        nm = _short_name(row["name"])
+        items.append(f"<li><strong>{nm}</strong>: {value_fmt(row)}</li>")
+    return "<ul>" + "".join(items) + "</ul>"
+
+
+def render_mobile_queridometro_summary(today_rows, change_week):
+    if not today_rows:
+        return "<div class='ranking-mobile-summary'><p class='ranking-mobile-note'>Sem dados de ranking.</p></div>"
+
+    normalized_rows = []
+    for row in today_rows:
+        score = _coerce_float(row.get("score", 0))
+        hearts = _coerce_float(row.get("hearts", 0))
+        negative = _coerce_float(row.get("negative", 0))
+        touch = hearts + negative
+        neg_ratio = (negative / touch) if touch > 0 else 0.0
+        normalized_rows.append(
+            {
+                "name": row.get("name", "?"),
+                "score": score,
+                "hearts": hearts,
+                "negative": negative,
+                "touch": touch,
+                "neg_ratio": neg_ratio,
+            }
+        )
+
+    kpi_blindados = sum(1 for row in normalized_rows if row["score"] >= 4)
+    kpi_neutros = sum(1 for row in normalized_rows if -1 <= row["score"] <= 1)
+    kpi_alerta = sum(1 for row in normalized_rows if row["score"] <= -2)
+
+    pressure_rows = sorted(
+        [row for row in normalized_rows if row["touch"] >= 8],
+        key=lambda row: (row["neg_ratio"], row["negative"]),
+        reverse=True,
+    )[:3]
+
+    week_up = sorted(
+        [r for r in change_week if r.get("delta", 0) > 0],
+        key=lambda x: x.get("delta", 0),
+        reverse=True,
+    )[:2]
+    week_down = sorted(
+        [r for r in change_week if r.get("delta", 0) < 0],
+        key=lambda x: x.get("delta", 0),
+    )[:2]
+
+    week_up_html = _render_list(
+        week_up,
+        "Sem subidas relevantes na semana.",
+        lambda r: f"<span class='u-s054'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>",
+    )
+    week_down_html = _render_list(
+        week_down,
+        "Sem quedas relevantes na semana.",
+        lambda r: f"<span class='u-s005'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>",
+    )
+
+    pressure_html = _render_list(
+        pressure_rows,
+        "Sem pressão de rejeição acima da média hoje.",
+        lambda r: f"{(r['neg_ratio'] * 100):.0f}% negativas ({int(r['negative'])} neg / {int(r['hearts'])} ❤️)",
+    )
+
+    return (
+        '<div class="ranking-mobile-summary">\n'
+        '<div class="ranking-mobile-card">\n'
+        '<h4>📱 Radar rápido (hoje)</h4>\n'
+        '<div class="ranking-mobile-kpis">\n'
+        f'<div class="ranking-mobile-kpi"><span class="v">{kpi_blindados}</span><span class="l">blindados (≥4)</span></div>\n'
+        f'<div class="ranking-mobile-kpi"><span class="v">{kpi_neutros}</span><span class="l">zona cinza</span></div>\n'
+        f'<div class="ranking-mobile-kpi"><span class="v">{kpi_alerta}</span><span class="l">alerta (≤-2)</span></div>\n'
+        '</div>\n'
+        '<p class="ranking-mobile-note u-s013">Resumo diferente do card do topo: foco em risco e concentração, não em pódio.</p>\n'
+        '</div>\n'
+        '<div class="ranking-mobile-card">\n'
+        '<h4>🗓️ Viradas da semana</h4>\n'
+        '<p class="ranking-mobile-note u-s011">Maior alta</p>\n'
+        f"{week_up_html}\n"
+        '<p class="ranking-mobile-note u-s089">Maior queda</p>\n'
+        f"{week_down_html}\n"
+        '</div>\n'
+        '<div class="ranking-mobile-card">\n'
+        '<h4>🔥 Pressão de rejeição</h4>\n'
+        f"{pressure_html}\n"
+        '</div>\n'
+        '<div class="ranking-mobile-cta ranking-mobile-note">\n'
+        'Gráfico completo no desktop ou na página dedicada:\n'
+        '<a href="evolucao.html#sentimento" class="u-s059">ver evolução do queridômetro ↗</a>\n'
+        '</div>\n'
+        '</div>'
+    )
+
+
+def _recent_swings(data_rows, score_key, lookback_days=7):
+    if not data_rows:
+        return [], [], None, None
+
+    normalized_rows = []
+    for row in data_rows:
+        if "name" not in row or "date" not in row or score_key not in row:
+            continue
+        try:
+            date = _parse_datetime_like(row["date"])
+            score = _coerce_float(row[score_key], default=None)
+            if score is None:
+                continue
+        except Exception:
+            continue
+        normalized_rows.append({"name": row["name"], "date": date, "score": score})
+
+    if not normalized_rows:
+        return [], [], None, None
+
+    normalized_rows.sort(key=lambda row: row["date"])
+    unique_dates = sorted({row["date"] for row in normalized_rows})
+    if len(unique_dates) < 2:
+        return [], [], None, None
+
+    start_idx = max(0, len(unique_dates) - 1 - lookback_days)
+    start_date = unique_dates[start_idx]
+    end_date = unique_dates[-1]
+
+    first_vals = {}
+    last_vals = {}
+    for row in normalized_rows:
+        if row["date"] < start_date:
+            continue
+        name = row["name"]
+        if name not in first_vals:
+            first_vals[name] = row["score"]
+        last_vals[name] = row["score"]
+
+    deltas = [
+        (name, last_vals[name] - first_vals[name])
+        for name in last_vals
+        if name in first_vals
+    ]
+    if not deltas:
+        return [], [], start_date, end_date
+
+    top_up = sorted(deltas, key=lambda item: item[1], reverse=True)[:3]
+    top_down = sorted(deltas, key=lambda item: item[1])[:3]
+
+    up_rows = [
+        {"name": name, "delta": float(delta), "current": float(last_vals[name])}
+        for name, delta in top_up
+    ]
+    down_rows = [
+        {"name": name, "delta": float(delta), "current": float(last_vals[name])}
+        for name, delta in top_down
+    ]
+
+    return up_rows, down_rows, start_date, end_date
+
+
+def render_mobile_evolution_summary(data_rows, score_key, section_title, cta_href, score_decimals=1):
+    up_rows, down_rows, start_date, end_date = _recent_swings(data_rows, score_key, lookback_days=7)
+    if start_date is None or end_date is None:
+        return (
+            "<div class='ranking-mobile-summary'>"
+            "<p class='ranking-mobile-note'>Sem série temporal suficiente para resumo móvel.</p>"
+            "</div>"
+        )
+
+    date_window = f"{start_date.strftime('%d/%m')} → {end_date.strftime('%d/%m')}"
+    delta_fmt = lambda r: (
+        f"<span style='color:{'#27ae60' if r['delta'] >= 0 else '#e74c3c'};'>"
+        f"{_fmt_signed(r['delta'], score_decimals)}</span>"
+        f" (agora {r['current']:+.{score_decimals}f})"
+    )
+
+    up_html = _render_list(up_rows[:2], "Sem altas relevantes no período.", delta_fmt)
+    down_html = _render_list(down_rows[:2], "Sem quedas relevantes no período.", delta_fmt)
+
+    return (
+        '<div class="ranking-mobile-summary">\n'
+        '<div class="ranking-mobile-card">\n'
+        f'<h4>📈 {section_title} — últimos 7 dias</h4>\n'
+        f'<p class="ranking-mobile-note u-s011">Janela: {date_window}</p>\n'
+        '<p class="ranking-mobile-note u-s439">Subidas</p>\n'
+        f"{up_html}\n"
+        '<p class="ranking-mobile-note u-s089">Quedas</p>\n'
+        f"{down_html}\n"
+        '</div>\n'
+        '<div class="ranking-mobile-cta ranking-mobile-note">\n'
+        'Série completa:\n'
+        f'<a href="{cta_href}" class="u-s059">abrir gráficos detalhados ↗</a>\n'
+        '</div>\n'
+        '</div>'
+    )
+
+
+def av(name, size=48, border_color="#555", *, avatars, avatar_html):
+    """Avatar image tag, clickable to the participant's profile."""
+    slug = name.lower().replace(" ", "-")
+    return avatar_html(
+        name,
+        avatars,
+        size=size,
+        show_name=False,
+        link=f"#perfil-{slug}",
+        border_color=border_color,
+        fallback_initials=True,
+    )
+
+
+def av_group_border(name: str, *, member_of, group_colors=GROUP_COLORS) -> str:
+    grp = member_of.get(name, "")
+    return group_colors.get(grp, "#666")
+
+
+def pair_story_card(
+    giver: str,
+    receiver: str,
+    transition_html: str,
+    meta_text: str,
+    *,
+    avatar_fn,
+    group_border_fn,
+    border_color: str,
+    left_border: str | None = None,
+    right_border: str | None = None,
+):
+    """Centered pair card used by dramatic changes, hostilities, and alliance breaks."""
+    left_border = left_border or group_border_fn(giver)
+    right_border = right_border or group_border_fn(receiver)
+    return (
+        f'<div class="pair-story-card" style="border-left:3px solid {border_color};">'
+        f'<div class="pair-story-grid">'
+        f'<div class="pair-story-side">'
+        f'{avatar_fn(giver, 42, left_border)}'
+        f'<span class="pair-story-name">{escape(giver.split()[0])}</span>'
+        f'</div>'
+        f'<div class="pair-story-center">'
+        f'<div class="pair-story-transition">{transition_html}</div>'
+        f'<div class="pair-story-meta">{escape(meta_text)}</div>'
+        f'</div>'
+        f'<div class="pair-story-side">'
+        f'{avatar_fn(receiver, 42, right_border)}'
+        f'<span class="pair-story-name">{escape(receiver.split()[0])}</span>'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+    )
+
+
+def render_actor_avatars(
+    actors,
+    border_color="#666",
+    color_lookup=None,
+    size=24,
+    skip_icons=None,
+    *,
+    avatars,
+    source_icons,
+):
+    if not actors:
+        return ""
+    parts = []
+    for actor in actors:
+        color = border_color
+        if color_lookup and actor in color_lookup:
+            color = color_lookup[actor]
+        if actor in avatars and avatars[actor]:
+            parts.append(
+                f'<img src="{avatars[actor]}" style="width:{size}px;height:{size}px;border-radius:50%;'
+                f'border:1.5px solid {color};object-fit:cover;margin-right:-3px;">'
+            )
+            continue
+        lower = actor.lower() if isinstance(actor, str) else ""
+        if "dinâmica da casa" in lower:
+            continue
+        icon = None
+        for key, value in source_icons.items():
+            if key in lower:
+                icon = value
+                break
+        if icon and skip_icons and icon in skip_icons:
+            continue
+        parts.append(f'<span class="fs-base">{icon or "🎬"}</span>')
+    return "".join(parts)
+
+
+def make_event_chips(events, border_color, color_lookup=None, *, render_actor_avatars_fn):
+    if not events:
+        return "<span class='u-s058'>—</span>"
+    chips = []
+    for event in events:
+        emoji = event.get("emoji", "•")
+        label = event.get("label", event.get("type"))
+        count = event.get("count", 1)
+        actors = event.get("actors", [])
+        count_prefix = f"{count}x " if count > 1 else ""
+        chip_border = border_color
+        actor_html = render_actor_avatars_fn(
+            actors,
+            chip_border,
+            color_lookup=color_lookup,
+            size=20,
+            skip_icons={emoji} if emoji else None,
+        )
+        actor_label = " + ".join(actors) if actors else ""
+        title = f"{label} — {actor_label}" if actor_label else label
+        chips.append(
+            f"<span style='display:inline-flex; align-items:center; gap:0.25rem; background:#2f2f2f; "
+            f"border:1px solid {chip_border}; color:#ddd; border-radius:8px; padding:0.2rem 0.5rem; "
+            f"margin:0.1rem; line-height:1.4;' title='{title}' class='fs-md'>"
+            f"{count_prefix}{emoji} {label} {actor_html}</span>"
+        )
+    return " ".join(chips)
+
+
+def render_avatar_row(items, border_color, max_show=999, *, avatar_fn):
+    """Row of avatars with name + score under each. Shows ALL by default."""
+    if not items:
+        return '<span class="fs-md u-s058">—</span>'
+    html = '<div class="avatar-row">'
+    for item in items:
+        if isinstance(item, str):
+            name = item
+            score_html = ""
+        else:
+            name = item.get("name", "")
+            their_score = item.get("their_score")
+            my_score = item.get("my_score")
+            if their_score is not None:
+                score_color = "#28a745" if their_score >= 0 else "#dc3545"
+                score_html = f'<div class="fs-2xs" style="color:{score_color};font-weight:600;">{their_score:+.1f}</div>'
+            elif my_score is not None:
+                score_color = "#28a745" if my_score >= 0 else "#dc3545"
+                score_html = f'<div class="fs-2xs" style="color:{score_color};font-weight:600;">{my_score:+.1f}</div>'
+            else:
+                score_html = ""
+        first_name = name.split()[0] if name else ""
+        html += (
+            f'<div class="u-s352">'
+            f'{avatar_fn(name, 48, border_color)}'
+            f'<div class="fs-2xs u-s266">{first_name}</div>'
+            f"{score_html}"
+            f"</div>"
+        )
+    html += "</div>"
+    return html
+
+
+def days_ago_str(date_str: str, ref_date: str | None = None, *, anchor_brt):
+    if not date_str:
+        return ""
+    try:
+        d0 = _parse_datetime_like(date_str).date()
+    except Exception:
+        return ""
+    delta = (anchor_brt - d0).days
+    if delta < 0:
+        return ""
+    if delta == 0:
+        return "hoje"
+    if delta == 1:
+        return "há 1 dia"
+    return f"há {delta} dias"
+
+
+def make_evolution_chart(
+    data_rows,
+    score_key,
+    title,
+    y_label,
+    *,
+    part_colors,
+    paredoes_markers,
+    score_fmt="+.1f",
+):
+    """Build an evolution chart with rank annotations and paredão markers."""
+    if not data_rows:
+        return None
+
+    normalized_rows = []
+    for row in data_rows:
+        if "date" not in row or "name" not in row or score_key not in row:
+            continue
+        try:
+            date = _parse_datetime_like(row["date"])
+            score = _coerce_float(row[score_key], default=None)
+            if score is None:
+                continue
+        except Exception:
+            continue
+        normalized_rows.append(
+            {
+                "Data": date,
+                "Participante": row["name"],
+                "Score": score,
+                "Rank": row.get("rank"),
+            }
+        )
+
+    unique_dates = sorted({row["Data"] for row in normalized_rows})
+    if len(unique_dates) < 2:
+        return None
+
+    all_parts = sorted({row["Participante"] for row in normalized_rows})
+    rows_by_participant = {
+        name: sorted(
+            [row for row in normalized_rows if row["Participante"] == name],
+            key=lambda row: row["Data"],
+        )
+        for name in all_parts
+    }
+
+    first_scores = {name: rows[0]["Score"] for name, rows in rows_by_participant.items() if rows}
+    last_scores = {name: rows[-1]["Score"] for name, rows in rows_by_participant.items() if rows}
+    deltas = {name: last_scores[name] - first_scores[name] for name in last_scores if name in first_scores}
+
+    top5 = {name for name, _ in sorted(last_scores.items(), key=lambda item: item[1], reverse=True)[:5]}
+    bottom5 = {name for name, _ in sorted(last_scores.items(), key=lambda item: item[1])[:5]}
+    movers = {name for name, _ in sorted(deltas.items(), key=lambda item: abs(item[1]), reverse=True)[:5]}
+    highlight = top5 | bottom5
+
+    fig = go.Figure()
+
+    for name in all_parts:
+        part_rows = rows_by_participant[name]
+        is_hl = name in highlight
+        is_mover = name in movers
+        ranks = [row.get("Rank") for row in part_rows]
+        hover_text = [
+            f"{name}: {row['Score']:{score_fmt}} (#{rank})" if rank else f"{name}: {row['Score']:{score_fmt}}"
+            for row, rank in zip(part_rows, ranks)
+        ]
+        fig.add_trace(
+            go.Scatter(
+                x=[row["Data"] for row in part_rows],
+                y=[row["Score"] for row in part_rows],
+                mode="lines+markers",
+                name=f"{'📈 ' if is_mover and name in movers - highlight else ''}{name}",
+                line=dict(width=3 if is_hl else 1.5, color=part_colors.get(name, "#999")),
+                marker=dict(size=6 if is_hl else 3),
+                hovertext=hover_text,
+                hoverinfo="text",
+                visible=True if is_hl else "legendonly",
+            )
+        )
+
+    last_date = max(unique_dates)
+    last_rows = [row for row in normalized_rows if row["Data"] == last_date]
+    if last_rows and all(row.get("Rank") is None for row in last_rows):
+        ranked_rows = sorted(last_rows, key=lambda row: row["Score"], reverse=True)
+        for idx, row in enumerate(ranked_rows, start=1):
+            row["Rank"] = idx
+    for row in last_rows:
+        if row["Participante"] in highlight:
+            fig.add_annotation(
+                x=last_date,
+                y=row["Score"],
+                text=f"#{int(row['Rank'])}",
+                showarrow=False,
+                font=dict(size=9, color="#aaa"),
+                xshift=28,
+            )
+
+    min_date = min(unique_dates)
+    max_date = max(unique_dates)
+    y_values = [row["Score"] for row in normalized_rows]
+    y_min = min(y_values)
+    y_max = max(y_values)
+    y_pad = abs(y_max - y_min) * 0.1
+    y_range = [y_min - y_pad, y_max + y_pad]
+
+    fig.add_shape(
+        type="line",
+        x0=min_date,
+        x1=max_date,
+        y0=0,
+        y1=0,
+        line=dict(color="red", dash="dash", width=1),
+    )
+
+    for marker in paredoes_markers:
+        marker_date = marker["date"]
+        if min_date <= marker_date <= max_date:
+            fig.add_shape(
+                type="line",
+                x0=marker_date,
+                x1=marker_date,
+                y0=y_range[0],
+                y1=y_range[1],
+                line=dict(color="#FF6B6B", dash="dot", width=1.5),
+            )
+            fig.add_annotation(
+                x=marker_date,
+                y=y_range[1],
+                text=marker["label"],
+                showarrow=False,
+                font=dict(size=10, color="#FF6B6B"),
+                yshift=10,
+            )
+
+    fig.update_layout(
+        title=title,
+        xaxis_title="Data",
+        yaxis_title=y_label,
+        height=max(550, len(all_parts) * 20),
+        hovermode="x",
+        legend=dict(
+            font=dict(size=10),
+            itemsizing="constant",
+            bgcolor="rgba(0,0,0,0.5)",
+        ),
+        margin=dict(r=200),
+    )
+
+    n_traces = len(all_parts)
+    fig.update_layout(
+        updatemenus=[
+            dict(
+                type="buttons",
+                direction="right",
+                x=0.0,
+                y=1.12,
+                xanchor="left",
+                yanchor="top",
+                bgcolor="rgba(50,50,50,0.8)",
+                font=dict(color="#ccc", size=10),
+                buttons=[
+                    dict(
+                        label="Top 5 + Bottom 5",
+                        method="update",
+                        args=[
+                            {
+                                "visible": [
+                                    True if name in highlight else "legendonly" for name in all_parts
+                                ]
+                                + [True] * (len(fig.data) - n_traces)
+                            }
+                        ],
+                    ),
+                    dict(
+                        label="Maiores Mudanças",
+                        method="update",
+                        args=[
+                            {
+                                "visible": [
+                                    True if name in movers else "legendonly" for name in all_parts
+                                ]
+                                + [True] * (len(fig.data) - n_traces)
+                            }
+                        ],
+                    ),
+                    dict(label="Todos", method="update", args=[{"visible": [True] * len(fig.data)}]),
+                ],
+            )
+        ]
+    )
+
+    return fig
 
 
 def make_sentiment_ranking(rows, title_suffix="", fixed_height=None):

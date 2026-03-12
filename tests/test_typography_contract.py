@@ -8,6 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 TYPOGRAPHY_CSS = REPO_ROOT / "assets" / "typography.css"
 CARDS_CSS = REPO_ROOT / "assets" / "cards.css"
 INDEX_QMD = REPO_ROOT / "index.qmd"
+INDEX_VIZ = REPO_ROOT / "scripts" / "index_viz.py"
 QUARTO_CONFIG = REPO_ROOT / "_quarto.yml"
 TITLE_BLOCK_HELPER = REPO_ROOT / "assets" / "title-block-dedupe.js"
 
@@ -98,11 +99,12 @@ def test_title_block_dedupe_helper_targets_matching_subtitle_and_description():
 
 
 def test_index_card_header_uses_structured_title_and_meta_rows():
+    helper = _read(INDEX_VIZ)
+    assert "dashboard-card-header" in helper
+    assert "dashboard-card-header-main" in helper
+    assert "dashboard-card-header-meta" in helper
+    assert "dashboard-card-title" in helper
     index_qmd = _read(INDEX_QMD)
-    assert "dashboard-card-header" in index_qmd
-    assert "dashboard-card-header-main" in index_qmd
-    assert "dashboard-card-header-meta" in index_qmd
-    assert "dashboard-card-title" in index_qmd
     assert '.u-s333' not in index_qmd
 
 
@@ -120,10 +122,11 @@ def test_index_mobile_highlights_have_explicit_single_column_hardening():
 
 
 def test_index_pair_story_cards_use_shared_layout_instead_of_strip_rows():
-    index_qmd = _read(INDEX_QMD)
+    helper = _read(INDEX_VIZ)
     cards_css = _read(CARDS_CSS)
-    assert "pair-story-card" in index_qmd
-    assert "pair-story-grid" in index_qmd
+    assert "pair-story-card" in helper
+    assert "pair-story-grid" in helper
+    index_qmd = _read(INDEX_QMD)
     assert ".pair-story-card" in cards_css
     assert ".pair-story-grid" in cards_css
     assert 'class="u-s342"' not in index_qmd

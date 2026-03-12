@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -10,10 +11,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from data_utils import GROUP_COLORS, REACTION_EMOJI, setup_bbb_dark_theme
 from index_viz import (
+    _fmt_signed,
+    _recent_swings,
+    _short_name,
+    _render_list,
+    av,
+    av_group_border,
+    card_header,
+    days_ago_str,
+    fmt_date_br,
+    make_evolution_chart,
     make_cross_table_heatmap,
     make_cross_table_html,
+    make_event_chips,
     make_reaction_summary_html,
     make_sentiment_ranking,
+    pair_story_card,
+    plant_color,
+    progress_bar,
+    render_actor_avatars,
+    render_avatar_row,
+    render_mobile_evolution_summary,
+    render_mobile_queridometro_summary,
+    render_status_chip,
+    stat_chip,
 )
 
 
@@ -38,6 +59,127 @@ def test_make_sentiment_ranking_builds_expected_bar_chart():
     assert list(fig.data[0].text) == ["-0.5", "+1.5"]
 
 
+def test_fmt_date_br_formats_valid_dates_and_preserves_invalid_input():
+    assert fmt_date_br("2026-03-12") == "12/03"
+    assert fmt_date_br("") == ""
+    assert fmt_date_br("not-a-date") == "not-a-date"
+
+
+def test_days_ago_str_uses_explicit_anchor_date_and_preserves_relative_labels():
+    assert days_ago_str("2026-03-08", anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date()) == "há 4 dias"
+    assert days_ago_str("2026-03-12", anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date()) == "hoje"
+    assert days_ago_str("2026-03-11", anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date()) == "há 1 dia"
+    assert days_ago_str("not-a-date", anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date()) == ""
+    assert days_ago_str("2026-03-08T00:00:00", anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date()) == "há 4 dias"
+
+
+def test_short_name_fmt_signed_and_render_list_cover_basic_mobile_formatting():
+    assert _short_name("Ana Paula Renault") == "Ana"
+    assert _short_name("") == "?"
+    assert _fmt_signed(1.25, 1) == "+1.2"
+    assert _fmt_signed(-0.75, 2) == "-0.75"
+
+    html = _render_list(
+        [{"name": "Ana Paula Renault", "delta": 1.5}],
+        "Sem linhas.",
+        lambda row: f"{_fmt_signed(row['delta'], 1)} pts",
+    )
+
+    assert "<strong>Ana</strong>" in html
+    assert "+1.5 pts" in html
+    assert "Sem linhas." in _render_list([], "Sem linhas.", lambda row: "unused")
+
+
+def test_card_header_renders_badge_source_link_and_subtitle():
+    html = card_header(
+        "🗳️",
+        "Paredão Ativo",
+        "paredao.html",
+        badge="Resultado oficial",
+        source_tag="🧮 Nosso Modelo",
+        subtitle="Resumo do paredão encerrado.",
+    )
+
+    assert "Paredão Ativo" in html
+    assert "Resultado oficial" in html
+    assert "🧮 Nosso Modelo" in html
+    assert 'href="paredao.html"' in html
+    assert "Resumo do paredão encerrado." in html
+
+
+def test_avatar_helpers_accept_explicit_page_dependencies():
+    calls = []
+
+    def fake_avatar_html(name, avatars, **kwargs):
+        calls.append((name, avatars, kwargs))
+        return f"<img alt='{name}' data-border='{kwargs['border_color']}'>"
+
+    html = av(
+        "Ana Paula Renault",
+        avatars={"Ana Paula Renault": "https://example.com/ana.png"},
+        avatar_html=fake_avatar_html,
+        size=52,
+        border_color="#123456",
+    )
+
+    assert "Ana Paula Renault" in html
+    assert calls[0][1]["Ana Paula Renault"] == "https://example.com/ana.png"
+    assert calls[0][2]["size"] == 52
+    assert calls[0][2]["border_color"] == "#123456"
+    assert calls[0][2]["link"] == "#perfil-ana-paula-renault"
+
+    assert av_group_border("Ana Paula Renault", member_of={"Ana Paula Renault": "Camarote"}) == GROUP_COLORS["Camarote"]
+    assert av_group_border("Desconhecido", member_of={}) == "#666"
+
+
+def test_stat_chip_and_progress_bar_render_expected_markup():
+    chip_html = stat_chip("5", "blindados", color="#123456")
+    bar_html = progress_bar(4, 8, color="#abcdef", height=10)
+
+    assert "blindados" in chip_html
+    assert "#123456" in chip_html
+    assert "width:50%" in bar_html
+    assert "background:#abcdef" in bar_html
+    assert "height:10px" in bar_html
+
+
+def test_plant_color_thresholds_follow_expected_bands():
+    assert plant_color(85) == "#2f7d46"
+    assert plant_color(65) == "#6c8a3c"
+    assert plant_color(45) == "#b9772a"
+    assert plant_color(20) == "#a94442"
+
+
+def test_render_status_chip_supports_static_and_detail_variants():
+    static_html = render_status_chip("🎯", "Vulnerabilidade", "ALTA", "#a94442")
+    detail_html = render_status_chip("⚡", "Contradição", "2x", "#6f42c1", "<p>Detalhe</p>")
+
+    assert 'class="status-detail"' not in static_html
+    assert "Vulnerabilidade" in static_html
+    assert "ALTA" in static_html
+    assert 'class="status-detail"' in detail_html
+    assert "<summary" in detail_html
+    assert "<p>Detalhe</p>" in detail_html
+
+
+def test_pair_story_card_uses_injected_avatar_and_border_helpers():
+    html = pair_story_card(
+        "Ana Paula Renault",
+        "Babu Santana",
+        "🔥",
+        "virou rivalidade",
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {border_color}>",
+        group_border_fn=lambda name: "#111111" if name == "Ana Paula Renault" else "#222222",
+        border_color="#abcdef",
+    )
+
+    assert "pair-story-card" in html
+    assert "<avatar Ana Paula Renault #111111>" in html
+    assert "<avatar Babu Santana #222222>" in html
+    assert "virou rivalidade" in html
+    assert "border-left:3px solid #abcdef" in html
+
+
 def test_make_cross_table_heatmap_builds_heatmap_with_short_names():
     participants = [
         {"name": "Ana Paula Renault", "characteristics": {"eliminated": False}},
@@ -56,6 +198,38 @@ def test_make_cross_table_heatmap_builds_heatmap_with_short_names():
     assert list(fig.data[0].y) == ["Ana", "Babu Santana"]
     assert fig.data[0].text[0][1] == REACTION_EMOJI["Coração"]
     assert fig.data[0].text[1][0] == REACTION_EMOJI["Cobra"]
+
+
+def test_make_evolution_chart_builds_rank_annotations_and_paredao_markers():
+    rows = [
+        {"date": "2026-03-01", "name": "Ana Paula Renault", "sentiment": 1.0, "rank": 2},
+        {"date": "2026-03-08", "name": "Ana Paula Renault", "sentiment": 3.0, "rank": 1},
+        {"date": "2026-03-01", "name": "Babu Santana", "sentiment": 2.0, "rank": 1},
+        {"date": "2026-03-08", "name": "Babu Santana", "sentiment": -1.0, "rank": 2},
+    ]
+
+    fig = make_evolution_chart(
+        rows,
+        "sentiment",
+        title="Evolução do Queridômetro",
+        y_label="Score",
+        part_colors={
+            "Ana Paula Renault": "#111111",
+            "Babu Santana": "#222222",
+        },
+        paredoes_markers=[
+            {"date": datetime.strptime("2026-03-08", "%Y-%m-%d"), "label": "🗳️ 8º Paredão"},
+        ],
+        score_fmt="+.1f",
+    )
+
+    assert fig is not None
+    assert fig.layout.title.text == "Evolução do Queridômetro"
+    assert len(fig.data) == 2
+    assert fig.data[0].type == "scatter"
+    assert any(shape.line.dash == "dash" for shape in fig.layout.shapes)
+    assert any(annotation.text == "#1" for annotation in fig.layout.annotations)
+    assert any(annotation.text == "🗳️ 8º Paredão" for annotation in fig.layout.annotations)
 
 
 def test_make_cross_table_html_renders_table_markup_and_cell_styles():
@@ -129,3 +303,131 @@ def test_make_reaction_summary_html_renders_toggle_and_score_formatting():
     assert "background: #d73027; color: #fff; font-weight: bold;" in html
     assert "+11.0" in html
     assert "-6.0" in html
+
+
+def test_recent_swings_tracks_top_movers_over_recent_window():
+    rows = [
+        {"date": "2026-03-01", "name": "Ana", "score": 1.0},
+        {"date": "2026-03-08", "name": "Ana", "score": 3.5},
+        {"date": "2026-03-01", "name": "Babu Santana", "score": 2.0},
+        {"date": "2026-03-08", "name": "Babu Santana", "score": -1.0},
+        {"date": "2026-03-01", "name": "Milena", "score": 0.0},
+        {"date": "2026-03-08", "name": "Milena", "score": 0.5},
+    ]
+
+    up_rows, down_rows, start_date, end_date = _recent_swings(rows, "score", lookback_days=7)
+
+    assert start_date.strftime("%Y-%m-%d") == "2026-03-01"
+    assert end_date.strftime("%Y-%m-%d") == "2026-03-08"
+    assert up_rows[0]["name"] == "Ana"
+    assert up_rows[0]["delta"] == pytest.approx(2.5)
+    assert down_rows[0]["name"] == "Babu Santana"
+    assert down_rows[0]["delta"] == pytest.approx(-3.0)
+
+
+def test_render_mobile_queridometro_summary_surfaces_kpis_and_pressure_rows():
+    today_rows = [
+        {"name": "Ana Paula Renault", "score": 4.5, "hearts": 5, "negative": 1},
+        {"name": "Babu Santana", "score": 0.5, "hearts": 3, "negative": 3},
+        {"name": "Milena", "score": -2.5, "hearts": 0, "negative": 8},
+        {"name": "Chaiany", "score": 5.0, "hearts": 8, "negative": 0},
+    ]
+    change_week = [
+        {"name": "Ana Paula Renault", "delta": 2.1},
+        {"name": "Milena", "delta": -1.8},
+        {"name": "Babu Santana", "delta": -0.5},
+    ]
+
+    html = render_mobile_queridometro_summary(today_rows, change_week)
+
+    assert 'class="ranking-mobile-summary"' in html
+    assert "blindados (≥4)" in html
+    assert "zona cinza" in html
+    assert "alerta (≤-2)" in html
+    assert "Ana" in html
+    assert "Milena" in html
+    assert "100% negativas" in html
+    assert "ver evolução do queridômetro" in html
+
+
+def test_render_mobile_queridometro_summary_coerces_invalid_numeric_values_to_zero():
+    html = render_mobile_queridometro_summary(
+        [{"name": "Ana Paula Renault", "score": "n/a", "hearts": "2", "negative": "x"}],
+        [],
+    )
+
+    assert 'class="ranking-mobile-summary"' in html
+    assert "blindados (≥4)" in html
+    assert "alerta (≤-2)" in html
+
+
+def test_render_mobile_evolution_summary_formats_window_and_changes():
+    rows = [
+        {"date": "2026-03-01", "name": "Ana Paula Renault", "score": 1.0},
+        {"date": "2026-03-08", "name": "Ana Paula Renault", "score": 2.5},
+        {"date": "2026-03-01", "name": "Babu Santana", "score": 1.5},
+        {"date": "2026-03-08", "name": "Babu Santana", "score": -0.5},
+    ]
+
+    html = render_mobile_evolution_summary(
+        rows,
+        "score",
+        "Queridômetro",
+        "evolucao.html#sentimento",
+        score_decimals=1,
+    )
+
+    assert "Queridômetro — últimos 7 dias" in html
+    assert "Janela: 01/03 → 08/03" in html
+    assert "Ana" in html
+    assert "Babu" in html
+    assert "abrir gráficos detalhados" in html
+
+
+def test_actor_event_and_avatar_row_helpers_use_explicit_dependencies():
+    actor_html = render_actor_avatars(
+        ["Ana Paula Renault", "gshow", "dinâmica da casa"],
+        avatars={"Ana Paula Renault": "https://example.com/ana.png"},
+        source_icons={"gshow": "📰"},
+        border_color="#123456",
+        size=20,
+    )
+    assert "https://example.com/ana.png" in actor_html
+    assert "📰" in actor_html
+    assert "dinâmica da casa" not in actor_html
+
+    chips_html = make_event_chips(
+        [{"emoji": "📞", "label": "Big Fone", "actors": ["Ana Paula Renault"], "count": 2}],
+        "#654321",
+        render_actor_avatars_fn=lambda actors, border_color, color_lookup=None, size=24, skip_icons=None: "<actors>",
+    )
+    assert "2x 📞 Big Fone" in chips_html
+    assert "<actors>" in chips_html
+    assert "border:1px solid #654321" in chips_html
+
+    row_html = render_avatar_row(
+        [{"name": "Ana Paula Renault", "their_score": 1.5}, "Babu Santana"],
+        "#abcdef",
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+    assert "<avatar Ana Paula Renault #abcdef>" in row_html
+    assert "<avatar Babu Santana #abcdef>" in row_html
+    assert "+1.5" in row_html
+
+
+def test_make_evolution_chart_accepts_iso_datetime_strings():
+    rows = [
+        {"date": "2026-03-01T00:00:00", "name": "Ana Paula Renault", "sentiment": 1.0, "rank": 1},
+        {"date": "2026-03-08T00:00:00", "name": "Ana Paula Renault", "sentiment": 2.0, "rank": 1},
+    ]
+
+    fig = make_evolution_chart(
+        rows,
+        "sentiment",
+        title="t",
+        y_label="y",
+        part_colors={"Ana Paula Renault": "#111111"},
+        paredoes_markers=[],
+    )
+
+    assert fig is not None
