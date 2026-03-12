@@ -1429,11 +1429,15 @@ def render_featured_story(story: dict | None) -> str:
             f'<div class="paredao-spotlight-note">{safe_html(actor)} já mirou {safe_html(target)} em {hits} momento(s) diretos; '
             f'ela devolveu {back_hits} vez(es).</div>'
         )
+        _pill_date = f" ({safe_html(formation_day_date[5:])})" if formation_day_date else ""
         lines.append(
-            f'<div class="paredao-spotlight-pill">Queridômetro no domingo da formação'
-            f'{f" ({safe_html(formation_day_date[5:])})" if formation_day_date else ""}: '
+            '<div class="paredao-spotlight-pill">'
+            f'<span class="paredao-spotlight-pill-label">Queridômetro no domingo da formação{_pill_date}</span>'
+            f'<span class="paredao-spotlight-pill-value">'
             f'{safe_html(actor.split()[0])} {safe_html(to_target)} {safe_html(target)} · '
-            f'{safe_html(target)} {safe_html(from_target)} {safe_html(actor.split()[0])}</div>'
+            f'{safe_html(target)} {safe_html(from_target)} {safe_html(actor.split()[0])}'
+            '</span>'
+            '</div>'
         )
         lines.append('</div>')
 

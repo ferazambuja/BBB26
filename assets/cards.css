@@ -456,13 +456,28 @@ body.paredao-page .paredao-spotlight-section-title {
 }
 
 .paredao-spotlight-pill {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
   margin-top: 0.55rem;
-  padding: 0.28rem 0.55rem;
-  border-radius: 999px;
+  width: 100%;
+  max-width: 100%;
+  padding: 0.42rem 0.62rem;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.08);
+  color: #eef2f7;
+  font-size: var(--fs-xs);
+  line-height: 1.34;
+  overflow-wrap: anywhere;
+}
+
+.paredao-spotlight-pill-label {
+  color: #d7dee8;
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+}
+
+.paredao-spotlight-pill-value {
   color: #eef2f7;
   font-size: var(--fs-xs);
 }
@@ -470,6 +485,14 @@ body.paredao-page .paredao-spotlight-section-title {
 body.paredao-page .paredao-spotlight-pill {
   font-size: var(--fs-sm);
   line-height: 1.34;
+}
+
+body.paredao-page .paredao-spotlight-pill-label {
+  font-size: var(--fs-xs);
+}
+
+body.paredao-page .paredao-spotlight-pill-value {
+  font-size: var(--fs-sm);
 }
 
 .paredao-spotlight-section {
