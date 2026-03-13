@@ -1703,6 +1703,10 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 - Cross-checked: `monstro_retirado_vip` (Monstro recipient was in VIP in previous snapshot)
 - Paredão Falso: `quarto_secreto` (+40, from `paredao_falso: true` + finalized result)
 
+**Quick rule for `salvacao_com_janela_aberta`:**
+- Set `true` only if the participant was emparedado while the Cartola window was closed, and escaped when the window was open.
+- If uncertain, keep `false` and add a source note in `fontes` before changing scoring behavior.
+
 ### VIP scoring references (for audits)
 
 Scrape and keep these pages in `docs/scraped/` for future verification:

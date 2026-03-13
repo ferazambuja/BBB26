@@ -475,7 +475,21 @@ Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outr
 }
 ```
 
-`formacao.bate_volta.salvacao_com_janela_aberta` (optional): use `true` when the participant was emparedado with a closed Cartola window and escaped when the window was open. In this case, the pipeline keeps `emparedado` and skips `salvo_paredao`.
+`formacao.bate_volta.salvacao_com_janela_aberta` (optional):
+
+- `true`: use somente quando o participante foi emparedado com janela fechada e escapou no Bate e Volta com janela aberta.
+- Resultado no pipeline: mantém `emparedado` e pula `salvo_paredao`.
+- `false` (padrão): aplica fluxo normal do Bate e Volta (acumula `emparedado` + `salvo_paredao`).
+
+Exemplo:
+
+```json
+"bate_volta": {
+  "participantes": ["NOME_A", "NOME_B", "NOME_C"],
+  "vencedor": "NOME_A",
+  "salvacao_com_janela_aberta": true
+}
+```
 
 > **Brigido**: vetado das 3 provas (Líder, Anjo, Bate e Volta). Se cair no paredão, NÃO pode disputar Bate e Volta. Documentar em `bate_volta.impedidos` se relevante.
 
