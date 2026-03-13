@@ -1713,12 +1713,16 @@ Context: GShow can announce that the round window closed and that game dynamics 
 - https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/cartola-bbb-janela-de-escalacao-da-nona-rodada-fecha-e-dinamicas-passam-a-valer-ponto.ghtml
 
 Operational registration:
-1. In `data/paredoes.json` → `formacao.bate_volta`, set:
+1. Scrape and archive the supporting GShow page before any scoring change:
+   ```bash
+   python scripts/scrape_gshow.py "<url_cartola_janela>" -o docs/scraped/
+   ```
+2. In `data/paredoes.json` → `formacao.bate_volta`, set:
    - `"salvacao_com_janela_aberta": true`
    only when the participant entered paredão with window closed and escaped with window open.
-2. Keep normal flow (`false` or omitted) for regular Bate e Volta cases.
-3. If the closure schedule changed, also register the real voting close time in `data/votalhada/polls.json` (`fechamento_votacao`) for consistency in Tuesday operations.
-4. Always add the supporting article URL in `fontes` before enabling the flag.
+3. Keep normal flow (`false` or omitted) for regular Bate e Volta cases.
+4. If the closure schedule changed, also register the real voting close time in `data/votalhada/polls.json` (`fechamento_votacao`) for consistency in Tuesday operations.
+5. Always add the supporting article URL and scraped file path in `fontes` before enabling the flag.
 
 Scoring behavior in the pipeline:
 - With `salvacao_com_janela_aberta: true`:
