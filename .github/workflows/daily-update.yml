@@ -149,10 +149,24 @@ jobs:
       - name: Render Quarto site
         run: quarto render
 
+      - name: Archive Pages artifact
+        run: |
+          tar \
+            --dereference --hard-dereference \
+            --directory "_site" \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=".[^/]*" \
+            .
+
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          path: '_site'
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
 
       - name: Upload data artifact
         uses: actions/upload-artifact@v7
@@ -205,8 +219,24 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add data/ docs/MANUAL_EVENTS_AUDIT.md
-          git diff --staged --quiet || git commit -m "data: derived update $(date -u +%Y-%m-%d_%H-%M) UTC"
+          if git diff --staged --quiet; then
+            echo "No derived data changes to commit."
+            exit 0
+          fi
+          git commit -m "data: derived update $(date -u +%Y-%m-%d_%H-%M) UTC"
           # Pull --rebase to handle race with 15-min fetch polls that may have
           # pushed a new snapshot commit between build checkout and now.
-          git pull --rebase origin main || true
-          git push
+          if ! git pull --rebase origin main; then
+            echo "Rebase conflict while syncing main; aborting rebase and skipping derived data push."
+            git rebase --abort || true
+            exit 0
+          fi
+          if ! git push origin HEAD:main; then
+            echo "Initial push rejected; retrying once after rebase."
+            if ! git pull --rebase origin main; then
+              echo "Rebase conflict on push retry; aborting rebase and skipping derived data push."
+              git rebase --abort || true
+              exit 0
+            fi
+            git push origin HEAD:main
+          fi
