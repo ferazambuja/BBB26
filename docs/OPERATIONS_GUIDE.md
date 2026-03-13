@@ -1707,12 +1707,37 @@ For Cartola events **not auto-detected** from API snapshots or derived data. Rar
 - Set `true` only if the participant was emparedado while the Cartola window was closed, and escaped when the window was open.
 - If uncertain, keep `false` and add a source note in `fontes` before changing scoring behavior.
 
+### Janela de escalação (Cartola): como registrar e como funciona
+
+Context: GShow can announce that the round window closed and that game dynamics start counting points from that moment (example, rodada 9):
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/cartola-bbb-janela-de-escalacao-da-nona-rodada-fecha-e-dinamicas-passam-a-valer-ponto.ghtml
+
+Operational registration:
+1. In `data/paredoes.json` → `formacao.bate_volta`, set:
+   - `"salvacao_com_janela_aberta": true`
+   only when the participant entered paredão with window closed and escaped with window open.
+2. Keep normal flow (`false` or omitted) for regular Bate e Volta cases.
+3. If the closure schedule changed, also register the real voting close time in `data/votalhada/polls.json` (`fechamento_votacao`) for consistency in Tuesday operations.
+4. Always add the supporting article URL in `fontes` before enabling the flag.
+
+Scoring behavior in the pipeline:
+- With `salvacao_com_janela_aberta: true`:
+  - keeps `emparedado` (−15)
+  - skips `salvo_paredao` (+25)
+- Without the flag (`false`/omitted):
+  - normal Bate e Volta applies (`emparedado` + `salvo_paredao`)
+
+Important scope note:
+- This flag is the explicit operational switch currently modeled for the Cartola window edge case in paredão salvation.
+- Do not infer other window effects ad hoc; only encode what is backed by source and supported by current scoring rules.
+
 ### VIP scoring references (for audits)
 
 Scrape and keep these pages in `docs/scraped/` for future verification:
 - https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/o-que-e-cartola-bbb-entenda-como-funciona-a-novidade-do-reality.ghtml
 - https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/lider-samira-define-novo-vip-saiba-como-fica-a-pontuacao-na-setima-rodada-do-cartola-bbb.ghtml
 - https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/bloco-do-paredao-termina-com-tres-emparedados-e-pontuacao-negativa-no-cartola-bbb.ghtml
+- https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/cartola-bbb-janela-de-escalacao-da-nona-rodada-fecha-e-dinamicas-passam-a-valer-ponto.ghtml
 - https://gshow.globo.com/realities/bbb/bbb-26/noticia/bloco-do-paredao-samira-altera-vip-e-xepa-e-troca-edilson-por-ana-paula-renault.ghtml
 - https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/ana-paula-renault-recebe-o-castigo-do-monstro-e-sofre-duas-pontuacoes-negativas-no-cartola-bbb.ghtml
 
