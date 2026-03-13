@@ -396,6 +396,12 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/  # if available
    ```
 
+   **If the official Prova/VIP article is not out yet (live operation window):**
+   - Create a provisional markdown record in `docs/scraped/` with timestamp + all known facts from the live feed/operation log.
+   - Reference this provisional file in `provas.json.fontes`.
+   - Use `vip_source: "api_fallback"` until the official VIP source is published.
+   - Once official source arrives, replace/append sources and switch to `vip_source: "oficial_gshow"` if confirmed.
+
    **VIP article sourcing**: The VIP composition article is typically published within hours of the Prova do Líder result. Search the Líder's GShow profile page or the Cartola BBB section for the VIP/Xepa article. Add to `fontes` in both `paredoes.json` and `provas.json`.
    - **Required field in `provas.json` (tipo=`lider`)**: add `vip` (array with point-eligible VIP names for the round) and `vip_source`.
    - `vip_source` values:
@@ -406,6 +412,11 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 2. **Update `data/provas.json`** — add Prova do Líder results (phases, scores, placements).
    Include `fontes` with `{url, arquivo, titulo}` format pointing to scraped files.
    See templates below (standard and resistance prova formats).
+
+   **Phase-by-phase live updates are allowed**:
+   - If only phase 1 is known, save phase 1 immediately with a provisional `nota`.
+   - Append/update phase 2 as soon as it finishes (same prova entry).
+   - Keep provenance explicit for each update (provisional + official when available).
 
    **Resistance/dupla provas — full elimination order**:
    - For resistance or elimination-format provas, record **ALL participants** in order of exit (last out = pos 1)
