@@ -7,6 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PAREDOES_QMD = REPO_ROOT / "paredoes.qmd"
 PAREDAO_QMD = REPO_ROOT / "paredao.qmd"
 INDEX_QMD = REPO_ROOT / "index.qmd"
+INDEX_VIZ = REPO_ROOT / "scripts" / "index_viz.py"
 PAREDAO_VIZ = REPO_ROOT / "scripts" / "paredao_viz.py"
 CARDS_CSS = REPO_ROOT / "assets" / "cards.css"
 
@@ -71,13 +72,14 @@ def test_live_page_shows_history_after_prediction_without_details_collapse():
 
 def test_index_keeps_restored_highlight_layout_hooks():
     index = _read(INDEX_QMD)
+    helper = _read(INDEX_VIZ)
     css = _read(CARDS_CSS)
 
     assert 'movers_label = card.get("movers_label", "📅 Variação vs ontem")' in index
     assert "Mudanças Dramáticas (Recente)" not in index
-    assert "dashboard-card-header" in index
+    assert "dashboard-card-header" in helper
     assert "dashboard-card-header" in css
-    assert "pair-story-card" in index
+    assert "pair-story-card" in helper
     assert "pair-story-card" in css
     assert "ranking-column" not in index
     assert ".ranking-column" not in css
@@ -85,12 +87,12 @@ def test_index_keeps_restored_highlight_layout_hooks():
     assert 'av(name, 42, "#e74c3c")' in index
     assert "blindado-tag-list" not in index
     assert "render_blindado_tag" not in index
-    assert "background:#1b3f5c;color:#9dd3ff;" in index
-    assert "background:#123b2a;color:#8fe3b8;" in index
-    assert "background:#2d1b3f;color:#d9b3ff;" in index
+    assert "background:#1b3f5c;color:#9dd3ff;" in helper
+    assert "background:#123b2a;color:#8fe3b8;" in helper
+    assert "background:#2d1b3f;color:#d9b3ff;" in helper
     assert "blindado-tag" not in css
-    assert 'protection_tags = it.get("protection_tags", [])' in index
-    assert "tag.get('text', '')" in index
+    assert 'protection_tags = item.get("protection_tags") or []' in helper
+    assert "tag.get('text', '')" in helper
     assert 'podium_positive = [p for p in podium_all if p["score"] > 0]' in index
     assert "highlight-card-span-3" in index
     assert ".highlight-card-span-3" in css

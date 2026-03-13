@@ -1,0 +1,108 @@
+.index-cross-table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.index-cross-table__table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-base);
+  width: max-content;
+}
+
+.index-cross-table__table th,
+.index-cross-table__table td {
+  padding: 4px 6px;
+  text-align: center;
+  border: 1px solid #555;
+  min-width: 36px;
+  white-space: nowrap;
+}
+
+.index-cross-table__table thead th {
+  position: sticky;
+  top: 0;
+  background: #222;
+  z-index: 2;
+  font-weight: bold;
+}
+
+.index-cross-table__table tbody th {
+  position: sticky;
+  left: 0;
+  background: #222;
+  z-index: 1;
+  font-weight: bold;
+  text-align: right;
+}
+
+.index-cross-table__table thead th:first-child {
+  z-index: 3;
+  left: 0;
+}
+
+.index-cross-table__table td {
+  font-size: var(--fs-xl);
+}
+
+.index-cross-table__table td:hover {
+  outline: 2px solid #fff;
+}
+
+.index-reaction-summary__table {
+  border-collapse: collapse;
+  font-size: var(--fs-base);
+  width: 100%;
+}
+
+.index-reaction-summary__table th,
+.index-reaction-summary__table td {
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 1px solid #444;
+}
+
+.index-reaction-summary__table th {
+  background: #222;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.index-reaction-summary__table th:first-child,
+.index-reaction-summary__table td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: #222;
+  z-index: 2;
+}
+
+.index-reaction-summary__table thead th:first-child {
+  z-index: 3;
+}
+
+.index-reaction-summary__table tbody tr:hover {
+  background: #333;
+}
+
+.index-reaction-summary__row--collapsed {
+  display: none;
+}
+
+.index-reaction-summary__toggle {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #ccc;
+  cursor: pointer;
+  font-size: var(--fs-base);
+}
+
+.index-reaction-summary__toggle:hover {
+  background: #333;
+}

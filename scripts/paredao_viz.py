@@ -1261,7 +1261,7 @@ def _format_short_date(date_str: str | None) -> str:
     return f"{date_str[8:10]}/{date_str[5:7]}"
 
 
-def _format_pct(value: float | int | None) -> str:
+def _format_pct_number(value: float | int | None) -> str:
     if value is None:
         return "0,0"
     return f"{float(value):.2f}".replace(".", ",")
@@ -1499,7 +1499,7 @@ def render_featured_story(story: dict | None) -> str:
                     (
                         f'Direto em Milena ou Ana Paula: <strong>{actor_power.get("toward_target_or_ally", 0)} de '
                         f'{actor_power.get("total", 0)}</strong> decisões negativas '
-                        f'(<strong>{_format_pct(actor_power.get("toward_target_or_ally_pct", 0))}%</strong>).'
+                        f'(<strong>{_format_pct_number(actor_power.get("toward_target_or_ally_pct", 0))}%</strong>).'
                     ),
                     "tone-power",
                     extra_note,
