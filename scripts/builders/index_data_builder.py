@@ -52,6 +52,13 @@ ROLE_TYPES = {
 BLINDADOS_REASON_ORDER = ["Autoimune", "Líder", "Imune"]
 VISADOS_RECENT_WINDOW = 3
 
+# Deliberate individual power event types (used for aggressor and animosity scoring)
+DELIBERATE_POWER_TYPES = frozenset({
+    "indicacao", "contragolpe", "monstro", "veto_prova",
+    "mira_do_lider", "barrado_baile", "veto_ganha_ganha",
+    "duelo_de_risco", "imunidade", "troca_xepa", "troca_vip",
+})
+
 SINC_TYPE_META: dict[str, dict[str, str]] = {
     "elogio":            {"label": "elogio",             "emoji": "🏆", "valence": "pos"},
     "regua":             {"label": "regua",              "emoji": "📏", "valence": "pos"},
@@ -1367,7 +1374,7 @@ def _compute_sincerao_highlight(
             sinc_week_used, available_weeks, radar)
 
 
-def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_set: set[str], received_impact: dict, relations_pairs: dict, relations_data: dict | list | None = None) -> tuple[list[str], list[dict], list[str]]:
+def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_set: set[str], received_impact: dict, relations_pairs: dict, relations_data: dict | list | None = None, *, latest_date: str | None = None) -> tuple[list[str], list[dict], list[str]]:
     """Mais Alvo, Mais Agressor, vulnerability, and active paredão cards.
 
     Returns (highlights, cards, paredao_names).
@@ -1391,7 +1398,8 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
     ALVO_DECAY = 0.85
     edges = relations_data.get("edges", []) if isinstance(relations_data, dict) else []
     if edges:
-        current_wk = get_week_number(date.today().isoformat())  # current week
+        anchor_date = latest_date or latest.get("date") or date.today().isoformat()
+        current_wk = get_week_number(anchor_date)
 
         alvo_accum: dict[str, float] = defaultdict(float)
         alvo_recent: dict[str, float] = defaultdict(float)
@@ -1481,9 +1489,6 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
             )
 
     # -- Mais Agressor (deliberate individual power events outgoing only) --
-    DELIBERATE_EVENTS = {"indicacao", "contragolpe", "monstro", "veto_prova",
-                         "mira_do_lider", "barrado_baile", "veto_ganha_ganha",
-                         "duelo_de_risco", "imunidade", "troca_xepa", "troca_vip"}
     if edges:
         aggressor_scores: dict[str, float] = defaultdict(float)
         aggressor_type_counts: dict[str, Counter[str]] = defaultdict(Counter)
@@ -1495,7 +1500,7 @@ def _compute_vulnerability_cards(latest: dict, active_names: list[str], active_s
                 continue
             if e["type"] != "power_event":
                 continue
-            if e.get("event_type") not in DELIBERATE_EVENTS:
+            if e.get("event_type") not in DELIBERATE_POWER_TYPES:
                 continue
             actor = e["actor"]
             event_type = e.get("event_type", "")
@@ -2006,7 +2011,8 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
 
     # Impact, vulnerability, paredão
     vuln_hl, vuln_cards, paredao_names = _compute_vulnerability_cards(
-        latest, active_names, active_set, received_impact, relations_pairs, relations_data)
+        latest, active_names, active_set, received_impact, relations_pairs, relations_data,
+        latest_date=latest_date)
     highlights.extend(vuln_hl)
     cards.extend(vuln_cards)
 
@@ -2803,9 +2809,6 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
         external_color = "#28a745"
 
     # Agressividade — deliberate individual power events outgoing only
-    DELIBERATE_CHIP = {"indicacao", "contragolpe", "monstro", "veto_prova",
-                       "mira_do_lider", "barrado_baile", "veto_ganha_ganha",
-                       "duelo_de_risco", "imunidade", "troca_xepa", "troca_vip"}
     animosity_score = 0.0
     animosity_breakdown: dict[str, float] = defaultdict(float)
     for edge in all_edges:
@@ -2816,7 +2819,7 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
             continue
         if edge["type"] != "power_event":
             continue
-        if edge.get("event_type") not in DELIBERATE_CHIP:
+        if edge.get("event_type") not in DELIBERATE_POWER_TYPES:
             continue
         animosity_score += w
         animosity_breakdown[edge.get("event_type", "other")] += w

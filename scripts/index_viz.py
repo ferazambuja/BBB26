@@ -8,6 +8,26 @@ import plotly.graph_objects as go
 
 from data_utils import GROUP_COLORS, REACTION_EMOJI, SENTIMENT_WEIGHTS
 
+# ── Profile-card render constants (L-3 / L-4) ──
+
+SOURCE_ICONS: dict[str, str] = {
+    'big fone': '\U0001f4de',
+    'caixas-surpresa': '\U0001f381',
+    'prova do líder': '\U0001f451',
+    'prova do anjo': '\U0001f607',
+    'castigo do monstro': '\U0001f479',
+    'dinâmica da casa': '\U0001f3ac',
+}
+
+COMP_LABELS: dict[str, str] = {
+    "power_event": "Eventos de poder",
+    "sincerao": "Sincerão",
+    "vote": "Votos",
+    "vip": "VIP",
+    "anjo": "Anjo",
+    "visibility": "Visibilidade",
+}
+
 
 def _escape_text(value) -> str:
     return escape("" if value is None else str(value))
@@ -391,11 +411,13 @@ def render_ranked_lane(
     top_count = ranked[0].get("count", 0)
     inline_items = ranked[:inline_max]
     overflow_items = ranked[inline_max:]
-    if render_rank_chip_fn is None:
+    if render_rank_chip_fn is not None:
+        chip_fn = render_rank_chip_fn
+    else:
         if avatar_html_fn is None:
             raise ValueError("render_ranked_lane requires render_rank_chip_fn or avatar_html_fn")
 
-        def render_rank_chip_fn(entry_item, entry_lane_type, entry_is_top, force_count=None):
+        def chip_fn(entry_item, entry_lane_type, entry_is_top, force_count=None):
             return render_rank_chip(
                 entry_item,
                 entry_lane_type,
@@ -408,7 +430,7 @@ def render_ranked_lane(
 
     lane.append('<div class="sinc-people-grid">')
     lane.extend(
-        render_rank_chip_fn(
+        chip_fn(
             item,
             lane_type,
             highlight_top and item.get("count", 0) == top_count,
@@ -423,7 +445,7 @@ def render_ranked_lane(
             f'<div class="sinc-more-list"><div class="sinc-people-grid">'
         )
         lane.extend(
-            render_rank_chip_fn(item, lane_type, False, force_count=force_count)
+            chip_fn(item, lane_type, False, force_count=force_count)
             for item in overflow_items
         )
         lane.append('</div></div></details>')
@@ -1024,10 +1046,12 @@ def make_cross_table_html(cross_data, title_suffix=""):
     short_names = [name.split()[0] if len(name) > 10 else name for name in active_names]
 
     html = []
+    caption = f"<caption>{_escape_text(title_suffix)}</caption>" if title_suffix else ""
     html.append(
-        """
+        f"""
 <div class="index-cross-table scroll-x">
 <table class="index-cross-table__table">
+{caption}
 <thead>
 <tr>
 <th class="u-s001">→ deu / ↓ recebeu</th>
@@ -1161,3 +1185,663 @@ def make_reaction_summary_html(summary_data, collapsed_rows=5):
     html.append("</div>")
 
     return "\n".join(html)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Profile-card rendering  (L-1 extraction from index.qmd)
+# ═══════════════════════════════════════════════════════════════════════
+
+def _render_profile_hero(
+    p: dict,
+    *,
+    avatars: dict,
+    group_colors: dict,
+) -> tuple[str, str, str]:
+    """Return (avatar_img, group_pill + role_pill, stat_chips) HTML fragments."""
+    name = p.get("name")
+    member_of = p.get("member_of", "?")
+    group = p.get("group", "?")
+    balance = p.get("balance", 0)
+    roles = p.get("roles", [])
+    score = p.get("score", 0)
+
+    avatar_url = avatars.get(name, "")
+    cor_grupo = group_colors.get(member_of, "#666")
+    role_text = ", ".join(roles) if roles else ""
+    score_color = "#28a745" if score >= 0 else "#dc3545"
+
+    avatar_img = (
+        f'<img src="{avatar_url}" alt="{name}" '
+        f'style="width:88px;height:88px;border-radius:50%;object-fit:cover;'
+        f'border:3px solid {cor_grupo};flex-shrink:0;">'
+    ) if avatar_url else ""
+
+    group_pill = (
+        f'<span style="display:inline-block;background:{cor_grupo};color:#fff;'
+        f'padding:2px 8px;border-radius:10px;font-weight:600;" class="fs-xs">{member_of}</span>'
+    )
+    role_pill = (
+        f' <span class="fs-xs u-s372">{role_text}</span>'
+    ) if role_text else ""
+
+    vip_w = p.get("vip_weeks", 0)
+    xepa_w = p.get("xepa_weeks", 0)
+    current_group = group
+    group_label = "VIP" if current_group.lower() == "vip" else "Xepa"
+    group_chip_color = "#f1c40f" if current_group.lower() == "vip" else "#888"
+
+    # ── Game stats from precomputed data ──
+    gs = p.get("game_stats", {})
+    n_votes = gs.get("total_house_votes", 0)
+    n_paredoes = gs.get("paredao_count", 0)
+    cartola_pts = gs.get("cartola_total", 0)
+    cartola_rank = gs.get("cartola_rank")
+    prova_wins = gs.get("prova_wins", 0)
+
+    # Votos chip (expandable if has detail)
+    votes_detail_rows = ""
+    for vd in gs.get("house_votes_detail", []):
+        voters_str = ", ".join(vd.get("voters", []))
+        votes_detail_rows += (
+            f"<div class='u-s072'>"
+            f"<b>{vd.get('numero', '?')}º Paredão</b> ({vd.get('data', '')})<br>"
+            f"<span class='u-s001'>Votaram: {voters_str}</span></div>"
+        )
+    if votes_detail_rows:
+        votos_chip = (
+            f'<details class="u-s061">'
+            f'<summary class="rxn-chip u-s208">'
+            f'🗳️ <b>{n_votes}</b> {"voto" if n_votes == 1 else "votos"}</summary>'
+            f'<div class="u-s472">'
+            f'{votes_detail_rows}</div></details>'
+        )
+    else:
+        votos_chip = (
+            f'<span class="rxn-chip u-s019">'
+            f'🗳️ <b>{n_votes}</b> votos</span>'
+        )
+
+    # Paredões chip (expandable if has history)
+    paredao_detail_rows = ""
+    for ph in gs.get("paredao_history", []):
+        res = ph.get("resultado", "?")
+        res_color = "#e74c3c" if res == "Eliminado" else "#2ecc71" if res == "Sobreviveu" else "#f1c40f"
+        vt = ph.get("voto_total")
+        vt_str = f" — {vt:.2f}%" if vt is not None else ""
+        paredao_detail_rows += (
+            f"<div class='u-s072'>"
+            f"<b>{ph.get('numero', '?')}º Paredão</b> ({ph.get('data', '')})<br>"
+            f"<span class='u-s001'>Como: {ph.get('como', '?')}</span> · "
+            f"<span style='color:{res_color};'>{res}{vt_str}</span></div>"
+        )
+    if n_paredoes > 0 and paredao_detail_rows:
+        paredoes_chip = (
+            f'<details class="u-s061">'
+            f'<summary class="rxn-chip u-s207">'
+            f'🏛️ <b>{n_paredoes}</b> {"paredão" if n_paredoes == 1 else "paredões"}</summary>'
+            f'<div class="u-s473">'
+            f'{paredao_detail_rows}</div></details>'
+        )
+    else:
+        paredoes_chip = (
+            f'<span class="rxn-chip u-s019">'
+            f'🏛️ <b>0</b> paredões</span>'
+        )
+
+    # Cartola chip
+    rank_str = f" ({cartola_rank}º)" if cartola_rank else ""
+    cartola_chip = (
+        f'<span class="rxn-chip u-s206">'
+        f'🏆 <b>{cartola_pts}</b> pts{rank_str}</span>'
+    )
+
+    # Prova chip (only if wins > 0)
+    prova_chip = ""
+    if prova_wins > 0:
+        prova_chip = (
+            f'<span class="rxn-chip u-s203">'
+            f'🥇 <b>{prova_wins}</b> {"vitória" if prova_wins == 1 else "vitórias"}</span>'
+        )
+
+    # Bate e Volta chip (only if escapes > 0)
+    n_bv = gs.get("bv_escapes", 0)
+    bv_chip = ""
+    if n_bv > 0:
+        bv_chip = (
+            f'<span class="rxn-chip u-s204">'
+            f'🔄 <b>{n_bv}</b> Bate e Volta</span>'
+        )
+
+    stat_chips = (
+        f'<div class="stat-row">'
+        f'<span class="rxn-chip" style="border:1px solid {score_color};">'
+        f'<span style="font-weight:700;color:{score_color};">{score:+.1f}</span> Sentimento</span>'
+        f'<span class="rxn-chip u-s205">'
+        f'{balance:,} Saldo</span>'
+        f'<span class="rxn-chip" style="border:1px solid {group_chip_color};">'
+        f'<span style="font-weight:700;color:{group_chip_color};">{group_label}</span>'
+        f' VIP {vip_w}× · Xepa {xepa_w}×</span>'
+        f'{votos_chip}{paredoes_chip}{bv_chip}{cartola_chip}{prova_chip}'
+        f'</div>'
+    )
+
+    pills_html = f'{group_pill}{role_pill}'
+    return avatar_img, pills_html, stat_chips
+
+
+def _render_profile_status_strip(
+    p: dict,
+    *,
+    allies: list,
+    enemies: list,
+    false_friends: list,
+    blind_targets: list,
+) -> str:
+    """Return the status-strip HTML (vulnerability, impact, hostility, plant, contradiction)."""
+    n_allies = len(allies)
+    n_enemies = len(enemies)
+    n_false_friends = len(false_friends)
+
+    risk_level = p.get("risk_level")
+    risk_color = p.get("risk_color")
+    external_level = p.get("external_level")
+    external_color = p.get("external_color")
+    animosity_level = p.get("animosity_level")
+    animosity_color = p.get("animosity_color")
+    scores_data = p.get("scores", {})
+
+    ff_names_list = [f["name"] for f in false_friends[:5]]
+    ff_names_str = ", ".join(ff_names_list)
+    if len(false_friends) > 5:
+        ff_names_str += f" +{len(false_friends) - 5}"
+    vuln_detail = (
+        f"<div class='sb-row'><span>Falsos amigos</span><span>{n_false_friends}</span></div>"
+        f"<div class='sb-row'><span>Aliados</span><span>{n_allies}</span></div>"
+        f"<div class='sb-row'><span>Inimigos</span><span>{n_enemies}</span></div>"
+        f"<div class='sb-row'><span>Alvos ocultos</span><span>{len(blind_targets)}</span></div>"
+    )
+    if ff_names_list:
+        vuln_detail += f"<div class='sb-muted'>Pontos cegos: {ff_names_str}</div>"
+    vuln_chip = render_status_chip("🎯", "Vulnerabilidade", risk_level, risk_color, vuln_detail)
+
+    ext_score = scores_data.get("external", 0)
+    ext_pos = scores_data.get("external_positive", 0)
+    ext_count = scores_data.get("external_count", 0)
+    ext_bd = scores_data.get("external_breakdown", {})
+    ext_detail = "".join(
+        f"<div class='sb-row'><span>{COMP_LABELS.get(k, k)}</span><span>{v:+.1f}</span></div>"
+        for k, v in sorted(ext_bd.items(), key=lambda x: x[1])
+    ) if ext_bd else "<div class='sb-muted'>Nenhum evento negativo recebido.</div>"
+    ext_detail += f"<div class='sb-muted'>Total: {ext_score:.1f} | Positivos: +{ext_pos:.1f} | Eventos: {ext_count}</div>"
+    impact_chip = render_status_chip("🎯", "Impacto Recebido", external_level, external_color, ext_detail)
+
+    anim_score = scores_data.get("animosity", 0)
+    anim_bd = scores_data.get("animosity_breakdown", {})
+    anim_detail = "".join(
+        f"<div class='sb-row'><span>{COMP_LABELS.get(k, k)}</span><span>{v:+.1f}</span></div>"
+        for k, v in sorted(anim_bd.items(), key=lambda x: x[1])
+    ) if anim_bd else "<div class='sb-muted'>Nenhum evento negativo causado.</div>"
+    anim_detail += f"<div class='sb-muted'>Total: {anim_score:.1f}</div>"
+    hostility_chip = render_status_chip("⚔️", "Agressividade", animosity_level, animosity_color, anim_detail)
+
+    plant_info = p.get("plant_index") or {}
+    plant_chip_html = ""
+    if plant_info and plant_info.get("score") is not None:
+        score_roll = plant_info.get("rolling", plant_info.get("score", 0))
+        score_val = int(round(score_roll))
+        plant_week_num = plant_info.get("week")
+        plant_color_hex = plant_color(score_val)
+        bd_rows = []
+        for item in plant_info.get("breakdown", []):
+            pts = item.get("points", 0)
+            if pts > 0:
+                bd_rows.append(f"<div class='sb-row'><span>{item.get('label', '')}</span><span>+{pts}</span></div>")
+        plant_detail = "".join(bd_rows) if bd_rows else "<div class='sb-muted'>Sem sinais fortes.</div>"
+        plant_detail += f"<div class='sb-muted'>Semana {plant_week_num} | Rolling {score_roll:.1f}</div>"
+        plant_chip_html = render_status_chip("🌱", "Planta Index", f"{score_val}/100", plant_color_hex, plant_detail)
+
+    sinc = p.get("sincerao", {})
+    sinc_summary = sinc.get("summary", {})
+    sinc_contra_count = sinc_summary.get("contradiction_count", 0)
+    sinc_contra_targets = sinc_summary.get("contradiction_targets", [])
+    contra_chip = ""
+    if sinc_contra_count:
+        targets_txt = ", ".join(sinc_contra_targets)
+        contra_detail = f"<div class='sb-muted'>Diz que não gosta no Sincerão, mas dá ❤️ para: {targets_txt}</div>"
+        contra_chip = render_status_chip("⚡", "Contradição", f"{sinc_contra_count}x", "#6f42c1", contra_detail)
+
+    status_chips = vuln_chip + impact_chip + hostility_chip
+    if plant_chip_html:
+        status_chips += plant_chip_html
+    if contra_chip:
+        status_chips += contra_chip
+    return status_chips
+
+
+def _render_profile_reactions(
+    p: dict,
+    *,
+    avatar_fn,
+) -> str:
+    """Return the reactions-grid HTML (received + given)."""
+    rxn_received_chips = " ".join(
+        f'<span class="rxn-chip">{r["emoji"]}×{r["count"]}</span>'
+        for r in p.get("rxn_summary", [])
+    )
+    rxn_given_chips = " ".join(
+        f'<span class="rxn-chip">{r["emoji"]}×{r["count"]}</span>'
+        for r in p.get("given_summary", [])
+    )
+
+    received_detail = p.get("received_detail", [])
+    given_detail = p.get("given_detail", [])
+    received_detail_html = build_rxn_detail_html(received_detail, avatar_fn=avatar_fn)
+    given_detail_html = build_rxn_detail_html(given_detail, avatar_fn=avatar_fn)
+
+    return (
+        f'<div class="profile-reactions-grid">'
+        f'<div>'
+        f'<details class="rxn-detail">'
+        f'<summary class="u-s046">'
+        f'<div class="fs-sm u-s068">RECEBEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>'
+        f'{rxn_received_chips}'
+        f'</summary>'
+        f'<div class="u-s103">{received_detail_html}</div>'
+        f'</details>'
+        f'</div>'
+        f'<div>'
+        f'<details class="rxn-detail">'
+        f'<summary class="u-s046">'
+        f'<div class="fs-sm u-s068">DEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>'
+        f'{rxn_given_chips}'
+        f'</summary>'
+        f'<div class="u-s103">{given_detail_html}</div>'
+        f'</details>'
+        f'</div>'
+        f'</div>'
+    )
+
+
+def _render_profile_relations(
+    *,
+    allies: list,
+    enemies: list,
+    false_friends: list,
+    blind_targets: list,
+    render_avatar_row_fn,
+) -> str:
+    """Return the relations-grid HTML."""
+    n_allies = len(allies)
+    n_enemies = len(enemies)
+    n_false_friends = len(false_friends)
+
+    relations_html = (
+        '<div class="fs-xs u-s244">'
+        'Score = queridômetro + eventos acumulados (votos, poder, Sincerão). '
+        'Positivo = relação boa · Negativo = hostilidade.'
+        '</div>'
+    )
+    if allies:
+        relations_html += (
+            f'<div class="relation-section u-s188">'
+            f'<div class="relation-label u-s055">✅ Aliados ({n_allies})</div>'
+            f'{render_avatar_row_fn(allies, "#28a745")}'
+            f'<div class="fs-sm u-s245">Score positivo mútuo. Votos seguros.</div>'
+            f'</div>'
+        )
+    if enemies:
+        enemy_emoji_text = ", ".join(
+            f'{e["name"].split()[0]} ({e.get("my_emoji","?")}↔{e.get("their_emoji","?")})'
+            for e in enemies[:6]
+        )
+        relations_html += (
+            f'<div class="relation-section u-s169">'
+            f'<div class="relation-label u-s062">⚔️ Inimigos ({n_enemies})</div>'
+            f'{render_avatar_row_fn(enemies, "#dc3545")}'
+            f'<div class="fs-sm u-s252">{enemy_emoji_text}</div>'
+            f'<div class="fs-sm u-s057">Score negativo mútuo. Votos contra esperados.</div>'
+            f'</div>'
+        )
+    if false_friends:
+        ff_emoji_text = ", ".join(
+            f'<span class="u-s062">{f["name"].split()[0]} ({f.get("their_emoji","?")})</span>'
+            for f in false_friends[:6]
+        )
+        relations_html += (
+            f'<div class="relation-section u-s184">'
+            f'<div class="relation-label u-s293">⚠️ Falsos Amigos ({n_false_friends}) — PERIGO</div>'
+            f'{render_avatar_row_fn(false_friends, "#ffc107")}'
+            f'<div class="fs-sm u-s079">{ff_emoji_text}</div>'
+            f'<div class="fs-sm u-s057">Seu score é positivo, o deles negativo. Votam contra 2-3×.</div>'
+            f'</div>'
+        )
+    if blind_targets:
+        bt_emoji_text = ", ".join(
+            f'<span class="u-s028">{b["name"].split()[0]} ({b.get("my_emoji","?")})</span>'
+            for b in blind_targets[:6]
+        )
+        relations_html += (
+            f'<div class="relation-section u-s165">'
+            f'<div class="relation-label u-s028">🗡️ Alvos Ocultos ({len(blind_targets)})</div>'
+            f'{render_avatar_row_fn(blind_targets, "#6f42c1")}'
+            f'<div class="fs-sm u-s079">{bt_emoji_text}</div>'
+            f'<div class="fs-sm u-s057">Seu score é negativo, o deles positivo. Não sabem.</div>'
+            f'</div>'
+        )
+    return relations_html
+
+
+def _render_profile_sincerao(p: dict) -> str:
+    """Return the Sincerão section HTML for a profile card."""
+    sinc = p.get("sincerao", {})
+    sinc_summary = sinc.get("summary", {})
+    sinc_current = sinc.get("current", {})
+    sinc_season = sinc.get("season", {})
+    sinc_total = sinc_summary.get("received_total", 0) + sinc_summary.get("given_total", 0)
+
+    sincerao_html = ""
+    if sinc_total > 0:
+        CURRENT_INLINE_MAX = 8
+        HISTORY_INLINE_MAX = 10
+        sinc_parts: list[str] = []
+
+        # -- Current week (Recebeu / Fez) --
+        current_rows: list[str] = []
+        current_received = sinc_current.get("received", [])
+        if current_received:
+            current_rows.append(render_profile_sinc_row("Recebeu", current_received, "actor", CURRENT_INLINE_MAX))
+
+        current_given = sinc_current.get("given", [])
+        if current_given:
+            current_rows.append(render_profile_sinc_row("Fez", current_given, "target", CURRENT_INLINE_MAX))
+
+        if current_rows:
+            sinc_parts.append(f"<div class='profile-sinc-current'>{''.join(current_rows)}</div>")
+
+        # -- Season history (collapsed): both received AND given per past week --
+        received_by_week = sinc_season.get("received_by_week", [])
+        given_by_week = sinc_season.get("given_by_week", [])
+        current_wk = sinc.get("current_week")
+
+        past_weeks_set: set = set()
+        for w in received_by_week:
+            if w.get("week") != current_wk:
+                past_weeks_set.add(w["week"])
+        for w in given_by_week:
+            if w.get("week") != current_wk:
+                past_weeks_set.add(w["week"])
+
+        if past_weeks_set:
+            recv_lookup = {w["week"]: w["interactions"] for w in received_by_week}
+            given_lookup = {w["week"]: w["interactions"] for w in given_by_week}
+            history_rows: list[str] = []
+            for wk in sorted(past_weeks_set, reverse=True):
+                week_parts: list[str] = []
+                week_badge = f"<span class='profile-sinc-week'>S{wk}</span>"
+                week_badge_ghost = "<span class='profile-sinc-week ghost'></span>"
+
+                recv_ints = recv_lookup.get(wk, [])
+                if recv_ints:
+                    week_parts.append(
+                        render_profile_sinc_row(
+                            "Recebeu",
+                            recv_ints,
+                            "actor",
+                            HISTORY_INLINE_MAX,
+                            week_prefix=week_badge,
+                        )
+                    )
+
+                given_ints = given_lookup.get(wk, [])
+                if given_ints:
+                    week_parts.append(
+                        render_profile_sinc_row(
+                            "Fez",
+                            given_ints,
+                            "target",
+                            HISTORY_INLINE_MAX,
+                            week_prefix=(week_badge_ghost if recv_ints else week_badge),
+                        )
+                    )
+
+                if week_parts:
+                    history_rows.append(f"<div class='profile-sinc-week-block'>{''.join(week_parts)}</div>")
+
+            if history_rows:
+                n_past = len(past_weeks_set)
+                sinc_parts.append(
+                    f"<details class='profile-sinc-history'>"
+                    f"<summary>+ {n_past} semana{'s' if n_past > 1 else ''} anterior{'es' if n_past > 1 else ''}</summary>"
+                    f"<div class='profile-sinc-history-body'>{''.join(history_rows)}</div>"
+                    f"</details>"
+                )
+
+        sincerao_html = "".join(sinc_parts)
+    return sincerao_html
+
+
+def _render_profile_dynamics(
+    p: dict,
+    *,
+    relation_colors: dict,
+    avatars: dict,
+    avatar_fn,
+    make_event_chips_fn,
+    sincerao_html: str,
+) -> str:
+    """Return the game-dynamics section HTML."""
+    events = p.get("events", {})
+
+    pos_html = make_event_chips_fn(events.get("pos_week", []), "#28a745", relation_colors)
+    neg_html = make_event_chips_fn(events.get("neg_week", []), "#dc3545", relation_colors)
+    pos_hist_html = make_event_chips_fn(events.get("pos_hist", []), "#2ecc71", relation_colors) if events.get("pos_hist") else ""
+    neg_hist_html = make_event_chips_fn(events.get("neg_hist", []), "#e74c3c", relation_colors) if events.get("neg_hist") else ""
+    hist_html = ""
+    if events.get("pos_hist"):
+        hist_html += f"<span class='u-s055'>{pos_hist_html}</span>"
+    if events.get("neg_hist"):
+        hist_html += f"<span class='u-s271'>{neg_hist_html}</span>"
+
+    votes = p.get("votes_received", [])
+    votes_html = ""
+    if votes:
+        vote_rows: list[str] = []
+        for v in votes:
+            voter = v.get("voter")
+            count = v.get("count", 1)
+            is_revealed = v.get("revealed", False)
+            count_badge = f'<span class="fs-2xs u-s148">{count}×</span>' if count > 1 else ""
+            border = relation_colors.get(voter, "#666")
+            reveal_badge = ' <span class="fs-sm u-s025">👁️</span>' if is_revealed else ""
+            voter_avatar = avatar_fn(voter, 36, border) if voter in avatars else ""
+            voter_first = voter.split()[0] if voter else ""
+            vote_rows.append(
+                f"<div class='u-s334'>"
+                f"{voter_avatar}"
+                f"<span class='fs-base u-s272'>{voter_first}</span>"
+                f"{count_badge}{reveal_badge}</div>"
+            )
+        votes_html = "".join(vote_rows)
+
+    sinc = p.get("sincerao", {})
+    sinc_summary = sinc.get("summary", {})
+    sinc_total = sinc_summary.get("received_total", 0) + sinc_summary.get("given_total", 0)
+
+    has_dynamics = (events.get("pos_week") or events.get("neg_week") or votes or sincerao_html
+                    or events.get("pos_hist") or events.get("neg_hist"))
+    dynamics_html = ""
+    if has_dynamics:
+        dynamics_inner = ""
+        if events.get("pos_week"):
+            dynamics_inner += (
+                f"<div class='u-s338'>"
+                f"<strong class='fs-base u-s055'>+ Benefícios</strong> {pos_html}</div>"
+            )
+        if events.get("neg_week"):
+            dynamics_inner += (
+                f"<div class='u-s337'>"
+                f"<strong class='fs-base u-s062'>− Prejuízos</strong> {neg_html}</div>"
+            )
+        if votes:
+            dynamics_inner += (
+                f"<div class='u-s037'>"
+                f"<strong class='fs-base u-s294'>🗳️ Votos recebidos</strong>"
+                f"<div class='u-s353'>{votes_html}</div></div>"
+            )
+        if sincerao_html:
+            sinc_count_label = f" ({sinc_total})" if sinc_total else ""
+            dynamics_inner += (
+                f"<div style='display:flex;flex-direction:column;gap:2px'>"
+                f"<strong class='fs-base u-s025'>🔥 Sincerão{sinc_count_label}</strong>{sincerao_html}</div>"
+            )
+        if events.get("pos_hist") or events.get("neg_hist"):
+            dynamics_inner += (
+                f"<div class='u-s335'>"
+                f"<strong class='fs-base u-s061'>📜 Histórico</strong> {hist_html}</div>"
+            )
+        dynamics_html = (
+            f'<div class="u-s465">'
+            f'<div class="fs-base u-s390">⚡ Dinâmicas do Jogo</div>'
+            f'<div class="fs-base">{dynamics_inner}</div>'
+            f'</div>'
+        )
+    return dynamics_html
+
+
+def _render_profile_curiosities(p: dict) -> str:
+    """Return the curiosities section HTML."""
+    curiosities = p.get("curiosities", [])
+    if not curiosities:
+        return ""
+    items_html = "".join(
+        f'<div class="curiosity-item">'
+        f'<span class="curiosity-icon">{c["icon"]}</span>'
+        f'<span>{c["text"]}</span></div>'
+        for c in curiosities
+    )
+    return (
+        f'<div class="u-s464">'
+        f'<div class="fs-base u-s391">💡 Curiosidades</div>'
+        f'{items_html}</div>'
+    )
+
+
+def render_profile_card(
+    p: dict,
+    *,
+    avatars: dict,
+    group_colors: dict,
+    avatar_fn,
+    make_event_chips_fn,
+    render_avatar_row_fn,
+) -> str:
+    """Render the full HTML for one participant profile card.
+
+    Parameters
+    ----------
+    p : dict
+        Participant profile dict from ``index_data["profiles"]``.
+    avatars : dict
+        Mapping of participant name -> avatar URL.
+    group_colors : dict
+        ``GROUP_COLORS`` mapping.
+    avatar_fn : callable
+        Partially-applied ``av()`` helper (``avatar_fn(name, size, border)``).
+    make_event_chips_fn : callable
+        Partially-applied ``make_event_chips()`` helper.
+    render_avatar_row_fn : callable
+        Partially-applied ``render_avatar_row()`` helper.
+    """
+    name = p.get("name", "")
+    member_of = p.get("member_of", "?")
+    cor_grupo = group_colors.get(member_of, "#666")
+    name_slug = name.lower().replace(" ", "-")
+
+    rel = p.get("relations", {})
+    allies = rel.get("allies", [])
+    enemies = rel.get("enemies", [])
+    false_friends = rel.get("false_friends", [])
+    blind_targets = rel.get("blind_targets", [])
+
+    ally_names = {a["name"] for a in allies}
+    enemy_names = {n["name"] for n in enemies}
+    false_friend_names = {n["name"] for n in false_friends}
+    blind_names = {n["name"] for n in blind_targets}
+
+    relation_colors: dict[str, str] = {}
+    relation_colors.update({n: "#28a745" for n in ally_names})
+    relation_colors.update({n: "#dc3545" for n in enemy_names})
+    relation_colors.update({n: "#ffc107" for n in false_friend_names})
+    relation_colors.update({n: "#6f42c1" for n in blind_names})
+
+    # [1] HERO
+    avatar_img, pills_html, stat_chips = _render_profile_hero(
+        p,
+        avatars=avatars,
+        group_colors=group_colors,
+    )
+
+    # [2] STATUS STRIP
+    status_chips = _render_profile_status_strip(
+        p,
+        allies=allies,
+        enemies=enemies,
+        false_friends=false_friends,
+        blind_targets=blind_targets,
+    )
+
+    # [3] REACTIONS
+    reactions_html = _render_profile_reactions(p, avatar_fn=avatar_fn)
+
+    # [4] RELATIONS
+    relations_html = _render_profile_relations(
+        allies=allies,
+        enemies=enemies,
+        false_friends=false_friends,
+        blind_targets=blind_targets,
+        render_avatar_row_fn=render_avatar_row_fn,
+    )
+    relations_content = relations_html if relations_html else '<div class="fs-base u-s058">Sem relações classificadas.</div>'
+
+    # [5] SINCERAO (needed by dynamics)
+    sincerao_html = _render_profile_sincerao(p)
+
+    # [6] DYNAMICS
+    dynamics_html = _render_profile_dynamics(
+        p,
+        relation_colors=relation_colors,
+        avatars=avatars,
+        avatar_fn=avatar_fn,
+        make_event_chips_fn=make_event_chips_fn,
+        sincerao_html=sincerao_html,
+    )
+
+    # [7] CURIOSITIES
+    curiosities_html = _render_profile_curiosities(p)
+
+    # ═══ ASSEMBLE CARD ═══
+    return (
+        f'<div id="perfil-{name_slug}" class="profile-card u-s039">'
+        f'<div style="background:linear-gradient(90deg,rgba(48,48,48,0.9),rgba(48,48,48,0.3));border-left:5px solid {cor_grupo};">'
+        f'<div class="profile-hero-inner">'
+        f'{avatar_img}'
+        f'<div>'
+        f'<h3 class="fs-2xl u-s434">{name}</h3>'
+        f'<div class="u-s356">'
+        f'{pills_html}'
+        f'</div>'
+        f'{stat_chips}'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+        f'<div class="profile-status-strip">'
+        f'{status_chips}'
+        f'</div>'
+        f'{reactions_html}'
+        f'{dynamics_html}'
+        f'<div class="profile-relations">'
+        f'{relations_content}'
+        f'</div>'
+        f'{curiosities_html}'
+        f'</div>'
+    )
