@@ -465,7 +465,27 @@ Higher = more aligned; lower = contradiction.
 - `salvo_paredao` — **Venceu o Bate e Volta** (escapou do paredão). Não acumula com `nao_emparedado`.
 - `nao_eliminado_paredao` — Indicados finais que **permaneceram** após o resultado.
 - `nao_emparedado` — Participantes **ativos** na semana **fora da lista final** do paredão.
-- Exceção de janela: em `formacao.bate_volta`, se `salvacao_com_janela_aberta: true` (ou `janela_escalacao_aberta: true`), o pipeline lança apenas `emparedado` (não lança `salvo_paredao`).
+
+### Exceção de janela (`salvacao_com_janela_aberta`)
+
+Use este campo em `data/paredoes.json` → `formacao.bate_volta` **somente** quando os dois critérios forem verdadeiros:
+
+1. O participante **já recebeu `emparedado`** na rodada (janela fechada).
+2. A salvação no Bate e Volta ocorreu com **janela de escalação aberta**.
+
+Com `salvacao_com_janela_aberta: true`, o pipeline mantém apenas `emparedado` e **não lança** `salvo_paredao`.
+
+Comportamento padrão (sem flag, ou `false`): Bate e Volta normal acumula `emparedado` + `salvo_paredao`.
+
+Exemplo:
+
+```json
+"bate_volta": {
+  "participantes": ["A", "B", "C"],
+  "vencedor": "A",
+  "salvacao_com_janela_aberta": true
+}
+```
 
 ---
 
