@@ -1001,7 +1001,7 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
         cards.append({
             "type": "ranking",
             "icon": "🏆", "title": "Ranking",
-            "color": "#f1c40f", "link": "#ranking",
+            "color": "#f1c40f", "link": "evolucao.html#sentimento",
             "leader": sentiment_leader,
             "leader_score": round(leader_score, 1),
             "streak": streak,
@@ -1025,7 +1025,7 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             movers_parts.append(f"📉 {md['name']} ({md['delta']:+.1f})")
         movers_txt = " | " + " · ".join(movers_parts) if movers_parts else ""
         highlights.append(
-            f"🏆 **{sentiment_leader}** lidera o [ranking](#ranking){streak_text} ({leader_score:+.1f})"
+            f"🏆 **{sentiment_leader}** lidera o [ranking](evolucao.html#sentimento){streak_text} ({leader_score:+.1f})"
             f" — Top 3: {pod_txt}{movers_txt}"
         )
 
@@ -1180,7 +1180,7 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
     cards.append({
         "type": "hostilities",
         "icon": "⚠️", "title": "Novas Hostilidades",
-        "color": "#f39c12", "link": "relacoes.html#hostilidades-dia",
+        "color": "#f39c12", "link": "relacoes.html#hostilidades",
         "total": len(hostilities_selected),
         "reference_date": today.get("date"),
         "items": hostilities_selected,
@@ -1197,13 +1197,13 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
         extra = len(hostilities_selected) - 4
         if hostilities_state == "today":
             highlights.append(
-                f"⚠️ **{len(hostilities_selected)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades-dia)"
+                f"⚠️ **{len(hostilities_selected)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades)"
                 f": {' · '.join(lines)}{f' +{extra} mais' if extra > 0 else ''}"
             )
         elif hostilities_state == "recent":
             latest_txt = hostilities_selected[0].get("date", "")
             highlights.append(
-                f"⚠️ **Sem novas hostilidades hoje** — últimos casos em [histórico recente](relacoes.html#hostilidades-dia)"
+                f"⚠️ **Sem novas hostilidades hoje** — últimos casos em [histórico recente](relacoes.html#hostilidades)"
                 f" (mais recente: {latest_txt}): {' · '.join(lines[:3])}"
                 f"{f' +{extra} mais' if extra > 0 else ''}"
             )
@@ -1356,7 +1356,7 @@ def _compute_sincerao_highlight(
         cards.append({
             "type": "sincerao",
             "icon": "🔥", "title": f"Sincerão S{sinc_week_used}",
-            "color": "#e67e22", "link": "relacoes.html#sincer%C3%A3o-%C3%97-querid%C3%B4metro",
+            "color": "#e67e22", "link": "relacoes.html#sincerao-contradictions",
             "format": sinc_week_format,
             "radar": radar,
             "contradictions": pair_contradictions,
@@ -1943,13 +1943,13 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
         cards.append({
             "type": "vip",
             "icon": "\U0001f451", "title": "Mais dias VIP",
-            "color": "#f1c40f", "link": "evolucao.html#vip-xepa",
+            "color": "#f1c40f", "link": "relacoes.html#vip-xepa",
             "items": vip_ranked,
         })
         cards.append({
             "type": "xepa",
             "icon": "\U0001f373", "title": "Mais dias Xepa",
-            "color": "#95a5a6", "link": "evolucao.html#vip-xepa",
+            "color": "#95a5a6", "link": "relacoes.html#vip-xepa",
             "items": xepa_ranked,
         })
 

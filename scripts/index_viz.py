@@ -919,7 +919,14 @@ def days_ago_str(date_str: str, ref_date: str | None = None, *, anchor_brt):
         d0 = _parse_datetime_like(date_str).date()
     except Exception:
         return ""
-    delta = (anchor_brt - d0).days
+    anchor = anchor_brt
+    if ref_date:
+        try:
+            anchor = _parse_datetime_like(ref_date).date()
+        except Exception:
+            anchor = anchor_brt
+
+    delta = (anchor - d0).days
     if delta < 0:
         return ""
     if delta == 0:

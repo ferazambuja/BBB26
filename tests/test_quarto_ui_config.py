@@ -43,7 +43,7 @@ def test_index_relative_dates_are_anchored_to_generated_date_not_latest_snapshot
     helper = INDEX_VIZ.read_text(encoding="utf-8")
     assert "DATA_GENERATED_DATE_BRT" in index_qmd
     assert "anchor_brt=DATA_GENERATED_DATE_BRT" in index_qmd
-    assert "delta = (anchor_brt - d0).days" in helper
+    assert "delta = (anchor - d0).days" in helper
 
 
 def test_quarto_renders_cronologia_mobile_review_page_without_navbar_entry():

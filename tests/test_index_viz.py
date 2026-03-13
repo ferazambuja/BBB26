@@ -67,6 +67,13 @@ def test_days_ago_str_uses_explicit_anchor_date_and_preserves_relative_labels():
     assert days_ago_str("2026-03-08T00:00:00", anchor_brt=datetime.strptime("2026-03-12", "%Y-%m-%d").date()) == "há 4 dias"
 
 
+def test_days_ago_str_honors_ref_date_override_when_provided():
+    anchor = datetime.strptime("2026-03-20", "%Y-%m-%d").date()
+
+    assert days_ago_str("2026-03-11", "2026-03-12", anchor_brt=anchor) == "há 1 dia"
+    assert days_ago_str("2026-03-12", "2026-03-12", anchor_brt=anchor) == "hoje"
+
+
 def test_short_name_returns_first_token_or_fallback():
     assert _short_name("Ana Paula Renault") == "Ana"
     assert _short_name("") == "?"
