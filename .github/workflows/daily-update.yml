@@ -101,6 +101,9 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
       - name: Run tests
         run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
 
@@ -142,9 +145,6 @@ jobs:
 
       - name: Build derived data
         run: python scripts/build_derived_data.py
-
-      - name: Set up Quarto
-        uses: quarto-dev/quarto-actions/setup@v2
 
       - name: Render Quarto site
         run: quarto render
