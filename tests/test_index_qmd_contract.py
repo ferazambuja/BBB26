@@ -44,8 +44,6 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     content = INDEX_QMD.read_text(encoding="utf-8")
 
     assert "from index_viz import (" in content
-    assert "make_sentiment_ranking" in content
-    assert "make_cross_table_heatmap" in content
     assert "make_cross_table_html" in content
     assert "make_reaction_summary_html" in content
     assert "fmt_date_br" in content
@@ -53,8 +51,6 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "stat_chip" in content
     assert "plant_color" in content
     assert "render_status_chip" in content
-    assert "render_mobile_queridometro_summary" in content
-    assert "render_mobile_evolution_summary" in content
     assert "_av" in content
     assert "_av_group_border" in content
     assert "_pair_story_card" in content
@@ -62,7 +58,6 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "_make_event_chips" in content
     assert "_render_avatar_row" in content
     assert "days_ago_str" in content
-    assert "make_evolution_chart" in content
     assert "render_overflow_toggle as _render_overflow_toggle" in content
     assert "render_dramatic_event_row" in content
     assert "render_ranked_lane as _render_ranked_lane" in content

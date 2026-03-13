@@ -4,6 +4,23 @@ Dashboard interativo de análise do Big Brother Brasil 2026 — reações, rela�
 
 **Site**: [ferazambuja.github.io/BBB26](https://ferazambuja.github.io/BBB26/)
 
+## Comece por aqui
+
+Para alguém novo no repositório, a ordem mais eficiente é:
+
+1. `README.md` — visão geral, fluxo e mapa rápido do projeto
+2. `docs/ARCHITECTURE.md` — responsabilidades por camada, páginas e artefatos derivados
+3. `docs/OPERATIONS_GUIDE.md` — runbooks operacionais e receitas por tipo de mudança
+4. `docs/MANUAL_EVENTS_GUIDE.md` — contrato real de `data/manual_events.json`
+5. `docs/SCORING_AND_INDEXES.md` — fórmulas, pesos e superfícies analíticas
+6. `docs/TESTING.md` — o que verificar para cada tipo de alteração
+
+Atalho por objetivo:
+
+- **Mexer em dados manuais**: leia `docs/OPERATIONS_GUIDE.md` + `docs/MANUAL_EVENTS_GUIDE.md`
+- **Mexer em cálculo/pipeline**: leia `docs/ARCHITECTURE.md` + `docs/SCORING_AND_INDEXES.md` + `docs/TESTING.md`
+- **Mexer em layout/página**: leia `docs/ARCHITECTURE.md` + `docs/TESTING.md`
+
 ## O que é
 
 Painel que acompanha diariamente o **queridômetro** (reações entre participantes) via API pública do GloboPlay, complementado com dados manuais de paredões, provas, dinâmicas e eventos de poder.
@@ -14,11 +31,22 @@ Painel que acompanha diariamente o **queridômetro** (reações entre participan
 |--------|----------|
 | **Painel** | Visão geral, rankings, heatmap de reações, perfis |
 | **Evolução** | Rankings ao longo do tempo, sentimento, impacto, saldo de estalecas |
+| **Estalecas VIP/Xepa** | Economia da casa: compras, punições, mesada, VIP/Xepa |
 | **Relações** | Alianças, rivalidades, quebras de streak, hostilidade, rede social |
 | **Paredão** | Paredão atual — formação, votos, análise de reações vs votos |
-| **Paredões** | Arquivo histórico de todos os paredões |
 | **Cartola** | Pontuação no estilo fantasy (Líder, Anjo, Monstro, etc.) |
 | **Provas** | Ranking de desempenho em provas (Líder, Anjo, Bate-Volta) |
+| **Paredões** | Arquivo histórico de todos os paredões |
+| **Votação** | Análise do sistema 70/30 entre Voto Único e Torcida |
+
+### Páginas utilitárias renderizadas
+
+Além das páginas de navegação principal, `_quarto.yml` também renderiza:
+
+| Arquivo | Uso |
+|--------|-----|
+| `economia_v2.qmd` | Variante narrativa/mobile da página de economia |
+| `cronologia_mobile_review.qmd` | Página de revisão focada na cronologia em mobile |
 
 ## Stack
 
@@ -41,12 +69,12 @@ API GloboPlay → scripts/fetch_data.py → data/snapshots/*.json
                                                 ↓
                          scripts/*_viz.py helpers + thin *.qmd pages
                                                 ↓
-                                          quarto render
+                                         quarto render
                                                 ↓
                                         _site/ → GitHub Pages
 ```
 
-O GitHub Actions roda com slots permanentes em **00:00, 06:00, 15:00 e 18:00 BRT**, extras aos sábados (**17:00** e **20:00 BRT**) e probes temporários entre **09:30–16:00 BRT** para validar a janela real de atualização do queridômetro (revisão de fechamento prevista para **2026-03-08**).
+O GitHub Actions faz polling a cada **15 minutos**. Quando a API muda, o repositório salva um novo snapshot e dispara o pipeline completo de testes, rebuild e render. A janela principal do queridômetro segue em torno de **15:00 BRT**, mas o polling frequente também captura mudanças de saldo, VIP/Xepa e papéis ao longo do dia.
 
 ### Camadas de responsabilidade
 
@@ -65,6 +93,17 @@ O GitHub Actions roda com slots permanentes em **00:00, 06:00, 15:00 e 18:00 BRT
   Mover para builders + `data/derived/*`.
 - Categoria C: orquestração ordenada da página.
   Manter no `.qmd`.
+
+### Onde editar cada tipo de mudança
+
+| Se você quer mudar... | Dono principal |
+|-----------------------|----------------|
+| Constantes compartilhadas, pesos, helpers de data, loaders, tema Plotly | `scripts/data_utils.py` |
+| Cálculo derivado e regras analíticas | `scripts/builders/*` + `scripts/derived_pipeline.py` |
+| Cards/HTML/figuras reutilizáveis | `scripts/*_viz.py` |
+| Ordem da página, narrativa e composição final | `*.qmd` |
+| Dados-fonte manuais | `data/manual_events.json`, `data/paredoes.json`, `data/provas.json`, `data/votalhada/polls.json` |
+| Navegação, assets globais e render list | `_quarto.yml` + `assets/*` |
 
 ## Desenvolvimento local
 
@@ -87,6 +126,29 @@ quarto render
 # Preview com hot reload
 quarto preview
 ```
+
+## Verificação
+
+Guia completo: `docs/TESTING.md`
+
+Loop mínimo recomendado:
+
+```bash
+# Rebuild dos artefatos derivados após qualquer edição manual ou mudança de regra
+python scripts/build_derived_data.py
+
+# Teste rápido direcionado ou suíte inteira, dependendo do escopo
+python -m pytest tests/ -q
+
+# Render local do site quando a mudança afeta páginas/HTML/CSS
+quarto render
+```
+
+Na CI (`.github/workflows/daily-update.yml`), o caminho completo é:
+
+1. `python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing`
+2. `python scripts/build_derived_data.py`
+3. `quarto render`
 
 ## Captura de screenshots (desktop + mobile)
 
@@ -142,6 +204,7 @@ Referências:
 - `docs/PUBLIC_PRIVATE_DOCS_POLICY.md` — política oficial de classificação e checklist de push
 - `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md` — fluxo de branch local privada + branch pública
 - `docs/ARCHITECTURE.md` — referência técnica pública (substitui dependência pública de docs privados)
+- `docs/TESTING.md` — mapa de verificação por tipo de mudança
 
 Hook opcional de segurança:
 

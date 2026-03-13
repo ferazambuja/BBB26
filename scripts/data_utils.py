@@ -169,13 +169,6 @@ ANALYSIS_DESCRIPTIONS = {
         "de sequência + penalidade de ruptura) + eventos de poder + votos + Sincerão + VIP, "
         "todos acumulados sem decay."
     ),
-    "composite_score_chart": (
-        "Dois rankings complementares: **Queridômetro** (apenas reações do dia: "
-        "❤️ = +1, leves = -0.5, fortes = -1) e **Estratégico** (score composto "
-        "incluindo queridômetro + eventos de poder + votos + Sincerão + VIP — média "
-        "recebida de todos os participantes ativos). O score base do queridômetro usa "
-        "70% janela reativa (3 dias) + 30% memória de sequência + penalidade de ruptura."
-    ),
     "strategic_evolution_caption": (
         "Score composto = queridômetro (70% reativo 3d + 30% memória de sequência "
         "+ penalidade de ruptura) + eventos de poder + votos + Sincerão + VIP "

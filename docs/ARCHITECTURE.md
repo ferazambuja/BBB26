@@ -41,6 +41,7 @@ _site/ (GitHub Pages)
 
 ## Single Source Principles
 
+- `scripts/data_utils.py` is the shared source of truth for constants, date logic, loaders, helper utilities, and the Plotly theme.
 - Shared logic/constants should live in Python modules (not duplicated in QMD pages).
 - Heavy computation should be precomputed into `data/derived/`.
 - QMD pages should load data and render, not own business logic.
@@ -86,12 +87,37 @@ _site/ (GitHub Pages)
   - `quarto render`
   - publish `_site/`
 
+## New-Agent Read Order
+
+For a new engineer or agent, the fastest route into the repo is:
+
+1. `README.md` — product overview + quick repo map
+2. `docs/ARCHITECTURE.md` — this file
+3. `docs/OPERATIONS_GUIDE.md` — operational recipes
+4. `docs/MANUAL_EVENTS_GUIDE.md` — manual data contract
+5. `docs/SCORING_AND_INDEXES.md` — scoring formulas and model behavior
+6. `docs/TESTING.md` — verification map by change type
+
+## Change Routing
+
+Use this table before editing anything:
+
+| If you need to change... | Primary owner | Avoid |
+|--------------------------|---------------|-------|
+| Shared constants, sentiment weights, date/week logic, loaders, theme | `scripts/data_utils.py` | Re-defining constants or date logic inside QMD pages |
+| Reusable analytical computation | `scripts/builders/*` + `scripts/derived_pipeline.py` | Ad hoc recalculation in `*.qmd` |
+| Reusable card fragments / Plotly helper rendering | `scripts/*_viz.py` | Copy-pasting HTML builders across pages |
+| Page ordering, prose, section composition | `*.qmd` | Moving business logic into layout cells |
+| Manual game records | `data/manual_events.json`, `data/paredoes.json`, `data/provas.json`, `data/votalhada/polls.json` | Inventing schema fields without checking docs + live data |
+| Verification strategy | `docs/TESTING.md` | Running the entire suite blindly for every tiny edit |
+
 ## Related Public Docs
 
 - `docs/OPERATIONS_GUIDE.md` — operational runbooks
 - `docs/MANUAL_EVENTS_GUIDE.md` — manual schema and fill rules
 - `docs/SCORING_AND_INDEXES.md` — scoring definitions
 - `docs/PROGRAMA_BBB26.md` — non-analytical program context
+- `docs/TESTING.md` — verification matrix and test ownership
 
 ---
 
@@ -99,29 +125,30 @@ _site/ (GitHub Pages)
 
 All files in `data/derived/`, built by `scripts/build_derived_data.py`:
 
-| File | Description |
-|------|-------------|
-| `roles_daily.json` | Roles + VIP per day |
-| `auto_events.json` | Auto power events (Líder/Anjo/Monstro/Imune) |
-| `daily_metrics.json` | Sentiment + reaction totals per day |
-| `participants_index.json` | Canonical participant list (name, avatar, active, first/last seen) |
-| `index_data.json` | Precomputed tables for `index.qmd`. Sincerao: top-level (`current_week`, `available_weeks`, `reaction_reference_date`, `type_coverage` with `seen`/`unknown`, `radar` with `scope`, `pairs`), per-profile (`summary` with received/given totals + contradiction count, `current` received/given, `season` received_by_week/given_by_week with per-week `meta` counts) |
-| `plant_index.json` | Planta Index per week + rolling averages |
-| `cartola_data.json` | Cartola BBB points (leaderboard, weekly breakdown, stats) |
-| `relations_scores.json` | Pairwise sentiment scores (A→B) with **daily** and **paredão** versions, plus `streak_breaks` (detected alliance ruptures) |
-| `sincerao_edges.json` | Sincerão aggregates + optional edges |
-| `prova_rankings.json` | Competition performance rankings (leaderboard, per-prova detail) |
-| `snapshots_index.json` | Manifest of available dates for the Date View |
-| `game_timeline.json` | Unified chronological timeline (past + scheduled events). Displayed in `index.qmd` and `evolucao.qmd` |
-| `clusters_data.json` | Affinity cluster analysis data |
-| `cluster_evolution.json` | Cluster membership changes over time |
-| `paredao_analysis.json` | Per-paredão analysis data |
-| `paredao_badges.json` | Paredão performance badges |
-| `vote_prediction.json` | Vote prediction model data |
-| `reaction_matrices.json` | Precomputed daily reaction matrices (loaded via `load_reaction_matrices()`) |
-| `validation.json` | Sanity checks |
-| `manual_events_audit.json` | Manual events audit report |
-| `eliminations_detected.json` | Auto-detected participant exits |
+| File | Built by | Primary consumers | Description |
+|------|----------|-------------------|-------------|
+| `roles_daily.json` | `build_daily_roles()` | `paredao.qmd`, `evolucao.qmd`, `index_data.json` | Roles + VIP per day |
+| `auto_events.json` | `build_auto_events()` + `apply_big_fone_context()` | timeline, Cartola, derived relations | Auto power events (Líder/Anjo/Monstro/Imune) |
+| `daily_metrics.json` | `build_daily_metrics()` + change/history helpers | `evolucao.qmd`, `relacoes.qmd`, `index.qmd` | Sentiment + reaction totals per day |
+| `participants_index.json` | `build_participants_index()` | `paredao.qmd`, `paredoes.qmd`, `provas.qmd`, economy pages | Canonical participant list (name, avatar, active, first/last seen) |
+| `index_data.json` | `build_index_data()` | `index.qmd`, economy pages | Precomputed tables for `index.qmd`, profiles, highlights, strategic timeline, leader periods |
+| `plant_index.json` | `build_plant_index()` | `index_data.json`, visibility cards | Planta Index per week + rolling averages |
+| `cartola_data.json` | `build_cartola_data()` | `cartola.qmd` | Cartola BBB points (leaderboard, weekly breakdown, stats) |
+| `relations_scores.json` | `build_relations_scores()` | `relacoes.qmd`, `paredao.qmd`, `evolucao.qmd` | Pairwise sentiment scores (A→B) with **daily** and **paredão** versions, plus `streak_breaks` |
+| `sincerao_edges.json` | `build_sincerao_edges()` | relations pipeline, `index_data.json` | Sincerão aggregates + optional edges |
+| `prova_rankings.json` | `build_prova_rankings()` | `provas.qmd` | Competition performance rankings (leaderboard, per-prova detail) |
+| `snapshots_index.json` | `build_snapshots_manifest()` | Date-oriented debug/review flows | Manifest of available dates |
+| `game_timeline.json` | `build_game_timeline()` | `index.qmd`, `evolucao.qmd`, `cronologia_mobile_review.qmd` | Unified chronological timeline (past + scheduled events) |
+| `clusters_data.json` | `build_clusters_data()` | `relacoes.qmd` | Affinity cluster analysis data |
+| `cluster_evolution.json` | `build_cluster_evolution()` | historical/debug analysis | Cluster membership changes over time |
+| `paredao_analysis.json` | `build_paredao_analysis()` | `paredoes.qmd` | Per-paredão analysis data |
+| `paredao_badges.json` | `build_paredao_badges()` | paredão/archive presentation layers | Paredão performance badges |
+| `vote_prediction.json` | `build_vote_prediction()` | `paredao.qmd`, `paredoes.qmd`, `index.qmd` | Líder nomination / vote prediction data |
+| `reaction_matrices.json` | `build_reaction_matrices()` | `relacoes.qmd` | Precomputed daily reaction matrices |
+| `balance_events.json` | `build_balance_events()` | `economia.qmd`, `economia_v2.qmd` | Balance deltas, compras/punições, fairness metrics |
+| `validation.json` | `validate_manual_events()` | debugging and sanity review | Sanity checks |
+| `manual_events_audit.json` | `audit_manual_events.run_audit()` | `docs/MANUAL_EVENTS_AUDIT.md`, operators | Manual events audit report |
+| `eliminations_detected.json` | `detect_eliminations()` | timeline + validation | Auto-detected participant exits |
 
 ---
 
@@ -233,21 +260,42 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 
 ## Page Architecture
 
+`_quarto.yml` is the authoritative source for the current render list and navbar. Keep this section in sync with it.
+
 ### Main Navbar Pages
 
 | Page | File | Purpose |
 |------|------|---------|
-| **Painel** | `index.qmd` | Main dashboard: overview, ranking, heatmap, profiles |
+| **Painel** | `index.qmd` | Main dashboard: overview, timeline, heatmap, profiles |
 | **Evolução** | `evolucao.qmd` | Temporal: rankings, sentiment evolution, impact, daily pulse, balance, powers |
+| **Estalecas VIP/Xepa** | `economia.qmd` | House economy, compras, punições, mesada, and VIP/Xepa fairness |
 | **Relações** | `relacoes.qmd` | Social fabric: alliances, rivalries, streak breaks, contradictions, hostility map, network graph |
 | **Paredão** | `paredao.qmd` | Current paredão: formation, votes, vote-reaction analysis, Líder nomination prediction |
-| **Arquivo** | `paredoes.qmd` | Paredão archive: historical analysis per elimination |
+| **Cartola** | `cartola.qmd` | Cartola BBB points leaderboard and event breakdown |
 | **Provas** | `provas.qmd` | Competition performance rankings and bracket results |
+| **Paredões** | `paredoes.qmd` | Paredão archive: historical analysis per elimination |
 | **Votação** | `votacao.qmd` | Voting system analysis: 70/30 Voto Único / Torcida split |
 
-### Additional Pages
+### Rendered Utility Pages
 
-- `cartola.qmd` — Cartola BBB points leaderboard
+- `economia_v2.qmd` — alternate narrative/mobile-focused economics page
+- `cronologia_mobile_review.qmd` — mobile review surface for the timeline component
+
+### Page Ownership Map
+
+| Surface | Entry file | Primary helpers | Primary inputs |
+|---------|------------|-----------------|----------------|
+| Main dashboard | `index.qmd` | `scripts/index_viz.py`, `scripts/paredao_viz.py`, `data_utils.render_cronologia_html()` | `index_data.json`, `game_timeline.json`, `paredoes.json`, Votalhada loaders |
+| Evolution | `evolucao.qmd` | shared chart helpers in `data_utils.py` | `daily_metrics.json`, `relations_scores.json`, `roles_daily.json`, `index_data.json`, snapshots |
+| Economy | `economia.qmd` | page-local HTML helpers | `balance_events.json`, `index_data.json`, `participants_index.json`, snapshots, `manual_events.json` |
+| Economy V2 | `economia_v2.qmd` | page-local narrative helpers | `balance_events.json`, `index_data.json`, `participants_index.json`, snapshots, `manual_events.json` |
+| Relations | `relacoes.qmd` | page-local graph/table composition | `relations_scores.json`, `daily_metrics.json`, `clusters_data.json`, `reaction_matrices.json`, snapshots |
+| Current paredão | `paredao.qmd` | `scripts/paredao_viz.py` | `paredoes.json`, `relations_scores.json`, `roles_daily.json`, `participants_index.json`, `vote_prediction.json`, Votalhada polls |
+| Paredão archive | `paredoes.qmd` | `scripts/paredao_viz.py` | `paredao_analysis.json`, `vote_prediction.json`, `participants_index.json`, `paredoes.json` |
+| Cartola | `cartola.qmd` | page-local HTML builders | `cartola_data.json`, `manual_events.json` |
+| Provas | `provas.qmd` | page-local leaderboard/render helpers | `prova_rankings.json`, `provas.json`, `participants_index.json` |
+| Voting analysis | `votacao.qmd` | `scripts/votacao_viz.py` | transformed `paredoes.json` data |
+| Timeline review | `cronologia_mobile_review.qmd` | `data_utils.render_cronologia_html()` | `game_timeline.json` |
 
 ### Archived Debug Pages
 

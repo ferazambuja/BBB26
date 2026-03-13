@@ -14,6 +14,7 @@ Only these documentation files/directories are public by default:
 - `docs/OPERATIONS_GUIDE.md`
 - `docs/MANUAL_EVENTS_GUIDE.md`
 - `docs/SCORING_AND_INDEXES.md`
+- `docs/TESTING.md`
 - `docs/PROGRAMA_BBB26.md`
 - `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`
 - `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md`

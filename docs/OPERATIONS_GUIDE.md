@@ -5,6 +5,7 @@
 > **For AI agents without context**: Read the Quick Index below to find exactly what you need to do.
 > **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `docs/ARCHITECTURE.md` (architecture).
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
+> **For verification strategy**: See `docs/TESTING.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
 > **Last updated**: 2026-03-13
@@ -33,10 +34,26 @@
 | **Workflow failed on GitHub** | After failure | [Troubleshooting](#troubleshooting) |
 | **Push conflict with bot** | After `git push` fails | [Git Workflow → conflict resolution](#handling-push-conflicts) |
 | **Check public/private doc policy** | Before commit/push | [Public vs Private Docs Policy](#public-vs-private-documentation-policy-agents) |
+| **Decide what to verify after a change** | Any time | [Common Edit Recipes](#common-edit-recipes-fast-path) + `docs/TESTING.md` |
 | **Deploy / render the site on GitHub** | After push to `main` | [Triggering Site Updates](#triggering-site-updates) |
 | **Which script to run?** | Any time | [Script Reference](#quick-reference-which-script-when) |
 
 ---
+
+## Common Edit Recipes (Fast Path)
+
+Use this table when you already know **what changed** and need the shortest safe path.
+
+| Change type | Usually edit | Must run | Usually inspect next |
+|-------------|-------------|----------|----------------------|
+| Manual event / paredão / prova / poll data | `data/manual_events.json`, `data/paredoes.json`, `data/provas.json`, `data/votalhada/polls.json` | `python scripts/build_derived_data.py` | `docs/MANUAL_EVENTS_AUDIT.md` + affected page |
+| Shared scoring / loader / date logic | `scripts/data_utils.py`, `scripts/builders/*`, `scripts/derived_pipeline.py` | targeted `pytest` + `python scripts/build_derived_data.py` | affected derived JSON + affected page |
+| Reusable render helper | `scripts/*_viz.py` | targeted `pytest` + `quarto render <affected-page>.qmd` | rendered HTML / page screenshots |
+| Page-only composition / prose / layout | `*.qmd`, `assets/*`, `_quarto.yml` | targeted `pytest` + `quarto render <affected-page>.qmd` | local page render and, when needed, screenshot capture |
+| Git/publication workflow | `scripts/sync_public.sh`, workflow/policy docs | `pytest tests/test_sync_public_script.py -q` | report-first publish flow |
+| Documentation only | `README.md`, `docs/*.md`, `data/votalhada/README.md` | consistency check of links/cross-references | no site rebuild required unless instructions or examples changed materially |
+
+For the exact test families and recommended commands, see `docs/TESTING.md`.
 
 ## Public vs Private Documentation Policy (Agents)
 
@@ -2189,6 +2206,7 @@ quarto render → deploy
 | **`docs/ARCHITECTURE.md`** | Public technical architecture and data-flow reference |
 | **`docs/MANUAL_EVENTS_GUIDE.md`** | Full schema + fill rules for `manual_events.json` |
 | **`docs/SCORING_AND_INDEXES.md`** | Scoring formulas, weights, index specifications |
+| **`docs/TESTING.md`** | Verification matrix, test ownership, and minimum checks by change type |
 | **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics |
 | **`docs/PUBLIC_PRIVATE_DOCS_POLICY.md`** | Public/private documentation boundaries + push checklist |
 | **`docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md`** | Dual-branch workflow (local private branch + public branch) |

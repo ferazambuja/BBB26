@@ -16,8 +16,6 @@ execute:
 #| label: setup
 #| include: false
 
-import pandas as pd
-import plotly.express as px
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from functools import partial
@@ -47,17 +45,12 @@ from index_viz import (
     card_header,
     days_ago_str as _days_ago_str,
     fmt_date_br,
-    make_evolution_chart,
-    make_sentiment_ranking,
-    make_cross_table_heatmap,
     make_cross_table_html,
     make_event_chips as _make_event_chips,
     make_reaction_summary_html,
     pair_story_card as _pair_story_card,
     render_alvo_rows as _render_alvo_rows,
     render_dramatic_event_row as _render_dramatic_event_row,
-    render_mobile_evolution_summary,
-    render_mobile_queridometro_summary,
     render_actor_avatars as _render_actor_avatars,
     render_avatar_row as _render_avatar_row,
     render_blindado_row as _render_blindado_row,
@@ -877,229 +870,6 @@ Ver análise →
 </div>
 ''')
 ```
-
-# Rankings {#ranking-sentimento}
-
-<style>
-.ranking-mobile-summary,
-.ranking-mobile-cta {
-  display: none;
-}
-
-.ranking-mobile-summary {
-  margin: 0.6rem 0 0.9rem;
-}
-
-.ranking-mobile-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 0.75rem 0.8rem;
-  margin-bottom: 0.65rem;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.ranking-mobile-card h4 {
-  margin: 0 0 0.45rem 0;
-  font-size: var(--fs-lg);
-  color: #fff;
-}
-
-.ranking-mobile-card ul {
-  margin: 0.25rem 0 0;
-  padding-left: 1rem;
-  line-height: 1.35;
-}
-
-.ranking-mobile-card li {
-  margin: 0.16rem 0;
-  color: #d0d0d0;
-  font-size: var(--fs-sm);
-}
-
-.ranking-mobile-kpis {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.ranking-mobile-kpi {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 0.35rem 0.25rem;
-  text-align: center;
-}
-
-.ranking-mobile-kpi .v {
-  display: block;
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.1;
-}
-
-.ranking-mobile-kpi .l {
-  display: block;
-  font-size: var(--fs-2xs);
-  color: #9aa0a6;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.ranking-mobile-note {
-  color: #9aa0a6;
-  font-size: var(--fs-xs);
-  line-height: 1.3;
-}
-
-@media (max-width: 575.98px) {
-  #cell-sentiment-ranking-today,
-  #cell-evolution-queridometro,
-  #cell-evolution-strategic {
-    display: none;
-  }
-
-  #tabset-1-1 > div:not(.ranking-mobile-summary),
-  #tabset-1-2 > div:not(.ranking-mobile-summary),
-  #tabset-2-2 > div:not(.ranking-mobile-summary),
-  #tabset-1-1 > p.text-muted.small,
-  #tabset-1-2 > p.text-muted.small {
-    display: none !important;
-  }
-
-  .ranking-desktop-only {
-    display: none !important;
-  }
-
-  .ranking-mobile-summary,
-  .ranking-mobile-cta {
-    display: block;
-  }
-}
-</style>
-
-```{python}
-#| label: composite-score-desc
-#| output: asis
-print(ANALYSIS_DESCRIPTIONS["composite_score_chart"])
-```
-
-```{python}
-#| label: ranking-prep
-#| include: false
-
-ranking_data = index_data.get("ranking", {})
-_ranking_height = ranking_data.get("height", 500)
-today_rows = ranking_data.get("today", [])
-```
-
-::: {.panel-tabset}
-
-## Queridômetro
-
-```{python}
-#| label: ranking-mobile-summary-queridometro
-#| output: asis
-
-print(render_mobile_queridometro_summary(today_rows, ranking_data.get("change_week", [])))
-```
-
-```{python}
-#| label: sentiment-ranking-today
-
-fig = make_sentiment_ranking(today_rows, title_suffix=latest.get("label", ""), fixed_height=_ranking_height)
-fig.show()
-```
-
-## Evolução
-
-```{python}
-#| label: evolution-shared
-#| include: false
-
-# Shared setup for evolution charts
-_paredoes_markers = []
-_paredoes_json = load_paredoes_raw()
-if _paredoes_json.get('paredoes'):
-    for _p in _paredoes_json['paredoes']:
-        _paredoes_markers.append({
-            'date': pd.to_datetime(_p['data']),
-            'label': f"🗳️ {_p['numero']}º Paredão",
-        })
-
-# Consistent color palette across both charts
-_all_participants = sorted(set(
-    row["name"] for row in index_data.get("timeline", [])
-))
-_palette = (
-    px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
-    px.colors.qualitative.Set2 + px.colors.qualitative.Bold
-)
-_part_colors = {name: _palette[i % len(_palette)] for i, name in enumerate(_all_participants)}
-```
-
-::: {.panel-tabset}
-
-### Queridômetro
-
-```{python}
-#| label: evolution-queridometro
-#| output: asis
-
-timeline_data = index_data.get("timeline", [])
-print(render_mobile_evolution_summary(
-    timeline_data,
-    score_key="sentiment",
-    section_title="Evolução do queridômetro",
-    cta_href="evolucao.html#sentimento",
-    score_decimals=1,
-))
-fig_evo_q = make_evolution_chart(
-    timeline_data, "sentiment",
-    title="Evolução do Queridômetro",
-    y_label="Score de Sentimento (soma reações)",
-    part_colors=_part_colors,
-    paredoes_markers=_paredoes_markers,
-    score_fmt="+.1f",
-)
-if fig_evo_q:
-    fig_evo_q.show()
-    print("<p class='text-muted small u-s038'>Score = soma ponderada de reações recebidas (❤️ +1, leves −0.5, fortes −1). Use os botões acima para alternar entre presets.</p>")
-else:
-    print("<p class='text-muted'>Dados insuficientes para gráfico de evolução.</p>")
-```
-
-### Estratégico
-
-```{python}
-#| label: evolution-strategic
-#| output: asis
-
-strat_timeline_data = index_data.get("strategic_timeline", [])
-print(render_mobile_evolution_summary(
-    strat_timeline_data,
-    score_key="score",
-    section_title="Evolução estratégica",
-    cta_href="evolucao.html#estrategico",
-    score_decimals=2,
-))
-fig_evo_s = make_evolution_chart(
-    strat_timeline_data, "score",
-    title="Evolução do Score Estratégico",
-    y_label="Score Composto (média recebida)",
-    part_colors=_part_colors,
-    paredoes_markers=_paredoes_markers,
-    score_fmt="+.3f",
-)
-if fig_evo_s:
-    fig_evo_s.show()
-    print(f"<p class='text-muted small u-s038'>{ANALYSIS_DESCRIPTIONS['strategic_evolution_caption']}</p>")
-else:
-    print("<p class='text-muted'>Dados de relações não disponíveis para evolução estratégica.</p>")
-```
-
-:::
-
-:::
 
 # Tabela Cruzada de Reações {#crosstable}
 

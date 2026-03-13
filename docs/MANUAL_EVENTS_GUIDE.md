@@ -18,19 +18,120 @@ Cartola role transitions are auto-detected from consecutive snapshots in `build_
 
 ## Structure (manual-only data)
 
-- `participants` — Exit status for people who left (desistente, eliminada, desclassificado)
+- `participants` — **object keyed by participant name** for exits (desistente, eliminada, desclassificado)
 - `weekly_events` — Per-week: Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile, notes
 - `special_events` — Dinâmicas, new entrants, one-off events
 - `power_events` — **Powers and consequences** (immunity, contragolpe, voto duplo, veto, perdeu voto, bate-volta, ganha-ganha, barrado no baile)
 - `cartola_points_log` — **Manual point overrides** for events not inferable from API
+- `scheduled_events` — Future events shown in the timeline until real data lands
 
 ---
+
+## Shape Summary
+
+Use the real JSON shape below before editing:
+
+| Key | Shape | Notes |
+|-----|-------|-------|
+| `participants` | object | Keys are exact participant names from the API |
+| `weekly_events` | array | One object per BBB week |
+| `special_events` | array | One-off dynamics outside weekly buckets |
+| `power_events` | array | Flat event log with actor/target attribution |
+| `cartola_points_log` | array | Rare manual override list |
+| `scheduled_events` | array | Future timeline entries |
+
+## Minimal Valid Snippets
+
+Copy from these patterns before inventing a new structure.
+
+### Exit entry in `participants`
+
+```json
+"participants": {
+  "Aline Campos": {
+    "status": "eliminada",
+    "exit_date": "2026-01-21",
+    "paredao_numero": 1,
+    "fontes": [
+      "https://gshow.globo.com/..."
+    ]
+  }
+}
+```
+
+### Power event
+
+```json
+{
+  "date": "2026-01-15",
+  "week": 1,
+  "type": "indicacao",
+  "actor": "Marcelo",
+  "target": "Aline Campos",
+  "source": "Big Fone",
+  "detail": "Indicação direta ao paredão",
+  "impacto": "negativo",
+  "origem": "manual",
+  "fontes": [
+    "https://gshow.globo.com/..."
+  ]
+}
+```
+
+### Weekly event (`big_fone`)
+
+```json
+{
+  "week": 1,
+  "start_date": "2026-01-13",
+  "end_date": "2026-01-19",
+  "big_fone": [
+    {
+      "atendeu": "Marcelo",
+      "date": "2026-01-15",
+      "consequencia": "Indicou Aline ao paredão e ficou imune"
+    }
+  ]
+}
+```
+
+### Scheduled event
+
+```json
+{
+  "date": "2026-03-14",
+  "week": 9,
+  "category": "anjo",
+  "emoji": "😇",
+  "title": "Prova do Anjo",
+  "detail": "Prova do Anjo da semana.",
+  "time": "Ao Vivo",
+  "fontes": [
+    "https://gshow.globo.com/..."
+  ]
+}
+```
+
+## Common Audit Failures
+
+These are the mistakes that most often break `python scripts/build_derived_data.py` or produce bad downstream data:
+
+- **Name mismatch**: any participant key/value that does not exactly match the API/snapshot name.
+- **Legacy exit contract**: using `date`, `fonte`, `paredao`, or `detail` inside `participants` instead of the current `exit_date`, `fontes`, `paredao_numero`, `exit_reason`.
+- **Consensus event without `actors`**: using only `"actor": "A + B + C"` and forgetting the explicit `"actors": [...]` array.
+- **Duplicate power events**: registering one entry per actor for a consensus dynamic, which duplicates timeline rows.
+- **Scheduled event left as the only source of truth**: forgetting to record the real event in `weekly_events`, `power_events`, `paredoes.json`, or `provas.json` after it happens.
+- **Missing provenance**: omitting `fontes` on manual records that will be revisited later.
+- **Wrong visibility mechanism**: using `voto_revelado` or a power event where `confissao_voto`, `dedo_duro`, or `votacao_aberta: true` is the real contract.
+- **Not rebuilding**: editing JSON and forgetting to rerun `python scripts/build_derived_data.py`.
 
 ## Manual Categories + AI Fill Rules
 
 ### `participants`
 Use for **desistência / eliminação / desclassificação**.
-- Fields: `status`, `date`, `fonte`.
+- Shape: `participants` is an **object** whose keys are participant names.
+- Current fields: `status`, `exit_date`, `fontes`.
+- Common optional fields: `paredao_numero` (for eliminações), `exit_reason` (for desistência/desclassificação).
 - Name must match snapshots **exactly**.
 
 ### `weekly_events`
@@ -239,7 +340,6 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
   "title": "3º Paredão — Formação (triplo)",
   "detail": "Imunidades: 1 pelo Anjo (+1 extra se ganhar). Emparedados: 1 consenso Big Fone + 1 indicação Líder + 2 mais votados pela casa.",
   "time": "Ao Vivo",
-  "participants": [],
   "fontes": ["https://gshow.globo.com/..."]
 }
 ```
@@ -252,7 +352,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 - `title` — event title for display in timeline
 - `detail` — description of what's expected
 - `time` — schedule info: `"Ao Vivo"`, `"7h"`, `"A definir"`, etc. Shown as yellow badge.
-- `participants` — leave empty `[]` until event happens
+- `participants` — optional; omit or leave empty until event happens
 - `fontes` — GShow article confirming the schedule
 
 **How it works:**

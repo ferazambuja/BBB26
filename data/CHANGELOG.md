@@ -2,6 +2,17 @@
 
 This document tracks the initial data audit and key findings about the API data model.
 
+## Update Log (2026-03-13)
+
+- `index.qmd`: removed the full Rankings section (`#ranking-sentimento`) for both desktop and mobile, including tabs and ranking/evolution plots.
+- Cleanup synchronized after removal:
+  - removed unused `index.qmd` imports and ranking-related render blocks
+  - removed now-dead ranking/evolution helper functions from `scripts/index_viz.py`
+  - removed stale description key `composite_score_chart` from `scripts/data_utils.py`
+  - updated index contract and helper tests to match the new behavior
+  - updated page architecture wording in `docs/ARCHITECTURE.md` (index no longer describes ranking in the main panel)
+- Process standardization: modularity strategy docs now require a removal-impact review (QMD imports, scripts, tests/contracts, docs/changelog) whenever a rendered section is deleted.
+
 ## Current Status (2026-02-10)
 
 - **Total snapshots**: 55 (Jan 13 – Feb 10, 2026)
