@@ -1184,23 +1184,56 @@ def _render_cronologia_rows(
     grouped_events: list[dict],
     columns: int,
     row_builder,
+    today_date: str | None = None,
 ) -> list[str]:
-    """Render chronology week/date scaffolding around event rows."""
+    """Render chronology week/date scaffolding around event rows.
+
+    When *today_date* is supplied, a "📍 Hoje" marker row is inserted
+    between future and current/past events so the scroll-to-today JS
+    can anchor on it.
+    """
     parts: list[str] = []
+    marker_inserted = not bool(today_date)  # skip logic when no date
+    last_future_date: str | None = None  # track nearest upcoming date
+
     for week_group in grouped_events:
         parts.append(
             f'<tr><td colspan="{columns}" class="cron-week">Semana {week_group["week"]}</td></tr>'
         )
         for day_group in week_group["dates"]:
+            date_str = day_group["date"]
+
+            # Insert marker before the first date that is <= today
+            if not marker_inserted and date_str <= today_date:
+                if last_future_date:
+                    marker_text = f"📍 Hoje — ⏫ Próximo: {last_future_date}"
+                else:
+                    marker_text = "📍 Hoje"
+                parts.append(
+                    f'<tr class="cronologia-hoje-marker">'
+                    f'<td colspan="{columns}" class="cronologia-hoje-cell">{marker_text}</td></tr>'
+                )
+                marker_inserted = True
+            elif not marker_inserted:
+                last_future_date = date_str  # remember the most recent future date
+
             parts.append(
                 f'<tr><td colspan="{columns}" class="cron-date">📅 {day_group["date"]}</td></tr>'
             )
             for ev in day_group["events"]:
                 parts.extend(row_builder(_prepare_cronologia_event(ev)))
+
+    # All events are in the future — place marker at the bottom
+    if not marker_inserted:
+        parts.append(
+            f'<tr class="cronologia-hoje-marker">'
+            f'<td colspan="{columns}" class="cronologia-hoje-cell">📍 Hoje</td></tr>'
+        )
+
     return parts
 
 
-def _render_cronologia_baseline(grouped_events: list[dict]) -> str:
+def _render_cronologia_baseline(grouped_events: list[dict], today_date: str | None = None) -> str:
     parts = [
         '<div class="cronologia-shell cronologia-shell--baseline">',
         '<div class="cronologia-table-wrap">',
@@ -1229,12 +1262,12 @@ def _render_cronologia_baseline(grouped_events: list[dict]) -> str:
             )
         ]
 
-    parts.extend(_render_cronologia_rows(grouped_events, 3, row_builder))
+    parts.extend(_render_cronologia_rows(grouped_events, 3, row_builder, today_date))
     parts.extend(['</tbody></table></div></div>'])
     return "".join(parts)
 
 
-def _render_cronologia_mobile_table(grouped_events: list[dict], variant: str) -> str:
+def _render_cronologia_mobile_table(grouped_events: list[dict], variant: str, today_date: str | None = None) -> str:
     variant_class_map = {
         "two_row_open": "cronologia-mobile-table--open",
         "two_row_disclosure": "cronologia-mobile-table--disclosure",
@@ -1303,7 +1336,7 @@ def _render_cronologia_mobile_table(grouped_events: list[dict], variant: str) ->
             detail_row,
         ]
 
-    parts.extend(_render_cronologia_rows(grouped_events, 2, row_builder))
+    parts.extend(_render_cronologia_rows(grouped_events, 2, row_builder, today_date))
     parts.extend(['</tbody></table></div></div>'])
     return "".join(parts)
 
@@ -1330,15 +1363,15 @@ def _render_cronologia_day_panel(grouped_events: list[dict]) -> str:
     return "".join(parts)
 
 
-def render_cronologia_variant(grouped_events: list[dict], variant: str) -> str:
+def render_cronologia_variant(grouped_events: list[dict], variant: str, today_date: str | None = None) -> str:
     """Render one chronology variant from grouped timeline data."""
     if not grouped_events:
         return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
 
     if variant == "baseline":
-        return _render_cronologia_baseline(grouped_events)
+        return _render_cronologia_baseline(grouped_events, today_date)
     if variant in {"two_row_open", "two_row_disclosure"}:
-        return _render_cronologia_mobile_table(grouped_events, variant)
+        return _render_cronologia_mobile_table(grouped_events, variant, today_date)
     if variant == "day_panel":
         return _render_cronologia_day_panel(grouped_events)
     raise ValueError(f"Unsupported chronology variant: {variant}")
@@ -1350,19 +1383,38 @@ def render_cronologia_html(timeline_events: list[dict]) -> str:
     Layout: 3 columns (Tipo, Evento, Detalhe).
     Week headers span all columns (gold background).
     Date divider rows span all columns (dim, subtle separator).
+    Includes a "📍 Hoje" marker row and auto-scroll JS.
     """
     if not timeline_events:
         return "<p class='text-muted'>Nenhum evento na cronologia.</p>"
+
+    today_date = datetime.now(BRT).strftime("%Y-%m-%d")
     grouped_events = group_cronologia_events(timeline_events)
+
+    scroll_js = (
+        '<script>'
+        'requestAnimationFrame(function(){'
+        'document.querySelectorAll(".cronologia-hoje-marker").forEach(function(m){'
+        'var w=m.closest(".cronologia-table-wrap");'
+        'if(!w)return;'
+        'var th=w.querySelector("thead");'
+        'var off=th?th.offsetHeight:0;'
+        'w.scrollTop=m.offsetTop-off-4;'
+        '});'
+        '});'
+        '</script>'
+    )
+
     return "".join([
         '<div class="cronologia-live-switch">',
         '<div class="cronologia-live-desktop">',
-        render_cronologia_variant(grouped_events, "baseline"),
+        render_cronologia_variant(grouped_events, "baseline", today_date),
         '</div>',
         '<div class="cronologia-live-mobile">',
-        render_cronologia_variant(grouped_events, "two_row_open"),
+        render_cronologia_variant(grouped_events, "two_row_open", today_date),
         '</div>',
         '</div>',
+        scroll_js,
     ])
 
 

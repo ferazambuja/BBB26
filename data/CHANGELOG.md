@@ -4,6 +4,11 @@ This document tracks the initial data audit and key findings about the API data 
 
 ## Update Log (2026-03-13)
 
+- Cronologia do Jogo: added "📍 Hoje" marker row and auto-scroll to current date on page load.
+  - When future/scheduled events exist, marker shows "📍 Hoje — ⏫ Próximo: YYYY-MM-DD" so users know there are upcoming events above.
+  - When no events exist for today, the marker anchors between the nearest future and past dates.
+  - Works on both desktop (baseline 3-column) and mobile (two-row) variants.
+  - Affected files: `scripts/data_utils.py` (rendering logic + scroll JS), `assets/cards.css` (marker styles).
 - `index.qmd`: removed the full Rankings section (`#ranking-sentimento`) for both desktop and mobile, including tabs and ranking/evolution plots.
 - Cleanup synchronized after removal:
   - removed unused `index.qmd` imports and ranking-related render blocks
