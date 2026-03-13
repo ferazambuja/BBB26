@@ -271,7 +271,7 @@ def build_derived_data() -> None:
     write_json(DERIVED_DIR / "relations_scores.json", relations_scores)
     write_json(DERIVED_DIR / "prova_rankings.json", prova_rankings)
 
-    game_timeline = build_game_timeline(eliminations_detected, auto_events, manual_events, paredoes)
+    game_timeline = build_game_timeline(eliminations_detected, auto_events, manual_events, paredoes, provas_data)
     write_json(DERIVED_DIR / "game_timeline.json", {
         "_metadata": {"generated_at": now, "source": "all_events"},
         "events": game_timeline,

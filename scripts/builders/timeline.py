@@ -64,6 +64,74 @@ def _collect_timeline_auto_events(
     return events
 
 
+def _extract_prova_winners(prova: dict) -> list[str]:
+    """Extract one or more winner names from a prova payload."""
+    winners: list[str] = []
+    for name in prova.get("vencedores", []):
+        if isinstance(name, str):
+            clean = name.strip()
+            if clean:
+                winners.append(clean)
+
+    vencedor = prova.get("vencedor", "")
+    if isinstance(vencedor, str):
+        clean = vencedor.strip()
+        if clean:
+            winners.append(clean)
+
+    # Keep insertion order while removing duplicates
+    return list(dict.fromkeys(winners))
+
+
+def _collect_timeline_provas_fallback_events(
+    auto_events: list[dict],
+    provas_data: dict | list | None,
+) -> list[dict]:
+    """Add fallback Líder timeline events from provas when API auto-events lag."""
+    events: list[dict] = []
+    provas_list: list[dict] = []
+    if isinstance(provas_data, dict):
+        provas_list = provas_data.get("provas", [])
+    elif isinstance(provas_data, list):
+        provas_list = provas_data
+
+    auto_lider_targets_by_week: dict[int, set[str]] = defaultdict(set)
+    for ev in auto_events:
+        if ev.get("type") != "lider":
+            continue
+        target = ev.get("target", "")
+        date = ev.get("date", "")
+        if not target:
+            continue
+        week = get_week_number(date) if date else int(ev.get("week", 0) or 0)
+        if week > 0:
+            auto_lider_targets_by_week[week].add(target)
+
+    for prova in provas_list:
+        if prova.get("tipo") != "lider":
+            continue
+        date = prova.get("date", "") or prova.get("data", "")
+        if not date:
+            continue
+        week = get_week_number(date)
+        winners = _extract_prova_winners(prova)
+        for winner in winners:
+            if winner in auto_lider_targets_by_week.get(week, set()):
+                continue
+            events.append({
+                "date": date,
+                "week": week,
+                "category": "lider",
+                "emoji": "👑",
+                "title": f"{winner} → Lider",
+                "detail": prova.get("nota", ""),
+                "participants": [winner],
+                "source": "provas",
+            })
+
+    return events
+
+
 def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
     """Collect timeline events from manual power events, weekly events, and special events.
 
@@ -449,10 +517,12 @@ def build_game_timeline(
     auto_events: list[dict],
     manual_events: dict,
     paredoes_data: dict | list | None,
+    provas_data: dict | list | None = None,
 ) -> list[dict]:
     """Build a unified chronological timeline merging all event sources."""
     events: list[dict] = []
     events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events))
+    events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data))
     events.extend(_collect_timeline_manual_events(manual_events))
     events.extend(_collect_timeline_paredao_events(paredoes_data))
     return _merge_and_dedup_timeline(events, manual_events)

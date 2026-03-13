@@ -414,6 +414,11 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    Include `fontes` with `{url, arquivo, titulo}` format pointing to scraped files.
    See templates below (standard and resistance prova formats).
 
+   **Cronologia guardrail (required)**:
+   - `cronologia` now has a Líder fallback sourced from `provas.json` (`tipo=lider`) when API role sync is delayed.
+   - Minimum required fields for fallback: `tipo`, `date`, and `vencedor` (or `vencedores`).
+   - After updating `provas.json`, rebuild and confirm a `lider` event exists in `data/derived/game_timeline.json` even if API is lagging.
+
    **Phase-by-phase live updates are allowed**:
    - If only phase 1 is known, save phase 1 immediately with a provisional `nota`.
    - Append/update phase 2 as soon as it finishes (same prova entry).
@@ -721,7 +726,7 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 
 Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the auto-dedup handles timeline, but cleaner to remove.
 
-**Note**: Anjo/Monstro timeline events come from API role auto-detection (snapshots), not from `weekly_events.anjo`. Removing scheduled events before the next API snapshot creates a temporary gap in the timeline display — this is normal and self-corrects after the next snapshot arrives.
+**Note**: Anjo/Monstro timeline events come from API role auto-detection (snapshots), not from `weekly_events.anjo`. Removing scheduled events before the next API snapshot creates a temporary gap in the timeline display — this is normal and self-corrects after the next snapshot arrives. For Líder, there is an extra fallback from `provas.json` to avoid missing timeline rows while API role sync is pending.
 
 ### 5. Rebuild + commit + push
 
@@ -1723,6 +1728,7 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 - `build_game_timeline()` merges scheduled events with real events
 - If a real event with the same `(date, category)` exists, the scheduled entry is auto-skipped
 - Past scheduled events (`date < today`) are dropped from timeline display
+- Líder source priority: API `auto_events` first; fallback to `provas.json` (`tipo=lider`) when API data is late
 - **Clean up periodically**: remove past entries from `scheduled_events` array
 
 ---
