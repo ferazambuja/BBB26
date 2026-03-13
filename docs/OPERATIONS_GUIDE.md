@@ -407,6 +407,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    - `vip_source` values:
      - `oficial_gshow` when list is confirmed by article.
      - `api_fallback` only when no reliable article/list is available yet.
+     - Temporary exception: if official VIP is known but Cartola strict validation is failing due stale API extras, keep `api_fallback` until API syncs, keep official URLs in `fontes`, then switch to `oficial_gshow`.
    - Cartola safeguard uses `provas.lider.vip` as primary source and API as fallback. Unexpected extra names from API in strict weeks fail the build.
 
 2. **Update `data/provas.json`** — add Prova do Líder results (phases, scores, placements).
