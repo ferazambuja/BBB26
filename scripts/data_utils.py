@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from bisect import bisect_left
+from functools import lru_cache
 from datetime import datetime, timedelta, timezone
 from html import escape as _html_escape
 from pathlib import Path
@@ -267,6 +268,10 @@ def setup_bbb_dark_theme() -> None:
 # the next. Boundaries are the LAST day of each week (inclusive).
 # Update when a new paredão cycle completes or a new Líder is defined.
 BBB26_PREMIERE = "2026-01-13"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_MANUAL_EVENTS_PATH = _PROJECT_ROOT / "data" / "manual_events.json"
+_PAREDOES_PATH = _PROJECT_ROOT / "data" / "paredoes.json"
+_PROVAS_PATH = _PROJECT_ROOT / "data" / "provas.json"
 
 WEEK_END_DATES: list[str] = [
     "2026-01-21",  # Week 1 — Alberto Cowboy Líder; 1º Paredão Jan 21; Babu Líder Jan 22
@@ -280,37 +285,157 @@ WEEK_END_DATES: list[str] = [
 ]
 
 
-def get_week_number(date_str: str) -> int:
+def _is_iso_date(value: Any) -> bool:
+    """Return True when value is a YYYY-MM-DD string."""
+    return isinstance(value, str) and len(value) == 10 and value[4] == "-" and value[7] == "-"
+
+
+def _read_json_or_default(path: Path, default: Any) -> Any:
+    if not path.exists():
+        return default
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _record_week_start(start_by_week: dict[int, str], week: Any, date_str: Any) -> None:
+    """Store earliest known date for a given week."""
+    if not isinstance(week, int) or week < 1 or not _is_iso_date(date_str):
+        return
+    prev = start_by_week.get(week)
+    if prev is None or date_str < prev:
+        start_by_week[week] = date_str
+
+
+def _compute_effective_week_end_dates(
+    manual_events: dict[str, Any],
+    paredoes_data: dict[str, Any],
+    provas_data: dict[str, Any],
+) -> list[str]:
+    """Merge confirmed boundaries with inferred boundaries for open weeks.
+
+    Confirmed boundaries live in WEEK_END_DATES.
+    Inferred boundaries are appended only for weeks beyond the confirmed list,
+    using: end_of_week_(N) = start_of_week_(N+1) - 1 day.
+    """
+    week_starts: dict[int, str] = {}
+
+    for item in manual_events.get("weekly_events", []):
+        _record_week_start(week_starts, item.get("week"), item.get("start_date"))
+
+    for section in ("power_events", "special_events", "scheduled_events"):
+        for item in manual_events.get(section, []):
+            _record_week_start(week_starts, item.get("week"), item.get("date"))
+
+    for item in paredoes_data.get("paredoes", []):
+        week = item.get("semana")
+        if week is None:
+            week = item.get("week")
+        _record_week_start(week_starts, week, item.get("data_formacao") or item.get("data"))
+
+    for item in provas_data.get("provas", []):
+        _record_week_start(week_starts, item.get("week"), item.get("date"))
+
+    candidate_end_by_week: dict[int, str] = {}
+    for week, start_date in week_starts.items():
+        if week <= 1:
+            continue
+        try:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        candidate_end_by_week[week - 1] = (start_dt - timedelta(days=1)).isoformat()
+
+    effective = list(WEEK_END_DATES)
+    next_week_to_close = len(effective) + 1
+    while next_week_to_close in candidate_end_by_week:
+        candidate_end = candidate_end_by_week[next_week_to_close]
+        if effective and candidate_end <= effective[-1]:
+            break
+        effective.append(candidate_end)
+        next_week_to_close += 1
+
+    return effective
+
+
+@lru_cache(maxsize=8)
+def _effective_week_end_dates_cached(
+    manual_mtime_ns: int,
+    paredoes_mtime_ns: int,
+    provas_mtime_ns: int,
+) -> tuple[str, ...]:
+    manual_events = _read_json_or_default(_MANUAL_EVENTS_PATH, {})
+    paredoes_data = _read_json_or_default(_PAREDOES_PATH, {})
+    provas_data = _read_json_or_default(_PROVAS_PATH, {})
+    return tuple(_compute_effective_week_end_dates(manual_events, paredoes_data, provas_data))
+
+
+def get_effective_week_end_dates(
+    manual_events: dict[str, Any] | None = None,
+    paredoes_data: dict[str, Any] | None = None,
+    provas_data: dict[str, Any] | None = None,
+) -> list[str]:
+    """Return effective week-end boundaries (confirmed + inferred).
+
+    If data dicts are provided, computes directly from them (used by tests/tools).
+    Otherwise reads project files and caches by file mtime.
+    """
+    if manual_events is not None or paredoes_data is not None or provas_data is not None:
+        return _compute_effective_week_end_dates(
+            manual_events or {},
+            paredoes_data or {},
+            provas_data or {},
+        )
+
+    def _mtime(path: Path) -> int:
+        try:
+            return path.stat().st_mtime_ns
+        except OSError:
+            return -1
+
+    return list(_effective_week_end_dates_cached(
+        _mtime(_MANUAL_EVENTS_PATH),
+        _mtime(_PAREDOES_PATH),
+        _mtime(_PROVAS_PATH),
+    ))
+
+
+def get_week_number(date_str: str, week_end_dates: list[str] | None = None) -> int:
     """Calculate BBB26 game week number from date string (YYYY-MM-DD).
 
     Game weeks are bounded by Líder transitions (not calendar 7-day periods).
-    A week includes its paredão result AND the subsequent barrado no baile,
-    since both are decided by that week's Líder. The week ends on the day
-    before the new Líder is defined (typically Thursday night Prova do Líder).
-    Dates after the last known week get week = len(WEEK_END_DATES) + 1.
+    A week includes its paredão result AND the subsequent barrado no baile.
+
+    Boundaries use get_effective_week_end_dates():
+    - confirmed boundaries from WEEK_END_DATES
+    - inferred boundaries for open weeks when week N+1 has dated signals
+      (e.g., provas/paredões/manual events/scheduled events with explicit week).
+
+    Dates after the last effective boundary get week = len(boundaries) + 1.
     Dates before premiere are clamped to week 1.
     """
     if date_str < "2026-01-13":
         return 1
+    boundaries = week_end_dates if week_end_dates is not None else get_effective_week_end_dates()
     # bisect_left: boundary date itself is INCLUDED in the week it ends
-    idx = bisect_left(WEEK_END_DATES, date_str)
+    idx = bisect_left(boundaries, date_str)
     return idx + 1
 
 
-def get_week_start_date(week_num: int) -> str:
+def get_week_start_date(week_num: int, week_end_dates: list[str] | None = None) -> str:
     """Return the start date (YYYY-MM-DD) of the given game week.
 
     Week 1 starts at BBB26 premiere. Week N (N>1) starts the day after
-    WEEK_END_DATES[N-2]. Weeks beyond the last known boundary use the
-    day after the last entry.
+    boundary[N-2]. Weeks beyond the last known boundary use the day after
+    the last effective boundary.
     """
     if week_num <= 1:
         return BBB26_PREMIERE
+    boundaries = week_end_dates if week_end_dates is not None else get_effective_week_end_dates()
     idx = week_num - 2  # WEEK_END_DATES[0] = end of week 1
-    if idx < len(WEEK_END_DATES):
-        prev_end = WEEK_END_DATES[idx]
+    if idx < len(boundaries):
+        prev_end = boundaries[idx]
     else:
-        prev_end = WEEK_END_DATES[-1] if WEEK_END_DATES else BBB26_PREMIERE
+        prev_end = boundaries[-1] if boundaries else BBB26_PREMIERE
     d = datetime.strptime(prev_end, "%Y-%m-%d").date()
     return (d + timedelta(days=1)).isoformat()
 

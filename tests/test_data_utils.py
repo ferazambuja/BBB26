@@ -8,6 +8,8 @@ from data_utils import (
     utc_to_game_date,
     get_week_number,
     get_week_start_date,
+    get_effective_week_end_dates,
+    WEEK_END_DATES,
     parse_roles,
     build_reaction_matrix,
     SENTIMENT_WEIGHTS,
@@ -167,6 +169,37 @@ class TestGetWeekNumber:
         assert get_week_number("2026-02-26") == 7
         # Week 7 boundary is 2026-03-05; week 8 starts on 2026-03-06.
         assert get_week_number("2026-03-06") == 8
+
+    def test_inferred_week_rollover_from_next_week_signal(self):
+        """When week N+1 has dated signals, week N boundary is inferred."""
+        manual = {
+            "scheduled_events": [
+                {"week": 9, "date": "2026-03-14"},
+            ]
+        }
+        inferred = get_effective_week_end_dates(
+            manual_events=manual,
+            paredoes_data={},
+            provas_data={},
+        )
+        assert len(inferred) == len(WEEK_END_DATES) + 1
+        assert inferred[-1] == "2026-03-13"
+        assert get_week_number("2026-03-13", inferred) == 8
+        assert get_week_number("2026-03-14", inferred) == 9
+
+    def test_inference_requires_contiguous_week_signal(self):
+        """Do not infer week ends when the immediate next week has no signal."""
+        manual = {
+            "scheduled_events": [
+                {"week": 10, "date": "2026-03-21"},
+            ]
+        }
+        inferred = get_effective_week_end_dates(
+            manual_events=manual,
+            paredoes_data={},
+            provas_data={},
+        )
+        assert inferred == WEEK_END_DATES
 
     def test_monotonic_increase(self):
         """Week numbers should be monotonically non-decreasing."""

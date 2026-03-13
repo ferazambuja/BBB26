@@ -17,7 +17,7 @@ from data_utils import (
     load_snapshot, build_reaction_matrix, parse_roles, calc_sentiment,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
-    utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
+    utc_to_game_date, get_week_number, get_week_start_date, get_effective_week_end_dates,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
     genero, resolve_leaders, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao, GROUP_COLORS,
 )
@@ -673,12 +673,13 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
         lider_by_paredao[par["numero"]] = formacao.get("lider")
         lideres_by_paredao[par["numero"]] = resolve_leaders(formacao)
 
-    n_weeks = len(WEEK_END_DATES)
+    effective_week_ends = get_effective_week_end_dates()
+    n_weeks = len(effective_week_ends)
     for week_num in range(1, n_weeks + 2):  # +1 for open current week
         start_date = get_week_start_date(week_num)
 
         if week_num <= n_weeks:
-            end_date = WEEK_END_DATES[week_num - 1]
+            end_date = effective_week_ends[week_num - 1]
         else:
             # Open week (current, no end boundary yet)
             end_date = daily_snapshots[-1]["date"] if daily_snapshots else start_date
@@ -756,8 +757,8 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     house_leaders = roles_current.get("Líder", [])
     house_leader = " + ".join(house_leaders) if house_leaders else None
 
-    # leader_start_date: derived from WEEK_END_DATES for the current open week.
-    current_open_week = len(WEEK_END_DATES) + 1
+    # leader_start_date: derived from effective week boundaries for current open week.
+    current_open_week = len(effective_week_ends) + 1
     leader_start_date = get_week_start_date(current_open_week)
 
     first_seen = {p["name"]: p.get("first_seen") for p in participants_index.get("participants", []) if p.get("name")}

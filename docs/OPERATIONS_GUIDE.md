@@ -532,10 +532,16 @@ These are picked up automatically by `build_daily_roles()` from snapshots:
 
 ### Later (when Líder term ends)
 
-6. **Update `WEEK_END_DATES`** in `scripts/data_utils.py` — add the last day of the completed week (day before next Prova do Líder). Cannot do this until the next Líder is crowned.
-   - Keep the current week open while leadership is unresolved, even if a provisional date is known from schedule pages.
-   - Example: if week 7 should end on `2026-03-05`, only add `2026-03-05` after the week-8 Líder is actually confirmed.
-   - Why: adding boundaries early makes dashboards jump to the next week before the leadership cycle truly turns over.
+6. **Week boundary handling (confirmed + inferred)**:
+   - `scripts/data_utils.py` now computes **effective** boundaries:
+     - confirmed boundaries from static `WEEK_END_DATES`
+     - inferred boundary for an open week when week `N+1` already has dated signals in data (e.g., `scheduled_events`, `provas`, `paredoes`, `power_events`).
+   - This avoids getting "stuck" in the old week when the next cycle is already dated in operations data, even if a new Líder is not fully confirmed yet.
+   - Practical rule: the week should naturally roll once next-week entries are dated; no emergency hardcode is needed for day-to-day ops.
+
+7. **Still keep `WEEK_END_DATES` curated for history**:
+   - After the next Líder cycle is confirmed, append the final boundary date to static `WEEK_END_DATES` as archival truth.
+   - Example: if week 8 effectively closed on `2026-03-13` from next-week signals, later confirm and persist that boundary in `WEEK_END_DATES`.
 
 ### Verification
 
@@ -551,6 +557,18 @@ for lp in idx['leader_periods']:
 ```
 
 Check that the new week shows the correct Líder (not `null`) and VIP composition.
+
+Additional week-boundary sanity check:
+```bash
+python - <<'PY'
+import sys
+sys.path.append('scripts')
+from data_utils import get_week_number
+for d in ["2026-03-13", "2026-03-14", "2026-03-17"]:
+    print(d, "-> week", get_week_number(d))
+PY
+```
+Expected behavior: dates after the inferred boundary roll to the next week (no stale week lock).
 
 ---
 
