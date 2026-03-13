@@ -7,7 +7,7 @@
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-12
+> **Last updated**: 2026-03-13
 
 ---
 
@@ -338,7 +338,15 @@ When planning `scheduled_events` for a new week, include these recurring items:
 - [ ] **Paredão Formation** (Sunday ~22h45) — ceremony flow auto-generates timeline sub-steps (see below)
 - [ ] **Eliminação** (Tuesday) — paredão result
 
-**Scrape the dynamics article** (published Thursday) to know the week-specific events and add all scheduled events at once.
+**Scrape + map workflow (required before editing `scheduled_events`)**:
+1. Scrape the dynamics article first (published Thursday):
+   ```bash
+   python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/
+   ```
+2. Build a day-by-day event list from the scraped file (`docs/scraped/*.md`) before writing JSON.
+3. Register all upcoming week events in one pass (`anjo`, `dinamica`, `paredao_formacao`, `paredao_resultado`, etc.).
+4. If Líder/VIP are still unknown, keep placeholders in descriptions (`a definir`) and update later from the Prova do Líder + VIP article workflow.
+5. Always include both the original URL and scraped file path in `fontes`.
 
 ---
 
@@ -1609,6 +1617,36 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 **Common categories for scheduling**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `presente_anjo`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
 
 **Auto-generated categories** (from `paredoes.json`, do NOT schedule these): `paredao_imunidade`, `paredao_indicacao`, `paredao_votacao`, `paredao_contragolpe`, `paredao_bate_volta`. These ceremony sub-steps are created automatically when formation data is filled. See [Paredão Formation → Auto-generated Ceremony Sub-Steps](#auto-generated-ceremony-sub-steps-in-cronologia).
+
+### Weekly schedule from dynamics article (required)
+
+When a "Dinâmica da Semana" article is published, register the week schedule using this exact order:
+
+1. Scrape first:
+   ```bash
+   python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/
+   ```
+2. Extract event map by date/time from the scraped markdown.
+3. Add all applicable entries to `scheduled_events`.
+4. Keep unresolved roles explicit:
+   - If Líder is not known yet, keep wording generic (`indicação do Líder vigente (a definir)`).
+   - If VIP list is not known yet, do not infer names; wait for the VIP source and update only when confirmed.
+5. Link provenance in each entry (`fontes`):
+   - dynamics article URL
+   - `docs/scraped/<arquivo>.md`
+
+**Example mapped from**  
+`https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml`
+
+| Date | Category | Suggested title | Operational note |
+|------|----------|-----------------|------------------|
+| 2026-03-14 | `anjo` | Prova do Anjo | Standard Saturday flow |
+| 2026-03-14 | `dinamica` | Dinâmica ao vivo: 3 emparedados | These 3 feed Sunday formation |
+| 2026-03-15 | `paredao_formacao` | Formação do Paredão (duas partes) | Include `indicação do Líder vigente (a definir)` until Líder is confirmed |
+| 2026-03-15 | `dinamica` | Máquina do Poder (salvação de emparedado) | Winner of caixa premiada can save one of Saturday's 3 emparedados |
+| 2026-03-17 | `paredao_resultado` | Eliminação | Normal Tuesday result |
+
+**Important**: do not fill `formacao.lider`, `formacao.indicado_lider`, or `provas.lider.vip` from the dynamics schedule article alone. Use the dedicated Líder/VIP source flow in [Líder Transition Checklist](#líder-transition-checklist-thursday-night).
 
 ### Auto-dedup behavior
 
