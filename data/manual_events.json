@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-03-10",
+  "_last_updated": "2026-03-13",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -6199,40 +6199,69 @@
   "cartola_points_log": [],
   "scheduled_events": [
     {
-      "date": "2026-03-09",
-      "week": 8,
-      "category": "sincerao",
-      "emoji": "🗣️",
-      "title": "Sincerão",
-      "detail": "Sincerão ao vivo — formato a definir.",
-      "time": "Ao Vivo"
+      "date": "2026-03-14",
+      "week": 9,
+      "category": "anjo",
+      "emoji": "😇",
+      "title": "Prova do Anjo",
+      "detail": "Prova do Anjo da semana.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+      ]
     },
     {
-      "date": "2026-03-10",
-      "week": 8,
+      "date": "2026-03-14",
+      "week": 9,
+      "category": "dinamica",
+      "emoji": "⚡",
+      "title": "Dinâmica ao vivo: 3 emparedados",
+      "detail": "Ao vivo, três participantes vão direto para o Paredão de domingo.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+      ]
+    },
+    {
+      "date": "2026-03-15",
+      "week": 9,
+      "category": "paredao_formacao",
+      "emoji": "🗳️",
+      "title": "Formação do Paredão (duas partes)",
+      "detail": "Três emparedados da dinâmica de sábado + indicação do Líder vigente (a definir) + votação da casa.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+      ]
+    },
+    {
+      "date": "2026-03-15",
+      "week": 9,
+      "category": "dinamica",
+      "emoji": "⚡",
+      "title": "Máquina do Poder",
+      "detail": "Quem comprar a caixa premiada salva do Paredão um dos três emparedados da dinâmica de sábado.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+      ]
+    },
+    {
+      "date": "2026-03-17",
+      "week": 9,
       "category": "paredao_resultado",
       "emoji": "🏁",
       "title": "Eliminação",
-      "detail": "Resultado do 8º Paredão.",
-      "time": "Ao Vivo"
-    },
-    {
-      "date": "2026-03-10",
-      "week": 8,
-      "category": "ganha_ganha",
-      "emoji": "🎰",
-      "title": "Ganha-Ganha",
-      "detail": "Dinâmica Ganha-Ganha da semana (3 sorteados: veto + escolha entre prêmio e informação privilegiada).",
-      "time": "Ao Vivo"
-    },
-    {
-      "date": "2026-03-11",
-      "week": 8,
-      "category": "barrado_baile",
-      "emoji": "🚫",
-      "title": "Barrado no Baile",
-      "detail": "Líderes (em consenso) barram alguém da próxima festa.",
-      "time": "A definir"
+      "detail": "Resultado do 9º Paredão.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+      ]
     }
   ]
 }
