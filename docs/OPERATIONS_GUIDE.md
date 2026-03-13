@@ -338,15 +338,48 @@ When planning `scheduled_events` for a new week, include these recurring items:
 - [ ] **Paredão Formation** (Sunday ~22h45) — ceremony flow auto-generates timeline sub-steps (see below)
 - [ ] **Eliminação** (Tuesday) — paredão result
 
+**Operational invariant (mandatory)**:
+- These recurring events are default weekly structure and must be scheduled even if the weekly dynamics article does not explicitly list each one.
+- The weekly dynamics article should only add/adjust **extra dynamics** (for example: Saturday live shock, Sunday box/power resolution).
+
 **Scrape + map workflow (required before editing `scheduled_events`)**:
 1. Scrape the dynamics article first (published Thursday):
    ```bash
    python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/
    ```
-2. Build a day-by-day event list from the scraped file (`docs/scraped/*.md`) before writing JSON.
-3. Register all upcoming week events in one pass (`anjo`, `dinamica`, `paredao_formacao`, `paredao_resultado`, etc.).
-4. If Líder/VIP are still unknown, keep placeholders in descriptions (`a definir`) and update later from the Prova do Líder + VIP article workflow.
-5. Always include both the original URL and scraped file path in `fontes`.
+2. Start from the recurring weekly baseline template (below).
+3. Build a day-by-day event list from the scraped file (`docs/scraped/*.md`) to identify **additional week-specific dynamics**.
+4. Register all upcoming week events in one pass (`anjo`, `monstro`, `presente_anjo`, `sincerao`, `paredao_formacao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`, plus `dinamica` extras).
+5. If Líder/VIP are still unknown, keep placeholders in descriptions (`a definir`) and update later from the Prova do Líder + VIP article workflow.
+6. Always include both the original URL and scraped file path in `fontes`.
+
+### Baseline weekly template (auto-add every week)
+
+Before adding week-specific dynamics, schedule this base set for week `N`:
+
+| Day | Category | Suggested title | Required detail hint |
+|-----|----------|-----------------|----------------------|
+| Saturday | `anjo` | Prova do Anjo | Standard Saturday prova |
+| Saturday | `monstro` | Castigo do Monstro | Anjo escolhe o(s) alvo(s) do Monstro |
+| Sunday (afternoon) | `presente_anjo` | Presente do Anjo | Anjo escolhe entre 2ª imunidade ou vídeo da família + almoço |
+| Sunday (night) | `paredao_formacao` | Formação do Paredão | Keep Líder as `a definir` if unresolved |
+| Monday | `sincerao` | Sincerão | Formato da semana a definir until confirmed |
+| Tuesday | `paredao_resultado` | Eliminação | Resultado do paredão da semana |
+| Tuesday | `ganha_ganha` | Ganha-Ganha | Veto + decisão (prêmio vs informação) |
+| Wednesday | `barrado_baile` | Barrado no Baile | Líder vigente barra alguém da festa |
+
+**Verification (required before commit)**:
+```bash
+WEEK=9
+jq --argjson w "$WEEK" '
+  (["anjo","monstro","presente_anjo","paredao_formacao","sincerao","paredao_resultado","ganha_ganha","barrado_baile"] -
+   ([.scheduled_events[] | select(.week == $w) | .category] | unique)) as $missing
+  | if ($missing | length) == 0
+    then "OK: baseline completo"
+    else "MISSING baseline categories: \($missing)"
+    end
+' data/manual_events.json
+```
 
 ---
 
@@ -1626,14 +1659,16 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
    ```bash
    python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/
    ```
-2. Extract event map by date/time from the scraped markdown.
-3. Add all applicable entries to `scheduled_events`.
-4. Keep unresolved roles explicit:
+2. Add the recurring weekly baseline template first (`anjo`, `monstro`, `presente_anjo`, `sincerao`, `paredao_formacao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`).
+3. Extract week-specific dynamic entries by date/time from the scraped markdown.
+4. Add these extra `dinamica` (and related) entries on top of the baseline.
+5. Keep unresolved roles explicit:
    - If Líder is not known yet, keep wording generic (`indicação do Líder vigente (a definir)`).
    - If VIP list is not known yet, do not infer names; wait for the VIP source and update only when confirmed.
-5. Link provenance in each entry (`fontes`):
+6. Link provenance in each entry (`fontes`):
    - dynamics article URL
    - `docs/scraped/<arquivo>.md`
+7. Run the baseline verification command in [Baseline weekly template (auto-add every week)](#baseline-weekly-template-auto-add-every-week) before commit.
 
 **Example mapped from**  
 `https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml`
@@ -1641,10 +1676,15 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 | Date | Category | Suggested title | Operational note |
 |------|----------|-----------------|------------------|
 | 2026-03-14 | `anjo` | Prova do Anjo | Standard Saturday flow |
+| 2026-03-14 | `monstro` | Castigo do Monstro | Recurring weekly event (even if not explicit in article) |
 | 2026-03-14 | `dinamica` | Dinâmica ao vivo: 3 emparedados | These 3 feed Sunday formation |
+| 2026-03-15 | `presente_anjo` | Presente do Anjo | Anjo escolhe entre vídeo da família ou 2ª imunidade + almoço |
 | 2026-03-15 | `paredao_formacao` | Formação do Paredão (duas partes) | Include `indicação do Líder vigente (a definir)` until Líder is confirmed |
 | 2026-03-15 | `dinamica` | Máquina do Poder (salvação de emparedado) | Winner of caixa premiada can save one of Saturday's 3 emparedados |
+| 2026-03-16 | `sincerao` | Sincerão | Recurring weekly Monday live event |
 | 2026-03-17 | `paredao_resultado` | Eliminação | Normal Tuesday result |
+| 2026-03-17 | `ganha_ganha` | Ganha-Ganha | Recurring Tuesday post-elimination dynamic |
+| 2026-03-18 | `barrado_baile` | Barrado no Baile | Recurring Wednesday event |
 
 **Important**: do not fill `formacao.lider`, `formacao.indicado_lider`, or `provas.lider.vip` from the dynamics schedule article alone. Use the dedicated Líder/VIP source flow in [Líder Transition Checklist](#líder-transition-checklist-thursday-night).
 
