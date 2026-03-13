@@ -461,6 +461,7 @@ Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outr
     "bate_volta": {
       "participantes": ["NOME_A", "NOME_B", "NOME_C"],
       "vencedor": "NOME",
+      "salvacao_com_janela_aberta": false,
       "prova": "DESCREVER"
     }
   },
@@ -473,6 +474,8 @@ Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outr
   "fontes": ["URL"]
 }
 ```
+
+`formacao.bate_volta.salvacao_com_janela_aberta` (optional): use `true` when the participant was emparedado with a closed Cartola window and escaped when the window was open. In this case, the pipeline keeps `emparedado` and skips `salvo_paredao`.
 
 > **Brigido**: vetado das 3 provas (Líder, Anjo, Bate e Volta). Se cair no paredão, NÃO pode disputar Bate e Volta. Documentar em `bate_volta.impedidos` se relevante.
 

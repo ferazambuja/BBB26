@@ -256,3 +256,88 @@ def test_anjo_imunizado_and_emparedado_use_official_fallbacks_when_api_roles_mis
     assert len(_events(result, "Sarah Andrade", "anjo", 3)) == 1
     assert len(_events(result, "Sol Vega", "imunizado", 3)) == 1
     assert len(_events(result, "Brigido", "emparedado", 3)) == 1
+
+
+def test_bate_volta_winner_gets_emparedado_and_salvo_points():
+    daily_snapshots = [
+        {
+            "date": "2026-02-10",
+            "participants": [
+                _participant("Ana Paula Renault"),
+                _participant("Breno"),
+                _participant("Marciele"),
+            ],
+        }
+    ]
+    participants_index = _participants_index(["Ana Paula Renault", "Breno", "Marciele"])
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 4,
+                "semana": 4,
+                "data": "2026-02-10",
+                "status": "em_andamento",
+                "indicados_finais": [{"nome": "Breno"}, {"nome": "Marciele"}],
+                "formacao": {
+                    "bate_volta": {
+                        "participantes": ["Ana Paula Renault", "Breno", "Marciele"],
+                        "vencedor": "Ana Paula Renault",
+                    }
+                },
+            }
+        ]
+    }
+
+    result = build_cartola_data(
+        daily_snapshots=daily_snapshots,
+        manual_events=_manual_base(),
+        paredoes_data=paredoes_data,
+        participants_index=participants_index,
+        provas_data={"provas": []},
+    )
+
+    assert len(_events(result, "Ana Paula Renault", "emparedado", 4)) == 1
+    assert len(_events(result, "Ana Paula Renault", "salvo_paredao", 4)) == 1
+
+
+def test_bate_volta_winner_does_not_get_salvo_when_salvacao_happens_with_open_window():
+    daily_snapshots = [
+        {
+            "date": "2026-02-10",
+            "participants": [
+                _participant("Ana Paula Renault"),
+                _participant("Breno"),
+                _participant("Marciele"),
+            ],
+        }
+    ]
+    participants_index = _participants_index(["Ana Paula Renault", "Breno", "Marciele"])
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 4,
+                "semana": 4,
+                "data": "2026-02-10",
+                "status": "em_andamento",
+                "indicados_finais": [{"nome": "Breno"}, {"nome": "Marciele"}],
+                "formacao": {
+                    "bate_volta": {
+                        "participantes": ["Ana Paula Renault", "Breno", "Marciele"],
+                        "vencedor": "Ana Paula Renault",
+                        "salvacao_com_janela_aberta": True,
+                    }
+                },
+            }
+        ]
+    }
+
+    result = build_cartola_data(
+        daily_snapshots=daily_snapshots,
+        manual_events=_manual_base(),
+        paredoes_data=paredoes_data,
+        participants_index=participants_index,
+        provas_data={"provas": []},
+    )
+
+    assert len(_events(result, "Ana Paula Renault", "emparedado", 4)) == 1
+    assert len(_events(result, "Ana Paula Renault", "salvo_paredao", 4)) == 0

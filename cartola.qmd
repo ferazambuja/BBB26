@@ -818,7 +818,7 @@ else:
 
 Cada evento detectável pontua automaticamente via API (Líder, Anjo, Monstro, Paredão, VIP) e eventos especiais entram por registro manual auditado (Big Fone, Quarto Secreto, saídas).
 
-**Regras-chave**: Líder não acumula com outros itens; Anjo autoimune acumula com Imunizado; Imunizado não acumula com Não Emparedado/Não recebeu votos/Salvo.
+**Regras-chave**: Líder não acumula com outros itens; Anjo autoimune acumula com Imunizado; Imunizado não acumula com Não Emparedado/Não recebeu votos/Salvo do Paredão.
 
 </div>
 
@@ -861,5 +861,5 @@ emit('''
 ''')
 
 print('<p class="cartola-muted">A pontuação acompanha a apuração diária dos acontecimentos oficiais do jogo.</p>')
-print('<p class="cartola-muted">Regras: <strong>Salvo do Paredão</strong> = venceu o Bate e Volta; <strong>Não Eliminado</strong> = indicado que permaneceu; <strong>Não Emparedado</strong> = disponível para votação e fora da lista final.</p>')
+print('<p class="cartola-muted">Regras: <strong>Salvo do Paredão</strong> = venceu o Bate e Volta; <strong>Não Eliminado no Paredão</strong> = indicado que permaneceu; <strong>Não Emparedado</strong> = disponível para votação e fora da lista final.</p>')
 ```

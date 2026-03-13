@@ -387,10 +387,17 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
             if isinstance(bv, dict):
                 bv_winners_list = bv.get('vencedores') or ([bv['vencedor']] if bv.get('vencedor') else [])
                 bv_winners_set = set(bv_winners_list)
+                salvar_com_janela_aberta = bool(
+                    bv.get('salvacao_com_janela_aberta') or bv.get('janela_escalacao_aberta')
+                )
                 for vencedor_bv in bv_winners_list:
                     if not has_event(vencedor_bv, week, 'imunizado'):
-                        add_event_points(vencedor_bv, week, 'salvo_paredao',
-                                         CARTOLA_POINTS['salvo_paredao'], paredao_date)
+                        # Bate e Volta winner was emparedado before escaping.
+                        add_event_points(vencedor_bv, week, 'emparedado',
+                                         CARTOLA_POINTS['emparedado'], paredao_date)
+                        if not salvar_com_janela_aberta:
+                            add_event_points(vencedor_bv, week, 'salvo_paredao',
+                                             CARTOLA_POINTS['salvo_paredao'], paredao_date)
 
         # Não eliminado no paredão / Quarto Secreto (Paredão Falso)
         resultado = p.get('resultado') or {}
