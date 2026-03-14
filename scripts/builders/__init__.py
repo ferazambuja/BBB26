@@ -101,6 +101,8 @@ from builders.vote_prediction import (
 
 from builders.paredao_exposure import (
     compute_paredao_exposure_stats,
+    compute_house_vote_exposure,
+    build_participant_windows,
     build_nunca_paredao_items,
     build_figurinha_repetida_items,
 )
@@ -150,7 +152,8 @@ __all__ = [
     # vote_prediction
     "build_vote_prediction", "extract_paredao_eligibility", "VOTE_PREDICTION_CONFIG",
     # paredao_exposure
-    "compute_paredao_exposure_stats", "build_nunca_paredao_items",
+    "compute_paredao_exposure_stats", "compute_house_vote_exposure",
+    "build_participant_windows", "build_nunca_paredao_items",
     "build_figurinha_repetida_items",
     # balance
     "build_balance_events", "BALANCE_EVENT_TYPES",

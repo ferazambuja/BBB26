@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import json
 import pytest
-from collections import Counter
 from pathlib import Path
 
 from builders.paredao_exposure import (
     compute_paredao_exposure_stats,
     build_nunca_paredao_items,
     build_figurinha_repetida_items,
+    compute_house_vote_exposure,
 )
 
 
@@ -109,7 +109,17 @@ class TestLiveDataContracts:
         for p in paredoes_list:
             for ind in p.get("indicados_finais", []):
                 all_nominees.add(ind["nome"] if isinstance(ind, dict) else ind)
-        items, exited = build_nunca_paredao_items(live_ctx, paredoes_list, Counter(), Counter())
+        exposure = compute_house_vote_exposure(
+            paredoes_list,
+            {
+                entry["name"]: {
+                    "first_seen": entry["first_seen"],
+                    "last_seen": entry["last_seen"],
+                }
+                for entry in live_ctx["participants_index"]["participants"]
+            },
+        )
+        items, exited = build_nunca_paredao_items(live_ctx, paredoes_list, exposure)
         for item in items + exited:
             assert item["name"] not in all_nominees
 
@@ -137,18 +147,74 @@ class TestExitedVoteStatsRegression:
     def test_paulo_augusto_votes(self, live_ctx):
         """Paulo Augusto received 11 house votes in P1."""
         paredoes_list = live_ctx["paredoes"].get("paredoes", [])
-        _, exited = build_nunca_paredao_items(live_ctx, paredoes_list, Counter(), Counter())
+        exposure = compute_house_vote_exposure(
+            paredoes_list,
+            {
+                entry["name"]: {
+                    "first_seen": entry["first_seen"],
+                    "last_seen": entry["last_seen"],
+                }
+                for entry in live_ctx["participants_index"]["participants"]
+            },
+        )
+        _, exited = build_nunca_paredao_items(live_ctx, paredoes_list, exposure)
         pa = next((i for i in exited if i["name"] == "Paulo Augusto"), None)
         assert pa is not None, "Paulo Augusto should be in exited items (desclassificado, never nominated)"
-        assert pa["votes_total"] >= 11, f"Paulo Augusto votes_total={pa['votes_total']}, expected >= 11"
+        assert pa["votes_total"] == 11, f"Paulo Augusto votes_total={pa['votes_total']}, expected == 11"
 
     def test_edilson_protected(self, live_ctx):
         """Edilson was protected (Imune) at least once."""
         paredoes_list = live_ctx["paredoes"].get("paredoes", [])
-        _, exited = build_nunca_paredao_items(live_ctx, paredoes_list, Counter(), Counter())
+        exposure = compute_house_vote_exposure(
+            paredoes_list,
+            {
+                entry["name"]: {
+                    "first_seen": entry["first_seen"],
+                    "last_seen": entry["last_seen"],
+                }
+                for entry in live_ctx["participants_index"]["participants"]
+            },
+        )
+        _, exited = build_nunca_paredao_items(live_ctx, paredoes_list, exposure)
         edi = next((i for i in exited if i["name"] == "Edilson"), None)
         assert edi is not None, "Edilson should be in exited items (desclassificado, never nominated)"
         assert edi["protected"] >= 1, f"Edilson protected={edi['protected']}, expected >= 1"
+
+    def test_pedro_available(self, live_ctx):
+        """Pedro was present for exactly one formation cycle."""
+        paredoes_list = live_ctx["paredoes"].get("paredoes", [])
+        exposure = compute_house_vote_exposure(
+            paredoes_list,
+            {
+                entry["name"]: {
+                    "first_seen": entry["first_seen"],
+                    "last_seen": entry["last_seen"],
+                }
+                for entry in live_ctx["participants_index"]["participants"]
+            },
+        )
+        _, exited = build_nunca_paredao_items(live_ctx, paredoes_list, exposure)
+        pedro = next((i for i in exited if i["name"] == "Pedro"), None)
+        assert pedro is not None, "Pedro should be in exited items (desistente, never nominated)"
+        assert pedro["available"] == 1, f"Pedro available={pedro['available']}, expected == 1"
+
+    def test_henri_available(self, live_ctx):
+        """Henri left before any formation date and was never eligible."""
+        paredoes_list = live_ctx["paredoes"].get("paredoes", [])
+        exposure = compute_house_vote_exposure(
+            paredoes_list,
+            {
+                entry["name"]: {
+                    "first_seen": entry["first_seen"],
+                    "last_seen": entry["last_seen"],
+                }
+                for entry in live_ctx["participants_index"]["participants"]
+            },
+        )
+        _, exited = build_nunca_paredao_items(live_ctx, paredoes_list, exposure)
+        henri = next((i for i in exited if i["name"] == "Henri Castelli"), None)
+        assert henri is not None, "Henri Castelli should be in exited items (desistente, never nominated)"
+        assert henri["available"] == 0, f"Henri available={henri['available']}, expected == 0"
 
 
 # ── Builder integration ─────────────────────────────────────────────────
@@ -183,6 +249,44 @@ class TestBuilderIntegration:
                 f"{name}: nunca available={item['available']} != blindados={b['available']}"
             assert item["protected"] == b["protected"], \
                 f"{name}: nunca protected={item['protected']} != blindados={b['protected']}"
+
+    def test_nunca_paredao_emits_when_only_exited_items_exist(self):
+        """Builder must emit nunca_paredao even when only exited untouchables remain."""
+        from builders.index_data_builder import _compute_static_cards
+
+        paredoes = [{
+            "numero": 1,
+            "data": "2026-01-18",
+            "data_formacao": "2026-01-18",
+            "status": "finalizado",
+            "titulo": "P1",
+            "indicados_finais": [{"nome": "Ana"}, {"nome": "Breno"}, {"nome": "Caio"}],
+            "votos_casa": {"V1": "Ana"},
+            "formacao": {"lider": "Zé", "indicado_lider": "Ana"},
+        }]
+        ctx = {
+            "active_set": {"Ana", "Breno", "Caio"},
+            "paredoes": {"paredoes": paredoes},
+            "manual_events": {
+                "participants": {
+                    "Henri": {"status": "desistente", "exit_date": "2026-01-15"},
+                }
+            },
+            "participants_index": {
+                "participants": [
+                    {"name": "Henri", "first_seen": "2026-01-13", "last_seen": "2026-01-14"},
+                    {"name": "Ana", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
+                    {"name": "Breno", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
+                    {"name": "Caio", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
+                ]
+            },
+        }
+
+        _highlights, cards, _stats = _compute_static_cards(ctx)
+        nunca = next((c for c in cards if c["type"] == "nunca_paredao"), None)
+        assert nunca is not None
+        assert nunca["items_all"] == []
+        assert [item["name"] for item in nunca["items_exited"]] == ["Henri"]
 
 
 # ── Pipeline emission schema (non-skippable, uses builder directly) ─────

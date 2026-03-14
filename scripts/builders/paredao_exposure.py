@@ -13,6 +13,8 @@ from typing import Any
 from data_utils import normalize_route_label, compute_protected_names, BBB26_PREMIERE
 from builders.vote_prediction import extract_paredao_eligibility
 
+ACTIVE_LAST_SEEN = "9999-12-31"
+
 
 # ── Paredão predicates ────────────────────────────────────────────────────
 
@@ -281,6 +283,120 @@ def _compute_exposure_facts(
 # ── Public API ───────────────────────────────────────────────────────────
 
 
+def build_participant_windows(
+    participants_index: dict | list | None,
+    *,
+    active_names: set[str] | None = None,
+    manual_events: dict | None = None,
+) -> dict[str, dict[str, str]]:
+    """Build {name: {first_seen, last_seen}} windows for exposure checks."""
+    windows: dict[str, dict[str, str]] = {}
+
+    entries = (
+        participants_index.get("participants", [])
+        if isinstance(participants_index, dict)
+        else (participants_index or [])
+    )
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name")
+        if not name:
+            continue
+        windows[name] = {
+            "first_seen": entry.get("first_seen", BBB26_PREMIERE),
+            "last_seen": entry.get("last_seen", ACTIVE_LAST_SEEN),
+        }
+
+    for name in active_names or set():
+        windows.setdefault(name, {
+            "first_seen": BBB26_PREMIERE,
+            "last_seen": ACTIVE_LAST_SEEN,
+        })
+
+    for name, info in (manual_events or {}).get("participants", {}).items():
+        if not isinstance(info, dict):
+            continue
+        exit_date = info.get("exit_date")
+        if not exit_date:
+            continue
+        windows.setdefault(name, {"first_seen": BBB26_PREMIERE, "last_seen": exit_date})
+        windows[name]["last_seen"] = windows[name].get("last_seen") or exit_date
+
+    return windows
+
+
+def compute_house_vote_exposure(
+    paredoes_list: list[dict],
+    participant_windows: dict[str, dict[str, str]],
+    *,
+    recent_window: int = 3,
+) -> dict[str, dict[str, int]]:
+    """Canonical presence-aware house-vote exposure for all known participants."""
+    exposure = {
+        name: {
+            "votes_total": 0,
+            "votes_recent": 0,
+            "votes_available": 0,
+            "available": 0,
+            "protected": 0,
+            "last_voted_paredao": 0,
+        }
+        for name in participant_windows
+    }
+    if not participant_windows:
+        return exposure
+
+    paredoes_with_votes = [p for p in paredoes_list if _has_indicados(p) and (p.get("votos_casa") or {})]
+    recent_cycle_nums = {
+        par.get("numero", 0)
+        for par in sorted(paredoes_with_votes, key=lambda p: p.get("numero", 0))[-recent_window:]
+    }
+
+    for par in paredoes_with_votes:
+        num = par.get("numero", 0)
+        data_formacao = par.get("data_formacao") or par.get("data", "")
+        if not data_formacao:
+            continue
+
+        cant_be_voted = extract_paredao_eligibility(par)["cant_be_voted"]
+        protected_names = compute_protected_names(par.get("formacao") or {})
+        vote_targets = Counter(
+            target.strip()
+            for target in (par.get("votos_casa") or {}).values()
+            if isinstance(target, str)
+        )
+
+        for name, window in participant_windows.items():
+            first_seen = window.get("first_seen", BBB26_PREMIERE)
+            last_seen = window.get("last_seen", ACTIVE_LAST_SEEN)
+            if not first_seen or not last_seen or not (first_seen <= data_formacao <= last_seen):
+                continue
+            if name in protected_names:
+                exposure[name]["protected"] += 1
+            if name not in cant_be_voted:
+                exposure[name]["available"] += 1
+                exposure[name]["votes_available"] += vote_targets.get(name, 0)
+
+        for target_name, count in vote_targets.items():
+            window = participant_windows.get(target_name)
+            if not window:
+                continue
+            first_seen = window.get("first_seen", BBB26_PREMIERE)
+            last_seen = window.get("last_seen", ACTIVE_LAST_SEEN)
+            if not first_seen or not last_seen or not (first_seen <= data_formacao <= last_seen):
+                continue
+            exposure[target_name]["votes_total"] += count
+            exposure[target_name]["last_voted_paredao"] = max(
+                exposure[target_name]["last_voted_paredao"],
+                num,
+            )
+            if num in recent_cycle_nums:
+                exposure[target_name]["votes_recent"] += count
+
+    return exposure
+
+
 def compute_paredao_exposure_stats(ctx: dict[str, Any]) -> dict:
     """Compute all paredão exposure stats from builder context.
 
@@ -322,47 +438,41 @@ def compute_paredao_exposure_stats(ctx: dict[str, Any]) -> dict:
 def build_nunca_paredao_items(
     ctx: dict[str, Any],
     paredoes_list: list[dict],
-    recent_house_votes: Counter,
-    all_house_votes: Counter,
-    available_counter: Counter | None = None,
-    protected_counter: Counter | None = None,
+    exposure_by_name: dict[str, dict[str, int]],
 ) -> tuple[list[dict], list[dict]]:
     """Build items and items_exited for nunca_paredao card.
-
-    Args:
-        available_counter: per-participant eligibility counts from blindados.
-        protected_counter: per-participant protection counts from blindados.
 
     Returns (items, items_exited).
     """
     active_set = ctx["active_set"]
     manual_events = ctx.get("manual_events") or {}
-    avail = available_counter or Counter()
-    prot = protected_counter or Counter()
 
     all_nominees = _collect_all_nominees(paredoes_list)
     n_paredoes = len([p for p in paredoes_list if _has_indicados(p)])
 
-    items = [
-        {
+    items = []
+    for name in active_set:
+        if name in all_nominees:
+            continue
+        stats = exposure_by_name.get(name, {})
+        items.append({
             "name": name,
-            "votes_total": all_house_votes.get(name, 0),
-            "votes_recent": recent_house_votes.get(name, 0),
-            "available": avail.get(name, 0),
-            "protected": prot.get(name, 0),
+            "votes_total": stats.get("votes_total", 0),
+            "votes_recent": stats.get("votes_recent", 0),
+            "votes_available": stats.get("votes_available", 0),
+            "available": stats.get("available", 0),
+            "protected": stats.get("protected", 0),
+            "last_voted_paredao": stats.get("last_voted_paredao", 0),
             "n_paredoes": n_paredoes,
             "n_paredoes_scope": "with_indicados",
             "vote_counts_scope": "paredoes_with_votes",
             "status": "active",
-        }
-        for name in active_set if name not in all_nominees
-    ]
+        })
     items.sort(key=lambda x: (-x["votes_recent"], -x["votes_total"], x["name"]))
 
     items_exited = _build_exited_untouchables(
         manual_events, all_nominees, n_paredoes,
-        paredoes_list=paredoes_list,
-        participants_index=ctx.get("participants_index"),
+        exposure_by_name=exposure_by_name,
     )
     return items, items_exited
 
@@ -419,49 +529,9 @@ def _collect_all_nominees(paredoes_list: list[dict]) -> set[str]:
     return nominees
 
 
-def _compute_exited_vote_stats(
-    name: str,
-    first_seen: str,
-    last_seen: str,
-    paredoes_list: list[dict],
-) -> dict:
-    """Compute votes_total, available, protected for an exited participant.
-
-    Presence-gated: only considers paredões where first_seen <= data_formacao <= last_seen.
-    """
-    votes_total = 0
-    available = 0
-    protected = 0
-
-    for p in paredoes_list:
-        if not _has_indicados(p) or not (p.get("votos_casa") or {}):
-            continue
-        data_formacao = p.get("data_formacao") or p.get("data", "")
-        if not data_formacao or not (first_seen <= data_formacao <= last_seen):
-            continue
-
-        # Count house votes received
-        for _voter, target in (p.get("votos_casa") or {}).items():
-            if target.strip() == name:
-                votes_total += 1
-
-        # Protection: Líder, Imune, Anjo autoimune
-        form = p.get("formacao") or {}
-        if name in compute_protected_names(form):
-            protected += 1
-
-        # Availability: can receive house votes (not in cant_be_voted)
-        elig = extract_paredao_eligibility(p)
-        if name not in elig["cant_be_voted"]:
-            available += 1
-
-    return {"votes_total": votes_total, "available": available, "protected": protected}
-
-
 def _build_exited_untouchables(
     manual_events: dict, all_nominees: set[str], n_paredoes: int,
-    paredoes_list: list[dict] | None = None,
-    participants_index: dict | None = None,
+    exposure_by_name: dict[str, dict[str, int]] | None = None,
 ) -> list[dict]:
     """Build items_exited: non-eliminado exited participants never nominated."""
     status_labels = {
@@ -469,18 +539,6 @@ def _build_exited_untouchables(
         "desclassificado": "Desclassificado",
         "desclassificada": "Desclassificada",
     }
-
-    # Build first_seen/last_seen lookup from participants_index
-    pi_lookup: dict[str, dict[str, str]] = {}
-    if participants_index:
-        for entry in (participants_index.get("participants") or
-                      (participants_index if isinstance(participants_index, list) else [])):
-            if isinstance(entry, dict) and entry.get("name"):
-                pi_lookup[entry["name"]] = {
-                    "first_seen": entry.get("first_seen", BBB26_PREMIERE),
-                    "last_seen": entry.get("last_seen", ""),
-                }
-
     items = []
     for name, info in (manual_events.get("participants") or {}).items():
         if not isinstance(info, dict):
@@ -489,25 +547,21 @@ def _build_exited_untouchables(
         if "eliminad" in status or name in all_nominees:
             continue
 
-        # Compute real vote stats when paredões data is available
         exit_date = info.get("exit_date", "")
-        pi = pi_lookup.get(name, {})
-        first_seen = pi.get("first_seen", BBB26_PREMIERE)
-        last_seen = pi.get("last_seen", exit_date)
-
-        if paredoes_list and last_seen:
-            vstats = _compute_exited_vote_stats(name, first_seen, last_seen, paredoes_list)
-        else:
-            vstats = {"votes_total": 0, "available": 0, "protected": 0}
+        vstats = (exposure_by_name or {}).get(name, {})
 
         context_note = ""
-        if vstats["available"] == 0 and n_paredoes > 0:
+        if vstats.get("available", 0) == 0 and n_paredoes > 0:
             context_note = "Saiu antes do 1º Paredão"
 
         items.append({
             "name": name,
-            "votes_total": vstats["votes_total"], "votes_recent": 0,
-            "available": vstats["available"], "protected": vstats["protected"],
+            "votes_total": vstats.get("votes_total", 0),
+            "votes_recent": vstats.get("votes_recent", 0),
+            "votes_available": vstats.get("votes_available", 0),
+            "available": vstats.get("available", 0),
+            "protected": vstats.get("protected", 0),
+            "last_voted_paredao": vstats.get("last_voted_paredao", 0),
             "context_note": context_note,
             "n_paredoes": n_paredoes,
             "n_paredoes_scope": "with_indicados",

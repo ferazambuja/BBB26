@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import pytest
-from collections import Counter
 
 from builders.paredao_exposure import (
     build_nunca_paredao_items,
     build_figurinha_repetida_items,
+    build_participant_windows,
+    compute_house_vote_exposure,
 )
-from builders.index_data_builder import _build_figurinha_stat_line
+from builders.index_data_builder import _build_figurinha_stat_line, _compute_static_cards
 
 
 # ── Shared test helpers ──────────────────────────────────────────────────
@@ -55,6 +56,20 @@ def _synthetic_ctx(paredoes_list: list[dict], active_set: set[str] | None = None
     }
 
 
+def _simple_exposure(**values: dict[str, int]) -> dict[str, dict[str, int]]:
+    exposure: dict[str, dict[str, int]] = {}
+    for name, stats in values.items():
+        exposure[name] = {
+            "votes_total": stats.get("votes_total", 0),
+            "votes_recent": stats.get("votes_recent", 0),
+            "votes_available": stats.get("votes_available", 0),
+            "available": stats.get("available", 0),
+            "protected": stats.get("protected", 0),
+            "last_voted_paredao": stats.get("last_voted_paredao", 0),
+        }
+    return exposure
+
+
 # ── Nunca Paredão ────────────────────────────────────────────────────────
 
 
@@ -65,7 +80,10 @@ class TestNuncaParedaoItems:
                                   votos_casa={"V1": "Breno", "V2": "Caio"})]
         items, _ = build_nunca_paredao_items(
             _synthetic_ctx(paredoes), paredoes,
-            Counter({"Breno": 1, "Caio": 1}), Counter({"Breno": 1, "Caio": 1}),
+            _simple_exposure(
+                Breno={"votes_total": 1, "votes_recent": 1},
+                Caio={"votes_total": 1, "votes_recent": 1},
+            ),
         )
         names = [i["name"] for i in items]
         assert "Breno" in names and "Caio" in names
@@ -75,7 +93,10 @@ class TestNuncaParedaoItems:
         paredoes = [_make_paredao(1, [_make_indicado("Ana")], votos_casa={"V1": "Breno"})]
         items, _ = build_nunca_paredao_items(
             _synthetic_ctx(paredoes), paredoes,
-            Counter({"Caio": 3, "Breno": 1}), Counter({"Caio": 5, "Breno": 2}),
+            _simple_exposure(
+                Caio={"votes_total": 5, "votes_recent": 3},
+                Breno={"votes_total": 2, "votes_recent": 1},
+            ),
         )
         assert items[0]["name"] == "Caio"
         assert items[1]["name"] == "Breno"
@@ -88,7 +109,7 @@ class TestNuncaParedaoItems:
             "Ana": {"status": "eliminada", "exit_date": "2026-01-21"},
         }}
         _, exited = build_nunca_paredao_items(
-            _synthetic_ctx(paredoes, manual_events=manual), paredoes, Counter(), Counter(),
+            _synthetic_ctx(paredoes, manual_events=manual), paredoes, {},
         )
         names = [i["name"] for i in exited]
         assert "Henri" in names and "Pedro" in names
@@ -98,26 +119,26 @@ class TestNuncaParedaoItems:
         paredoes = [_make_paredao(1, [_make_indicado("Sol")])]
         manual = {"participants": {"Sol": {"status": "desclassificado", "exit_date": "2026-02-11"}}}
         _, exited = build_nunca_paredao_items(
-            _synthetic_ctx(paredoes, manual_events=manual), paredoes, Counter(), Counter(),
+            _synthetic_ctx(paredoes, manual_events=manual), paredoes, {},
         )
         assert not any(i["name"] == "Sol" for i in exited)
 
     def test_empty_when_all_went(self):
         paredoes = [_make_paredao(1, [_make_indicado("Ana"), _make_indicado("Breno"),
                                       _make_indicado("Caio")])]
-        items, _ = build_nunca_paredao_items(_synthetic_ctx(paredoes), paredoes, Counter(), Counter())
+        items, _ = build_nunca_paredao_items(_synthetic_ctx(paredoes), paredoes, {})
         assert items == []
 
     def test_minimal_ctx_no_manual_events(self):
         paredoes = [_make_paredao(1, [_make_indicado("Ana")])]
         ctx = {"active_set": {"Breno", "Caio"}, "paredoes": {"paredoes": paredoes}}
-        items, exited = build_nunca_paredao_items(ctx, paredoes, Counter(), Counter())
+        items, exited = build_nunca_paredao_items(ctx, paredoes, {})
         assert len(items) == 2
         assert exited == []
 
     def test_n_paredoes_scope(self):
         paredoes = [_make_paredao(1, [_make_indicado("Ana")]), _make_paredao(2, [])]
-        items, _ = build_nunca_paredao_items(_synthetic_ctx(paredoes), paredoes, Counter(), Counter())
+        items, _ = build_nunca_paredao_items(_synthetic_ctx(paredoes), paredoes, {})
         assert items[0]["n_paredoes"] == 1
         assert items[0]["n_paredoes_scope"] == "with_indicados"
 
@@ -143,7 +164,9 @@ class TestExitedVoteStats:
         ctx["participants_index"] = {
             "participants": [{"name": "Henri", "first_seen": "2026-01-13", "last_seen": "2026-01-19"}],
         }
-        _, exited = build_nunca_paredao_items(ctx, paredoes, Counter(), Counter())
+        windows = build_participant_windows(ctx["participants_index"], active_names=ctx["active_set"], manual_events=manual)
+        exposure = compute_house_vote_exposure(paredoes, windows)
+        _, exited = build_nunca_paredao_items(ctx, paredoes, exposure)
         henri = next(i for i in exited if i["name"] == "Henri")
         assert henri["votes_total"] == 2
 
@@ -166,7 +189,9 @@ class TestExitedVoteStats:
         ctx["participants_index"] = {
             "participants": [{"name": "Pedro", "first_seen": "2026-01-13", "last_seen": "2026-01-18"}],
         }
-        _, exited = build_nunca_paredao_items(ctx, paredoes, Counter(), Counter())
+        windows = build_participant_windows(ctx["participants_index"], active_names=ctx["active_set"], manual_events=manual)
+        exposure = compute_house_vote_exposure(paredoes, windows)
+        _, exited = build_nunca_paredao_items(ctx, paredoes, exposure)
         pedro = next(i for i in exited if i["name"] == "Pedro")
         assert pedro["available"] == 1
 
@@ -188,12 +213,14 @@ class TestExitedVoteStats:
         ctx["participants_index"] = {
             "participants": [{"name": "Edi", "first_seen": "2026-01-13", "last_seen": "2026-02-13"}],
         }
-        _, exited = build_nunca_paredao_items(ctx, paredoes, Counter(), Counter())
+        windows = build_participant_windows(ctx["participants_index"], active_names=ctx["active_set"], manual_events=manual)
+        exposure = compute_house_vote_exposure(paredoes, windows)
+        _, exited = build_nunca_paredao_items(ctx, paredoes, exposure)
         edi = next(i for i in exited if i["name"] == "Edi")
         assert edi["protected"] == 1
 
     def test_exited_only_card_emitted(self):
-        """items=[] but items_exited non-empty → card should be emittable."""
+        """Builder emits nunca_paredao when only exited untouchables remain."""
         paredoes = [_make_paredao(
             1, [_make_indicado("Ana"), _make_indicado("Breno"), _make_indicado("Caio")],
             votos_casa={"V1": "Ana"},
@@ -207,11 +234,10 @@ class TestExitedVoteStats:
         ctx["participants_index"] = {
             "participants": [{"name": "Henri", "first_seen": "2026-01-13", "last_seen": "2026-01-14"}],
         }
-        items, exited = build_nunca_paredao_items(ctx, paredoes, Counter(), Counter())
-        assert items == []
-        assert len(exited) == 1
-        # Emission gate: card should emit when items is empty but exited is not
-        assert items or exited  # mimics the fixed gate
+        _highlights, cards, _stats = _compute_static_cards(ctx)
+        nunca = next(card for card in cards if card["type"] == "nunca_paredao")
+        assert nunca["items_all"] == []
+        assert [item["name"] for item in nunca["items_exited"]] == ["Henri"]
 
 
 # ── Figurinha Repetida ───────────────────────────────────────────────────

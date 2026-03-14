@@ -140,6 +140,25 @@ jobs:
       - name: Build derived data
         run: python scripts/build_derived_data.py
 
+      - name: Run integrity audit
+        run: python scripts/audit_data_integrity.py --fail-on none
+
+      - name: Print integrity audit summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("data/derived/integrity_audit.json").read_text(encoding="utf-8"))
+          summary = data["summary"]
+          print(
+              "Integrity audit summary:"
+              f" checks={summary['checks_run']}"
+              f" critical={summary['critical_count']}"
+              f" warning={summary['warning_count']}"
+              f" info={summary['info_count']}"
+          )
+          PY
+
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 

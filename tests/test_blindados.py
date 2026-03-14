@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from data_utils import resolve_leaders
 from builders.index_data_builder import _compute_static_cards
+from builders.paredao_exposure import compute_house_vote_exposure
 from builders.vote_prediction import extract_paredao_eligibility
 
 
@@ -597,3 +598,80 @@ class TestBlindadosDisplayDetails:
             {"label": "Líder", "count": 1, "nums": [4], "text": "Líder 1x (4º)"},
             {"label": "Imune", "count": 1, "nums": [5], "text": "Imune 1x (5º)"},
         ]
+
+
+class TestCanonicalExposureCharacterization:
+    """Protect the 6 exposure fields moved into the canonical helper."""
+
+    def test_helper_matches_blindados_and_visados_exposure_fields(self):
+        ctx = {
+            "active_set": {"Ana", "Breno", "Caio"},
+            "participants_index": {
+                "participants": [
+                    {"name": "Ana", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
+                    {"name": "Breno", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
+                    {"name": "Caio", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
+                ]
+            },
+            "paredoes": {
+                "paredoes": [
+                    {
+                        "numero": 1,
+                        "data": "2026-01-19",
+                        "data_formacao": "2026-01-18",
+                        "status": "finalizado",
+                        "titulo": "P1",
+                        "indicados_finais": [{"nome": "Ana", "como": "Líder"}],
+                        "votos_casa": {"V1": "Breno", "V2": "Breno", "V3": "Caio"},
+                        "formacao": {"lider": "Ana", "indicado_lider": "Ana"},
+                    },
+                    {
+                        "numero": 2,
+                        "data": "2026-01-26",
+                        "data_formacao": "2026-01-25",
+                        "status": "finalizado",
+                        "titulo": "P2",
+                        "indicados_finais": [{"nome": "Caio", "como": "Casa (3 votos)"}],
+                        "votos_casa": {"V1": "Breno", "V2": "Caio"},
+                        "formacao": {
+                            "lider": "Ana",
+                            "indicado_lider": "Caio",
+                            "imunizado": {"por": "Anjo", "quem": "Breno"},
+                        },
+                    },
+                ]
+            },
+        }
+
+        exposure = compute_house_vote_exposure(
+            ctx["paredoes"]["paredoes"],
+            {
+                entry["name"]: {
+                    "first_seen": entry["first_seen"],
+                    "last_seen": entry["last_seen"],
+                }
+                for entry in ctx["participants_index"]["participants"]
+            },
+            recent_window=3,
+        )
+        _highlights, cards, _stats = _compute_static_cards(ctx)
+        blindados = next(card for card in cards if card["type"] == "blindados")
+        visados = next(card for card in cards if card["type"] == "visados")
+        blindados_by_name = {item["name"]: item for item in blindados["items_all"]}
+        visados_by_name = {item["name"]: item for item in visados["items_all"]}
+
+        for name, expected in exposure.items():
+            blind = blindados_by_name[name]
+            visado = visados_by_name[name]
+            assert blind["votes_total"] == expected["votes_total"]
+            assert blind["votes_available"] == expected["votes_available"]
+            assert blind["available"] == expected["available"]
+            assert blind["protected"] == expected["protected"]
+            assert blind["last_voted_paredao"] == expected["last_voted_paredao"]
+
+            assert visado["votes_total"] == expected["votes_total"]
+            assert visado["votes_recent"] == expected["votes_recent"]
+            assert visado["votes_available"] == expected["votes_available"]
+            assert visado["available"] == expected["available"]
+            assert visado["protected"] == expected["protected"]
+            assert visado["last_voted_paredao"] == expected["last_voted_paredao"]
