@@ -142,6 +142,39 @@ def test_paredao_pages_define_scoped_typography_layer():
     assert "body.paredao-page .paredao-history-summary" in css
 
 
+def test_paredoes_has_nunca_paredao_anchor():
+    content = _read(PAREDOES_QMD)
+    assert "### Nunca foi ao Paredão {#nunca-paredao}" in content
+
+
+def test_paredoes_has_figurinha_repetida_anchor():
+    content = _read(PAREDOES_QMD)
+    assert "### Figurinha Repetida {#figurinha-repetida}" in content
+
+
+def test_paredoes_imports_load_index_data():
+    content = _read(PAREDOES_QMD)
+    assert "load_index_data" in content
+
+
+def test_index_has_nunca_paredao_card_branch():
+    content = _read(INDEX_QMD)
+    assert '"nunca_paredao"' in content
+    assert "nunca_paredao" in content
+
+
+def test_index_has_figurinha_repetida_card_branch():
+    content = _read(INDEX_QMD)
+    assert '"figurinha_repetida"' in content
+    assert "figurinha_repetida" in content
+
+
+def test_index_card_story_order_includes_new_cards():
+    content = _read(INDEX_QMD)
+    assert '"nunca_paredao": 87' in content
+    assert '"figurinha_repetida": 88' in content
+
+
 def test_paredoes_tabs_include_current_open_week():
     content = _read(PAREDOES_QMD)
     assert "paredoes_visiveis = [p for p in paredoes if p.get('status') in ('finalizado', 'em_andamento')]" in content

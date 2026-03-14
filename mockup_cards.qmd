@@ -1,0 +1,259 @@
+---
+title: "Mockup — Linguagem de Cards"
+subtitle: "Exploração visual e UX para unificar os cards do index"
+lang: pt-BR
+format:
+  html:
+    code-tools: false
+execute:
+  echo: false
+  warning: false
+---
+
+```{python}
+#| include: false
+from pathlib import Path
+import sys
+import json
+from collections import Counter
+sys.path.append(str(Path("scripts").resolve()))
+
+from data_utils import load_index_data, avatar_html
+
+idx = load_index_data()
+AVATARS = idx.get("avatars", {})
+MEMBER_OF = idx.get("member_of", {})
+GROUP_COLORS = {
+    'Camarote': '#E6194B',
+    'Veterano': '#3CB44B',
+    'Pipoca': '#4363D8',
+}
+
+def border_for(name: str) -> str:
+    return GROUP_COLORS.get(MEMBER_OF.get(name, ""), "#777")
+
+def av(name: str, size: int = 34) -> str:
+    return avatar_html(name, AVATARS, size=size, show_name=False, border_color=border_for(name), link=None, fallback_initials=True)
+
+# Lookup for client-side hydration of <span class="mock-avatar">Name</span>
+# using real participant avatars (supports unique first-name aliases).
+AVATAR_LOOKUP: dict[str, str] = {}
+BORDER_LOOKUP: dict[str, str] = {}
+first_counts = Counter((name.split()[0] for name in AVATARS.keys() if name))
+for full_name, avatar_url in AVATARS.items():
+    if not avatar_url:
+        continue
+    grp_color = border_for(full_name)
+    AVATAR_LOOKUP[full_name] = avatar_url
+    BORDER_LOOKUP[full_name] = grp_color
+    first = full_name.split()[0]
+    if first and first_counts.get(first, 0) == 1:
+        AVATAR_LOOKUP.setdefault(first, avatar_url)
+        BORDER_LOOKUP.setdefault(first, grp_color)
+
+AVATAR_LOOKUP_JSON = json.dumps(AVATAR_LOOKUP, ensure_ascii=False)
+BORDER_LOOKUP_JSON = json.dumps(BORDER_LOOKUP, ensure_ascii=False)
+```
+
+<style>
+.mock-grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin:12px 0 18px; }
+.mock-card { background:#232323; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px; }
+.mock-title { font-size:1rem; font-weight:700; margin-bottom:8px; }
+.mock-sub { font-size:.78rem; opacity:.72; margin-bottom:10px; }
+.mock-row { display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:10px; background:rgba(255,255,255,.03); margin-bottom:6px; }
+.mock-main { font-size:.86rem; font-weight:600; line-height:1.2; }
+.mock-meta { font-size:.73rem; opacity:.68; line-height:1.2; }
+.mock-pill { margin-left:auto; font-size:.72rem; font-weight:700; border-radius:999px; padding:2px 8px; border:1px solid rgba(255,255,255,.22); }
+.mock-pill.red { color:#ff9a91; border-color:rgba(231,76,60,.5); background:rgba(231,76,60,.18); }
+.mock-pill.green { color:#8fe3b8; border-color:rgba(39,174,96,.5); background:rgba(39,174,96,.18); }
+.mock-pill.blue { color:#9dd3ff; border-color:rgba(52,152,219,.5); background:rgba(52,152,219,.18); }
+.mock-avatar { display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:34px; padding:0 8px; border-radius:999px; border:1px solid rgba(255,255,255,.22); background:#303030; color:#ddd; font-size:.72rem; font-weight:700; }
+.mock-stack { display:flex; flex-direction:column; gap:8px; }
+.mock-row.red { border-left:3px solid #e74c3c; }
+.mock-row.orange { border-left:3px solid #f39c12; }
+.mock-row.purple { border-left:3px solid #8e44ad; }
+.mock-toggle summary { cursor:pointer; color:#b7bdc4; font-size:.82rem; }
+.mock-note { background:#1f2b38; border:1px solid #2f4f6b; border-radius:10px; padding:10px; font-size:.84rem; }
+.mock-order li { margin-bottom:6px; }
+</style>
+
+```{python}
+from IPython.display import HTML, display
+display(HTML(f"""
+<script>
+const MOCK_AVATAR_LOOKUP = {AVATAR_LOOKUP_JSON};
+const MOCK_BORDER_LOOKUP = {BORDER_LOOKUP_JSON};
+
+window.addEventListener('DOMContentLoaded', () => {{
+  document.querySelectorAll('.mock-avatar').forEach((node) => {{
+    const name = (node.textContent || '').trim();
+    if (!name) return;
+    const src = MOCK_AVATAR_LOOKUP[name];
+    if (!src) return;
+
+    const border = MOCK_BORDER_LOOKUP[name] || '#777';
+    const frame = document.createElement('span');
+    frame.style.display = 'inline-flex';
+    frame.style.alignItems = 'center';
+    frame.style.justifyContent = 'center';
+    frame.style.minWidth = '34px';
+    frame.style.height = '34px';
+    frame.style.flexShrink = '0';
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = name;
+    img.width = 34;
+    img.height = 34;
+    img.style.borderRadius = '50%';
+    img.style.border = `2px solid ${{border}}`;
+    img.style.objectFit = 'cover';
+
+    frame.appendChild(img);
+    node.replaceWith(frame);
+  }});
+}});
+</script>
+"""))
+```
+
+## Objetivo
+
+Unificar linguagem visual dos cards do índice: menos variação arbitrária, mais padrão de leitura (título → insight principal → lista expandível).
+
+## Direção 1 — Avatar + Badge (Resumo rápido)
+
+```{=html}
+<div class="mock-grid">
+  <div class="mock-card">
+    <div class="mock-title">💣 Atacados (proposta)</div>
+    <div class="mock-sub">Avatar + nome + badge de frequência. Leitura imediata no mobile.</div>
+    <div class="mock-row">
+      <span class="mock-avatar">Breno</span>
+      <div>
+        <div class="mock-main">Breno</div>
+        <div class="mock-meta">alvo mais citado</div>
+      </div>
+      <span class="mock-pill red">4x</span>
+    </div>
+    <div class="mock-row">
+      <span class="mock-avatar">Jordana</span>
+      <div>
+        <div class="mock-main">Jordana</div>
+        <div class="mock-meta">2º mais citado</div>
+      </div>
+      <span class="mock-pill red">3x</span>
+    </div>
+    <details class="mock-toggle">
+      <summary>+6 restantes</summary>
+      <div class="mock-meta">Lista completa sem sair do card.</div>
+    </details>
+  </div>
+
+  <div class="mock-card">
+    <div class="mock-title">🛡️ Poupados (proposta)</div>
+    <div class="mock-sub">Mesmo padrão visual de Atacados, com badge neutro.</div>
+    <div class="mock-row">
+      <span class="mock-avatar">Alberto</span>
+      <div><div class="mock-main">Alberto</div><div class="mock-meta">sem citação negativa</div></div>
+      <span class="mock-pill blue">0x</span>
+    </div>
+    <div class="mock-row">
+      <span class="mock-avatar">Chaiany</span>
+      <div><div class="mock-main">Chaiany</div><div class="mock-meta">sem citação negativa</div></div>
+      <span class="mock-pill blue">0x</span>
+    </div>
+  </div>
+</div>
+```
+
+## Direção 2 — Eventos com Data Obrigatória
+
+```{=html}
+<div class="mock-grid">
+  <div class="mock-card">
+    <div class="mock-title">💔 Alianças Rompidas</div>
+    <div class="mock-sub">Sempre explicita quando rompeu: "Rompimento: DD/MM (há X dias)".</div>
+    <div class="mock-stack">
+      <div class="mock-row purple">
+        <span class="mock-avatar">Solange</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mock-main">6d ❤️ → 🍪 Ana</div>
+          <div class="mock-meta">Rompimento: 06/03 (hoje)</div>
+        </div>
+        <span class="mock-avatar">Ana</span>
+      </div>
+      <div class="mock-row purple">
+        <span class="mock-avatar">Gabriela</span>
+        <div style="flex:1;min-width:0;">
+          <div class="mock-main">46d ❤️ → 💔 Breno</div>
+          <div class="mock-meta">Rompimento: 05/03 (há 1 dia)</div>
+        </div>
+        <span class="mock-avatar">Breno</span>
+      </div>
+    </div>
+    <details class="mock-toggle">
+      <summary>+N restantes</summary>
+      <div class="mock-meta">Expande no card sem navegar para outra página.</div>
+    </details>
+  </div>
+
+  <div class="mock-card">
+    <div class="mock-title">⚠️ Novas Hostilidades</div>
+    <div class="mock-sub">Sem novas hoje? Card vira "Histórico recente" automaticamente.</div>
+    <div class="mock-row orange">
+      <span class="mock-avatar">Solange</span>
+      <div style="flex:1;min-width:0;">
+        <div class="mock-main">Solange 🍪 Jordana</div>
+        <div class="mock-meta">Hostilidade unilateral · ❤️→🍪 · 06/03 (hoje)</div>
+      </div>
+      <span class="mock-avatar">Jordana</span>
+    </div>
+    <div class="mock-note">Fallback sugerido: mostrar últimos 7–14 dias quando não houver casos novos no dia.</div>
+  </div>
+</div>
+```
+
+## Direção 3 — Interação Mobile (Tap-to-expand)
+
+```{=html}
+<div class="mock-grid">
+  <div class="mock-card">
+    <div class="mock-title">📊 Pulso Diário (proposta)</div>
+    <div class="mock-sub">Comparação instantânea com barras + saldo líquido.</div>
+    <div class="mock-row"><span class="mock-main">Melhorias</span><span class="mock-pill green">19</span></div>
+    <div class="mock-row"><span class="mock-main">Pioras</span><span class="mock-pill red">12</span></div>
+    <div class="mock-row"><span class="mock-main">Laterais</span><span class="mock-pill blue">12</span></div>
+    <details class="mock-toggle">
+      <summary>Ver detalhamento por pessoa</summary>
+      <div class="mock-meta">Abre detalhes in-card sem tirar contexto do usuário.</div>
+    </details>
+  </div>
+
+  <div class="mock-card">
+    <div class="mock-title">🛡️ Mais Blindados (proposta)</div>
+    <div class="mock-sub">Top 5 + toggle obrigatório para todos os participantes.</div>
+    <div class="mock-row"><span class="mock-avatar">Jonas</span> <div><div class="mock-main">Jonas</div><div class="mock-meta">0 paredões · protegido 5x</div></div></div>
+    <div class="mock-row"><span class="mock-avatar">Gabriela</span> <div><div class="mock-main">Gabriela</div><div class="mock-meta">0 paredões · protegido 1x</div></div></div>
+    <details class="mock-toggle">
+      <summary>+9 participantes</summary>
+      <div class="mock-meta">Lista completa sem sair do card.</div>
+    </details>
+  </div>
+</div>
+```
+
+## Ordem Narrativa Sugerida
+
+<ol class="mock-order">
+  <li>Contexto do dia (semana/dados ativos)</li>
+  <li>Ranking + Pulso Diário (estado geral)</li>
+  <li>Mudanças Dramáticas + Hostilidades (o que mudou agora)</li>
+  <li>Sincerão (bloco temático da semana)</li>
+  <li>Paredão, Alianças Rompidas, Blindados (jogo estratégico)</li>
+  <li>Impactos e métricas acumuladas (profundidade)</li>
+</ol>
+
+## Nota de Implementação
+
+Esta página é um laboratório visual para decidir linguagem e padrões de interação antes de consolidar tudo no `index.qmd`.

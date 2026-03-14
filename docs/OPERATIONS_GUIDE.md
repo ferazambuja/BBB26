@@ -32,6 +32,7 @@
 | **Add scheduled events for upcoming week** | After dynamics article | [Scheduled Events](#scheduled-events-upcoming-week) |
 | **Participant exit** (quit/disqualified) | When it happens | [Manual Data Files → manual_events.json](#1-datamanual_eventsjson) |
 | **Workflow failed on GitHub** | After failure | [Troubleshooting](#troubleshooting) |
+| **Merge feature branch to main** | Feature work done | [Git Workflow → feature branch](#feature-branch--main-multi-commit-features) |
 | **Push conflict with bot** | After `git push` fails | [Git Workflow → conflict resolution](#handling-push-conflicts) |
 | **Check public/private doc policy** | Before commit/push | [Public vs Private Docs Policy](#public-vs-private-documentation-policy-agents) |
 | **Decide what to verify after a change** | Any time | [Common Edit Recipes](#common-edit-recipes-fast-path) + `docs/TESTING.md` |
@@ -92,7 +93,7 @@ git pull origin main --rebase
 
 # After manual edits (the universal pattern)
 python scripts/build_derived_data.py    # rebuild derived data (hard-fails on errors)
-git add data/ docs/MANUAL_EVENTS_AUDIT.md
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
 git commit -m "public: data: <description>"
 ```
 
@@ -220,6 +221,60 @@ Current `daily-update.yml` behavior:
   - `data/paredoes.json`
   - `data/provas.json`
   - `data/votalhada/polls.json`
+
+### Feature Branch → `main` (Multi-Commit Features)
+
+For features developed on `feature/*` branches (multi-file refactors, new cards, new scripts):
+
+```bash
+# 1. Finish and test on feature branch
+pytest tests/ -x -q
+python scripts/build_derived_data.py
+
+# 2. Switch to main — pull latest (bot may have committed data)
+git checkout main
+git pull --rebase origin main
+
+# 3. Squash-apply ALL code changes from feature branch (exclude derived data)
+#    Use --no-commit to stage without committing, then rebuild
+git merge --squash feature/<name>
+
+# 4. If merge conflicts in data/derived/*: accept main's version, rebuild
+#    These are generated files — main has the latest snapshots
+git checkout --theirs data/derived/
+git add data/derived/
+
+# 5. If merge conflicts in code files (e.g., index_data_builder.py):
+#    Resolve MANUALLY — understand both sides before choosing
+#    Main may have added features (saldo_card, link fixes) that your branch doesn't have
+#    Never blindly take --ours or --theirs for code files
+
+# 6. Rebuild derived data with main's latest snapshots + your code changes
+python scripts/build_derived_data.py
+
+# 7. Run full test suite — fix any failures from integration
+pytest tests/ -x -q
+
+# 8. Stage everything and commit
+git add -A
+git commit -m "public: feat: <description>"
+
+# 9. Push and deploy
+git push origin main
+gh workflow run daily-update.yml
+
+# 10. Return to working branch and clean up
+git checkout local/private-main
+git branch -d feature/<name>
+```
+
+**Key rules for feature branches**:
+- Feature branch commits do NOT need `public:` prefix (they're squashed into one `public:` commit on merge)
+- `sync_public.sh` does NOT work for feature branches — it filters on `public:` prefix
+- Always resolve `data/derived/*` conflicts by accepting main's version then rebuilding
+- Never take `--ours` for code files without reading both sides — main may have changes your branch is missing
+- Close any open PR before squash-merging locally (avoids duplicate merge)
+- Pre-push hook allows `feature/*` branches but validates no private files are tracked
 
 ### Handling Extraordinary Events
 
@@ -553,7 +608,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 5. **Rebuild + commit + push**:
    ```bash
    python scripts/build_derived_data.py
-   git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: week N Líder transition (Name)"
+   git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: week N Líder transition (Name)"
    git push
    ```
 
@@ -749,7 +804,7 @@ Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the au
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
 git push
 ```
 
@@ -826,7 +881,7 @@ Add the scraped article URL to the anjo's `fontes` array in `weekly_events[N].an
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
 git push
 ```
 
@@ -919,7 +974,7 @@ Add a Bate e Volta prova entry with the results.
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Nº Paredão formation"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Nº Paredão formation"
 git push
 ```
 
@@ -1482,7 +1537,7 @@ If the participant takes the money, keep `decisao.escolha` / `decisao.abriu_mao`
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: paredão N result + ganha-ganha"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: paredão N result + ganha-ganha"
 git push
 gh workflow run daily-update.yml
 ```
@@ -1672,7 +1727,7 @@ If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_d
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: week N sincerão"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: week N sincerão"
 git push
 ```
 

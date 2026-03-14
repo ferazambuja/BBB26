@@ -143,9 +143,11 @@ All files in `data/derived/`, built by `scripts/build_derived_data.py`:
 | `cluster_evolution.json` | `build_cluster_evolution()` | historical/debug analysis | Cluster membership changes over time |
 | `paredao_analysis.json` | `build_paredao_analysis()` | `paredoes.qmd` | Per-paredão analysis data |
 | `paredao_badges.json` | `build_paredao_badges()` | paredão/archive presentation layers | Paredão performance badges |
+| `paredao_exposure_stats.json` | `compute_paredao_exposure_stats()` | `docs/SCORING_AND_INDEXES.md`, exposure cards | Paredão exposure analytics (route metrics, BV stats, facts). Hash-gated |
 | `vote_prediction.json` | `build_vote_prediction()` | `paredao.qmd`, `paredoes.qmd`, `index.qmd` | Líder nomination / vote prediction data |
 | `reaction_matrices.json` | `build_reaction_matrices()` | `relacoes.qmd` | Precomputed daily reaction matrices |
 | `balance_events.json` | `build_balance_events()` | `economia.qmd`, `economia_v2.qmd` | Balance deltas, compras/punições, fairness metrics |
+| `integrity_audit.json` | `audit_data_integrity.py` | CI, operators | Cross-source data integrity audit report |
 | `validation.json` | `validate_manual_events()` | debugging and sanity review | Sanity checks |
 | `manual_events_audit.json` | `audit_manual_events.run_audit()` | `docs/MANUAL_EVENTS_AUDIT.md`, operators | Manual events audit report |
 | `eliminations_detected.json` | `detect_eliminations()` | timeline + validation | Auto-detected participant exits |

@@ -144,6 +144,8 @@ CARD_STORY_ORDER = {
     "breaks": 70,
     "blindados": 80,
     "visados": 85,
+    "nunca_paredao": 87,
+    "figurinha_repetida": 88,
     "impact": 90,
     "positive_impact": 100,
     "vulnerability": 110,
@@ -790,6 +792,153 @@ else:
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais pressionados por paredão, votos recentes e intensidade de votos quando elegíveis.")}
+{rows_html}
+</div>''')
+
+        # ── ✨ Nunca foi ao Paredão ──
+        elif ctype == "nunca_paredao":
+            items = card.get("items", [])
+            items_all = card.get("items_all") or items
+            items_exited = card.get("items_exited", [])
+            display_limit = int(card.get("display_limit") or len(items) or 5)
+            n_par = card.get("n_paredoes", 1)
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
+
+            def _nunca_row(it: dict) -> str:
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                votes = it.get("votes_total", 0)
+                prot = it.get("protected", 0)
+                avail = it.get("available", 0)
+                status = it.get("status", "active")
+                is_exited = status != "active"
+                border = "#27ae60"
+                if is_exited:
+                    name_html = f'<span class="fs-md u-s068" style="color:#888;">{name.split()[0]}</span>'
+                    avatar = _avatar_html(name, AVATARS, size=42, show_name=False, border_color="#555", grayscale=True, fallback_initials=True)
+                    exit_label = it.get("status_label", "")
+                    exit_badge = f'<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#333;color:#888;">{exit_label}</span>' if exit_label else ""
+                else:
+                    name_html = f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    avatar = f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
+                    exit_badge = ""
+
+                cnote = it.get("context_note", "")
+                if cnote:
+                    stats_line = f'<div class="fs-2xs" style="color:#888;">{cnote}</div>'
+                else:
+                    stats_line = f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} recebido{"s" if votes != 1 else ""} · protegido {prot}x de {avail} elegível</div>'
+
+                return (
+                    f'<div class="u-s056" style="align-items:flex-start;">'
+                    f'{avatar}'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'{name_html}'
+                    f'<span class="fs-sm" style="color:#27ae60;font-weight:700;">0 paredões</span>'
+                    f'</div>'
+                    f'{stats_line}'
+                    f'{exit_badge}'
+                    f'</div></div>'
+                )
+
+            rows_html = '<div class="u-s058">'
+            rows_html += "".join(_nunca_row(it) for it in inline_items)
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s058">{"".join(_nunca_row(it) for it in overflow_items)}</div>'
+                    f'</details>'
+                )
+            if items_exited:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Saíram sem ir ao Paredão ({len(items_exited)})</summary>'
+                    f'<div class="u-s058">{"".join(_nunca_row({**it, "status": it.get("status", "exited")}) for it in items_exited)}</div>'
+                    f'</details>'
+                )
+            rows_html += '</div>'
+
+            context_line = card.get("context_line", "")
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle=context_line)}
+{rows_html}
+</div>''')
+
+        # ── 🔁 Figurinha Repetida ──
+        elif ctype == "figurinha_repetida":
+            items = card.get("items", [])
+            items_all = card.get("items_all") or items
+            display_limit = int(card.get("display_limit") or len(items) or 5)
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
+            max_count = max((it.get("appearance_count", 0) for it in items_all), default=1) or 1
+
+            def _figurinha_row(it: dict) -> str:
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                count = it.get("appearance_count", 0)
+                is_active = it.get("active", True)
+                was_eliminated = it.get("was_eliminated", False)
+                returned = it.get("returned", False)
+                route_summary = it.get("route_summary", {})
+                border = "#8e44ad" if count >= 3 else ("#e67e22" if count >= 2 else "#7f8c8d")
+                bar_pct = min(100, count / max_count * 100) if max_count > 0 else 0
+
+                if is_active:
+                    name_html = f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    avatar = f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
+                else:
+                    name_html = f'<span class="fs-md u-s068" style="color:#888;">{name.split()[0]}</span>'
+                    avatar = _avatar_html(name, AVATARS, size=42, show_name=False, border_color="#555", grayscale=True, fallback_initials=True)
+
+                count_badge = f'<span class="fs-sm" style="color:{border};font-weight:700;">{count}x</span>'
+                route_badges = []
+                for route, rcount in sorted(route_summary.items()):
+                    route_badges.append(
+                        f'<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;white-space:nowrap;">{route} {rcount}x</span>'
+                    )
+                extra = ""
+                if returned:
+                    extra += '<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;">Voltou 🔮</span>'
+                if was_eliminated:
+                    extra += '<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#5a1a1a;color:#ff9999;">Eliminado</span>'
+                badges_html = " ".join(route_badges) + (" " + extra if extra else "")
+
+                return (
+                    f'<div class="u-s056" style="align-items:flex-start;">'
+                    f'{avatar}'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'{name_html}'
+                    f'{count_badge}'
+                    f'</div>'
+                    f'<div class="u-s014">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
+                    f'</div>'
+                    f'<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;">{badges_html}</div>'
+                    f'</div></div>'
+                )
+
+            active_items = [it for it in items_all if it.get("active", True)]
+            eliminated_items = [it for it in items_all if not it.get("active", True)]
+
+            rows_html = '<div class="u-s058">'
+            rows_html += "".join(_figurinha_row(it) for it in active_items)
+            rows_html += '</div>'
+            if eliminated_items:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Eliminados ({len(eliminated_items)})</summary>'
+                    f'<div class="u-s058">{"".join(_figurinha_row(it) for it in eliminated_items)}</div>'
+                    f'</details>'
+                )
+
+            stat_line = card.get("stat_line", "")
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f'{len(active_items)} ativos', source_tag="📈 Acumulado", subtitle=stat_line)}
 {rows_html}
 </div>''')
 

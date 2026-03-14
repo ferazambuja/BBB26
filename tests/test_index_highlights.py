@@ -88,7 +88,7 @@ def test_daily_highlight_cards_use_valid_cross_page_links():
 
 
 def test_static_vip_xepa_cards_link_to_relacoes_anchor():
-    _highlights, cards = _compute_static_cards(
+    _highlights, cards, _stats = _compute_static_cards(
         {
             "active_set": {"Ana", "Beto"},
             "paredoes": {"paredoes": []},
@@ -145,6 +145,8 @@ def test_all_highlight_card_links_follow_navigation_contract():
         "evolucao.html#sentimento",
         "paredao.html",
         "paredoes.html",
+        "paredoes.html#nunca-paredao",
+        "paredoes.html#figurinha-repetida",
         "relacoes.html#aliancas",
         "relacoes.html#hostilidades",
         "relacoes.html#sincerao-contradictions",

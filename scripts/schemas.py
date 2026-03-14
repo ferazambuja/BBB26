@@ -111,8 +111,11 @@ PROVAS_SCHEMA = {
 }
 
 
-def validate_input_files():
+def validate_input_files(root: "Path | None" = None):
     """Validate all manual data files against their schemas.
+
+    Args:
+        root: Repository root directory. Defaults to CWD.
 
     Raises jsonschema.ValidationError if any file is invalid.
     """
@@ -125,6 +128,7 @@ def validate_input_files():
         print("Warning: jsonschema not installed — skipping schema validation")
         return
 
+    base = Path(root) if root else Path(".")
     schemas = [
         ("data/paredoes.json", PAREDAO_SCHEMA),
         ("data/manual_events.json", MANUAL_EVENTS_SCHEMA),
@@ -132,7 +136,7 @@ def validate_input_files():
     ]
 
     for filepath, schema in schemas:
-        p = Path(filepath)
+        p = base / filepath
         if not p.exists():
             print(f"Warning: {filepath} not found — skipping validation")
             continue

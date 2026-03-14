@@ -20,6 +20,7 @@ from data_utils import (
     backtest_precision_model,
     calculate_precision_weights,
     genero,
+    normalize_route_label,
     parse_votalhada_hora,
     predict_precision_weighted,
     safe_html,
@@ -133,20 +134,8 @@ def _format_collection_label(data_coleta: str | None) -> str | None:
         return None
 
 
-def _normalize_route_label(route: str | None) -> str:
-    if not route or route == "API":
-        return "Aguardando origem"
-    cleaned = route.split(" + ")[0].strip()
-    lower = cleaned.lower()
-    if "líder" in lower:
-        return "Líder"
-    if "contragolpe" in lower:
-        return "Contragolpe"
-    if "consenso anjo+monstro" in lower:
-        return "Consenso Anjo+Monstro"
-    if "duelo de risco" in lower:
-        return "Duelo de Risco"
-    return cleaned
+
+
 
 
 def _result_is_selected(result: str | None) -> bool:
@@ -608,7 +597,7 @@ def build_paredao_card_payload(
         if not name:
             continue
         route_raw = participant.get("como", "")
-        route_short = _normalize_route_label(route_raw)
+        route_short = normalize_route_label(route_raw)
         appearance_count = len(history_map.get(name, [])) + 1
         result = participant.get("resultado", "")
         nominee = {

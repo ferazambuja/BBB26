@@ -19,9 +19,6 @@ on:
     - cron: '*/15 * * * *'  # Every 15 minutes
   workflow_dispatch:  # Allow manual trigger (always runs full pipeline)
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 # NOTE: No workflow-level concurrency group. A lightweight 31-second schedule
 # poll must NOT cancel a 4+ minute manual build+deploy. Concurrency is set
 # per-job: build uses cancel-in-progress (avoid duplicate renders), deploy
@@ -40,12 +37,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -87,25 +84,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: main  # Get Job 1's commit
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
-
-      - name: Set up Quarto
-        uses: quarto-dev/quarto-actions/setup@v2
-
-      - name: Run tests
-        run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
 
       - name: Validate JSON snapshots
         run: |
@@ -146,30 +137,41 @@ jobs:
       - name: Build derived data
         run: python scripts/build_derived_data.py
 
+      - name: Run integrity audit
+        run: python scripts/audit_data_integrity.py --fail-on critical
+
+      - name: Print integrity audit summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("data/derived/integrity_audit.json").read_text(encoding="utf-8"))
+          summary = data["summary"]
+          print(
+              "Integrity audit summary:"
+              f" checks={summary['checks_run']}"
+              f" critical={summary['critical_count']}"
+              f" warning={summary['warning_count']}"
+              f" info={summary['info_count']}"
+          )
+          PY
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
       - name: Render Quarto site
         run: quarto render
 
-      - name: Archive Pages artifact
-        run: |
-          tar \
-            --dereference --hard-dereference \
-            --directory "_site" \
-            -cvf "$RUNNER_TEMP/artifact.tar" \
-            --exclude=.git \
-            --exclude=.github \
-            --exclude=".[^/]*" \
-            .
-
       - name: Upload Pages artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: github-pages
-          path: ${{ runner.temp }}/artifact.tar
-          retention-days: 1
-          if-no-files-found: error
+          path: '_site'
 
       - name: Upload data artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: new-data
           path: |
@@ -204,12 +206,12 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Download data artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: new-data
           path: .
@@ -218,25 +220,11 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/ docs/MANUAL_EVENTS_AUDIT.md
-          if git diff --staged --quiet; then
-            echo "No derived data changes to commit."
-            exit 0
-          fi
-          git commit -m "data: derived update $(date -u +%Y-%m-%d_%H-%M) UTC"
+          git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+          git diff --staged --quiet || git commit -m "data: derived update $(date -u +%Y-%m-%d_%H-%M) UTC"
           # Pull --rebase to handle race with 15-min fetch polls that may have
           # pushed a new snapshot commit between build checkout and now.
-          if ! git pull --rebase origin main; then
-            echo "Rebase conflict while syncing main; aborting rebase and skipping derived data push."
-            git rebase --abort || true
-            exit 0
-          fi
-          if ! git push origin HEAD:main; then
-            echo "Initial push rejected; retrying once after rebase."
-            if ! git pull --rebase origin main; then
-              echo "Rebase conflict on push retry; aborting rebase and skipping derived data push."
-              git rebase --abort || true
-              exit 0
-            fi
-            git push origin HEAD:main
-          fi
+          # If docs/SCORING_AND_INDEXES.md conflicts (human edit vs bot-managed block),
+          # abort and let the next successful run self-heal the marker block.
+          git pull --rebase origin main || true
+          git push
