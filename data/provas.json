@@ -1,6 +1,6 @@
 {
   "_description": "Competition results and placements for all BBB26 provas.",
-  "_last_updated": "2026-03-07",
+  "_last_updated": "2026-03-14",
   "provas": [
     {
       "numero": 1,
@@ -2730,6 +2730,152 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/lider-alberto-cowboy-faz-divisao-entre-vip-e-xepa-confira-como-ficou-a-casa.ghtml",
           "arquivo": "docs/scraped/lider-alberto-cowboy-faz-divisao-entre-vip-e-xepa-confira-como-ficou-a-casa.md",
           "titulo": "Líder Alberto Cowboy faz divisão entre VIP e Xepa; confira como ficou a casa"
+        }
+      ]
+    },
+    {
+      "numero": 25,
+      "tipo": "anjo",
+      "week": 9,
+      "date": "2026-03-14",
+      "nome": "9ª Prova do Anjo — Corrida de Carrinhos Betano (Duelos em Chave)",
+      "formato": "duelos_corrida_chave",
+      "vencedor": "Breno",
+      "participantes_total": 8,
+      "excluidos": [
+        {
+          "nome": "Alberto Cowboy",
+          "motivo": "Líder da semana, não participa"
+        },
+        {
+          "nome": "Gabriela",
+          "motivo": "Eliminada no sorteio (bolinha X)"
+        },
+        {
+          "nome": "Jordana",
+          "motivo": "Eliminada no sorteio (bolinha X)"
+        },
+        {
+          "nome": "Milena",
+          "motivo": "Eliminada no sorteio (bolinha X)"
+        },
+        {
+          "nome": "Samira",
+          "motivo": "Eliminada no sorteio (bolinha X)"
+        }
+      ],
+      "nota": "Sorteio de bolinhas: 4 participantes tiraram bolinha X e ficaram de fora (GShow reportou apenas 3; Gabriela confirmada como 4ª excluída via cobertura ao vivo). 8 participantes formaram 4 duelos. Mecânica: corrida de carrinhos virtual — a cada rodada, o telão mostra tempo da corrida e multiplicador. Apertar o botão o mais próximo possível do tempo limite. Pontuação = tempo × multiplicador, acumulada em 3 rodadas por duelo. Quartas → Semifinais → Final. Breno é Anjo inédito (1ª vez). Tadeu: 'Teremos um Anjo inédito nessa semana.'",
+      "fases": [
+        {
+          "fase": 1,
+          "tipo": "eliminatoria_duelos",
+          "nota": "4 duelos (quartas de final). 3 rodadas por duelo. Maior pontuação acumulada avança para semifinal.",
+          "duelos": [
+            {
+              "duelo": 1,
+              "participantes": ["Leandro", "Jonas Sulzbach"],
+              "vencedor": "Leandro",
+              "pontos": {"Leandro": 179.37, "Jonas Sulzbach": 178.98},
+              "rodadas": {
+                "Leandro": [22.79, 49.34, 107.24],
+                "Jonas Sulzbach": [22.56, 49.74, 106.68]
+              }
+            },
+            {
+              "duelo": 2,
+              "participantes": ["Chaiany", "Juliano Floss"],
+              "vencedor": "Juliano Floss",
+              "pontos": {"Juliano Floss": 106.00, "Chaiany": 102.12},
+              "nota": "Pontuação parcial visível (1 rodada: 26.50×4=106.00 vs 25.53×4=102.12)"
+            },
+            {
+              "duelo": 3,
+              "participantes": ["Solange Couto", "Ana Paula Renault"],
+              "vencedor": "Ana Paula Renault",
+              "pontos": {"Ana Paula Renault": 106.28, "Solange Couto": 102.40},
+              "nota": "Pontuação parcial visível (1 rodada: 26.57×4=106.28 vs 25.60×4=102.40)"
+            },
+            {
+              "duelo": 4,
+              "participantes": ["Breno", "Marciele"],
+              "vencedor": "Breno",
+              "pontos": {"Breno": 176.41, "Marciele": 153.32},
+              "rodadas": {
+                "Breno": [22.63, 47.94, 105.84],
+                "Marciele": [0.00, 46.88, 106.44]
+              }
+            }
+          ],
+          "classificacao": [
+            {"pos": 1, "nome": "Leandro", "nota": "Venceu QF1 (179.37 vs 178.98)"},
+            {"pos": 1, "nome": "Juliano Floss", "nota": "Venceu QF2"},
+            {"pos": 1, "nome": "Ana Paula Renault", "nota": "Venceu QF3"},
+            {"pos": 1, "nome": "Breno", "nota": "Venceu QF4 (176.41 vs 153.32)"},
+            {"pos": 5, "nome": "Jonas Sulzbach", "nota": "Eliminado QF1 (178.98 vs 179.37)"},
+            {"pos": 5, "nome": "Chaiany", "nota": "Eliminada QF2"},
+            {"pos": 5, "nome": "Solange Couto", "nota": "Eliminada QF3"},
+            {"pos": 5, "nome": "Marciele", "nota": "Eliminada QF4 (153.32 vs 176.41)"}
+          ]
+        },
+        {
+          "fase": 2,
+          "tipo": "classificatoria_sf_final",
+          "nota": "Semifinais (3 rodadas cada) + Final (3 rodadas). SF1: Leandro 205.90 vs Juliano 202.99. SF2: Breno 205.99 vs Ana Paula 205.07. Final: Breno 194.04 vs Leandro 127.62 (Leandro marcou 0.00 na rodada 2).",
+          "duelos": [
+            {
+              "duelo": "SF1",
+              "participantes": ["Leandro", "Juliano Floss"],
+              "vencedor": "Leandro",
+              "pontos": {"Leandro": 205.90, "Juliano Floss": 202.99},
+              "rodadas": {
+                "Leandro": [33.28, 59.22, 113.40],
+                "Juliano Floss": [31.52, 59.07, 112.40]
+              }
+            },
+            {
+              "duelo": "SF2",
+              "participantes": ["Ana Paula Renault", "Breno"],
+              "vencedor": "Breno",
+              "pontos": {"Breno": 205.99, "Ana Paula Renault": 205.07},
+              "rodadas": {
+                "Breno": [33.26, 58.53, 114.20],
+                "Ana Paula Renault": [32.96, 58.56, 113.55]
+              }
+            },
+            {
+              "duelo": "Final",
+              "participantes": ["Leandro", "Breno"],
+              "vencedor": "Breno",
+              "pontos": {"Breno": 194.04, "Leandro": 127.62},
+              "rodadas": {
+                "Breno": [27.04, 62.24, 104.76],
+                "Leandro": [27.12, 0.00, 100.50]
+              }
+            }
+          ],
+          "classificacao": [
+            {"pos": 1, "nome": "Breno", "nota": "Venceu Final (194.04 vs 127.62)"},
+            {"pos": 2, "nome": "Leandro", "nota": "Vice-campeão (127.62 — 0.00 na rodada 2 da final)"},
+            {"pos": 3, "nome": "Ana Paula Renault", "nota": "Eliminada SF2 (205.07 vs 205.99)", "tied": true},
+            {"pos": 3, "nome": "Juliano Floss", "nota": "Eliminado SF1 (202.99 vs 205.90)", "tied": true}
+          ]
+        }
+      ],
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-breno-vence-a-nona-prova.ghtml",
+          "arquivo": "docs/scraped/quem-e-o-anjo-do-bbb-26-breno-vence-a-nona-prova.md",
+          "titulo": "Quem é o Anjo do BBB 26? Breno vence a nona prova"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/jonas-sulzbach-recebe-castigo-do-monstro-no-bbb-26-1.ghtml",
+          "arquivo": "docs/scraped/jonas-sulzbach-recebe-castigo-do-monstro-no-bbb-26-1.md",
+          "titulo": "Jonas Sulzbach recebe Castigo do Monstro no BBB 26"
+        },
+        {
+          "url": "https://x.com/Dantinhas/",
+          "arquivo": "docs/scraped/prova_anjo_9_twitter_dantinhas.md",
+          "titulo": "Cobertura ao vivo @Dantinhas — 9ª Prova do Anjo (excluídos, duelos, scores)"
         }
       ]
     }

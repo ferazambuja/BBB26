@@ -2,13 +2,56 @@
 
 > Single source of truth for ALL operational procedures — data updates, event workflows, git sync, and troubleshooting.
 >
-> **For AI agents without context**: Read the Quick Index below to find exactly what you need to do.
+> **For AI agents without context**: Read the Document Map below, then jump to the section you need with `Read offset=N limit=M`.
 > **For schemas and field specs**: See `docs/MANUAL_EVENTS_GUIDE.md` (events) and `docs/ARCHITECTURE.md` (architecture).
 > **For scoring formulas**: See `docs/SCORING_AND_INDEXES.md`.
 > **For verification strategy**: See `docs/TESTING.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-13
+> **Last updated**: 2026-03-14
+
+---
+
+## Document Map (for AI agents)
+
+This file is ~2,400 lines. **Do not read it all at once.** Use this map to jump to the section you need.
+
+> **Refresh line numbers** (they shift on edits): `grep -n "^## " docs/OPERATIONS_GUIDE.md`
+
+**Setup & Policies** (read once per session if unfamiliar):
+
+| Line | Section | What's there |
+|------|---------|-------------|
+| ~88 | Common Edit Recipes | Change type → files to edit → scripts to run |
+| ~103 | Web Scraping & Source Collection | GShow can't be WebFetched — use `scrape_gshow.py` |
+| ~133 | Public vs Private Doc Policy | What can/can't be pushed |
+| ~148 | Git Workflow | Dual-branch, commit & publish, push conflicts |
+
+**Event Checklists** (read the one matching today's task):
+
+| Line | Section | When |
+|------|---------|------|
+| ~582 | Líder Transition | Thursday night |
+| ~789 | Anjo / Monstro | Saturday |
+| ~954 | Presente do Anjo | Sunday afternoon |
+| ~1039 | Paredão Formation | Sunday night |
+| ~1143 | Votalhada Collection | Tuesday ~21h |
+| ~1452 | Elimination Result | Tuesday ~23h |
+| ~1727 | Barrado no Baile | Wednesday |
+| ~1793 | Sincerão Update | Monday |
+
+**Reference** (read on demand):
+
+| Line | Section | What's there |
+|------|---------|-------------|
+| ~424 | Triggering Site Updates | How/when GitHub Pages deploys |
+| ~467 | Weekly Calendar | Standard week pattern + history tables |
+| ~1879 | Scheduled Events | How to add future events |
+| ~1951 | Manual Data Files | Schema summaries for each data file |
+| ~2079 | Economia / Compras | Balance auto-detection rules |
+| ~2114 | Script Reference | Which script to run for each task |
+| ~2140 | Screenshot Pipeline | Layout review with Playwright |
+| ~2302 | Troubleshooting | Build failures, conflicts, stale data |
 
 ---
 
@@ -33,6 +76,7 @@
 | **Participant exit** (quit/disqualified) | When it happens | [Manual Data Files → manual_events.json](#1-datamanual_eventsjson) |
 | **Workflow failed on GitHub** | After failure | [Troubleshooting](#troubleshooting) |
 | **Merge feature branch to main** | Feature work done | [Git Workflow → feature branch](#feature-branch--main-multi-commit-features) |
+| **Commit and publish to GitHub** | After any checklist step | [Commit & Publish Workflow](#commit--publish-workflow) |
 | **Push conflict with bot** | After `git push` fails | [Git Workflow → conflict resolution](#handling-push-conflicts) |
 | **Check public/private doc policy** | Before commit/push | [Public vs Private Docs Policy](#public-vs-private-documentation-policy-agents) |
 | **Decide what to verify after a change** | Any time | [Common Edit Recipes](#common-edit-recipes-fast-path) + `docs/TESTING.md` |
@@ -55,6 +99,36 @@ Use this table when you already know **what changed** and need the shortest safe
 | Documentation only | `README.md`, `docs/*.md`, `data/votalhada/README.md` | consistency check of links/cross-references | no site rebuild required unless instructions or examples changed materially |
 
 For the exact test families and recommended commands, see `docs/TESTING.md`.
+
+## Agent: Web Scraping & Source Collection
+
+**CRITICAL**: GShow (gshow.globo.com) and other Globo properties **cannot be fetched via WebFetch, web scraping AI tools, or direct HTTP clients**. These domains block automated access. **Always use the project's dedicated scraper**:
+
+```bash
+python scripts/scrape_gshow.py "<url>" -o docs/scraped/
+```
+
+The scraper uses Playwright (headless browser) to render the page and extract content as Markdown. Output goes to `docs/scraped/` (gitignored, local reference only).
+
+### Source images (broadcast screenshots, Twitter/X)
+
+When prova results, duel scores, or other game data are captured as screenshots:
+
+1. **Never leave images at the repo root.** Move them immediately to `docs/scraped/` with descriptive names:
+   ```
+   prova_anjo_9_qf1_leandro_vs_jonas.jpeg    # format: prova_{tipo}_{numero}_{fase}_{description}
+   prova_lider_8_fase1_grupo4.jpeg
+   ```
+2. **Use Claude Code's vision** (Read tool on image files) to extract scores, names, and results from screenshots.
+3. **Create an archive file** for social media sources: `docs/scraped/prova_{tipo}_{numero}_twitter_{account}.md` with tweets in chronological order, extracted scores, and image cross-references.
+4. **Add to `fontes`** in `provas.json` or `manual_events.json`:
+   ```json
+   {"url": "https://x.com/Dantinhas/", "arquivo": "docs/scraped/prova_anjo_9_twitter_dantinhas.md", "titulo": "Cobertura ao vivo @Dantinhas — 9ª Prova do Anjo"}
+   ```
+
+### GShow article accuracy
+
+GShow articles can contain factual errors (e.g., omitting excluded participants, wrong scores). **Always cross-verify with multiple sources** (Twitter live coverage, broadcast screenshots, other fan accounts) before recording data. When a discrepancy is found, note it in the data (e.g., `"nota"` field in `provas.json`).
 
 ## Public vs Private Documentation Policy (Agents)
 
@@ -177,6 +251,56 @@ git config rebase.autoStash true
 - Bot polls every **15 minutes** (`*/15 * * * *`); saves only when data hash changes.
 - Snapshot filenames are **UTC**. Game dates use `utc_to_game_date()` (UTC→BRT with 06:00 BRT cutoff).
 - **Pre-push hook** (`.githooks/pre-push`) blocks pushes from `local/*` branches and private denylist files.
+
+### Commit & Publish Workflow
+
+All checklists end with "Rebuild + commit + publish". This is the standard procedure:
+
+```bash
+# 1. Rebuild derived data (validates schemas, hard-fails on errors)
+python scripts/build_derived_data.py
+
+# 2. Stage and commit with public: prefix
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: data: <description>"
+```
+
+**Then publish — depends on which branch you are on:**
+
+| Current branch | How to publish |
+|----------------|---------------|
+| `main` | `git push origin main` directly |
+| `local/private-main` | Use `sync_public.sh` (recommended) or cherry-pick |
+| `feature/*` | See [Feature Branch → main](#feature-branch--main-multi-commit-features) |
+
+**From `local/private-main`** (most common):
+
+```bash
+# Option A: Report-first publish (recommended)
+scripts/sync_public.sh                    # analyze conflicts
+scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
+
+# Option B: Manual cherry-pick
+git checkout main && git pull --rebase origin main
+git cherry-pick <public-commit-sha>
+git push origin main
+git checkout local/private-main
+```
+
+**From `main`** (direct work):
+
+```bash
+git push origin main
+```
+
+**After push — trigger deploy** (site does NOT auto-deploy on push):
+
+```bash
+gh workflow run daily-update.yml          # immediate deploy
+# Or wait for next 15-min cron cycle
+```
+
+> **Pre-push hook**: `.githooks/pre-push` blocks pushes from `local/*` branches. If you get blocked, you're on the wrong branch — switch to `main` first or use `sync_public.sh`.
 
 ### Handling Push Conflicts
 
@@ -461,7 +585,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 
 ### Immediate (Thursday night / Friday morning)
 
-1. **Scrape articles** — save `.md` copies for provenance:
+1. **Scrape articles** — save `.md` copies for provenance (see [Agent: Web Scraping](#agent-web-scraping--source-collection) — **never use WebFetch on GShow URLs**):
    ```bash
    python scripts/scrape_gshow.py "<prova-do-lider-url>" -o docs/scraped/
    python scripts/scrape_gshow.py "<vip-xepa-url>" -o docs/scraped/
@@ -605,11 +729,12 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 
 4. **Update `data/manual_events.json`** — add scheduled events for the new week using the [Recurring Events Checklist](#recurring-events-checklist-per-week). Record power events (Big Fone, etc.) if any.
 
-5. **Rebuild + commit + push**:
+5. **Rebuild + commit + publish** — follow [Commit & Publish Workflow](#commit--publish-workflow):
    ```bash
    python scripts/build_derived_data.py
-   git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: week N Líder transition (Name)"
-   git push
+   git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+   git commit -m "public: data: week N Líder transition (Name)"
+   # Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
    ```
 
 ### API auto-detects (no manual action needed)
@@ -665,12 +790,16 @@ Expected behavior: dates after the inferred boundary roll to the next week (no s
 
 When the Prova do Anjo results are published (typically Saturday afternoon article + Saturday night Monstro choice):
 
-### 1. Scrape article(s)
+### 1. Scrape article(s) + collect source images
+
+> **Do NOT use WebFetch or AI web tools for GShow URLs** — they will fail. See [Agent: Web Scraping & Source Collection](#agent-web-scraping--source-collection).
 
 ```bash
 python scripts/scrape_gshow.py "<prova-do-anjo-url>" -o docs/scraped/
 python scripts/scrape_gshow.py "<castigo-do-monstro-url>" -o docs/scraped/  # if separate article
 ```
+
+If broadcast screenshots or Twitter screenshots are available (e.g., duel scores, bracket results), move them from repo root to `docs/scraped/` with descriptive names and create a Twitter archive `.md` file. See [Source images](#source-images-broadcast-screenshots-twitterx).
 
 ### 2. Update `data/provas.json`
 
@@ -800,12 +929,14 @@ Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the au
 
 **Note**: Anjo/Monstro timeline events come from API role auto-detection (snapshots), not from `weekly_events.anjo`. Removing scheduled events before the next API snapshot creates a temporary gap in the timeline display — this is normal and self-corrects after the next snapshot arrives. For Líder, there is an extra fallback from `provas.json` to avoid missing timeline rows while API role sync is pending.
 
-### 5. Rebuild + commit + push
+### 5. Rebuild + commit + publish
 
+Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
-git push
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
+# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
 ### API auto-detects (no manual action needed)
@@ -877,12 +1008,14 @@ Add the `anjo_escolha` descriptive field to the current paredão's `formacao`:
 
 Add the scraped article URL to the anjo's `fontes` array in `weekly_events[N].anjo.fontes`.
 
-### 5. Rebuild + commit + push
+### 5. Rebuild + commit + publish
 
+Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
-git push
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
+# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
 ### Presente do Anjo History
@@ -897,6 +1030,7 @@ git push
 | W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
 | W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
 | W8 | Milena | video_familia | Ana Paula Renault, Juliano Floss, Samira | Ana Paula Renault |
+| W9 | Breno | *(pending Sunday)* | *(pending)* | *(pending)* |
 
 **Pattern**: 8/8 Anjos chose family video. The 2nd immunity has never been used.
 
@@ -970,12 +1104,14 @@ Also update `weekly_events[N].anjo.imunizado` with who the Anjo immunized at for
 
 Add a Bate e Volta prova entry with the results.
 
-### 5. Rebuild + commit + push
+### 5. Rebuild + commit + publish
 
+Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Nº Paredão formation"
-git push
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: data: Nº Paredão formation"
+# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
 ### Auto-generated Ceremony Sub-Steps in Cronologia
@@ -1295,18 +1431,13 @@ Votalhada uses short names. Always match to API names:
 | "Sol" | "Sol Vega" |
 | "Floss" | "Juliano Floss" |
 
-### Rebuild, commit, push + deploy
+### Rebuild, commit, publish + deploy
 
+Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
-# Rebuild derived data (updates prediction model weights)
 python scripts/build_derived_data.py
-
-# Commit and push
 git add data/ && git commit -m "public: data: votalhada polls paredão N"
-git push
-
-# Deploy immediately (site only updates on cron or manual dispatch, NOT on push)
-gh workflow run daily-update.yml
+# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
 **Verify locally** (optional):
@@ -1533,13 +1664,14 @@ If the participant takes the money, keep `decisao.escolha` / `decisao.abriu_mao`
 
 **Note on `actor`/`target` in veto**: The `actor` is the **vetoed person** (they receive the negative impact), `target` is the person who did the veto. This matches the relations scoring direction (impact flows toward the actor).
 
-### 4. Rebuild, commit, push + deploy
+### 4. Rebuild, commit, publish + deploy
 
+Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: paredão N result + ganha-ganha"
-git push
-gh workflow run daily-update.yml
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: data: paredão N result + ganha-ganha"
+# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
 ### What auto-updates after rebuild + deploy
@@ -1643,7 +1775,16 @@ Expected:
 - `actor`/`target` names match API spelling
 - source URL present in `fontes`
 
-### 3. Optional scheduled-event cleanup
+### 3. Commit + publish
+
+Follow [Commit & Publish Workflow](#commit--publish-workflow):
+```bash
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: data: barrado no baile W{N} (Target)"
+# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+```
+
+### 4. Optional scheduled-event cleanup
 
 If `scheduled_events` already had a `barrado_baile` placeholder for that date/week, you can remove it after publishing to keep the file tidy (timeline dedup is automatic, so this is cleanup-only).
 
@@ -1723,12 +1864,14 @@ If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_d
 
 **Full Sincerão schema**: See `docs/SCORING_AND_INDEXES.md` → Sincerão Framework.
 
-### 3. Rebuild + commit + push
+### 3. Rebuild + commit + publish
 
+Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: week N sincerão"
-git push
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: data: week N sincerão"
+# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
 ---
