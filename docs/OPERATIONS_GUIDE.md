@@ -72,7 +72,7 @@ git pull origin main --rebase
 
 # After manual edits (the universal pattern)
 python scripts/build_derived_data.py    # rebuild derived data (hard-fails on errors)
-git add data/ docs/MANUAL_EVENTS_AUDIT.md
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
 git commit -m "public: data: <description>"
 ```
 
@@ -350,7 +350,7 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
 5. **Rebuild + commit + push**:
    ```bash
    python scripts/build_derived_data.py
-   git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: week N Líder transition (Name)"
+   git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: week N Líder transition (Name)"
    git push
    ```
 
@@ -528,7 +528,7 @@ Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the au
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
 git push
 ```
 
@@ -605,7 +605,7 @@ Add the scraped article URL to the anjo's `fontes` array in `weekly_events[N].an
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
 git push
 ```
 
@@ -698,7 +698,7 @@ Add a Bate e Volta prova entry with the results.
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: Nº Paredão formation"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: Nº Paredão formation"
 git push
 ```
 
@@ -1261,7 +1261,7 @@ If the participant takes the money, keep `decisao.escolha` / `decisao.abriu_mao`
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: paredão N result + ganha-ganha"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: paredão N result + ganha-ganha"
 git push
 gh workflow run daily-update.yml
 ```
@@ -1394,7 +1394,7 @@ If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_d
 
 ```bash
 python scripts/build_derived_data.py
-git add data/ docs/MANUAL_EVENTS_AUDIT.md && git commit -m "public: data: week N sincerão"
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md && git commit -m "public: data: week N sincerão"
 git push
 ```
 

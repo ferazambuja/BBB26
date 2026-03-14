@@ -1832,6 +1832,69 @@ def normalize_actors(ev: dict) -> list[str]:
     return [actor.strip()]
 
 
+def normalize_route_label(route: str | None) -> str:
+    """Normalize a paredão nomination route to its canonical label.
+
+    Maps many raw ``como`` values to 9 canonical categories + 1 fallback:
+
+    - ``Líder`` ← "Líder", "Líder (indicada por X)", etc.
+    - ``Contragolpe`` ← "Contragolpe", "Contragolpe (Name)", "Contragolpe (...) + perdeu BV"
+    - ``Consenso Anjo+Monstro`` ← "Consenso Anjo+Monstro" (NOT "sem consenso")
+    - ``Duelo de Risco`` ← "Duelo de Risco (...) + vetada da BV (...)"
+    - ``Casa`` ← "Casa (N votos)", "Mais votada pela casa (...)"
+    - ``Big Fone`` ← "Big Fone (Name)"
+    - ``Bloco do Paredão`` ← "Bloco do Paredão (sem consenso)"
+    - ``Exilado`` ← "Exilado"
+    - ``Caixas-Surpresa`` ← "Caixas-Surpresa", "Caixas Surpresa", "Caixas surpresa (...)"
+    - ``Aguardando origem`` ← None, "", "API"
+
+    Compound routes (joined with ``' + '``) are split; only the primary route is
+    normalized for metrics. The full raw string is preserved elsewhere for history.
+
+    Unknown labels are returned as-is (cleaned of compound suffix) so they remain
+    visible in ``stats.facts.unknown_routes`` for audit. New game dynamics will
+    surface there rather than being silently dropped.
+    """
+    if not route or route == "API":
+        return "Aguardando origem"
+    cleaned = route.split(" + ")[0].strip()
+    lower = cleaned.lower()
+    if "líder" in lower:
+        return "Líder"
+    if "contragolpe" in lower:
+        return "Contragolpe"
+    # "consenso anjo" must come before any generic check — "sem consenso" must NOT match
+    if "consenso anjo" in lower:
+        return "Consenso Anjo+Monstro"
+    if "duelo de risco" in lower:
+        return "Duelo de Risco"
+    if "mais votad" in lower or lower.startswith("casa"):
+        return "Casa"
+    if "big fone" in lower:
+        return "Big Fone"
+    if "bloco do paredão" in lower or "bloco do paredao" in lower:
+        return "Bloco do Paredão"
+    if "exilado" in lower:
+        return "Exilado"
+    if "caixas" in lower:
+        return "Caixas-Surpresa"
+    return cleaned
+
+
+def stable_json_hash(obj: object) -> str:
+    """Deterministic SHA-256 hash of a JSON-serializable object."""
+    import hashlib
+    content = json.dumps(obj, sort_keys=True, ensure_ascii=False).encode()
+    return hashlib.sha256(content).hexdigest()
+
+
+def read_json_if_exists(path: Path) -> dict | None:
+    """Read a JSON file if it exists, else return None."""
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return None
+
+
 def get_daily_snapshots(snapshots: list[dict]) -> list[dict]:
     """Filter snapshot list to one per date (last capture wins).
 

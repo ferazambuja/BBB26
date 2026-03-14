@@ -99,6 +99,12 @@ from builders.vote_prediction import (
     VOTE_PREDICTION_CONFIG,
 )
 
+from builders.paredao_exposure import (
+    compute_paredao_exposure_stats,
+    build_nunca_paredao_items,
+    build_figurinha_repetida_items,
+)
+
 from builders.balance import (
     build_balance_events,
     BALANCE_EVENT_TYPES,
@@ -143,6 +149,9 @@ __all__ = [
     "build_paredao_analysis", "build_paredao_badges",
     # vote_prediction
     "build_vote_prediction", "extract_paredao_eligibility", "VOTE_PREDICTION_CONFIG",
+    # paredao_exposure
+    "compute_paredao_exposure_stats", "build_nunca_paredao_items",
+    "build_figurinha_repetida_items",
     # balance
     "build_balance_events", "BALANCE_EVENT_TYPES",
     "BALANCE_COLLECTIVE_THRESHOLD", "BALANCE_SIGNIFICANT_LOSS",

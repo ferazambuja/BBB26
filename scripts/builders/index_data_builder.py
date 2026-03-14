@@ -22,6 +22,11 @@ from data_utils import (
     genero, resolve_leaders, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao,
 )
 from builders.vote_prediction import extract_paredao_eligibility
+from builders.paredao_exposure import (
+    compute_paredao_exposure_stats,
+    build_nunca_paredao_items,
+    build_figurinha_repetida_items,
+)
 from paredao_viz import build_paredao_history, build_paredao_card_payload
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -1688,8 +1693,25 @@ def _compute_breaks_and_context_cards(
     return highlights, cards
 
 
-def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
-    """Mais Blindados + VIP x Xepa cards (accumulated metrics)."""
+def _build_figurinha_stat_line(stats: dict) -> str:
+    """Build one-line stat summary for figurinha_repetida card."""
+    metrics = stats.get("metrics", {})
+    parts = []
+    ft = metrics.get("first_timer", {})
+    if ft.get("rate") is not None:
+        parts.append(f"{int(ft['rate'] * 100)}% eliminados na 1ª ida")
+    bv = metrics.get("bv_losers_eliminated", {})
+    if bv.get("rate") is not None and bv.get("total", 0) > 0:
+        pct = int(bv["rate"] * 100)
+        parts.append(f"Em {pct}% dos casos, o perdedor do BV foi eliminado (exclui falso)")
+    return " · ".join(parts) if parts else ""
+
+
+def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], dict]:
+    """Mais Blindados + exposure + VIP x Xepa cards (accumulated metrics).
+
+    Returns (highlights, cards, exposure_stats).
+    """
     highlights: list[str] = []
     cards: list[dict] = []
     active_set = ctx["active_set"]
@@ -1923,6 +1945,53 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
             "recent_window": recent_window,
         })
 
+    # ── Nunca foi ao Paredão ──
+    # Reuse blindados accumulators; fall back to empty Counters if no paredões with votes.
+    _rhv = recent_house_votes if paredoes_with_votes else Counter()
+    _ahv = all_house_votes if paredoes_with_votes else Counter()
+    _avail = available if paredoes_with_votes else Counter()
+    _prot = protected if paredoes_with_votes else Counter()
+    if paredoes_list:
+        nunca_items, nunca_exited = build_nunca_paredao_items(
+            ctx, paredoes_list, _rhv, _ahv, _avail, _prot,
+        )
+        paredoes_with_indicados = [p for p in paredoes_list if p.get("indicados_finais")]
+        if nunca_items or nunca_exited:
+            cards.append({
+                "type": "nunca_paredao",
+                "icon": "✨",
+                "title": "Nunca foi ao Paredão",
+                "color": "#27ae60",
+                "link": "paredoes.html#nunca-paredao",
+                "n_paredoes": len(paredoes_with_indicados),
+                "n_active": len(active_set),
+                "context_line": f"{len(nunca_items)} de {len(active_set)} ativos nunca enfrentaram o público",
+                "display_limit": 5,
+                "items": nunca_items[:5],
+                "items_all": nunca_items,
+                "items_exited": nunca_exited,
+            })
+
+    # ── Figurinha Repetida ──
+    exposure_stats = compute_paredao_exposure_stats(ctx) if paredoes_list else {"metrics": {}, "facts": {}}
+    if paredoes_list:
+        fig_items_all = build_figurinha_repetida_items(ctx, paredoes_list)
+        fig_items = [i for i in fig_items_all if i["appearance_count"] >= 2]
+        if fig_items:
+            cards.append({
+                "type": "figurinha_repetida",
+                "icon": "🔁",
+                "title": "Figurinha Repetida",
+                "color": "#8e44ad",
+                "link": "paredoes.html#figurinha-repetida",
+                "n_paredoes": len([p for p in paredoes_list if p.get("indicados_finais")]),
+                "display_limit": 5,
+                "stats": exposure_stats,
+                "stat_line": _build_figurinha_stat_line(exposure_stats),
+                "items": fig_items[:5],
+                "items_all": fig_items,  # only repeaters (count >= 2)
+            })
+
     # ── VIP / Xepa (separate cards) ──
     vip_days = ctx.get("vip_days", {})
     xepa_days = ctx.get("xepa_days", {})
@@ -1952,7 +2021,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict]]:
             "items": xepa_ranked,
         })
 
-    return highlights, cards
+    return highlights, cards, exposure_stats
 
 
 def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
@@ -2015,14 +2084,15 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     highlights.extend(bc_hl)
     cards.extend(bc_cards)
 
-    # Static cards: blindados, VIP x Xepa
-    static_hl, static_cards = _compute_static_cards(ctx)
+    # Static cards: blindados, exposure, VIP x Xepa
+    static_hl, static_cards, exposure_stats = _compute_static_cards(ctx)
     highlights.extend(static_hl)
     cards.extend(static_cards)
 
     return {
         "highlights": highlights,
         "cards": cards,
+        "exposure_stats": exposure_stats,
         "pair_contradictions": pair_contradictions,
         "pair_aligned_pos": pair_aligned_pos,
         "pair_aligned_neg": pair_aligned_neg,
@@ -3545,6 +3615,9 @@ def build_index_data() -> dict | None:
         "profiles": profiles,
         "eliminated": eliminated_list,
         "big_fone_consensus": big_fone_consensus,
+        "paredao_exposure": {
+            "stats": hl["exposure_stats"],
+        },
     }
 
     return payload

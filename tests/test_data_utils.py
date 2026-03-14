@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from data_utils import (
     calc_sentiment,
+    normalize_route_label,
     utc_to_game_date,
     get_week_number,
     get_week_start_date,
@@ -328,3 +329,55 @@ class TestCartolaRegressions:
         assert not week8_duplicates, (
             "Breno immunity from Quarto Secreto must not be duplicated in week 8"
         )
+
+
+class TestNormalizeRouteLabel:
+    """Test normalize_route_label() canonical route normalization."""
+
+    @pytest.mark.parametrize("raw, expected", [
+        # Canonical labels (already clean)
+        ("Líder", "Líder"),
+        ("Contragolpe", "Contragolpe"),
+        ("Consenso Anjo+Monstro", "Consenso Anjo+Monstro"),
+        ("Exilado", "Exilado"),
+        ("Caixas-Surpresa", "Caixas-Surpresa"),
+        # Líder variants
+        ("Líder (indicada por Jonas Sulzbach)", "Líder"),
+        # Contragolpe variants
+        ("Contragolpe (Aline)", "Contragolpe"),
+        ("Contragolpe (Babu Santana)", "Contragolpe"),
+        ("Contragolpe (Jordana)", "Contragolpe"),
+        ("Contragolpe (indicada por Chaiany) + perdeu Bate e Volta", "Contragolpe"),
+        # Casa variants
+        ("Casa (10 votos)", "Casa"),
+        ("Casa (6 votos)", "Casa"),
+        ("Casa (8 votos)", "Casa"),
+        ("Mais votada pela casa (10 votos)", "Casa"),
+        ("Mais votada pela casa (3 votos, após saída de Jordana na Bate e Volta)", "Casa"),
+        # Big Fone
+        ("Big Fone (Marcelo)", "Big Fone"),
+        # Bloco do Paredão — must NOT match Consenso
+        ("Bloco do Paredão (sem consenso)", "Bloco do Paredão"),
+        # Duelo de Risco compound
+        ("Duelo de Risco (atendeu Big Fone, escolheu Jordana, ficou com Paredão) + vetada da Bate e Volta (Colar do Poder de Alberto)", "Duelo de Risco"),
+        # Caixas variants — broadened match
+        ("Caixas-Surpresa", "Caixas-Surpresa"),
+        ("Caixas Surpresa", "Caixas-Surpresa"),
+        ("Caixas surpresa (nova dinâmica)", "Caixas-Surpresa"),
+    ])
+    def test_known_routes(self, raw, expected):
+        assert normalize_route_label(raw) == expected
+
+    @pytest.mark.parametrize("raw", [None, "", "API"])
+    def test_none_empty_api(self, raw):
+        assert normalize_route_label(raw) == "Aguardando origem"
+
+    def test_unknown_route_preserved(self):
+        """Unknown labels are returned cleaned, not silently dropped."""
+        result = normalize_route_label("Roleta Maluca (nova dinâmica)")
+        assert result == "Roleta Maluca (nova dinâmica)"
+
+    def test_compound_route_takes_primary(self):
+        """Compound ' + ' routes use only the primary part for normalization."""
+        result = normalize_route_label("Big Fone (Pedro) + perdeu Bate e Volta")
+        assert result == "Big Fone"

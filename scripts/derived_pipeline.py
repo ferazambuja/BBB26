@@ -12,10 +12,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import re
+
 from data_utils import (
     SENTIMENT_WEIGHTS, POSITIVE,
     build_reaction_matrix, get_week_number,
     get_daily_snapshots,
+    normalize_route_label,
+    stable_json_hash,
+    read_json_if_exists,
 )
 from schemas import validate_input_files
 
@@ -74,6 +79,10 @@ MANUAL_EVENTS_FILE = Path(__file__).parent.parent / "data" / "manual_events.json
 DERIVED_DIR = Path(__file__).parent.parent / "data" / "derived"
 PAREDOES_FILE = Path(__file__).parent.parent / "data" / "paredoes.json"
 PROVAS_FILE = Path(__file__).parent.parent / "data" / "provas.json"
+DOCS_SCORING_FILE = Path(__file__).parent.parent / "docs" / "SCORING_AND_INDEXES.md"
+
+_MARKER_START = "<!-- PAREDAO_EXPOSURE:START -->"
+_MARKER_END = "<!-- PAREDAO_EXPOSURE:END -->"
 
 
 # ── Small utilities (not worth a separate module) ───────────────────────────
@@ -82,6 +91,185 @@ def write_json(path: Path, payload: dict | list) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
+
+
+# ── Paredão exposure docs renderer + updater ─────────────────────────────
+
+
+def render_paredao_exposure_docs_markdown(stats: dict, paredoes_list: list[dict]) -> str:
+    """Pure renderer: stats + paredões → markdown string. No file I/O."""
+    metrics = stats.get("metrics", {})
+    facts = stats.get("facts", {})
+    scope_sizes = facts.get("scope_sizes", {})
+    lines: list[str] = []
+
+    lines.append("## Paredão Exposure Analysis")
+    lines.append("")
+    lines.append("> **Seção auto-gerada** por `build_derived_data.py`. Não edite manualmente.")
+    lines.append("")
+
+    # ── Scope contract table ──
+    lines.append("### Scopes")
+    lines.append("")
+    lines.append("| Scope | Count | Definition |")
+    lines.append("|---|---|---|")
+    lines.append(f"| `with_indicados` | {scope_sizes.get('with_indicados', 0)} | Paredões com indicados_finais |")
+    lines.append(f"| `all_finalized` | {scope_sizes.get('all_finalized', 0)} | Finalizados (inclui falso) |")
+    lines.append(f"| `real_only` | {scope_sizes.get('real_only', 0)} | Finalizados reais (exclui falso) |")
+    lines.append("")
+
+    # ── Paredão matrix ──
+    lines.append("### Paredão Matrix")
+    lines.append("")
+    lines.append("| # | Indicados | Eliminado | % Voto Total | Falso | Status |")
+    lines.append("|---|---|---|---|---|---|")
+    with_indicados = [p for p in paredoes_list if p.get("indicados_finais")]
+    for p in sorted(with_indicados, key=lambda x: x.get("numero", 0)):
+        num = p.get("numero", 0)
+        inds = [i["nome"] if isinstance(i, dict) else i for i in p.get("indicados_finais", [])]
+        inds_str = ", ".join(inds)
+        resultado = p.get("resultado") or {}
+        eliminado = resultado.get("eliminado") or "—"
+        votos = resultado.get("votos") or {}
+        if votos and eliminado != "—":
+            pct_entry = votos.get(eliminado) or {}
+            pct = pct_entry.get("voto_total")
+            pct_str = f"{pct:.2f}%" if pct is not None else "—"
+        else:
+            pct_str = "—"
+        falso = "Sim" if p.get("paredao_falso") else "Não"
+        status = p.get("status", "—")
+        lines.append(f"| P{num} | {inds_str} | {eliminado} | {pct_str} | {falso} | {status} |")
+    lines.append("")
+
+    # ── Route effectiveness ──
+    lines.append("### Route Effectiveness (`real_only`)")
+    lines.append("")
+    lines.append("| Route | Eliminated | Total | Rate |")
+    lines.append("|---|---|---|---|")
+    route_labels = facts.get("route_key_labels", {})
+    for key in sorted(metrics):
+        if not key.startswith("route_"):
+            continue
+        m = metrics[key]
+        label = route_labels.get(key, key.replace("route_", "").replace("_", " ").title())
+        rate_str = f"{m['rate']:.1%}" if m["rate"] is not None else "—"
+        lines.append(f"| {label} | {m['n']} | {m['total']} | {rate_str} |")
+    # Single-sample routes
+    for s in facts.get("single_sample_routes", []):
+        elim_str = "Sim" if s["eliminated"] else "Não"
+        lines.append(f"| {s['route']} | {elim_str} (n=1) | 1 | — |")
+    lines.append("")
+
+    # ── First-timer metric ──
+    ft = metrics.get("first_timer", {})
+    if ft:
+        rate_str = f"{ft['rate']:.1%}" if ft.get("rate") is not None else "—"
+        lines.append(f"**First-timer elimination rate** (`real_only`): {ft.get('n', 0)}/{ft.get('total', 0)} = {rate_str}")
+        lines.append("")
+
+    # ── Bate-e-Volta ──
+    lines.append("### Bate-e-Volta Metrics (`real_only`)")
+    lines.append("")
+    bv_keys = ["bv_presence_by_paredao", "bv_winners_escaped", "bv_losers_survived", "bv_losers_eliminated"]
+    bv_labels = {
+        "bv_presence_by_paredao": "Paredões com BV",
+        "bv_winners_escaped": "Vencedores que escaparam",
+        "bv_losers_survived": "Perdedores que sobreviveram",
+        "bv_losers_eliminated": "Perdedores eliminados",
+    }
+    lines.append("| Metric | n | Total | Rate |")
+    lines.append("|---|---|---|---|")
+    for key in bv_keys:
+        m = metrics.get(key, {})
+        if not m:
+            continue
+        label = bv_labels.get(key, key)
+        rate_str = f"{m['rate']:.1%}" if m.get("rate") is not None else "—"
+        lines.append(f"| {label} | {m['n']} | {m['total']} | {rate_str} |")
+    bv_total = facts.get("bv_total_participants", 0)
+    if bv_total:
+        lines.append(f"\nTotal BV participants: **{bv_total}**")
+    lines.append("")
+
+    # ── Key facts ──
+    lines.append("### Key Facts")
+    lines.append("")
+    swing = facts.get("biggest_swing")
+    if swing:
+        lines.append(f"- **Biggest swing**: {swing['name']} — {swing['from_pct']:.2f}% (P{swing['from_paredao']}) → {swing['to_pct']:.2f}% (P{swing['to_paredao']}) = {swing['swing_pp']} p.p.")
+    bv_queen = facts.get("bv_queen")
+    if bv_queen:
+        lines.append(f"- **BV champion**: {bv_queen['name']} ({bv_queen['count']}x)")
+    lider_fav = facts.get("lider_favorite_target")
+    if lider_fav:
+        lines.append(f"- **Líder favorite target**: {lider_fav['name']} ({lider_fav['count']}x)")
+    unknown = facts.get("unknown_routes", [])
+    if unknown:
+        lines.append(f"- **Unknown routes**: {', '.join(unknown)}")
+    lines.append("")
+
+    # ── Fake paredão note ──
+    lines.append("### Fake Paredão Handling")
+    lines.append("")
+    lines.append("Paredões with `paredao_falso: true` are included in `with_indicados` and `all_finalized` scopes but excluded from `real_only` headline metrics. Fake paredão appearances are preserved in nominee history and marked with `falso: true`.")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+def update_paredao_docs_section(
+    stats: dict,
+    paredoes_list: list[dict],
+    doc_path: Path = DOCS_SCORING_FILE,
+) -> bool:
+    """Update the managed marker section in the scoring docs file.
+
+    Returns True if the file was written (content changed or markers were missing).
+    """
+    new_block = render_paredao_exposure_docs_markdown(stats, paredoes_list)
+    marker_block = f"{_MARKER_START}\n{new_block}\n{_MARKER_END}"
+
+    if not doc_path.exists():
+        doc_path.write_text(marker_block + "\n", encoding="utf-8")
+        return True
+
+    content = doc_path.read_text(encoding="utf-8")
+
+    # Case 1: markers already exist — replace between them
+    if _MARKER_START in content and _MARKER_END in content:
+        pattern = re.compile(
+            re.escape(_MARKER_START) + r".*?" + re.escape(_MARKER_END),
+            re.DOTALL,
+        )
+        new_content = pattern.sub(marker_block, content)
+        if new_content == content:
+            return False  # no change
+        doc_path.write_text(new_content, encoding="utf-8")
+        return True
+
+    # Case 2: legacy heading without markers — replace bounded region
+    legacy_heading = "## Paredão Exposure Analysis"
+    if legacy_heading in content:
+        idx = content.index(legacy_heading)
+        # Find next heading of same or higher level (H1/H2) as section boundary.
+        # Internal H3+ headings belong to this section and must be replaced too.
+        rest = content[idx + len(legacy_heading):]
+        next_heading = re.search(r"\n {0,3}#{1,2}\s", rest)
+        if next_heading:
+            end_idx = idx + len(legacy_heading) + next_heading.start()
+        else:
+            end_idx = len(content)
+        new_content = content[:idx] + marker_block + "\n" + content[end_idx:]
+        doc_path.write_text(new_content, encoding="utf-8")
+        return True
+
+    # Case 3: no markers, no legacy heading — append at end
+    if not content.endswith("\n"):
+        content += "\n"
+    content += "\n" + marker_block + "\n"
+    doc_path.write_text(content, encoding="utf-8")
+    return True
 
 
 def build_snapshots_manifest(daily_snapshots: list[dict], daily_metrics: list[dict]) -> dict:
@@ -343,6 +531,28 @@ def build_derived_data() -> None:
     index_payload = build_index_data()
     if index_payload:
         write_json(DERIVED_DIR / "index_data.json", index_payload)
+
+        # Extract exposure stats (already computed by build_index_data)
+        exposure_stats = (index_payload.get("paredao_exposure") or {}).get("stats")
+        if not exposure_stats:
+            raise RuntimeError("Missing paredao_exposure.stats in index payload")
+
+        # Hash-gate JSON write — no churn when stats unchanged.
+        # generated_at intentionally stays stale when content is unchanged,
+        # since it represents when the content last changed, not when the pipeline ran.
+        stats_path = DERIVED_DIR / "paredao_exposure_stats.json"
+        content_hash = stable_json_hash(exposure_stats)
+        prev = read_json_if_exists(stats_path)
+        prev_hash = (prev or {}).get("_metadata", {}).get("content_hash")
+        if content_hash != prev_hash:
+            write_json(stats_path, {
+                "_metadata": {"generated_at": now, "content_hash": content_hash},
+                "stats": exposure_stats,
+            })
+
+        # Always run docs updater (content-compared, self-healing)
+        paredoes_list = (paredoes or {}).get("paredoes", []) if isinstance(paredoes, dict) else (paredoes or [])
+        update_paredao_docs_section(exposure_stats, paredoes_list)
 
     # Run audit report for manual events (hard fail on issues)
     from audit_manual_events import run_audit

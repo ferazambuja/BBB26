@@ -29,7 +29,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_reaction_matrices, deserialize_matrix,
-    load_paredoes_transformed,
+    load_paredoes_transformed, load_index_data,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     build_precision_methodology_text,
@@ -820,6 +820,141 @@ else:
     print('</div>')
     print('</div>')
 
+```
+
+### Nunca foi ao Paredão {#nunca-paredao}
+
+> O card "Intocáveis" acima mostra quem nunca recebeu votos da casa. Esta seção mostra quem **nunca foi ao Paredão** — conceitos diferentes, pois é possível receber votos sem ser o mais votado.
+
+```{python}
+#| output: asis
+_idx_data = load_index_data()
+_nunca_card = None
+_fig_card = None
+if _idx_data:
+    for _c in _idx_data.get("highlights", {}).get("cards", []):
+        if _c.get("type") == "nunca_paredao":
+            _nunca_card = _c
+        elif _c.get("type") == "figurinha_repetida":
+            _fig_card = _c
+
+if _nunca_card:
+    _items = _nunca_card.get("items_all", [])
+    _exited = _nunca_card.get("items_exited", [])
+    _n_par = _nunca_card.get("n_paredoes", 0)
+    if _items or _exited:
+        print(f'<div class="info-panel" style="border-left-color:#27ae60;">')
+        print(f'<h4 class="u-s074">✨ Nunca foi ao Paredão</h4>')
+        print(f'<p class="fs-base u-s262">{_nunca_card.get("context_line", "")}</p>')
+        print(f'<div class="u-s058">')
+        for _it in _items:
+            _name = _it["name"]
+            _votes = _it.get("votes_total", 0)
+            _prot = _it.get("protected", 0)
+            _avail = _it.get("available", 0)
+            _url = AVATARS.get(_name, "")
+            print(f'<div class="u-s056">')
+            if _url:
+                print(f'<img src="{_url}" width="56" height="56" style="border-radius:50%; border:3px solid #27ae60;" alt="{_name}" title="{_name}">')
+            print(f'<div class="u-s066">')
+            print(f'<div class="fs-sm u-s082">{_name}</div>')
+            print(f'<div class="fs-2xs" style="color:#888;">{_votes} voto{"s" if _votes != 1 else ""} · protegido {_prot}x de {_avail} elegível</div>')
+            print(f'</div></div>')
+        if _exited:
+            print(f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">')
+            print(f'<summary>Saíram sem ir ao Paredão ({len(_exited)})</summary>')
+            print(f'<div class="u-s058">')
+            for _it in _exited:
+                _name = _it["name"]
+                _label = _it.get("status_label", "")
+                _url = AVATARS.get(_name, "")
+                print(f'<div class="u-s056">')
+                if _url:
+                    print(f'<img src="{_url}" width="56" height="56" style="border-radius:50%; border:3px solid #555; filter:grayscale(100%);" alt="{_name}" title="{_name}">')
+                print(f'<div class="u-s066">')
+                print(f'<div class="fs-sm u-s082" style="color:#888;">{_name}</div>')
+                print(f'<div class="fs-2xs" style="color:#666;">{_label}</div>')
+                print(f'</div></div>')
+            print(f'</div>')
+            print(f'</details>')
+        print(f'</div></div>')
+    else:
+        print('<p class="fs-base text-muted">Todos os participantes ativos já foram ao Paredão.</p>')
+else:
+    print('<p class="fs-base text-muted">Dados não disponíveis.</p>')
+```
+
+### Figurinha Repetida {#figurinha-repetida}
+
+```{python}
+#| output: asis
+if _fig_card:
+    _items = _fig_card.get("items_all", [])
+    _stats = _fig_card.get("stats", {})
+    _stat_line = _fig_card.get("stat_line", "")
+    def _render_fig_item(_it):
+        _name = _it["name"]
+        _count = _it.get("appearance_count", 0)
+        _is_active = _it.get("active", True)
+        _routes = _it.get("route_summary", {})
+        _returned = _it.get("returned", False)
+        _was_elim = _it.get("was_eliminated", False)
+        _url = AVATARS.get(_name, "")
+        _border = "#8e44ad" if _count >= 3 else ("#e67e22" if _count >= 2 else "#7f8c8d")
+        print(f'<div class="u-s056" style="align-items:flex-start;">')
+        if _url:
+            _gs = ' filter:grayscale(100%);' if not _is_active else ''
+            _bc = _border if _is_active else '#555'
+            print(f'<img src="{_url}" width="56" height="56" style="border-radius:50%; border:3px solid {_bc};{_gs}" alt="{_name}" title="{_name}">')
+        print(f'<div class="u-s066">')
+        _name_style = '' if _is_active else ' style="color:#888;"'
+        print(f'<div class="fs-sm u-s082"{_name_style}>{_name} <span style="color:{_border};font-weight:700;">{_count}x</span></div>')
+        _badges = []
+        for _r, _rc in sorted(_routes.items()):
+            _badges.append(f'<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;">{_r} {_rc}x</span>')
+        if _returned:
+            _badges.append('<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;">Voltou 🔮</span>')
+        if _was_elim:
+            _badges.append('<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#5a1a1a;color:#ff9999;">Eliminado</span>')
+        _history = _it.get("history", [])
+        _hist_parts = []
+        for _h in _history:
+            _hres = "✅" if _h["resultado"] == "sobreviveu" else ("🔮" if _h["resultado"] == "quarto_secreto" else "❌")
+            _pct = f' ({_h["voto_total"]:.1f}%)' if _h.get("voto_total") is not None else ""
+            _hist_parts.append(f'P{_h["numero"]}{_pct} {_hres}')
+        print(f'<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;">{" ".join(_badges)}</div>')
+        if _hist_parts:
+            print(f'<div class="fs-2xs" style="color:#888;margin-top:2px;">{" · ".join(_hist_parts)}</div>')
+        print(f'</div></div>')
+
+    if _items:
+        _active_fig = [_it for _it in _items if _it.get("active", True)]
+        _elim_fig = [_it for _it in _items if not _it.get("active", True)]
+        print(f'<div class="info-panel" style="border-left-color:#8e44ad;">')
+        print(f'<h4 class="u-s074">🔁 Figurinha Repetida</h4>')
+        if _stat_line:
+            print(f'<p class="fs-base u-s262">{_stat_line}</p>')
+        print(f'<div class="u-s058">')
+        for _it in _active_fig:
+            _render_fig_item(_it)
+        print(f'</div>')
+        if _elim_fig:
+            print(f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">')
+            print(f'<summary>Eliminados ({len(_elim_fig)})</summary>')
+            print(f'<div class="u-s058">')
+            for _it in _elim_fig:
+                _render_fig_item(_it)
+            print(f'</div>')
+            print(f'</details>')
+        print(f'</div>')
+    else:
+        print('<p class="fs-base text-muted">Nenhum participante foi ao Paredão mais de uma vez.</p>')
+else:
+    print('<p class="fs-base text-muted">Dados não disponíveis.</p>')
+```
+
+```{python}
+#| output: asis
 # ── Vote target table (all participants) ─────────────────────────────────────
 # Grayscale helpers for exited participants
 def avatar_html_bw(name, avatars, size, is_active):

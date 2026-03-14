@@ -361,14 +361,14 @@ class TestVisadosAndDisplayLimitContract:
         return {"active_set": active_set, "paredoes": {"paredoes": paredoes}}
 
     def test_blindados_items_respect_display_limit(self):
-        _highlights, cards = _compute_static_cards(self._build_ctx())
+        _highlights, cards, _stats = _compute_static_cards(self._build_ctx())
         blindados = next(card for card in cards if card.get("type") == "blindados")
         assert blindados["items"] == blindados["items_all"][: blindados["display_limit"]]
         assert len(blindados["items"]) <= blindados["display_limit"]
         assert len(blindados["items_all"]) == len(self._build_ctx()["active_set"])
 
     def test_visados_card_exists_with_expected_shape(self):
-        _highlights, cards = _compute_static_cards(self._build_ctx())
+        _highlights, cards, _stats = _compute_static_cards(self._build_ctx())
         visados = next(card for card in cards if card.get("type") == "visados")
         assert visados["display_limit"] == 4
         assert visados["items"] == visados["items_all"][: visados["display_limit"]]
@@ -395,7 +395,7 @@ class TestVisadosAndDisplayLimitContract:
             assert not missing, f"{item['name']} missing fields: {missing}"
 
     def test_visados_sort_order_deterministic(self):
-        _highlights, cards = _compute_static_cards(self._build_ctx())
+        _highlights, cards, _stats = _compute_static_cards(self._build_ctx())
         visados = next(card for card in cards if card.get("type") == "visados")
         items = visados["items_all"]
         for i in range(len(items) - 1):
@@ -419,7 +419,7 @@ class TestVisadosAndDisplayLimitContract:
             assert key_a <= key_b, f"Sort violation: {a['name']} should come before {b['name']}"
 
     def test_visados_marks_fake_paredao_cycles(self):
-        _highlights, cards = _compute_static_cards(self._build_ctx())
+        _highlights, cards, _stats = _compute_static_cards(self._build_ctx())
         visados = next(card for card in cards if card.get("type") == "visados")
         by_name = {it["name"]: it for it in visados["items_all"]}
         assert by_name["Ana"]["fake_paredao_count"] == 1
@@ -529,7 +529,7 @@ class TestStaticCardsEligibilityAccounting:
         if not active_set:
             pytest.skip("no active participants in latest.json")
 
-        _highlights, cards = _compute_static_cards({"active_set": active_set, "paredoes": {"paredoes": paredoes}})
+        _highlights, cards, _stats = _compute_static_cards({"active_set": active_set, "paredoes": {"paredoes": paredoes}})
         blindados = next(card for card in cards if card.get("type") == "blindados")
         items = {item["name"]: item for item in blindados.get("items_all", [])}
 
@@ -585,7 +585,7 @@ class TestBlindadosDisplayDetails:
             },
         }
 
-        _highlights, cards = _compute_static_cards(ctx)
+        _highlights, cards, _stats = _compute_static_cards(ctx)
         blindados = next(card for card in cards if card["type"] == "blindados")
         jonas = next(item for item in blindados["items_all"] if item["name"] == "Jonas")
 

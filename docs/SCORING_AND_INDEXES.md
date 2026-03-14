@@ -915,3 +915,67 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 - `cartola.qmd` now loads precomputed JSON instead of computing ~430 lines inline.
 - Cartola constants (`CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI`) and `get_week_number()` moved to `data_utils.py`.
 - `scripts/analyze_snapshots.py` fixed: uses relative path, imports from `data_utils`, fixed `Coração partido` misclassification bug (was `STRONG_NEGATIVE`, now correctly `MILD_NEGATIVE`).
+
+<!-- PAREDAO_EXPOSURE:START -->
+## Paredão Exposure Analysis
+
+> **Seção auto-gerada** por `build_derived_data.py`. Não edite manualmente.
+
+### Scopes
+
+| Scope | Count | Definition |
+|---|---|---|
+| `with_indicados` | 8 | Paredões com indicados_finais |
+| `all_finalized` | 8 | Finalizados (inclui falso) |
+| `real_only` | 7 | Finalizados reais (exclui falso) |
+
+### Paredão Matrix
+
+| # | Indicados | Eliminado | % Voto Total | Falso | Status |
+|---|---|---|---|---|---|
+| P1 | Aline Campos, Milena, Ana Paula Renault | Aline Campos | 61.64% | Não | finalizado |
+| P2 | Leandro, Matheus, Brigido | Matheus | 79.48% | Não | finalizado |
+| P3 | Ana Paula Renault, Leandro, Brigido | Brigido | 77.88% | Não | finalizado |
+| P4 | Babu Santana, Sarah Andrade, Sol Vega | Sarah Andrade | 69.13% | Não | finalizado |
+| P5 | Marcelo, Samira, Solange Couto | Marcelo | 68.56% | Não | finalizado |
+| P6 | Chaiany, Maxiane, Milena | Maxiane | 63.21% | Não | finalizado |
+| P7 | Alberto Cowboy, Jordana, Breno | Breno | 54.66% | Sim | finalizado |
+| P8 | Babu Santana, Chaiany, Milena | Babu Santana | 68.62% | Não | finalizado |
+
+### Route Effectiveness (`real_only`)
+
+| Route | Eliminated | Total | Rate |
+|---|---|---|---|
+| Casa | 1 | 5 | 20.0% |
+| Contragolpe | 2 | 4 | 50.0% |
+| Líder | 2 | 7 | 28.6% |
+| Big Fone | Sim (n=1) | 1 | — |
+| Bloco do Paredão | Não (n=1) | 1 | — |
+| Caixas-Surpresa | Não (n=1) | 1 | — |
+| Consenso Anjo+Monstro | Sim (n=1) | 1 | — |
+| Duelo de Risco | Não (n=1) | 1 | — |
+
+**First-timer elimination rate** (`real_only`): 5/7 = 71.4%
+
+### Bate-e-Volta Metrics (`real_only`)
+
+| Metric | n | Total | Rate |
+|---|---|---|---|
+| Paredões com BV | 6 | 7 | 85.7% |
+| Vencedores que escaparam | 8 | 8 | 100.0% |
+| Perdedores que sobreviveram | 6 | 10 | 60.0% |
+| Perdedores eliminados | 4 | 10 | 40.0% |
+
+Total BV participants: **18**
+
+### Key Facts
+
+- **Biggest swing**: Brigido — 4.97% (P2) → 77.88% (P3) = 72.91 p.p.
+- **BV champion**: Alberto Cowboy (3x)
+- **Líder favorite target**: Milena (3x)
+
+### Fake Paredão Handling
+
+Paredões with `paredao_falso: true` are included in `with_indicados` and `all_finalized` scopes but excluded from `real_only` headline metrics. Fake paredão appearances are preserved in nominee history and marked with `falso: true`.
+
+<!-- PAREDAO_EXPOSURE:END -->
