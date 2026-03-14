@@ -10,7 +10,7 @@ import unicodedata
 from collections import Counter
 from typing import Any
 
-from data_utils import normalize_route_label, resolve_leaders, BBB26_PREMIERE
+from data_utils import normalize_route_label, compute_protected_names, BBB26_PREMIERE
 from builders.vote_prediction import extract_paredao_eligibility
 
 
@@ -447,16 +447,7 @@ def _compute_exited_vote_stats(
 
         # Protection: Líder, Imune, Anjo autoimune
         form = p.get("formacao") or {}
-        lider_names = resolve_leaders(form)
-        imun = (form.get("imunizado") or {}).get("quem") if isinstance(form.get("imunizado"), dict) else None
-        anjo = form.get("anjo") if form.get("anjo_autoimune") else None
-        protected_names = set(lider_names)
-        if imun:
-            protected_names.add(imun)
-        if anjo:
-            protected_names.add(anjo)
-
-        if name in protected_names:
+        if name in compute_protected_names(form):
             protected += 1
 
         # Availability: can receive house votes (not in cant_be_voted)
@@ -509,10 +500,15 @@ def _build_exited_untouchables(
         else:
             vstats = {"votes_total": 0, "available": 0, "protected": 0}
 
+        context_note = ""
+        if vstats["available"] == 0 and n_paredoes > 0:
+            context_note = "Saiu antes do 1º Paredão"
+
         items.append({
             "name": name,
             "votes_total": vstats["votes_total"], "votes_recent": 0,
             "available": vstats["available"], "protected": vstats["protected"],
+            "context_note": context_note,
             "n_paredoes": n_paredoes,
             "n_paredoes_scope": "with_indicados",
             "vote_counts_scope": "paredoes_with_votes",

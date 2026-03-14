@@ -2050,6 +2050,21 @@ def resolve_leaders(form: dict) -> list[str]:
     return lideres
 
 
+def compute_protected_names(form: dict) -> set[str]:
+    """Compute the set of participants shielded from house votes in a paredão.
+
+    Protected roles: Líder(es), Imunizado, Anjo autoimune.
+    """
+    lider_names = resolve_leaders(form)
+    protected = set(lider_names)
+    imun_data = form.get("imunizado")
+    if isinstance(imun_data, dict) and imun_data.get("quem"):
+        protected.add(imun_data["quem"])
+    if form.get("anjo_autoimune") and form.get("anjo"):
+        protected.add(form["anjo"])
+    return protected
+
+
 # ── Gender & nominee helpers ─────────────────────────────────────────────────
 
 _FEMALE_NAMES = frozenset({

@@ -1528,6 +1528,12 @@ else:
                     avatar = f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
                     exit_badge = ""
 
+                cnote = it.get("context_note", "")
+                if cnote:
+                    stats_line = f'<div class="fs-2xs" style="color:#888;">{cnote}</div>'
+                else:
+                    stats_line = f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} recebido{"s" if votes != 1 else ""} · protegido {prot}x de {avail} elegível</div>'
+
                 return (
                     f'<div class="u-s056" style="align-items:flex-start;">'
                     f'{avatar}'
@@ -1536,7 +1542,7 @@ else:
                     f'{name_html}'
                     f'<span class="fs-sm" style="color:#27ae60;font-weight:700;">0 paredões</span>'
                     f'</div>'
-                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} recebido{"s" if votes != 1 else ""} · protegido {prot}x de {avail} elegível</div>'
+                    f'{stats_line}'
                     f'{exit_badge}'
                     f'</div></div>'
                 )

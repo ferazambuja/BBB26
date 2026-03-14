@@ -19,7 +19,7 @@ from data_utils import (
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     utc_to_game_date, get_week_number, get_week_start_date, WEEK_END_DATES,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
-    genero, resolve_leaders, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao,
+    genero, resolve_leaders, compute_protected_names, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao,
 )
 from builders.vote_prediction import extract_paredao_eligibility
 from builders.paredao_exposure import (
@@ -1785,14 +1785,10 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
             cant_be_voted = elig["cant_be_voted"]
 
             # Bug fix 1: resolve dual leadership for protected_names
-            lider_names = resolve_leaders(form)
-            imun = (form.get("imunizado") or {}).get("quem") if isinstance(form.get("imunizado"), dict) else None
-            anjo = form.get("anjo") if form.get("anjo_autoimune") else None
-            protected_names = set(lider_names)
-            if imun:
-                protected_names.add(imun)
-            if anjo:
-                protected_names.add(anjo)
+            protected_names = compute_protected_names(form)
+            # Reason classification for display (Líder Nx / Imune Nx / Autoimune Nx)
+            lider_names_set = set(resolve_leaders(form))
+            imun_name = (form.get("imunizado") or {}).get("quem") if isinstance(form.get("imunizado"), dict) else None
 
             # Bug fix 2: BV escape counting (supports vencedores array)
             bv = form.get("bate_volta", {}) or {}
@@ -1807,7 +1803,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
                     on_paredao[name] += 1
                 if name in protected_names:
                     protected[name] += 1
-                    reason = "Líder" if name in lider_names else ("Imune" if name == imun else "Autoimune")
+                    reason = "Líder" if name in lider_names_set else ("Imune" if name == imun_name else "Autoimune")
                     protection_detail[name].append((num, reason))
 
                 # Pre-vote eligibility for receiving house votes. This intentionally

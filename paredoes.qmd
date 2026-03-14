@@ -867,13 +867,20 @@ if _nunca_card:
             for _it in _exited:
                 _name = _it["name"]
                 _label = _it.get("status_label", "")
+                _cnote = _it.get("context_note", "")
+                _votes = _it.get("votes_total", 0)
+                _prot = _it.get("protected", 0)
+                _avail = _it.get("available", 0)
                 _url = AVATARS.get(_name, "")
                 print(f'<div class="u-s056">')
                 if _url:
                     print(f'<img src="{_url}" width="56" height="56" style="border-radius:50%; border:3px solid #555; filter:grayscale(100%);" alt="{_name}" title="{_name}">')
                 print(f'<div class="u-s066">')
                 print(f'<div class="fs-sm u-s082" style="color:#888;">{_name}</div>')
-                print(f'<div class="fs-2xs" style="color:#666;">{_label}</div>')
+                if _cnote:
+                    print(f'<div class="fs-2xs" style="color:#666;">{_label} · {_cnote}</div>')
+                else:
+                    print(f'<div class="fs-2xs" style="color:#666;">{_label} · {_votes} voto{"s" if _votes != 1 else ""} · protegido {_prot}x de {_avail} elegível</div>')
                 print(f'</div></div>')
             print(f'</div>')
             print(f'</details>')
