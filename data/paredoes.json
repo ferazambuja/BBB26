@@ -1,6 +1,6 @@
 {
   "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
-  "_last_updated": "2026-02-27",
+  "_last_updated": "2026-03-13",
   "paredoes": [
     {
       "numero": 1,
@@ -1174,6 +1174,56 @@
           }
         }
       }
+    },
+    {
+      "numero": 9,
+      "status": "em_andamento",
+      "data": "2026-03-17",
+      "data_formacao": "2026-03-15",
+      "titulo": "9º Paredão — 17 de Março de 2026",
+      "semana": 9,
+      "total_esperado": 3,
+      "formacao": {
+        "lider": "Alberto Cowboy",
+        "resumo": "Dinâmica Pedra, Papel e Tesoura (sábado): 12 participantes divididos em 3 grupos de 4. Cada grupo emparedou um jogador de outro grupo (Pedra→Tesoura, Papel→Pedra, Tesoura→Papel). Máquina do Poder (domingo): caixa premiada salva um dos 3 emparedados. Depois: indicação do Líder + votação da casa.",
+        "pedra_papel_tesoura": {
+          "regra": "Pedra vence Tesoura, Papel vence Pedra, Tesoura vence Papel. Grupo vencedor empareda 1 jogador do grupo perdedor.",
+          "grupo_pedra": {
+            "membros": [],
+            "emparedou": null,
+            "emparedou_de_grupo": "tesoura"
+          },
+          "grupo_papel": {
+            "membros": [],
+            "emparedou": null,
+            "emparedou_de_grupo": "pedra"
+          },
+          "grupo_tesoura": {
+            "membros": [],
+            "emparedou": null,
+            "emparedou_de_grupo": "papel"
+          }
+        },
+        "maquina_do_poder": {
+          "comprador": null,
+          "salvou": null,
+          "detail": null
+        }
+      },
+      "indicados_finais": [],
+      "votos_casa": {},
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+          "arquivo": "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md",
+          "titulo": "BBB 26: dinâmica inspirada em Pedra, Papel e Tesoura vai emparedar três participantes"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
+          "arquivo": "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
+          "titulo": "Dinâmica da Semana tem Máquina do Poder e 3 participantes emparedados no sábado (14); entenda"
+        }
+      ]
     }
   ]
 }

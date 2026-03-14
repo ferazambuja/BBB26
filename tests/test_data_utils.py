@@ -174,7 +174,7 @@ class TestGetWeekNumber:
         """When week N+1 has dated signals, week N boundary is inferred."""
         manual = {
             "scheduled_events": [
-                {"week": 9, "date": "2026-03-14"},
+                {"week": 10, "date": "2026-03-21"},
             ]
         }
         inferred = get_effective_week_end_dates(
@@ -183,15 +183,15 @@ class TestGetWeekNumber:
             provas_data={},
         )
         assert len(inferred) == len(WEEK_END_DATES) + 1
-        assert inferred[-1] == "2026-03-13"
-        assert get_week_number("2026-03-13", inferred) == 8
-        assert get_week_number("2026-03-14", inferred) == 9
+        assert inferred[-1] == "2026-03-20"
+        assert get_week_number("2026-03-20", inferred) == 9
+        assert get_week_number("2026-03-21", inferred) == 10
 
     def test_inference_requires_contiguous_week_signal(self):
         """Do not infer week ends when the immediate next week has no signal."""
         manual = {
             "scheduled_events": [
-                {"week": 10, "date": "2026-03-21"},
+                {"week": 11, "date": "2026-03-28"},
             ]
         }
         inferred = get_effective_week_end_dates(

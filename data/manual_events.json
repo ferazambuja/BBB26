@@ -4091,7 +4091,7 @@
     {
       "week": 8,
       "start_date": "2026-03-06",
-      "end_date": null,
+      "end_date": "2026-03-11",
       "notes": "Semana 8 iniciada após definição da liderança dupla (Alberto Cowboy + Jonas Sulzbach).",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/alberto-cowboy-e-jonas-sulzbach-sao-a-ultima-dupla-a-deixar-a-prova-do-lider-de-resistencia-do-bbb-26.ghtml",
@@ -4123,77 +4123,384 @@
         "date": "2026-03-09",
         "format": "Pódio dos Medrosos — cada participante monta um pódio com os 3 mais medrosos da casa e entrega medalhas (covarde, frouxo/a, arregão/arregona)",
         "participacao": [
-          "Alberto Cowboy", "Ana Paula Renault", "Babu Santana", "Breno",
-          "Chaiany", "Gabriela", "Jonas Sulzbach", "Jordana",
-          "Juliano Floss", "Leandro", "Marciele", "Milena", "Samira", "Solange Couto"
+          "Alberto Cowboy",
+          "Ana Paula Renault",
+          "Babu Santana",
+          "Breno",
+          "Chaiany",
+          "Gabriela",
+          "Jonas Sulzbach",
+          "Jordana",
+          "Juliano Floss",
+          "Leandro",
+          "Marciele",
+          "Milena",
+          "Samira",
+          "Solange Couto"
         ],
-        "protagonistas": ["Alberto Cowboy", "Jonas Sulzbach", "Milena", "Jordana", "Chaiany"],
+        "protagonistas": [
+          "Alberto Cowboy",
+          "Jonas Sulzbach",
+          "Milena",
+          "Jordana",
+          "Chaiany"
+        ],
         "notes": "Formato pódio negativo: todos os 14 participantes montaram pódio dos 3 mais medrosos e entregaram medalhas (covarde, frouxo/a, arregão/arregona). Alberto Cowboy foi o mais visado (6 vezes), seguido de Jonas Sulzbach (5). Leandro foi o único a não receber nenhuma medalha. 6 confrontações mútuas (ambos colocaram o outro no pódio): Jonas↔Milena (ambos 1º lugar), Jordana↔Chaiany (ambos 1º), Babu↔Samira, Alberto↔Breno, Floss↔Marciele, Solange↔Ana Paula.",
         "fontes": [
           "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-bbb-26-participantes-montam-podio-dos-medrosos.ghtml"
         ],
         "stats": {
           "most_targeted": [
-            {"name": "Alberto Cowboy", "count": 6},
-            {"name": "Jonas Sulzbach", "count": 5},
-            {"name": "Samira", "count": 4},
-            {"name": "Juliano Floss", "count": 4},
-            {"name": "Solange Couto", "count": 4},
-            {"name": "Babu Santana", "count": 4}
+            {
+              "name": "Alberto Cowboy",
+              "count": 6
+            },
+            {
+              "name": "Jonas Sulzbach",
+              "count": 5
+            },
+            {
+              "name": "Samira",
+              "count": 4
+            },
+            {
+              "name": "Juliano Floss",
+              "count": 4
+            },
+            {
+              "name": "Solange Couto",
+              "count": 4
+            },
+            {
+              "name": "Babu Santana",
+              "count": 4
+            }
           ],
-          "not_targeted": ["Leandro"],
+          "not_targeted": [
+            "Leandro"
+          ],
           "mutual_confrontations": [
-            ["Jonas Sulzbach", "Milena"],
-            ["Jordana", "Chaiany"],
-            ["Babu Santana", "Samira"],
-            ["Alberto Cowboy", "Breno"],
-            ["Juliano Floss", "Marciele"],
-            ["Solange Couto", "Ana Paula Renault"]
+            [
+              "Jonas Sulzbach",
+              "Milena"
+            ],
+            [
+              "Jordana",
+              "Chaiany"
+            ],
+            [
+              "Babu Santana",
+              "Samira"
+            ],
+            [
+              "Alberto Cowboy",
+              "Breno"
+            ],
+            [
+              "Juliano Floss",
+              "Marciele"
+            ],
+            [
+              "Solange Couto",
+              "Ana Paula Renault"
+            ]
           ]
         },
         "edges": [
-          {"actor": "Babu Santana", "target": "Jordana", "type": "ataque", "slot": 1, "tema": "arregona"},
-          {"actor": "Babu Santana", "target": "Samira", "type": "ataque", "slot": 2, "tema": "frouxa"},
-          {"actor": "Babu Santana", "target": "Gabriela", "type": "ataque", "slot": 3, "tema": "covarde"},
-          {"actor": "Chaiany", "target": "Jordana", "type": "ataque", "slot": 1, "tema": "frouxo"},
-          {"actor": "Chaiany", "target": "Alberto Cowboy", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Chaiany", "target": "Jonas Sulzbach", "type": "ataque", "slot": 3, "tema": "frouxo"},
-          {"actor": "Milena", "target": "Jonas Sulzbach", "type": "ataque", "slot": 1, "tema": "covarde"},
-          {"actor": "Milena", "target": "Alberto Cowboy", "type": "ataque", "slot": 2, "tema": "arregão"},
-          {"actor": "Milena", "target": "Solange Couto", "type": "ataque", "slot": 3, "tema": "frouxo"},
-          {"actor": "Alberto Cowboy", "target": "Ana Paula Renault", "type": "ataque", "slot": 1, "tema": "covarde"},
-          {"actor": "Alberto Cowboy", "target": "Juliano Floss", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Alberto Cowboy", "target": "Breno", "type": "ataque", "slot": 3, "tema": "covarde"},
-          {"actor": "Jonas Sulzbach", "target": "Milena", "type": "ataque", "slot": 1, "tema": "covarde"},
-          {"actor": "Jonas Sulzbach", "target": "Samira", "type": "ataque", "slot": 2, "tema": "arregona"},
-          {"actor": "Jonas Sulzbach", "target": "Juliano Floss", "type": "ataque", "slot": 3, "tema": "frouxo"},
-          {"actor": "Juliano Floss", "target": "Jonas Sulzbach", "type": "ataque", "slot": 1, "tema": "covarde"},
-          {"actor": "Juliano Floss", "target": "Alberto Cowboy", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Juliano Floss", "target": "Marciele", "type": "ataque", "slot": 3, "tema": "arregona"},
-          {"actor": "Marciele", "target": "Samira", "type": "ataque", "slot": 1, "tema": "covarde"},
-          {"actor": "Marciele", "target": "Juliano Floss", "type": "ataque", "slot": 2, "tema": "frouxo"},
-          {"actor": "Marciele", "target": "Chaiany", "type": "ataque", "slot": 3, "tema": "arregona"},
-          {"actor": "Samira", "target": "Solange Couto", "type": "ataque", "slot": 1, "tema": "frouxa"},
-          {"actor": "Samira", "target": "Babu Santana", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Samira", "target": "Jonas Sulzbach", "type": "ataque", "slot": 3, "tema": "arregão"},
-          {"actor": "Solange Couto", "target": "Samira", "type": "ataque", "slot": 1, "tema": "covarde"},
-          {"actor": "Solange Couto", "target": "Milena", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Solange Couto", "target": "Ana Paula Renault", "type": "ataque", "slot": 3, "tema": "arregona"},
-          {"actor": "Ana Paula Renault", "target": "Babu Santana", "type": "ataque", "slot": 1, "tema": "covarde"},
-          {"actor": "Ana Paula Renault", "target": "Alberto Cowboy", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Ana Paula Renault", "target": "Solange Couto", "type": "ataque", "slot": 3, "tema": "frouxa"},
-          {"actor": "Breno", "target": "Marciele", "type": "ataque", "slot": 1, "tema": "arregona"},
-          {"actor": "Breno", "target": "Alberto Cowboy", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Breno", "target": "Jordana", "type": "ataque", "slot": 3, "tema": "covarde"},
-          {"actor": "Leandro", "target": "Alberto Cowboy", "type": "ataque", "slot": 1, "tema": "arregão"},
-          {"actor": "Leandro", "target": "Jonas Sulzbach", "type": "ataque", "slot": 2, "tema": "arregão"},
-          {"actor": "Leandro", "target": "Marciele", "type": "ataque", "slot": 3, "tema": "covarde"},
-          {"actor": "Gabriela", "target": "Babu Santana", "type": "ataque", "slot": 1, "tema": "frouxo"},
-          {"actor": "Gabriela", "target": "Juliano Floss", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Gabriela", "target": "Milena", "type": "ataque", "slot": 3, "tema": "covarde"},
-          {"actor": "Jordana", "target": "Chaiany", "type": "ataque", "slot": 1, "tema": "arregona"},
-          {"actor": "Jordana", "target": "Solange Couto", "type": "ataque", "slot": 2, "tema": "covarde"},
-          {"actor": "Jordana", "target": "Babu Santana", "type": "ataque", "slot": 3, "tema": "frouxo"}
+          {
+            "actor": "Babu Santana",
+            "target": "Jordana",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "arregona"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Samira",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "frouxa"
+          },
+          {
+            "actor": "Babu Santana",
+            "target": "Gabriela",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Chaiany",
+            "target": "Jordana",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "frouxo"
+          },
+          {
+            "actor": "Chaiany",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Chaiany",
+            "target": "Jonas Sulzbach",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "frouxo"
+          },
+          {
+            "actor": "Milena",
+            "target": "Jonas Sulzbach",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Milena",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "arregão"
+          },
+          {
+            "actor": "Milena",
+            "target": "Solange Couto",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "frouxo"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Ana Paula Renault",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Juliano Floss",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Breno",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Milena",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Samira",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "arregona"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Juliano Floss",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "frouxo"
+          },
+          {
+            "actor": "Juliano Floss",
+            "target": "Jonas Sulzbach",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Juliano Floss",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Juliano Floss",
+            "target": "Marciele",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "arregona"
+          },
+          {
+            "actor": "Marciele",
+            "target": "Samira",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Marciele",
+            "target": "Juliano Floss",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "frouxo"
+          },
+          {
+            "actor": "Marciele",
+            "target": "Chaiany",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "arregona"
+          },
+          {
+            "actor": "Samira",
+            "target": "Solange Couto",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "frouxa"
+          },
+          {
+            "actor": "Samira",
+            "target": "Babu Santana",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Samira",
+            "target": "Jonas Sulzbach",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "arregão"
+          },
+          {
+            "actor": "Solange Couto",
+            "target": "Samira",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Solange Couto",
+            "target": "Milena",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Solange Couto",
+            "target": "Ana Paula Renault",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "arregona"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Babu Santana",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Solange Couto",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "frouxa"
+          },
+          {
+            "actor": "Breno",
+            "target": "Marciele",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "arregona"
+          },
+          {
+            "actor": "Breno",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Breno",
+            "target": "Jordana",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "arregão"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Jonas Sulzbach",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "arregão"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Marciele",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Gabriela",
+            "target": "Babu Santana",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "frouxo"
+          },
+          {
+            "actor": "Gabriela",
+            "target": "Juliano Floss",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Gabriela",
+            "target": "Milena",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Jordana",
+            "target": "Chaiany",
+            "type": "ataque",
+            "slot": 1,
+            "tema": "arregona"
+          },
+          {
+            "actor": "Jordana",
+            "target": "Solange Couto",
+            "type": "ataque",
+            "slot": 2,
+            "tema": "covarde"
+          },
+          {
+            "actor": "Jordana",
+            "target": "Babu Santana",
+            "type": "ataque",
+            "slot": 3,
+            "tema": "frouxo"
+          }
         ],
         "edges_notes": "Formato pódio negativo: cada participante escolheu 3 alvos (1º/2º/3º lugar) e deu uma medalha (covarde/frouxo/arregão). Todos os 42 edges usam tipo 'ataque' com tema = medalha dada. O campo 'slot' preserva a posição no pódio (1/2/3) — scoring atual trata ataque com peso flat (-0.8 relações, -0.6 edges)."
       },
@@ -4220,6 +4527,19 @@
           "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil-no-bbb-26.ghtml"
         ]
       }
+    },
+    {
+      "week": 9,
+      "start_date": "2026-03-12",
+      "end_date": null,
+      "anjo": null,
+      "sincerao": null,
+      "ganha_ganha": null,
+      "notes": "Semana 9. Líder Alberto Cowboy (consecutivo, 9ª Prova do Líder). Dinâmica Pedra/Papel/Tesoura (sáb) + Máquina do Poder (dom). Formação do 9º Paredão dividida em dois programas ao vivo.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml"
+      ]
     }
   ],
   "special_events": [
@@ -6208,7 +6528,9 @@
       "time": "Ao Vivo",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
-        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+        "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md"
       ]
     },
     {
@@ -6221,7 +6543,9 @@
       "time": "A definir",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
-        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+        "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md"
       ]
     },
     {
@@ -6229,12 +6553,14 @@
       "week": 9,
       "category": "dinamica",
       "emoji": "⚡",
-      "title": "Dinâmica ao vivo: 3 emparedados",
-      "detail": "Ao vivo, três participantes vão direto para o Paredão de domingo.",
+      "title": "Pedra, Papel e Tesoura: 3 emparedados",
+      "detail": "12 participantes divididos em 3 grupos de 4. Cada grupo empareda um jogador de outro grupo seguindo a regra do jogo (Pedra→Tesoura, Papel→Pedra, Tesoura→Papel).",
       "time": "Ao Vivo",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
-        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+        "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md"
       ]
     },
     {
@@ -6247,7 +6573,9 @@
       "time": "A definir",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
-        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+        "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md"
       ]
     },
     {
@@ -6262,7 +6590,9 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
         "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
         "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-a-9a-disputa.ghtml",
-        "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-a-9a-disputa.md"
+        "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-a-9a-disputa.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+        "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md"
       ]
     },
     {
@@ -6275,7 +6605,9 @@
       "time": "Ao Vivo",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
-        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+        "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
+        "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md"
       ]
     },
     {

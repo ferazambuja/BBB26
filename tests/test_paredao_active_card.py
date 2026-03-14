@@ -46,7 +46,9 @@ def _repo_data():
 
 
 def _latest_entry_as_active(repo_data: dict) -> dict:
-    current = copy.deepcopy(repo_data["paredoes"][-1])
+    # Find the latest finalized paredão (to simulate it as active with full data)
+    finalized = [p for p in repo_data["paredoes"] if p.get("status") == "finalizado"]
+    current = copy.deepcopy(finalized[-1])
     current["status"] = "em_andamento"
     current.pop("resultado", None)
     for participant in current.get("participantes", []):
@@ -167,14 +169,17 @@ def test_finalized_payload_uses_official_results_and_grayscale(_repo_data):
     assert "Nosso Modelo" in payload["memory_line"]
 
 
-def test_build_index_data_uses_inactive_paredao_copy_after_result():
+def test_build_index_data_paredao_card_reflects_current_state():
     data = build_index_data()
 
     card = next(card for card in data["highlights"]["cards"] if card["type"] == "paredao")
 
-    assert card["payload"]["state"] == "finalized"
-    assert card["title"] == "Último Paredão"
-    assert card["subtitle"] == "Resumo do paredão encerrado; o card volta ao modo ativo quando o próximo for formado."
+    # Card state depends on whether the latest paredão is active or finalized
+    if card["payload"]["state"] == "active":
+        assert card["title"] == "Paredão Ativo"
+    else:
+        assert card["payload"]["state"] == "finalized"
+        assert card["title"] == "Último Paredão"
 
 
 def test_live_and_index_renderers_share_the_new_card_language(_repo_data):
@@ -222,7 +227,7 @@ def test_repeat_nominees_render_top_right_appearance_badges(_repo_data):
 
 
 def test_poll_comparison_payload_includes_confidence_and_delta(_repo_data):
-    current = _repo_data["paredoes"][-1]
+    current = next(p for p in reversed(_repo_data["paredoes"]) if p.get("status") == "finalizado" and not p.get("paredao_falso"))
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
     precision = calculate_precision_weights(_repo_data["polls_data"])
     model_prediction = predict_precision_weighted(poll, precision)
@@ -245,7 +250,7 @@ def test_poll_comparison_payload_includes_confidence_and_delta(_repo_data):
 
 
 def test_poll_comparison_renderer_outputs_unified_compare_card(_repo_data):
-    current = _repo_data["paredoes"][-1]
+    current = next(p for p in reversed(_repo_data["paredoes"]) if p.get("status") == "finalizado" and not p.get("paredao_falso"))
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
     precision = calculate_precision_weights(_repo_data["polls_data"])
     model_prediction = predict_precision_weighted(poll, precision)

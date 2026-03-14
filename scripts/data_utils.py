@@ -274,7 +274,8 @@ WEEK_END_DATES: list[str] = [
     "2026-02-18",  # Week 5 — Jonas Sulzbach Líder; 5º Paredão Feb 17; barrado Feb 18
     "2026-02-25",  # Week 6 — Jonas Sulzbach Líder; 6º Paredão Feb 25; barrado Feb 25
     "2026-03-05",  # Week 7 — Samira Líder; 7º Paredão (Falso) Mar 3; dupla liderança (W8) definida Mar 6
-    # Week 8 remains open until the next Líder cycle is confirmed in data.
+    "2026-03-11",  # Week 8 — Alberto Cowboy + Jonas Sulzbach co-Líderes; 8º Paredão Mar 10; Alberto Líder solo (9ª PdL) Mar 12
+    # Week 9 remains open until the next Líder cycle is confirmed in data.
 ]
 
 
