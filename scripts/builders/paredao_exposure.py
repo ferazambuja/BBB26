@@ -314,6 +314,9 @@ def build_participant_windows(
             "last_seen": ACTIVE_LAST_SEEN,
         })
 
+    # Clamp stale derived windows with manual exits and fill gaps for participants
+    # missing from participants_index entirely.
+    # min() ensures exit_date overrides a stale ACTIVE_LAST_SEEN from participants_index.
     for name, info in (manual_events or {}).get("participants", {}).items():
         if not isinstance(info, dict):
             continue
@@ -321,7 +324,8 @@ def build_participant_windows(
         if not exit_date:
             continue
         windows.setdefault(name, {"first_seen": BBB26_PREMIERE, "last_seen": exit_date})
-        windows[name]["last_seen"] = windows[name].get("last_seen") or exit_date
+        existing_last_seen = windows[name].get("last_seen") or exit_date
+        windows[name]["last_seen"] = min(existing_last_seen, exit_date)
 
     return windows
 

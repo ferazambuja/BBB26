@@ -98,9 +98,6 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Run tests
-        run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
-
       - name: Validate JSON snapshots
         run: |
           python -c "
@@ -141,7 +138,7 @@ jobs:
         run: python scripts/build_derived_data.py
 
       - name: Run integrity audit
-        run: python scripts/audit_data_integrity.py --fail-on none
+        run: python scripts/audit_data_integrity.py --fail-on critical
 
       - name: Print integrity audit summary
         run: |
@@ -158,6 +155,9 @@ jobs:
               f" info={summary['info_count']}"
           )
           PY
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2

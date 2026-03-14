@@ -239,6 +239,28 @@ class TestExitedVoteStats:
         assert nunca["items_all"] == []
         assert [item["name"] for item in nunca["items_exited"]] == ["Henri"]
 
+    def test_manual_exit_date_clamps_stale_last_seen(self):
+        """Manual exit date closes stale participants_index windows."""
+        paredoes = [
+            _make_paredao(1, [_make_indicado("Ana")], votos_casa={"V1": "Pedro"}),
+            _make_paredao(2, [_make_indicado("Breno")], votos_casa={"V1": "Pedro"}),
+        ]
+        paredoes[0]["data_formacao"] = "2026-01-18"
+        paredoes[1]["data_formacao"] = "2026-01-25"
+        manual = {"participants": {"Pedro": {"status": "desistente", "exit_date": "2026-01-19"}}}
+        ctx = _synthetic_ctx(paredoes, manual_events=manual)
+        ctx["participants_index"] = {
+            "participants": [{"name": "Pedro", "first_seen": "2026-01-13", "last_seen": "9999-12-31"}],
+        }
+        windows = build_participant_windows(
+            ctx["participants_index"],
+            active_names=ctx["active_set"],
+            manual_events=manual,
+        )
+        exposure = compute_house_vote_exposure(paredoes, windows)
+        assert windows["Pedro"]["last_seen"] == "2026-01-19"
+        assert exposure["Pedro"]["available"] == 1
+
 
 # ── Figurinha Repetida ───────────────────────────────────────────────────
 

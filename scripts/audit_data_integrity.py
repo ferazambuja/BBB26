@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from collections import Counter
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -25,16 +23,6 @@ DATA_DIR = ROOT / "data"
 DERIVED_DIR = DATA_DIR / "derived"
 OUT_PATH = DERIVED_DIR / "integrity_audit.json"
 AUDIT_VERSION = 1
-
-
-@contextmanager
-def _pushd(path: Path):
-    previous = Path.cwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(previous)
 
 
 def _issue(
@@ -173,8 +161,7 @@ def build_integrity_audit(root: Path = ROOT) -> dict[str, Any]:
     checks_run += 1
     if not any(issue["id"] == "missing_required_file" for issue in issues):
         try:
-            with _pushd(root):
-                validate_input_files()
+            validate_input_files(root=root)
         except Exception as exc:  # jsonschema ValidationError or I/O
             _issue(
                 issues,

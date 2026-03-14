@@ -12,8 +12,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from data_utils import resolve_leaders
+from builders.paredao_exposure import compute_house_vote_exposure, build_participant_windows, ACTIVE_LAST_SEEN
 from builders.index_data_builder import _compute_static_cards
-from builders.paredao_exposure import compute_house_vote_exposure
 from builders.vote_prediction import extract_paredao_eligibility
 
 
@@ -230,51 +230,48 @@ class TestBvEscapeCounting:
 # ── Vote counting (Bug 3) ───────────────────────────────────────────────────
 
 class TestVotesCounting:
-    """Test that ALL house votes are counted regardless of participant status."""
+    """Test vote counting via the canonical compute_house_vote_exposure helper."""
 
-    def _count_all_votes(self, paredoes, active_set):
-        """Replicate the all-votes pre-pass from _compute_static_cards."""
-        all_house_votes: Counter = Counter()
-        last_voted_paredao: dict = {}
-        for par in paredoes:
-            num = par.get("numero", 0)
-            for _voter, target in (par.get("votos_casa") or {}).items():
-                t = target.strip()
-                if t in active_set:
-                    all_house_votes[t] += 1
-                    last_voted_paredao[t] = max(last_voted_paredao.get(t, 0), num)
-        return all_house_votes, last_voted_paredao
+    def _exposure(self, paredoes, names):
+        """Build exposure via canonical helper with all-active windows."""
+        windows = {n: {"first_seen": "2026-01-01", "last_seen": ACTIVE_LAST_SEEN} for n in names}
+        return compute_house_vote_exposure(paredoes, windows)
 
     def test_votes_counted_on_paredao(self):
         """Leandro P3 pattern: in indicados_finais AND receives votes → both counted."""
         paredoes = [_make_paredao(3, "Maxiane",
                                   ["Leandro", "X"],
                                   votos_casa={"A": "Leandro", "B": "Leandro", "C": "X"})]
-        votes, last = self._count_all_votes(paredoes, {"Leandro", "X", "A", "B", "C", "Maxiane"})
-        assert votes["Leandro"] == 2
-        assert votes["X"] == 1
-        assert last["Leandro"] == 3
+        paredoes[0]["data_formacao"] = "2026-02-04"
+        exp = self._exposure(paredoes, {"Leandro", "X", "A", "B", "C", "Maxiane"})
+        assert exp["Leandro"]["votes_total"] == 2
+        assert exp["X"]["votes_total"] == 1
+        assert exp["Leandro"]["last_voted_paredao"] == 3
 
     def test_votes_counted_when_available(self):
         paredoes = [_make_paredao(1, "L", ["X"],
                                   votos_casa={"A": "Y", "B": "Y"})]
-        votes, _ = self._count_all_votes(paredoes, {"X", "Y", "A", "B", "L"})
-        assert votes["Y"] == 2
+        paredoes[0]["data_formacao"] = "2026-01-18"
+        exp = self._exposure(paredoes, {"X", "Y", "A", "B", "L"})
+        assert exp["Y"]["votes_total"] == 2
 
-    def test_unknown_target_skipped(self):
-        """Targets not in active_set are silently skipped."""
-        paredoes = [_make_paredao(1, "L", [],
+    def test_unknown_target_not_in_windows(self):
+        """Targets not in participant_windows produce no exposure entry."""
+        paredoes = [_make_paredao(1, "L", ["A"],
                                   votos_casa={"A": "Unknown Person"})]
-        votes, _ = self._count_all_votes(paredoes, {"A", "L"})
-        assert votes.get("Unknown Person", 0) == 0
+        paredoes[0]["data_formacao"] = "2026-01-18"
+        exp = self._exposure(paredoes, {"A", "L"})
+        assert "Unknown Person" not in exp
 
     def test_last_voted_paredao_tracks_max(self):
         paredoes = [
-            _make_paredao(1, "L", [], votos_casa={"A": "X"}),
-            _make_paredao(3, "L", [], votos_casa={"B": "X"}),
+            _make_paredao(1, "L", ["A"], votos_casa={"A": "X"}),
+            _make_paredao(3, "L", ["B"], votos_casa={"B": "X"}),
         ]
-        _, last = self._count_all_votes(paredoes, {"X", "A", "B", "L"})
-        assert last["X"] == 3
+        paredoes[0]["data_formacao"] = "2026-01-18"
+        paredoes[1]["data_formacao"] = "2026-02-04"
+        exp = self._exposure(paredoes, {"X", "A", "B", "L"})
+        assert exp["X"]["last_voted_paredao"] == 3
 
 
 # ── Nomination classification ────────────────────────────────────────────────
@@ -332,6 +329,7 @@ class TestVisadosAndDisplayLimitContract:
         paredoes = [
             {
                 "numero": 1,
+                "data_formacao": "2026-01-18",
                 "formacao": {"lider": "Eva", "bate_volta": {"vencedor": "Breno"}},
                 "indicados_finais": [
                     {"nome": "Ana", "como": "Casa (3 votos)"},
@@ -341,6 +339,7 @@ class TestVisadosAndDisplayLimitContract:
             },
             {
                 "numero": 2,
+                "data_formacao": "2026-01-25",
                 "formacao": {"lider": "Ana", "bate_volta": {"vencedor": "Eva"}},
                 "indicados_finais": [
                     {"nome": "Caio", "como": "Casa (4 votos)"},
@@ -350,6 +349,7 @@ class TestVisadosAndDisplayLimitContract:
             },
             {
                 "numero": 3,
+                "data_formacao": "2026-02-01",
                 "paredao_falso": True,
                 "formacao": {"lider": "Breno"},
                 "indicados_finais": [
@@ -560,24 +560,28 @@ class TestBlindadosDisplayDetails:
                 "paredoes": [
                     {
                         "numero": 3,
+                        "data_formacao": "2026-02-01",
                         "formacao": {"lider": "Ana", "bate_volta": {"vencedor": "Jonas"}},
                         "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
                         "votos_casa": {"Breno": "Milena"},
                     },
                     {
                         "numero": 4,
+                        "data_formacao": "2026-02-08",
                         "formacao": {"lider": "Jonas"},
                         "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
                         "votos_casa": {"Ana": "Milena"},
                     },
                     {
                         "numero": 5,
+                        "data_formacao": "2026-02-15",
                         "formacao": {"lider": "Ana", "imunizado": {"quem": "Jonas"}},
                         "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
                         "votos_casa": {"Breno": "Milena"},
                     },
                     {
                         "numero": 6,
+                        "data_formacao": "2026-02-22",
                         "formacao": {"lider": "Ana", "anjo": "Jonas", "anjo_autoimune": True},
                         "indicados_finais": [{"nome": "Milena", "como": "Casa"}],
                         "votos_casa": {"Breno": "Milena"},
