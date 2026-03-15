@@ -413,7 +413,28 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
     return events
 
 
-def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[dict]:
+def _lookup_provas_winner(provas_data: dict | list | None, tipo: str, week: int) -> str:
+    """Look up a prova winner by type and week from provas.json data."""
+    provas_list: list[dict] = []
+    if isinstance(provas_data, dict):
+        provas_list = provas_data.get("provas", [])
+    elif isinstance(provas_data, list):
+        provas_list = provas_data
+    for prova in provas_list:
+        if prova.get("tipo") != tipo:
+            continue
+        prova_week = prova.get("week", 0)
+        if prova_week and int(prova_week) == week:
+            winners = _extract_prova_winners(prova)
+            if winners:
+                return winners[0]
+    return ""
+
+
+def _collect_timeline_paredao_events(
+    paredoes_data: dict | list | None,
+    provas_data: dict | list | None = None,
+) -> list[dict]:
     """Collect timeline events from paredão formation and results.
 
     Generates ordered sub-steps for each paredão formation (ceremony flow):
@@ -550,9 +571,12 @@ def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[
         # --- Step 7: Scheduled sub-step placeholders for incomplete formations ---
         # When the ceremony hasn't happened yet (no votos_casa), emit scheduled
         # placeholders for each sub-step using whatever info is already known.
+        # Falls back to provas.json for Anjo/Líder when formacao doesn't have them.
         # Real sub-steps (steps 1-5) suppress these via singleton dedup once filled.
         if not votos_casa and data_form:
-            lider = formacao.get("lider", "")
+            p_week = p.get("semana", week)
+            lider = formacao.get("lider", "") or _lookup_provas_winner(provas_data, "lider", p_week)
+            anjo = anjo or _lookup_provas_winner(provas_data, "anjo", p_week)
             # Imunidade placeholder (only if not already emitted as real in step 1)
             if not (autoimune and anjo) and not (imun and isinstance(imun, dict) and imun.get("quem")):
                 if anjo:
@@ -786,7 +810,7 @@ def build_game_timeline(
     events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events))
     events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data, manual_events))
     events.extend(_collect_timeline_manual_events(manual_events))
-    events.extend(_collect_timeline_paredao_events(paredoes_data))
+    events.extend(_collect_timeline_paredao_events(paredoes_data, provas_data))
     scaffold_events = _generate_weekly_scaffolds(week_end_dates, reference_date)
     return _merge_and_dedup_timeline(
         events, manual_events,

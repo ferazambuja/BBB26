@@ -709,6 +709,37 @@ def test_scheduled_substeps_suppressed_when_real_data_filled():
     assert len(sched_imun) == 0
 
 
+def test_scheduled_substeps_fallback_to_provas_for_anjo_lider():
+    """When formacao lacks anjo/lider but provas.json has winners, use provas data."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "semana": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {},
+                "indicados_finais": [{"nome": "A"}],
+                "votos_casa": {},
+            }
+        ]
+    }
+    provas_data = {
+        "provas": [
+            {"tipo": "anjo", "week": 9, "date": "2026-03-14", "vencedor": "Breno"},
+            {"tipo": "lider", "week": 9, "date": "2026-03-12", "vencedor": "Alberto Cowboy"},
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, provas_data, reference_date="2026-03-15")
+    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    assert len(imun) == 1
+    assert "Breno" in imun[0]["title"], f"Expected Breno in title, got: {imun[0]['title']}"
+
+    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled"]
+    assert len(indic) == 1
+    assert "Alberto Cowboy" in indic[0]["title"], f"Expected Alberto Cowboy in title, got: {indic[0]['title']}"
+
+
 def test_scheduled_substeps_generic_when_lider_anjo_unknown():
     """When Líder/Anjo are unknown, placeholders use generic titles."""
     paredoes_data = {
