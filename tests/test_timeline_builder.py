@@ -222,3 +222,276 @@ def test_monstro_fallback_skips_list_valued_monstro_field():
     names = {e.get("title") for e in monstro_events}
     assert "Milena → Monstro" in names
     assert "Juliano Floss → Monstro" in names
+
+
+# --- Scheduled event lifecycle and dedup tests ---
+
+
+def test_past_scheduled_event_kept_when_no_real_replacement():
+    """A past scheduled event with no matching real event stays in timeline as a real event."""
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-02-01",
+                "category": "dinamica",
+                "emoji": "🔮",
+                "title": "Cinema do Líder",
+                "detail": "Exibição especial",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    dinamica_events = [e for e in events if e.get("category") == "dinamica"]
+    assert any(
+        e.get("title") == "Cinema do Líder"
+        and e.get("source") == "scheduled"
+        for e in dinamica_events
+    ), "Past scheduled event with no real replacement must be kept"
+
+
+def test_past_scheduled_event_displays_as_real():
+    """A past scheduled event (date < reference_date) should display as real, not scheduled."""
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-14",
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Pedra, Papel e Tesoura — resultado",
+                "detail": "Grupos formados e emparedados definidos.",
+                "time": "Ao Vivo",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    dinamica_events = [e for e in events if e.get("category") == "dinamica"]
+    assert len(dinamica_events) == 1
+    ev = dinamica_events[0]
+    assert ev["status"] == "", "Past event must not have status='scheduled' even if time is set"
+    assert ev["source"] == "scheduled"
+
+
+def test_future_scheduled_event_stays_scheduled():
+    """A future scheduled event should keep status='scheduled'."""
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-16",
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Máquina do Poder",
+                "detail": "Caixa premiada salva um emparedado.",
+                "time": "Ao Vivo",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    dinamica_events = [e for e in events if e.get("category") == "dinamica"]
+    assert len(dinamica_events) == 1
+    assert dinamica_events[0]["status"] == "scheduled"
+    assert dinamica_events[0]["time"] == "Ao Vivo"
+
+
+def test_same_day_with_time_stays_scheduled():
+    """An event on reference_date with time field is still pending (tonight)."""
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-15",
+                "category": "paredao_formacao",
+                "emoji": "🗳️",
+                "title": "Formação do Paredão",
+                "detail": "Domingo ao vivo",
+                "time": "Ao Vivo",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    pf_events = [e for e in events if e.get("category") == "paredao_formacao"]
+    assert len(pf_events) == 1
+    assert pf_events[0]["status"] == "scheduled"
+
+
+def test_same_day_without_time_is_resolved():
+    """An event on reference_date with no time field is resolved."""
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-15",
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Evento já aconteceu",
+                "detail": "Resultado final.",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    dinamica_events = [e for e in events if e.get("category") == "dinamica"]
+    assert len(dinamica_events) == 1
+    assert dinamica_events[0]["status"] == ""
+
+
+def test_past_monstro_suppressed_by_real_monstro():
+    """A past monstro is suppressed when a real monstro exists on the same date."""
+    auto_events = [
+        {"type": "monstro", "date": "2026-03-14", "target": "Jonas Sulzbach", "detail": "API"}
+    ]
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-14",
+                "category": "monstro",
+                "emoji": "👹",
+                "title": "Castigo do Monstro — Jonas Sulzbach",
+                "detail": "Tocando os Sinos",
+                "time": "Ao Vivo",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], auto_events, manual_events, None, reference_date="2026-03-15")
+    monstro_events = [e for e in events if e.get("category") == "monstro"]
+    assert len(monstro_events) == 1, (
+        f"Past monstro should be suppressed by real monstro; got {len(monstro_events)}"
+    )
+    assert monstro_events[0]["source"] == "auto_events"
+
+
+def test_future_multi_monstro_not_suppressed_by_different_real_monstro():
+    """Future scheduled monstro for participant A is not suppressed by real monstro for participant B."""
+    auto_events = [
+        {"type": "monstro", "date": "2026-03-20", "target": "Jonas Sulzbach", "detail": "API"}
+    ]
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-20",
+                "category": "monstro",
+                "emoji": "👹",
+                "title": "Milena → Monstro",
+                "detail": "Monstro Ligados",
+                "time": "Ao Vivo",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], auto_events, manual_events, None, reference_date="2026-03-15")
+    monstro_events = [e for e in events if e.get("category") == "monstro"]
+    titles = {e.get("title") for e in monstro_events}
+    assert "Jonas Sulzbach → Monstro" in titles, "Real monstro event must be present"
+    assert "Milena → Monstro" in titles, (
+        "Future scheduled monstro for a different participant must NOT be suppressed"
+    )
+
+
+def test_future_multi_dinamica_not_suppressed_by_different_real_dinamica():
+    """Future scheduled dinamica is not suppressed by a different real dinamica on same date."""
+    manual_events = {
+        "special_events": [
+            {
+                "date": "2026-03-20",
+                "name": "Festa Surpresa",
+                "description": "Festa inesperada",
+                "participants": [],
+            }
+        ],
+        "scheduled_events": [
+            {
+                "date": "2026-03-20",
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Cinema do Líder",
+                "detail": "Exibição especial",
+                "time": "Ao Vivo",
+            }
+        ],
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    dinamica_events = [e for e in events if e.get("category") == "dinamica"]
+    titles = {e.get("title") for e in dinamica_events}
+    assert "Festa Surpresa" in titles, "Real dinamica must be present"
+    assert "Cinema do Líder" in titles, (
+        "Future scheduled dinamica with different title must NOT be suppressed"
+    )
+
+
+def test_scheduled_big_fone_suppressed_when_real_big_fone_exists_same_date():
+    """big_fone is singleton: scheduled placeholder must be dropped when real event exists."""
+    manual_events = {
+        "weekly_events": [
+            {
+                "week": 9,
+                "big_fone": [
+                    {
+                        "date": "2026-03-10",
+                        "atendeu": "Jonas Sulzbach",
+                        "consequencia": "Empareda alguém",
+                    }
+                ],
+            }
+        ],
+        "scheduled_events": [
+            {
+                "date": "2026-03-10",
+                "category": "big_fone",
+                "emoji": "🔮",
+                "title": "Big Fone",
+                "detail": "Ao vivo",
+                "time": "14h",
+            }
+        ],
+    }
+
+    events = build_game_timeline([], [], manual_events, None)
+    big_fone_events = [e for e in events if e.get("category") == "big_fone"]
+    assert len(big_fone_events) == 1
+    assert big_fone_events[0].get("source") == "weekly_events"
+
+
+def test_scheduled_without_category_defaults_to_dinamica_consistently():
+    """Missing category should be normalized to dinamica for both dedup key and event payload."""
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-20",
+                "title": "Evento sem categoria",
+                "detail": "Teste de default",
+                "time": "A definir",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    dinamica_events = [
+        e for e in events
+        if e.get("source") == "scheduled" and e.get("title") == "Evento sem categoria"
+    ]
+    assert len(dinamica_events) == 1
+    assert dinamica_events[0].get("category") == "dinamica"
+
+
+def test_scheduled_event_with_time_null_treated_as_resolved():
+    """JSON `"time": null` should behave like missing time (resolved, time="")."""
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-10",
+                "category": "dinamica",
+                "title": "Evento com time null",
+                "detail": "Teste de null",
+                "time": None,
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
+    sched = [e for e in events if e.get("title") == "Evento com time null"]
+    assert len(sched) == 1
+    assert sched[0]["status"] == ""  # resolved (not "scheduled")
+    assert sched[0]["time"] == ""    # normalized to empty string, not None

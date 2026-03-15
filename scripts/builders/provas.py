@@ -44,6 +44,26 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
     prova_date = prova.get("date", "")
     fases = prova.get("fases", [])
     excluded_names = {e["nome"] for e in prova.get("excluidos", [])}
+    # Build exclusion reason map: name → classified reason
+    exclusion_reasons: dict[str, str] = {}
+    for e in prova.get("excluidos", []):
+        motivo = (e.get("motivo", "") or "").lower()
+        name = e["nome"]
+        if "veto" in motivo or "vetado" in motivo or "vetada" in motivo:
+            exclusion_reasons[name] = "veto"
+        elif "sorteio" in motivo or "bolinha" in motivo:
+            exclusion_reasons[name] = "sorteio"
+        elif "líder" in motivo or "lider" in motivo:
+            if "indicaç" in motivo or "indicad" in motivo or "isent" in motivo:
+                exclusion_reasons[name] = "indicacao_lider"
+            else:
+                exclusion_reasons[name] = "lider"
+        elif "médic" in motivo or "emergên" in motivo:
+            exclusion_reasons[name] = "medical"
+        elif "desclassificado" in motivo or "desclassificada" in motivo:
+            exclusion_reasons[name] = "desclassificado"
+        else:
+            exclusion_reasons[name] = "other"
 
     # Determine who participated: everyone in the house on prova date minus excluded
     # Active participants: only check first_seen (last_seen is just latest snapshot, may lag)
@@ -160,6 +180,7 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
         "positions": positions,
         "available_names": available_names,
         "excluded_names": excluded_names,
+        "exclusion_reasons": exclusion_reasons,
         "vencedor": vencedor,
         "participantes_total": expected_total,
     }
@@ -199,16 +220,21 @@ def _compute_prova_leaderboard(prova_results: list[dict], all_participant_names:
 
     for pr in prova_results:
         multiplier = PROVA_TYPE_MULTIPLIER.get(pr["tipo"], 1.0)
+        exclusion_reasons = pr.get("exclusion_reasons", {})
 
         for name in all_participant_names:
             stats = _get_prova_stats(name)
 
             if name not in pr["available_names"]:
                 continue
-            stats["provas_available"] += 1
 
+            # Fix denominator bias: BV provas only count toward provas_available
+            # for participants who actually competed (had a position).
+            # Non-nominees in BV are inherently ineligible, not "absent".
             pos = pr["positions"].get(name)
-            if pos is None:
+            is_bv = pr["tipo"] == "bate_volta"
+            if is_bv and pos is None and name not in pr["excluded_names"]:
+                # Not a nominee, not excluded — just ineligible for BV
                 stats["detail"].append({
                     "prova": pr["numero"],
                     "tipo": pr["tipo"],
@@ -216,6 +242,23 @@ def _compute_prova_leaderboard(prova_results: list[dict], all_participant_names:
                     "position": None,
                     "base_pts": None,
                     "weighted_pts": None,
+                    "non_participation_reason": "bv_ineligible",
+                })
+                continue
+
+            stats["provas_available"] += 1
+
+            if pos is None:
+                # Determine why: excluded (with classified reason) or unranked gap
+                reason = exclusion_reasons.get(name, "unranked")
+                stats["detail"].append({
+                    "prova": pr["numero"],
+                    "tipo": pr["tipo"],
+                    "week": pr["week"],
+                    "position": None,
+                    "base_pts": None,
+                    "weighted_pts": None,
+                    "non_participation_reason": reason,
                 })
                 continue
 

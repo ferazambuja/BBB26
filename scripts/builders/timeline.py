@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date as _date_cls
 
 from data_utils import get_week_number, normalize_actors, POWER_EVENT_LABELS
 
@@ -222,7 +222,7 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
             title_parts.append(actor)
         title_parts.append(POWER_EVENT_LABELS.get(t, t.replace("_", " ").capitalize()))
         actors_list = normalize_actors(ev)
-        participants = list({p for p in actors_list + [target] if p})
+        participants = list(dict.fromkeys(p for p in actors_list + [target] if p))
         events.append({
             "date": date, "week": week, "category": t,
             "emoji": emoji, "title": " — ".join(title_parts),
@@ -479,36 +479,72 @@ def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[
 def _merge_and_dedup_timeline(
     events: list[dict],
     manual_events: dict,
+    *,
+    reference_date: str | None = None,
 ) -> list[dict]:
     """Merge scheduled events, sort, and deduplicate the timeline.
 
-    Handles scheduled future events (section 7), sorting by date+category,
+    Handles scheduled events (section 7), sorting by date+category,
     and deduplication by (date, category, title).
+
+    Args:
+        reference_date: ISO date string (YYYY-MM-DD) used to determine whether
+            a scheduled event is in the past (resolved) or future (still scheduled).
+            Defaults to today's date.  Inject a fixed value in tests for
+            deterministic behaviour.
     """
-    # --- 7. Scheduled (future) events ---
-    # Dedup by (date, category): if ANY real event exists for that date+category,
-    # the scheduled placeholder is dropped (titles often differ, e.g. "Prova do Anjo"
-    # vs "Sarah Andrade → Anjo").
-    # Also drop scheduled events whose date has already passed — these are stale
-    # previews where the real event was recorded under a different category.
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if reference_date is None:
+        reference_date = _date_cls.today().isoformat()
+
+    # --- 7. Scheduled events ---
+    # Lifecycle: a scheduled event is *resolved* (past, display as real) or
+    # *pending* (future/today, display with dashed borders + 🔮).
+    #
+    # Resolution rules — automatic, no manual flag needed:
+    #   date < reference_date              → resolved (it already happened)
+    #   date == reference_date, no `time`  → resolved
+    #   date == reference_date, has `time` → pending  (event is tonight)
+    #   date > reference_date              → pending  (future)
+    #
+    # Dedup rules:
+    #   Singleton categories: always suppress if real event exists (same date+cat).
+    #   Resolved non-singleton: also suppress if real event exists.
+    #   Pending non-singleton: keep (rely on title-level dedup at the end).
+    _SINGLETON_CATEGORIES = frozenset({
+        "anjo", "lider", "paredao_formacao", "paredao_resultado",
+        "sincerao", "ganha_ganha", "barrado_baile", "presente_anjo", "big_fone",
+        "paredao_imunidade", "paredao_indicacao", "paredao_votacao",
+        "paredao_contragolpe", "paredao_bate_volta",
+    })
     existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
         date = se.get("date", "")
         week = get_week_number(date) if date else 0
-        key = (date, se.get("category", ""))
-        if key in existing_date_cat:
-            continue  # skip — a real event already covers this date+category
-        if date and date < today_str:
-            continue  # skip — past scheduled events are always stale
+        cat = se.get("category", "dinamica")
+        key = (date, cat)
+        time_field = se.get("time") or ""
+
+        # Automatic lifecycle: past = resolved, future = pending.
+        # Same-day tiebreaker: has time (tonight) → pending; no time → resolved.
+        if date < reference_date:
+            is_resolved = True
+        elif date == reference_date:
+            is_resolved = not time_field
+        else:
+            is_resolved = False
+
+        # Suppress when a real event already covers this (date, category):
+        # always for singletons, also for resolved non-singletons.
+        if key in existing_date_cat and (cat in _SINGLETON_CATEGORIES or is_resolved):
+            continue
         events.append({
-            "date": date, "week": week, "category": se.get("category", "dinamica"),
+            "date": date, "week": week, "category": cat,
             "emoji": se.get("emoji", "🔮"), "title": se.get("title", ""),
             "detail": se.get("detail", ""),
             "participants": se.get("participants", []),
             "source": "scheduled",
-            "status": "scheduled",
-            "time": se.get("time", ""),
+            "status": "" if is_resolved else "scheduled",
+            "time": time_field,
         })
 
     # --- Suppress power_events that duplicate paredão sub-steps ---
@@ -567,14 +603,20 @@ def build_game_timeline(
     manual_events: dict,
     paredoes_data: dict | list | None,
     provas_data: dict | list | None = None,
+    *,
+    reference_date: str | None = None,
 ) -> list[dict]:
-    """Build a unified chronological timeline merging all event sources."""
+    """Build a unified chronological timeline merging all event sources.
+
+    Args:
+        reference_date: ISO date for scheduled-event lifecycle (default: today).
+    """
     events: list[dict] = []
     events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events))
     events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data, manual_events))
     events.extend(_collect_timeline_manual_events(manual_events))
     events.extend(_collect_timeline_paredao_events(paredoes_data))
-    return _merge_and_dedup_timeline(events, manual_events)
+    return _merge_and_dedup_timeline(events, manual_events, reference_date=reference_date)
 
 
 def build_power_summary(manual_events: dict, auto_events: list[dict]) -> dict:

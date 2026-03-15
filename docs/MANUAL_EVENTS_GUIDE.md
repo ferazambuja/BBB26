@@ -359,7 +359,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 
 **How it works:**
 - `build_game_timeline()` adds these with `"status": "scheduled"` and `"source": "scheduled"`.
-- Auto-dedup: if a real event already exists with the same `(date, category)`, the scheduled entry is skipped (title can differ).
+- Auto-dedup (two-tier): **singleton categories** (anjo, lider, paredao_formacao, sincerao, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed only when the scheduled event is *resolved* (no `time` field) or by exact title match. Removing `time` after updating guarantees suppression.
 - **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then **update** the scheduled entry with the real result (title, detail, fontes) and remove the `time` field. Do NOT delete it — the auto-dedup suppresses it. Clean up old entries during the next week's Líder Transition setup.
 
 **When to fill:** When GShow publishes the "Dinâmica da Semana" article (usually Thursday/Friday), add all upcoming events for the week.

@@ -1215,22 +1215,25 @@
       "total_esperado": 3,
       "formacao": {
         "lider": "Alberto Cowboy",
-        "resumo": "Dinâmica Pedra, Papel e Tesoura (sábado): 12 participantes divididos em 3 grupos de 4. Cada grupo emparedou um jogador de outro grupo (Pedra→Tesoura, Papel→Pedra, Tesoura→Papel). Máquina do Poder (domingo): caixa premiada salva um dos 3 emparedados. Depois: indicação do Líder + votação da casa.",
+        "resumo": "Dinâmica Pedra, Papel e Tesoura (sábado): 12 participantes divididos em 3 grupos de 4. Grupo Pedra (Jonas cap., Jordana, Marciele, Gabriela) emparedou Leandro; Grupo Papel (Ana Paula cap., Floss, Milena, Samira) emparedou Jonas; Grupo Tesoura (Breno cap., Solange, Leandro, Chaiany) emparedou Ana Paula. Máquina do Poder (domingo): caixa premiada salva um dos 3 emparedados. Depois: indicação do Líder + votação da casa.",
         "pedra_papel_tesoura": {
           "regra": "Pedra vence Tesoura, Papel vence Pedra, Tesoura vence Papel. Grupo vencedor empareda 1 jogador do grupo perdedor.",
           "grupo_pedra": {
-            "membros": [],
-            "emparedou": null,
+            "capitao": "Jonas Sulzbach",
+            "membros": ["Jonas Sulzbach", "Jordana", "Marciele", "Gabriela"],
+            "emparedou": "Leandro",
             "emparedou_de_grupo": "tesoura"
           },
           "grupo_papel": {
-            "membros": [],
-            "emparedou": null,
+            "capitao": "Ana Paula Renault",
+            "membros": ["Ana Paula Renault", "Juliano Floss", "Milena", "Samira"],
+            "emparedou": "Jonas Sulzbach",
             "emparedou_de_grupo": "pedra"
           },
           "grupo_tesoura": {
-            "membros": [],
-            "emparedou": null,
+            "capitao": "Breno",
+            "membros": ["Breno", "Solange Couto", "Leandro", "Chaiany"],
+            "emparedou": "Ana Paula Renault",
             "emparedou_de_grupo": "papel"
           }
         },
@@ -1240,7 +1243,23 @@
           "detail": null
         }
       },
-      "indicados_finais": [],
+      "indicados_finais": [
+        {
+          "nome": "Leandro",
+          "grupo": "Pipoca",
+          "como": "Dinâmica (Grupo Pedra)"
+        },
+        {
+          "nome": "Jonas Sulzbach",
+          "grupo": "Veterano",
+          "como": "Dinâmica (Grupo Papel)"
+        },
+        {
+          "nome": "Ana Paula Renault",
+          "grupo": "Veterano",
+          "como": "Dinâmica (Grupo Tesoura)"
+        }
+      ],
       "votos_casa": {},
       "fontes": [
         {
@@ -1252,6 +1271,11 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml",
           "arquivo": "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md",
           "titulo": "Dinâmica da Semana tem Máquina do Poder e 3 participantes emparedados no sábado (14); entenda"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/ana-paula-renault-jonas-sulzbach-e-leandro-estao-no-paredao-apos-dinamica-em-grupo-no-bbb-26.ghtml",
+          "arquivo": "docs/scraped/ana-paula-renault-jonas-sulzbach-e-leandro-estao-no-paredao-apos-dinamica-em-grupo-no-bbb-26.md",
+          "titulo": "Ana Paula Renault, Jonas Sulzbach e Leandro estão no Paredão após dinâmica em grupo no BBB 26"
         }
       ]
     }

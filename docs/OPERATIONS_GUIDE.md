@@ -1075,6 +1075,11 @@ git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
 
 When the Paredão formation airs (Sunday ~22h45 BRT live show):
 
+**Split-formation paredões**: Some weeks split the formation across two live shows (e.g., Saturday dynamic + Sunday completion). In that case:
+- **Saturday**: Scrape the dynamic article, fill `paredoes.json` with partial data (group structure, initial nominees in `indicados_finais` with `"como": "Dinâmica (...)"`), add fonte, update the Saturday dynamic's scheduled event in `manual_events.json → scheduled_events` with the real result (step 4b), rebuild, commit.
+- **Sunday**: Complete the formation (Máquina do Poder, Líder indication, house votes, contragolpe, Bate e Volta). Update `indicados_finais` to reflect the final state, add power events to `manual_events.json`, scrape the Sunday article, rebuild, commit.
+- Steps 1–5 below apply to the **Sunday completion**. For the Saturday step, do steps 1, 2 (partial), 4b, and 5.
+
 ### 1. Scrape the formation article
 
 ```bash
@@ -1100,9 +1105,9 @@ Fill in the formation details. **Key fields** (nested under `formacao`):
     "indicado_lider": "Who the Líder nominated",
     "motivo_indicacao": "Why the Líder chose this person",
     "anjo": "Anjo Name",
-    "anjo_escolha": "Abriu mão da 2ª imunidade para ver vídeo da família"
+    "anjo_escolha": "Abriu mão da 2ª imunidade para ver vídeo da família",
+    "imunizado": {"por": "Who gave immunity", "quem": "Who received"}
   },
-  "imunizado": {"por": "Who gave immunity", "quem": "Who received"},
   "indicados_finais": [
     {"nome": "Name", "grupo": "Pipoca", "como": "Líder"},
     {"nome": "Name", "grupo": "Camarote", "como": "Mais votado"},
@@ -1138,6 +1143,15 @@ Also update `weekly_events[N].anjo.imunizado` with who the Anjo immunized at for
 ### 4. Update `data/provas.json` (if Bate e Volta happened)
 
 Add a Bate e Volta prova entry with the results.
+
+### 4b. Update scheduled events in Cronologia
+
+If `data/manual_events.json → scheduled_events` has entries for events that just happened (e.g., a `dinamica` for the week's dynamic, `monstro` for the Castigo), update them with the real result:
+- Replace the placeholder `title` and `detail` with what actually happened
+- Add the formation article URL to `fontes`
+- The `time` field can stay — the timeline builder automatically treats past-date events as real (see [Scheduled Events → Automatic lifecycle](#scheduled-events-upcoming-week))
+
+The `paredao_formacao` sub-step is auto-generated from `paredoes.json`, but custom dynamics and other scheduled events must be manually updated.
 
 ### 5. Rebuild + commit + publish
 
@@ -1938,6 +1952,14 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `"7h"`, `"14h"`, etc. — specific scheduled or known time. Can be used for **both** future and past events when the event had a specific announced time (e.g., Big Fone at 14h, pre-announced dynamic at 7h).
 - **After the event happens**: remove `time` unless the event had a specific known time. Most events (anjo, monstro, paredão, sincerão, etc.) don't have a fixed time — they just happen during the show — so `time` should be removed. Events like Big Fone that had a pre-announced or confirmed time keep `time` as the actual time (e.g., `"14h"`).
 
+**Automatic lifecycle**: The timeline builder uses the event date to determine display style — **no manual flag needed**:
+- **Past** (date < today) → always displayed as a real event (solid borders, no 🔮). If a real auto-generated event already exists for the same `(date, category)`, the entry is suppressed as redundant.
+- **Today with `time`** → still scheduled (event is tonight)
+- **Today without `time`** → resolved (already happened today)
+- **Future** → always scheduled (dashed borders, 🔮 prefix, yellow time badge)
+
+This means you can schedule events, update their title/detail/fontes when they happen, and the Cronologia automatically transitions them from scheduled→real styling the next day. No need to remove `time` or set a `resolved` flag.
+
 **Common categories for scheduling**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `presente_anjo`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
 
 **Auto-generated categories** (from `paredoes.json`, do NOT schedule these): `paredao_imunidade`, `paredao_indicacao`, `paredao_votacao`, `paredao_contragolpe`, `paredao_bate_volta`. These ceremony sub-steps are created automatically when formation data is filled. See [Paredão Formation → Auto-generated Ceremony Sub-Steps](#auto-generated-ceremony-sub-steps-in-cronologia).
@@ -1982,8 +2004,8 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 ### Auto-dedup behavior
 
 - `build_game_timeline()` merges scheduled events with real events
-- If a real event with the same `(date, category)` exists, the scheduled entry is auto-skipped
-- Past scheduled events (`date < today`) are dropped from timeline display
+- Two-tier dedup: **singleton categories** (anjo, lider, paredao_formacao, sincerao, ganha_ganha, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed only when the scheduled event is *resolved* (no `time` field) or by exact title match. In practice: removing the `time` field after updating a scheduled event guarantees suppression
+- **Lifecycle signal**: past events (`date < reference_date`) and same-day events without `time` are *resolved* — they display as real events (no dashed border). Future events and same-day events with `time` remain *pending* (dashed border + 🔮). Remove `time` after updating a scheduled event to transition it to resolved display
 - Líder source priority: API `auto_events` first; fallback to `provas.json` (`tipo=lider`) when API data is late
 - **Never delete scheduled events prematurely** — always update them with real results first. Clean up old entries only during the next week's Líder Transition setup, after the API has captured the roles
 
