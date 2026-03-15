@@ -2,9 +2,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from data_utils import get_week_number, normalize_actors, utc_to_game_date, POWER_EVENT_LABELS
+from data_utils import (
+    get_effective_week_end_dates,
+    get_week_number,
+    get_week_start_date,
+    normalize_actors,
+    utc_to_game_date,
+    POWER_EVENT_LABELS,
+)
 
 
 # Singleton categories: at most one real event per (date, category).
@@ -15,6 +22,80 @@ _SINGLETON_CATEGORIES = frozenset({
     "paredao_imunidade", "paredao_indicacao", "paredao_votacao",
     "paredao_contragolpe", "paredao_bate_volta",
 })
+
+# First week (1-based) when each scaffold category is generated (0 = never scaffold).
+_SCAFFOLD_FIRST_WEEK: dict[str, int] = {
+    "presente_anjo": 1,
+    "paredao_formacao": 1,
+    "sincerao": 1,
+    "paredao_resultado": 2,  # W1 elimination was Wed, not Tue
+    "ganha_ganha": 2,        # started W2
+    "barrado_baile": 1,
+}
+
+_SCAFFOLD_EVENTS: list[dict] = [
+    {"weekday": 6, "category": "presente_anjo", "emoji": "🎁", "title": "Presente do Anjo", "detail": "Anjo escolhe entre 2ª imunidade ou vídeo da família."},
+    {"weekday": 6, "category": "paredao_formacao", "emoji": "🗳️", "title": "Formação do Paredão", "detail": "Indicação do Líder, votação da casa, contragolpe, bate e volta."},
+    {"weekday": 0, "category": "sincerao", "emoji": "🗣️", "title": "Sincerão", "detail": "Sincerão ao vivo."},
+    {"weekday": 1, "category": "paredao_resultado", "emoji": "🏁", "title": "Eliminação", "detail": "Resultado do Paredão."},
+    {"weekday": 1, "category": "ganha_ganha", "emoji": "🎰", "title": "Ganha-Ganha", "detail": "Após a eliminação."},
+    {"weekday": 2, "category": "barrado_baile", "emoji": "🚫", "title": "Barrado no Baile", "detail": "Líder escolhe quem fica fora da próxima festa."},
+]
+
+
+def _generate_weekly_scaffolds(
+    week_end_dates: list[str],
+    reference_date: str,
+) -> list[dict]:
+    """Generate scaffold events for recurring weekly slots (Sincerão, Ganha-Ganha, etc.).
+
+    Only fills gaps: real or manual scheduled events take priority. Events before
+    reference_date get status "" (resolved); on or after get status "scheduled".
+    """
+    ref_dt = datetime.strptime(reference_date, "%Y-%m-%d").date()
+    cap_end = ref_dt + timedelta(days=7)
+
+    out: list[dict] = []
+    num_weeks = len(week_end_dates) + 1  # include open week
+    for week_num in range(1, num_weeks + 1):
+        start_str = get_week_start_date(week_num, week_end_dates)
+        try:
+            start_dt = datetime.strptime(start_str, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        if week_num <= len(week_end_dates):
+            end_str = week_end_dates[week_num - 1]
+            end_dt = datetime.strptime(end_str, "%Y-%m-%d").date()
+        else:
+            end_dt = start_dt + timedelta(days=8)
+        end_dt = min(end_dt, cap_end)
+
+        day = start_dt
+        while day <= end_dt:
+            wday = day.weekday()  # 0=Mon, 6=Sun
+            day_str = day.isoformat()
+            for tpl in _SCAFFOLD_EVENTS:
+                cat = tpl["category"]
+                first = _SCAFFOLD_FIRST_WEEK.get(cat, 0)
+                if week_num < first:
+                    continue
+                if tpl["weekday"] != wday:
+                    continue
+                status = "" if day < ref_dt else "scheduled"
+                out.append({
+                    "date": day_str,
+                    "week": get_week_number(day_str, week_end_dates),
+                    "category": cat,
+                    "emoji": tpl["emoji"],
+                    "title": tpl["title"],
+                    "detail": tpl["detail"],
+                    "participants": [],
+                    "source": "scaffold",
+                    "status": status,
+                })
+            day += timedelta(days=1)
+
+    return out
 
 
 def _collect_timeline_auto_events(
@@ -447,12 +528,22 @@ def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[
             })
 
         # --- Step 6: Final formation summary ---
-        if indicados:
+        # Gate on votos_casa (already from step 3): formation complete only after house voting.
+        # Partial indicados (e.g. from Saturday dynamic) → emit "dinamica" so scheduled paredao_formacao is not suppressed.
+        if indicados and votos_casa:
             nomes = ", ".join(indicados)
             events.append({
                 "date": data_form, "week": week, "category": "paredao_formacao",
                 "emoji": "🔥", "title": f"{num}º {tipo_label} — Formado",
                 "detail": f"Emparedados: {nomes}",
+                "participants": indicados, "source": "paredoes",
+            })
+        elif indicados and not votos_casa:
+            nomes = ", ".join(indicados)
+            events.append({
+                "date": data_form, "week": week, "category": "dinamica",
+                "emoji": "⏳", "title": f"{num}º {tipo_label} — Em formação",
+                "detail": f"Emparedados parciais: {nomes} (formação continua ao vivo)",
                 "participants": indicados, "source": "paredoes",
             })
 
@@ -491,17 +582,19 @@ def _merge_and_dedup_timeline(
     manual_events: dict,
     *,
     reference_date: str | None = None,
+    scaffold_events: list[dict] | None = None,
 ) -> list[dict]:
-    """Merge scheduled events, sort, and deduplicate the timeline.
+    """Merge scheduled events, scaffold events, sort, and deduplicate the timeline.
 
-    Handles scheduled events (section 7), sorting by date+category,
-    and deduplication by (date, category, title).
+    Handles scheduled events (section 7), scaffold events (section 8), sorting by date+category,
+    and deduplication by (date, category, title). Priority: real > manual scheduled > scaffold.
 
     Args:
         reference_date: ISO date string (YYYY-MM-DD) used to determine whether
             a scheduled event is in the past (resolved) or future (still scheduled).
             Defaults to today's date.  Inject a fixed value in tests for
             deterministic behaviour.
+        scaffold_events: Auto-generated recurring weekly placeholders (lowest priority).
     """
     if reference_date is None:
         reference_date = utc_to_game_date(datetime.now(timezone.utc))
@@ -522,7 +615,7 @@ def _merge_and_dedup_timeline(
     #   Pending non-singleton: keep (rely on title-level dedup at the end).
     existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
-        date = se.get("date", "")
+        date = se.get("date") or ""
         week = get_week_number(date) if date else 0
         cat = se.get("category", "dinamica")
         key = (date, cat)
@@ -550,6 +643,13 @@ def _merge_and_dedup_timeline(
             "status": "" if is_resolved else "scheduled",
             "time": time_field,
         })
+
+    # --- 8. Scaffold events (lowest priority: fill gaps only) ---
+    if scaffold_events:
+        covered = {(e["date"], e["category"]) for e in events}
+        for se in scaffold_events:
+            if (se["date"], se["category"]) not in covered:
+                events.append(se)
 
     # --- Suppress power_events that duplicate paredão sub-steps ---
     # Paredão sub-steps (from paredoes.json) are authoritative.
@@ -615,12 +715,23 @@ def build_game_timeline(
     Args:
         reference_date: ISO date for scheduled-event lifecycle (default: today).
     """
+    if reference_date is None:
+        reference_date = utc_to_game_date(datetime.now(timezone.utc))
+    paredoes_dict = paredoes_data if isinstance(paredoes_data, dict) else {}
+    provas_dict = provas_data if isinstance(provas_data, dict) else {}
+    week_end_dates = get_effective_week_end_dates(manual_events, paredoes_dict, provas_dict)
+
     events: list[dict] = []
     events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events))
     events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data, manual_events))
     events.extend(_collect_timeline_manual_events(manual_events))
     events.extend(_collect_timeline_paredao_events(paredoes_data))
-    return _merge_and_dedup_timeline(events, manual_events, reference_date=reference_date)
+    scaffold_events = _generate_weekly_scaffolds(week_end_dates, reference_date)
+    return _merge_and_dedup_timeline(
+        events, manual_events,
+        reference_date=reference_date,
+        scaffold_events=scaffold_events,
+    )
 
 
 def build_power_summary(manual_events: dict, auto_events: list[dict]) -> dict:

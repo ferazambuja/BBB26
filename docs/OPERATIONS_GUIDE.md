@@ -525,22 +525,24 @@ Separate from Sincerão. Announced in the dynamics article (published ~Thursday)
 
 ### Recurring Events Checklist (per week)
 
-When planning `scheduled_events` for a new week, include these recurring items:
+**Auto-scaffolding**: The timeline builder automatically generates placeholder events for recurring slots (Sincerão, Ganha-Ganha, Barrado no Baile, Presente do Anjo, Formação do Paredão, Eliminação). You do **not** need to add manual `scheduled_events` for these unless you want to override title/detail or time. Manual `scheduled_events` are now mainly for **week-specific dynamics** (e.g. Friday dynamic, Saturday shock, custom anjo/monstro placeholders).
 
-- [ ] **Sincerão** (Monday, ~22h) — format varies weekly; `weekly_events[N].sincerao` with edges + stats
-- [ ] **Ganha-Ganha** (Tuesday, after elimination) — 3 sorteados, veto + choice
-- [ ] **Barrado no Baile** (Wednesday) — Líder bars someone from next party
-- [ ] **Prova do Líder** (Thursday) — see Líder Transition Checklist
-- [ ] **Week Dynamic** (Friday) — varies, from dynamics article
-- [ ] **Prova do Anjo** (Saturday) — API auto-detects winner
-- [ ] **Monstro** (Saturday) — Anjo's choice, API auto-detects
-- [ ] **Presente do Anjo** (Sunday afternoon) — Anjo's family video vs 2nd immunity choice + almoço guests
-- [ ] **Paredão Formation** (Sunday ~22h45) — ceremony flow auto-generates timeline sub-steps (see below)
-- [ ] **Eliminação** (Tuesday) — paredão result
+When planning a new week, ensure:
 
-**Operational invariant (mandatory)**:
-- These recurring events are default weekly structure and must be scheduled even if the weekly dynamics article does not explicitly list each one.
-- The weekly dynamics article should only add/adjust **extra dynamics** (for example: Saturday live shock, Sunday box/power resolution).
+- [ ] **Sincerão** (Monday) — scaffolded; add to `weekly_events[N].sincerao` when it happens (edges + stats)
+- [ ] **Ganha-Ganha** (Tuesday) — scaffolded
+- [ ] **Barrado no Baile** (Wednesday) — scaffolded; record in power_events when it happens
+- [ ] **Prova do Líder** (Thursday) — see Líder Transition Checklist (provas.json)
+- [ ] **Week Dynamic** (Friday) — **manual** `scheduled_events` or `special_events`; varies each week
+- [ ] **Prova do Anjo** (Saturday) — API auto-detects; optional scheduled placeholder
+- [ ] **Monstro** (Saturday) — API / weekly_events; optional scheduled placeholder
+- [ ] **Presente do Anjo** (Sunday afternoon) — scaffolded
+- [ ] **Paredão Formation** (Sunday ~22h45) — scaffolded; formation sub-steps from paredoes.json when complete
+- [ ] **Eliminação** (Tuesday) — scaffolded
+
+**Operational invariant**:
+- Real events (from API, paredoes, weekly_events, power_events) and manual scheduled events take priority over scaffold placeholders.
+- Use manual `scheduled_events` for week-specific dynamics and optional overrides (e.g. custom time or description).
 
 **Scrape + map workflow (required before editing `scheduled_events`)**:
 1. Scrape the dynamics article first (published Thursday):
@@ -553,9 +555,9 @@ When planning `scheduled_events` for a new week, include these recurring items:
 5. If Líder/VIP are still unknown, keep placeholders in descriptions (`a definir`) and update later from the Prova do Líder + VIP article workflow.
 6. Always include both the original URL and scraped file path in `fontes`.
 
-### Baseline weekly template (auto-add every week)
+### Baseline weekly template (reference; most slots auto-scaffolded)
 
-Before adding week-specific dynamics, schedule this base set for week `N`:
+The timeline builder auto-generates scaffold events for the recurring slots below. You only need to add manual `scheduled_events` for **week-specific** items (e.g. Friday dynamic, extra dinâmicas). Reference for week `N`:
 
 | Day | Category | Suggested title | Required detail hint |
 |-----|----------|-----------------|----------------------|
@@ -569,16 +571,10 @@ Before adding week-specific dynamics, schedule this base set for week `N`:
 | Wednesday | `barrado_baile` | Barrado no Baile | Líder vigente barra alguém da festa |
 
 **Verification (required before commit)**:
+Baseline recurring events (Sincerão, Ganha-Ganha, Barrado, Presente do Anjo, Formação do Paredão, Eliminação) are **auto-scaffolded** by the timeline builder — they do not need manual `scheduled_events` entries. To verify scaffolds appear correctly in the built timeline:
 ```bash
-WEEK=9
-jq --argjson w "$WEEK" '
-  (["anjo","monstro","presente_anjo","paredao_formacao","sincerao","paredao_resultado","ganha_ganha","barrado_baile"] -
-   ([.scheduled_events[] | select(.week == $w) | .category] | unique)) as $missing
-  | if ($missing | length) == 0
-    then "OK: baseline completo"
-    else "MISSING baseline categories: \($missing)"
-    end
-' data/manual_events.json
+python scripts/build_derived_data.py
+jq '[.[] | select(.source == "scaffold" and .week == 9)] | group_by(.category) | map({category: .[0].category, count: length})' data/derived/game_timeline.json
 ```
 
 ---

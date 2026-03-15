@@ -1163,7 +1163,7 @@ def _prepare_cronologia_event(ev: dict) -> dict:
     )
     time_badge = (
         f'<span class="cronologia-time-badge fs-sm">{time_info}</span>'
-        if time_info else ""
+        if time_info and is_scheduled else ""
     )
     title_prefix = f"{emoji} " if emoji else ""
     title_html = (

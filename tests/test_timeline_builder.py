@@ -311,9 +311,10 @@ def test_same_day_with_time_stays_scheduled():
     }
 
     events = build_game_timeline([], [], manual_events, None, reference_date="2026-03-15")
-    pf_events = [e for e in events if e.get("category") == "paredao_formacao"]
-    assert len(pf_events) == 1
-    assert pf_events[0]["status"] == "scheduled"
+    # On 2026-03-15: manual scheduled wins over scaffold (same date+category)
+    pf_on_date = [e for e in events if e.get("category") == "paredao_formacao" and e.get("date") == "2026-03-15"]
+    assert len(pf_on_date) == 1
+    assert pf_on_date[0]["status"] == "scheduled"
 
 
 def test_same_day_without_time_is_resolved():
@@ -495,3 +496,181 @@ def test_scheduled_event_with_time_null_treated_as_resolved():
     assert len(sched) == 1
     assert sched[0]["status"] == ""  # resolved (not "scheduled")
     assert sched[0]["time"] == ""    # normalized to empty string, not None
+
+
+# --- Paredão formation gate tests ---
+
+
+def test_paredao_formado_not_emitted_when_votos_casa_empty():
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {},
+                "indicados_finais": [{"nome": "A"}, {"nome": "B"}, {"nome": "C"}],
+                "votos_casa": {},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    assert not any(
+        e.get("source") == "paredoes" and e.get("category") == "paredao_formacao"
+        for e in events
+    )
+
+
+def test_paredao_partial_formation_emits_dinamica():
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {},
+                "indicados_finais": [{"nome": "A"}, {"nome": "B"}, {"nome": "C"}],
+                "votos_casa": {},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    partial = [
+        e for e in events
+        if e.get("source") == "paredoes"
+        and e.get("category") == "dinamica"
+        and e.get("title") == "9º Paredão — Em formação"
+    ]
+    assert len(partial) == 1
+    assert "Emparedados parciais" in partial[0].get("detail", "")
+
+
+def test_paredao_formado_emitted_when_votos_casa_populated():
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {},
+                "indicados_finais": [{"nome": "A"}, {"nome": "B"}, {"nome": "C"}],
+                "votos_casa": {"V1": "A", "V2": "B", "V3": "A"},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    formed = [
+        e for e in events
+        if e.get("source") == "paredoes"
+        and e.get("category") == "paredao_formacao"
+        and e.get("title") == "9º Paredão — Formado"
+    ]
+    assert len(formed) == 1
+
+
+def test_partial_formation_does_not_suppress_scheduled_event():
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {},
+                "indicados_finais": [{"nome": "A"}, {"nome": "B"}, {"nome": "C"}],
+                "votos_casa": {},
+            }
+        ]
+    }
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-03-15",
+                "category": "paredao_formacao",
+                "title": "Formação do Paredão",
+                "detail": "Domingo ao vivo",
+                "time": "Ao Vivo",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, paredoes_data, reference_date="2026-03-15")
+    assert any(
+        e.get("source") == "scheduled" and e.get("category") == "paredao_formacao"
+        for e in events
+    )
+
+
+# --- Auto-scaffold tests ---
+
+
+def test_scaffold_generates_sincerao_for_week(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    events = build_game_timeline([], [], {}, None, reference_date="2026-01-18")
+    assert any(
+        e.get("source") == "scaffold"
+        and e.get("category") == "sincerao"
+        and e.get("date") == "2026-01-19"
+        for e in events
+    )
+
+
+def test_scaffold_suppressed_by_real_event(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    manual_events = {
+        "weekly_events": [
+            {"week": 1, "sincerao": {"date": "2026-01-19", "format": "ao vivo"}}
+        ]
+    }
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-01-18")
+    sinc = [e for e in events if e.get("category") == "sincerao" and e.get("date") == "2026-01-19"]
+    assert len(sinc) == 1
+    assert sinc[0].get("source") == "weekly_events"
+
+
+def test_scaffold_suppressed_by_manual_scheduled(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-01-19",
+                "category": "sincerao",
+                "title": "Sincerão",
+                "detail": "Manual placeholder",
+                "time": "Ao Vivo",
+            }
+        ]
+    }
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-01-18")
+    sinc = [e for e in events if e.get("category") == "sincerao" and e.get("date") == "2026-01-19"]
+    assert len(sinc) == 1
+    assert sinc[0].get("source") == "scheduled"
+
+
+def test_scaffold_not_generated_before_first_week(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    events = build_game_timeline([], [], {}, None, reference_date="2026-01-14")
+    assert not any(
+        e.get("source") == "scaffold"
+        and e.get("category") == "ganha_ganha"
+        and e.get("date") <= "2026-01-19"
+        for e in events
+    )
+
+
+def test_scaffold_future_is_scheduled_past_is_resolved(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    events = build_game_timeline([], [], {}, None, reference_date="2026-01-19")
+    by_key = {(e.get("date"), e.get("category")): e for e in events if e.get("source") == "scaffold"}
+    assert by_key[("2026-01-18", "presente_anjo")]["status"] == ""
+    assert by_key[("2026-01-19", "sincerao")]["status"] == "scheduled"
+
+
+def test_scaffold_open_week_generates_events(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: [])
+    events = build_game_timeline([], [], {}, None, reference_date="2026-01-13")
+    assert any(
+        e.get("source") == "scaffold"
+        and e.get("category") == "sincerao"
+        and e.get("date") == "2026-01-19"
+        for e in events
+    )
+

@@ -707,7 +707,8 @@ Unified chronological timeline merging **all** event sources into a single feed.
 4. **Weekly events** — Big Fone, Sincerão, Ganha-Ganha, Barrado no Baile from `manual_events.weekly_events`
 5. **Paredão** — formation + resultado from `paredoes.json`
 6. **Special events** — dinâmicas from `manual_events.special_events`
-7. **Scheduled events** — future events from `manual_events.scheduled_events` (tagged `status: "scheduled"`)
+7. **Scheduled events** — from `manual_events.scheduled_events`. Lifecycle is automatic: future events get `status: "scheduled"` (dashed borders + 🔮); past events get `status: ""` (resolved, solid display)
+8. **Scaffold events** — auto-generated recurring weekly placeholders (Sincerão, Ganha-Ganha, Barrado, Presente do Anjo, Formação do Paredão, Eliminação) with `source: "scaffold"`. Lowest priority: suppressed by any real, manual scheduled, or other event on the same `(date, category)`. Not generated before each category's first applicable week (e.g., Ganha-Ganha starts W2)
 
 ### Event schema
 ```json
@@ -720,13 +721,16 @@ Unified chronological timeline merging **all** event sources into a single feed.
   "detail": "Recebeu pulseira prateada...",
   "participants": ["Babu Santana"],
   "source": "weekly_events",
-  "status": "scheduled",  // only for future events; absent for past events
-  "time": "Ao Vivo"       // only for scheduled events
+  "status": "scheduled",  // "scheduled" for future/pending, "" for resolved/past
+  "time": "Ao Vivo"       // schedule info; badge only shown when status is "scheduled"
 }
 ```
 
 ### Deduplication
-Two-tier dedup: **singleton categories** (anjo, lider, paredao_formacao, sincerao, ganha_ganha, big_fone, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed when the scheduled event is resolved (past date or same-day without `time` field) or by exact `(date, category, title)` match. Future non-singleton events are kept even if a real event exists on the same date.
+Three-tier dedup (priority: real > manual scheduled > scaffold):
+- **Singleton categories** (anjo, lider, paredao_formacao, sincerao, ganha_ganha, big_fone, etc.) are always suppressed when a real event exists on the same `(date, category)`.
+- **Non-singleton categories** (monstro, dinamica) are suppressed when the scheduled event is resolved (past date or same-day without `time` field) or by exact `(date, category, title)` match. Future non-singleton events are kept even if a real event exists on the same date.
+- **Scaffold events** are suppressed whenever any event (real or manual scheduled) covers the same `(date, category)`.
 Final timeline dedup keeps the first occurrence of exact `(date, category, title)` duplicates.
 
 ### Rendering
