@@ -1,26 +1,487 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-15T01:14:31.531267+00:00",
-    "content_hash": "91e81dfcb03de4cdb459b95be7b4a97435cb52f7d7a8826882c01667d2ce0a2f",
+    "generated_at": "2026-03-15T06:40:48.738327+00:00",
+    "content_hash": "130e850b24e60b35ccdf16a08753e1a5ee6c2730a839a4589d477cdb77f2fff4",
     "audit_version": 1
   },
   "summary": {
     "checks_run": 6,
-    "critical_count": 1,
+    "critical_count": 47,
     "warning_count": 0,
     "info_count": 0
   },
   "issues": [
     {
-      "id": "prova_participant_outside_window",
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P1",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-esta-no-primeiro-paredao-do-bbb-26-aline-campos-ana-paula-renault-e-milena-formam-a-berlinda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P1",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-1o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P1",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/aline-campos-e-a-primeira-eliminada-do-bbb-26.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P2",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-esta-no-segundo-paredao-do-bbb-26-brigido-leandro-e-matheus-formam-a-berlinda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P2",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-2o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P2",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-saiu-do-bbb-26-matheus-e-o-segundo-eliminado-do-reality.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P3",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/jonas-se-livra-do-paredao-na-prova-bate-e-volta-do-bbb-26.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P3",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/sol-vega-e-imunizada-por-sarah-andrade-veja-quanto-a-sister-pontuou-no-cartola-bbb.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P3",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-3o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P3",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-saiu-do-bbb-26-brigido-e-o-terceiro-eliminado-do-reality.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/duelo-de-risco-bbb-26-na-previa-da-dinamica-participantes-escolhem-quem-querem-enfrentar-no-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/duelo-de-risco-bbb-26-dinamica-inedita-influencia-a-formacao-do-4o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/lider-jonas-sulzbach-indica-babu-santana-ao-quarto-paredao-do-bbb-26.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/edilson-e-imunizado-pelo-anjo-alberto-cowboy-veja-como-fica-a-pontuacao-da-brother-no-cartola-bbb.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/anjo-alberto-cowboy-imuniza-edilson-durante-a-formacao-do-4o-paredao-do-bbb-26.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-esta-no-quarto-paredao-do-bbb-26-babu-santana-sarah-andrade-e-sol-vega-formam-a-berlinda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-4o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/samira-se-livra-do-paredao-na-prova-bate-e-volta-do-bbb-26.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P4",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-saiu-do-bbb-26-sarah-andrade-e-a-quarta-eliminada-do-reality.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P5",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-esta-no-5-paredao-do-bbb-26-marcelo-samira-e-solange-couto-formam-a-berlinda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P5",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-5o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P5",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-saiu-do-bbb-26-marcelo-e-o-quinto-eliminado-do-reality.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P6",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-jonas-sulzbach-vence-a-6a-disputa.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P6",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-e-o-anjo-do-bbb-26-chaiany-vence-a-sexta-prova.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P6",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/duelo-de-risco-bbb-26-dinamica-influencia-a-formacao-do-6o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P6",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-esta-no-6-paredao-do-bbb-26-chaiany-maxiane-e-milena-e-formam-a-berlinda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P6",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-6o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P6",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-saiu-do-bbb-26-maxiane-e-a-sexta-eliminada-do-reality.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P7",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/dinamica-da-semana-do-bbb-26-tem-paredao-falso-e-quarto-secreto.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P7",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/lider-samira-faz-divisao-entre-vip-e-xepa-veja-como-ficou-a-casa.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P7",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/exilado-breno-indica-e-troca-de-lugar-com-alberto-cowboy-na-dinamica.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P7",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/alberto-cowboy-e-indicado-ao-paredao-e-sofre-pontuacao-negativa-no-cartola-bbb.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P7",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-esta-no-paredao-falso-do-bbb-26-alberto-cowboy-breno-e-jordana-disputam-vaga-no-quarto-secreto.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P7",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-paredao-falso.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P7",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-venceu-o-paredao-falso-do-bbb-26-breno-vai-para-quarto-secreto.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P8",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/alberto-cowboy-e-jonas-sulzbach-sao-a-ultima-dupla-a-deixar-a-prova-do-lider-de-resistencia-do-bbb-26.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P8",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/dinamica-da-semana-do-bbb-26-tem-lideranca-dupla-contragolpe-e-consenso-de-anjo-e-monstro.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P8",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/lideres-alberto-cowboy-e-jonas-definem-vip-e-sisters-somam-pontos-no-cartola-bbb.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P8",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-esta-no-8-paredao-do-bbb-26-babu-santana-chaiany-e-milena-formam-a-berlinda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P8",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-8o-paredao.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P8",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/quem-saiu-do-bbb-26-babu-santana-e-o-setimo-eliminado-do-reality.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P9",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P9",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.md"
+      }
+    },
+    {
+      "id": "missing_source_file",
+      "severity": "critical",
+      "layer": "raw",
+      "subject": "P9",
+      "message": "Referenced source file is missing",
+      "details": {
+        "arquivo": "docs/scraped/ana-paula-renault-jonas-sulzbach-e-leandro-estao-no-paredao-apos-dinamica-em-grupo-no-bbb-26.md"
+      }
+    },
+    {
+      "id": "paredao_nominee_outside_window",
       "severity": "critical",
       "layer": "cross_source",
-      "subject": "prova 25",
-      "message": "Prova participant missing or absent on event date",
+      "subject": "P9",
+      "message": "Nominee not present at formation date",
       "details": {
-        "field": "vencedor",
-        "name": "Breno",
-        "date": "2026-03-14"
+        "name": "Leandro",
+        "data_formacao": "2026-03-15"
+      }
+    },
+    {
+      "id": "paredao_nominee_outside_window",
+      "severity": "critical",
+      "layer": "cross_source",
+      "subject": "P9",
+      "message": "Nominee not present at formation date",
+      "details": {
+        "name": "Jonas Sulzbach",
+        "data_formacao": "2026-03-15"
+      }
+    },
+    {
+      "id": "paredao_nominee_outside_window",
+      "severity": "critical",
+      "layer": "cross_source",
+      "subject": "P9",
+      "message": "Nominee not present at formation date",
+      "details": {
+        "name": "Ana Paula Renault",
+        "data_formacao": "2026-03-15"
       }
     }
   ]
