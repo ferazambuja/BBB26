@@ -8,6 +8,11 @@ import subprocess
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("quarto") is None,
+    reason="quarto not installed — render contract tests require quarto CLI",
+)
 RENDER_RESIDUE = [
     ".quarto/project-cache",
     "cartola.html",
