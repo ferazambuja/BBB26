@@ -1,14 +1,27 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-14T09:31:00.674308+00:00",
-    "content_hash": "32e3a8764ea1c27cb4508cd4dcdbc5ac1970b09076ecc679e9b0712ab5e033a4",
+    "generated_at": "2026-03-15T01:14:31.531267+00:00",
+    "content_hash": "91e81dfcb03de4cdb459b95be7b4a97435cb52f7d7a8826882c01667d2ce0a2f",
     "audit_version": 1
   },
   "summary": {
-    "checks_run": 5,
-    "critical_count": 0,
+    "checks_run": 6,
+    "critical_count": 1,
     "warning_count": 0,
     "info_count": 0
   },
-  "issues": []
+  "issues": [
+    {
+      "id": "prova_participant_outside_window",
+      "severity": "critical",
+      "layer": "cross_source",
+      "subject": "prova 25",
+      "message": "Prova participant missing or absent on event date",
+      "details": {
+        "field": "vencedor",
+        "name": "Breno",
+        "date": "2026-03-14"
+      }
+    }
+  ]
 }

@@ -44,7 +44,7 @@ def _collect_timeline_auto_events(
 
     # --- 2. Auto events (Líder, Anjo, Monstro, Imune) ---
     type_map = {
-        "lider": ("lider", "👑"), "anjo": ("anjo", "🕊️"),
+        "lider": ("lider", "👑"), "anjo": ("anjo", "😇"),
         "monstro": ("monstro", "👹"), "imunidade": ("imune", "🛡️"),
     }
     for ev in auto_events:
@@ -86,8 +86,9 @@ def _extract_prova_winners(prova: dict) -> list[str]:
 def _collect_timeline_provas_fallback_events(
     auto_events: list[dict],
     provas_data: dict | list | None,
+    manual_events: dict | None = None,
 ) -> list[dict]:
-    """Add fallback Líder timeline events from provas when API auto-events lag."""
+    """Add fallback Líder/Anjo/Monstro timeline events from provas/manual_events when API auto-events lag."""
     events: list[dict] = []
     provas_list: list[dict] = []
     if isinstance(provas_data, dict):
@@ -95,39 +96,87 @@ def _collect_timeline_provas_fallback_events(
     elif isinstance(provas_data, list):
         provas_list = provas_data
 
-    auto_lider_targets_by_week: dict[int, set[str]] = defaultdict(set)
+    # Build sets of (week, target) already covered by auto_events
+    auto_by_type_week: dict[str, dict[int, set[str]]] = defaultdict(lambda: defaultdict(set))
     for ev in auto_events:
-        if ev.get("type") != "lider":
-            continue
+        t = ev.get("type", "")
         target = ev.get("target", "")
         date = ev.get("date", "")
         if not target:
             continue
         week = get_week_number(date) if date else int(ev.get("week", 0) or 0)
         if week > 0:
-            auto_lider_targets_by_week[week].add(target)
+            auto_by_type_week[t][week].add(target)
 
     for prova in provas_list:
-        if prova.get("tipo") != "lider":
-            continue
+        tipo = prova.get("tipo", "")
         date = prova.get("date", "") or prova.get("data", "")
         if not date:
             continue
-        week = get_week_number(date)
+        # Use stored week from provas.json (operational week) when available.
+        # Fall back to get_week_number(date) only if missing.
+        # Reason: Anjo prova can happen on the same day as the next Líder prova,
+        # making get_week_number(date) return the NEW week, but the Anjo belongs
+        # to the PREVIOUS week operationally (e.g., W2 Anjo on Jan 29 = W3 by date).
+        stored_week = prova.get("week")
+        week = int(stored_week) if stored_week else get_week_number(date)
         winners = _extract_prova_winners(prova)
-        for winner in winners:
-            if winner in auto_lider_targets_by_week.get(week, set()):
+
+        if tipo == "lider":
+            for winner in winners:
+                if winner in auto_by_type_week["lider"].get(week, set()):
+                    continue
+                events.append({
+                    "date": date, "week": week, "category": "lider",
+                    "emoji": "👑", "title": f"{winner} → Lider",
+                    "detail": prova.get("nota", ""),
+                    "participants": [winner], "source": "provas",
+                })
+
+        elif tipo == "anjo":
+            for winner in winners:
+                if winner in auto_by_type_week["anjo"].get(week, set()):
+                    continue
+                events.append({
+                    "date": date, "week": week, "category": "anjo",
+                    "emoji": "😇", "title": f"{winner} → Anjo",
+                    "detail": prova.get("nota", ""),
+                    "participants": [winner], "source": "provas",
+                })
+
+    # Monstro fallback from weekly_events.anjo.monstro (or monstro_escolha for multi-target)
+    if manual_events and isinstance(manual_events, dict):
+        for we in manual_events.get("weekly_events", []):
+            anjo = we.get("anjo")
+            if not anjo or not isinstance(anjo, dict):
                 continue
-            events.append({
-                "date": date,
-                "week": week,
-                "category": "lider",
-                "emoji": "👑",
-                "title": f"{winner} → Lider",
-                "detail": prova.get("nota", ""),
-                "participants": [winner],
-                "source": "provas",
-            })
+            prova_date = anjo.get("prova_date", "")
+            if not prova_date:
+                continue
+            w = we.get("week", 0)
+            if not w:
+                continue
+            # Collect monstro names: single string or monstro_escolha list
+            monstro_names: list[str] = []
+            monstro_val = anjo.get("monstro")
+            if isinstance(monstro_val, str) and monstro_val:
+                monstro_names = [monstro_val]
+            elif isinstance(monstro_val, list):
+                monstro_names = [n for n in monstro_val if isinstance(n, str) and n]
+            if not monstro_names:
+                escolha = anjo.get("monstro_escolha")
+                if isinstance(escolha, list):
+                    monstro_names = [n for n in escolha if isinstance(n, str) and n]
+            auto_week_set = auto_by_type_week["monstro"].get(w, set())
+            for name in monstro_names:
+                if name in auto_week_set:
+                    continue
+                events.append({
+                    "date": prova_date, "week": w, "category": "monstro",
+                    "emoji": "👹", "title": f"{name} → Monstro",
+                    "detail": anjo.get("monstro_tipo", ""),
+                    "participants": [name], "source": "weekly_events",
+                })
 
     return events
 
@@ -264,7 +313,7 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
         participants = se.get("participants", se.get("participants_affected", []))
         events.append({
             "date": date, "week": week, "category": "dinamica",
-            "emoji": "⭐", "title": name,
+            "emoji": "⚡", "title": name,
             "detail": se.get("description", se.get("resultado", "")),
             "participants": participants if isinstance(participants, list) else [],
             "source": "special_events",
@@ -522,7 +571,7 @@ def build_game_timeline(
     """Build a unified chronological timeline merging all event sources."""
     events: list[dict] = []
     events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events))
-    events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data))
+    events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data, manual_events))
     events.extend(_collect_timeline_manual_events(manual_events))
     events.extend(_collect_timeline_paredao_events(paredoes_data))
     return _merge_and_dedup_timeline(events, manual_events)

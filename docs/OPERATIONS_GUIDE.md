@@ -468,7 +468,11 @@ gh run view <run-id> --log             # full logs for a specific run
 
 ### Standard Week Pattern (Líder Cycle)
 
-Each BBB week follows a predictable pattern anchored to the Líder cycle. Two recurring event types:
+Each BBB week follows a predictable pattern anchored to the Líder cycle.
+
+> **Key rule**: The **Prova do Líder is the FIRST event of the new week**. Everything before it on the same day (e.g., afternoon Anjo prova) belongs to the PREVIOUS week. `WEEK_END_DATES` stores the last day of each week = the day BEFORE the Prova do Líder. When assigning `week` to events in `provas.json` or `manual_events.json`, use the **operational week** (which Líder presided), not `get_week_number(date)` — they can differ on Prova do Líder day.
+
+Two recurring event types:
 - **Sincerão** (Monday live show) — happens every week with a different format/theme
 - **Week Dynamic** (Friday, varies) — the unique dynamic from the weekly dynamics article
 
@@ -580,6 +584,8 @@ jq --argjson w "$WEEK" '
 ---
 
 ## Líder Transition Checklist (Thursday night)
+
+> **The Prova do Líder is the first event of the new week.** All events before it on the same day belong to the previous week. This checklist marks the start of a new game week.
 
 When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps **in order**:
 
@@ -923,11 +929,20 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 
 **Cartola `monstro_retirado_vip`**: Auto-detected. If the Monstro recipient was in VIP in the previous snapshot, the -5 penalty is automatically applied. No manual entry needed.
 
-### 4. Clean up scheduled events
+### 4. Update scheduled events (do NOT delete)
 
-Remove past `scheduled_events` for this date (Prova do Anjo, Monstro) — the auto-dedup handles timeline, but cleaner to remove.
+**Update** the `scheduled_events` for this date's `anjo` and `monstro` entries with the real results (winner name, castigo details). **Do NOT remove them.**
 
-**Note**: Anjo/Monstro timeline events come from API role auto-detection (snapshots), not from `weekly_events.anjo`. Removing scheduled events before the next API snapshot creates a temporary gap in the timeline display — this is normal and self-corrects after the next snapshot arrives. For Líder, there is an extra fallback from `provas.json` to avoid missing timeline rows while API role sync is pending.
+Why: Anjo timeline events have a `provas.json` fallback (like Líder), and Monstro has a `weekly_events.anjo.monstro` fallback. These create real timeline entries immediately after updating `provas.json` and `manual_events.json` — no need to wait for the API. However, deleting the scheduled events prematurely removes the safety net if the fallback fails for any reason.
+
+**What to do**:
+- Update `title` to include the result (e.g., `"Prova do Anjo — Breno vence"`)
+- Update `detail` with what happened
+- Update `fontes` with the scraped article URL
+- **Remove the `time` field** — anjo/monstro don't have a fixed time. Only keep `time` for events with a known specific time like Big Fone (see [Adding scheduled events](#adding-scheduled-events))
+- Keep the entries in `scheduled_events` — auto-dedup will suppress them once the API captures the new roles
+
+**When to clean up**: Remove past scheduled events during the **next week's setup** (Líder Transition Checklist), not on the same day they happen. By then, the API will have captured the roles and the auto-dedup makes the scheduled entries invisible anyway.
 
 ### 5. Rebuild + commit + publish
 
@@ -939,11 +954,31 @@ git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
 # Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
+### Timeline fallback system (how Cronologia stays complete)
+
+The Cronologia do Jogo timeline has **multiple sources per event type**. When the API hasn't captured a snapshot yet, fallbacks from manual data ensure the timeline is never missing entries:
+
+| Category | Primary source | Fallback source | When fallback kicks in |
+|----------|---------------|-----------------|----------------------|
+| **Líder** | API auto-detection | `provas.json` (tipo=lider) | API hasn't captured role change yet |
+| **Anjo** | API auto-detection | `provas.json` (tipo=anjo) | API hasn't captured role change yet |
+| **Monstro** | API auto-detection | `weekly_events.anjo.monstro` | API hasn't captured role change yet |
+| **Imune** | API auto-detection | `paredoes.json` (formacao.imunizado) | Covered by `paredao_imunidade` ceremony step |
+| **Sincerão** | `weekly_events.sincerao` | — | Manual-only (fill after Monday show) |
+| **Ganha-Ganha** | `weekly_events.ganha_ganha` | — | Manual-only (fill after Tuesday show) |
+| **Barrado** | `power_events` (barrado_baile) | — | Manual-only (fill after Wednesday) |
+| **Presente Anjo** | `weekly_events.anjo.escolha` | — | Manual-only (fill after Sunday almoço) |
+| **Paredão formation** | `paredoes.json` (indicados_finais) | — | Ceremony sub-steps auto-generated |
+| **Paredão resultado** | `paredoes.json` (resultado) | — | Fill after elimination |
+
+**Key**: Once you update `provas.json` and `manual_events.json`, rebuild creates real timeline events immediately — no need to wait for the API. The scheduled_events (if any) are auto-deduped by `(date, category)`.
+
 ### API auto-detects (no manual action needed)
 
 - **Anjo role** — `characteristics.roles` contains `"Anjo"`
 - **Monstro role** — `characteristics.roles` contains `"Monstro"`
 - Both appear in `auto_events.json` and `roles_daily.json` after rebuild
+- **Timeline fallback**: If the API hasn't detected the role yet, `provas.json` (Anjo) and `weekly_events.anjo.monstro` (Monstro) create real timeline entries automatically
 
 ### Note on Cartola articles
 
@@ -1784,9 +1819,9 @@ git commit -m "public: data: barrado no baile W{N} (Target)"
 # Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
 ```
 
-### 4. Optional scheduled-event cleanup
+### 4. Update scheduled event
 
-If `scheduled_events` already had a `barrado_baile` placeholder for that date/week, you can remove it after publishing to keep the file tidy (timeline dedup is automatic, so this is cleanup-only).
+If `scheduled_events` has a `barrado_baile` placeholder for that date/week, **update it** with the real result (who was barred, by whom). Do NOT delete it — the auto-dedup suppresses it once the real event is recorded, and deleting prematurely leaves a timeline gap.
 
 ---
 
@@ -1897,6 +1932,12 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 }
 ```
 
+**`time` field rules**:
+- `"Ao Vivo"` — event will happen during the **daily prime-time TV show** (the evening broadcast). Future events only.
+- `"A definir"` — time/broadcast not confirmed yet. Future events only.
+- `"7h"`, `"14h"`, etc. — specific scheduled or known time. Can be used for **both** future and past events when the event had a specific announced time (e.g., Big Fone at 14h, pre-announced dynamic at 7h).
+- **After the event happens**: remove `time` unless the event had a specific known time. Most events (anjo, monstro, paredão, sincerão, etc.) don't have a fixed time — they just happen during the show — so `time` should be removed. Events like Big Fone that had a pre-announced or confirmed time keep `time` as the actual time (e.g., `"14h"`).
+
 **Common categories for scheduling**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `presente_anjo`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
 
 **Auto-generated categories** (from `paredoes.json`, do NOT schedule these): `paredao_imunidade`, `paredao_indicacao`, `paredao_votacao`, `paredao_contragolpe`, `paredao_bate_volta`. These ceremony sub-steps are created automatically when formation data is filled. See [Paredão Formation → Auto-generated Ceremony Sub-Steps](#auto-generated-ceremony-sub-steps-in-cronologia).
@@ -1944,7 +1985,7 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 - If a real event with the same `(date, category)` exists, the scheduled entry is auto-skipped
 - Past scheduled events (`date < today`) are dropped from timeline display
 - Líder source priority: API `auto_events` first; fallback to `provas.json` (`tipo=lider`) when API data is late
-- **Clean up periodically**: remove past entries from `scheduled_events` array
+- **Never delete scheduled events prematurely** — always update them with real results first. Clean up old entries only during the next week's Líder Transition setup, after the API has captured the roles
 
 ---
 

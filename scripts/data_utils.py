@@ -266,6 +266,9 @@ _MANUAL_EVENTS_PATH = _PROJECT_ROOT / "data" / "manual_events.json"
 _PAREDOES_PATH = _PROJECT_ROOT / "data" / "paredoes.json"
 _PROVAS_PATH = _PROJECT_ROOT / "data" / "provas.json"
 
+# Each entry is the LAST day of that week (= day before the next Prova do Líder).
+# The Prova do Líder is the FIRST event of the new week. Events earlier on the
+# same day (e.g., afternoon Anjo prova) belong to the PREVIOUS week.
 WEEK_END_DATES: list[str] = [
     "2026-01-21",  # Week 1 — Alberto Cowboy Líder; 1º Paredão Jan 21; Babu Líder Jan 22
     "2026-01-28",  # Week 2 — Babu Santana Líder; 2º Paredão Jan 27; barrado Jan 28; Maxiane Líder Jan 29

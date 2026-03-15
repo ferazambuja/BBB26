@@ -7,6 +7,8 @@ Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read t
 
 Events **not available from the API** are tracked manually in `data/manual_events.json`.
 
+**Week assignment rule**: The `week` field must reflect the **operational week** (which Líder presided over the event). The Prova do Líder is the **first event of the new week** — events earlier on the same day belong to the previous week. Do NOT rely on `get_week_number(date)` alone; it can differ on Prova do Líder day.
+
 **Auto-detected / derived** (do NOT add manually in `cartola_points_log`):
 - Líder, Anjo, Monstro, Imune — detected via `characteristics.roles`
 - VIP points — primary source is `provas.json` (`tipo=lider` → `vip`), with API fallback via `characteristics.group`
@@ -358,7 +360,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 **How it works:**
 - `build_game_timeline()` adds these with `"status": "scheduled"` and `"source": "scheduled"`.
 - Auto-dedup: if a real event already exists with the same `(date, category)`, the scheduled entry is skipped (title can differ).
-- **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then remove the corresponding entry from `scheduled_events` and run `build_derived_data.py`.
+- **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then **update** the scheduled entry with the real result (title, detail, fontes) and remove the `time` field. Do NOT delete it — the auto-dedup suppresses it. Clean up old entries during the next week's Líder Transition setup.
 
 **When to fill:** When GShow publishes the "Dinâmica da Semana" article (usually Thursday/Friday), add all upcoming events for the week.
 
@@ -381,7 +383,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 - After any **power effect** (veto, voto duplo, perdeu voto, contragolpe, imunidade)
 - After each paredão result to log **salvos/sobreviventes** and any point events not detectable via API
 - When GShow publishes **Dinâmica da Semana** (usually Thu/Fri), add upcoming events to `scheduled_events`
-- After a scheduled event **actually happens**, record real data and remove the entry from `scheduled_events`
+- After a scheduled event **actually happens**, record real data and **update** the scheduled entry with results (do NOT delete — auto-dedup handles it)
 - Depois de qualquer edição manual, rode `python scripts/build_derived_data.py` para atualizar `data/derived/`.
 
 ---
