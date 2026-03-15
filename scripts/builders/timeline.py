@@ -547,6 +547,67 @@ def _collect_timeline_paredao_events(paredoes_data: dict | list | None) -> list[
                 "participants": indicados, "source": "paredoes",
             })
 
+        # --- Step 7: Scheduled sub-step placeholders for incomplete formations ---
+        # When the ceremony hasn't happened yet (no votos_casa), emit scheduled
+        # placeholders for each sub-step using whatever info is already known.
+        # Real sub-steps (steps 1-5) suppress these via singleton dedup once filled.
+        if not votos_casa and data_form:
+            lider = formacao.get("lider", "")
+            # Imunidade placeholder (only if not already emitted as real in step 1)
+            if not (autoimune and anjo) and not (imun and isinstance(imun, dict) and imun.get("quem")):
+                if anjo:
+                    events.append({
+                        "date": data_form, "week": week, "category": "paredao_imunidade",
+                        "emoji": "🛡️", "title": f"{num}º {tipo_label} — {anjo} imuniza",
+                        "detail": f"Anjo {anjo} escolhe quem imunizar",
+                        "participants": [anjo], "source": "paredoes", "status": "scheduled",
+                    })
+                else:
+                    events.append({
+                        "date": data_form, "week": week, "category": "paredao_imunidade",
+                        "emoji": "🛡️", "title": f"{num}º {tipo_label} — Imunidade do Anjo",
+                        "detail": "Anjo escolhe quem imunizar",
+                        "participants": [], "source": "paredoes", "status": "scheduled",
+                    })
+            # Indicação placeholder (only if not already emitted in step 2)
+            indicado_lider = formacao.get("indicado_lider", "")
+            if not (indicado_lider and lider):
+                if lider:
+                    events.append({
+                        "date": data_form, "week": week, "category": "paredao_indicacao",
+                        "emoji": "🎯", "title": f"{num}º {tipo_label} — {lider} indica",
+                        "detail": f"Líder {lider} indica ao Paredão",
+                        "participants": [lider], "source": "paredoes", "status": "scheduled",
+                    })
+                else:
+                    events.append({
+                        "date": data_form, "week": week, "category": "paredao_indicacao",
+                        "emoji": "🎯", "title": f"{num}º {tipo_label} — Indicação do Líder",
+                        "detail": "Líder indica ao Paredão",
+                        "participants": [], "source": "paredoes", "status": "scheduled",
+                    })
+            # Votação placeholder
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_votacao",
+                "emoji": "🗳️", "title": f"{num}º {tipo_label} — Votação da Casa",
+                "detail": "Participantes votam no confessionário",
+                "participants": [], "source": "paredoes", "status": "scheduled",
+            })
+            # Contragolpe placeholder
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_contragolpe",
+                "emoji": "⚔️", "title": f"{num}º {tipo_label} — Contragolpe",
+                "detail": "Mais votado pela casa contragolpeia um participante",
+                "participants": [], "source": "paredoes", "status": "scheduled",
+            })
+            # Bate e Volta placeholder
+            events.append({
+                "date": data_form, "week": week, "category": "paredao_bate_volta",
+                "emoji": "🔄", "title": f"{num}º {tipo_label} — Bate e Volta",
+                "detail": "Emparedados disputam prova para escapar do Paredão",
+                "participants": [], "source": "paredoes", "status": "scheduled",
+            })
+
         # --- Result ---
         resultado = p.get("resultado", {})
         data_elim = p.get("data", "")

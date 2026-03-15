@@ -599,6 +599,140 @@ def test_partial_formation_does_not_suppress_scheduled_event():
     )
 
 
+# --- Paredão scheduled sub-step placeholder tests ---
+
+
+def test_incomplete_formation_emits_scheduled_substeps():
+    """Incomplete paredão (no votos_casa) should emit scheduled sub-step placeholders."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {"lider": "Alberto Cowboy", "anjo": "Breno"},
+                "indicados_finais": [{"nome": "A"}, {"nome": "B"}],
+                "votos_casa": {},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    scheduled_cats = {
+        e["category"]
+        for e in events
+        if e.get("source") == "paredoes" and e.get("status") == "scheduled"
+    }
+    assert "paredao_imunidade" in scheduled_cats
+    assert "paredao_indicacao" in scheduled_cats
+    assert "paredao_votacao" in scheduled_cats
+    assert "paredao_contragolpe" in scheduled_cats
+    assert "paredao_bate_volta" in scheduled_cats
+
+
+def test_scheduled_substeps_use_known_lider_and_anjo():
+    """Placeholders should include Líder and Anjo names when known."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {"lider": "Alberto Cowboy", "anjo": "Breno"},
+                "indicados_finais": [],
+                "votos_casa": {},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    assert len(imun) == 1
+    assert "Breno" in imun[0]["title"]
+
+    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled"]
+    assert len(indic) == 1
+    assert "Alberto Cowboy" in indic[0]["title"]
+
+
+def test_scheduled_substeps_not_emitted_when_formation_complete():
+    """Complete formation (votos_casa populated) should NOT emit scheduled placeholders."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 8,
+                "data_formacao": "2026-03-09",
+                "formacao": {
+                    "lider": "Alberto Cowboy",
+                    "anjo": "Milena",
+                    "indicado_lider": "Milena",
+                    "imunizado": {"por": "Milena", "quem": "Ana Paula Renault"},
+                    "contragolpe": {"de": "Jordana", "para": "Chaiany"},
+                    "bate_volta": {"participantes": ["Jordana"], "vencedor": "Jordana"},
+                },
+                "indicados_finais": [{"nome": "Babu Santana"}, {"nome": "Chaiany"}, {"nome": "Milena"}],
+                "votos_casa": {"V1": "Jordana", "V2": "Marciele"},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    scheduled_substeps = [
+        e for e in events
+        if e.get("source") == "paredoes" and e.get("status") == "scheduled"
+    ]
+    assert len(scheduled_substeps) == 0
+
+
+def test_scheduled_substeps_suppressed_when_real_data_filled():
+    """If imunizado is already filled, don't emit scheduled imunidade placeholder."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {
+                    "lider": "Alberto Cowboy",
+                    "anjo": "Breno",
+                    "imunizado": {"por": "Breno", "quem": "Samira"},
+                },
+                "indicados_finais": [{"nome": "A"}],
+                "votos_casa": {},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    # Real imunidade from step 1 should exist
+    real_imun = [e for e in events if e.get("category") == "paredao_imunidade" and not e.get("status")]
+    assert len(real_imun) == 1
+    # No scheduled imunidade placeholder
+    sched_imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    assert len(sched_imun) == 0
+
+
+def test_scheduled_substeps_generic_when_lider_anjo_unknown():
+    """When Líder/Anjo are unknown, placeholders use generic titles."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 9,
+                "data_formacao": "2026-03-15",
+                "formacao": {},
+                "indicados_finais": [],
+                "votos_casa": {},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    assert len(imun) == 1
+    assert "Imunidade do Anjo" in imun[0]["title"]
+
+    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled"]
+    assert len(indic) == 1
+    assert "Indicação do Líder" in indic[0]["title"]
+
+
 # --- Auto-scaffold tests ---
 
 
