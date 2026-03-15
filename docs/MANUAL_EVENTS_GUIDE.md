@@ -358,9 +358,9 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 - `fontes` — GShow article confirming the schedule
 
 **How it works:**
-- `build_game_timeline()` adds these with `"status": "scheduled"` and `"source": "scheduled"`.
-- Auto-dedup (two-tier): **singleton categories** (anjo, lider, paredao_formacao, sincerao, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed only when the scheduled event is *resolved* (no `time` field) or by exact title match. Removing `time` after updating guarantees suppression.
-- **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then **update** the scheduled entry with the real result (title, detail, fontes) and remove the `time` field. Do NOT delete it — the auto-dedup suppresses it. Clean up old entries during the next week's Líder Transition setup.
+- `build_game_timeline()` adds these with `"source": "scheduled"`. **Lifecycle is automatic**: past events (date < today) get `"status": ""` (resolved, solid display); future events get `"status": "scheduled"` (pending, dashed borders + 🔮). Same-day events with a `time` field stay pending (tonight); without `time` they're resolved. No manual `time` removal needed — the display transitions automatically the next day.
+- Auto-dedup (two-tier): **singleton categories** (anjo, lider, paredao_formacao, sincerao, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed when resolved (past date) or by exact title match. Future non-singleton events are kept even if a real event exists.
+- **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then **update** the scheduled entry with the real result (title, detail, fontes). Do NOT delete it — the auto-dedup suppresses it. Clean up old entries during the next week's Líder Transition setup.
 
 **When to fill:** When GShow publishes the "Dinâmica da Semana" article (usually Thursday/Friday), add all upcoming events for the week.
 
@@ -383,7 +383,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 - After any **power effect** (veto, voto duplo, perdeu voto, contragolpe, imunidade)
 - After each paredão result to log **salvos/sobreviventes** and any point events not detectable via API
 - When GShow publishes **Dinâmica da Semana** (usually Thu/Fri), add upcoming events to `scheduled_events`
-- After a scheduled event **actually happens**, record real data and **update** the scheduled entry with results (do NOT delete — auto-dedup handles it)
+- After a scheduled event **actually happens**, record real data and **update** the scheduled entry with results (do NOT delete — auto-dedup handles it; display transitions automatically the next day)
 - Depois de qualquer edição manual, rode `python scripts/build_derived_data.py` para atualizar `data/derived/`.
 
 ---

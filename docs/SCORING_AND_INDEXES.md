@@ -726,7 +726,7 @@ Unified chronological timeline merging **all** event sources into a single feed.
 ```
 
 ### Deduplication
-Scheduled placeholders are skipped when a real event already exists with the same `(date, category)`.
+Two-tier dedup: **singleton categories** (anjo, lider, paredao_formacao, sincerao, ganha_ganha, big_fone, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed when the scheduled event is resolved (past date or same-day without `time` field) or by exact `(date, category, title)` match. Future non-singleton events are kept even if a real event exists on the same date.
 Final timeline dedup keeps the first occurrence of exact `(date, category, title)` duplicates.
 
 ### Rendering

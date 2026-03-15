@@ -939,8 +939,7 @@ Why: Anjo timeline events have a `provas.json` fallback (like Líder), and Monst
 - Update `title` to include the result (e.g., `"Prova do Anjo — Breno vence"`)
 - Update `detail` with what happened
 - Update `fontes` with the scraped article URL
-- **Remove the `time` field** — anjo/monstro don't have a fixed time. Only keep `time` for events with a known specific time like Big Fone (see [Adding scheduled events](#adding-scheduled-events))
-- Keep the entries in `scheduled_events` — auto-dedup will suppress them once the API captures the new roles
+- Keep the entries in `scheduled_events` — auto-dedup will suppress them once the API captures the new roles. The `time` field is ignored for past events (automatic lifecycle), so removing it is optional
 
 **When to clean up**: Remove past scheduled events during the **next week's setup** (Líder Transition Checklist), not on the same day they happen. By then, the API will have captured the roles and the auto-dedup makes the scheduled entries invisible anyway.
 
@@ -1950,7 +1949,7 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `"Ao Vivo"` — event will happen during the **daily prime-time TV show** (the evening broadcast). Future events only.
 - `"A definir"` — time/broadcast not confirmed yet. Future events only.
 - `"7h"`, `"14h"`, etc. — specific scheduled or known time. Can be used for **both** future and past events when the event had a specific announced time (e.g., Big Fone at 14h, pre-announced dynamic at 7h).
-- **After the event happens**: remove `time` unless the event had a specific known time. Most events (anjo, monstro, paredão, sincerão, etc.) don't have a fixed time — they just happen during the show — so `time` should be removed. Events like Big Fone that had a pre-announced or confirmed time keep `time` as the actual time (e.g., `"14h"`).
+- **After the event happens**: removing `time` is optional — past events are automatically resolved by the date-based lifecycle. However, removing `time` on the same day accelerates the visual transition from dashed→solid for same-day rendering.
 
 **Automatic lifecycle**: The timeline builder uses the event date to determine display style — **no manual flag needed**:
 - **Past** (date < today) → always displayed as a real event (solid borders, no 🔮). If a real auto-generated event already exists for the same `(date, category)`, the entry is suppressed as redundant.
@@ -2004,8 +2003,8 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 ### Auto-dedup behavior
 
 - `build_game_timeline()` merges scheduled events with real events
-- Two-tier dedup: **singleton categories** (anjo, lider, paredao_formacao, sincerao, ganha_ganha, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed only when the scheduled event is *resolved* (no `time` field) or by exact title match. In practice: removing the `time` field after updating a scheduled event guarantees suppression
-- **Lifecycle signal**: past events (`date < reference_date`) and same-day events without `time` are *resolved* — they display as real events (no dashed border). Future events and same-day events with `time` remain *pending* (dashed border + 🔮). Remove `time` after updating a scheduled event to transition it to resolved display
+- Two-tier dedup: **singleton categories** (anjo, lider, paredao_formacao, sincerao, ganha_ganha, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed when *resolved* (past date, or same-day without `time`) or by exact title match
+- **Lifecycle**: past events (`date < reference_date`) are always *resolved* (solid display, category-deduped). Same-day without `time` → resolved. Same-day with `time` or future → *pending* (dashed border + 🔮). Removing `time` is optional — past events transition automatically
 - Líder source priority: API `auto_events` first; fallback to `provas.json` (`tipo=lider`) when API data is late
 - **Never delete scheduled events prematurely** — always update them with real results first. Clean up old entries only during the next week's Líder Transition setup, after the API has captured the roles
 

@@ -2,9 +2,19 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date as _date_cls
+from datetime import datetime, timezone
 
-from data_utils import get_week_number, normalize_actors, POWER_EVENT_LABELS
+from data_utils import get_week_number, normalize_actors, utc_to_game_date, POWER_EVENT_LABELS
+
+
+# Singleton categories: at most one real event per (date, category).
+# Always suppress a scheduled event when a real event covers the same key.
+_SINGLETON_CATEGORIES = frozenset({
+    "anjo", "lider", "paredao_formacao", "paredao_resultado",
+    "sincerao", "ganha_ganha", "barrado_baile", "presente_anjo", "big_fone",
+    "paredao_imunidade", "paredao_indicacao", "paredao_votacao",
+    "paredao_contragolpe", "paredao_bate_volta",
+})
 
 
 def _collect_timeline_auto_events(
@@ -494,7 +504,7 @@ def _merge_and_dedup_timeline(
             deterministic behaviour.
     """
     if reference_date is None:
-        reference_date = _date_cls.today().isoformat()
+        reference_date = utc_to_game_date(datetime.now(timezone.utc))
 
     # --- 7. Scheduled events ---
     # Lifecycle: a scheduled event is *resolved* (past, display as real) or
@@ -510,12 +520,6 @@ def _merge_and_dedup_timeline(
     #   Singleton categories: always suppress if real event exists (same date+cat).
     #   Resolved non-singleton: also suppress if real event exists.
     #   Pending non-singleton: keep (rely on title-level dedup at the end).
-    _SINGLETON_CATEGORIES = frozenset({
-        "anjo", "lider", "paredao_formacao", "paredao_resultado",
-        "sincerao", "ganha_ganha", "barrado_baile", "presente_anjo", "big_fone",
-        "paredao_imunidade", "paredao_indicacao", "paredao_votacao",
-        "paredao_contragolpe", "paredao_bate_volta",
-    })
     existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
         date = se.get("date", "")
