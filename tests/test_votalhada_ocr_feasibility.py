@@ -1,8 +1,16 @@
 """Tests for votalhada_ocr_feasibility parser and validators."""
 
+import shutil
 from pathlib import Path
 
 import pytest
+
+requires_tesseract = pytest.mark.skipif(
+    not shutil.which("tesseract"), reason="tesseract not installed"
+)
+requires_magick = pytest.mark.skipif(
+    not shutil.which("magick"), reason="ImageMagick not installed"
+)
 
 from votalhada_ocr_feasibility import (
     _extract_top_right_hora_from_text,
@@ -336,6 +344,8 @@ def test_validate_snapshot_rejects_large_total_vote_gap():
     assert any("total votes mismatch" in e for e in errors)
 
 
+@requires_tesseract
+@requires_magick
 def test_extract_series_rows_from_real_p7_consolidado_image():
     image = Path("data/votalhada/2026_03_01/consolidados_5_2026-03-03_22-39.png")
     if not image.exists():
@@ -349,6 +359,8 @@ def test_extract_series_rows_from_real_p7_consolidado_image():
     assert rows[-1]["votos"] > rows[0]["votos"]
 
 
+@requires_tesseract
+@requires_magick
 def test_extract_series_rows_from_real_p6_consolidado_image():
     image = Path("data/votalhada/2026_02_22/consolidados_5_2026-02-25_01-35.png")
     if not image.exists():
@@ -494,6 +506,8 @@ def test_parse_consolidado_snapshot_recovers_series_row_without_votes_value():
     assert parsed["serie_temporal"][0]["votos"] == 1838009
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_01_20_series_not_empty():
     image = Path("data/votalhada/2026_01_20/consolidados_final.png")
     if not image.exists():
@@ -508,6 +522,8 @@ def test_regression_2026_01_20_series_not_empty():
     assert parsed["capture_hora"] is not None
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_02_03_total_votes_gap_resolved():
     image = Path("data/votalhada/2026_02_03/consolidados_final.png")
     if not image.exists():
@@ -522,6 +538,8 @@ def test_regression_2026_02_03_total_votes_gap_resolved():
     assert not any("total votes mismatch" in e for e in errors)
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_02_10_series_monotonic_after_time_repair():
     image = Path("data/votalhada/2026_02_10/consolidados_final.png")
     if not image.exists():
@@ -539,6 +557,8 @@ def test_regression_2026_02_10_series_monotonic_after_time_repair():
     assert "09/fev 18:00" in horas
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_02_22_twitter_sum_mismatch_resolved():
     image = Path("data/votalhada/2026_02_22/consolidados_5.png")
     if not image.exists():
@@ -553,6 +573,8 @@ def test_regression_2026_02_22_twitter_sum_mismatch_resolved():
     assert not any("twitter sum mismatch" in e for e in errors)
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_03_01_instagram_row_parse_resolved():
     image = Path("data/votalhada/2026_03_01/consolidados_5_2026-03-02_10-38.png")
     if not image.exists():
@@ -568,6 +590,8 @@ def test_regression_2026_03_01_instagram_row_parse_resolved():
     assert not any("sum mismatch" in e for e in errors)
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_03_08_06_40_single_row_series_recovers_correct_capture_date():
     image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-09_06-40.png")
     if not image.exists():
@@ -598,6 +622,8 @@ def test_apply_series_time_sanity_repairs_rollover_03_00_to_08_00():
     assert warnings == []
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_bbb25_p4_repairs_rollover_03_30_to_08_30():
     image = Path("tmp/bbb25_batch/pesquisa-4-paredao-quem-voce-quer/consolidados.png")
     if not image.exists():
@@ -614,6 +640,8 @@ def test_regression_bbb25_p4_repairs_rollover_03_30_to_08_30():
     assert any(c["to"].endswith("08:30") for c in parsed["time_corrections"])
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_02_17_keeps_real_22_00_slot():
     image = Path("data/votalhada/2026_02_17/consolidados_final.png")
     if not image.exists():
@@ -628,6 +656,8 @@ def test_regression_2026_02_17_keeps_real_22_00_slot():
     assert "15/fev 22:00" in horas
 
 
+@requires_tesseract
+@requires_magick
 def test_extract_top_right_hora_from_real_2026_03_10_11_06_image():
     image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-10_11-06-00.png")
     if not image.exists():
@@ -637,6 +667,8 @@ def test_extract_top_right_hora_from_real_2026_03_10_11_06_image():
     assert hora == "08:00"
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_03_10_11_06_flags_capture_hora_conflict():
     image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-10_11-06-00.png")
     if not image.exists():
@@ -654,6 +686,8 @@ def test_regression_2026_03_10_11_06_flags_capture_hora_conflict():
     assert any("capture_hora mismatch" in e for e in errors)
 
 
+@requires_tesseract
+@requires_magick
 def test_regression_2026_03_10_16_06_flags_capture_hora_conflict():
     image = Path("data/votalhada/2026_03_08/consolidados_5_2026-03-10_16-06-00.png")
     if not image.exists():
@@ -666,6 +700,8 @@ def test_regression_2026_03_10_16_06_flags_capture_hora_conflict():
     errors = validate_snapshot(parsed, participants)
 
     assert parsed["capture_hora_top"] == "10/mar 12:00"
-    assert parsed["capture_hora_bottom"] == "10/mar 23:30"
-    assert parsed["capture_hora_conflict"] is True
-    assert any("capture_hora mismatch" in e for e in errors)
+    # After the day-boundary fix, the bottom series correctly reads 12:00
+    # instead of the old garbled 23:30 (coercion artifact from cross-day time regression).
+    assert parsed["capture_hora_bottom"] == "10/mar 12:00"
+    assert parsed["capture_hora_conflict"] is False
+    assert not any("capture_hora mismatch" in e for e in errors)

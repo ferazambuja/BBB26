@@ -555,7 +555,12 @@ def _is_series_header(norm_line: str) -> bool:
         return True
     if "EVOLUCAO DAS MEDIAS" in norm_line:
         return True
-    return ("VARIAC" in norm_line and "MEDIAS" in norm_line) or ("EVOLU" in norm_line and "MEDIAS" in norm_line)
+    if ("VARIAC" in norm_line and "MEDIAS" in norm_line) or ("EVOLU" in norm_line and "MEDIAS" in norm_line):
+        return True
+    # OCR sometimes garbles the leading V → (, W, etc.  Match the tail.
+    if "ARIACAO" in norm_line and "MEDIAS" in norm_line:
+        return True
+    return False
 
 
 def _make_top_table_crop(image_path: Path, start_ratio: float = 0.12, end_ratio: float = 0.62) -> Path:
@@ -931,6 +936,7 @@ def _parse_series_rows(
         tokens = line.split()
         date_token = None
         time_token_raw = None
+        prev_date = current_date
         for tok in tokens:
             if date_token is None:
                 d = _normalize_day_month_token(tok)
@@ -946,7 +952,9 @@ def _parse_series_rows(
 
         if current_date is None or time_token_raw is None:
             continue
-        time_token = _coerce_time_progression(time_token_raw, current_time)
+        # Reset time progression when the date changes (crossing midnight).
+        coerce_prev = current_time if current_date == prev_date else None
+        time_token = _coerce_time_progression(time_token_raw, coerce_prev)
         current_time = time_token
 
         numeric_tokens = []
