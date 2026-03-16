@@ -465,18 +465,18 @@ class TestWeek8MilenaSpotlight:
         assert alberto["toward_target_or_ally_pct"] == pytest.approx(83.3, abs=0.1)
 
         jonas = power_usage["by_actor"]["Jonas Sulzbach"]
-        assert jonas["total"] == 9
+        assert jonas["total"] == 10
         assert jonas["toward_target"] == 4
-        assert jonas["toward_target_pct"] == pytest.approx(44.4, abs=0.1)
+        assert jonas["toward_target_pct"] == pytest.approx(40.0, abs=0.1)
         assert jonas["toward_target_or_ally"] == 5
-        assert jonas["toward_target_or_ally_pct"] == pytest.approx(55.6, abs=0.1)
+        assert jonas["toward_target_or_ally_pct"] == pytest.approx(50.0, abs=0.1)
 
         combined = power_usage["combined"]
-        assert combined["total"] == 15
+        assert combined["total"] == 16
         assert combined["toward_target"] == 8
-        assert combined["toward_target_pct"] == pytest.approx(53.3, abs=0.1)
+        assert combined["toward_target_pct"] == pytest.approx(50.0, abs=0.1)
         assert combined["toward_target_or_ally"] == 10
-        assert combined["toward_target_or_ally_pct"] == pytest.approx(66.7, abs=0.1)
+        assert combined["toward_target_or_ally_pct"] == pytest.approx(62.5, abs=0.1)
 
         assert any(
             entry["actor"] == "Jonas Sulzbach"

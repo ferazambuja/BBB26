@@ -1,6 +1,6 @@
 {
   "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
-  "_last_updated": "2026-03-14",
+  "_last_updated": "2026-03-15",
   "paredoes": [
     {
       "numero": 1,
@@ -1215,7 +1215,28 @@
       "total_esperado": 3,
       "formacao": {
         "lider": "Alberto Cowboy",
-        "resumo": "Dinâmica Pedra, Papel e Tesoura (sábado): 12 participantes divididos em 3 grupos de 4. Grupo Pedra (Jonas cap., Jordana, Marciele, Gabriela) emparedou Leandro; Grupo Papel (Ana Paula cap., Floss, Milena, Samira) emparedou Jonas; Grupo Tesoura (Breno cap., Solange, Leandro, Chaiany) emparedou Ana Paula. Máquina do Poder (domingo): caixa premiada salva um dos 3 emparedados. Depois: indicação do Líder + votação da casa.",
+        "anjo": "Breno",
+        "anjo_autoimune": false,
+        "indicado_lider": "Breno",
+        "motivo_lider": "É um jogador muito forte, tanto que ganhou o Anjo essa semana",
+        "imunizado": {
+          "por": "Breno",
+          "quem": "Samira",
+          "motivo": "Aliada próxima, quer que ela chegue ao Top 10"
+        },
+        "contragolpe": null,
+        "bate_volta": {
+          "participantes": ["Ana Paula Renault", "Leandro", "Solange Couto"],
+          "vencedor": "Solange Couto",
+          "prova": "Arremesso (acertar saquinhos em buracos, 3 graus de dificuldade, 3 chances)"
+        },
+        "maquina_do_poder": {
+          "comprador": "Jordana",
+          "salvou": "Jonas Sulzbach",
+          "caixa": 8,
+          "detail": "Jordana comprou a caixa premiada nº 8 (coincidentemente o número da sorte de Jonas) e salvou Jonas do Paredão. 'É bem óbvio: vou salvar o Jonas. É a pessoa que joga comigo.'"
+        },
+        "resumo": "Dinâmica Pedra, Papel e Tesoura (sábado): 12 participantes divididos em 3 grupos de 4. Grupo Pedra (Jonas cap.) emparedou Leandro; Grupo Papel (Ana Paula cap.) emparedou Jonas; Grupo Tesoura (Breno cap.) emparedou Ana Paula. Máquina do Poder (domingo): Jordana comprou a caixa premiada nº 8 — coincidentemente o número da sorte de Jonas — e salvou Jonas do Paredão. Breno (Anjo) imunizou Samira. Alberto Cowboy (Líder) indicou Breno ('É um jogador muito forte'). Solange Couto foi a mais votada pela casa (6 votos). Sem contragolpe nesta semana. Ana Paula, Leandro e Solange disputaram a Prova Bate e Volta (arremesso); Solange venceu com 850 pontos e escapou.",
         "pedra_papel_tesoura": {
           "regra": "Pedra vence Tesoura, Papel vence Pedra, Tesoura vence Papel. Grupo vencedor empareda 1 jogador do grupo perdedor.",
           "grupo_pedra": {
@@ -1236,31 +1257,39 @@
             "emparedou": "Ana Paula Renault",
             "emparedou_de_grupo": "papel"
           }
-        },
-        "maquina_do_poder": {
-          "comprador": null,
-          "salvou": null,
-          "detail": null
         }
       },
       "indicados_finais": [
         {
-          "nome": "Leandro",
-          "grupo": "Pipoca",
-          "como": "Dinâmica (Grupo Pedra)"
-        },
-        {
-          "nome": "Jonas Sulzbach",
-          "grupo": "Veterano",
-          "como": "Dinâmica (Grupo Papel)"
-        },
-        {
           "nome": "Ana Paula Renault",
           "grupo": "Veterano",
           "como": "Dinâmica (Grupo Tesoura)"
+        },
+        {
+          "nome": "Breno",
+          "grupo": "Pipoca",
+          "como": "Líder"
+        },
+        {
+          "nome": "Leandro",
+          "grupo": "Pipoca",
+          "como": "Dinâmica (Grupo Pedra)"
         }
       ],
-      "votos_casa": {},
+      "votos_casa": {
+        "Juliano Floss": "Marciele",
+        "Gabriela": "Solange Couto",
+        "Leandro": "Gabriela",
+        "Milena": "Marciele",
+        "Marciele": "Solange Couto",
+        "Breno": "Marciele",
+        "Jordana": "Solange Couto",
+        "Samira": "Solange Couto",
+        "Jonas Sulzbach": "Solange Couto",
+        "Chaiany": "Jordana",
+        "Ana Paula Renault": "Solange Couto",
+        "Solange Couto": "Gabriela"
+      },
       "fontes": [
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
@@ -1276,6 +1305,21 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/ana-paula-renault-jonas-sulzbach-e-leandro-estao-no-paredao-apos-dinamica-em-grupo-no-bbb-26.ghtml",
           "arquivo": "docs/scraped/ana-paula-renault-jonas-sulzbach-e-leandro-estao-no-paredao-apos-dinamica-em-grupo-no-bbb-26.md",
           "titulo": "Ana Paula Renault, Jonas Sulzbach e Leandro estão no Paredão após dinâmica em grupo no BBB 26"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-9-paredao-do-bbb-26-ana-paula-renault-breno-e-leandro-formam-a-berlinda.ghtml",
+          "arquivo": "docs/scraped/quem-esta-no-9-paredao-do-bbb-26-ana-paula-renault-breno-e-leandro-formam-a-berlinda.md",
+          "titulo": "Quem está no 9° Paredão do BBB 26? Ana Paula Renault, Breno e Leandro formam a berlinda"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-9o-paredao.ghtml",
+          "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-9o-paredao.md",
+          "titulo": "BBB 26: veja quem votou em quem na formação do 9º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/breno-se-emociona-com-recado-de-familiares-no-presente-do-anjo-saudade-delas.ghtml",
+          "arquivo": "docs/scraped/breno-se-emociona-com-recado-de-familiares-no-presente-do-anjo-saudade-delas.md",
+          "titulo": "Breno se emociona com recado de familiares no Presente do Anjo"
         }
       ]
     }

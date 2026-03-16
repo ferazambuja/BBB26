@@ -399,6 +399,16 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                             add_event_points(vencedor_bv, week, 'salvo_paredao',
                                              CARTOLA_POINTS['salvo_paredao'], paredao_date)
 
+        # Salvo do paredão via Máquina do Poder
+        mdp = formacao.get('maquina_do_poder') if isinstance(formacao, dict) else None
+        if mdp and isinstance(mdp, dict) and mdp.get('salvou'):
+            salvou_mdp = mdp['salvou']
+            if salvou_mdp not in bv_winners_set:  # avoid double-counting
+                add_event_points(salvou_mdp, week, 'emparedado',
+                                 CARTOLA_POINTS['emparedado'], paredao_date)
+                add_event_points(salvou_mdp, week, 'salvo_paredao',
+                                 CARTOLA_POINTS['salvo_paredao'], paredao_date)
+
         # Não eliminado no paredão / Quarto Secreto (Paredão Falso)
         resultado = p.get('resultado') or {}
         eliminado = resultado.get('eliminado')

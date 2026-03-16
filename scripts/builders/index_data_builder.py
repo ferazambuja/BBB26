@@ -1744,8 +1744,9 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
 
         # Per-participant accumulators
         on_paredao: Counter[str] = Counter()         # times in indicados_finais
-        bv_escape_count: Counter[str] = Counter()     # BV escapes (count, not boolean)
-        bv_escape_detail: dict[str, list[int]] = defaultdict(list)
+        bv_escape_count: Counter[str] = Counter()     # BV + MdP escapes (count, not boolean)
+        bv_escape_detail: dict[str, list[int]] = defaultdict(list)  # BV-only paredão nums
+        mdp_escape_detail: dict[str, list[int]] = defaultdict(list)  # MdP-only paredão nums
         fake_paredao_detail: dict[str, list[int]] = defaultdict(list)
         protection_detail: dict[str, list[tuple[int, str]]] = defaultdict(list)
 
@@ -1789,6 +1790,13 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
                     bv_escape_count[bw] += 1
                     bv_escape_detail[bw].append(num)
 
+            # Máquina do Poder saves count as escapes (emparedado then saved)
+            mdp = form.get("maquina_do_poder", {}) or {}
+            mdp_salvou = mdp.get("salvou", "")
+            if mdp_salvou and mdp_salvou not in indicados:
+                bv_escape_count[mdp_salvou] += 1
+                mdp_escape_detail[mdp_salvou].append(num)
+
             for name in active_set:
                 if name in indicados:
                     on_paredao[name] += 1
@@ -1827,11 +1835,18 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
                 for reason in ordered_reasons
             ]
 
-            # BV escape text
+            # BV/MdP escape text
+            bv_nums = bv_escape_detail.get(name, [])
+            mdp_nums = mdp_escape_detail.get(name, [])
             if n_bv > 0:
-                par_nums = bv_escape_detail.get(name, [])
-                nums_str = ", ".join(f"{n}º" for n in par_nums)
-                bv_text = f"Escapou Bate-Volta {n_bv}x ({nums_str})"
+                parts = []
+                if bv_nums:
+                    bv_str = ", ".join(f"{n}º" for n in bv_nums)
+                    parts.append(f"Bate-Volta {len(bv_nums)}x ({bv_str})")
+                if mdp_nums:
+                    mdp_str = ", ".join(f"{n}º" for n in mdp_nums)
+                    parts.append(f"Máq. do Poder {len(mdp_nums)}x ({mdp_str})")
+                bv_text = "Escapou: " + ", ".join(parts)
             else:
                 bv_text = ""
 
@@ -2496,6 +2511,21 @@ def _collect_bv_escapes(
                         "data": matched_par.get("data"),
                     }
                 )
+
+    # Máquina do Poder saves also count as paredão escapes
+    for par in paredoes_data:
+        form = par.get("formacao", {})
+        if not isinstance(form, dict):
+            continue
+        mdp = form.get("maquina_do_poder", {}) or {}
+        salvou = mdp.get("salvou", "")
+        if salvou and salvou not in bv_escapes:
+            bv_escapes[salvou].append(
+                {
+                    "numero": par.get("numero"),
+                    "data": par.get("data"),
+                }
+            )
 
     return bv_escapes
 

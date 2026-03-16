@@ -594,7 +594,7 @@ class TestBlindadosDisplayDetails:
         blindados = next(card for card in cards if card["type"] == "blindados")
         jonas = next(item for item in blindados["items_all"] if item["name"] == "Jonas")
 
-        assert jonas["bv_text"] == "Escapou Bate-Volta 1x (3º)"
+        assert jonas["bv_text"] == "Escapou: Bate-Volta 1x (3º)"
         assert "🚄" not in jonas["bv_text"]
         assert jonas["prot_text"] == "Autoimune 1x, Líder 1x, Imune 1x"
         assert jonas["protection_tags"] == [
