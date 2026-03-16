@@ -995,7 +995,7 @@ class TestRenderCronologiaHtml:
         assert 'cronologia-mobile-table--open' in html
         assert html.count("Jordana escolhe o veto") == 2
 
-    def test_group_cronologia_events_orders_weeks_dates_and_events_descending(self):
+    def test_group_cronologia_events_orders_weeks_dates_desc_events_latest_first(self):
         events = [
             {"date": "2026-01-13", "week": 1, "category": "entrada", "title": "Older Week", "detail": "", "emoji": ""},
             {"date": "2026-01-20", "week": 2, "category": "lider", "title": "First Day Early", "detail": "", "emoji": ""},
@@ -1005,8 +1005,10 @@ class TestRenderCronologiaHtml:
 
         grouped = group_cronologia_events(events)
 
+        # Weeks and dates: newest first (descending)
         assert [week["week"] for week in grouped] == [2, 1]
         assert [day["date"] for day in grouped[0]["dates"]] == ["2026-01-21", "2026-01-20"]
+        # Events within a day: latest first (reversed from chronological)
         assert [ev["title"] for ev in grouped[0]["dates"][1]["events"]] == ["First Day Late", "First Day Early"]
 
     def test_render_cronologia_variant_two_row_open_preserves_full_detail_in_full_width_row(self):

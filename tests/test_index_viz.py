@@ -27,11 +27,13 @@ from index_viz import (
     plant_color,
     progress_bar,
     render_actor_avatars,
+    render_agressor_row,
     render_alvo_rows,
     render_avatar_row,
     render_blindado_row,
     render_break_row,
     render_dramatic_event_row,
+    render_na_mira_row,
     render_overflow_toggle,
     render_pair_lane,
     render_pair_chip,
@@ -675,6 +677,9 @@ def test_render_blindado_row_renders_badges_and_counts():
             "votes": 1,
             "bv_escape": True,
             "bv_text": 'Escapou "BV"',
+            "escape_tags": [
+                {"label": "Bate-Volta", "text": 'Escapou "BV"'},
+            ],
             "protection_tags": [
                 {"label": "Líder", "text": "Líder 2x"},
                 {"label": "Casa", "text": "Casa 1x"},
@@ -897,3 +902,85 @@ def test_summary_and_profile_helpers_escape_rendered_names_and_labels():
     )
     assert "<Ana>" not in detail_html
     assert "&lt;Ana&gt;" in detail_html
+
+
+def test_render_na_mira_row_renders_power_tags_and_drill_down():
+    html = render_na_mira_row(
+        {
+            "name": "Ana Paula Renault",
+            "power_hits": 6,
+            "power_hits_recent": 2,
+            "paredao": 3,
+            "power_tags": [
+                {"label": "Indicação", "count": 2, "text": "Indicação 2x"},
+                {"label": "Barrado", "count": 2, "text": "Barrado 2x"},
+            ],
+            "power_detail": [
+                {"type": "indicacao", "actor": "Alberto Cowboy", "week": 8, "date": "2026-03-01"},
+                {"type": "barrado_baile", "actor": "Jonas Sulzbach", "week": 6, "date": "2026-02-15"},
+            ],
+        },
+        max_hits=8,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+        tag_labels={"indicacao": "Indicação", "barrado_baile": "Barrado"},
+    )
+
+    assert "<avatar Ana Paula Renault #c0392b>" in html
+    assert "6 ações contra" in html
+    assert "3 paredões" in html
+    assert "2 recentes (3 sem.)" in html
+    assert "Indicação 2x" in html
+    assert "Barrado 2x" in html
+    assert "#3f1b1b" in html  # dark red badge bg
+    assert "#ff9d9d" in html  # dark red badge text
+    assert "Detalhes (2)" in html
+    assert "Indicação por Alberto Cowboy (8º)" in html
+    assert "Barrado por Jonas Sulzbach (6º)" in html
+
+
+def test_render_na_mira_row_handles_zero_hits():
+    html = render_na_mira_row(
+        {
+            "name": "Breno",
+            "power_hits": 0,
+            "power_hits_recent": 0,
+            "paredao": 0,
+            "power_tags": [],
+            "power_detail": [],
+        },
+        max_hits=6,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+    )
+
+    assert "<avatar Breno #7f8c8d>" in html
+    assert "0 paredões" in html
+    assert "Detalhes" not in html
+
+
+def test_render_agressor_row_renders_purple_tags_and_drill_down():
+    html = render_agressor_row(
+        {
+            "name": "Alberto Cowboy",
+            "power_hits": 14,
+            "power_hits_recent": 3,
+            "power_tags": [
+                {"label": "Na Mira", "count": 5, "text": "Na Mira 5x"},
+                {"label": "Indicação", "count": 3, "text": "Indicação 3x"},
+            ],
+            "power_detail": [
+                {"type": "mira_do_lider", "target": "Milena", "week": 8, "date": "2026-03-01"},
+            ],
+        },
+        max_hits=14,
+        avatar_fn=lambda name, size=42, border_color="#555": f"<avatar {name} {border_color}>",
+        tag_labels={"mira_do_lider": "Na Mira"},
+    )
+
+    assert "<avatar Alberto Cowboy #8e44ad>" in html
+    assert "14 ações" in html
+    assert "Na Mira 5x" in html
+    assert "Indicação 3x" in html
+    assert "#2d1b3f" in html  # purple badge bg
+    assert "#d9b3ff" in html  # purple badge text
+    assert "Detalhes (1)" in html
+    assert "Na Mira → Milena (8º)" in html

@@ -38,6 +38,7 @@ from paredao_viz import (
     build_paredao_history,
     render_paredao_index_card,
 )
+from builders.index_data_builder import POWER_TAG_LABELS
 from index_viz import (
     av as _av,
     av_group_border as _av_group_border,
@@ -50,7 +51,6 @@ from index_viz import (
     make_event_chips as _make_event_chips,
     make_reaction_summary_html,
     pair_story_card as _pair_story_card,
-    render_alvo_rows as _render_alvo_rows,
     render_dramatic_event_row as _render_dramatic_event_row,
     render_actor_avatars as _render_actor_avatars,
     render_avatar_row as _render_avatar_row,
@@ -68,7 +68,8 @@ from index_viz import (
     SOURCE_ICONS,
     stat_chip,
     render_toggle_pair_lane as _render_toggle_pair_lane,
-    render_visado_row as _render_visado_row,
+    render_na_mira_row as _render_na_mira_row,
+    render_agressor_row as _render_agressor_row,
     render_vx_row as _render_vx_row,
 )
 
@@ -149,7 +150,6 @@ CARD_STORY_ORDER = {
     "impact": 90,
     "positive_impact": 100,
     "vulnerability": 110,
-    "mais_alvo": 120,
     "mais_agressor": 130,
     "vip": 140,
     "xepa": 150,
@@ -537,97 +537,37 @@ else:
 {render_paredao_index_card(payload, AVATARS)}
 </div>''')
 
-        # ── 🎯 Mais Alvo ──
-        elif ctype == "mais_alvo":
-            items_accum = card.get("items", [])
-            items_recent = card.get("items_recent", [])
-            items_accum_all = card.get("items_all") or items_accum
-            items_recent_all = card.get("items_recent_all") or items_recent
-            total = card.get("total", len(items_accum))
-            card_id = "alvo-toggle"
-
-            accum_html = _render_alvo_rows(items_accum_all, f"{card_id}-accum", avatar_fn=av)
-            recent_html = _render_alvo_rows(items_recent_all, f"{card_id}-recent", avatar_fn=av)
-
-            toggle_html = (
-                f'<div style="display:flex;gap:6px;margin-bottom:8px;">'
-                f'<button id="{card_id}-btn-accum" class="fs-2xs" onclick="'
-                f"document.getElementById('{card_id}-accum').style.display='block';"
-                f"document.getElementById('{card_id}-recent').style.display='none';"
-                f"this.style.opacity='1';document.getElementById('{card_id}-btn-recent').style.opacity='0.5';"
-                f'" style="padding:2px 8px;border:1px solid #555;border-radius:4px;background:#2a2a2a;color:#ccc;cursor:pointer;">Acumulado</button>'
-                f'<button id="{card_id}-btn-recent" class="fs-2xs" onclick="'
-                f"document.getElementById('{card_id}-recent').style.display='block';"
-                f"document.getElementById('{card_id}-accum').style.display='none';"
-                f"this.style.opacity='1';document.getElementById('{card_id}-btn-accum').style.opacity='0.5';"
-                f'" style="padding:2px 8px;border:1px solid #555;border-radius:4px;background:#2a2a2a;color:#ccc;cursor:pointer;opacity:0.5;">Recente</button>'
-                f'</div>'
-            )
-
-            # Recent starts hidden
-            recent_html = recent_html.replace(f'id="{card_id}-recent"', f'id="{card_id}-recent" style="display:none"', 1)
-
-            rows_html = toggle_html + accum_html + recent_html
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Quem mais foi alvo de indicações, votos e eventos de poder. Alterne entre visão acumulada e recente.")}
-{rows_html}
-</div>''')
-
         # ── ⚔️ Mais Agressor ──
         elif ctype == "mais_agressor":
-            items = card.get("items", [])
-            items_all = card.get("items_all") or items
-            total = card.get("total", len(items))
-            worst_aggr = abs(items_all[0]["score"]) if items_all else 1
+            items_all = card.get("items_all") or card.get("items", [])
+            items_exited = card.get("items_exited", [])
+            total = card.get("total", len(items_all))
             inline_items = items_all[:5]
             overflow_items = items_all[5:]
+            max_hits = max((it.get("power_hits", 0) for it in items_all), default=1) or 1
+
             rows_html = '<div class="u-s058">'
-            for it in inline_items:
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                score = it["score"]
-                bar_pct = min(100, abs(score) / worst_aggr * 100)
-                rows_html += (
-                    f'<div class="u-s056">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score:.1f}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
-                    f'</div>'
-                    f'</div></div>'
-                )
+            rows_html += "".join(
+                _render_agressor_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS)
+                for it in inline_items
+            )
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s058">'
+                    f'<div class="u-s058">{"".join(_render_agressor_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in overflow_items)}</div>'
+                    f'</details>'
                 )
-                for it in overflow_items:
-                    name = it["name"]
-                    name_slug = name.lower().replace(" ", "-")
-                    score = it["score"]
-                    bar_pct = min(100, abs(score) / worst_aggr * 100)
-                    rows_html += (
-                        f'<div class="u-s056">'
-                        f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
-                        f'<div class="u-s066">'
-                        f'<div class="u-s059">'
-                        f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                        f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score:.1f}</span>'
-                        f'</div>'
-                        f'<div class="u-s014">'
-                        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
-                        f'</div>'
-                        f'</div></div>'
-                    )
-                rows_html += '</div></details>'
+            if items_exited:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Mostrar eliminados ({len(items_exited)})</summary>'
+                    f'<div class="u-s058">{"".join(_render_agressor_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in items_exited)}</div>'
+                    f'</details>'
+                )
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Quem mais fez indicações, monstro, vetos e outros ataques deliberados ao longo do jogo.")}
+{card_header(card["icon"], card["title"], card.get("link"), f"{total} ativos", source_tag="📈 Acumulado", subtitle="Quem mais fez indicações, monstros, vetos e outros ataques deliberados.")}
 {rows_html}
 </div>''')
 
@@ -760,38 +700,38 @@ else:
 {rows_html}
 </div>''')
 
-        # ── 🎯 Mais Visados ──
+        # ── 🎯 Mais Alvo ──
         elif ctype == "visados":
-            items = card.get("items", [])
-            items_all = card.get("items_all") or items
-            display_limit = int(card.get("display_limit") or len(items) or 5)
-            n_par = card.get("n_paredoes", 1)
-            recent_window = card.get("recent_window", 3)
+            items_all = card.get("items_all") or card.get("items", [])
+            items_exited = card.get("items_exited", [])
+            display_limit = int(card.get("display_limit") or 4)
             inline_items = items_all[:display_limit]
             overflow_items = items_all[display_limit:]
-            max_votes = max((it.get("votes_total", 0) for it in items_all), default=1) or 1
+            max_hits = max((it.get("power_hits", 0) for it in items_all), default=1) or 1
 
             rows_html = '<div class="u-s058">'
             rows_html += "".join(
-                _render_visado_row(
-                    it,
-                    max_votes=max_votes,
-                    recent_window=recent_window,
-                    avatar_fn=av,
-                )
+                _render_na_mira_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS)
                 for it in inline_items
             )
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s058">{"".join(_render_visado_row(it, max_votes=max_votes, recent_window=recent_window, avatar_fn=av) for it in overflow_items)}</div>'
+                    f'<div class="u-s058">{"".join(_render_na_mira_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in overflow_items)}</div>'
+                    f'</details>'
+                )
+            if items_exited:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Mostrar eliminados ({len(items_exited)})</summary>'
+                    f'<div class="u-s058">{"".join(_render_na_mira_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in items_exited)}</div>'
                     f'</details>'
                 )
             rows_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais pressionados por paredão, votos recentes e intensidade de votos quando elegíveis.")}
+{card_header(card["icon"], card["title"], card.get("link"), f"{card.get('total', len(items_all))} ativos", source_tag="📈 Acumulado", subtitle="Quem mais sofreu indicações, monstros, vetos e outros ataques deliberados.")}
 {rows_html}
 </div>''')
 

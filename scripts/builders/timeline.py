@@ -33,6 +33,39 @@ _SCAFFOLD_FIRST_WEEK: dict[str, int] = {
     "barrado_baile": 1,
 }
 
+# Intra-day chronological ordering. Lower number = earlier in the day.
+# Used by build_game_timeline() to sort events within each date.
+CATEGORY_ORDER: dict[str, int] = {
+    # --- Entries/exits (meta-events, day start) ---
+    "entrada": 0, "saida": 1,
+    # --- Morning/afternoon role confirmations (~10h-15h) ---
+    "lider": 10, "anjo": 11, "monstro": 12, "imune": 13,
+    "consenso_anjo_monstro": 14,
+    # --- Afternoon events (~14h-17h) ---
+    "big_fone": 20, "big_fone_escolha": 21,
+    "mira_do_lider": 22,
+    "presente_anjo": 23,
+    "ta_com_nada": 24,
+    # --- Paredão ceremony (Sunday ~22h45, strict sequence) ---
+    "paredao_imunidade": 30, "paredao_indicacao": 31,
+    "paredao_votacao": 32,
+    "dinamica": 33,             # ceremony dynamics (Máquina do Poder, etc.)
+    "duelo_de_risco": 34,       # duel for contragolpe rights
+    "paredao_contragolpe": 35,
+    "paredao_bate_volta": 36, "paredao_formacao": 37,
+    # --- Generic power events (during ceremonies) ---
+    "imunidade": 38, "indicacao": 39, "contragolpe": 40, "bate_volta": 41,
+    "veto": 42, "veto_prova": 43, "perdeu_voto": 44,
+    "voto_anulado": 45, "voto_duplo": 46,
+    # --- Live show events (Mon-Fri ~22h) ---
+    "sincerao": 50,
+    "troca_vip": 53, "troca_xepa": 54, "barrado_baile": 55,
+    # --- Elimination night (Tuesday ~22h) ---
+    "paredao_resultado": 60,
+    "quarto_secreto_convite": 61,
+    "ganha_ganha": 62, "veto_ganha_ganha": 63, "ganha_ganha_escolha": 64,
+}
+
 _SCAFFOLD_EVENTS: list[dict] = [
     {"weekday": 6, "category": "presente_anjo", "emoji": "🎁", "title": "Presente do Anjo", "detail": "Anjo escolhe entre 2ª imunidade ou vídeo da família."},
     {"weekday": 6, "category": "paredao_formacao", "emoji": "🗳️", "title": "Formação do Paredão", "detail": "Indicação do Líder, votação da casa, contragolpe, bate e volta."},
@@ -760,19 +793,8 @@ def _merge_and_dedup_timeline(
         )
     ]
 
-    # --- Sort by date, then by category priority ---
-    # Paredão ceremony flow: imunidade → indicação → votação → contragolpe → bate-volta → formado
-    cat_order = {
-        "entrada": 0, "saida": 1, "lider": 2, "anjo": 3, "monstro": 4, "imune": 5,
-        "big_fone": 6,
-        "paredao_imunidade": 7, "paredao_indicacao": 8, "paredao_votacao": 9,
-        "paredao_contragolpe": 10, "paredao_bate_volta": 11, "paredao_formacao": 12,
-        "imunidade": 13, "indicacao": 14, "contragolpe": 15, "bate_volta": 16,
-        "veto": 17, "sincerao": 18, "ganha_ganha": 19,
-        "barrado_baile": 20, "presente_anjo": 21, "dinamica": 22,
-        "paredao_resultado": 23,
-    }
-    events.sort(key=lambda e: (e.get("date", ""), cat_order.get(e.get("category", ""), 99)))
+    # --- Sort by date, then by chronological category priority ---
+    events.sort(key=lambda e: (e.get("date", ""), CATEGORY_ORDER.get(e.get("category", ""), 99)))
 
     # Deduplicate: same date + category + same title → keep first
     seen: set[tuple[str, str, str]] = set()

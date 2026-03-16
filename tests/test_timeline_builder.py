@@ -839,3 +839,158 @@ def test_scaffold_open_week_generates_events(monkeypatch):
         for e in events
     )
 
+
+# --- Intra-day chronological ordering tests ---
+
+
+def test_presente_anjo_before_paredao_on_sunday():
+    """Presente do Anjo (afternoon) should appear before paredão ceremony (night) on the same day."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 8,
+                "data_formacao": "2026-03-09",
+                "formacao": {
+                    "lider": "Alberto Cowboy",
+                    "anjo": "Milena",
+                    "indicado_lider": "Milena",
+                    "imunizado": {"por": "Milena", "quem": "Ana Paula Renault"},
+                    "contragolpe": {"de": "Jordana", "para": "Chaiany"},
+                    "bate_volta": {"participantes": ["Jordana"], "vencedor": "Jordana"},
+                },
+                "indicados_finais": [{"nome": "Babu Santana"}, {"nome": "Chaiany"}, {"nome": "Milena"}],
+                "votos_casa": {"V1": "Jordana", "V2": "Marciele"},
+            }
+        ]
+    }
+    manual_events = {
+        "weekly_events": [
+            {
+                "week": 8,
+                "anjo": {
+                    "vencedor": "Milena",
+                    "prova_date": "2026-03-08",
+                    "presente": {"de": "Milena", "para": "Gabriela", "date": "2026-03-09"},
+                },
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, paredoes_data, reference_date="2026-03-15")
+    sunday_events = [e for e in events if e.get("date") == "2026-03-09"]
+    cats = [e["category"] for e in sunday_events]
+
+    if "presente_anjo" in cats and "paredao_imunidade" in cats:
+        assert cats.index("presente_anjo") < cats.index("paredao_imunidade"), (
+            f"presente_anjo should come before paredao_imunidade; got order: {cats}"
+        )
+    if "presente_anjo" in cats and "paredao_formacao" in cats:
+        assert cats.index("presente_anjo") < cats.index("paredao_formacao"), (
+            f"presente_anjo should come before paredao_formacao; got order: {cats}"
+        )
+
+
+def test_paredao_resultado_before_ganha_ganha():
+    """On elimination night, resultado is announced before Ganha-Ganha."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 8,
+                "data": "2026-03-11",
+                "data_formacao": "2026-03-09",
+                "status": "finalizado",
+                "formacao": {"lider": "Alberto Cowboy"},
+                "indicados_finais": [{"nome": "Babu Santana"}, {"nome": "Chaiany"}],
+                "votos_casa": {"V1": "Jordana"},
+                "resultado": {
+                    "eliminado": "Babu Santana",
+                    "votos": {
+                        "Babu Santana": {"voto_unico": 60.0, "voto_torcida": 55.0, "voto_total": 58.5},
+                        "Chaiany": {"voto_unico": 40.0, "voto_torcida": 45.0, "voto_total": 41.5},
+                    },
+                },
+            }
+        ]
+    }
+    manual_events = {
+        "weekly_events": [
+            {
+                "week": 8,
+                "ganha_ganha": {
+                    "date": "2026-03-11",
+                    "vencedor": "Chaiany",
+                    "escolha": "R$ 20 mil",
+                },
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, paredoes_data, reference_date="2026-03-15")
+    tuesday_events = [e for e in events if e.get("date") == "2026-03-11"]
+    cats = [e["category"] for e in tuesday_events]
+
+    if "paredao_resultado" in cats and "ganha_ganha" in cats:
+        assert cats.index("paredao_resultado") < cats.index("ganha_ganha"), (
+            f"paredao_resultado should come before ganha_ganha; got order: {cats}"
+        )
+
+
+def test_paredao_ceremony_substep_order():
+    """Paredão ceremony sub-steps should follow the real ceremony sequence."""
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 8,
+                "data_formacao": "2026-03-09",
+                "formacao": {
+                    "lider": "Alberto Cowboy",
+                    "anjo": "Milena",
+                    "indicado_lider": "Milena",
+                    "imunizado": {"por": "Milena", "quem": "Ana Paula Renault"},
+                    "contragolpe": {"de": "Jordana", "para": "Chaiany"},
+                    "bate_volta": {"participantes": ["Jordana"], "vencedor": "Jordana"},
+                },
+                "indicados_finais": [{"nome": "Babu Santana"}, {"nome": "Chaiany"}, {"nome": "Milena"}],
+                "votos_casa": {"V1": "Jordana", "V2": "Marciele"},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
+    formation_events = [
+        e for e in events
+        if e.get("date") == "2026-03-09" and e["category"].startswith("paredao_")
+    ]
+    cats = [e["category"] for e in formation_events]
+
+    expected_order = [
+        "paredao_imunidade", "paredao_indicacao", "paredao_votacao",
+        "paredao_contragolpe", "paredao_bate_volta", "paredao_formacao",
+    ]
+    present = [c for c in expected_order if c in cats]
+    actual_order = [c for c in cats if c in expected_order]
+    assert actual_order == present, (
+        f"Paredão ceremony sub-steps out of order: expected {present}, got {actual_order}"
+    )
+
+
+def test_all_timeline_categories_in_cat_order():
+    """All categories in game_timeline.json should have explicit CATEGORY_ORDER entries."""
+    import json
+    from pathlib import Path
+    from builders.timeline import CATEGORY_ORDER
+
+    timeline_path = Path(__file__).resolve().parent.parent / "data" / "derived" / "game_timeline.json"
+    if not timeline_path.exists():
+        import pytest
+        pytest.skip("game_timeline.json not found — run build_derived_data.py first")
+
+    raw = json.loads(timeline_path.read_text())
+    timeline = raw.get("events", raw) if isinstance(raw, dict) else raw
+    categories_in_data = {ev.get("category") for ev in timeline if ev.get("category")}
+
+    missing = categories_in_data - set(CATEGORY_ORDER.keys())
+    assert not missing, (
+        f"Categories in game_timeline.json without explicit CATEGORY_ORDER entry: {sorted(missing)}"
+    )
+

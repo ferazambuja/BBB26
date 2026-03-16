@@ -226,7 +226,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_reaction_matrices, deserialize_matrix,
-    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    require_clean_manual_events, setup_bbb_dark_theme,
     load_paredoes_transformed, load_paredao_analysis,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted,
@@ -487,12 +487,6 @@ if ultimo:
                 )
                 if not _is_formula_change_note:
                     print(f'<p class="text-warning small u-s002">⚠️ {_methodology_note}</p>\n')
-                print(
-                    '<p class="text-muted small u-s002">'
-                    'Desde 10 de março de 2026, o Votalhada passou a exibir a média <strong>0,3 x 0,7</strong>; '
-                    'neste painel mantemos temporariamente a <strong>fórmula anterior</strong> para comparabilidade histórica.'
-                    '</p>\n'
-                )
 
             # Compute precision model prediction
             _prec = calculate_precision_weights(polls_data)
@@ -552,8 +546,19 @@ if ultimo:
                     print(f'<td class="tc text-muted fs-md">{votos_str}</td>')
                     print('</tr>')
 
-            # Votalhada consolidado row
-            print(f'<tr class="u-s168"><td class="fs-base u-s002">📊 Votalhada</td>')
+            # Compute mirror 0.3×0.7 formula from platform data
+            _has_cpf_platforms = all(p in plataformas for p in ('sites', 'youtube', 'twitter', 'instagram'))
+            _mirror_3070 = {}
+            if _has_cpf_platforms:
+                for _n in participantes_poll:
+                    _s = plataformas['sites'].get(_n, 0)
+                    _cpf_avg = sum(plataformas[p].get(_n, 0) for p in ('youtube', 'twitter', 'instagram')) / 3.0
+                    _mirror_3070[_n] = round(0.3 * _s + 0.7 * _cpf_avg, 2)
+
+            # Votalhada consolidado row (legacy weighted)
+            _show_both = bool(_mirror_3070)
+            _legacy_label = '📊 Média Ponderada' if _show_both else '📊 Votalhada'
+            print(f'<tr class="u-s168"><td class="fs-base u-s002">{_legacy_label}</td>')
             _cvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
@@ -563,6 +568,19 @@ if ultimo:
                 print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
             print(f'<td class="tc text-muted fs-md">{total_str}</td>')
             print('</tr>')
+
+            # Mirror 0.3×0.7 row (new Votalhada formula)
+            if _mirror_3070:
+                print(f'<tr class="u-s168"><td class="fs-base u-s002">📊 Análise 0,3×0,7</td>')
+                _mvals_3070 = [_mirror_3070.get(n, 0) for n in participantes_poll]
+                for nome in participantes_poll:
+                    val = _mirror_3070.get(nome, 0)
+                    style = _poll_highlight(val, _mvals_3070)
+                    if 'font-weight' not in style:
+                        style = 'font-weight:bold;' + style
+                    print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
+                print(f'<td class="tc text-muted fs-sm">recalculado</td>')
+                print('</tr>')
 
             # Our model row
             if _model_pred:
@@ -804,7 +822,53 @@ if ultimo:
                         f'Sites {_wu.get("sites", 0)*100:.0f}%.'
                     )
 
-            # 6) Optional context: turnout.
+            # 6) Formula change insight — compare old vs new Votalhada formula.
+            if _mirror_3070 and _has_cpf_platforms:
+                # Compute retroactive MAE for both formulas across finalized paredões
+                _finalized = [p for p in polls_data.get('paredoes', []) if p.get('resultado_real')]
+                if len(_finalized) >= 3:
+                    _legacy_mae_sum, _mirror_mae_sum, _n_fin = 0.0, 0.0, 0
+                    for _fp in _finalized:
+                        _fparts = _fp.get('participantes', [])
+                        _fplat = _fp.get('plataformas', {})
+                        _freal = _fp.get('resultado_real', {})
+                        _fcons = _fp.get('consolidado', {})
+                        if not all(p in _fplat for p in ('sites', 'youtube', 'twitter', 'instagram')):
+                            continue
+                        if not _fparts or not _freal:
+                            continue
+                        # Legacy MAE
+                        _l_mae = sum(abs(_fcons.get(n, 0) - _freal.get(n, 0)) for n in _fparts) / len(_fparts)
+                        # Mirror 3070 MAE
+                        _m_vals = {}
+                        for _fn in _fparts:
+                            _fs = _fplat['sites'].get(_fn, 0)
+                            _fc = sum(_fplat[p].get(_fn, 0) for p in ('youtube', 'twitter', 'instagram')) / 3.0
+                            _m_vals[_fn] = 0.3 * _fs + 0.7 * _fc
+                        _m_mae = sum(abs(_m_vals.get(n, 0) - _freal.get(n, 0)) for n in _fparts) / len(_fparts)
+                        _legacy_mae_sum += _l_mae
+                        _mirror_mae_sum += _m_mae
+                        _n_fin += 1
+                    if _n_fin >= 3:
+                        _l_avg = _legacy_mae_sum / _n_fin
+                        _m_avg = _mirror_mae_sum / _n_fin
+                        _pct_gain = ((_l_avg - _m_avg) / _l_avg * 100) if _l_avg > 0 else 0
+                        if _pct_gain > 5:
+                            # Show the biggest mover between formulas for current poll
+                            _biggest_diff_name = max(participantes_poll, key=lambda n: abs(_mirror_3070.get(n, 0) - consolidado.get(n, 0)))
+                            _bd_legacy = consolidado.get(_biggest_diff_name, 0)
+                            _bd_mirror = _mirror_3070.get(_biggest_diff_name, 0)
+                            _bd_delta = _bd_mirror - _bd_legacy
+                            _curiosities.append(
+                                f'🔬 <strong>Fórmula nova vs antiga</strong>: desde o P8, o Votalhada usa '
+                                f'0,3 × Torcida + 0,7 × Voto Único. '
+                                f'Nos {_n_fin} paredões anteriores, a nova fórmula teria errado <strong>{_m_avg:.1f} p.p.</strong> '
+                                f'vs <strong>{_l_avg:.1f} p.p.</strong> da antiga (−{_pct_gain:.0f}%). '
+                                f'Hoje, a maior diferença é em <strong>{_biggest_diff_name.split()[0]}</strong>: '
+                                f'{_bd_legacy:.1f}% → {_bd_mirror:.1f}% ({_bd_delta:+.1f} p.p.).'
+                            )
+
+            # 7) Optional context: turnout.
             if total_votos > 1_000_000:
                 _hist_votos = []
                 for _hp in polls_data.get('paredoes', []):
@@ -1189,74 +1253,6 @@ if ultimo:
                     elif _sinc_total > 0 and _sinc_vote_aligned == 0:
                         print(f'<p class="fs-base u-s033">📊 Nenhum participante votou no mesmo nome que escolheu no Sincerinho — os alvos divergiram completamente.</p>')
 
-                print()
-
-        # ══════════════════════════════════════════════════════════
-        # RANKING DE SENTIMENTO (formação)
-        # ══════════════════════════════════════════════════════════
-        if True:  # Always show when data available
-            _formacao_date_sent = ultimo.get('data_formacao') or ultimo.get('data') or latest['date'] if ultimo else latest['date']
-            _snap_sent_idx = None
-            for _si, _ss in enumerate(daily_snapshots):
-                if _ss['date'] <= _formacao_date_sent:
-                    _snap_sent_idx = _si
-            if _snap_sent_idx is not None:
-                _snap_sent = daily_snapshots[_snap_sent_idx]
-                _snap_sent_participants = _snap_sent['participants']
-            else:
-                _snap_sent = daily_snapshots[-1]
-                _snap_sent_participants = _snap_sent['participants']
-
-            sentiment_data = []
-            nominee_names = {p['nome'] for p in ultimo.get('participantes', [])} if ultimo else set()
-            for p in _snap_sent_participants:
-                if p.get('characteristics', {}).get('eliminated'):
-                    continue
-                name = p['name']
-                score = calc_sentiment(p)
-                member_of = p.get('characteristics', {}).get('memberOf', '?')
-                sentiment_data.append({'name': name, 'score': score, 'memberOf': member_of, 'is_nominee': name in nominee_names})
-
-            if sentiment_data:
-                df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
-
-                print(f"\n### 📊 Ranking de Sentimento ({_snap_sent['date']})\n")
-
-                fig_sent = go.Figure()
-                fig_sent.add_trace(go.Bar(
-                    y=df_sent['name'],
-                    x=df_sent['score'],
-                    orientation='h',
-                    marker_color=[GROUP_COLORS.get(m, '#999') for m in df_sent['memberOf']],
-                    text=[f"<b>{s:+.1f}</b>" if is_n else f"{s:+.1f}" for s, is_n in zip(df_sent['score'], df_sent['is_nominee'])],
-                    textposition='outside',
-                    hovertemplate='%{y}: %{x:+.1f}<extra></extra>',
-                ))
-
-                # Highlight nominees on y-axis
-                fig_sent.update_layout(
-                    xaxis_title="Score",
-                    yaxis_title="",
-                    height=max(400, len(df_sent) * 22),
-                    margin=dict(l=120, t=30),
-                    shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
-                                 line=dict(color='red', dash='dash', width=1))],
-                )
-
-                # Bold nominee names on y-axis
-                _nominee_icon = '🔮' if ultimo.get('paredao_falso') else '🎯'
-                tick_labels = []
-                for _, row in df_sent.iterrows():
-                    if row['is_nominee']:
-                        tick_labels.append(f"<b>{_nominee_icon} {row['name']}</b>")
-                    else:
-                        tick_labels.append(row['name'])
-                fig_sent.update_yaxes(
-                    ticktext=tick_labels,
-                    tickvals=list(df_sent['name']),
-                )
-
-                fig_sent.show()
                 print()
 
         # ── Duelo de Risco — Consensus Analysis ──────────────────────────

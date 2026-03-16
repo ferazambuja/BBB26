@@ -150,6 +150,13 @@ def classify_ocr_text(text: str) -> tuple[str, int]:
         score += 5
     if "MEDIA PROPORCIONAL" in n or ("MEDIA" in n and "PROPORCIONAL" in n):
         score += 2
+    # New layout markers (March 2026+)
+    if "VOTO DA TORCIDA" in n:
+        score += 2
+    if "ANALISE VOTALHADA" in n or "MEDIA FINAL PONDERADA" in n:
+        score += 3
+    if "VOTO UNICO" in n:
+        score += 1
     if "TOTAL DE VOTOS" in n or "TOTALDEVOTOS" in n or " TOTAL " in f" {n} ":
         score += 1
 
@@ -282,19 +289,37 @@ def _extract_row_values_any(lines: list[str], labels: list[str]) -> tuple[list[f
 
 def _extract_consolidado_row(text: str) -> tuple[list[float], int]:
     flat = re.sub(r"\s+", " ", text)
-    pattern = (
+
+    # Legacy layout: "Média Proporcional <p1> <p2> <p3> <votes>"
+    pattern_legacy = (
         r"(?:M[ÉE]DIA\s+PROPORCIONAL|PROPORCIONAL)\s+"
         r"(\d[\d,\.]*)\s+(\d[\d,\.]*)\s+(\d[\d,\.]*)\s+"
         r"(?:TOTAL\s+)?(\d[\d,\.]*)"
     )
-    m = re.search(pattern, flat, flags=re.IGNORECASE)
-    if not m:
-        raise ValueError("Could not parse 'Média Proporcional' row")
-    pcts = [_as_float_percent(m.group(i)) for i in (1, 2, 3)]
-    votes = _as_int_votes(m.group(4))
-    if any(v is None for v in pcts) or votes is None:
-        raise ValueError("Invalid values in consolidated row")
-    return _repair_triplet([pcts[0], pcts[1], pcts[2]]), int(votes)
+    m = re.search(pattern_legacy, flat, flags=re.IGNORECASE)
+    if m:
+        pcts = [_as_float_percent(m.group(i)) for i in (1, 2, 3)]
+        votes = _as_int_votes(m.group(4))
+        if all(v is not None for v in pcts) and votes is not None:
+            return _repair_triplet([pcts[0], pcts[1], pcts[2]]), int(votes)
+
+    # New layout: "MEDIA FINAL PONDERADA (0,3 x 0,7) <p1> <p2> <p3>"
+    # or "ANALISE VOTALHADA <p1> <p2> <p3>"
+    # These rows may not include a vote count.
+    for header in (
+        r"MEDIA\s+FINAL\s+PONDERADA",
+        r"ANALISE\s+VOTALHADA",
+    ):
+        pattern_new = header + r"[^0-9]*(\d[\d,\.]*)\s+(\d[\d,\.]*)\s+(\d[\d,\.]*)"
+        m2 = re.search(pattern_new, flat, flags=re.IGNORECASE)
+        if m2:
+            pcts = [_as_float_percent(m2.group(i)) for i in (1, 2, 3)]
+            if all(v is not None for v in pcts):
+                # Vote count is absent in the new layout's blended row.
+                # Return 0; caller will fall back to platform totals.
+                return _repair_triplet([pcts[0], pcts[1], pcts[2]]), 0
+
+    raise ValueError("Could not parse consolidado row (legacy or new layout)")
 
 
 def _platform_keys_for_totals(plataformas: dict) -> list[str]:
@@ -1106,8 +1131,128 @@ def _apply_series_time_sanity(
     return cleaned, corrections, warnings
 
 
+def _is_new_layout(lines: list[str]) -> bool:
+    """Detect the new Votalhada card layout (March 2026+).
+
+    The new layout has section headers "VOTO DA TORCIDA" and "VOTO UNICO"
+    instead of the legacy flat table with a "Sites" row label.
+    """
+    for line in lines:
+        n = _norm(line)
+        if "VOTO DA TORCIDA" in n or "VOTO UNICO" in n:
+            return True
+    return False
+
+
+def _extract_sites_from_section_header(lines: list[str]) -> tuple[list[float], int] | None:
+    """Extract Sites data from the new layout where data follows a section header.
+
+    In the new layout, "VOTO DA TORCIDA - SITES" is a header and the data row
+    below it has no label — just 3 percentages + 1 vote count.
+    Also handles the case where the row is labeled "Média" or "media".
+
+    Because PSM 6 and PSM 4 outputs are concatenated, there may be multiple
+    VOTO DA TORCIDA headers. We try each one and pick the best numeric match.
+    The data row must appear before "VOTO UNICO" and must NOT contain a
+    platform label (YouTube, Twitter, Instagram).
+    """
+    _PLATFORM_LABELS = {"YOUTUBE", "TWITTER", "INSTAGRAM", "X TWITTER", "X-TWITTER"}
+
+    candidates: list[tuple[list[float], int]] = []
+    for i, line in enumerate(lines):
+        n = _norm(line)
+        if "VOTO DA TORCIDA" not in n:
+            continue
+        # Search lines after the header until we hit VOTO UNICO or run out.
+        for j in range(i + 1, min(i + 5, len(lines))):
+            nj = _norm(lines[j])
+            # Stop if we've entered the CPF section.
+            if "VOTO UNICO" in nj:
+                break
+            # Skip lines that are platform rows (YouTube, Twitter, etc.)
+            if any(lbl in nj for lbl in _PLATFORM_LABELS):
+                continue
+            tokens = re.findall(r"\d[\d\.,]*", lines[j])
+            if len(tokens) >= 4:
+                p1 = _as_float_percent(tokens[0])
+                p2 = _as_float_percent(tokens[1])
+                p3 = _as_float_percent(tokens[2])
+                votes = _as_int_votes(tokens[-1])
+                if None not in (p1, p2, p3, votes):
+                    repaired = _repair_triplet([p1, p2, p3])
+                    if all(0 <= v <= 100 for v in repaired):
+                        candidates.append((repaired, int(votes)))
+                        break  # Take first valid row after this header.
+    if not candidates:
+        return None
+    # Prefer the candidate closest to summing 100%.
+    candidates.sort(key=lambda c: abs(sum(c[0]) - 100.0))
+    return candidates[0]
+
+
+def _extract_cpf_rows_positional(lines: list[str]) -> list[tuple[list[float], int]]:
+    """Extract CPF platform rows positionally from the VOTO UNICO section.
+
+    In the new layout, OCR sometimes drops platform labels (YouTube, Twitter,
+    Instagram). This function finds ALL VOTO UNICO headers (PSM 6 + PSM 4
+    outputs are concatenated, so there may be duplicates) and collects
+    numeric rows from each. Returns the set with the most valid rows
+    and best sum quality.
+    """
+    _STOP_MARKERS = {"MEDIA", "ANALISE", "VOTO DA TORCIDA", "VARIACAO", "EVOLUCAO"}
+
+    def _collect_from(start_idx: int) -> list[tuple[list[float], int]]:
+        results: list[tuple[list[float], int]] = []
+        for line in lines[start_idx + 1 :]:
+            n = _norm(line)
+            if any(marker in n for marker in _STOP_MARKERS):
+                break
+            tokens = re.findall(r"\d[\d\.,]*", line)
+            if len(tokens) >= 4:
+                p1 = _as_float_percent(tokens[0])
+                p2 = _as_float_percent(tokens[1])
+                p3 = _as_float_percent(tokens[2])
+                votes = _as_int_votes(tokens[-1])
+                if None not in (p1, p2, p3, votes):
+                    repaired = _repair_triplet([p1, p2, p3])
+                    if all(0 <= v <= 100 for v in repaired):
+                        results.append((repaired, int(votes)))
+                        continue
+            # 3-token reconstruct (OCR dropped first percentage).
+            if len(tokens) == 3:
+                p2 = _as_float_percent(tokens[0])
+                p3 = _as_float_percent(tokens[1])
+                votes3 = _as_int_votes(tokens[2])
+                if None not in (p2, p3, votes3):
+                    p1_calc = round(100.0 - float(p2) - float(p3), 2)
+                    repaired3 = _repair_triplet([p1_calc, float(p2), float(p3)])
+                    if all(0 <= v <= 100 for v in repaired3):
+                        results.append((repaired3, int(votes3)))
+        return results
+
+    # Collect from every VOTO UNICO header occurrence.
+    all_sets: list[list[tuple[list[float], int]]] = []
+    for i, line in enumerate(lines):
+        if "VOTO UNICO" in _norm(line):
+            rows = _collect_from(i)
+            if rows:
+                all_sets.append(rows)
+
+    if not all_sets:
+        return []
+
+    # Pick the set with the most rows; break ties by best average sum quality.
+    def _quality(rowset: list[tuple[list[float], int]]) -> tuple[int, float]:
+        avg_gap = sum(abs(sum(r[0]) - 100.0) for r in rowset) / len(rowset)
+        return (len(rowset), -avg_gap)
+
+    all_sets.sort(key=_quality, reverse=True)
+    return all_sets[0]
+
+
 def _extract_platform_rows(lines: list[str], participants: list[str]) -> dict:
     rows: dict[str, dict] = {}
+    new_layout = _is_new_layout(lines)
 
     def put_row(key: str, labels: list[str]) -> None:
         extracted = _extract_row_values_any(lines, labels)
@@ -1121,8 +1266,26 @@ def _extract_platform_rows(lines: list[str], participants: list[str]) -> dict:
             "votos": votes,
         }
 
+    def set_row(key: str, vals: list[float], votes: int) -> None:
+        rows[key] = {
+            participants[0]: vals[0],
+            participants[1]: vals[1],
+            participants[2]: vals[2],
+            "votos": votes,
+        }
+
+    # Sites: in the new layout the data row has no "Sites" label —
+    # it follows the "VOTO DA TORCIDA - SITES" section header.
+    if new_layout:
+        sites_data = _extract_sites_from_section_header(lines)
+        if sites_data is not None:
+            vals, votes = sites_data
+            set_row("sites", vals, votes)
+    if "sites" not in rows:
+        # Fallback: try label-based match (old layout or "Média" after header).
+        put_row("sites", ["Sites"])
+
     # Core rows expected in both legacy and current layouts.
-    put_row("sites", ["Sites"])
     put_row("youtube", ["YouTube"])
     put_row("twitter", ["Twitter", "X - Twitter", "X-Twitter", "Twrittor", "Twritter", "Twiter"])
 
@@ -1133,6 +1296,29 @@ def _extract_platform_rows(lines: list[str], participants: list[str]) -> dict:
     put_row("instagram", ["Instagram", "Média Instagram", "Media Instagram"])
     put_row("outras_redes", ["Outras Redes", "Média Geral", "Media Geral"])
     put_row("threads", ["Média Threads", "Media Threads"])
+
+    # New-layout fallback: if label-based extraction missed CPF platforms
+    # or produced bad sums, try positional extraction from the VOTO UNICO
+    # section. The card always shows YouTube, Twitter, Instagram in that order.
+    cpf_keys = ["youtube", "twitter", "instagram"]
+    cpf_needs_fix = [
+        k for k in cpf_keys
+        if k not in rows
+        or abs(sum(rows[k].get(p, 0) for p in participants) - 100.0) > PLATFORM_SUM_TOLERANCE
+    ]
+    if new_layout and cpf_needs_fix:
+        positional = _extract_cpf_rows_positional(lines)
+        # Assign positionally: row 0=youtube, row 1=twitter, row 2=instagram.
+        # Replace missing or bad-sum slots with positional data.
+        assigned_idx = 0
+        for key in cpf_keys:
+            if key not in cpf_needs_fix:
+                assigned_idx += 1
+                continue
+            if assigned_idx < len(positional):
+                vals, votes = positional[assigned_idx]
+                set_row(key, vals, votes)
+            assigned_idx += 1
 
     required = [k for k in ("sites", "youtube", "twitter") if k not in rows]
     if required:

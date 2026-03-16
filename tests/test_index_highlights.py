@@ -159,11 +159,8 @@ def test_all_highlight_card_links_follow_navigation_contract():
     assert not any("%" in link for link in links), f"Percent-encoded links are forbidden: {sorted(links)}"
 
 
-def test_vulnerability_cards_uses_latest_date_not_today():
-    """M-2: _compute_vulnerability_cards must use the data date for decay, not date.today()."""
-    from data_utils import get_week_number
-
-    # Two participants, one active
+def test_vulnerability_cards_no_mais_alvo_card():
+    """M-2: mais_alvo card removed (replaced by Na Mira in _compute_static_cards)."""
     latest = {
         "date": "2026-02-20",
         "participants": [
@@ -174,65 +171,21 @@ def test_vulnerability_cards_uses_latest_date_not_today():
     active_names = ["Ana", "Beto"]
     active_set = {"Ana", "Beto"}
 
-    # Multiple edges targeting Ana in week 3 with large negative weights.
-    # Total accumulated = -30. With ALVO_DECAY=0.85, the decayed recent score
-    # will differ depending on which week is used as "current":
-    #   week 6 (2026-02-20): age=3, decay=0.85^3=0.614, recent=-30*0.614=-18.4
-    #   week 8 (2026-03-06): age=5, decay=0.85^5=0.444, recent=-30*0.444=-13.3
-    # Both pass the -5 threshold, but the scores differ.
     edges = [
         {"actor": "Beto", "target": "Ana", "type": "vote",
          "weight": -10.0, "week": 3, "backlash": False},
-        {"actor": "Beto", "target": "Ana", "type": "power_event",
-         "weight": -10.0, "week": 3, "backlash": False, "event_type": "indicacao"},
-        {"actor": "Beto", "target": "Ana", "type": "vote",
-         "weight": -10.0, "week": 3, "backlash": False},
     ]
-
     relations_data = {"edges": edges}
 
-    # Call with explicit latest_date in week 6 (2026-02-20)
-    data_week = get_week_number("2026-02-20")
-    _hl1, cards1, _pn1 = _compute_vulnerability_cards(
+    _hl, cards, _pn = _compute_vulnerability_cards(
         latest, active_names, active_set,
         received_impact={}, relations_pairs={},
         relations_data=relations_data,
         latest_date="2026-02-20",
     )
 
-    # Call with a different latest_date in week 8 (2026-03-06)
-    later_week = get_week_number("2026-03-06")
-    _hl2, cards2, _pn2 = _compute_vulnerability_cards(
-        latest, active_names, active_set,
-        received_impact={}, relations_pairs={},
-        relations_data=relations_data,
-        latest_date="2026-03-06",
-    )
-
-    # The weeks differ, so decay should produce different recent scores
-    assert data_week != later_week, "Test dates should map to different weeks"
-
-    # Extract the mais_alvo card items_recent scores for Ana
-    def get_recent_score(cards_list):
-        for card in cards_list:
-            if card.get("type") == "mais_alvo":
-                for item in card.get("items_recent", []):
-                    if item["name"] == "Ana":
-                        return item["score"]
-        return None
-
-    score_early = get_recent_score(cards1)
-    score_late = get_recent_score(cards2)
-
-    # Both should produce an alvo card (total=-30, decayed still well below -5)
-    assert score_early is not None, "Expected mais_alvo card with Ana for early date"
-    assert score_late is not None, "Expected mais_alvo card with Ana for later date"
-
-    # Later date has higher age -> more decay -> score closer to zero (less negative)
-    assert score_late > score_early, (
-        f"Later date (week {later_week}) should have more decay than earlier date "
-        f"(week {data_week}): {score_late} should be > {score_early}"
-    )
+    card_types = [c.get("type") for c in cards]
+    assert "mais_alvo" not in card_types, "mais_alvo card should no longer be produced"
 
 
 def test_deliberate_power_types_is_module_level_constant():

@@ -359,7 +359,22 @@ class TestVisadosAndDisplayLimitContract:
                 "votos_casa": {"V1": "Ana", "V2": "Duda", "V3": "Duda"},
             },
         ]
-        return {"active_set": active_set, "paredoes": {"paredoes": paredoes}}
+        power_events = [
+            {"type": "indicacao", "actor": "Eva", "target": "Ana", "impacto": "negativo", "week": 1, "date": "2026-01-18"},
+            {"type": "indicacao", "actor": "Ana", "target": "Caio", "impacto": "negativo", "week": 2, "date": "2026-01-25"},
+            {"type": "contragolpe", "actor": "Caio", "target": "Duda", "impacto": "negativo", "week": 2, "date": "2026-01-25"},
+            {"type": "monstro", "actor": "Breno", "target": "Ana", "impacto": "negativo", "week": 3, "date": "2026-02-01"},
+        ]
+        participants = [
+            {"name": n, "active": True} for n in active_set
+        ]
+        return {
+            "active_set": active_set,
+            "paredoes": {"paredoes": paredoes},
+            "power_events": power_events,
+            "participants_index": {"participants": participants},
+            "current_week": 3,
+        }
 
     def test_blindados_items_respect_display_limit(self):
         _highlights, cards, _stats = _compute_static_cards(self._build_ctx())
@@ -373,23 +388,16 @@ class TestVisadosAndDisplayLimitContract:
         visados = next(card for card in cards if card.get("type") == "visados")
         assert visados["display_limit"] == 4
         assert visados["items"] == visados["items_all"][: visados["display_limit"]]
-        assert len(visados["items_all"]) == len(self._build_ctx()["active_set"])
         required = {
             "name",
             "paredao",
             "bv_escapes",
-            "votes_total",
-            "votes_recent",
-            "votes_available",
-            "available",
-            "intensity_prevote",
-            "by_lider",
-            "by_casa",
-            "by_dynamic",
+            "power_hits",
+            "power_hits_recent",
+            "power_tags",
+            "power_detail",
             "nom_text",
-            "fake_paredao_count",
-            "fake_paredao_nums",
-            "total",
+            "active",
         }
         for item in visados["items_all"]:
             missing = required - set(item.keys())
@@ -401,32 +409,34 @@ class TestVisadosAndDisplayLimitContract:
         items = visados["items_all"]
         for i in range(len(items) - 1):
             a, b = items[i], items[i + 1]
-            key_a = (
-                -a["paredao"],
-                -a["bv_escapes"],
-                -a["votes_recent"],
-                -a["intensity_prevote"],
-                -a["votes_total"],
-                a["name"],
-            )
-            key_b = (
-                -b["paredao"],
-                -b["bv_escapes"],
-                -b["votes_recent"],
-                -b["intensity_prevote"],
-                -b["votes_total"],
-                b["name"],
-            )
+            key_a = (-a["power_hits"], -a["paredao"], -a["power_hits_recent"], a["name"])
+            key_b = (-b["power_hits"], -b["paredao"], -b["power_hits_recent"], b["name"])
             assert key_a <= key_b, f"Sort violation: {a['name']} should come before {b['name']}"
 
-    def test_visados_marks_fake_paredao_cycles(self):
+    def test_visados_power_hits_correct(self):
         _highlights, cards, _stats = _compute_static_cards(self._build_ctx())
         visados = next(card for card in cards if card.get("type") == "visados")
         by_name = {it["name"]: it for it in visados["items_all"]}
-        assert by_name["Ana"]["fake_paredao_count"] == 1
-        assert by_name["Ana"]["fake_paredao_nums"] == [3]
-        assert by_name["Duda"]["fake_paredao_count"] == 1
-        assert by_name["Duda"]["fake_paredao_nums"] == [3]
+        # Ana targeted 2x (indicacao + monstro)
+        assert by_name["Ana"]["power_hits"] == 2
+        assert len(by_name["Ana"]["power_tags"]) == 2
+        # Caio targeted 1x (indicacao)
+        assert by_name["Caio"]["power_hits"] == 1
+        # Duda targeted 1x (contragolpe)
+        assert by_name["Duda"]["power_hits"] == 1
+
+    def test_agressor_card_exists_with_expected_shape(self):
+        _highlights, cards, _stats = _compute_static_cards(self._build_ctx())
+        agressor = next(card for card in cards if card.get("type") == "mais_agressor")
+        required = {"name", "power_hits", "power_hits_recent", "power_tags", "power_detail", "active"}
+        for item in agressor["items_all"]:
+            missing = required - set(item.keys())
+            assert not missing, f"{item['name']} missing fields: {missing}"
+        # Eva, Ana, Caio, Breno each did 1 action
+        by_name = {it["name"]: it for it in agressor["items_all"]}
+        assert by_name["Eva"]["power_hits"] == 1
+        assert by_name["Ana"]["power_hits"] == 1
+        assert by_name["Breno"]["power_hits"] == 1
 
 
 # ── Contract test (uses real data if available) ──────────────────────────────
@@ -594,7 +604,10 @@ class TestBlindadosDisplayDetails:
         blindados = next(card for card in cards if card["type"] == "blindados")
         jonas = next(item for item in blindados["items_all"] if item["name"] == "Jonas")
 
-        assert jonas["bv_text"] == "Escapou: Bate-Volta 1x (3º)"
+        assert jonas["bv_text"] == "Bate-Volta 1x (3º)"
+        assert jonas["escape_tags"] == [
+            {"label": "Bate-Volta", "count": 1, "nums": [3], "text": "Bate-Volta 1x (3º)"},
+        ]
         assert "🚄" not in jonas["bv_text"]
         assert jonas["prot_text"] == "Autoimune 1x, Líder 1x, Imune 1x"
         assert jonas["protection_tags"] == [
@@ -607,14 +620,14 @@ class TestBlindadosDisplayDetails:
 class TestCanonicalExposureCharacterization:
     """Protect the 6 exposure fields moved into the canonical helper."""
 
-    def test_helper_matches_blindados_and_visados_exposure_fields(self):
+    def test_helper_matches_blindados_exposure_fields(self):
         ctx = {
             "active_set": {"Ana", "Breno", "Caio"},
             "participants_index": {
                 "participants": [
-                    {"name": "Ana", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
-                    {"name": "Breno", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
-                    {"name": "Caio", "first_seen": "2026-01-13", "last_seen": "9999-12-31"},
+                    {"name": "Ana", "first_seen": "2026-01-13", "last_seen": "9999-12-31", "active": True},
+                    {"name": "Breno", "first_seen": "2026-01-13", "last_seen": "9999-12-31", "active": True},
+                    {"name": "Caio", "first_seen": "2026-01-13", "last_seen": "9999-12-31", "active": True},
                 ]
             },
             "paredoes": {
@@ -645,6 +658,10 @@ class TestCanonicalExposureCharacterization:
                     },
                 ]
             },
+            "power_events": [
+                {"type": "indicacao", "actor": "Ana", "target": "Caio", "impacto": "negativo", "week": 2, "date": "2026-01-25"},
+            ],
+            "current_week": 2,
         }
 
         exposure = compute_house_vote_exposure(
@@ -660,22 +677,12 @@ class TestCanonicalExposureCharacterization:
         )
         _highlights, cards, _stats = _compute_static_cards(ctx)
         blindados = next(card for card in cards if card["type"] == "blindados")
-        visados = next(card for card in cards if card["type"] == "visados")
         blindados_by_name = {item["name"]: item for item in blindados["items_all"]}
-        visados_by_name = {item["name"]: item for item in visados["items_all"]}
 
         for name, expected in exposure.items():
             blind = blindados_by_name[name]
-            visado = visados_by_name[name]
             assert blind["votes_total"] == expected["votes_total"]
             assert blind["votes_available"] == expected["votes_available"]
             assert blind["available"] == expected["available"]
             assert blind["protected"] == expected["protected"]
             assert blind["last_voted_paredao"] == expected["last_voted_paredao"]
-
-            assert visado["votes_total"] == expected["votes_total"]
-            assert visado["votes_recent"] == expected["votes_recent"]
-            assert visado["votes_available"] == expected["votes_available"]
-            assert visado["available"] == expected["available"]
-            assert visado["protected"] == expected["protected"]
-            assert visado["last_voted_paredao"] == expected["last_voted_paredao"]

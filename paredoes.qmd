@@ -33,7 +33,7 @@ from data_utils import (
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     build_precision_methodology_text,
-    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    require_clean_manual_events, setup_bbb_dark_theme,
     genero, get_nominee_badge, resolve_leaders,
     make_poll_timeseries,
     avatar_html, avatar_img,
@@ -1607,44 +1607,6 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         print(f"### Coerência Voto vs Reação\n")
         print(f"**{n_coerente}/{total}** votos coerentes (votou em quem deu reação negativa)")
         print(f"<br>**{n_incoerente}/{total}** incoerentes (deu ❤️ mas votou contra)\n")
-
-    # ══════════════════════════════════════════════════════════════
-    # RANKING DE SENTIMENTO (compact)
-    # ══════════════════════════════════════════════════════════════
-
-    sentiment_data = []
-    for p in snap_participants:
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        score = calc_sentiment(p)
-        member_of = p.get('characteristics', {}).get('memberOf', '?')
-        sentiment_data.append({'name': name, 'score': score, 'memberOf': member_of})
-
-    df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
-
-    print(f"\n### Ranking de Sentimento ({snap_p['label']})\n")
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=df_sent['name'],
-        x=df_sent['score'],
-        orientation='h',
-        marker_color=[GROUP_COLORS.get(m, '#999') for m in df_sent['memberOf']],
-        text=[f"{s:+.1f}" for s in df_sent['score']],
-        textposition='outside',
-    ))
-
-    fig.update_layout(
-        xaxis_title="Score",
-        yaxis_title="",
-        height=max(400, len(df_sent) * 22),
-        margin=dict(l=120, t=30),
-        shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
-                     line=dict(color='red', dash='dash', width=1))]
-    )
-
-    fig.show()
 
     # ══════════════════════════════════════════════════════════════
     # PER-NOMINEE ANALYSIS — Structured storytelling per nominee

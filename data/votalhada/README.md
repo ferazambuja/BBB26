@@ -4,13 +4,19 @@
 
 [Votalhada](https://votalhada.blogspot.com/) is a Brazilian blog that aggregates poll results from multiple platforms (websites, Twitter/X, YouTube, Instagram) during BBB paredões. They collect data from dozens of sources and compute weighted averages to predict elimination results.
 
-## Temporary Policy — 2026-03-10
+## New Card Layout Support — 2026-03-16
 
-As of **March 10, 2026** (`10/mar 21:00` BRT), Votalhada changed the final poll card:
-- removed the historical timed series from the final summary card
-- replaced the old vote-weighted consolidado with `MÉDIA FINAL PONDERADA (0,3 x 0,7)`
+As of **March 10, 2026** (`10/mar 21:00` BRT), Votalhada uses a new card layout with:
+- **VOTO DA TORCIDA — SITES**: Sites polls section (replaces the flat "Sites" row)
+- **VOTO ÚNICO (CPF)**: YouTube + Twitter + Instagram section with its own Média row
+- **ANÁLISE VOTALHADA** (or MÉDIA FINAL PONDERADA): blended prediction row
 
-For this week, OCR feasibility is **paused for operational updates**. Use **vision/manual extraction** from the visible card values and recompute the consolidado with the **previous Votalhada formula**: weighted average by platform vote count. If needed, append a **synthetic series row** for the visible capture time.
+The OCR parser (`scripts/votalhada_ocr_feasibility.py`) was updated on **March 16** to handle the new layout:
+- Platform extraction works for both old and new layouts (visual validation: P9 16/16 exact, P8 15/16)
+- **Known limitations**: series extraction may miss rows when OCR garbles dates; capture time (hora) may misread midnight (00:00) cards
+- The parser auto-detects layout via `_is_new_layout()` — no manual flag needed
+
+For production updates, prefer the gated auto-update flow (Option A below). Vision/manual extraction remains a valid fallback when OCR quality is insufficient.
 
 ## Quick Workflow
 

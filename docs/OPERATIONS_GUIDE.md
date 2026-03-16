@@ -1190,12 +1190,12 @@ Before each elimination (~21h BRT), collect poll data from [Votalhada](https://v
 
 Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
 
-**Temporary OCR feasibility note (March 10, 2026):**
-- the latest Votalhada final card removed the timed series table
-- the latest Votalhada final card switched to `MÉDIA FINAL PONDERADA (0,3 x 0,7)`
-- for this week, operational updates should use **vision/manual extraction**
-- recompute the consolidado with the **previous** Votalhada formula: weighted average by platform vote count
-- if you need the latest time point in `serie_temporal`, append a **synthetic row** based on the visible final card values
+**OCR layout note (updated March 16, 2026):**
+- Votalhada switched to a new card layout on March 10: `VOTO DA TORCIDA`, `VOTO ÚNICO (CPF)`, `ANÁLISE VOTALHADA` sections
+- The OCR parser was updated on March 16 to handle the new layout (platform extraction works; series/time have known limitations)
+- For operational updates: OCR gate works for platform data; use **vision/manual extraction** as fallback for series and capture time if OCR misses them
+- Recompute the consolidado with the **previous** Votalhada formula: weighted average by platform vote count
+- Full status: `.private/docs/VOTALHADA_OCR_STATUS.md`
 
 **Current ops policy**: use manual fetches/updates. The default production flow is:
 
@@ -1373,9 +1373,10 @@ Current parser safeguards for known Votalhada card quirks:
 - For single-row fallback captures, parser uses the image filename date (`YYYY-MM-DD`) to correct clearly noisy OCR day/month tokens.
 - For suspicious rollover OCR slips (`03:00`/`03:30`), parser applies guarded repair to `08:00`/`08:30` and logs it under `time_corrections`.
 
-Current limitation:
-- the parser and gating flow still assume the older final-card layout with a timed series table
-- if Votalhada keeps the `0,3 x 0,7` final card next week, OCR logic will need rework before it becomes the operational source of truth again
+Current limitation (updated March 16, 2026):
+- Platform extraction works on both old and new card layouts
+- Series extraction and capture time (hora) have known issues on the new layout — OCR may miss series rows or misread midnight cards
+- Use vision/manual fallback for series data until these issues are resolved
 
 If any validation error appears, stop and inspect with vision before editing `data/votalhada/polls.json`.
 
@@ -1477,17 +1478,28 @@ Votalhada uses short names. Always match to API names:
 
 ### Rebuild, commit, publish + deploy
 
-Follow [Commit & Publish Workflow](#commit--publish-workflow):
+**This step is critical** — without it, poll data won't appear on the live site (index.qmd AND paredao.qmd both need a fresh deploy).
+
 ```bash
+# 1. Rebuild derived data
 python scripts/build_derived_data.py
+
+# 2. Verify locally (recommended — catches rendering issues before deploy)
+quarto render paredao.qmd    # Check "Enquetes" section renders correctly
+
+# 3. Commit
 git add data/ && git commit -m "public: data: votalhada polls paredão N"
-# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+
+# 4. Push to main
+git checkout main && git pull --rebase origin main
+git cherry-pick <commit-sha>   # or merge, depending on branch setup
+git push origin main
+
+# 5. Deploy (REQUIRED — push alone does NOT trigger a render)
+gh workflow run daily-update.yml
 ```
 
-**Verify locally** (optional):
-```bash
-quarto render paredao.qmd    # Check "Enquetes" section renders correctly
-```
+**Common mistake**: Pushing to `main` without dispatching the workflow. The cron only deploys when the API data hash changes — manual data updates (polls.json, paredoes.json) require explicit `gh workflow run`.
 
 **Full extraction workflow and AI agent instructions**: See `data/votalhada/README.md`.
 

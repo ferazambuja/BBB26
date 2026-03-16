@@ -605,8 +605,7 @@ def render_blindado_row(item: dict, *, n_par: int, avatar_fn) -> str:
     protected = _coerce_int(item.get("protected", 0), default=0)
     available = _coerce_int(item.get("available", 0), default=0)
     votes = _coerce_int(item.get("votes", 0), default=0)
-    has_bv = bool(item.get("bv_escape", False))
-    bv_text = item.get("bv_text", "")
+    escape_tags = item.get("escape_tags") or []
     protection_tags = item.get("protection_tags") or []
 
     border = "#3498db" if protected >= 3 else ("#27ae60" if paredao_count == 0 else "#f39c12")
@@ -614,9 +613,11 @@ def render_blindado_row(item: dict, *, n_par: int, avatar_fn) -> str:
     par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
     bar_pct = min(100.0, protected / n_par * 100.0) if n_par > 0 else 0.0
     badges = []
-    if has_bv and bv_text:
+    for etag in escape_tags:
+        if not isinstance(etag, dict):
+            continue
         badges.append(
-            f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>{_escape_text(bv_text)}</span>"
+            f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;'>{_escape_text(etag.get('text', ''))}</span>"
         )
     for tag in protection_tags:
         if not isinstance(tag, dict):
@@ -720,6 +721,129 @@ def render_visado_row(item: dict, *, max_votes: int, recent_window: int, avatar_
         f'</div>'
         f'<div class="fs-2xs" style="color:#888;">{votes_total} {votes_total_label} total · {votes_recent} {recent_label} ({recent_window} ciclos) · intensidade {intensity_pct}%</div>'
         f'{extra_badges}'
+        f'</div></div>'
+    )
+
+
+def _power_tag_badge(tag: dict, bg: str, fg: str) -> str:
+    """Render a single power tag badge."""
+    text = _escape_text(tag.get("text", ""))
+    return (
+        f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;"
+        f"background:{bg};color:{fg};white-space:nowrap;"
+        f"display:inline-flex;align-items:center;flex:0 0 auto;'>{text}</span>"
+    )
+
+
+def _power_detail_html(detail: list[dict], mode: str, tag_labels: dict[str, str] | None = None) -> str:
+    """Render expandable drill-down for power events."""
+    if not detail:
+        return ""
+    labels = tag_labels or {}
+    lines = []
+    for d in detail:
+        ev_type = d.get("type", "")
+        label = labels.get(ev_type, ev_type.replace("_", " ").title())
+        week = d.get("week", "")
+        week_str = f" ({week}º)" if week else ""
+        if mode == "target":
+            actor = _escape_text(d.get("actor", ""))
+            lines.append(f"<div class='fs-2xs' style='color:#999;padding:1px 0;'>{label} por {actor}{week_str}</div>")
+        else:
+            target = _escape_text(d.get("target", ""))
+            lines.append(f"<div class='fs-2xs' style='color:#999;padding:1px 0;'>{label} → {target}{week_str}</div>")
+    content = "".join(lines)
+    return (
+        f"<details style='margin-top:4px;'>"
+        f"<summary class='fs-2xs' style='color:#777;cursor:pointer;'>▶ Detalhes ({len(detail)})</summary>"
+        f"<div style='margin-top:2px;padding-left:8px;border-left:2px solid #333;'>{content}</div>"
+        f"</details>"
+    )
+
+
+def render_na_mira_row(item: dict, *, max_hits: int, avatar_fn, tag_labels: dict[str, str] | None = None) -> str:
+    """Render a Mais Alvo (target) row with power tags and drill-down."""
+    name = item["name"]
+    hits = _coerce_int(item.get("power_hits", 0))
+    hits_recent = _coerce_int(item.get("power_hits_recent", 0))
+    paredao_count = _coerce_int(item.get("paredao", 0))
+    power_tags = item.get("power_tags") or []
+    detail = item.get("power_detail") or []
+    nom_text = item.get("nom_text", "")
+
+    border = "#c0392b" if hits >= 4 else ("#e67e22" if hits >= 2 else "#7f8c8d")
+    bar_pct = min(100.0, hits / max_hits * 100.0) if max_hits > 0 else 0.0
+    hit_label = "ação contra" if hits == 1 else "ações contra"
+
+    # Status line
+    par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
+    recent_label = f" · {hits_recent} recentes (3 sem.)" if hits_recent else ""
+    status_line = f"{par_label}{recent_label}"
+
+    # Power tags
+    tag_html = "".join(_power_tag_badge(t, "#3f1b1b", "#ff9d9d") for t in power_tags)
+    tags_block = (
+        f"<div style='margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;'>{tag_html}</div>"
+        if tag_html else ""
+    )
+
+    # Drill-down
+    detail_block = _power_detail_html(detail, "target", tag_labels)
+
+    return (
+        f'<div class="u-s056" style="align-items:flex-start;">'
+        f'<a href="{_profile_href(name)}" style="text-decoration:none">{avatar_fn(name, 42, border)}</a>'
+        f'<div class="u-s066">'
+        f'<div class="u-s059">'
+        f'<a href="{_profile_href(name)}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_escape_text(_short_name(name))}</a>'
+        f'<span class="fs-sm" style="color:#e67e22;font-weight:700;">{hits} {hit_label}</span>'
+        f'</div>'
+        f'<div class="u-s014">'
+        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e67e22;border-radius:3px;"></div>'
+        f'</div>'
+        f'<div class="fs-2xs" style="color:#888;">{_escape_text(status_line)}</div>'
+        f'{tags_block}'
+        f'{detail_block}'
+        f'</div></div>'
+    )
+
+
+def render_agressor_row(item: dict, *, max_hits: int, avatar_fn, tag_labels: dict[str, str] | None = None) -> str:
+    """Render a Mais Agressor row with power tags and drill-down."""
+    name = item["name"]
+    hits = _coerce_int(item.get("power_hits", 0))
+    hits_recent = _coerce_int(item.get("power_hits_recent", 0))
+    power_tags = item.get("power_tags") or []
+    detail = item.get("power_detail") or []
+
+    border = "#8e44ad" if hits >= 4 else ("#6f42c1" if hits >= 2 else "#7f8c8d")
+    bar_pct = min(100.0, hits / max_hits * 100.0) if max_hits > 0 else 0.0
+    hit_label = "ação" if hits == 1 else "ações"
+
+    recent_label = f" · {hits_recent} recentes (3 sem.)" if hits_recent else ""
+    status_line = f"{hits} {hit_label} deliberada{'s' if hits != 1 else ''}{recent_label}"
+
+    tag_html = "".join(_power_tag_badge(t, "#2d1b3f", "#d9b3ff") for t in power_tags)
+    tags_block = (
+        f"<div style='margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;'>{tag_html}</div>"
+        if tag_html else ""
+    )
+    detail_block = _power_detail_html(detail, "aggressor", tag_labels)
+
+    return (
+        f'<div class="u-s056" style="align-items:flex-start;">'
+        f'<a href="{_profile_href(name)}" style="text-decoration:none">{avatar_fn(name, 42, border)}</a>'
+        f'<div class="u-s066">'
+        f'<div class="u-s059">'
+        f'<a href="{_profile_href(name)}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_escape_text(_short_name(name))}</a>'
+        f'<span class="fs-sm" style="color:#8e44ad;font-weight:700;">{hits} {hit_label}</span>'
+        f'</div>'
+        f'<div class="u-s014">'
+        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
+        f'</div>'
+        f'<div class="fs-2xs" style="color:#888;">{_escape_text(status_line)}</div>'
+        f'{tags_block}'
+        f'{detail_block}'
         f'</div></div>'
     )
 
