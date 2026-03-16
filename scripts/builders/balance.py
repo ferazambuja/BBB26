@@ -17,14 +17,25 @@ BALANCE_MERGE_WINDOW_SECONDS = 7200  # 2h merge window
 MESADA_VIP = 1000
 MESADA_XEPA = 500
 
+# BBB 26 Monstro/Anjo fixed estaleca values
+MONSTRO_PENALTY = -300
+ANJO_PRIZE = 500
+
+# Mesada validation tolerance (±100 from expected VIP/Xepa amount)
+MESADA_TOLERANCE = 100
+
 BALANCE_EVENT_TYPES = {
-    "mesada":    {"emoji": "💰", "label": "Mesada"},
-    "compras":   {"emoji": "🛒", "label": "Compras"},
-    "punicao":   {"emoji": "🚨", "label": "Punição"},
-    "premio":    {"emoji": "🏆", "label": "Prêmio"},
-    "ta_com_nada": {"emoji": "💸", "label": "Tá com Nada"},
-    "dinamica":  {"emoji": "⚡", "label": "Dinâmica"},
-    "outro":     {"emoji": "❓", "label": "Outro"},
+    "mesada":          {"emoji": "💰", "label": "Mesada"},
+    "compras":         {"emoji": "🛒", "label": "Compras"},
+    "punicao":         {"emoji": "🚨", "label": "Punição"},
+    "premio":          {"emoji": "🏆", "label": "Prêmio"},
+    "premio_coletivo": {"emoji": "🎁", "label": "Prêmio Coletivo"},
+    "monstro":         {"emoji": "👹", "label": "Monstro"},
+    "premio_anjo":     {"emoji": "😇", "label": "Prêmio do Anjo"},
+    "monstro_anjo":    {"emoji": "👹😇", "label": "Monstro + Anjo"},
+    "ta_com_nada":     {"emoji": "💸", "label": "Tá com Nada"},
+    "dinamica":        {"emoji": "⚡", "label": "Dinâmica"},
+    "outro":           {"emoji": "❓", "label": "Outro"},
 }
 
 
@@ -133,6 +144,10 @@ def _events_should_merge(a: dict, b: dict) -> bool:
     ts_a = a.get("_timestamp")
     ts_b = b.get("_timestamp")
     if ts_a and ts_b:
+        if ts_a.tzinfo is None:
+            ts_a = ts_a.replace(tzinfo=UTC)
+        if ts_b.tzinfo is None:
+            ts_b = ts_b.replace(tzinfo=UTC)
         delta = abs((ts_b - ts_a).total_seconds())
         if delta > BALANCE_MERGE_WINDOW_SECONDS:
             return False
@@ -546,6 +561,163 @@ def _reclassify_dinamica_events(events: list[dict]) -> list[dict]:
     return events
 
 
+def _reclassify_monstro_anjo_events(events: list[dict]) -> list[dict]:
+    """Reclassify balance events that correspond to Monstro penalty or Anjo prize.
+
+    Cross-references auto_events.json to identify:
+    - punicao with single person at -300 matching a Monstro target → type=monstro
+    - premio with single person at +500 matching an Anjo target → type=premio_anjo
+    - dinamica with -300 and +500 matching Monstro/Anjo targets → type=monstro_anjo
+    """
+    import json
+    from pathlib import Path
+
+    auto_events_path = Path("data/derived/auto_events.json")
+    if not auto_events_path.exists():
+        return events
+
+    auto_events = json.loads(auto_events_path.read_text(encoding="utf-8"))
+
+    # Build lookups: {date: set_of_targets}
+    monstro_by_date: dict[str, set[str]] = defaultdict(set)
+    anjo_by_date: dict[str, set[str]] = defaultdict(set)
+    for ae in auto_events.get("events", []):
+        target = ae.get("target", "")
+        if not target:
+            continue
+        if ae.get("type") == "monstro":
+            monstro_by_date[ae["date"]].add(target)
+        elif ae.get("type") == "anjo":
+            anjo_by_date[ae["date"]].add(target)
+
+    if not monstro_by_date and not anjo_by_date:
+        return events
+
+    for ev in events:
+        gd = ev.get("game_date", "")
+        changes = ev.get("changes", {})
+        monstro_targets = monstro_by_date.get(gd, set())
+        anjo_targets = anjo_by_date.get(gd, set())
+
+        # Case 1: punicao → monstro (single person at MONSTRO_PENALTY)
+        if ev["type"] == "punicao" and len(changes) == 1:
+            name, delta = next(iter(changes.items()))
+            if delta == MONSTRO_PENALTY and name in monstro_targets:
+                meta = BALANCE_EVENT_TYPES["monstro"]
+                ev["type"] = "monstro"
+                ev["emoji"] = meta["emoji"]
+                ev["label"] = meta["label"]
+                continue
+
+        # Case 2: premio → premio_anjo (single person at ANJO_PRIZE)
+        if ev["type"] == "premio" and len(changes) == 1:
+            name, delta = next(iter(changes.items()))
+            if delta == ANJO_PRIZE and name in anjo_targets:
+                meta = BALANCE_EVENT_TYPES["premio_anjo"]
+                ev["type"] = "premio_anjo"
+                ev["emoji"] = meta["emoji"]
+                ev["label"] = meta["label"]
+                continue
+
+        # Case 3: dinamica → monstro_anjo (all -300 are Monstro, all +500 are Anjo)
+        if ev["type"] == "dinamica":
+            losers_300 = {n for n, d in changes.items() if d == MONSTRO_PENALTY}
+            gainers_500 = {n for n, d in changes.items() if d == ANJO_PRIZE}
+            # Only reclassify if ALL participants are accounted for as monstro/anjo
+            if (losers_300 and gainers_500
+                    and losers_300 <= monstro_targets
+                    and gainers_500 <= anjo_targets
+                    and losers_300 | gainers_500 == set(changes.keys())):
+                meta = BALANCE_EVENT_TYPES["monstro_anjo"]
+                ev["type"] = "monstro_anjo"
+                ev["emoji"] = meta["emoji"]
+                ev["label"] = meta["label"]
+                ev["subtype"] = "Castigo do Monstro + Prêmio do Anjo"
+
+    return events
+
+
+def _reclassify_mesada_events(events: list[dict]) -> list[dict]:
+    """Validate mesada events against known VIP/Xepa amounts using roles_daily.
+
+    Cross-references roles_daily.json to:
+    - Reclassify false mesadas (e.g. collective +100 events) → premio_coletivo
+    - Enrich valid mesadas with vip_participants, xepa_participants, dirty_deltas
+
+    Fallback: if roles_daily has no entry for a mesada's game_date, that event is
+    left unchanged (stays mesada, no VIP/Xepa metadata). We never reclassify to
+    premio_coletivo based on missing role data — only on confirmed zero-match.
+
+    Residual sign: actual - expected (negative = got less than expected).
+    """
+    from data_utils import load_roles_daily
+
+    roles_data = load_roles_daily()
+    daily_entries = roles_data.get("daily", [])
+    if not daily_entries:
+        return events
+
+    roles_by_date: dict[str, set[str]] = {}
+    for r in daily_entries:
+        roles_by_date[r["date"]] = set(r.get("vip", []))
+
+    for ev in events:
+        if ev["type"] != "mesada":
+            continue
+
+        gd = ev.get("game_date", "")
+        # Skip reclassification if no role data for this date
+        if gd not in roles_by_date:
+            continue
+        vip_set = roles_by_date[gd]
+        changes = ev.get("changes", {})
+
+        # Count how many participants match expected VIP/Xepa amounts (within tolerance)
+        n_matches = 0
+        for name, delta in changes.items():
+            expected = MESADA_VIP if name in vip_set else MESADA_XEPA
+            if abs(delta - expected) <= MESADA_TOLERANCE:
+                n_matches += 1
+
+        amounts = set(changes.values())
+        is_uniform = len(amounts) == 1
+
+        if n_matches == 0 and is_uniform:
+            # No participant matches VIP/Xepa AND all amounts identical
+            # → collective prize, not mesada (e.g. +100 for everyone)
+            meta = BALANCE_EVENT_TYPES["premio_coletivo"]
+            ev["type"] = "premio_coletivo"
+            ev["emoji"] = meta["emoji"]
+            ev["label"] = meta["label"]
+            amt = next(iter(amounts))
+            ev["detail"] = f"+{amt} estalecas cada"
+        elif n_matches > 0:
+            # Valid mesada — enrich with VIP/Xepa metadata
+            vip_parts: list[str] = []
+            xepa_parts: list[str] = []
+            dirty: list[dict] = []
+
+            for name, delta in changes.items():
+                is_vip = name in vip_set
+                expected = MESADA_VIP if is_vip else MESADA_XEPA
+                (vip_parts if is_vip else xepa_parts).append(name)
+                residual = delta - expected
+                if residual != 0:
+                    dirty.append({
+                        "name": name,
+                        "expected": expected,
+                        "actual": delta,
+                        "residual": residual,
+                    })
+
+            ev["vip_participants"] = sorted(vip_parts)
+            ev["xepa_participants"] = sorted(xepa_parts)
+            if dirty:
+                ev["dirty_deltas"] = dirty
+
+    return events
+
+
 # ── Main builder ─────────────────────────────────────────────────────────────
 
 def build_balance_events(snapshots: list[dict]) -> dict:
@@ -631,11 +803,25 @@ def build_balance_events(snapshots: list[dict]) -> dict:
     merged_events: list[dict] = []
     for ev_type, type_events in by_type.items():
         # Sort by timestamp before merging
-        type_events.sort(key=lambda e: e.get("_timestamp") or datetime.min.replace(tzinfo=UTC))
+        def _ts_key(e: dict) -> datetime:
+            ts = e.get("_timestamp")
+            if ts is None:
+                return datetime.min.replace(tzinfo=UTC)
+            if ts.tzinfo is None:
+                return ts.replace(tzinfo=UTC)
+            return ts
+        type_events.sort(key=_ts_key)
         merged_events.extend(_merge_events(type_events))
 
     # Sort all events chronologically
-    merged_events.sort(key=lambda e: (e.get("game_date", ""), e.get("_timestamp") or datetime.min.replace(tzinfo=UTC)))
+    def _merged_key(e: dict) -> tuple:
+        ts = e.get("_timestamp")
+        if ts is None:
+            ts = datetime.min.replace(tzinfo=UTC)
+        elif ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        return (e.get("game_date", ""), ts)
+    merged_events.sort(key=_merged_key)
 
     # Re-assign sequential IDs after merge
     date_counters: dict[str, int] = defaultdict(int)
@@ -650,6 +836,12 @@ def build_balance_events(snapshots: list[dict]) -> dict:
 
     # Reclassify punições that match special_events dinâmicas
     merged_events = _reclassify_dinamica_events(merged_events)
+
+    # Reclassify Monstro/Anjo balance events using auto_events.json
+    merged_events = _reclassify_monstro_anjo_events(merged_events)
+
+    # Validate mesada events against VIP/Xepa amounts from roles_daily
+    merged_events = _reclassify_mesada_events(merged_events)
 
     # Build per-participant summary
     by_participant: dict[str, dict] = {}
@@ -673,10 +865,15 @@ def build_balance_events(snapshots: list[dict]) -> dict:
                 rec["total_lost"] += delta
                 rec["biggest_loss"] = min(rec["biggest_loss"], delta)
 
-            if ev["type"] == "punicao" and delta < 0:
+            if ev["type"] in ("punicao", "monstro") and delta < 0:
                 rec["n_punicoes"] += 1
-            elif ev["type"] == "premio" and delta > 0:
+            elif ev["type"] in ("premio", "premio_anjo", "premio_coletivo") and delta > 0:
                 rec["n_premios"] += 1
+            elif ev["type"] == "monstro_anjo":
+                if delta < 0:
+                    rec["n_punicoes"] += 1
+                elif delta > 0:
+                    rec["n_premios"] += 1
             elif ev["type"] == "ta_com_nada":
                 if ev["game_date"] not in rec["ta_com_nada_dates"]:
                     rec["ta_com_nada_dates"].append(ev["game_date"])
@@ -694,9 +891,9 @@ def build_balance_events(snapshots: list[dict]) -> dict:
             weekly[w]["mesada"] += total_delta
         elif ev["type"] == "compras":
             weekly[w]["compras"] += total_delta
-        elif ev["type"] == "punicao":
+        elif ev["type"] in ("punicao", "monstro"):
             weekly[w]["punicoes"] += total_delta
-        elif ev["type"] == "premio":
+        elif ev["type"] in ("premio", "premio_anjo", "premio_coletivo"):
             weekly[w]["premios"] += total_delta
 
     weekly_summary = sorted(weekly.values(), key=lambda x: x["week"])

@@ -469,6 +469,7 @@ if ultimo:
 
             _poll_label = 'Quem você quer SALVAR?' if _is_save_poll else 'Previsão das Enquetes'
             print(f"\n## 📊 {_poll_label}\n")
+            print('<div style="margin-bottom:1rem;"></div>')
             if _is_save_poll:
                 print(f'<p class="text-warning small u-s002">⚠️ Paredão Falso — voto é para SALVAR (mais votado vai ao Quarto Secreto)</p>\n')
 
