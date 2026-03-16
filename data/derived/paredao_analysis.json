@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-15T13:54:07.913832+00:00",
+    "generated_at": "2026-03-16T03:01:38.213786+00:00",
     "source": "snapshots+paredoes+manual_events"
   },
   "by_paredao": {
@@ -8496,19 +8496,19 @@
               "toward_target_or_ally_pct": 83.3
             },
             "Jonas Sulzbach": {
-              "total": 9,
+              "total": 10,
               "toward_target": 4,
-              "toward_target_pct": 44.4,
+              "toward_target_pct": 40.0,
               "toward_target_or_ally": 5,
-              "toward_target_or_ally_pct": 55.6
+              "toward_target_or_ally_pct": 50.0
             }
           },
           "combined": {
-            "total": 15,
+            "total": 16,
             "toward_target": 8,
-            "toward_target_pct": 53.3,
+            "toward_target_pct": 50.0,
             "toward_target_or_ally": 10,
-            "toward_target_or_ally_pct": 66.7
+            "toward_target_or_ally_pct": 62.5
           },
           "decisions": [
             {
@@ -8759,6 +8759,22 @@
               "source_kinds": [
                 "manual",
                 "paredao"
+              ]
+            },
+            {
+              "actor": "Jonas Sulzbach",
+              "date": "2026-03-14",
+              "week": 9,
+              "event_type": "indicacao",
+              "label": "Indicação",
+              "targets": [
+                "Leandro"
+              ],
+              "details": [
+                "Grupo Pedra (cap. Jonas) emparedou Leandro."
+              ],
+              "source_kinds": [
+                "manual"
               ]
             }
           ],
@@ -9018,13 +9034,33 @@
       "status": "em_andamento",
       "data_formacao": "2026-03-15",
       "indicados": [
-        "Leandro",
-        "Jonas Sulzbach",
-        "Ana Paula Renault"
+        "Ana Paula Renault",
+        "Breno",
+        "Leandro"
       ],
       "quick_insights": {
         "analysis_date": "2026-03-15",
         "indicados_stats": [
+          {
+            "nome": "Ana Paula Renault",
+            "sentimento": 0.5,
+            "rank": 8,
+            "delta_3d": "≈ -0.2",
+            "dias_top5": 0,
+            "dias_bottom5": 37,
+            "dias_negativos": "27/62 (44%)",
+            "negs_recebidas": 6
+          },
+          {
+            "nome": "Breno",
+            "sentimento": 0.5,
+            "rank": 9,
+            "delta_3d": "▼ -2.3",
+            "dias_top5": 35,
+            "dias_bottom5": 2,
+            "dias_negativos": "0/62 (0%)",
+            "negs_recebidas": 6
+          },
           {
             "nome": "Leandro",
             "sentimento": 0.0,
@@ -9034,43 +9070,18 @@
             "dias_bottom5": 18,
             "dias_negativos": "17/57 (30%)",
             "negs_recebidas": 8
-          },
-          {
-            "nome": "Jonas Sulzbach",
-            "sentimento": -4.5,
-            "rank": 13,
-            "delta_3d": "▼ -1.8",
-            "dias_top5": 1,
-            "dias_bottom5": 47,
-            "dias_negativos": "35/62 (56%)",
-            "negs_recebidas": 9
-          },
-          {
-            "nome": "Ana Paula Renault",
-            "sentimento": 0.5,
-            "rank": 9,
-            "delta_3d": "≈ -0.2",
-            "dias_top5": 0,
-            "dias_bottom5": 38,
-            "dias_negativos": "27/62 (44%)",
-            "negs_recebidas": 6
           }
         ],
         "historical_series": [
           {
             "date": "2026-01-13",
-            "name": "Jonas Sulzbach",
-            "sentiment": 16.5
+            "name": "Ana Paula Renault",
+            "sentiment": 9.0
           },
           {
             "date": "2026-01-13",
-            "name": "Ana Paula Renault",
-            "sentiment": 9.0
-          },
-          {
-            "date": "2026-01-14",
-            "name": "Jonas Sulzbach",
-            "sentiment": 16.5
+            "name": "Breno",
+            "sentiment": 17.0
           },
           {
             "date": "2026-01-14",
@@ -9078,9 +9089,9 @@
             "sentiment": 9.0
           },
           {
-            "date": "2026-01-15",
-            "name": "Jonas Sulzbach",
-            "sentiment": 11.5
+            "date": "2026-01-14",
+            "name": "Breno",
+            "sentiment": 17.0
           },
           {
             "date": "2026-01-15",
@@ -9088,9 +9099,9 @@
             "sentiment": 13.5
           },
           {
-            "date": "2026-01-16",
-            "name": "Jonas Sulzbach",
-            "sentiment": 5.5
+            "date": "2026-01-15",
+            "name": "Breno",
+            "sentiment": 16.0
           },
           {
             "date": "2026-01-16",
@@ -9098,9 +9109,9 @@
             "sentiment": 8.5
           },
           {
-            "date": "2026-01-17",
-            "name": "Jonas Sulzbach",
-            "sentiment": 10.5
+            "date": "2026-01-16",
+            "name": "Breno",
+            "sentiment": 8.0
           },
           {
             "date": "2026-01-17",
@@ -9108,14 +9119,9 @@
             "sentiment": 11.0
           },
           {
-            "date": "2026-01-18",
-            "name": "Leandro",
-            "sentiment": 21.5
-          },
-          {
-            "date": "2026-01-18",
-            "name": "Jonas Sulzbach",
-            "sentiment": 12.0
+            "date": "2026-01-17",
+            "name": "Breno",
+            "sentiment": 14.0
           },
           {
             "date": "2026-01-18",
@@ -9123,14 +9129,14 @@
             "sentiment": 13.5
           },
           {
-            "date": "2026-01-19",
-            "name": "Leandro",
-            "sentiment": 16.0
+            "date": "2026-01-18",
+            "name": "Breno",
+            "sentiment": 16.5
           },
           {
-            "date": "2026-01-19",
-            "name": "Jonas Sulzbach",
-            "sentiment": 12.5
+            "date": "2026-01-18",
+            "name": "Leandro",
+            "sentiment": 21.5
           },
           {
             "date": "2026-01-19",
@@ -9138,14 +9144,14 @@
             "sentiment": 11.5
           },
           {
-            "date": "2026-01-20",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-01-19",
+            "name": "Breno",
+            "sentiment": 16.0
           },
           {
-            "date": "2026-01-20",
-            "name": "Jonas Sulzbach",
-            "sentiment": 9.0
+            "date": "2026-01-19",
+            "name": "Leandro",
+            "sentiment": 16.0
           },
           {
             "date": "2026-01-20",
@@ -9153,14 +9159,14 @@
             "sentiment": 10.5
           },
           {
-            "date": "2026-01-21",
-            "name": "Leandro",
-            "sentiment": 2.5
+            "date": "2026-01-20",
+            "name": "Breno",
+            "sentiment": 16.0
           },
           {
-            "date": "2026-01-21",
-            "name": "Jonas Sulzbach",
-            "sentiment": 10.5
+            "date": "2026-01-20",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-01-21",
@@ -9168,14 +9174,14 @@
             "sentiment": 10.0
           },
           {
-            "date": "2026-01-22",
-            "name": "Leandro",
-            "sentiment": 3.0
+            "date": "2026-01-21",
+            "name": "Breno",
+            "sentiment": 18.0
           },
           {
-            "date": "2026-01-22",
-            "name": "Jonas Sulzbach",
-            "sentiment": 5.5
+            "date": "2026-01-21",
+            "name": "Leandro",
+            "sentiment": 2.5
           },
           {
             "date": "2026-01-22",
@@ -9183,14 +9189,14 @@
             "sentiment": 8.0
           },
           {
-            "date": "2026-01-23",
-            "name": "Leandro",
-            "sentiment": 0.0
+            "date": "2026-01-22",
+            "name": "Breno",
+            "sentiment": 19.5
           },
           {
-            "date": "2026-01-23",
-            "name": "Jonas Sulzbach",
-            "sentiment": 8.0
+            "date": "2026-01-22",
+            "name": "Leandro",
+            "sentiment": 3.0
           },
           {
             "date": "2026-01-23",
@@ -9198,19 +9204,39 @@
             "sentiment": 9.0
           },
           {
-            "date": "2026-01-24",
-            "name": "Leandro",
-            "sentiment": 5.5
+            "date": "2026-01-23",
+            "name": "Breno",
+            "sentiment": 17.5
           },
           {
-            "date": "2026-01-24",
-            "name": "Jonas Sulzbach",
-            "sentiment": 11.0
+            "date": "2026-01-23",
+            "name": "Leandro",
+            "sentiment": 0.0
           },
           {
             "date": "2026-01-24",
             "name": "Ana Paula Renault",
             "sentiment": 5.0
+          },
+          {
+            "date": "2026-01-24",
+            "name": "Breno",
+            "sentiment": 16.0
+          },
+          {
+            "date": "2026-01-24",
+            "name": "Leandro",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-01-25",
+            "name": "Ana Paula Renault",
+            "sentiment": 5.0
+          },
+          {
+            "date": "2026-01-25",
+            "name": "Breno",
+            "sentiment": 16.5
           },
           {
             "date": "2026-01-25",
@@ -9218,38 +9244,18 @@
             "sentiment": 4.5
           },
           {
-            "date": "2026-01-25",
-            "name": "Jonas Sulzbach",
-            "sentiment": 6.5
-          },
-          {
-            "date": "2026-01-25",
-            "name": "Ana Paula Renault",
-            "sentiment": 5.0
-          },
-          {
-            "date": "2026-01-26",
-            "name": "Leandro",
-            "sentiment": 3.5
-          },
-          {
-            "date": "2026-01-26",
-            "name": "Jonas Sulzbach",
-            "sentiment": 7.0
-          },
-          {
             "date": "2026-01-26",
             "name": "Ana Paula Renault",
             "sentiment": 1.0
           },
           {
-            "date": "2026-01-27",
-            "name": "Leandro",
-            "sentiment": 0.5
+            "date": "2026-01-26",
+            "name": "Breno",
+            "sentiment": 16.0
           },
           {
-            "date": "2026-01-27",
-            "name": "Jonas Sulzbach",
+            "date": "2026-01-26",
+            "name": "Leandro",
             "sentiment": 3.5
           },
           {
@@ -9258,14 +9264,14 @@
             "sentiment": 0.5
           },
           {
-            "date": "2026-01-28",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-01-27",
+            "name": "Breno",
+            "sentiment": 14.5
           },
           {
-            "date": "2026-01-28",
-            "name": "Jonas Sulzbach",
-            "sentiment": 3.0
+            "date": "2026-01-27",
+            "name": "Leandro",
+            "sentiment": 0.5
           },
           {
             "date": "2026-01-28",
@@ -9273,14 +9279,14 @@
             "sentiment": 0.0
           },
           {
-            "date": "2026-01-29",
-            "name": "Leandro",
-            "sentiment": 1.0
+            "date": "2026-01-28",
+            "name": "Breno",
+            "sentiment": 13.5
           },
           {
-            "date": "2026-01-29",
-            "name": "Jonas Sulzbach",
-            "sentiment": 1.5
+            "date": "2026-01-28",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-01-29",
@@ -9288,14 +9294,14 @@
             "sentiment": -1.0
           },
           {
-            "date": "2026-01-30",
-            "name": "Leandro",
-            "sentiment": 3.0
+            "date": "2026-01-29",
+            "name": "Breno",
+            "sentiment": 11.0
           },
           {
-            "date": "2026-01-30",
-            "name": "Jonas Sulzbach",
-            "sentiment": 5.0
+            "date": "2026-01-29",
+            "name": "Leandro",
+            "sentiment": 1.0
           },
           {
             "date": "2026-01-30",
@@ -9303,14 +9309,14 @@
             "sentiment": -3.5
           },
           {
-            "date": "2026-01-31",
-            "name": "Leandro",
-            "sentiment": 2.5
+            "date": "2026-01-30",
+            "name": "Breno",
+            "sentiment": 11.0
           },
           {
-            "date": "2026-01-31",
-            "name": "Jonas Sulzbach",
-            "sentiment": 4.0
+            "date": "2026-01-30",
+            "name": "Leandro",
+            "sentiment": 3.0
           },
           {
             "date": "2026-01-31",
@@ -9318,14 +9324,14 @@
             "sentiment": -2.5
           },
           {
-            "date": "2026-02-01",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-01-31",
+            "name": "Breno",
+            "sentiment": 8.5
           },
           {
-            "date": "2026-02-01",
-            "name": "Jonas Sulzbach",
-            "sentiment": 5.0
+            "date": "2026-01-31",
+            "name": "Leandro",
+            "sentiment": 2.5
           },
           {
             "date": "2026-02-01",
@@ -9333,14 +9339,14 @@
             "sentiment": -5.5
           },
           {
-            "date": "2026-02-02",
-            "name": "Leandro",
-            "sentiment": 0.5
+            "date": "2026-02-01",
+            "name": "Breno",
+            "sentiment": 12.0
           },
           {
-            "date": "2026-02-02",
-            "name": "Jonas Sulzbach",
-            "sentiment": 1.5
+            "date": "2026-02-01",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-02-02",
@@ -9348,14 +9354,14 @@
             "sentiment": -1.0
           },
           {
-            "date": "2026-02-03",
-            "name": "Leandro",
-            "sentiment": 0.5
+            "date": "2026-02-02",
+            "name": "Breno",
+            "sentiment": 12.5
           },
           {
-            "date": "2026-02-03",
-            "name": "Jonas Sulzbach",
-            "sentiment": 1.5
+            "date": "2026-02-02",
+            "name": "Leandro",
+            "sentiment": 0.5
           },
           {
             "date": "2026-02-03",
@@ -9363,14 +9369,14 @@
             "sentiment": -1.0
           },
           {
-            "date": "2026-02-04",
-            "name": "Leandro",
-            "sentiment": 4.0
+            "date": "2026-02-03",
+            "name": "Breno",
+            "sentiment": 12.5
           },
           {
-            "date": "2026-02-04",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.0
+            "date": "2026-02-03",
+            "name": "Leandro",
+            "sentiment": 0.5
           },
           {
             "date": "2026-02-04",
@@ -9378,19 +9384,39 @@
             "sentiment": 1.0
           },
           {
-            "date": "2026-02-05",
+            "date": "2026-02-04",
+            "name": "Breno",
+            "sentiment": 9.5
+          },
+          {
+            "date": "2026-02-04",
             "name": "Leandro",
             "sentiment": 4.0
           },
           {
             "date": "2026-02-05",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.5
+            "name": "Ana Paula Renault",
+            "sentiment": 1.5
           },
           {
             "date": "2026-02-05",
+            "name": "Breno",
+            "sentiment": 9.0
+          },
+          {
+            "date": "2026-02-05",
+            "name": "Leandro",
+            "sentiment": 4.0
+          },
+          {
+            "date": "2026-02-06",
             "name": "Ana Paula Renault",
-            "sentiment": 1.5
+            "sentiment": -1.0
+          },
+          {
+            "date": "2026-02-06",
+            "name": "Breno",
+            "sentiment": 8.0
           },
           {
             "date": "2026-02-06",
@@ -9398,39 +9424,19 @@
             "sentiment": 6.0
           },
           {
-            "date": "2026-02-06",
-            "name": "Jonas Sulzbach",
-            "sentiment": 0.0
-          },
-          {
-            "date": "2026-02-06",
-            "name": "Ana Paula Renault",
-            "sentiment": -1.0
-          },
-          {
-            "date": "2026-02-07",
-            "name": "Leandro",
-            "sentiment": 4.5
-          },
-          {
-            "date": "2026-02-07",
-            "name": "Jonas Sulzbach",
-            "sentiment": 1.0
-          },
-          {
             "date": "2026-02-07",
             "name": "Ana Paula Renault",
             "sentiment": 0.0
           },
           {
-            "date": "2026-02-08",
-            "name": "Leandro",
-            "sentiment": 4.5
+            "date": "2026-02-07",
+            "name": "Breno",
+            "sentiment": 9.5
           },
           {
-            "date": "2026-02-08",
-            "name": "Jonas Sulzbach",
-            "sentiment": -0.5
+            "date": "2026-02-07",
+            "name": "Leandro",
+            "sentiment": 4.5
           },
           {
             "date": "2026-02-08",
@@ -9438,14 +9444,14 @@
             "sentiment": -1.5
           },
           {
-            "date": "2026-02-09",
-            "name": "Leandro",
-            "sentiment": 1.5
+            "date": "2026-02-08",
+            "name": "Breno",
+            "sentiment": 7.5
           },
           {
-            "date": "2026-02-09",
-            "name": "Jonas Sulzbach",
-            "sentiment": -0.5
+            "date": "2026-02-08",
+            "name": "Leandro",
+            "sentiment": 4.5
           },
           {
             "date": "2026-02-09",
@@ -9453,19 +9459,39 @@
             "sentiment": -2.5
           },
           {
-            "date": "2026-02-10",
-            "name": "Leandro",
-            "sentiment": 3.5
+            "date": "2026-02-09",
+            "name": "Breno",
+            "sentiment": 1.0
           },
           {
-            "date": "2026-02-10",
-            "name": "Jonas Sulzbach",
-            "sentiment": 1.0
+            "date": "2026-02-09",
+            "name": "Leandro",
+            "sentiment": 1.5
           },
           {
             "date": "2026-02-10",
             "name": "Ana Paula Renault",
             "sentiment": -1.5
+          },
+          {
+            "date": "2026-02-10",
+            "name": "Breno",
+            "sentiment": 4.0
+          },
+          {
+            "date": "2026-02-10",
+            "name": "Leandro",
+            "sentiment": 3.5
+          },
+          {
+            "date": "2026-02-11",
+            "name": "Ana Paula Renault",
+            "sentiment": 0.0
+          },
+          {
+            "date": "2026-02-11",
+            "name": "Breno",
+            "sentiment": 4.0
           },
           {
             "date": "2026-02-11",
@@ -9473,194 +9499,194 @@
             "sentiment": 4.0
           },
           {
-            "date": "2026-02-11",
-            "name": "Jonas Sulzbach",
+            "date": "2026-02-12",
+            "name": "Ana Paula Renault",
+            "sentiment": 1.5
+          },
+          {
+            "date": "2026-02-12",
+            "name": "Breno",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-02-12",
+            "name": "Leandro",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-02-13",
+            "name": "Ana Paula Renault",
+            "sentiment": 1.5
+          },
+          {
+            "date": "2026-02-13",
+            "name": "Breno",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-02-13",
+            "name": "Leandro",
+            "sentiment": 5.5
+          },
+          {
+            "date": "2026-02-14",
+            "name": "Ana Paula Renault",
+            "sentiment": 2.5
+          },
+          {
+            "date": "2026-02-14",
+            "name": "Breno",
+            "sentiment": 6.0
+          },
+          {
+            "date": "2026-02-14",
+            "name": "Leandro",
+            "sentiment": 6.5
+          },
+          {
+            "date": "2026-02-15",
+            "name": "Ana Paula Renault",
+            "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-15",
+            "name": "Breno",
+            "sentiment": 9.5
+          },
+          {
+            "date": "2026-02-15",
+            "name": "Leandro",
+            "sentiment": 4.5
+          },
+          {
+            "date": "2026-02-16",
+            "name": "Ana Paula Renault",
+            "sentiment": 2.5
+          },
+          {
+            "date": "2026-02-16",
+            "name": "Breno",
+            "sentiment": 6.0
+          },
+          {
+            "date": "2026-02-16",
+            "name": "Leandro",
+            "sentiment": 4.5
+          },
+          {
+            "date": "2026-02-17",
+            "name": "Ana Paula Renault",
+            "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-17",
+            "name": "Breno",
+            "sentiment": 5.0
+          },
+          {
+            "date": "2026-02-17",
+            "name": "Leandro",
+            "sentiment": 6.5
+          },
+          {
+            "date": "2026-02-18",
+            "name": "Ana Paula Renault",
+            "sentiment": 3.5
+          },
+          {
+            "date": "2026-02-18",
+            "name": "Breno",
+            "sentiment": 4.0
+          },
+          {
+            "date": "2026-02-18",
+            "name": "Leandro",
+            "sentiment": 4.5
+          },
+          {
+            "date": "2026-02-19",
+            "name": "Ana Paula Renault",
+            "sentiment": 3.5
+          },
+          {
+            "date": "2026-02-19",
+            "name": "Breno",
+            "sentiment": 4.0
+          },
+          {
+            "date": "2026-02-19",
+            "name": "Leandro",
+            "sentiment": 4.5
+          },
+          {
+            "date": "2026-02-20",
+            "name": "Ana Paula Renault",
+            "sentiment": 3.5
+          },
+          {
+            "date": "2026-02-20",
+            "name": "Breno",
+            "sentiment": 4.0
+          },
+          {
+            "date": "2026-02-20",
+            "name": "Leandro",
+            "sentiment": 4.5
+          },
+          {
+            "date": "2026-02-21",
+            "name": "Ana Paula Renault",
+            "sentiment": 3.5
+          },
+          {
+            "date": "2026-02-21",
+            "name": "Breno",
+            "sentiment": 4.0
+          },
+          {
+            "date": "2026-02-21",
+            "name": "Leandro",
+            "sentiment": 4.5
+          },
+          {
+            "date": "2026-02-22",
+            "name": "Ana Paula Renault",
+            "sentiment": 1.5
+          },
+          {
+            "date": "2026-02-22",
+            "name": "Breno",
+            "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-22",
+            "name": "Leandro",
+            "sentiment": 2.5
+          },
+          {
+            "date": "2026-02-23",
+            "name": "Ana Paula Renault",
+            "sentiment": 1.5
+          },
+          {
+            "date": "2026-02-23",
+            "name": "Breno",
+            "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-23",
+            "name": "Leandro",
+            "sentiment": 2.5
+          },
+          {
+            "date": "2026-02-24",
+            "name": "Ana Paula Renault",
             "sentiment": -2.0
           },
           {
-            "date": "2026-02-11",
-            "name": "Ana Paula Renault",
-            "sentiment": 0.0
-          },
-          {
-            "date": "2026-02-12",
-            "name": "Leandro",
-            "sentiment": 5.5
-          },
-          {
-            "date": "2026-02-12",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.5
-          },
-          {
-            "date": "2026-02-12",
-            "name": "Ana Paula Renault",
-            "sentiment": 1.5
-          },
-          {
-            "date": "2026-02-13",
-            "name": "Leandro",
-            "sentiment": 5.5
-          },
-          {
-            "date": "2026-02-13",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.5
-          },
-          {
-            "date": "2026-02-13",
-            "name": "Ana Paula Renault",
-            "sentiment": 1.5
-          },
-          {
-            "date": "2026-02-14",
-            "name": "Leandro",
-            "sentiment": 6.5
-          },
-          {
-            "date": "2026-02-14",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.5
-          },
-          {
-            "date": "2026-02-14",
-            "name": "Ana Paula Renault",
-            "sentiment": 2.5
-          },
-          {
-            "date": "2026-02-15",
-            "name": "Leandro",
-            "sentiment": 4.5
-          },
-          {
-            "date": "2026-02-15",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.5
-          },
-          {
-            "date": "2026-02-15",
-            "name": "Ana Paula Renault",
-            "sentiment": 2.0
-          },
-          {
-            "date": "2026-02-16",
-            "name": "Leandro",
-            "sentiment": 4.5
-          },
-          {
-            "date": "2026-02-16",
-            "name": "Jonas Sulzbach",
-            "sentiment": -5.0
-          },
-          {
-            "date": "2026-02-16",
-            "name": "Ana Paula Renault",
-            "sentiment": 2.5
-          },
-          {
-            "date": "2026-02-17",
-            "name": "Leandro",
-            "sentiment": 6.5
-          },
-          {
-            "date": "2026-02-17",
-            "name": "Jonas Sulzbach",
-            "sentiment": -4.0
-          },
-          {
-            "date": "2026-02-17",
-            "name": "Ana Paula Renault",
-            "sentiment": 2.0
-          },
-          {
-            "date": "2026-02-18",
-            "name": "Leandro",
-            "sentiment": 4.5
-          },
-          {
-            "date": "2026-02-18",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.5
-          },
-          {
-            "date": "2026-02-18",
-            "name": "Ana Paula Renault",
-            "sentiment": 3.5
-          },
-          {
-            "date": "2026-02-19",
-            "name": "Leandro",
-            "sentiment": 4.5
-          },
-          {
-            "date": "2026-02-19",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.5
-          },
-          {
-            "date": "2026-02-19",
-            "name": "Ana Paula Renault",
-            "sentiment": 3.5
-          },
-          {
-            "date": "2026-02-20",
-            "name": "Leandro",
-            "sentiment": 4.5
-          },
-          {
-            "date": "2026-02-20",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.5
-          },
-          {
-            "date": "2026-02-20",
-            "name": "Ana Paula Renault",
-            "sentiment": 3.5
-          },
-          {
-            "date": "2026-02-21",
-            "name": "Leandro",
-            "sentiment": 4.5
-          },
-          {
-            "date": "2026-02-21",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.5
-          },
-          {
-            "date": "2026-02-21",
-            "name": "Ana Paula Renault",
-            "sentiment": 3.5
-          },
-          {
-            "date": "2026-02-22",
-            "name": "Leandro",
-            "sentiment": 2.5
-          },
-          {
-            "date": "2026-02-22",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.5
-          },
-          {
-            "date": "2026-02-22",
-            "name": "Ana Paula Renault",
-            "sentiment": 1.5
-          },
-          {
-            "date": "2026-02-23",
-            "name": "Leandro",
-            "sentiment": 2.5
-          },
-          {
-            "date": "2026-02-23",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.5
-          },
-          {
-            "date": "2026-02-23",
-            "name": "Ana Paula Renault",
-            "sentiment": 1.5
+            "date": "2026-02-24",
+            "name": "Breno",
+            "sentiment": 1.0
           },
           {
             "date": "2026-02-24",
@@ -9668,84 +9694,64 @@
             "sentiment": 2.5
           },
           {
-            "date": "2026-02-24",
-            "name": "Jonas Sulzbach",
+            "date": "2026-02-25",
+            "name": "Ana Paula Renault",
+            "sentiment": -2.0
+          },
+          {
+            "date": "2026-02-25",
+            "name": "Breno",
+            "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-25",
+            "name": "Leandro",
+            "sentiment": -0.5
+          },
+          {
+            "date": "2026-02-26",
+            "name": "Ana Paula Renault",
+            "sentiment": -2.0
+          },
+          {
+            "date": "2026-02-26",
+            "name": "Breno",
+            "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-26",
+            "name": "Leandro",
+            "sentiment": -0.5
+          },
+          {
+            "date": "2026-02-27",
+            "name": "Ana Paula Renault",
+            "sentiment": -2.0
+          },
+          {
+            "date": "2026-02-27",
+            "name": "Breno",
+            "sentiment": 2.0
+          },
+          {
+            "date": "2026-02-27",
+            "name": "Leandro",
+            "sentiment": -0.5
+          },
+          {
+            "date": "2026-02-28",
+            "name": "Ana Paula Renault",
+            "sentiment": -2.5
+          },
+          {
+            "date": "2026-02-28",
+            "name": "Breno",
             "sentiment": 0.5
           },
           {
-            "date": "2026-02-24",
-            "name": "Ana Paula Renault",
-            "sentiment": -2.0
-          },
-          {
-            "date": "2026-02-25",
-            "name": "Leandro",
-            "sentiment": -0.5
-          },
-          {
-            "date": "2026-02-25",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.5
-          },
-          {
-            "date": "2026-02-25",
-            "name": "Ana Paula Renault",
-            "sentiment": -2.0
-          },
-          {
-            "date": "2026-02-26",
-            "name": "Leandro",
-            "sentiment": -0.5
-          },
-          {
-            "date": "2026-02-26",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.5
-          },
-          {
-            "date": "2026-02-26",
-            "name": "Ana Paula Renault",
-            "sentiment": -2.0
-          },
-          {
-            "date": "2026-02-27",
-            "name": "Leandro",
-            "sentiment": -0.5
-          },
-          {
-            "date": "2026-02-27",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.5
-          },
-          {
-            "date": "2026-02-27",
-            "name": "Ana Paula Renault",
-            "sentiment": -2.0
-          },
-          {
             "date": "2026-02-28",
             "name": "Leandro",
             "sentiment": -0.5
-          },
-          {
-            "date": "2026-02-28",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.0
-          },
-          {
-            "date": "2026-02-28",
-            "name": "Ana Paula Renault",
-            "sentiment": -2.5
-          },
-          {
-            "date": "2026-03-01",
-            "name": "Leandro",
-            "sentiment": -0.5
-          },
-          {
-            "date": "2026-03-01",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.0
           },
           {
             "date": "2026-03-01",
@@ -9753,13 +9759,13 @@
             "sentiment": -2.5
           },
           {
-            "date": "2026-03-02",
-            "name": "Leandro",
-            "sentiment": 0.0
+            "date": "2026-03-01",
+            "name": "Breno",
+            "sentiment": 0.5
           },
           {
-            "date": "2026-03-02",
-            "name": "Jonas Sulzbach",
+            "date": "2026-03-01",
+            "name": "Leandro",
             "sentiment": -0.5
           },
           {
@@ -9768,14 +9774,14 @@
             "sentiment": 0.0
           },
           {
-            "date": "2026-03-03",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-03-02",
+            "name": "Breno",
+            "sentiment": 0.5
           },
           {
-            "date": "2026-03-03",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.0
+            "date": "2026-03-02",
+            "name": "Leandro",
+            "sentiment": 0.0
           },
           {
             "date": "2026-03-03",
@@ -9783,14 +9789,14 @@
             "sentiment": -2.5
           },
           {
-            "date": "2026-03-04",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-03-03",
+            "name": "Breno",
+            "sentiment": 0.5
           },
           {
-            "date": "2026-03-04",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.0
+            "date": "2026-03-03",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-03-04",
@@ -9798,14 +9804,14 @@
             "sentiment": -2.5
           },
           {
-            "date": "2026-03-05",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-03-04",
+            "name": "Breno",
+            "sentiment": 0.5
           },
           {
-            "date": "2026-03-05",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.0
+            "date": "2026-03-04",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-03-05",
@@ -9813,29 +9819,29 @@
             "sentiment": -1.5
           },
           {
-            "date": "2026-03-06",
-            "name": "Leandro",
-            "sentiment": -0.5
-          },
-          {
-            "date": "2026-03-06",
-            "name": "Jonas Sulzbach",
+            "date": "2026-03-05",
+            "name": "Breno",
             "sentiment": 2.5
           },
           {
+            "date": "2026-03-05",
+            "name": "Leandro",
+            "sentiment": -0.5
+          },
+          {
             "date": "2026-03-06",
             "name": "Ana Paula Renault",
             "sentiment": -1.5
           },
           {
-            "date": "2026-03-07",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-03-06",
+            "name": "Breno",
+            "sentiment": 0
           },
           {
-            "date": "2026-03-07",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.0
+            "date": "2026-03-06",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-03-07",
@@ -9843,14 +9849,14 @@
             "sentiment": -2.0
           },
           {
-            "date": "2026-03-08",
-            "name": "Leandro",
-            "sentiment": -0.5
+            "date": "2026-03-07",
+            "name": "Breno",
+            "sentiment": 0.5
           },
           {
-            "date": "2026-03-08",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.5
+            "date": "2026-03-07",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-03-08",
@@ -9858,14 +9864,14 @@
             "sentiment": -4.0
           },
           {
-            "date": "2026-03-09",
-            "name": "Leandro",
-            "sentiment": 0.0
+            "date": "2026-03-08",
+            "name": "Breno",
+            "sentiment": 3.0
           },
           {
-            "date": "2026-03-09",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.5
+            "date": "2026-03-08",
+            "name": "Leandro",
+            "sentiment": -0.5
           },
           {
             "date": "2026-03-09",
@@ -9873,14 +9879,14 @@
             "sentiment": -4.5
           },
           {
-            "date": "2026-03-10",
-            "name": "Leandro",
-            "sentiment": 0.0
+            "date": "2026-03-09",
+            "name": "Breno",
+            "sentiment": 2.0
           },
           {
-            "date": "2026-03-10",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.5
+            "date": "2026-03-09",
+            "name": "Leandro",
+            "sentiment": 0.0
           },
           {
             "date": "2026-03-10",
@@ -9888,14 +9894,14 @@
             "sentiment": -4.5
           },
           {
-            "date": "2026-03-11",
-            "name": "Leandro",
-            "sentiment": -1.0
+            "date": "2026-03-10",
+            "name": "Breno",
+            "sentiment": 2.0
           },
           {
-            "date": "2026-03-11",
-            "name": "Jonas Sulzbach",
-            "sentiment": -1.0
+            "date": "2026-03-10",
+            "name": "Leandro",
+            "sentiment": 0.0
           },
           {
             "date": "2026-03-11",
@@ -9903,44 +9909,44 @@
             "sentiment": -2.5
           },
           {
-            "date": "2026-03-12",
+            "date": "2026-03-11",
+            "name": "Breno",
+            "sentiment": 1.5
+          },
+          {
+            "date": "2026-03-11",
             "name": "Leandro",
             "sentiment": -1.0
           },
           {
             "date": "2026-03-12",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.5
+            "name": "Ana Paula Renault",
+            "sentiment": -0.5
           },
           {
             "date": "2026-03-12",
+            "name": "Breno",
+            "sentiment": 1.5
+          },
+          {
+            "date": "2026-03-12",
+            "name": "Leandro",
+            "sentiment": -1.0
+          },
+          {
+            "date": "2026-03-13",
             "name": "Ana Paula Renault",
             "sentiment": -0.5
           },
           {
             "date": "2026-03-13",
+            "name": "Breno",
+            "sentiment": 1.5
+          },
+          {
+            "date": "2026-03-13",
             "name": "Leandro",
             "sentiment": -1.0
-          },
-          {
-            "date": "2026-03-13",
-            "name": "Jonas Sulzbach",
-            "sentiment": -2.5
-          },
-          {
-            "date": "2026-03-13",
-            "name": "Ana Paula Renault",
-            "sentiment": -0.5
-          },
-          {
-            "date": "2026-03-14",
-            "name": "Leandro",
-            "sentiment": 4.0
-          },
-          {
-            "date": "2026-03-14",
-            "name": "Jonas Sulzbach",
-            "sentiment": -3.0
           },
           {
             "date": "2026-03-14",
@@ -9948,57 +9954,380 @@
             "sentiment": 3.0
           },
           {
-            "date": "2026-03-15",
-            "name": "Leandro",
-            "sentiment": 0.0
+            "date": "2026-03-14",
+            "name": "Breno",
+            "sentiment": 5.5
           },
           {
-            "date": "2026-03-15",
-            "name": "Jonas Sulzbach",
-            "sentiment": -4.5
+            "date": "2026-03-14",
+            "name": "Leandro",
+            "sentiment": 4.0
           },
           {
             "date": "2026-03-15",
             "name": "Ana Paula Renault",
             "sentiment": 0.5
+          },
+          {
+            "date": "2026-03-15",
+            "name": "Breno",
+            "sentiment": 0.5
+          },
+          {
+            "date": "2026-03-15",
+            "name": "Leandro",
+            "sentiment": 0.0
           }
         ],
         "negs_recebidas": {
-          "Leandro": 8,
-          "Jonas Sulzbach": 9,
-          "Ana Paula Renault": 6
+          "Ana Paula Renault": 6,
+          "Breno": 6,
+          "Leandro": 8
         }
       },
-      "relationship_history": {},
-      "vote_analysis": [],
+      "relationship_history": {
+        "Juliano Floss→Marciele": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 12,
+          "days_as_enemies": 50,
+          "days_mutual_friends": 11,
+          "change_date": "2026-01-31",
+          "narrative": "Foram amigos por 12 dias, romperam em 2026-01-31.",
+          "total_days": 62
+        },
+        "Gabriela→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 36,
+          "days_as_enemies": 21,
+          "days_mutual_friends": 15,
+          "change_date": "2026-03-11",
+          "narrative": "Foram amigos por 36 dias, romperam em 2026-03-11.",
+          "total_days": 57
+        },
+        "Leandro→Gabriela": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 2,
+          "days_as_enemies": 55,
+          "days_mutual_friends": 2,
+          "change_date": "2026-01-20",
+          "narrative": "Foram amigos por 2 dias, romperam em 2026-01-20.",
+          "total_days": 57
+        },
+        "Milena→Marciele": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 10,
+          "days_as_enemies": 52,
+          "days_mutual_friends": 10,
+          "change_date": "2026-01-25",
+          "narrative": "Foram amigos por 10 dias, romperam em 2026-01-25.",
+          "total_days": 62
+        },
+        "Marciele→Solange Couto": {
+          "pattern": "recem_inimigos",
+          "days_as_friends": 21,
+          "days_as_enemies": 41,
+          "days_mutual_friends": 18,
+          "change_date": "2026-03-15",
+          "narrative": "Eram amigos por 21 dias, mudou há 1 dia(s)!",
+          "total_days": 62
+        },
+        "Breno→Marciele": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 33,
+          "days_as_enemies": 29,
+          "days_mutual_friends": 33,
+          "change_date": "2026-02-15",
+          "narrative": "Foram amigos por 33 dias, romperam em 2026-02-15.",
+          "total_days": 62
+        },
+        "Jordana→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 24,
+          "days_as_enemies": 38,
+          "days_mutual_friends": 16,
+          "change_date": "2026-03-11",
+          "narrative": "Foram amigos por 24 dias, romperam em 2026-03-11.",
+          "total_days": 62
+        },
+        "Samira→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 26,
+          "days_as_enemies": 36,
+          "days_mutual_friends": 17,
+          "change_date": "2026-02-24",
+          "narrative": "Foram amigos por 26 dias, romperam em 2026-02-24.",
+          "total_days": 62
+        },
+        "Jonas Sulzbach→Solange Couto": {
+          "pattern": "reconciliados",
+          "days_as_friends": 41,
+          "days_as_enemies": 21,
+          "days_mutual_friends": 21,
+          "change_date": "2026-03-14",
+          "narrative": "Reconciliaram em 2026-03-14.",
+          "total_days": 62
+        },
+        "Chaiany→Jordana": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 21,
+          "days_as_enemies": 36,
+          "days_mutual_friends": 16,
+          "change_date": "2026-03-05",
+          "narrative": "Foram amigos por 21 dias, romperam em 2026-03-05.",
+          "total_days": 57
+        },
+        "Ana Paula Renault→Solange Couto": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 28,
+          "days_as_enemies": 34,
+          "days_mutual_friends": 21,
+          "change_date": "2026-02-24",
+          "narrative": "Foram amigos por 28 dias, romperam em 2026-02-24.",
+          "total_days": 62
+        },
+        "Solange Couto→Gabriela": {
+          "pattern": "recem_inimigos",
+          "days_as_friends": 20,
+          "days_as_enemies": 37,
+          "days_mutual_friends": 15,
+          "change_date": "2026-03-14",
+          "narrative": "Eram amigos por 20 dias, mudou há 2 dia(s)!",
+          "total_days": 57
+        },
+        "Alberto Cowboy→Breno": {
+          "pattern": "recem_inimigos",
+          "days_as_friends": 27,
+          "days_as_enemies": 34,
+          "days_mutual_friends": 24,
+          "change_date": "2026-03-15",
+          "narrative": "Eram amigos por 27 dias, mudou há 1 dia(s)!",
+          "total_days": 61
+        },
+        "Breno→Alberto Cowboy": {
+          "pattern": "ex_amigos",
+          "days_as_friends": 29,
+          "days_as_enemies": 33,
+          "days_mutual_friends": 24,
+          "change_date": "2026-02-15",
+          "narrative": "Foram amigos por 29 dias, romperam em 2026-02-15.",
+          "total_days": 62
+        }
+      },
+      "vote_analysis": [
+        {
+          "votante": "Juliano Floss",
+          "alvo": "Marciele",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 12 dias, romperam em 2026-01-31.",
+          "days_as_friends": 12,
+          "days_as_enemies": 50,
+          "days_mutual_friends": 11,
+          "change_date": "2026-01-31",
+          "total_days": 62
+        },
+        {
+          "votante": "Gabriela",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 36 dias, romperam em 2026-03-11.",
+          "days_as_friends": 36,
+          "days_as_enemies": 21,
+          "days_mutual_friends": 15,
+          "change_date": "2026-03-11",
+          "total_days": 57
+        },
+        {
+          "votante": "Leandro",
+          "alvo": "Gabriela",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🎯",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 2 dias, romperam em 2026-01-20.",
+          "days_as_friends": 2,
+          "days_as_enemies": 55,
+          "days_mutual_friends": 2,
+          "change_date": "2026-01-20",
+          "total_days": 57
+        },
+        {
+          "votante": "Milena",
+          "alvo": "Marciele",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🍪",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 10 dias, romperam em 2026-01-25.",
+          "days_as_friends": 10,
+          "days_as_enemies": 52,
+          "days_mutual_friends": 10,
+          "change_date": "2026-01-25",
+          "total_days": 62
+        },
+        {
+          "votante": "Marciele",
+          "alvo": "Solange Couto",
+          "tipo": "ponto_cego",
+          "label": "🎯 Ponto Cego do Alvo",
+          "cor": "#f39c12",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "❤️",
+          "hist_pattern": "recem_inimigos",
+          "hist_narrative": "Eram amigos por 21 dias, mudou há 1 dia(s)!",
+          "days_as_friends": 21,
+          "days_as_enemies": 41,
+          "days_mutual_friends": 18,
+          "change_date": "2026-03-15",
+          "total_days": 62
+        },
+        {
+          "votante": "Breno",
+          "alvo": "Marciele",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🎯",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 33 dias, romperam em 2026-02-15.",
+          "days_as_friends": 33,
+          "days_as_enemies": 29,
+          "days_mutual_friends": 33,
+          "change_date": "2026-02-15",
+          "total_days": 62
+        },
+        {
+          "votante": "Jordana",
+          "alvo": "Solange Couto",
+          "tipo": "ponto_cego",
+          "label": "🎯 Ponto Cego do Alvo",
+          "cor": "#f39c12",
+          "emoji_dado": "🤮",
+          "emoji_recebido": "❤️",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 24 dias, romperam em 2026-03-11.",
+          "days_as_friends": 24,
+          "days_as_enemies": 38,
+          "days_mutual_friends": 16,
+          "change_date": "2026-03-11",
+          "total_days": 62
+        },
+        {
+          "votante": "Samira",
+          "alvo": "Solange Couto",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "💔",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 26 dias, romperam em 2026-02-24.",
+          "days_as_friends": 26,
+          "days_as_enemies": 36,
+          "days_mutual_friends": 17,
+          "change_date": "2026-02-24",
+          "total_days": 62
+        },
+        {
+          "votante": "Jonas Sulzbach",
+          "alvo": "Solange Couto",
+          "tipo": "aliados_mutuos",
+          "label": "💔 Traição de Aliado",
+          "cor": "#9b59b6",
+          "emoji_dado": "❤️",
+          "emoji_recebido": "❤️",
+          "hist_pattern": "reconciliados",
+          "hist_narrative": "Reconciliaram em 2026-03-14.",
+          "days_as_friends": 41,
+          "days_as_enemies": 21,
+          "days_mutual_friends": 21,
+          "change_date": "2026-03-14",
+          "total_days": 62
+        },
+        {
+          "votante": "Chaiany",
+          "alvo": "Jordana",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "💔",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 21 dias, romperam em 2026-03-05.",
+          "days_as_friends": 21,
+          "days_as_enemies": 36,
+          "days_mutual_friends": 16,
+          "change_date": "2026-03-05",
+          "total_days": 57
+        },
+        {
+          "votante": "Ana Paula Renault",
+          "alvo": "Solange Couto",
+          "tipo": "ponto_cego",
+          "label": "🎯 Ponto Cego do Alvo",
+          "cor": "#f39c12",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "❤️",
+          "hist_pattern": "ex_amigos",
+          "hist_narrative": "Foram amigos por 28 dias, romperam em 2026-02-24.",
+          "days_as_friends": 28,
+          "days_as_enemies": 34,
+          "days_mutual_friends": 21,
+          "change_date": "2026-02-24",
+          "total_days": 62
+        },
+        {
+          "votante": "Solange Couto",
+          "alvo": "Gabriela",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "recem_inimigos",
+          "hist_narrative": "Eram amigos por 20 dias, mudou há 2 dia(s)!",
+          "days_as_friends": 20,
+          "days_as_enemies": 37,
+          "days_mutual_friends": 15,
+          "change_date": "2026-03-14",
+          "total_days": 57
+        }
+      ],
       "featured_story": null,
       "vote_aggregates": {
-        "relationship_counts": {},
-        "vote_counts": {},
-        "mais_votado": "",
-        "n_votos_mais": 0,
-        "n_traicoes": 0,
-        "n_pontos_cegos": 0,
-        "n_esperados": 0,
-        "total_votes": 0
+        "relationship_counts": {
+          "inimigos_declarados": 8,
+          "ponto_cego": 3,
+          "aliados_mutuos": 1
+        },
+        "vote_counts": {
+          "Marciele": 3,
+          "Solange Couto": 6,
+          "Gabriela": 2,
+          "Jordana": 1
+        },
+        "mais_votado": "Solange Couto",
+        "n_votos_mais": 6,
+        "n_traicoes": 1,
+        "n_pontos_cegos": 3,
+        "n_esperados": 8,
+        "total_votes": 12
       },
       "per_nominee": {
-        "Leandro": {
-          "n_votes": 0,
-          "from_enemies": 0,
-          "from_traitors": 0,
-          "from_blind": 0,
-          "from_neutral": 0,
-          "voters": []
-        },
-        "Jonas Sulzbach": {
-          "n_votes": 0,
-          "from_enemies": 0,
-          "from_traitors": 0,
-          "from_blind": 0,
-          "from_neutral": 0,
-          "voters": []
-        },
         "Ana Paula Renault": {
           "n_votes": 0,
           "from_enemies": 0,
@@ -10006,10 +10335,42 @@
           "from_blind": 0,
           "from_neutral": 0,
           "voters": []
+        },
+        "Breno": {
+          "n_votes": 0,
+          "from_enemies": 0,
+          "from_traitors": 0,
+          "from_blind": 0,
+          "from_neutral": 0,
+          "voters": []
+        },
+        "Leandro": {
+          "n_votes": 0,
+          "from_enemies": 0,
+          "from_traitors": 0,
+          "from_blind": 0,
+          "from_neutral": 0,
+          "voters": []
         }
       },
-      "indicator_pairs": [],
-      "indicator_reactions": []
+      "indicator_pairs": [
+        {
+          "actor": "Alberto Cowboy",
+          "target": "Breno",
+          "type": "lider"
+        }
+      ],
+      "indicator_reactions": [
+        {
+          "actor": "Alberto Cowboy",
+          "target": "Breno",
+          "type": "lider",
+          "actor_to_target": "🤮",
+          "target_to_actor": "🎯",
+          "actor_to_target_raw": "Vômito",
+          "target_to_actor_raw": "Alvo"
+        }
+      ]
     }
   }
 }
