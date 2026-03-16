@@ -761,12 +761,34 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
         order = {nome: idx for idx, (nome, _) in enumerate(votalhada_rank)}
         rows.sort(key=lambda r: (order.get(r["name"], 999), r["name"]))
 
+    # Compute mirror 0.3×0.7 from platform data if all 4 platforms present
+    plataformas = poll.get("plataformas", {})
+    mirror_3070: dict[str, float] = {}
+    if all(p in plataformas for p in ("sites", "youtube", "twitter", "instagram")):
+        for nome in participantes:
+            s = float(plataformas["sites"].get(nome, 0))
+            cpf_avg = sum(float(plataformas[p].get(nome, 0)) for p in ("youtube", "twitter", "instagram")) / 3.0
+            mirror_3070[nome] = round(0.3 * s + 0.7 * cpf_avg, 2)
+
+    mirror_rank = sorted(
+        [(nome, mirror_3070.get(nome, 0)) for nome in participantes],
+        key=lambda x: (-x[1], x[0]),
+    ) if mirror_3070 else []
+    mirror_name = mirror_rank[0][0] if mirror_rank else None
+    mirror_pct = mirror_rank[0][1] if mirror_rank else None
+
     return {
         "vote_mode": vote_mode,
         "agreement": agreement,
         "votalhada": {
             "name": votalhada_name,
             "pct": votalhada_pct,
+        },
+        "mirror_3070": {
+            "name": mirror_name,
+            "pct": mirror_pct,
+            "values": mirror_3070,
+            "available": bool(mirror_3070),
         },
         "model": {
             "name": model_name,
@@ -780,6 +802,29 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
     }
 
 
+def _votalhada_blurb(payload: dict) -> str:
+    """Return the Votalhada panel description based on whether mirror_3070 is available."""
+    mirror = payload.get("mirror_3070", {})
+    if mirror.get("available"):
+        return "Análise 0,3 × 0,7 (Torcida × Voto Único)"
+    return "Média por volume de votos das fontes."
+
+
+def _mirror_3070_line(payload: dict, winner_name: str) -> str:
+    """Show legacy weighted value as secondary when mirror_3070 is available."""
+    mirror = payload.get("mirror_3070", {})
+    if not mirror.get("available"):
+        return ""
+    legacy_pct = payload.get("votalhada", {}).get("pct")
+    if legacy_pct is None:
+        return ""
+    return (
+        f'<div class="poll-compare-pct" style="font-size:0.75em;color:#f0ad4e;">'
+        f'(ponderada por votos: {_format_pct(legacy_pct)})'
+        f'</div>'
+    )
+
+
 def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -> str:
     """Render a merged comparison card for Votalhada vs Nosso Modelo."""
     if not payload:
@@ -787,9 +832,15 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
 
     v = payload.get("votalhada", {})
     m = payload.get("model", {})
+    mirror = payload.get("mirror_3070", {})
     v_name = v.get("name", "—")
     m_name = m.get("name", "—")
-    v_pct = v.get("pct")
+    # Show mirror_3070 as primary Votalhada value when available
+    v_pct_legacy = v.get("pct")
+    if mirror.get("available") and mirror.get("values"):
+        v_pct = mirror["values"].get(v_name, v_pct_legacy)
+    else:
+        v_pct = v_pct_legacy
     m_pct = m.get("pct")
 
     agreement = payload.get("agreement")
@@ -815,6 +866,17 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
 
     winner_delta_pp = payload.get("winner_delta_pp")
     delta_line = f"Diferença no líder: {_format_delta_pp(winner_delta_pp)}"
+
+    # Formula comparison line (old vs new Votalhada)
+    formula_line = ""
+    if mirror.get("available") and v_pct_legacy is not None and v_pct is not None:
+        diff = v_pct - v_pct_legacy
+        if abs(diff) >= 0.1:
+            formula_line = (
+                f"Nova fórmula: {v_pct:.2f}% vs antiga: {v_pct_legacy:.2f}% "
+                f"({diff:+.1f} p.p. no líder)"
+            )
+
     if agreement:
         lead_line = f"Ambos apontam {safe_html(m_name.split()[0])} ao comparar {decision_hint}."
     else:
@@ -873,6 +935,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'<div class="poll-compare-bridge-target">{lead_line}</div>'
         f'<div class="poll-compare-bridge-metric">{safe_html(confidence_line)}</div>'
         f'<div class="poll-compare-bridge-metric">{safe_html(delta_line)}</div>'
+        f'{f"""<div class="poll-compare-bridge-metric">{safe_html(formula_line)}</div>""" if formula_line else ""}'
         f'</div>'
         f'<div class="poll-compare-panels">'
         f'<div class="poll-compare-side is-model">'
@@ -885,11 +948,12 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'</div></div></div>'
         f'<div class="poll-compare-side is-votalhada">'
         f'<div class="poll-compare-brand">📊 VOTALHADA</div>'
-        f'<div class="poll-compare-blurb">Média por volume de votos das fontes.</div>'
+        f'<div class="poll-compare-blurb">{_votalhada_blurb(payload)}</div>'
         f'{votalhada_line}'
         f'<div class="poll-compare-winner">{v_avatar}<div>'
         f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
         f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
+        f'{_mirror_3070_line(payload, v_name)}'
         f'</div></div></div>'
         f'</div>'
         f'<div class="poll-compare-strip">{rows_compact}</div>'

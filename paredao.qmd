@@ -509,12 +509,12 @@ if ultimo:
             _color_max = '#2ecc71' if _is_save_poll else '#e74c3c'
             _color_min = '#e74c3c' if _is_save_poll else '#2ecc71'
             def _poll_highlight(val, all_vals):
-                """Color-code: context-aware best/worst."""
+                """Color-code: 1st=red, 2nd=yellow, 3rd=green (eliminate mode)."""
                 if val == max(all_vals):
                     return f'font-weight:bold; color:{_color_max};'
                 if val == min(all_vals):
                     return f'font-weight:bold; color:{_color_min};'
-                return 'color:#ddd;'
+                return 'font-weight:bold; color:#f0ad4e;'
 
             print('<div class="u-s025">')
             print('<table class="table table-striped fs-base u-s095">')
@@ -576,8 +576,6 @@ if ultimo:
                 for nome in participantes_poll:
                     val = _mirror_3070.get(nome, 0)
                     style = _poll_highlight(val, _mvals_3070)
-                    if 'font-weight' not in style:
-                        style = 'font-weight:bold;' + style
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print(f'<td class="tc text-muted fs-sm">recalculado</td>')
                 print('</tr>')
@@ -934,7 +932,7 @@ if ultimo:
             print('<div class="paredao-history-summary">📋 Histórico em paredões anteriores</div>')
             print('<div class="paredao-history-inner"><div class="paredao-history-table-wrap">')
             print('<table class="table table-sm fs-md paredao-history-table no-mobile-prune" data-mobile-no-prune="1">')
-            print('<thead><tr><th>Participante</th><th class="tc">Paredão</th><th>Como</th><th class="tc">%</th><th class="tc">Resultado</th></tr></thead><tbody>')
+            print('<thead><tr><th>Participante</th><th class="tc">Paredão</th><th>Como</th><th class="tc">%</th></tr></thead><tbody>')
             for _h_nome, _h_entries in _nominees_with_history:
                 first_name = _h_nome.split()[0]
                 _av = avatar_img(_h_nome, AVATARS, 24)
@@ -943,19 +941,12 @@ if ultimo:
                     _h_como = _h.get('como', '?')
                     _h_pct = f'{_h["voto_total"]:.2f}%' if 'voto_total' in _h else '—'
                     _h_falso = ' 🔮' if _h.get('falso') else ''
-                    if _h.get('eliminado'):
-                        _h_res = f'<span class="u-s031">ELIMINAD{"A" if genero(_h_nome) == "f" else "O"}</span>'
-                    elif 'voto_total' in _h:
-                        _h_res = f'<span style="color:#2ecc71; font-weight:bold;">Salv{"a" if genero(_h_nome) == "f" else "o"}</span>'
-                    else:
-                        _h_res = '—'
                     print(
                         f'<tr>'
                         f'<td data-label="Participante">{_av} {first_name}</td>'
                         f'<td data-label="Paredão">{_h_num}º{_h_falso}</td>'
                         f'<td data-label="Como" style="word-break:break-word;">{_h_como}</td>'
                         f'<td data-label="%" class="tc">{_h_pct}</td>'
-                        f'<td data-label="Resultado" class="tc">{_h_res}</td>'
                         f'</tr>'
                     )
             print('</tbody></table></div></div></section>\n')

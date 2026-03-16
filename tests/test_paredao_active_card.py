@@ -262,7 +262,7 @@ def test_poll_comparison_renderer_outputs_unified_compare_card(_repo_data):
     assert "Concordam" in html
     assert "Confiança" in html
     assert "Diferença no líder" in html
-    assert "Média por volume de votos" in html
+    assert "Análise 0,3" in html or "Média por volume de votos" in html
     assert "ponderadas por histórico de acerto" in html
     assert 'href="paredoes.html#precisão-das-enquetes-votalhada"' in html
     assert "Babu" in html
