@@ -239,11 +239,17 @@ from data_utils import (
     ANALYSIS_DESCRIPTIONS,
 )
 from paredao_viz import (
+    build_formacao_curiosidades_items,
+    build_nominee_related_relationship_narratives,
     build_paredao_card_payload,
     build_poll_comparison_payload,
+    build_poll_insights_blocks,
+    ensure_live_context_block_items,
+    ensure_live_poll_progress_items,
     render_paredao_index_card,
     render_paredao_live_card,
     render_poll_comparison_card,
+    render_poll_insights_blocks,
     render_nominee_cards_em_andamento,
     render_nominee_cards_finalized,
     build_paredao_history,
@@ -321,6 +327,7 @@ if missing_formacao:
     print(":::\n")
 # ── Carregar dados de enquetes do Votalhada ──
 polls_data = load_votalhada_polls()
+paredao_analysis_data = load_paredao_analysis()
 
 # ── Detectar paredão em andamento da API ──
 # Se há participantes com role "Paredão" na API E não temos um paredão 'em_andamento'
@@ -461,6 +468,43 @@ if ultimo:
             print(render_paredao_index_card(_card_payload, AVATARS))
 
         _nominees_with_history = [(p['nome'], _par_history.get(p['nome'], [])) for p in participantes if _par_history.get(p['nome'])]
+        _live_nominee_names = [p['nome'] for p in participantes]
+        _context_history_items = []
+        _context_relationship_items = []
+        _pa_entry_live = paredao_analysis_data.get("by_paredao", {}).get(str(ultimo.get('numero', '')), {})
+        _vagg_live = _pa_entry_live.get('vote_aggregates', {}) if isinstance(_pa_entry_live, dict) else {}
+        _rh_live = _pa_entry_live.get('relationship_history', {}) if isinstance(_pa_entry_live, dict) else {}
+        _formacao_curiosidades_items = build_formacao_curiosidades_items(
+            (ultimo.get('formacao_raw') or {}).get('curiosidades')
+        )
+
+        _relationship_bullets = []
+        _total_votes_live = _vagg_live.get('total_votes', 0)
+        _n_traicoes_live = _vagg_live.get('n_traicoes', 0)
+        _n_pontos_cegos_live = _vagg_live.get('n_pontos_cegos', 0)
+        _n_esperados_live = _vagg_live.get('n_esperados', 0)
+        if _total_votes_live:
+            _pct_aligned_live = (_n_esperados_live / _total_votes_live * 100) if _total_votes_live else 0
+            _relationship_bullets.append(
+                f'Na votação da casa, <strong>{_n_esperados_live}/{_total_votes_live} votos</strong> '
+                f'({_pct_aligned_live:.0f}%) já acompanhavam relações negativas no queridômetro; '
+                f'houve <strong>{_n_traicoes_live}</strong> traição(ões) e '
+                f'<strong>{_n_pontos_cegos_live}</strong> ponto(s) cego(s).'
+            )
+        _relationship_bullets.extend(
+            build_nominee_related_relationship_narratives(
+                nominees=_live_nominee_names,
+                relationship_history=_rh_live,
+                limit=2,
+            )
+        )
+        if _relationship_bullets:
+            _context_relationship_items.append(
+                {
+                    'title_html': '<strong>Como a formação conversa com o queridômetro</strong>',
+                    'bullets_html': _relationship_bullets,
+                }
+            )
 
         # ── Enquetes do Votalhada (em andamento) — right after nominee cards ──
         if poll:
@@ -597,8 +641,8 @@ if ultimo:
             print('</tbody></table>')
             print('</div>')
 
-            # ── Curiosidades (curadas: menos ruído, mais decisão) ──
-            _curiosities = []
+            # ── Leituras que importam agora (em blocos) ──
+            _poll_progress_items = []
             _bt = backtest_precision_model(polls_data) if _model_pred else None
 
             # Pre-compute platform volumes (also used in model details table below)
@@ -630,7 +674,7 @@ if ultimo:
                     _main_txt = f'🧮 <strong>Nosso Modelo</strong>: <strong>{_lead_n.split()[0]}</strong> é o nome mais provável para sair com {_lead_v:.2f}%'
                 if _run_n:
                     _main_txt += f' (margem de {_gap_m:.1f} p.p. sobre {_run_n.split()[0]})'
-                _curiosities.append(_main_txt)
+                _poll_progress_items.append(_main_txt)
 
             # 2) Agreement + confidence (single line, no duplication).
             if _model_pred and len(_sorted_consol) >= 2:
@@ -646,7 +690,7 @@ if ultimo:
                 if abs(_diff_m - _diff_v_top2) > 0.7:
                     _who_conf = 'Modelo' if _diff_m > _diff_v_top2 else 'Votalhada'
                     _agree_line += f' · confiança maior no <strong>{_who_conf}</strong> ({max(_diff_m, _diff_v_top2):.1f} vs {min(_diff_m, _diff_v_top2):.1f} p.p.)'
-                _curiosities.append(_agree_line)
+                _poll_progress_items.append(_agree_line)
 
             # 3) Time-series momentum: can the runner-up flip?
             _serie = poll.get('serie_temporal', [])
@@ -748,21 +792,21 @@ if ultimo:
                                 else:
                                     _rate_msg = (
                                         '📌 <strong>Encerramento da votação atingido</strong>. '
-                                        'Painel aguardando nova coleta final e resultado oficial.'
+                                        'Painel aguardando nova coleta final e resultado real.'
                                     )
                     except Exception:
                         _rate_msg = None
 
-                    _curiosities.append(
+                    _poll_progress_items.append(
                         _rate_msg or f'📈 Ritmo recente: <strong>{_run_now.split()[0]}</strong> está reduzindo {abs(_closing):.2f} p.p. na disputa mais recente.'
                     )
                 elif _closing < -0.25:
-                    _curiosities.append(
+                    _poll_progress_items.append(
                         f'📉 Ritmo recente favorece <strong>{_lead_now.split()[0]}</strong>: vantagem abriu '
                         f'{abs(_closing):.2f} p.p. nas últimas {_k} atualizações.'
                     )
                 elif _gap_now <= 2.0:
-                    _curiosities.append(
+                    _poll_progress_items.append(
                         f'⏱️ Disputa ainda aberta: diferença atual de <strong>{_gap_now:.2f} p.p.</strong> entre '
                         f'{_lead_now.split()[0]} e {_run_now.split()[0]}.'
                         f'{" Liderança já trocou " + str(_leader_swaps) + "x." if _leader_swaps > 0 else ""}'
@@ -782,39 +826,46 @@ if ultimo:
                     _moved.sort(key=lambda x: abs(x[2] - x[1]), reverse=True)
                     _nm, _i0, _i1 = _moved[0]
                     _arrow = "subiu" if _i1 < _i0 else "caiu"
-                    _curiosities.append(
+                    _poll_progress_items.append(
                         f'🔄 Troca de posição: <strong>{_nm.split()[0]}</strong> {_arrow} de {_i0 + 1}º para {_i1 + 1}º '
                         f'desde a 1ª coleta.'
                     )
 
-            # 4) Historical perspective for all nominees, based on official final results.
-            if _model_pred:
-                _hist_parts = []
+            # 4) Context block: prior real results vs current model.
+            if participantes_poll and _model_pred:
+                _hist_bullets = []
                 for _n in participantes_poll:
-                    _past = [h for h in _par_history.get(_n, []) if 'voto_total' in h]
+                    _past = [h for h in _par_history.get(_n, []) if 'voto_total' in h and not h.get('falso')]
                     if not _past:
-                        _hist_parts.append(f'<strong>{_n.split()[0]}</strong>: estreia no paredão')
+                        _hist_bullets.append(
+                            f'<strong>{_n.split()[0]}</strong>: ainda não tem resultado real anterior em paredão para comparar.'
+                        )
                         continue
                     _past.sort(key=lambda x: x.get('paredao', 0))
                     _last_hist = _past[-1]
                     _curr_model = _model_pred['prediction'].get(_n, 0)
                     _prev_real = _last_hist.get('voto_total', 0)
-                    _hist_parts.append(
-                        f'<strong>{_n.split()[0]}</strong>: oficial anterior {_prev_real:.2f}% (P{_last_hist.get("paredao")}) '
-                        f'→ agora {_curr_model:.2f}% no Modelo ({_curr_model - _prev_real:+.2f} p.p.)'
+                    _hist_bullets.append(
+                        f'<strong>{_n.split()[0]}</strong>: no último paredão real teve <strong>{_prev_real:.2f}%</strong> '
+                        f'(P{_last_hist.get("paredao")}); agora o modelo marca <strong>{_curr_model:.2f}%</strong> '
+                        f'({_curr_model - _prev_real:+.2f} p.p.).'
                     )
-                if _hist_parts:
-                    _hist_lines = '<br>'.join([f'• {part}' for part in _hist_parts])
-                    _curiosities.append(f'📚 Histórico oficial por emparedado:<br>{_hist_lines}')
+                if _hist_bullets:
+                    _context_history_items.append(
+                        {
+                            'title_html': '<strong>Comparação com paredões anteriores</strong>',
+                            'bullets_html': _hist_bullets,
+                        }
+                    )
 
-            # 5) One high-signal volume vs precision insight.
+            # 6) One high-signal volume vs precision insight.
             if _model_pred and _prec and _prec.get('sufficient') and _total_plat_votos > 0:
                 _rmse_hist = _prec.get('rmse', {})
                 _wu = _model_pred.get('weights_used', {})
                 _sites_pct = (_plat_volumes.get('sites', 0) * 100 / _total_plat_votos) if _total_plat_votos else 0
                 _tw_pct = (_plat_volumes.get('twitter', 0) * 100 / _total_plat_votos) if _total_plat_votos else 0
                 if _rmse_hist and (_sites_pct > 20 or _tw_pct > 0):
-                    _curiosities.append(
+                    _poll_progress_items.append(
                         f'⚖️ Volume x precisão: Sites { _sites_pct:.0f}% do volume (erro {_rmse_hist.get("sites", 0):.1f} p.p.) '
                         f'vs Twitter {_tw_pct:.0f}% (erro {_rmse_hist.get("twitter", 0):.1f} p.p.). '
                         f'No Modelo: Twitter {_wu.get("twitter", 0)*100:.0f}% · Instagram {_wu.get("instagram", 0)*100:.0f}% · '
@@ -858,7 +909,7 @@ if ultimo:
                             _bd_legacy = consolidado.get(_biggest_diff_name, 0)
                             _bd_mirror = _mirror_3070.get(_biggest_diff_name, 0)
                             _bd_delta = _bd_mirror - _bd_legacy
-                            _curiosities.append(
+                            _poll_progress_items.append(
                                 f'🔬 <strong>Fórmula nova vs antiga</strong>: desde o P8, o Votalhada usa '
                                 f'0,3 × Torcida + 0,7 × Voto Único. '
                                 f'Nos {_n_fin} paredões anteriores, a nova fórmula teria errado <strong>{_m_avg:.1f} p.p.</strong> '
@@ -880,15 +931,26 @@ if ultimo:
                 if _hist_votos:
                     _max_hist = max(_hist_votos, key=lambda x: x[1])
                     _vote_txt += f' (recorde histórico: P{_max_hist[0]} com {_max_hist[1]/1_000_000:.1f}M)'
-                _curiosities.append(_vote_txt)
+                _poll_progress_items.append(_vote_txt)
 
-            if _curiosities:
-                print('<section class="poll-insights">')
-                print('<h4 class="poll-insights-title">💡 Leituras que importam agora</h4>')
-                print('<ol class="poll-insights-list">')
-                for c in _curiosities[:6]:
-                    print(f'<li class="poll-insight-item">{c}</li>')
-                print('</ol></section>\n')
+            _context_items = list(_context_history_items) + list(_context_relationship_items)
+            if _formacao_curiosidades_items:
+                _context_items.extend(_formacao_curiosidades_items)
+            _live_insight_blocks = build_poll_insights_blocks(
+                {
+                    'title_html': '📈 Progresso das enquetes',
+                    'items': ensure_live_poll_progress_items(_poll_progress_items, has_poll=True),
+                },
+                {
+                    'title_html': '🧩 Contexto do paredão',
+                    'items': ensure_live_context_block_items(_context_items),
+                },
+            )
+            if _live_insight_blocks:
+                print('<section class="poll-insights-summary">')
+                print('<h4 class="poll-insights-heading">💡 Leituras que importam agora</h4>')
+                print(render_poll_insights_blocks(_live_insight_blocks))
+                print('</section>\n')
 
             # ── Weight breakdown (expandable details) ──
             if _model_pred:
@@ -926,6 +988,26 @@ if ultimo:
                 fig_ts = make_poll_timeseries(poll, model_prediction=_model_pred)
                 if fig_ts:
                     fig_ts.show()
+
+        else:
+            _context_items = list(_context_history_items) + list(_context_relationship_items)
+            if _formacao_curiosidades_items:
+                _context_items.extend(_formacao_curiosidades_items)
+            _live_insight_blocks = build_poll_insights_blocks(
+                {
+                    'title_html': '📈 Progresso das enquetes',
+                    'items': ensure_live_poll_progress_items([], has_poll=False),
+                },
+                {
+                    'title_html': '🧩 Contexto do paredão',
+                    'items': ensure_live_context_block_items(_context_items),
+                },
+            )
+            if _live_insight_blocks:
+                print('<section class="poll-insights-summary">')
+                print('<h4 class="poll-insights-heading">💡 Leituras que importam agora</h4>')
+                print(render_poll_insights_blocks(_live_insight_blocks))
+                print('</section>\n')
 
         # ── Paredão history for nominees with past appearances ──
         if _nominees_with_history:
@@ -2198,9 +2280,6 @@ if _show_prediction:
 # Uses precomputed data from paredao_analysis.json (built by build_derived_data.py).
 # Each nominee gets their own section with context, votes, betrayals, blind spots.
 # ══════════════════════════════════════════════════════════════════════════════
-
-paredao_analysis_data = {}
-paredao_analysis_data = load_paredao_analysis()
 
 # Load vote prediction data
 _vp_path = Path("data/derived/vote_prediction.json")

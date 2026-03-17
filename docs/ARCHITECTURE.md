@@ -299,6 +299,17 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 | Voting analysis | `votacao.qmd` | `scripts/votacao_viz.py` | transformed `paredoes.json` data |
 | Timeline review | `cronologia_mobile_review.qmd` | `data_utils.render_cronologia_html()` | `game_timeline.json` |
 
+### Shared Paredão Summary Notes
+
+`paredao.qmd` and `paredoes.qmd` now share the same two-block summary shape through `scripts/paredao_viz.py`.
+
+- Optional manual notes for the shared `🧩 Contexto do paredão` block live in `data/paredoes.json` under `formacao.curiosidades[]`.
+- Canonical authoring shapes:
+  - plain string for one simple line
+  - object with `title` and `bullets` for a grouped note
+- The helper also tolerates common synonyms such as `titulo`, `items`, and `texto` when normalizing old/manual entries.
+- These notes are supplemental context only. Automatic poll/model/history/relationship signals remain the primary source of truth for the shared summary.
+
 ### Archived Debug Pages
 
 The following pages are archived (not rendered in the active site navbar):

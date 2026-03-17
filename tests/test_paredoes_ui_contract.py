@@ -70,6 +70,61 @@ def test_live_page_shows_history_after_prediction_without_details_collapse():
     assert "📋 Histórico em paredões anteriores" in live
 
 
+def test_live_page_uses_shared_multi_block_poll_insights_renderer():
+    live = _read(PAREDAO_QMD)
+    helper = _read(PAREDAO_VIZ)
+    css = _read(CARDS_CSS)
+
+    assert "build_poll_insights_blocks" in helper
+    assert "render_poll_insights_blocks" in helper
+    assert "build_formacao_curiosidades_items" in helper
+    assert "ensure_live_context_block_items" in helper
+    assert "ensure_live_poll_progress_items" in helper
+    assert "build_poll_insights_blocks(" in live
+    assert "ensure_live_context_block_items(" in live
+    assert "ensure_live_poll_progress_items(" in live
+    assert "render_poll_insights_blocks(" in live
+    assert "💡 Leituras que importam agora" in live
+    assert "📈 Progresso das enquetes" in live
+    assert "🧩 Contexto do paredão" in live
+    assert "Contexto em formação" in helper
+    assert "Votalhada ainda não publicou" in helper
+    assert ".get('curiosidades')" in live
+    assert "Histórico oficial por emparedado" not in live
+    assert "resultado oficial" not in live
+    assert ".poll-insights-blocks" in css
+    assert ".poll-insights-item-title" in css
+    assert ".poll-insights-sublist" in css
+
+
+def test_archive_page_uses_shared_multi_block_poll_insights_renderer():
+    archive = _read(PAREDOES_QMD)
+    helper = _read(PAREDAO_VIZ)
+
+    assert "build_poll_insights_blocks" in helper
+    assert "render_poll_insights_blocks" in helper
+    assert "build_formacao_curiosidades_items" in helper
+    assert "build_nominee_related_relationship_narratives" in helper
+    assert "build_poll_insights_blocks(" in archive
+    assert "render_poll_insights_blocks(" in archive
+    assert "build_formacao_curiosidades_items(" in archive
+    assert "build_nominee_related_relationship_narratives(" in archive
+    assert "💡 Leituras que explicam o resultado" in archive
+    assert "📈 Leitura final das enquetes" in archive
+    assert "🧩 Contexto do paredão" in archive
+    assert "Comparação com paredões anteriores" in archive
+    assert "Como a formação conversa com o queridômetro" in archive
+    assert archive.index("Comparação com paredões anteriores") < archive.index(
+        "Como a formação conversa com o queridômetro"
+    )
+    assert archive.index("Como a formação conversa com o queridômetro") < archive.index(
+        "build_formacao_curiosidades_items("
+    )
+    assert "formacao_raw" in archive
+    assert ".get('curiosidades')" in archive
+    assert "_arc_curiosities" not in archive
+
+
 def test_index_keeps_restored_highlight_layout_hooks():
     index = _read(INDEX_QMD)
     helper = _read(INDEX_VIZ)

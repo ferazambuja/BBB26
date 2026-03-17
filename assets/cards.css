@@ -1298,8 +1298,27 @@ body.paredao-page main.content h2.poll-section-title {
 }
 
 /* ── Poll insights (curated curiosidades) ── */
+.poll-insights-summary {
+  margin: 0.95rem 0 1.1rem;
+}
+
+.poll-insights-heading {
+  margin: 0 0 0.55rem;
+  color: #dfeeff;
+  font-size: var(--fs-md);
+  font-weight: 780;
+  letter-spacing: 0.01em;
+}
+
+.poll-insights-blocks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  align-items: start;
+}
+
 .poll-insights {
-  margin: 0.85rem 0 1.05rem;
+  margin: 0;
   padding: 0.78rem 0.9rem 0.86rem;
   border-radius: 14px;
   border: 1px solid rgba(88, 166, 255, 0.26);
@@ -1322,8 +1341,23 @@ body.paredao-page main.content h2.poll-section-title {
   line-height: 1.48;
 }
 
-.poll-insight-item + .poll-insight-item {
+.poll-insights-list > li + li {
   margin-top: 0.28rem;
+}
+
+.poll-insights-item-title {
+  font-weight: 720;
+  color: #f2f7ff;
+}
+
+.poll-insights-sublist {
+  margin: 0.32rem 0 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+
+.poll-insights-sublist > li + li {
+  margin-top: 0.18rem;
 }
 
 .poll-insights strong {
@@ -1508,6 +1542,16 @@ body.paredao-page main.content h2.poll-section-title {
     border-radius: 12px;
   }
 
+  .poll-insights-heading {
+    margin-bottom: 0.45rem;
+    font-size: var(--fs-sm);
+  }
+
+  .poll-insights-blocks {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
   .poll-insights-title {
     margin-bottom: 0.4rem;
     font-size: var(--fs-sm);
@@ -1517,6 +1561,10 @@ body.paredao-page main.content h2.poll-section-title {
     font-size: var(--fs-xs);
     line-height: 1.43;
     padding-left: 1.05rem;
+  }
+
+  .poll-insights-sublist {
+    padding-left: 0.95rem;
   }
 
   .u-s370 {

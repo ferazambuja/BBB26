@@ -38,7 +38,14 @@ from data_utils import (
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     ANALYSIS_DESCRIPTIONS,
 )
-from paredao_viz import build_paredao_history, render_featured_story
+from paredao_viz import (
+    build_formacao_curiosidades_items,
+    build_nominee_related_relationship_narratives,
+    build_paredao_history,
+    build_poll_insights_blocks,
+    render_featured_story,
+    render_poll_insights_blocks,
+)
 prepare_plotly_for_quarto()
 import plotly.express as px
 import plotly.graph_objects as go
@@ -1362,6 +1369,9 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         resultado = poll['resultado_real']
         accuracy = calculate_poll_accuracy(poll)
         _is_save_arc = poll.get('tipo_voto') == 'salvar'
+        _archive_pa_entry = PAREDAO_ANALYSIS.get("by_paredao", {}).get(str(par_num), {})
+        _archive_vote_aggregates = _archive_pa_entry.get("vote_aggregates", {})
+        _archive_relationship_history = _archive_pa_entry.get("relationship_history", {})
 
         _arc_title = 'Enquetes vs Resultado (voto p/ SALVAR)' if _is_save_arc else 'Enquetes vs Resultado'
         print(f"\n### {_arc_title}\n")
@@ -1439,8 +1449,10 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         print('</tbody></table>')
         print('</div>\n')
 
-        # ── Curiosities box (archive) ──
-        _arc_curiosities = []
+        # ── Shared poll-insights summary (archive) ──
+        _archive_poll_items = []
+        _archive_context_items = []
+
         # Model vs Votalhada comparison
         if _tab_model:
             _model_elim_a = _tab_model['predicao_eliminado']
@@ -1449,13 +1461,13 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
             _model_err_a = abs(_tab_model['prediction'].get(_real_elim, 0) - resultado.get(_real_elim, 0))
             _consol_err_a = abs(consolidado.get(_real_elim, 0) - resultado.get(_real_elim, 0))
             if _model_err_a < _consol_err_a:
-                _arc_curiosities.append(f'🧮 <strong>Nosso Modelo</strong> errou menos ({_model_err_a:.1f} p.p.) que o Votalhada ({_consol_err_a:.1f} p.p.) neste paredão')
+                _archive_poll_items.append(f'🧮 <strong>Nosso Modelo</strong> errou menos ({_model_err_a:.1f} p.p.) que o Votalhada ({_consol_err_a:.1f} p.p.) neste paredão')
             elif _consol_err_a < _model_err_a:
-                _arc_curiosities.append(f'📊 <strong>Votalhada</strong> errou menos ({_consol_err_a:.1f} p.p.) que Nosso Modelo ({_model_err_a:.1f} p.p.) neste paredão')
+                _archive_poll_items.append(f'📊 <strong>Votalhada</strong> errou menos ({_consol_err_a:.1f} p.p.) que Nosso Modelo ({_model_err_a:.1f} p.p.) neste paredão')
             else:
-                _arc_curiosities.append(f'🤝 Ambos os modelos erraram igual ({_consol_err_a:.1f} p.p.)')
+                _archive_poll_items.append(f'🤝 Ambos os modelos erraram igual ({_consol_err_a:.1f} p.p.)')
             if _model_elim_a != _consol_elim_a:
-                _arc_curiosities.append(f'🔀 Modelos divergiram: Votalhada apostou em <strong>{_consol_elim_a.split()[0]}</strong>, Nosso Modelo em <strong>{_model_elim_a.split()[0]}</strong>')
+                _archive_poll_items.append(f'🔀 Modelos divergiram: Votalhada apostou em <strong>{_consol_elim_a.split()[0]}</strong>, Nosso Modelo em <strong>{_model_elim_a.split()[0]}</strong>')
         # Platform accuracy for this paredão
         _plat_errs_a = {}
         _plat_names_h = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
@@ -1469,7 +1481,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
             _best_p = min(_plat_errs_a, key=lambda k: _plat_errs_a[k])
             _worst_p = max(_plat_errs_a, key=lambda k: _plat_errs_a[k])
             if _plat_errs_a[_best_p] != _plat_errs_a[_worst_p]:
-                _arc_curiosities.append(f'🏆 Mais precisa: <strong>{_plat_names_h[_best_p]}</strong> (erro {_plat_errs_a[_best_p]:.1f} p.p.) · Menos precisa: <strong>{_plat_names_h[_worst_p]}</strong> ({_plat_errs_a[_worst_p]:.1f} p.p.)')
+                _archive_poll_items.append(f'🏆 Mais precisa: <strong>{_plat_names_h[_best_p]}</strong> (erro {_plat_errs_a[_best_p]:.1f} p.p.) · Menos precisa: <strong>{_plat_names_h[_worst_p]}</strong> ({_plat_errs_a[_worst_p]:.1f} p.p.)')
 
         # 4. Vote total + platform volume breakdown
         _arc_total_votos = consolidado.get('total_votos', 0)
@@ -1489,7 +1501,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
                 _plat_label_a = {'sites': 'Sites', 'youtube': 'YT', 'twitter': 'TW', 'instagram': 'IG'}
                 _vol_strs = [f'{_plat_label_a.get(p, p)} {v*100/_arc_total_pv:.0f}%' for p, v in sorted(_arc_plat_v.items(), key=lambda x: -x[1])]
                 _vote_line += f' ({" · ".join(_vol_strs)})'
-            _arc_curiosities.append(_vote_line)
+            _archive_poll_items.append(_vote_line)
 
         # 5. Margin closeness + historical rank
         _arc_sorted = sorted([(n, consolidado.get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
@@ -1508,11 +1520,11 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
                 _tightest = min(_other_margins, key=lambda x: x[1])
                 _widest = max(_other_margins, key=lambda x: x[1])
                 if _arc_margin <= _tightest[1]:
-                    _arc_curiosities.append(f'📏 Margem de <strong>{_arc_margin:.1f} p.p.</strong> — a mais acirrada de todos os paredões!')
+                    _archive_poll_items.append(f'📏 Margem de <strong>{_arc_margin:.1f} p.p.</strong> — a mais acirrada de todos os paredões!')
                 elif _arc_margin >= _widest[1]:
-                    _arc_curiosities.append(f'📏 Margem de <strong>{_arc_margin:.1f} p.p.</strong> — a mais folgada de todos os paredões')
+                    _archive_poll_items.append(f'📏 Margem de <strong>{_arc_margin:.1f} p.p.</strong> — a mais folgada de todos os paredões')
                 elif _arc_margin < 5.0:
-                    _arc_curiosities.append(f'📏 Disputa acirrada: apenas <strong>{_arc_margin:.1f} p.p.</strong> entre {_arc_sorted[0][0].split()[0]} e {_arc_sorted[1][0].split()[0]}')
+                    _archive_poll_items.append(f'📏 Disputa acirrada: apenas <strong>{_arc_margin:.1f} p.p.</strong> entre {_arc_sorted[0][0].split()[0]} e {_arc_sorted[1][0].split()[0]}')
 
         # 6. Sites penalty — Sites error significantly above average
         if _plat_errs_a and 'sites' in _plat_errs_a:
@@ -1520,7 +1532,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
             if _sites_err_a > 15:
                 _sites_pred_a = plataformas.get('sites', {}).get(_real_elim_a, 0)
                 _direction_a = 'subestimou' if _sites_pred_a < _real_val_a else 'superestimou'
-                _arc_curiosities.append(f'⚠️ Sites {_direction_a} {_real_elim_a.split()[0]} em <strong>{_sites_err_a:.1f} p.p.</strong> — previsão {_sites_pred_a:.1f}% vs real {_real_val_a:.1f}%')
+                _archive_poll_items.append(f'⚠️ Sites {_direction_a} {_real_elim_a.split()[0]} em <strong>{_sites_err_a:.1f} p.p.</strong> — previsão {_sites_pred_a:.1f}% vs real {_real_val_a:.1f}%')
 
         # 7. Lead changes from time series
         _arc_serie = poll.get('serie_temporal', [])
@@ -1532,23 +1544,91 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
                     _arc_leaders_t.append(max(_pt_vals, key=lambda k: _pt_vals[k]))
             _arc_lead_changes = sum(1 for i in range(1, len(_arc_leaders_t)) if _arc_leaders_t[i] != _arc_leaders_t[i-1])
             if _arc_lead_changes >= 1:
-                _arc_curiosities.append(f'🔄 Liderança trocou <strong>{_arc_lead_changes}×</strong> nas enquetes durante a votação')
+                _archive_poll_items.append(f'🔄 Liderança trocou <strong>{_arc_lead_changes}×</strong> nas enquetes durante a votação')
             elif len(_arc_serie) >= 3:
-                _arc_curiosities.append(f'📈 {_arc_leaders_t[0].split()[0]} liderou todas as <strong>{len(_arc_serie)}</strong> aferições sem alternar')
+                _archive_poll_items.append(f'📈 {_arc_leaders_t[0].split()[0]} liderou todas as <strong>{len(_arc_serie)}</strong> aferições sem alternar')
 
         # 8. Volume vs accuracy paradox (Sites vs Twitter)
         if _plat_errs_a and 'sites' in _plat_errs_a and 'twitter' in _plat_errs_a:
             _sites_e = _plat_errs_a['sites']
             _tw_e = _plat_errs_a['twitter']
             if _sites_e > _tw_e + 5:
-                _arc_curiosities.append(f'⚖️ Neste paredão: Twitter errou {_tw_e:.1f} p.p. · Sites errou {_sites_e:.1f} p.p. — volume ≠ precisão')
+                _archive_poll_items.append(f'⚖️ Neste paredão: Twitter errou {_tw_e:.1f} p.p. · Sites errou {_sites_e:.1f} p.p. — volume ≠ precisão')
 
-        if _arc_curiosities:
-            print(f'<div class="u-s178">')
-            print(f'<div class="fs-sm u-s395">💡 Curiosidades</div>')
-            for c in _arc_curiosities:
-                print(f'<div class="fs-md u-s273">{c}</div>')
-            print(f'</div>\n')
+        _archive_history_bullets = []
+        for _nome_hist in participantes_poll:
+            _past_real = [h for h in _par_hist_arc.get(_nome_hist, []) if 'voto_total' in h and not h.get('falso')]
+            if not _past_real:
+                _archive_history_bullets.append(
+                    f'<strong>{_nome_hist.split()[0]}</strong>: este foi o primeiro resultado real em paredão para comparar.'
+                )
+                continue
+            _past_real.sort(key=lambda h: h.get('paredao', 0))
+            _last_real = _past_real[-1]
+            _prev_real = _last_real.get('voto_total', 0)
+            _curr_real = resultado.get(_nome_hist, 0)
+            _archive_history_bullets.append(
+                f'<strong>{_nome_hist.split()[0]}</strong>: no último paredão real teve <strong>{_prev_real:.2f}%</strong> '
+                f'(P{_last_real.get("paredao")}); agora terminou este paredão com <strong>{_curr_real:.2f}%</strong> '
+                f'({_curr_real - _prev_real:+.2f} p.p.).'
+            )
+        if _archive_history_bullets:
+            _archive_context_items.append(
+                {
+                    'title_html': '<strong>Comparação com paredões anteriores</strong>',
+                    'bullets_html': _archive_history_bullets,
+                }
+            )
+
+        _archive_relationship_bullets = []
+        _archive_total_votes = _archive_vote_aggregates.get('total_votes', 0)
+        _archive_n_traicoes = _archive_vote_aggregates.get('n_traicoes', 0)
+        _archive_n_pontos_cegos = _archive_vote_aggregates.get('n_pontos_cegos', 0)
+        _archive_n_esperados = _archive_vote_aggregates.get('n_esperados', 0)
+        if _archive_total_votes:
+            _archive_pct_aligned = (_archive_n_esperados / _archive_total_votes * 100) if _archive_total_votes else 0
+            _archive_relationship_bullets.append(
+                f'Na votação da casa, <strong>{_archive_n_esperados}/{_archive_total_votes} votos</strong> '
+                f'({_archive_pct_aligned:.0f}%) já acompanhavam relações negativas no queridômetro; '
+                f'houve <strong>{_archive_n_traicoes}</strong> traição(ões) e '
+                f'<strong>{_archive_n_pontos_cegos}</strong> ponto(s) cego(s).'
+            )
+        _archive_relationship_bullets.extend(
+            build_nominee_related_relationship_narratives(
+                nominees=participantes_poll,
+                relationship_history=_archive_relationship_history,
+                limit=2,
+            )
+        )
+        if _archive_relationship_bullets:
+            _archive_context_items.append(
+                {
+                    'title_html': '<strong>Como a formação conversa com o queridômetro</strong>',
+                    'bullets_html': _archive_relationship_bullets,
+                }
+            )
+
+        _archive_formacao_curiosidades = build_formacao_curiosidades_items(
+            (paredao.get('formacao_raw') or {}).get('curiosidades')
+        )
+        if _archive_formacao_curiosidades:
+            _archive_context_items.extend(_archive_formacao_curiosidades)
+
+        _archive_insight_blocks = build_poll_insights_blocks(
+            {
+                'title_html': '📈 Leitura final das enquetes',
+                'items': _archive_poll_items,
+            },
+            {
+                'title_html': '🧩 Contexto do paredão',
+                'items': _archive_context_items,
+            },
+        )
+        if _archive_insight_blocks:
+            print('<section class="poll-insights-summary">')
+            print('<h4 class="poll-insights-heading">💡 Leituras que explicam o resultado</h4>')
+            print(render_poll_insights_blocks(_archive_insight_blocks))
+            print('</section>\n')
 
         # Time series chart (archive)
         if poll.get('serie_temporal'):

@@ -1996,6 +1996,9 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 - `formacao.lider` is nested under `formacao`, NOT top-level
 - `resultado.votos.{name}.{voto_unico, voto_torcida, voto_total}` — NOT `percentuais`
 - `fontes` are objects: `{"url": "...", "arquivo": "docs/scraped/...", "titulo": "..."}`
+- `formacao.curiosidades[]` is optional and feeds the shared `🧩 Contexto do paredão` block on `paredao.qmd` and `paredoes.qmd`
+- Canonical `formacao.curiosidades[]` shapes: plain string line, or object `{"title": "...", "bullets": ["...", "..."]}`; the loader also tolerates common synonyms such as `titulo`, `items`, and `texto`
+- Use `formacao.curiosidades[]` only for richer context/editorial notes that automatic signals do not cover; it complements generated insights in the context block, not replace them
 - For fake eliminations, add `"paredao_falso": true`
 - At new paredão creation, always confirm this question: **"Fechamento previsto continua terça ~22:45 BRT?"**
   - If the answer is "no" (common near finals), register the real closing schedule in `data/votalhada/polls.json` using `fechamento_votacao`.

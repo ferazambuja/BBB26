@@ -565,7 +565,14 @@ Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outr
       "vencedor": "NOME",
       "salvacao_com_janela_aberta": false,
       "prova": "DESCREVER"
-    }
+    },
+    "curiosidades": [
+      "Nota manual opcional exibida no resumo do paredão",
+      {
+        "title": "Contexto extra",
+        "bullets": ["Ponto 1", "Ponto 2"]
+      }
+    ]
   },
   "indicados_finais": [
     {"nome": "NOME", "grupo": "GRUPO", "como": "Líder"},
@@ -576,6 +583,13 @@ Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outr
   "fontes": ["URL"]
 }
 ```
+
+`formacao.curiosidades[]` (optional):
+
+- Shared optional note surface for the `🧩 Contexto do paredão` block on `paredao.qmd` and `paredoes.qmd`.
+- Canonical shapes: plain string for one line, or an object with `title` + `bullets` for grouped context.
+- The loader also tolerates common synonyms such as `titulo`, `items`, and `texto` for manual/backfilled entries.
+- Keep it complementary to automatic signals; use it only when manual context adds value that the generated analysis does not already cover.
 
 `formacao.bate_volta.salvacao_com_janela_aberta` (optional):
 
