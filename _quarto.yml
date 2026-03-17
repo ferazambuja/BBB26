@@ -5,16 +5,18 @@ project:
     - data/derived/*.json
   render:
     - index.qmd
+    - datas.qmd
     - evolucao.qmd
-    - cronologia_mobile_review.qmd
     - economia.qmd
     - relacoes.qmd
     - paredao.qmd
     - paredoes.qmd
     - cartola.qmd
     - provas.qmd
+    - clusters.qmd
     - votacao.qmd
-    - economia_v2.qmd
+    - planta_debug.qmd
+    - relacoes_debug.qmd
 
 website:
   title: "BBB 26 — Painel de Reações"
@@ -23,7 +25,7 @@ website:
     locale: pt_BR
   twitter-card:
     card-style: summary_large_image
-  image: assets/social-preview.png
+  image: assets/social-preview.jpg
   search: false
   navbar:
     title: "BBB26"
@@ -46,6 +48,16 @@ website:
         text: "Paredões"
       - href: votacao.qmd
         text: "Votação"
+      - text: "Mais"
+        menu:
+          - href: datas.qmd
+            text: "Datas"
+          - href: clusters.qmd
+            text: "Clusters"
+          - href: planta_debug.qmd
+            text: "Planta (debug)"
+          - href: relacoes_debug.qmd
+            text: "Relações (debug)"
   page-footer:
     center: |
       Projeto independente de análise de dados, sem vínculo com a TV Globo ou o BBB · Dados da API pública do GloboPlay + registros manuais (podem conter erros ou atrasos) · [Reportar problema](https://github.com/ferazambuja/BBB26/issues)
@@ -72,12 +84,9 @@ format:
       - assets/cartola.css
       - assets/provas.css
       - assets/economia.css
-      - assets/economia-v2.css
     include-in-header:
       - text: |
           <meta property="og:type" content="website">
-          <link rel="icon" href="https://github.githubassets.com/favicons/favicon.svg" type="image/svg+xml">
-          <link rel="shortcut icon" href="https://github.githubassets.com/favicons/favicon.png" type="image/png">
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap" rel="stylesheet">
@@ -87,7 +96,6 @@ format:
       - text: |
           <script src="assets/plotly-fullscreen.js"></script>
           <script src="assets/page-nav.js"></script>
-          <script src="assets/title-block-dedupe.js"></script>
           <script src="assets/collapse-ui.js"></script>
           <script src="assets/cartola-ui.js"></script>
           <script src="assets/provas-ui.js"></script>
