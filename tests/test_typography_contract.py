@@ -121,6 +121,14 @@ def test_index_mobile_highlights_have_explicit_single_column_hardening():
     assert "grid-template-columns: 1fr;" in cards_css
 
 
+def test_index_uses_semantic_meta_text_for_remaining_support_copy():
+    index_qmd = _read(INDEX_QMD)
+    assert '<span class="fs-base meta-text">reações mudaram ' in index_qmd
+    assert '<div class="fs-base meta-text">{subtitle}</div>' in index_qmd
+    assert '<span class="fs-base u-s001">reações mudaram ' not in index_qmd
+    assert '<div class="fs-base u-s001">{subtitle}</div>' not in index_qmd
+
+
 def test_index_pair_story_cards_use_shared_layout_instead_of_strip_rows():
     helper = _read(INDEX_VIZ)
     cards_css = _read(CARDS_CSS)

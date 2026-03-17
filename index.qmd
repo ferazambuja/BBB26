@@ -1,6 +1,7 @@
 ---
 title: "BBB 26 — Painel de Reações"
 subtitle: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"
+description: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"
 lang: pt-BR
 format:
   html:
@@ -350,7 +351,7 @@ else:
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Mudanças de ontem para hoje no queridômetro. Melhoria = reação ficou mais positiva; piora = mais negativa.")}
 <div class="u-s332">
 <span class="fs-4xl u-s393">{total}</span>
-<span class="fs-base u-s001">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
+<span class="fs-base meta-text">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
 <div style="display:grid;gap:6px;margin-top:4px;">
 {render_pulse_row("Melhorias", imp, "#27ae60", total_delta=total_delta)}
@@ -1122,7 +1123,7 @@ if eliminated:
 {av_img}
 <div>
 <div class="fs-lg u-s389">{name}</div>
-<div class="fs-base u-s001">{subtitle}</div>
+<div class="fs-base meta-text">{subtitle}</div>
 {reason_html}
 </div>
 </div>'''

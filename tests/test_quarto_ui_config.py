@@ -46,6 +46,14 @@ def test_index_relative_dates_are_anchored_to_generated_date_not_latest_snapshot
     assert "delta = (anchor - d0).days" in helper
 
 
+def test_index_front_matter_keeps_page_description():
+    index_qmd = (REPO_ROOT / "index.qmd").read_text(encoding="utf-8")
+    assert (
+        'description: "Análise estratégica do Big Brother Brasil 2026 — reações, relações, votos e dinâmicas de poder"'
+        in index_qmd
+    )
+
+
 def test_quarto_renders_cronologia_mobile_review_page_without_navbar_entry():
     config = _read_quarto_config()
     assert "\n    - cronologia_mobile_review.qmd\n" in config
