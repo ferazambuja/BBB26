@@ -129,6 +129,20 @@ def _normalize_text_token(value: str) -> str:
     return " ".join(ascii_text.lower().strip().split())
 
 
+SINC_NEGATIVE_LANE_LABELS = {
+    "faz alguem de bobo": "Quem faz alguém de bobo",
+    "esta sendo feito de bobo": "Quem está sendo feito de bobo",
+}
+
+
+def _label_sinc_negative_lane(tema: str) -> str:
+    token = _normalize_text_token(tema)
+    if token in SINC_NEGATIVE_LANE_LABELS:
+        return SINC_NEGATIVE_LANE_LABELS[token]
+    cleaned = " ".join(tema.strip().split())
+    return cleaned[:1].upper() + cleaned[1:] if cleaned else "Atacados"
+
+
 def _is_positive_heart_reaction(label: str | None) -> bool:
     """Return True when reaction label represents a positive heart reaction."""
     if not label:
@@ -270,7 +284,14 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
                              active_set: set[str] | None = None) -> dict:
     """Compute weekly Sincerao radar: ranked targets, praised, contradictions, not-targeted."""
     neg_counts: dict[str, int] = defaultdict(int)
+    neg_counts_by_tema: dict[str, Counter[str]] = {}
+    neg_actors: dict[str, set[str]] = defaultdict(set)
+    neg_actors_by_tema: dict[str, dict[str, set[str]]] = {}
+    neg_unthemed_counts: Counter[str] = Counter()
+    neg_unthemed_actors: dict[str, set[str]] = defaultdict(set)
+    neg_labels_by_tema: dict[str, str] = {}
     pos_counts: dict[str, int] = defaultdict(int)
+    pos_actors: dict[str, set[str]] = defaultdict(set)
     contradiction_counts: dict[str, int] = defaultdict(int)
     actors: set[str] = set()
 
@@ -288,15 +309,39 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
 
         if valence == "neg":
             neg_counts[target] += 1
+            if actor and target:
+                neg_actors[target].add(actor)
+            tema = edge.get("tema")
+            if tema:
+                tema_token = _normalize_text_token(tema)
+                neg_counts_by_tema.setdefault(tema_token, Counter())
+                neg_counts_by_tema[tema_token][target] += 1
+                neg_actors_by_tema.setdefault(tema_token, defaultdict(set))
+                if actor and target:
+                    neg_actors_by_tema[tema_token][target].add(actor)
+                neg_labels_by_tema.setdefault(tema_token, _label_sinc_negative_lane(tema))
+            else:
+                neg_unthemed_counts[target] += 1
+                if actor and target:
+                    neg_unthemed_actors[target].add(actor)
             if _is_positive_heart_reaction(latest_matrix.get((actor, target))):
                 contradiction_counts[actor] += 1
         else:
             pos_counts[target] += 1
+            if actor and target:
+                pos_actors[target].add(actor)
 
-    def _ranked(counts: dict[str, int]) -> list[dict]:
+    def _ranked(counts: dict[str, int], actors_by_target: dict[str, set[str]] | None = None) -> list[dict]:
         """Return all entries sorted by count descending, then name."""
         return sorted(
-            [{"name": n, "count": c} for n, c in counts.items()],
+            [
+                {
+                    "name": n,
+                    "count": c,
+                    **({"actors": sorted(actors_by_target.get(n, []))} if actors_by_target is not None else {}),
+                }
+                for n, c in counts.items()
+            ],
             key=lambda x: (-x["count"], x["name"]),
         )
 
@@ -310,13 +355,34 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
     # "Not targeted" = participated (is an actor) but nobody targeted them negatively
     all_targeted = set(neg_counts.keys()) | set(pos_counts.keys())
     not_targeted = sorted(actors - all_targeted)
+    neg_lanes = []
+    if len(neg_counts_by_tema) > 1:
+        neg_lanes = [
+            {
+                "key": tema_token,
+                "label": neg_labels_by_tema.get(tema_token, tema_token),
+                "ranked": _ranked(counts, neg_actors_by_tema.get(tema_token, {})),
+                "top": _top(counts),
+            }
+            for tema_token, counts in neg_counts_by_tema.items()
+        ]
+        if neg_unthemed_counts:
+            neg_lanes.append(
+                {
+                    "key": "__unlabeled__",
+                    "label": "Atacados",
+                    "ranked": _ranked(neg_unthemed_counts, neg_unthemed_actors),
+                    "top": _top(neg_unthemed_counts),
+                }
+            )
 
     return {
         "most_targeted_neg": _top(neg_counts),
         "most_praised": _top(pos_counts),
         "most_contradictions": _top(contradiction_counts),
-        "neg_ranked": _ranked(neg_counts),
-        "pos_ranked": _ranked(pos_counts),
+        "neg_ranked": _ranked(neg_counts, neg_actors),
+        "neg_lanes": neg_lanes,
+        "pos_ranked": _ranked(pos_counts, pos_actors),
         "not_targeted": not_targeted,
         "n_actors": len(actors),
         "week": week,

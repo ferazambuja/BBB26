@@ -359,6 +359,7 @@ def render_rank_chip(
     name = entry.get("name", "")
     first = _short_name(name)
     count = force_count if force_count is not None else _coerce_int(entry.get("count", 0), default=0)
+    chooser_names = entry.get("actors") or []
     lane_colors = {
         "attack": "#e67e22",
         "praise": "#27ae60",
@@ -377,14 +378,34 @@ def render_rank_chip(
             fallback_initials=True,
         )
     top_cls = " top" if is_top else ""
-    return (
-        f'<a href="{_profile_href(name)}" class="sinc-person-chip {lane_type}{top_cls}">'
-        f'<span class="sinc-person-avatar">{avatar}</span>'
+    avatar_html = f'<span class="sinc-person-avatar">{avatar}</span>'
+    meta_html = (
         f'<span class="sinc-person-meta">'
         f'<span class="sinc-person-name">{_escape_text(first)}</span>'
         f'<span class="sinc-count-badge {lane_type}">{count}x</span>'
         f'</span>'
+    )
+    chip_html = (
+        f'<a href="{_profile_href(name)}" class="sinc-person-chip {lane_type}{top_cls}">'
+        f'{avatar_html}'
+        f'{meta_html}'
         f'</a>'
+    )
+    if not chooser_names:
+        return chip_html
+
+    chooser_html = "".join(
+        f'<span class="sinc-chip-drill-actor">{_escape_text(_short_name(actor_name))}</span>'
+        for actor_name in chooser_names
+    )
+    return (
+        f'<div class="sinc-person-card sinc-person-chip {lane_type}{top_cls}">'
+        f'<a href="{_profile_href(name)}" class="sinc-person-avatar-link">{avatar_html}</a>'
+        f'<details class="sinc-person-chip-toggle">'
+        f'<summary class="sinc-person-chip-summary">{meta_html}</summary>'
+        f'<div class="sinc-chip-drill-list">{chooser_html}</div>'
+        f'</details>'
+        f'</div>'
     )
 
 

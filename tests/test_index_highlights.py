@@ -123,6 +123,106 @@ def test_sincerao_card_link_points_to_existing_relacoes_anchor():
     assert sinc_card["link"] == "relacoes.html#sincerao-contradictions"
 
 
+def test_sincerao_card_splits_negative_lanes_by_tema_when_needed():
+    sinc_data = {
+        "weeks": [{"week": 9, "date": "2026-03-16", "format": "quem faz alguem de bobo + quem esta sendo feito de bobo"}],
+        "edges": [
+            {"week": 9, "type": "ataque", "actor": "Ana", "target": "Beto", "tema": "faz alguem de bobo"},
+            {"week": 9, "type": "ataque", "actor": "Cora", "target": "Beto", "tema": "faz alguem de bobo"},
+            {"week": 9, "type": "ataque", "actor": "Duda", "target": "Eva", "tema": "esta sendo feito de bobo"},
+            {"week": 9, "type": "ataque", "actor": "Fabi", "target": "Eva", "tema": "esta sendo feito de bobo"},
+            {"week": 9, "type": "ataque", "actor": "Gabi", "target": "Eva", "tema": "esta sendo feito de bobo"},
+        ],
+    }
+
+    _highlights, cards, *_rest = _compute_sincerao_highlight(
+        sinc_data=sinc_data,
+        current_week=9,
+        latest_matrix={},
+        active_set={"Ana", "Beto", "Cora", "Duda", "Eva", "Fabi", "Gabi"},
+    )
+    sinc_card = next(card for card in cards if card["type"] == "sincerao")
+
+    neg_lanes = sinc_card["radar"]["neg_lanes"]
+    assert [lane["label"] for lane in neg_lanes] == [
+        "Quem faz alguém de bobo",
+        "Quem está sendo feito de bobo",
+    ]
+    assert neg_lanes[0]["ranked"] == [{"name": "Beto", "count": 2, "actors": ["Ana", "Cora"]}]
+    assert neg_lanes[1]["ranked"] == [{"name": "Eva", "count": 3, "actors": ["Duda", "Fabi", "Gabi"]}]
+    assert sinc_card["radar"]["neg_ranked"] == [
+        {"name": "Eva", "count": 3, "actors": ["Duda", "Fabi", "Gabi"]},
+        {"name": "Beto", "count": 2, "actors": ["Ana", "Cora"]},
+    ]
+
+
+def test_sincerao_card_keeps_unlabeled_negative_targets_visible_when_split_lanes_exist():
+    sinc_data = {
+        "weeks": [{"week": 9, "date": "2026-03-16", "format": "placa dupla com sobra sem tema"}],
+        "edges": [
+            {"week": 9, "type": "ataque", "actor": "Ana", "target": "Beto", "tema": "faz alguem de bobo"},
+            {"week": 9, "type": "ataque", "actor": "Cora", "target": "Eva", "tema": "esta sendo feito de bobo"},
+            {"week": 9, "type": "ataque", "actor": "Duda", "target": "Lia"},
+        ],
+    }
+
+    _highlights, cards, *_rest = _compute_sincerao_highlight(
+        sinc_data=sinc_data,
+        current_week=9,
+        latest_matrix={},
+        active_set={"Ana", "Beto", "Cora", "Duda", "Eva", "Lia"},
+    )
+    sinc_card = next(card for card in cards if card["type"] == "sincerao")
+
+    neg_lanes = sinc_card["radar"]["neg_lanes"]
+    assert [lane["label"] for lane in neg_lanes] == [
+        "Quem faz alguém de bobo",
+        "Quem está sendo feito de bobo",
+        "Atacados",
+    ]
+    assert neg_lanes[2]["ranked"] == [{"name": "Lia", "count": 1, "actors": ["Duda"]}]
+    assert sinc_card["radar"]["neg_ranked"] == [
+        {"name": "Beto", "count": 1, "actors": ["Ana"]},
+        {"name": "Eva", "count": 1, "actors": ["Cora"]},
+        {"name": "Lia", "count": 1, "actors": ["Duda"]},
+    ]
+
+
+def test_real_week9_sincerao_card_preserves_both_bobo_lanes():
+    payload = build_index_data()
+    sinc_card = next(card for card in payload.get("highlights", {}).get("cards", []) if card.get("type") == "sincerao")
+
+    neg_lanes = sinc_card["radar"]["neg_lanes"]
+    assert [lane["label"] for lane in neg_lanes] == [
+        "Quem faz alguém de bobo",
+        "Quem está sendo feito de bobo",
+    ]
+    assert neg_lanes[0]["ranked"][0] == {
+        "name": "Alberto Cowboy",
+        "count": 7,
+        "actors": [
+            "Ana Paula Renault",
+            "Breno",
+            "Chaiany",
+            "Juliano Floss",
+            "Leandro",
+            "Milena",
+            "Samira",
+        ],
+    }
+    assert neg_lanes[1]["ranked"][0] == {
+        "name": "Gabriela",
+        "count": 5,
+        "actors": [
+            "Breno",
+            "Juliano Floss",
+            "Leandro",
+            "Milena",
+            "Samira",
+        ],
+    }
+
+
 def test_all_highlight_card_links_follow_navigation_contract():
     payload = build_index_data()
     assert payload is not None

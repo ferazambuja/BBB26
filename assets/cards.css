@@ -252,6 +252,56 @@ th.th-soft {
   gap: 0.34rem 0.42rem;
 }
 
+.sinc-person-card {
+  min-width: 0;
+}
+
+.sinc-person-card.sinc-person-chip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0.36rem;
+  row-gap: 0.22rem;
+}
+
+.sinc-person-avatar-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sinc-person-chip-toggle {
+  min-width: 0;
+}
+
+.sinc-person-chip-toggle > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.sinc-person-chip-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sinc-person-chip-summary {
+  display: flex;
+  align-items: center;
+}
+
+.sinc-person-chip-summary::after {
+  content: "▾";
+  color: #a9adb3;
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  margin-left: 0.25rem;
+  transition: transform 0.15s ease;
+}
+
+.sinc-person-chip-toggle[open] > .sinc-person-chip-summary::after {
+  transform: rotate(180deg);
+}
+
 .sinc-person-chip {
   display: flex;
   align-items: center;
@@ -295,6 +345,25 @@ th.th-soft {
   gap: 0.34rem;
   min-width: 0;
   flex: 1;
+}
+
+.sinc-chip-drill-list {
+  margin-top: 0.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.22rem 0.28rem;
+}
+
+.sinc-chip-drill-actor {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  padding: 0.08rem 0.38rem;
+  color: #d6d9de;
+  font-size: var(--fs-xs);
+  line-height: 1.2;
 }
 
 /* ── Paredão pages: scoped typography rebalance ── */

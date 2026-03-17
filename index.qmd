@@ -438,6 +438,7 @@ else:
             fmt = card.get("format", "")
             reaction_reference_date = card.get("reaction_reference_date")
             neg_ranked = radar.get("neg_ranked", [])
+            neg_lanes = radar.get("neg_lanes", [])
             pos_ranked = radar.get("pos_ranked", [])
             not_targeted = radar.get("not_targeted", [])
 
@@ -452,19 +453,36 @@ else:
                     reaction_ref_pt = reaction_reference_date
                 subtitle = f"{subtitle} Reações de referência: {reaction_ref_pt}."
 
-            lanes = [
-                _render_ranked_lane(
-                    "Atacados",
-                    "💣",
-                    neg_ranked,
-                    "Sem ataques na semana.",
-                    "attack",
-                    inline_max=INLINE_MAX_RANKED,
-                    avatar_html_fn=_avatar_html,
-                    avatars=AVATARS,
-                    avatar_size=30,
-                ),
-            ]
+            lanes = []
+            if neg_lanes:
+                lanes.extend(
+                    _render_ranked_lane(
+                        lane.get("label", "Atacados"),
+                        "💣",
+                        lane.get("ranked", []),
+                        "Sem ataques na semana.",
+                        "attack",
+                        inline_max=INLINE_MAX_RANKED,
+                        avatar_html_fn=_avatar_html,
+                        avatars=AVATARS,
+                        avatar_size=30,
+                    )
+                    for lane in neg_lanes
+                )
+            else:
+                lanes = [
+                    _render_ranked_lane(
+                        "Atacados",
+                        "💣",
+                        neg_ranked,
+                        "Sem ataques na semana.",
+                        "attack",
+                        inline_max=INLINE_MAX_RANKED,
+                        avatar_html_fn=_avatar_html,
+                        avatars=AVATARS,
+                        avatar_size=30,
+                    ),
+                ]
 
             if pos_ranked:
                 lanes.append(

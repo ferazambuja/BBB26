@@ -533,6 +533,25 @@ def test_render_rank_chip_renders_profile_link_avatar_and_count_badge():
     assert 'class="sinc-person-chip attack top"' in html
 
 
+def test_render_rank_chip_uses_avatar_link_and_body_toggle_when_actor_list_exists():
+    html = render_rank_chip(
+        {"name": "Gabriela", "count": 5, "actors": ["Breno", "Juliano Floss", "Leandro"]},
+        "attack",
+        True,
+        avatar_html_fn=lambda name, border_color: f"<avatar {name} {border_color}>",
+    )
+
+    assert 'href="#perfil-gabriela"' in html
+    assert 'class="sinc-person-card sinc-person-chip attack top"' in html
+    assert 'class="sinc-person-avatar-link"' in html
+    assert 'class="sinc-person-chip-toggle"' in html
+    assert 'class="sinc-person-chip-summary"' in html
+    assert "ver quem escolheu" not in html
+    assert "Breno" in html
+    assert "Juliano" in html
+    assert "Leandro" in html
+
+
 def test_render_ranked_lane_wraps_overflow_rank_chips_in_details():
     ranked = [
         {"name": "Ana Paula Renault", "count": 4},

@@ -142,3 +142,9 @@ def test_index_qmd_no_longer_uses_local_lambda_glue_for_sincerao_lanes():
 
     assert "_rank_avatar_html = lambda" not in content
     assert "_rank_chip = lambda" not in content
+
+
+def test_index_qmd_uses_grouped_sincerao_negative_lanes_when_available():
+    content = INDEX_QMD.read_text(encoding="utf-8")
+
+    assert 'radar.get("neg_lanes", [])' in content
