@@ -1,7 +1,7 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-17T14:07:47.858591+00:00",
-    "content_hash": "074be3934a02d94148b8b392acd2ee7a926c327aad0dbb12075d818d75573249",
+    "generated_at": "2026-03-17T23:17:19.242429+00:00",
+    "content_hash": "7af27a721e5081dfd0736d9e04ded6e36e9f5a7638818517b887cee58e5728c5",
     "audit_version": 1
   },
   "summary": {
@@ -486,6 +486,71 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
+      "message": "Juliano Floss has mismatched votes_total",
+      "details": {
+        "name": "Juliano Floss",
+        "field": "votes_total",
+        "actual": 0,
+        "expected": 9
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Juliano Floss has mismatched votes_recent",
+      "details": {
+        "name": "Juliano Floss",
+        "field": "votes_recent",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Juliano Floss has mismatched votes_available",
+      "details": {
+        "name": "Juliano Floss",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 9
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Juliano Floss has mismatched available",
+      "details": {
+        "name": "Juliano Floss",
+        "field": "available",
+        "actual": 0,
+        "expected": 9
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Juliano Floss has mismatched last_voted_paredao",
+      "details": {
+        "name": "Juliano Floss",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 8
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
       "message": "Marciele has mismatched votes_total",
       "details": {
         "name": "Marciele",
@@ -551,12 +616,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Breno has mismatched votes_total",
+      "message": "Leandro has mismatched votes_total",
       "details": {
-        "name": "Breno",
+        "name": "Leandro",
         "field": "votes_total",
         "actual": 0,
-        "expected": 5
+        "expected": 10
       }
     },
     {
@@ -564,12 +629,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Breno has mismatched votes_recent",
+      "message": "Leandro has mismatched votes_available",
       "details": {
-        "name": "Breno",
-        "field": "votes_recent",
+        "name": "Leandro",
+        "field": "votes_available",
         "actual": 0,
-        "expected": 5
+        "expected": 10
       }
     },
     {
@@ -577,12 +642,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Breno has mismatched available",
+      "message": "Leandro has mismatched available",
       "details": {
-        "name": "Breno",
+        "name": "Leandro",
         "field": "available",
         "actual": 0,
-        "expected": 7
+        "expected": 8
       }
     },
     {
@@ -590,12 +655,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Breno has mismatched last_voted_paredao",
+      "message": "Leandro has mismatched last_voted_paredao",
       "details": {
-        "name": "Breno",
+        "name": "Leandro",
         "field": "last_voted_paredao",
         "actual": 0,
-        "expected": 7
+        "expected": 3
       }
     },
     {
@@ -661,500 +726,6 @@
         "field": "last_voted_paredao",
         "actual": 0,
         "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Samira has mismatched votes_total",
-      "details": {
-        "name": "Samira",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 3
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Samira has mismatched votes_available",
-      "details": {
-        "name": "Samira",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 3
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Samira has mismatched available",
-      "details": {
-        "name": "Samira",
-        "field": "available",
-        "actual": 0,
-        "expected": 7
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Samira has mismatched protected",
-      "details": {
-        "name": "Samira",
-        "field": "protected",
-        "actual": 0,
-        "expected": 2
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Samira has mismatched last_voted_paredao",
-      "details": {
-        "name": "Samira",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 5
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Ana Paula Renault has mismatched votes_total",
-      "details": {
-        "name": "Ana Paula Renault",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Ana Paula Renault has mismatched votes_available",
-      "details": {
-        "name": "Ana Paula Renault",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Ana Paula Renault has mismatched available",
-      "details": {
-        "name": "Ana Paula Renault",
-        "field": "available",
-        "actual": 0,
-        "expected": 6
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Ana Paula Renault has mismatched protected",
-      "details": {
-        "name": "Ana Paula Renault",
-        "field": "protected",
-        "actual": 0,
-        "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Ana Paula Renault has mismatched last_voted_paredao",
-      "details": {
-        "name": "Ana Paula Renault",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 2
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Milena has mismatched votes_total",
-      "details": {
-        "name": "Milena",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Milena has mismatched votes_available",
-      "details": {
-        "name": "Milena",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Milena has mismatched available",
-      "details": {
-        "name": "Milena",
-        "field": "available",
-        "actual": 0,
-        "expected": 6
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Milena has mismatched last_voted_paredao",
-      "details": {
-        "name": "Milena",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 2
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Jordana has mismatched votes_total",
-      "details": {
-        "name": "Jordana",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 17
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Jordana has mismatched votes_recent",
-      "details": {
-        "name": "Jordana",
-        "field": "votes_recent",
-        "actual": 0,
-        "expected": 7
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Jordana has mismatched votes_available",
-      "details": {
-        "name": "Jordana",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 17
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Jordana has mismatched available",
-      "details": {
-        "name": "Jordana",
-        "field": "available",
-        "actual": 0,
-        "expected": 8
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Jordana has mismatched last_voted_paredao",
-      "details": {
-        "name": "Jordana",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 9
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Solange Couto has mismatched votes_total",
-      "details": {
-        "name": "Solange Couto",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 16
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Solange Couto has mismatched votes_recent",
-      "details": {
-        "name": "Solange Couto",
-        "field": "votes_recent",
-        "actual": 0,
-        "expected": 8
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Solange Couto has mismatched votes_available",
-      "details": {
-        "name": "Solange Couto",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 16
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Solange Couto has mismatched available",
-      "details": {
-        "name": "Solange Couto",
-        "field": "available",
-        "actual": 0,
-        "expected": 8
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Solange Couto has mismatched last_voted_paredao",
-      "details": {
-        "name": "Solange Couto",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 9
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Alberto Cowboy has mismatched votes_total",
-      "details": {
-        "name": "Alberto Cowboy",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 8
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Alberto Cowboy has mismatched votes_available",
-      "details": {
-        "name": "Alberto Cowboy",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 8
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Alberto Cowboy has mismatched available",
-      "details": {
-        "name": "Alberto Cowboy",
-        "field": "available",
-        "actual": 0,
-        "expected": 5
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Alberto Cowboy has mismatched protected",
-      "details": {
-        "name": "Alberto Cowboy",
-        "field": "protected",
-        "actual": 0,
-        "expected": 3
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Alberto Cowboy has mismatched last_voted_paredao",
-      "details": {
-        "name": "Alberto Cowboy",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 6
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Chaiany has mismatched votes_total",
-      "details": {
-        "name": "Chaiany",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 4
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Chaiany has mismatched votes_available",
-      "details": {
-        "name": "Chaiany",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 4
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Chaiany has mismatched available",
-      "details": {
-        "name": "Chaiany",
-        "field": "available",
-        "actual": 0,
-        "expected": 6
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Chaiany has mismatched protected",
-      "details": {
-        "name": "Chaiany",
-        "field": "protected",
-        "actual": 0,
-        "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Chaiany has mismatched last_voted_paredao",
-      "details": {
-        "name": "Chaiany",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 2
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Leandro has mismatched votes_total",
-      "details": {
-        "name": "Leandro",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 10
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Leandro has mismatched votes_available",
-      "details": {
-        "name": "Leandro",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 10
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Leandro has mismatched available",
-      "details": {
-        "name": "Leandro",
-        "field": "available",
-        "actual": 0,
-        "expected": 8
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Leandro has mismatched last_voted_paredao",
-      "details": {
-        "name": "Leandro",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 3
       }
     },
     {
@@ -1240,10 +811,114 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Juliano Floss has mismatched votes_total",
+      "message": "Breno has mismatched votes_total",
       "details": {
-        "name": "Juliano Floss",
+        "name": "Breno",
         "field": "votes_total",
+        "actual": 0,
+        "expected": 5
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Breno has mismatched votes_recent",
+      "details": {
+        "name": "Breno",
+        "field": "votes_recent",
+        "actual": 0,
+        "expected": 5
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Breno has mismatched available",
+      "details": {
+        "name": "Breno",
+        "field": "available",
+        "actual": 0,
+        "expected": 7
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Breno has mismatched last_voted_paredao",
+      "details": {
+        "name": "Breno",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 7
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Solange Couto has mismatched votes_total",
+      "details": {
+        "name": "Solange Couto",
+        "field": "votes_total",
+        "actual": 0,
+        "expected": 16
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Solange Couto has mismatched votes_recent",
+      "details": {
+        "name": "Solange Couto",
+        "field": "votes_recent",
+        "actual": 0,
+        "expected": 8
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Solange Couto has mismatched votes_available",
+      "details": {
+        "name": "Solange Couto",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 16
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Solange Couto has mismatched available",
+      "details": {
+        "name": "Solange Couto",
+        "field": "available",
+        "actual": 0,
+        "expected": 8
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Solange Couto has mismatched last_voted_paredao",
+      "details": {
+        "name": "Solange Couto",
+        "field": "last_voted_paredao",
         "actual": 0,
         "expected": 9
       }
@@ -1253,10 +928,75 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Juliano Floss has mismatched votes_recent",
+      "message": "Jordana has mismatched votes_total",
       "details": {
-        "name": "Juliano Floss",
+        "name": "Jordana",
+        "field": "votes_total",
+        "actual": 0,
+        "expected": 17
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Jordana has mismatched votes_recent",
+      "details": {
+        "name": "Jordana",
         "field": "votes_recent",
+        "actual": 0,
+        "expected": 7
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Jordana has mismatched votes_available",
+      "details": {
+        "name": "Jordana",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 17
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Jordana has mismatched available",
+      "details": {
+        "name": "Jordana",
+        "field": "available",
+        "actual": 0,
+        "expected": 8
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Jordana has mismatched last_voted_paredao",
+      "details": {
+        "name": "Jordana",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 9
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Milena has mismatched votes_total",
+      "details": {
+        "name": "Milena",
+        "field": "votes_total",
         "actual": 0,
         "expected": 1
       }
@@ -1266,12 +1006,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Juliano Floss has mismatched votes_available",
+      "message": "Milena has mismatched votes_available",
       "details": {
-        "name": "Juliano Floss",
+        "name": "Milena",
         "field": "votes_available",
         "actual": 0,
-        "expected": 9
+        "expected": 1
       }
     },
     {
@@ -1279,12 +1019,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Juliano Floss has mismatched available",
+      "message": "Milena has mismatched available",
       "details": {
-        "name": "Juliano Floss",
+        "name": "Milena",
         "field": "available",
         "actual": 0,
-        "expected": 9
+        "expected": 6
       }
     },
     {
@@ -1292,12 +1032,272 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Juliano Floss has mismatched last_voted_paredao",
+      "message": "Milena has mismatched last_voted_paredao",
       "details": {
-        "name": "Juliano Floss",
+        "name": "Milena",
         "field": "last_voted_paredao",
         "actual": 0,
+        "expected": 2
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Samira has mismatched votes_total",
+      "details": {
+        "name": "Samira",
+        "field": "votes_total",
+        "actual": 0,
+        "expected": 3
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Samira has mismatched votes_available",
+      "details": {
+        "name": "Samira",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 3
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Samira has mismatched available",
+      "details": {
+        "name": "Samira",
+        "field": "available",
+        "actual": 0,
+        "expected": 7
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Samira has mismatched protected",
+      "details": {
+        "name": "Samira",
+        "field": "protected",
+        "actual": 0,
+        "expected": 2
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Samira has mismatched last_voted_paredao",
+      "details": {
+        "name": "Samira",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 5
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Chaiany has mismatched votes_total",
+      "details": {
+        "name": "Chaiany",
+        "field": "votes_total",
+        "actual": 0,
+        "expected": 4
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Chaiany has mismatched votes_available",
+      "details": {
+        "name": "Chaiany",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 4
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Chaiany has mismatched available",
+      "details": {
+        "name": "Chaiany",
+        "field": "available",
+        "actual": 0,
+        "expected": 6
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Chaiany has mismatched protected",
+      "details": {
+        "name": "Chaiany",
+        "field": "protected",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Chaiany has mismatched last_voted_paredao",
+      "details": {
+        "name": "Chaiany",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 2
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Ana Paula Renault has mismatched votes_total",
+      "details": {
+        "name": "Ana Paula Renault",
+        "field": "votes_total",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Ana Paula Renault has mismatched votes_available",
+      "details": {
+        "name": "Ana Paula Renault",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Ana Paula Renault has mismatched available",
+      "details": {
+        "name": "Ana Paula Renault",
+        "field": "available",
+        "actual": 0,
+        "expected": 6
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Ana Paula Renault has mismatched protected",
+      "details": {
+        "name": "Ana Paula Renault",
+        "field": "protected",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Ana Paula Renault has mismatched last_voted_paredao",
+      "details": {
+        "name": "Ana Paula Renault",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 2
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Alberto Cowboy has mismatched votes_total",
+      "details": {
+        "name": "Alberto Cowboy",
+        "field": "votes_total",
+        "actual": 0,
         "expected": 8
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Alberto Cowboy has mismatched votes_available",
+      "details": {
+        "name": "Alberto Cowboy",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 8
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Alberto Cowboy has mismatched available",
+      "details": {
+        "name": "Alberto Cowboy",
+        "field": "available",
+        "actual": 0,
+        "expected": 5
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Alberto Cowboy has mismatched protected",
+      "details": {
+        "name": "Alberto Cowboy",
+        "field": "protected",
+        "actual": 0,
+        "expected": 3
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Alberto Cowboy has mismatched last_voted_paredao",
+      "details": {
+        "name": "Alberto Cowboy",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 6
       }
     }
   ]
