@@ -140,7 +140,8 @@ def _gather_all_links() -> list[tuple[str, str, str, int]]:
     for scripts_dir in PYTHON_DIRS:
         for py_file in sorted(scripts_dir.rglob("*.py")):
             # Skip __pycache__ and hidden dirs
-            if any(p.startswith((".","__")) for p in py_file.parts):
+            rel_parts = py_file.relative_to(REPO_ROOT).parts
+            if any(p.startswith((".", "__")) for p in rel_parts):
                 continue
             try:
                 lines = py_file.read_text(encoding="utf-8").splitlines()

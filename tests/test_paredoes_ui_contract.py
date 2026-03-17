@@ -142,6 +142,15 @@ def test_paredao_pages_define_scoped_typography_layer():
     assert "body.paredao-page .paredao-history-summary" in css
 
 
+def test_live_page_uses_dedicated_poll_section_title_spacing_hook():
+    live = _read(PAREDAO_QMD)
+    css = _read(CARDS_CSS)
+
+    assert 'class="poll-section-title"' in live
+    assert "body.paredao-page main.content h2.poll-section-title" in css
+    assert '<div style="margin-bottom:1rem;"></div>' not in live
+
+
 def test_paredoes_has_nunca_paredao_anchor():
     content = _read(PAREDOES_QMD)
     assert "### Nunca foi ao Paredão {#nunca-paredao}" in content
