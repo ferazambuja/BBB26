@@ -401,7 +401,7 @@ def render_rank_chip(
     return (
         f'<div class="sinc-person-card sinc-person-chip {lane_type}{top_cls}">'
         f'<a href="{_profile_href(name)}" class="sinc-person-avatar-link">{avatar_html}</a>'
-        f'<details class="sinc-person-chip-toggle">'
+        f'<details class="sinc-person-chip-toggle" data-sinc-sync-toggle="chooser">'
         f'<summary class="sinc-person-chip-summary">{meta_html}</summary>'
         f'<div class="sinc-chip-drill-list">{chooser_html}</div>'
         f'</details>'

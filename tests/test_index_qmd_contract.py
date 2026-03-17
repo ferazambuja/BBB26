@@ -6,6 +6,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INDEX_QMD = REPO_ROOT / "index.qmd"
+COLLAPSE_UI_JS = REPO_ROOT / "assets" / "collapse-ui.js"
 
 
 def _python_blocks() -> list[list[str]]:
@@ -148,3 +149,17 @@ def test_index_qmd_uses_grouped_sincerao_negative_lanes_when_available():
     content = INDEX_QMD.read_text(encoding="utf-8")
 
     assert 'radar.get("neg_lanes", [])' in content
+
+
+def test_index_qmd_marks_sincerao_card_for_scoped_sync_behavior():
+    content = INDEX_QMD.read_text(encoding="utf-8")
+
+    assert 'data-sinc-sync-card' in content
+
+
+def test_collapse_ui_supports_scoped_sincerao_toggle_sync():
+    content = COLLAPSE_UI_JS.read_text(encoding="utf-8")
+
+    assert 'data-sinc-sync-card' in content
+    assert 'data-sinc-sync-toggle="chooser"' in content
+    assert '.sinc-more:not([open])' in content

@@ -77,18 +77,51 @@
     });
   }
 
-  onReady(function () {
-    /* Only activate if the page has collapse toggles */
-    var toggles = document.querySelectorAll(".collapse-toggle[data-target]");
-    if (!toggles.length) return;
+  function isSincSyncVisible(toggle) {
+    return !toggle.closest(".sinc-more:not([open])");
+  }
 
-    syncNavbarTitle();
-    bindCollapseHandlers();
-    syncCollapseButtons();
+  function bindSinceraoToggleSync() {
+    var cards = document.querySelectorAll("[data-sinc-sync-card]");
+    cards.forEach(function (card) {
+      var syncing = false;
+      var toggles = card.querySelectorAll('.sinc-person-chip-toggle[data-sinc-sync-toggle="chooser"]');
+      if (!toggles.length) return;
 
-    window.addEventListener("resize", function () {
-      syncNavbarTitle();
-      syncCollapseButtons();
+      toggles.forEach(function (toggle) {
+        toggle.addEventListener("toggle", function () {
+          if (syncing || !isSincSyncVisible(toggle)) return;
+
+          syncing = true;
+          var shouldOpen = toggle.open;
+          toggles.forEach(function (otherToggle) {
+            if (otherToggle === toggle || !isSincSyncVisible(otherToggle)) return;
+            otherToggle.open = shouldOpen;
+          });
+          syncing = false;
+        });
+      });
     });
+  }
+
+  onReady(function () {
+    var collapseToggles = document.querySelectorAll(".collapse-toggle[data-target]");
+    var sincSyncCards = document.querySelectorAll("[data-sinc-sync-card]");
+    if (!collapseToggles.length && !sincSyncCards.length) return;
+
+    if (collapseToggles.length) {
+      syncNavbarTitle();
+      bindCollapseHandlers();
+      syncCollapseButtons();
+
+      window.addEventListener("resize", function () {
+        syncNavbarTitle();
+        syncCollapseButtons();
+      });
+    }
+
+    if (sincSyncCards.length) {
+      bindSinceraoToggleSync();
+    }
   });
 })();

@@ -534,7 +534,7 @@ else:
                     render_pair_chip_fn=render_pair_chip,
                 ),
             ]
-            body_html = f'<div class="sinc-card">{"".join(lanes)}{"".join(toggle_sections)}</div>'
+            body_html = f'<div class="sinc-card" data-sinc-sync-card>{"".join(lanes)}{"".join(toggle_sections)}</div>'
             count_txt = f"{len(neg_ranked) + len(pos_ranked)}" if (neg_ranked or pos_ranked) else ""
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">

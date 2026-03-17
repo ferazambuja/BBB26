@@ -546,6 +546,7 @@ def test_render_rank_chip_uses_avatar_link_and_body_toggle_when_actor_list_exist
     assert 'class="sinc-person-avatar-link"' in html
     assert 'class="sinc-person-chip-toggle"' in html
     assert 'class="sinc-person-chip-summary"' in html
+    assert 'data-sinc-sync-toggle="chooser"' in html
     assert "ver quem escolheu" not in html
     assert "Breno" in html
     assert "Juliano" in html
