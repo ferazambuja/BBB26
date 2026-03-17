@@ -1191,6 +1191,18 @@ def _extract_sites_from_section_header(lines: list[str]) -> tuple[list[float], i
                     if all(0 <= v <= 100 for v in repaired):
                         candidates.append((repaired, int(votes)))
                         break  # Take first valid row after this header.
+            # 3-token reconstruct: OCR dropped the first percentage.
+            elif len(tokens) == 3:
+                p2 = _as_float_percent(tokens[0])
+                p3 = _as_float_percent(tokens[1])
+                votes = _as_int_votes(tokens[2])
+                if None not in (p2, p3, votes) and 0 <= p2 <= 100 and 0 <= p3 <= 100:
+                    p1_calc = round(100.0 - float(p2) - float(p3), 2)
+                    if 0 <= p1_calc <= 100:
+                        repaired = _repair_triplet([p1_calc, float(p2), float(p3)])
+                        if all(0 <= v <= 100 for v in repaired):
+                            candidates.append((repaired, int(votes)))
+                            break
     if not candidates:
         return None
     # Prefer the candidate closest to summing 100%.
