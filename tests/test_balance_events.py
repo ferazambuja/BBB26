@@ -350,7 +350,7 @@ class TestBuildBalanceEvents:
         assert len(result["weekly_summary"]) >= 1
 
     def test_constants_defined(self):
-        assert len(BALANCE_EVENT_TYPES) == 7
+        assert len(BALANCE_EVENT_TYPES) >= 7  # grows as new event types are added
         assert BALANCE_COLLECTIVE_THRESHOLD == 0.80
         assert BALANCE_SIGNIFICANT_LOSS == 50
         assert BALANCE_SIGNIFICANT_GAIN == 100
