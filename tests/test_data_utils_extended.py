@@ -1080,6 +1080,119 @@ class TestRenderCronologiaHtml:
         assert "Painel inline por evento" in html
 
 
+class TestCronologiaMarkerPlacement:
+    """Test '📍 Hoje' marker placement in render_cronologia_variant()."""
+
+    @staticmethod
+    def _ev(date: str, week: int, title: str, **extra) -> dict:
+        return {
+            "date": date,
+            "week": week,
+            "category": "dinamica",
+            "emoji": "⚡",
+            "title": title,
+            "detail": "",
+            **extra,
+        }
+
+    @staticmethod
+    def _marker_position(html: str) -> tuple[int, str]:
+        """Return (index, marker_text) for the hoje marker, or (-1, '') if absent."""
+        idx = html.find("cronologia-hoje-marker")
+        if idx == -1:
+            return (-1, "")
+        cell_start = html.find("cronologia-hoje-cell", idx)
+        content_start = html.index(">", cell_start) + 1
+        content_end = html.index("</td>", content_start)
+        return (idx, html[content_start:content_end])
+
+    def test_all_past_marker_appears_before_most_recent_date(self):
+        events = [
+            self._ev("2026-01-13", 1, "Old Event"),
+            self._ev("2026-01-15", 1, "Less Old Event"),
+        ]
+        grouped = group_cronologia_events(events)
+        html = render_cronologia_variant(grouped, "baseline", today_date="2026-03-01")
+
+        idx_marker, text = self._marker_position(html)
+        assert idx_marker != -1
+        assert "📍 Hoje" in text
+        assert idx_marker < html.find("2026-01-15")
+
+    def test_all_future_marker_appears_at_bottom(self):
+        events = [
+            self._ev("2026-12-01", 50, "Future Event A"),
+            self._ev("2026-12-10", 51, "Future Event B"),
+        ]
+        grouped = group_cronologia_events(events)
+        html = render_cronologia_variant(grouped, "baseline", today_date="2026-03-01")
+
+        idx_marker, text = self._marker_position(html)
+        assert idx_marker != -1
+        assert text == "📍 Hoje"
+        assert idx_marker > html.rfind("2026-12-01")
+
+    def test_mixed_past_future_marker_between_with_proximo_hint(self):
+        events = [
+            self._ev("2026-02-01", 3, "Past Event"),
+            self._ev("2026-04-01", 12, "Future Event"),
+        ]
+        grouped = group_cronologia_events(events)
+        html = render_cronologia_variant(grouped, "baseline", today_date="2026-03-01")
+
+        idx_marker, text = self._marker_position(html)
+        assert idx_marker != -1
+        assert "⏫ Próximo: 2026-04-01" in text
+        assert html.find("2026-04-01") < idx_marker < html.find("2026-02-01")
+
+    def test_today_events_appear_below_marker(self):
+        events = [
+            self._ev("2026-03-01", 7, "Today Event"),
+            self._ev("2026-02-20", 6, "Past Event"),
+        ]
+        grouped = group_cronologia_events(events)
+        html = render_cronologia_variant(grouped, "baseline", today_date="2026-03-01")
+
+        idx_marker, _ = self._marker_position(html)
+        assert idx_marker != -1
+        assert idx_marker < html.find("2026-03-01")
+
+    def test_same_day_scheduled_events_below_marker(self):
+        events = [
+            self._ev("2026-03-01", 7, "Morning Event"),
+            self._ev("2026-03-01", 7, "Tonight Scheduled", status="scheduled", time="Ao Vivo"),
+        ]
+        grouped = group_cronologia_events(events)
+        html = render_cronologia_variant(grouped, "baseline", today_date="2026-03-01")
+
+        idx_marker, text = self._marker_position(html)
+        assert idx_marker != -1
+        assert text == "📍 Hoje"
+        assert idx_marker < html.find("Tonight Scheduled")
+
+    def test_no_today_date_skips_marker(self):
+        events = [self._ev("2026-03-01", 7, "Some Event")]
+        grouped = group_cronologia_events(events)
+        html = render_cronologia_variant(grouped, "baseline", today_date=None)
+
+        idx_marker, _ = self._marker_position(html)
+        assert idx_marker == -1
+
+    def test_marker_works_in_mobile_variant_too(self):
+        events = [
+            self._ev("2026-02-01", 3, "Past"),
+            self._ev("2026-04-01", 12, "Future"),
+        ]
+        grouped = group_cronologia_events(events)
+        baseline = render_cronologia_variant(grouped, "baseline", today_date="2026-03-01")
+        mobile = render_cronologia_variant(grouped, "two_row_open", today_date="2026-03-01")
+
+        _, baseline_text = self._marker_position(baseline)
+        _, mobile_text = self._marker_position(mobile)
+        assert "⏫ Próximo: 2026-04-01" in baseline_text
+        assert "⏫ Próximo: 2026-04-01" in mobile_text
+
+
 class TestNormalizeActors:
     """Test normalize_actors() with more edge cases."""
 
