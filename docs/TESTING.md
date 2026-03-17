@@ -32,7 +32,8 @@ When your change is broad, shared, or hard to reason about locally, use that sam
 | Provas (`provas.qmd`, prova rankings) | `pytest -q tests/test_provas_ui_contract.py tests/test_prova_rankings_warnings.py` and `quarto render provas.qmd` |
 | Economia / balance (`economia.qmd`, `economia_v2.qmd`, `scripts/builders/balance.py`) | `pytest -q tests/test_balance_events.py` and render the affected economy page(s) |
 | Votalhada fetch / OCR / poll model | `pytest -q tests/test_fetch_votalhada_images.py tests/test_votalhada_ocr_batch_validate.py tests/test_votalhada_ocr_feasibility.py tests/test_votalhada_platform_consistency_audit.py tests/test_votalhada_manual_formula_policy.py` |
-| Sync / publish workflow | `pytest -q tests/test_sync_public_script.py` and run `scripts/sync_public.sh` in report mode if behavior changed |
+| Git/public safety tooling (`.githooks/pre-push`, `.github/workflows/public-policy-report.yml`, workflow docs) | Proofread docs and command examples; run `bash -n .githooks/pre-push` if the hook changed. |
+| Legacy sync / publish helper (`scripts/sync_public.sh`) | `pytest -q tests/test_sync_public_script.py` and run `scripts/sync_public.sh` in report mode if behavior changed |
 | Layout, shell, typography, mobile review | `pytest -q tests/test_quarto_ui_config.py tests/test_ui_shell_cleanup.py tests/test_typography_contract.py tests/test_ranking_mobile_layout.py` and, when needed, `./scripts/capture_layout_screenshots.sh --output-dir tmp/page_screenshots/<label>` |
 
 ## Test Ownership by Subsystem
@@ -50,7 +51,7 @@ When your change is broad, shared, or hard to reason about locally, use that sam
 | Votalhada fetch/OCR/model | `tests/test_fetch_votalhada_images.py`, `tests/test_votalhada_ocr_batch_validate.py`, `tests/test_votalhada_ocr_feasibility.py`, `tests/test_votalhada_platform_consistency_audit.py`, `tests/test_votalhada_manual_formula_policy.py` |
 | Capture scripts / mobile review | `tests/test_capture_quarto_screenshots.py`, `tests/test_capture_mobile_slices.py`, `tests/test_cronologia_mobile_review_contract.py` |
 | Site shell / config / typography | `tests/test_quarto_ui_config.py`, `tests/test_ui_shell_cleanup.py`, `tests/test_typography_contract.py`, `tests/test_ranking_mobile_layout.py` |
-| Git/public workflow | `tests/test_sync_public_script.py` |
+| Legacy sync/public helper | `tests/test_sync_public_script.py` |
 
 ## Common Commands
 

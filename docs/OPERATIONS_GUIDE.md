@@ -8,7 +8,7 @@
 > **For verification strategy**: See `docs/TESTING.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-14
+> **Last updated**: 2026-03-16
 
 ---
 
@@ -25,7 +25,7 @@ This file is ~2,400 lines. **Do not read it all at once.** Use this map to jump 
 | ~88 | Common Edit Recipes | Change type → files to edit → scripts to run |
 | ~103 | Web Scraping & Source Collection | GShow can't be WebFetched — use `scrape_gshow.py` |
 | ~133 | Public vs Private Doc Policy | What can/can't be pushed |
-| ~148 | Git Workflow | Dual-branch, commit & publish, push conflicts |
+| ~148 | Git Workflow | Main-first workflow, publish, push conflicts, legacy recovery |
 
 **Event Checklists** (read the one matching today's task):
 
@@ -59,8 +59,8 @@ This file is ~2,400 lines. **Do not read it all at once.** Use this map to jump 
 
 | Task | When | Go to |
 |------|------|-------|
-| **Update after ANY manual edit** | After editing any data file | [Git Workflow](#git-workflow) |
-| **Publish local public commits safely (recommended)** | After committing on `local/private-main` | [Git Workflow → Report-first publish](#report-first-publish-recommended) |
+| **Update after ANY manual edit** | After editing any data file | [Git Workflow](#git-workflow-main-first) |
+| **Review archived `local/private-main` history (legacy)** | Only if you still have old local commits | [Git Workflow](#git-workflow-main-first) |
 | **New Líder crowned** (Thursday) | Thursday ~22h | [Líder Transition Checklist](#líder-transition-checklist-thursday-night) |
 | **Prova do Anjo results** (Saturday) | Saturday afternoon | [Anjo / Monstro Checklist](#anjo--monstro-update-checklist-saturday) |
 | **Presente do Anjo** (Sunday afternoon) | Sunday ~14h-17h | [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) |
@@ -95,7 +95,7 @@ Use this table when you already know **what changed** and need the shortest safe
 | Shared scoring / loader / date logic | `scripts/data_utils.py`, `scripts/builders/*`, `scripts/derived_pipeline.py` | targeted `pytest` + `python scripts/build_derived_data.py` | affected derived JSON + affected page |
 | Reusable render helper | `scripts/*_viz.py` | targeted `pytest` + `quarto render <affected-page>.qmd` | rendered HTML / page screenshots |
 | Page-only composition / prose / layout | `*.qmd`, `assets/*`, `_quarto.yml` | targeted `pytest` + `quarto render <affected-page>.qmd` | local page render and, when needed, screenshot capture |
-| Git/publication workflow | `scripts/sync_public.sh`, workflow/policy docs | `pytest tests/test_sync_public_script.py -q` | report-first publish flow |
+| Git/publication workflow | `.githooks/pre-push`, `.github/workflows/public-policy-report.yml`, `scripts/sync_public.sh` (legacy), workflow docs | `bash -n .githooks/pre-push` when the hook changes; `pytest tests/test_sync_public_script.py -q` only if the legacy helper changed | push policy and legacy recovery flow |
 | Documentation only | `README.md`, `docs/*.md`, `data/votalhada/README.md` | consistency check of links/cross-references | no site rebuild required unless instructions or examples changed materially |
 
 For the exact test families and recommended commands, see `docs/TESTING.md`.
@@ -140,117 +140,46 @@ This repository is public. Agents must enforce a strict documentation boundary:
 
 Pre-push checklist:
 
-1. Confirm current branch is pushable public branch (`main`), not `local/*`.
+1. Confirm current branch is intended for push: normally `main`, or `feature/*` only when intentionally opening a PR. Never push `local/*`.
 2. Check staged files: `git diff --cached --name-only`.
 3. Confirm no private-denylist paths are staged/tracked for push.
 4. If needed, install/use `.githooks/pre-push` to block accidental exposure.
 
-## Git Workflow (Dual-Branch)
+## Git Workflow (Main-First)
 
-This repo uses a **dual-branch system**. See `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md` for full details.
+This repo now uses a **main-first workflow**. Day-to-day work happens on `main`. Private material stays local because it is ignored or explicitly blocked from public history.
 
 | Branch | Purpose | Push? |
 |--------|---------|-------|
-| `local/private-main` | Daily work (private + public mixed) | **NEVER** push |
-| `main` | Public branch on GitHub | Push only `public:` commits |
+| `main` | Normal working branch + public branch | Yes |
+| `local/*` | Local-only archive/recovery branches | **NEVER** push |
+| `feature/*` | Optional short-lived feature branches | Only when intentionally opening a PR |
 
-**Commit prefixes** (required): `private:` (local-only) | `public:` (safe to publish)
+Human commits on `main` use normal descriptive subjects. GitHub Actions bot commits on `main` still use the `data:` prefix.
 
 The GitHub Actions bot polls every 15 minutes and auto-commits `data/` files when the API data changes (~5–15 snapshots/day). See [Triggering Site Updates](#triggering-site-updates).
 
-### Daily Work (on `local/private-main`)
+### Daily Work (on `main`)
 
 ```bash
-# Before any local work — sync public changes into your working branch
-git checkout local/private-main
-git pull origin main --rebase
+git checkout main
+git pull --rebase origin main
 
 # After manual edits (the universal pattern)
 python scripts/build_derived_data.py    # rebuild derived data (hard-fails on errors)
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: <description>"
-```
-
-### Publishing to GitHub (cherry-pick to `main`)
-
-```bash
-# 1. Switch to public branch
-git checkout main
-git pull --rebase origin main
-
-# 2. Cherry-pick only public: commits from local branch
-git cherry-pick <public-commit-sha-1> <public-commit-sha-2>
-
-# 3. Push
+git commit -m "<description>"
 git push origin main
 
-# 4. Deploy immediately (instead of waiting for next cron)
+# Optional immediate deploy (instead of waiting for next cron)
 gh workflow run daily-update.yml
-
-# 5. Return to working branch
-git checkout local/private-main
 ```
 
-### Report-first publish (recommended)
+### Private Material
 
-Use the helper script in two explicit steps:
-
-```bash
-# 1) Analyze first (default mode, no branch mutation)
-scripts/sync_public.sh
-
-# 2) Apply only after reviewing the report
-scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
-```
-
-Default `scripts/sync_public.sh` behavior:
-- fetches latest `origin/main` (unless `--no-fetch`)
-- inspects pending `public:` commits from `local/private-main`
-- simulates cherry-picks in an isolated temporary worktree
-- writes report to `.private/docs/CONFLICT_REPORTS/*.md`
-- classifies conflicts as `generated`, `manual-critical`, or `other`
-- marks `safe_to_proceed: yes|no`
-
-`--apply` mode behavior:
-- requires `--report <path>`
-- verifies report metadata matches current source/target SHAs
-- aborts if report says `safe_to_proceed: no`
-- then executes cherry-pick/push flow (with generated-file auto-resolution only)
-
-Conflict classes:
-- `generated`: `data/derived/*`, `data/latest.json`, `data/snapshots/*`
-- `manual-critical`: `data/manual_events.json`, `data/paredoes.json`, `data/provas.json`, `data/votalhada/polls.json`
-- `other`: any remaining file paths
-
-Agent triage requirement (before apply):
-- summarize conflicting files + classes in the report
-- confirm whether generated-only auto-resolution is correct for this run
-- if any `manual-critical`/`other`, document chosen manual strategy first
-
-Useful flags:
-
-```bash
-scripts/sync_public.sh --report .private/docs/CONFLICT_REPORTS/my-report.md
-scripts/sync_public.sh --apply --report <path> --no-push
-scripts/sync_public.sh --apply --report <path> --no-rebuild
-scripts/sync_public.sh --apply --report <path> --stay-on-target
-scripts/sync_public.sh --source <branch> --target <branch> --remote <name>
-```
-
-One-time local setup (recommended for repeated conflicts):
-
-```bash
-git config rerere.enabled true
-git config rerere.autoupdate true
-git config pull.rebase true
-git config rebase.autoStash true
-```
-
-**Key rules**:
-- The bot only touches `data/` files on `main`. Your edits to `.qmd`, `scripts/`, `docs/` never conflict.
-- Bot polls every **15 minutes** (`*/15 * * * *`); saves only when data hash changes.
-- Snapshot filenames are **UTC**. Game dates use `utc_to_game_date()` (UTC→BRT with 06:00 BRT cutoff).
-- **Pre-push hook** (`.githooks/pre-push`) blocks pushes from `local/*` branches and private denylist files.
+- Keep local-only notes and WIP docs under `.private/docs/` whenever possible.
+- Never track private/denylist paths on `main` (`CLAUDE.md`, `.private/**`, `.claude/**`, `.worktrees/**`, `docs/superpowers/**`, and similar WIP docs).
+- If a file is public-safe only in some cases, default to treating it as private until reviewed.
 
 ### Commit & Publish Workflow
 
@@ -260,76 +189,63 @@ All checklists end with "Rebuild + commit + publish". This is the standard proce
 # 1. Rebuild derived data (validates schemas, hard-fails on errors)
 python scripts/build_derived_data.py
 
-# 2. Stage and commit with public: prefix
+# 2. Stage and commit
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: <description>"
-```
+git commit -m "<description>"
 
-**Then publish — depends on which branch you are on:**
-
-| Current branch | How to publish |
-|----------------|---------------|
-| `main` | `git push origin main` directly |
-| `local/private-main` | Use `sync_public.sh` (recommended) or cherry-pick |
-| `feature/*` | See [Feature Branch → main](#feature-branch--main-multi-commit-features) |
-
-**From `local/private-main`** (most common):
-
-```bash
-# Option A: Report-first publish (recommended)
-scripts/sync_public.sh                    # analyze conflicts
-scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
-
-# Option B: Manual cherry-pick
-git checkout main && git pull --rebase origin main
-git cherry-pick <public-commit-sha>
+# 3. Push and optionally deploy immediately
 git push origin main
-git checkout local/private-main
+gh workflow run daily-update.yml
 ```
 
-**From `main`** (direct work):
+If you are on `feature/*`, finish the feature-branch flow below first. If you are on `local/*`, stop and review whether the work belongs on `main` at all before pushing anything.
 
-```bash
-git push origin main
-```
-
-**After push — trigger deploy** (site does NOT auto-deploy on push):
-
-```bash
-gh workflow run daily-update.yml          # immediate deploy
-# Or wait for next 15-min cron cycle
-```
-
-> **Pre-push hook**: `.githooks/pre-push` blocks pushes from `local/*` branches. If you get blocked, you're on the wrong branch — switch to `main` first or use `sync_public.sh`.
+> **Pre-push hook**: `.githooks/pre-push` blocks pushes from `local/*` branches, tracked private paths, bad bot commit prefixes, and gitlinks.
 
 ### Handling Push Conflicts
 
-Preferred fix (rerun report first):
+Most conflicts come from bot-written generated files on `main` (`data/snapshots/*`, `data/latest.json`, `data/derived/*`, and `docs/MANUAL_EVENTS_AUDIT.md`). Standard recovery flow when conflicts are limited to those files:
 
 ```bash
-scripts/sync_public.sh
-```
-
-Then apply only if `safe_to_proceed: yes`:
-
-```bash
-scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
-```
-
-Manual fallback if you need explicit control:
-
-```bash
-git checkout main
 git pull --rebase origin main
-# If conflicts in data/derived/ (always safe to regenerate):
-git checkout --theirs data/derived/
-git add data/derived/ && git rebase --continue
+
+# If conflicts are only in bot-written generated files, keep main's copy and rebuild
+git checkout --ours data/snapshots/ data/latest.json data/derived/ docs/MANUAL_EVENTS_AUDIT.md
+git add data/snapshots/ data/latest.json data/derived/ docs/MANUAL_EVENTS_AUDIT.md
+git rebase --continue
 python scripts/build_derived_data.py
-git add data/ && git commit -m "public: data: rebuild derived after merge"
+
+# Commit only if the rebuild produced a diff
+git add data/ docs/MANUAL_EVENTS_AUDIT.md
+git commit -m "rebuild derived after rebase"
+
 git push origin main
 ```
 
+If `docs/SCORING_AND_INDEXES.md` conflicts, do **not** blindly take either side. That file contains a bot-managed block inside a human-maintained doc. Resolve it manually or abort and let the next successful bot run regenerate the managed block.
+
 Derived files are always regenerated — the source of truth is manual files + snapshots.
+
+### Legacy `local/private-main` Recovery (optional)
+
+If you still have a stale `local/private-main`, treat it as archival history, not as the normal working branch.
+
+Useful inspection commands:
+
+```bash
+git cherry -v main local/private-main
+git log --oneline --no-merges main..local/private-main
+git stash list
+```
+
+`scripts/sync_public.sh` remains available as a **legacy reconciliation helper** for reviewed commits from `local/private-main`, but it is no longer the recommended daily workflow.
+
+```bash
+scripts/sync_public.sh
+scripts/sync_public.sh --apply --report .private/docs/CONFLICT_REPORTS/<report>.md
+```
+
+Use it only when you are intentionally reconciling old local commits back onto `main`.
 
 ### Bot-managed vs Manual-managed files
 
@@ -340,6 +256,7 @@ Current `daily-update.yml` behavior:
   - `data/latest.json`
   - `data/derived/*`
   - `docs/MANUAL_EVENTS_AUDIT.md`
+  - bot-managed block inside `docs/SCORING_AND_INDEXES.md`
 - Manual source files (not bot-written by current workflow):
   - `data/manual_events.json`
   - `data/paredoes.json`
@@ -363,38 +280,41 @@ git pull --rebase origin main
 #    Use --no-commit to stage without committing, then rebuild
 git merge --squash feature/<name>
 
-# 4. If merge conflicts in data/derived/*: accept main's version, rebuild
-#    These are generated files — main has the latest snapshots
-git checkout --theirs data/derived/
-git add data/derived/
+# 4. If merge conflicts are limited to bot-written generated files:
+#    accept main's version for `data/snapshots/*`, `data/latest.json`,
+#    `data/derived/*`, and `docs/MANUAL_EVENTS_AUDIT.md`, then rebuild
+git checkout --ours data/snapshots/ data/latest.json data/derived/ docs/MANUAL_EVENTS_AUDIT.md
+git add data/snapshots/ data/latest.json data/derived/ docs/MANUAL_EVENTS_AUDIT.md
 
-# 5. If merge conflicts in code files (e.g., index_data_builder.py):
+# 5. If `docs/SCORING_AND_INDEXES.md` conflicts, resolve it manually or
+#    abort and let the next successful bot run regenerate the managed block.
+#
+# 6. If merge conflicts in code files (e.g., index_data_builder.py):
 #    Resolve MANUALLY — understand both sides before choosing
 #    Main may have added features (saldo_card, link fixes) that your branch doesn't have
 #    Never blindly take --ours or --theirs for code files
 
-# 6. Rebuild derived data with main's latest snapshots + your code changes
+# 7. Rebuild derived data with main's latest snapshots + your code changes
 python scripts/build_derived_data.py
 
-# 7. Run full test suite — fix any failures from integration
+# 8. Run full test suite — fix any failures from integration
 pytest tests/ -x -q
 
-# 8. Stage everything and commit
+# 9. Stage everything and commit
 git add -A
-git commit -m "public: feat: <description>"
+git commit -m "<description>"
 
-# 9. Push and deploy
+# 10. Push and deploy
 git push origin main
 gh workflow run daily-update.yml
 
-# 10. Return to working branch and clean up
-git checkout local/private-main
+# 11. Clean up
 git branch -d feature/<name>
 ```
 
 **Key rules for feature branches**:
-- Feature branch commits do NOT need `public:` prefix (they're squashed into one `public:` commit on merge)
-- `sync_public.sh` does NOT work for feature branches — it filters on `public:` prefix
+- Human commits on `feature/*` and `main` use normal descriptive subjects
+- `sync_public.sh` is legacy only; it is not part of the normal feature-branch flow
 - Always resolve `data/derived/*` conflicts by accepting main's version then rebuilding
 - Never take `--ours` for code files without reading both sides — main may have changes your branch is missing
 - Close any open PR before squash-merging locally (avoids duplicate merge)
@@ -405,18 +325,14 @@ git branch -d feature/<name>
 Surprise disqualification, mid-week dynamic, or any unplanned event:
 
 ```bash
-git checkout local/private-main
-git pull origin main --rebase             # 1. Sync first
+git checkout main
+git pull --rebase origin main             # 1. Sync first
 # Edit the relevant data files            # 2. Make your edits
 python scripts/build_derived_data.py      # 3. Rebuild
-git add data/ && git commit -m "public: data: <what happened>"
-
-# 4. Publish
-git checkout main && git pull --rebase origin main
-git cherry-pick <sha>
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "<what happened>"
 git push origin main
-gh workflow run daily-update.yml          # 5. Deploy immediately
-git checkout local/private-main
+gh workflow run daily-update.yml          # 4. Deploy immediately
 ```
 
 ---
@@ -735,8 +651,8 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    ```bash
    python scripts/build_derived_data.py
    git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-   git commit -m "public: data: week N Líder transition (Name)"
-   # Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+   git commit -m "week N Líder transition (Name)"
+   # Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
    ```
 
 ### API auto-detects (no manual action needed)
@@ -945,8 +861,8 @@ Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: Nª Prova do Anjo (Winner) + Monstro (Name)"
-# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+git commit -m "Nª Prova do Anjo (Winner) + Monstro (Name)"
+# Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
 
 ### Timeline fallback system (how Cronologia stays complete)
@@ -1044,8 +960,8 @@ Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: Presente do Anjo W{N} (Name chose video/immunity)"
-# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+git commit -m "Presente do Anjo W{N} (Name chose video/immunity)"
+# Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
 
 ### Presente do Anjo History
@@ -1154,8 +1070,8 @@ Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: Nº Paredão formation"
-# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+git commit -m "Nº Paredão formation"
+# Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
 
 ### Auto-generated Ceremony Sub-Steps in Cronologia
@@ -1488,11 +1404,9 @@ python scripts/build_derived_data.py
 quarto render paredao.qmd    # Check "Enquetes" section renders correctly
 
 # 3. Commit
-git add data/ && git commit -m "public: data: votalhada polls paredão N"
+git add data/ && git commit -m "votalhada polls paredão N"
 
 # 4. Push to main
-git checkout main && git pull --rebase origin main
-git cherry-pick <commit-sha>   # or merge, depending on branch setup
 git push origin main
 
 # 5. Deploy (REQUIRED — push alone does NOT trigger a render)
@@ -1726,8 +1640,8 @@ Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: paredão N result + ganha-ganha"
-# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+git commit -m "paredão N result + ganha-ganha"
+# Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
 
 ### What auto-updates after rebuild + deploy
@@ -1836,8 +1750,8 @@ Expected:
 Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: barrado no baile W{N} (Target)"
-# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+git commit -m "barrado no baile W{N} (Target)"
+# Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
 
 ### 4. Update scheduled event
@@ -1926,8 +1840,8 @@ Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "public: data: week N sincerão"
-# Then publish via sync_public.sh or direct push — see Commit & Publish Workflow
+git commit -m "week N sincerão"
+# Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
 
 ---
@@ -1988,7 +1902,7 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 6. Link provenance in each entry (`fontes`):
    - dynamics article URL
    - `docs/scraped/<arquivo>.md`
-7. Run the baseline verification command in [Baseline weekly template (auto-add every week)](#baseline-weekly-template-auto-add-every-week) before commit.
+7. Run the baseline verification command in [Baseline weekly template (reference; most slots auto-scaffolded)](#baseline-weekly-template-reference-most-slots-auto-scaffolded) before commit.
 
 **Example mapped from**  
 `https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml`
@@ -2186,8 +2100,8 @@ Scrape and keep these pages in `docs/scraped/` for future verification:
 | Situation | Command |
 |-----------|---------|
 | After editing any manual data file | `python scripts/build_derived_data.py` |
-| Analyze publish conflicts (report-first) | `scripts/sync_public.sh` |
-| Apply publish after report approval | `scripts/sync_public.sh --apply --report <path>` |
+| Legacy: analyze archived `local/private-main` conflicts | `scripts/sync_public.sh` |
+| Legacy: apply archived-branch reconciliation after report approval | `scripts/sync_public.sh --apply --report <path>` |
 | Fetch fresh API data manually | `python scripts/fetch_data.py` |
 | Deploy to site immediately | `gh workflow run daily-update.yml` |
 | Verify site rendering locally | `quarto render` (~3 min) |
@@ -2477,6 +2391,6 @@ quarto render → deploy
 | **`docs/TESTING.md`** | Verification matrix, test ownership, and minimum checks by change type |
 | **`docs/PROGRAMA_BBB26.md`** | TV show reference — rules, format, dynamics |
 | **`docs/PUBLIC_PRIVATE_DOCS_POLICY.md`** | Public/private documentation boundaries + push checklist |
-| **`docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md`** | Dual-branch workflow (local private branch + public branch) |
+| **`docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md`** | Main-first workflow, local-only material, and legacy recovery notes |
 | **`data/votalhada/README.md`** | Screenshot-to-data extraction workflow |
 | **`data/CHANGELOG.md`** | Snapshot history, dedup analysis, API observations |

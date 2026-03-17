@@ -202,11 +202,11 @@ Este repositório é público. A documentação é separada em:
 Referências:
 
 - `docs/PUBLIC_PRIVATE_DOCS_POLICY.md` — política oficial de classificação e checklist de push
-- `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md` — fluxo de branch local privada + branch pública
+- `docs/GIT_PUBLIC_PRIVATE_WORKFLOW.md` — fluxo main-first + material privado local via gitignore/denylist
 - `docs/ARCHITECTURE.md` — referência técnica pública (substitui dependência pública de docs privados)
 - `docs/TESTING.md` — mapa de verificação por tipo de mudança
 
-Hook opcional de segurança:
+Hook local recomendado de segurança:
 
 ```bash
 mkdir -p .git/hooks

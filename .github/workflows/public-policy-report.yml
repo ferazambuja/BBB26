@@ -18,14 +18,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Evaluate public/private and commit-prefix policy
+      - name: Evaluate private-path and bot-prefix policy
         env:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
-          forbidden_regex='^(CLAUDE\.md|TODO\.md|docs/TODO_WORKFLOW\.md|docs/TODO_DONE_LOG\.md|docs/CODE_REVIEW_.*\.md|docs/TECH_DEBT\.md|docs/MOBILE_LAYOUT_AUDIT_.*\.md|docs/plans/|\.private/|\.claude/|\.worktrees/)'
+          forbidden_regex='^(CLAUDE\.md|TODO\.md|docs/TODO_WORKFLOW\.md|docs/TODO_DONE_LOG\.md|docs/CODE_REVIEW_.*\.md|docs/TECH_DEBT\.md|docs/MOBILE_LAYOUT_AUDIT_.*\.md|docs/plans/|docs/superpowers/|\.private/|\.claude/|\.worktrees/)'
           zero_sha='0000000000000000000000000000000000000000'
           has_issues=false
 
@@ -47,28 +47,49 @@ jobs:
           if [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "$zero_sha" ]]; then
             range="${BEFORE_SHA}..${AFTER_SHA}"
           else
-            range="${AFTER_SHA}~20..${AFTER_SHA}"
+            range="$AFTER_SHA"
           fi
 
           if ! git rev-list "$range" >/dev/null 2>&1; then
             range="$AFTER_SHA"
           fi
 
-          mapfile -t commits < <(git rev-list --no-merges "$range")
+          mapfile -t commits < <(git rev-list "$range")
+          denylist_rows=()
+          if [[ ${#commits[@]} -gt 0 ]]; then
+            for sha in "${commits[@]}"; do
+              while IFS= read -r path; do
+                [[ -n "$path" ]] || continue
+                denylist_rows+=("$sha|$path")
+              done < <(git ls-tree -r --name-only "$sha" | grep -E "$forbidden_regex" || true)
+            done
+          fi
+
+          if [[ ${#denylist_rows[@]} -gt 0 ]]; then
+            has_issues=true
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Denylist Violations In Pushed Commits" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Commit | Path |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+            for row in "${denylist_rows[@]}"; do
+              IFS='|' read -r sha path <<< "$row"
+              echo "| \`$sha\` | \`$path\` |" >> "$GITHUB_STEP_SUMMARY"
+            done
+          fi
+
           if [[ ${#commits[@]} -eq 0 ]]; then
-            echo "- Prefix check: no new non-merge commits found in push range." >> "$GITHUB_STEP_SUMMARY"
+            echo "- Bot prefix check: no new commits found in push range." >> "$GITHUB_STEP_SUMMARY"
           else
             bad_lines=()
+            bot_commit_count=0
             for sha in "${commits[@]}"; do
               author="$(git show -s --format=%an "$sha")"
               subject="$(git show -s --format=%s "$sha")"
               if [[ "$author" == "github-actions[bot]" ]]; then
+                bot_commit_count=$((bot_commit_count + 1))
                 if [[ "$subject" != data:* ]]; then
                   bad_lines+=("$sha|bot|$subject")
-                fi
-              else
-                if [[ "$subject" != public:* ]]; then
-                  bad_lines+=("$sha|human|$subject")
                 fi
               fi
             done
@@ -76,7 +97,7 @@ jobs:
             if [[ ${#bad_lines[@]} -gt 0 ]]; then
               has_issues=true
               echo "" >> "$GITHUB_STEP_SUMMARY"
-              echo "### Prefix Policy Violations" >> "$GITHUB_STEP_SUMMARY"
+              echo "### Bot Prefix Policy Violations" >> "$GITHUB_STEP_SUMMARY"
               echo "" >> "$GITHUB_STEP_SUMMARY"
               echo "| Commit | Actor | Subject |" >> "$GITHUB_STEP_SUMMARY"
               echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
@@ -84,8 +105,10 @@ jobs:
                 IFS='|' read -r sha actor subject <<< "$row"
                 echo "| \`$sha\` | $actor | $subject |" >> "$GITHUB_STEP_SUMMARY"
               done
+            elif [[ "$bot_commit_count" -gt 0 ]]; then
+              echo "- Bot prefix check: all bot commits match policy (\`data:\`)." >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "- Prefix check: all pushed commits match policy (human=\`public:\`, bot=\`data:\`)." >> "$GITHUB_STEP_SUMMARY"
+              echo "- Bot prefix check: no bot commits found in push range." >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
 
