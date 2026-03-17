@@ -421,7 +421,7 @@ Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for m
 | W6 | Fri Feb 20 + Mon Feb 23 | Paredão Perfeito + Régua de Prioridade | Two rounds (list format in JSON) |
 | W7 | Mon Mar 2 | Linha Direta — maior traidor(a) | Each participant calls one person they consider the biggest traitor |
 | W8 | Mon Mar 9 | Pódio dos Medrosos | 3 medalhas (covarde, frouxo/a, arregão/a). Cowboy mais visado (6×), Leandro zero |
-| W9 | TBD | TBD | |
+| W9 | Mon Mar 16 | Quem faz alguém de bobo + quem está sendo feito de bobo | Placa dupla negativa. No agregado, Alberto Cowboy e Gabriela empataram como mais visados (7×); por placa, Alberto liderou “faz alguém de bobo” (7×) e Gabriela liderou “feito de bobo” (5×). |
 
 ### Week Dynamic History (Friday — varies each week)
 
@@ -1802,6 +1802,11 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 }
 ```
 
+**Aggregation rule for `stats`**:
+- `most_targeted`, `not_targeted`, and `mutual_confrontations` should reflect the **aggregate round**, not just one plaque/sub-step.
+- If the format has multiple negative choices per participant (for example, 2 plaques in the same round), count **all directed signals together** in `most_targeted`.
+- If a format also has meaningful per-plaque leaders, keep those details in `notes` instead of inventing ad-hoc top-level keys.
+
 **Edge types** (must match Sincerão builders):
 
 | Type | Weight | When to use |
@@ -1817,6 +1822,16 @@ Add a Sincerão entry (single `dict` or `list` of dicts for multiple rounds):
 
 **Negative podium formats** (e.g., “Pódio dos Medrosos” W8): When the podium theme is negative (calling someone cowardly, etc.), use `ataque` with `tema` = the specific medal/label given (e.g., `”covarde”`, `”frouxo”`, `”arregão”`). Add `”slot”: 1/2/3` to preserve rank position (scoring is flat −0.8 per edge, but slot preserves data granularity). Do **NOT** use `elogio` for negative podiums — `elogio` is hardcoded positive in the scoring pipeline.
 
+**Dual-label negative formats** (for example, “quem faz alguém de bobo” + “quem está sendo feito de bobo”):
+- Record **one directed edge per plaque**.
+- If both plaques are negative judgments, keep them on `type = "ataque"` and distinguish them with `tema`.
+- Prefer existing types (`ataque`, `elogio`, `nao_ganha`) unless the format truly introduces a new semantic category that cannot be represented safely.
+
+**When article bullets conflict with the spoken justification**:
+- Treat the **spoken justification as canonical** for actor → target extraction.
+- Preserve the discrepancy in `notes` so future editors understand why the JSON does not mirror the bullet list literally.
+- If the article text is clearly truncated and only explains one of two picks, it is acceptable to preserve the unexplained pick from the bullet list and document that fallback in `notes`.
+
 **`stats` structure varies by format:**
 - Positive formats: use `podio_top` (most podium placements), `sem_podio` (not placed), `nao_ganha_top`
 - Negative / ataque formats: use `most_targeted` (most targeted), `not_targeted` (not targeted), `mutual_confrontations`
@@ -1829,6 +1844,11 @@ jq '.sincerao.type_coverage' data/derived/index_data.json
 ```
 
 If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py` before publishing.
+
+**Current index card support**:
+- The current Sincerão highlight card in `index_data.json` only surfaces the contradiction/alignment pair lanes from `elogio`, `nao_ganha`, and `ataque`.
+- The radar can still count other mapped Sincerão types when they have valence metadata.
+- If you add a brand-new edge type and expect it to appear in the current card, update both `SINC_TYPE_META` **and** the highlight filters in `scripts/builders/index_data_builder.py`.
 
 **Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `ataque` 0.4.
 
@@ -1843,6 +1863,16 @@ git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
 git commit -m "week N sincerão"
 # Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
+
+**Required post-rebuild spot checks**:
+```bash
+jq '.events[] | select(.date=="YYYY-MM-DD" and .category=="sincerao") | {date, source, detail}' data/derived/game_timeline.json
+jq '.highlights.cards[] | select(.type=="sincerao") | {title, format, reaction_reference_date}' data/derived/index_data.json
+```
+
+Expected:
+- `game_timeline.json` shows the real Monday event with `source = "weekly_events"` (not `scaffold`)
+- `index_data.json` exposes a `type = "sincerao"` card for the current week when supported edge types are present
 
 ---
 

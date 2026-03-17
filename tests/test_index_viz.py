@@ -614,6 +614,21 @@ def test_render_pair_lane_and_toggle_pair_lane_wrap_pair_chips():
     assert "<pairchip Ana Paula Renault aligned>" in toggle_html
 
 
+def test_render_pair_chip_prefers_tema_over_generic_tipo_label():
+    item = {
+        "ator": "Breno",
+        "alvo": "Gabriela",
+        "tipo_label": "ataque",
+        "tema": "esta sendo feito de bobo",
+        "emoji": "❤️",
+    }
+
+    html = render_pair_chip(item, mode="contra")
+
+    assert "esta sendo feito de bobo" in html
+    assert "ataque mas dá" not in html
+
+
 def test_render_alvo_rows_wraps_rows_and_overflow_details():
     html = render_alvo_rows(
         [

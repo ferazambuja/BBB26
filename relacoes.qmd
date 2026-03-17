@@ -887,7 +887,23 @@ if sinc_contradictions:
     print(f"**{len(sinc_contradictions)} contradição(ões)** Sincerão × Queridômetro:\n")
     for sc in sinc_contradictions[:15]:
         if isinstance(sc, dict):
-            print(f"- {sc.get('text', str(sc))}")
+            actor = sc.get("ator") or "?"
+            target = sc.get("alvo") or "?"
+            tema = sc.get("tema") or sc.get("tipo_label") or sc.get("tipo") or ""
+            emoji = sc.get("emoji") or ""
+            if actor != "?" or target != "?":
+                detail = f"{actor} → {target}"
+                if tema or emoji:
+                    suffix_parts = []
+                    if tema:
+                        suffix_parts.append(tema)
+                    if emoji:
+                        suffix_parts.append(f"mas dá {emoji}")
+                    detail += f" ({'; '.join(suffix_parts)})"
+                print(f"- {detail}")
+            else:
+                fallback = sc.get("text") or tema or "Sinal sem detalhes"
+                print(f"- {fallback}")
         else:
             print(f"- {sc}")
 else:

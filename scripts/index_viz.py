@@ -874,7 +874,7 @@ def render_pair_chip(item: dict, *, mode: str) -> str:
     b_name = item.get("alvo", "")
     a_first = a_name.split()[0] if a_name else "?"
     b_first = b_name.split()[0] if b_name else "?"
-    tipo = item.get("tipo_label", "?")
+    tipo = item.get("tema") or item.get("tipo_label") or item.get("tipo") or "?"
     emoji = item.get("emoji", "?")
     if mode == "contra":
         detail = f"{tipo} mas dá {emoji}"

@@ -793,6 +793,57 @@ class TestProfileSincerao_Contract:
             assert "sinc_contra" not in prof  # moved into sincerao.summary
 
 
+class TestRealWeek9SinceraoData:
+    """Real-data regression coverage for the dual-label week 9 round."""
+
+    def test_week9_dual_label_round_is_recorded(self):
+        import json
+
+        path = Path(__file__).resolve().parents[1] / "data" / "manual_events.json"
+        with open(path, encoding="utf-8") as f:
+            manual = json.load(f)
+
+        week9 = next(w for w in manual.get("weekly_events", []) if w.get("week") == 9)
+        sinc = week9.get("sincerao")
+
+        assert sinc is not None
+        assert sinc["date"] == "2026-03-16"
+        assert "bobo" in sinc["format"].lower()
+
+        edges = sinc.get("edges", [])
+        assert len(edges) == 26
+        assert {edge["type"] for edge in edges} == {"ataque"}
+        assert any(
+            edge.get("actor") == "Ana Paula Renault"
+            and edge.get("target") == "Alberto Cowboy"
+            and "faz" in (edge.get("tema") or "")
+            for edge in edges
+        )
+        assert any(
+            edge.get("actor") == "Alberto Cowboy"
+            and edge.get("target") == "Ana Paula Renault"
+            and "faz" in (edge.get("tema") or "")
+            for edge in edges
+        )
+        assert any(
+            edge.get("actor") == "Alberto Cowboy"
+            and edge.get("target") == "Juliano Floss"
+            and "feito" in (edge.get("tema") or "")
+            for edge in edges
+        )
+        assert any(
+            edge.get("actor") == "Milena"
+            and edge.get("target") == "Gabriela"
+            and "feito" in (edge.get("tema") or "")
+            for edge in edges
+        )
+
+        stats = {item["name"]: item["count"] for item in sinc.get("stats", {}).get("most_targeted", [])}
+        assert stats["Alberto Cowboy"] == 7
+        assert stats["Gabriela"] == 7
+        assert set(sinc.get("stats", {}).get("not_targeted", [])) == {"Breno", "Jordana", "Milena"}
+
+
 class TestStaticCardOrderingContract:
     def test_visados_renders_after_blindados(self):
         from builders.index_data_builder import build_index_data

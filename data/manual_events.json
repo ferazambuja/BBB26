@@ -4566,9 +4566,265 @@
           "https://x.com/Dantinhas/"
         ]
       },
-      "sincerao": null,
+      "sincerao": {
+        "date": "2026-03-16",
+        "format": "quem faz alguem de bobo + quem esta sendo feito de bobo",
+        "participacao": [
+          "Alberto Cowboy",
+          "Ana Paula Renault",
+          "Breno",
+          "Chaiany",
+          "Gabriela",
+          "Jonas Sulzbach",
+          "Jordana",
+          "Juliano Floss",
+          "Leandro",
+          "Marciele",
+          "Milena",
+          "Samira",
+          "Solange Couto"
+        ],
+        "protagonistas": [
+          "Alberto Cowboy",
+          "Gabriela"
+        ],
+        "notes": "8o Sincerao: cada participante apontou 1 pessoa que faz alguem de bobo e 1 pessoa que esta sendo feita de bobo. No agregado das 26 placas, Alberto Cowboy e Gabriela empataram como os mais visados no total (7 cada). No recorte por placa, Alberto Cowboy liderou 'faz alguem de bobo' (7) e Gabriela foi quem mais recebeu a placa 'feito de bobo' (5). Nao receberam placas no agregado: Breno, Jordana e Milena. Confrontos mutuos no agregado: Ana Paula Renault<->Alberto Cowboy, Ana Paula Renault<->Marciele, Alberto Cowboy<->Juliano Floss, Gabriela<->Jonas Sulzbach e Gabriela<->Solange Couto. Modelagem operacional: as duas placas viram edges 'ataque'; quando o bullet do artigo conflita com a justificativa falada, prevalece a justificativa. Casos anotados: na fala de Alberto Cowboy, Ana Paula Renault e quem 'faz alguem de bobo' e Juliano Floss e quem 'esta sendo feito de bobo' (o bullet publicado saiu invertido); na transcricao de Ana Paula Renault aparece 'Humberto', mas o contexto e o bullet apontam para Alberto Cowboy; em Milena, a 2a placa (Gabriela) foi preservada a partir do bullet porque a justificativa publicada ficou quase toda concentrada em Alberto Cowboy.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-participantes-apontam-quem-esta-sendo-feito-e-quem-mais-faz-alguem-de-bobo-no-bbb-26.ghtml"
+        ],
+        "stats": {
+          "most_targeted": [
+            {
+              "name": "Alberto Cowboy",
+              "count": 7
+            },
+            {
+              "name": "Gabriela",
+              "count": 7
+            },
+            {
+              "name": "Ana Paula Renault",
+              "count": 3
+            },
+            {
+              "name": "Juliano Floss",
+              "count": 2
+            },
+            {
+              "name": "Marciele",
+              "count": 2
+            },
+            {
+              "name": "Chaiany",
+              "count": 1
+            },
+            {
+              "name": "Jonas Sulzbach",
+              "count": 1
+            },
+            {
+              "name": "Leandro",
+              "count": 1
+            },
+            {
+              "name": "Samira",
+              "count": 1
+            },
+            {
+              "name": "Solange Couto",
+              "count": 1
+            }
+          ],
+          "not_targeted": [
+            "Breno",
+            "Jordana",
+            "Milena"
+          ],
+          "mutual_confrontations": [
+            [
+              "Ana Paula Renault",
+              "Alberto Cowboy"
+            ],
+            [
+              "Ana Paula Renault",
+              "Marciele"
+            ],
+            [
+              "Alberto Cowboy",
+              "Juliano Floss"
+            ],
+            [
+              "Gabriela",
+              "Jonas Sulzbach"
+            ],
+            [
+              "Gabriela",
+              "Solange Couto"
+            ]
+          ]
+        },
+        "edges": [
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Ana Paula Renault",
+            "target": "Marciele",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Breno",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Breno",
+            "target": "Gabriela",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Leandro",
+            "target": "Gabriela",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Ana Paula Renault",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Alberto Cowboy",
+            "target": "Juliano Floss",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Gabriela",
+            "target": "Jonas Sulzbach",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Gabriela",
+            "target": "Solange Couto",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Juliano Floss",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Juliano Floss",
+            "target": "Gabriela",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Chaiany",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Chaiany",
+            "target": "Marciele",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Marciele",
+            "target": "Ana Paula Renault",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Marciele",
+            "target": "Samira",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Samira",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Samira",
+            "target": "Gabriela",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Solange Couto",
+            "target": "Gabriela",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Solange Couto",
+            "target": "Chaiany",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Jordana",
+            "target": "Ana Paula Renault",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Jordana",
+            "target": "Juliano Floss",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Milena",
+            "target": "Alberto Cowboy",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Milena",
+            "target": "Gabriela",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Gabriela",
+            "type": "ataque",
+            "tema": "faz alguem de bobo"
+          },
+          {
+            "actor": "Jonas Sulzbach",
+            "target": "Leandro",
+            "type": "ataque",
+            "tema": "esta sendo feito de bobo"
+          }
+        ],
+        "edges_notes": "Formato de placa dupla. As duas placas foram registradas como sinal negativo dirigido (ataque). Quando houve conflito entre bullet e fala, prevaleceu a justificativa falada."
+      },
       "ganha_ganha": null,
-      "notes": "Semana 9. Líder Alberto Cowboy (consecutivo, 9ª Prova do Líder). Dinâmica Pedra/Papel/Tesoura (sáb) + Máquina do Poder (dom). Formação do 9º Paredão dividida em dois programas ao vivo.",
+      "notes": "Semana 9. Líder Alberto Cowboy (consecutivo, 9ª Prova do Líder). Dinâmica Pedra/Papel/Tesoura (sab) + Maquina do Poder (dom). Formacao do 9o Paredao dividida em dois programas ao vivo. Sincerao (seg): placa dupla 'quem faz alguem de bobo' e 'quem esta sendo feito de bobo'; Alberto Cowboy liderou a 1a placa (7) e Gabriela a 2a (5).",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml"
