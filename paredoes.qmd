@@ -19,8 +19,6 @@ execute:
 import json
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 from collections import defaultdict, Counter
 from html import escape
@@ -33,7 +31,7 @@ from data_utils import (
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     build_precision_methodology_text,
-    require_clean_manual_events, setup_bbb_dark_theme,
+    require_clean_manual_events, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     genero, get_nominee_badge, resolve_leaders,
     make_poll_timeseries,
     avatar_html, avatar_img,
@@ -41,6 +39,9 @@ from data_utils import (
     ANALYSIS_DESCRIPTIONS,
 )
 from paredao_viz import build_paredao_history, render_featured_story
+prepare_plotly_for_quarto()
+import plotly.express as px
+import plotly.graph_objects as go
 
 require_clean_manual_events()
 setup_bbb_dark_theme()

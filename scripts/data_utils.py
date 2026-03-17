@@ -212,6 +212,45 @@ TEXT_COLOR = '#fff'
 BBB_COLORWAY = ['#00bc8c', '#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6']
 
 
+@lru_cache(maxsize=1)
+def _patch_plotly_connected_notebook_renderer() -> None:
+    """Work around Plotly dropping the CDN `.js` suffix in notebook exports."""
+    import plotly.io._base_renderers as base_renderers
+
+    original_activate = base_renderers.NotebookRenderer.activate
+
+    def patched_activate(self):
+        if not (self.global_init and self.connected):
+            return original_activate(self)
+
+        if not base_renderers.ipython_display:
+            raise ValueError(
+                "The {cls} class requires ipython but it is not installed".format(
+                    cls=self.__class__.__name__
+                )
+            )
+
+        script = """\
+        <script type="text/javascript">
+        {win_config}
+        {mathjax_config}
+        </script>
+        <script type="module">import "{plotly_cdn}"</script>
+        """.format(
+            win_config=base_renderers._window_plotly_config,
+            mathjax_config=base_renderers._mathjax_config,
+            plotly_cdn=base_renderers.plotly_cdn_url(),
+        )
+        base_renderers.ipython_display.display_html(script, raw=True)
+
+    base_renderers.NotebookRenderer.activate = patched_activate
+
+
+def prepare_plotly_for_quarto() -> None:
+    """Patch Plotly before Quarto setup cells import plotly modules."""
+    _patch_plotly_connected_notebook_renderer()
+
+
 def setup_bbb_dark_theme() -> None:
     """Register and activate the bbb_dark Plotly theme.
 
@@ -219,6 +258,8 @@ def setup_bbb_dark_theme() -> None:
     """
     import plotly.io as pio
     import plotly.graph_objects as go
+
+    _patch_plotly_connected_notebook_renderer()
 
     pio.templates['bbb_dark'] = go.layout.Template(
         layout=go.Layout(

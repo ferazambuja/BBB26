@@ -215,7 +215,6 @@ execute:
 
 import json
 import pandas as pd
-import plotly.graph_objects as go
 from pathlib import Path
 from collections import Counter
 from datetime import datetime, timezone
@@ -226,7 +225,7 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_reaction_matrices, deserialize_matrix,
-    require_clean_manual_events, setup_bbb_dark_theme,
+    require_clean_manual_events, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     load_paredoes_transformed, load_paredao_analysis,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted,
@@ -256,6 +255,8 @@ from paredao_viz import (
     render_sincerinho_bar_chart,
     render_lider_prediction,
 )
+prepare_plotly_for_quarto()
+import plotly.graph_objects as go
 
 require_clean_manual_events()
 setup_bbb_dark_theme()

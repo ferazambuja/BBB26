@@ -5,6 +5,7 @@ snapshot utilities, and timeline rendering.
 """
 import json
 import math
+import subprocess
 import pytest
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -1485,3 +1486,66 @@ class TestSetupBbbDarkTheme:
         setup_bbb_dark_theme()
         assert "bbb_dark" in pio.templates
         assert pio.templates.default == "bbb_dark"
+
+    def test_prepare_plotly_for_quarto_keeps_plotly_js_suffix(self):
+        repo_root = Path(__file__).resolve().parent.parent
+        script = """
+from pathlib import Path
+import sys
+sys.path.append(str(Path('scripts').resolve()))
+from data_utils import prepare_plotly_for_quarto
+prepare_plotly_for_quarto()
+
+import plotly.io._base_renderers as base_renderers
+
+captured = []
+
+class DummyDisplay:
+    @staticmethod
+    def display_html(html, raw=True):
+        captured.append((html, raw))
+
+base_renderers.ipython_display = DummyDisplay
+base_renderers.NotebookRenderer(connected=True).activate()
+html, raw = captured[0]
+print(html)
+"""
+        result = subprocess.run(
+            ["python3", "-c", script],
+            check=True,
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+        )
+        html = result.stdout
+        assert 'type="module">import "https://cdn.plot.ly/plotly-' in html
+        assert '.min.js"</script>' in html
+        assert '.min"</script>' not in html
+
+
+class TestPlotlyQuartoSetupOrder:
+    """Ensure rendered Plotly pages patch Plotly before importing it."""
+
+    RENDERED_PLOTLY_PAGES = [
+        "evolucao.qmd",
+        "economia.qmd",
+        "relacoes.qmd",
+        "paredao.qmd",
+        "paredoes.qmd",
+        "cartola.qmd",
+        "economia_v2.qmd",
+    ]
+
+    def test_qmd_setup_calls_prepare_plotly_for_quarto_before_plotly_imports(self):
+        repo_root = Path(__file__).resolve().parent.parent
+
+        for relative_path in self.RENDERED_PLOTLY_PAGES:
+            text = (repo_root / relative_path).read_text(encoding="utf-8")
+            helper_idx = text.find("prepare_plotly_for_quarto()")
+            plotly_idx = text.find("import plotly")
+
+            assert helper_idx != -1, f"{relative_path} should call prepare_plotly_for_quarto()"
+            assert plotly_idx != -1, f"{relative_path} should import plotly"
+            assert helper_idx < plotly_idx, (
+                f"{relative_path} should patch Plotly before importing plotly modules"
+            )

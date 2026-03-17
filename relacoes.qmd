@@ -16,7 +16,6 @@ execute:
 #| include: false
 
 import pandas as pd
-import plotly.graph_objects as go
 from pathlib import Path
 from collections import defaultdict, Counter
 from html import escape
@@ -28,12 +27,14 @@ sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_reaction_matrices, deserialize_matrix,
-    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    require_clean_manual_events, calc_sentiment, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     load_relations_scores, load_daily_metrics, load_participants_index, load_paredoes_raw,
     load_clusters_data, load_index_data,
     REACTION_EMOJI, POSITIVE, GROUP_COLORS,
     make_horizontal_bar,
 )
+prepare_plotly_for_quarto()
+import plotly.graph_objects as go
 
 require_clean_manual_events()
 setup_bbb_dark_theme()

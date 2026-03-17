@@ -18,8 +18,6 @@ execute:
 import json
 import re
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 from collections import defaultdict
 from textwrap import dedent
@@ -27,9 +25,12 @@ import sys
 
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
-    require_clean_manual_events, setup_bbb_dark_theme,
+    require_clean_manual_events, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     CARTOLA_POINTS, POINTS_LABELS, POINTS_EMOJI,
 )
+prepare_plotly_for_quarto()
+import plotly.express as px
+import plotly.graph_objects as go
 
 require_clean_manual_events()
 setup_bbb_dark_theme()

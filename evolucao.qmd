@@ -17,8 +17,6 @@ execute:
 
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 from collections import Counter
 
@@ -26,7 +24,7 @@ import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full,
-    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
+    require_clean_manual_events, calc_sentiment, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     load_daily_metrics, load_relations_scores, load_paredoes_raw, load_roles_daily,
     load_index_data, load_manual_events, load_auto_events, load_game_timeline,
     avatar_img,
@@ -35,6 +33,9 @@ from data_utils import (
     render_cronologia_html,
     make_horizontal_bar, make_line_evolution, make_stacked_bar, make_visibility_buttons,
 )
+prepare_plotly_for_quarto()
+import plotly.express as px
+import plotly.graph_objects as go
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
