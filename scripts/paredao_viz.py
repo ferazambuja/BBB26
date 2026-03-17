@@ -116,6 +116,266 @@ def _rich_text(text: str | None) -> str:
     return rendered.replace("\n", "<br>")
 
 
+def _coerce_poll_insights_blocks(*blocks: object) -> list[dict]:
+    """Flatten mixed block inputs into a simple ordered list of block dicts."""
+    flattened: list[dict] = []
+    for block in blocks:
+        if block is None:
+            continue
+        if isinstance(block, dict):
+            flattened.append(block)
+            continue
+        if isinstance(block, (list, tuple)):
+            flattened.extend(_coerce_poll_insights_blocks(*block))
+    return flattened
+
+
+def _normalize_poll_insights_item(item: str | dict | None) -> str | dict | None:
+    """Normalize one item for the shared poll-insights renderer.
+
+    Simple items are pre-sanitized HTML/string lines.
+
+    Composite items use:
+    - `title_html`: pre-sanitized heading fragment
+    - `bullets_html`: list/tuple of pre-sanitized bullet body fragments
+
+    The renderer owns the surrounding `<ul>/<li>` structure for composite items.
+    For backward tolerance, a non-list/tuple `bullets_html` value is treated as
+    one bullet fragment, but callers should pass individual fragments instead of
+    prebuilt list markup.
+    """
+    if isinstance(item, str):
+        return item if item.strip() else None
+    if not isinstance(item, dict):
+        return None
+
+    title_html = str(item.get("title_html", "") or "").strip()
+    bullets_raw = item.get("bullets_html") or []
+    if not isinstance(bullets_raw, (list, tuple)):
+        bullets_raw = [bullets_raw]
+    bullets_html = [str(bullet) for bullet in bullets_raw if str(bullet or "").strip()]
+
+    if not title_html or not bullets_html:
+        return None
+    return {
+        "title_html": title_html,
+        "bullets_html": bullets_html,
+    }
+
+
+def build_poll_insights_blocks(
+    *blocks: dict | list[dict] | tuple[dict, ...] | None,
+) -> list[dict]:
+    """Normalize titled poll-insight blocks, dropping empty blocks and items.
+
+    Accepts any mix of positional block dicts, block lists/tuples, or `None`,
+    and preserves their encounter order after flattening.
+    """
+    normalized_blocks: list[dict] = []
+    for block in _coerce_poll_insights_blocks(*blocks):
+        title_html = str(block.get("title_html", "") or "").strip()
+        items_raw = block.get("items") or []
+        if not isinstance(items_raw, list):
+            items_raw = [items_raw]
+
+        items: list[str | dict] = []
+        for item in items_raw:
+            normalized_item = _normalize_poll_insights_item(item)
+            if normalized_item is not None:
+                items.append(normalized_item)
+
+        if title_html and items:
+            normalized_blocks.append(
+                {
+                    "title_html": title_html,
+                    "items": items,
+                }
+            )
+    return normalized_blocks
+
+
+def build_formacao_curiosidades_items(
+    curiosidades: list[str | dict] | tuple[str | dict, ...] | str | dict | None,
+) -> list[str | dict]:
+    """Adapt `formacao.curiosidades[]` notes to the shared poll-insights schema.
+
+    Supported author-friendly contracts:
+    - string -> simple item
+    - object with `title`/`titulo` + `bullets`/`items`/`itens`/... -> composite item
+    - object with `text`/`texto` -> simple item fallback
+    """
+    if curiosidades is None:
+        return []
+    if not isinstance(curiosidades, (list, tuple)):
+        curiosidades = [curiosidades]
+
+    items: list[str | dict] = []
+    for note in curiosidades:
+        if isinstance(note, str):
+            rendered = _rich_text(note).strip()
+            if rendered:
+                items.append(rendered)
+            continue
+        if not isinstance(note, dict):
+            continue
+
+        simple_text = note.get("text") or note.get("texto")
+        title = note.get("title") or note.get("titulo") or note.get("heading") or note.get("cabecalho")
+        bullets = (
+            note.get("bullets")
+            or note.get("items")
+            or note.get("itens")
+            or note.get("pontos")
+            or note.get("linhas")
+            or note.get("notes")
+            or note.get("notas")
+        )
+
+        if title and bullets:
+            if not isinstance(bullets, (list, tuple)):
+                bullets = [bullets]
+            bullets_html = [_rich_text(str(bullet)) for bullet in bullets if str(bullet or "").strip()]
+            title_html = _rich_text(str(title))
+            if title_html and bullets_html:
+                items.append(
+                    {
+                        "title_html": title_html,
+                        "bullets_html": bullets_html,
+                    }
+                )
+            continue
+
+        if simple_text:
+            rendered = _rich_text(str(simple_text)).strip()
+            if rendered:
+                items.append(rendered)
+
+    return items
+
+
+def build_nominee_related_relationship_narratives(
+    nominees: list[str] | tuple[str, ...] | set[str] | None,
+    relationship_history: dict | None,
+    limit: int = 2,
+) -> list[str]:
+    """Return most recent relationship-history bullets targeting current nominees."""
+    nominee_names = {str(name).strip() for name in (nominees or []) if str(name).strip()}
+    if not nominee_names or not isinstance(relationship_history, dict) or limit <= 0:
+        return []
+
+    related_entries: list[tuple[str, str, str]] = []
+    for edge, meta in relationship_history.items():
+        if not isinstance(meta, dict):
+            continue
+        narrative = str(meta.get("narrative", "") or "").strip()
+        if not narrative:
+            continue
+        edge_text = str(edge or "").strip()
+        if "→" not in edge_text:
+            continue
+        _source, target = [part.strip() for part in edge_text.split("→", 1)]
+        if target not in nominee_names:
+            continue
+        related_entries.append((str(meta.get("change_date") or ""), edge_text, narrative))
+
+    related_entries.sort(key=lambda item: item[0], reverse=True)
+    return [
+        f"<strong>{safe_html(edge)}</strong>: {safe_html(narrative)}"
+        for _, edge, narrative in related_entries[:limit]
+    ]
+
+
+def ensure_live_poll_progress_items(
+    items: list[str | dict | None] | tuple[str | dict | None, ...] | None,
+    *,
+    has_poll: bool,
+) -> list[str | dict]:
+    """Keep the live poll-progress block non-empty before/after the first poll."""
+    normalized_items: list[str | dict] = []
+    for item in items or []:
+        normalized_item = _normalize_poll_insights_item(item)
+        if normalized_item is not None:
+            normalized_items.append(normalized_item)
+
+    if normalized_items:
+        return normalized_items
+
+    if not has_poll:
+        return [
+            _rich_text(
+                "**Votalhada ainda não publicou** a primeira coleta deste paredão. Assim que sair, este bloco mostra ritmo, volume e convergência entre enquetes e modelo."
+            )
+        ]
+
+    return [
+        _rich_text(
+            "**Coleta inicial em andamento**: este bloco ganha leitura de ritmo, volume e convergência conforme as enquetes acumularem sinais suficientes."
+        )
+    ]
+
+
+def ensure_live_context_block_items(
+    items: list[str | dict | None] | tuple[str | dict | None, ...] | None,
+) -> list[str | dict]:
+    """Keep the live context block non-empty even in partial-data states."""
+    normalized_items: list[str | dict] = []
+    for item in items or []:
+        normalized_item = _normalize_poll_insights_item(item)
+        if normalized_item is not None:
+            normalized_items.append(normalized_item)
+
+    if normalized_items:
+        return normalized_items
+
+    return [
+        _rich_text(
+            "**Contexto em formação**: histórico recente, alinhamentos e notas manuais aparecem aqui assim que houver sinais suficientes deste paredão."
+        )
+    ]
+
+
+def render_poll_insights_blocks(
+    *blocks: dict | list[dict] | tuple[dict, ...] | None,
+) -> str:
+    """Render one or more pre-sanitized poll-insight blocks as HTML.
+
+    Composite item `bullets_html` values are bullet body fragments, not
+    prebuilt `<ul>` markup; this renderer wraps them in the nested list tags.
+    """
+    normalized_blocks = build_poll_insights_blocks(*blocks)
+    if not normalized_blocks:
+        return ""
+
+    block_html: list[str] = []
+    for block in normalized_blocks:
+        items_html: list[str] = []
+        for item in block.get("items", []):
+            if isinstance(item, str):
+                items_html.append(f"<li>{item}</li>")
+                continue
+
+            bullets_html = "".join(f"<li>{bullet}</li>" for bullet in item.get("bullets_html", []))
+            items_html.append(
+                '<li class="poll-insights-item poll-insights-item--composite">'
+                f'<div class="poll-insights-item-title">{item.get("title_html", "")}</div>'
+                f'<ul class="poll-insights-sublist">{bullets_html}</ul>'
+                "</li>"
+            )
+
+        if not items_html:
+            continue
+        block_html.append(
+            '<section class="poll-insights">'
+            f'<h4 class="poll-insights-title">{block.get("title_html", "")}</h4>'
+            f'<ol class="poll-insights-list">{"".join(items_html)}</ol>'
+            "</section>"
+        )
+
+    if not block_html:
+        return ""
+    return f'<div class="poll-insights-blocks">{"".join(block_html)}</div>'
+
+
 def _is_finalized_paredao(entry: dict | None) -> bool:
     if not entry:
         return False
