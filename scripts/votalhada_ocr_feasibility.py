@@ -214,13 +214,20 @@ def select_best_consolidado_image(
             continue
 
         ts = _extract_ts(path)
+        # Selection priority: newest timestamp first, then highest score as tiebreaker.
+        # This ensures the latest capture is always selected even when Votalhada
+        # changes card layout (e.g. splitting consolidado + time series into separate images),
+        # which can lower the OCR score of individual cards vs older combined cards.
         should_replace = False
-        if score > best_score:
+        if ts is not None and (best_ts is None or ts > best_ts):
             should_replace = True
-        elif score == best_score:
-            if ts is not None and (best_ts is None or ts > best_ts):
+        elif ts is not None and best_ts is not None and ts == best_ts:
+            if score > best_score:
                 should_replace = True
-            elif ts is None and best_ts is None and (best_path is None or path.name > best_path.name):
+        elif ts is None and best_ts is None:
+            if score > best_score:
+                should_replace = True
+            elif score == best_score and (best_path is None or path.name > best_path.name):
                 should_replace = True
 
         if should_replace:
@@ -232,6 +239,38 @@ def select_best_consolidado_image(
         raise ValueError("No consolidated image detected in batch.")
 
     return best_path, diagnostics
+
+
+def find_companion_series_image(
+    selected_consolidado: Path,
+    diagnostics: dict[str, dict[str, int | str]],
+) -> Path | None:
+    """Find a separate time-series image from the same capture set.
+
+    When Votalhada splits the consolidado and "Variação das Médias" into
+    separate images, the series data lives on a different card. This function
+    finds that card by matching the capture timestamp suffix and looking for
+    images classified as consolidado_data with "VARIACAO" in their OCR text.
+    """
+    # Extract timestamp suffix from the selected consolidado
+    m = re.search(r"_(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(?:-\d{2})?)\.png$", selected_consolidado.name)
+    if not m:
+        return None
+    ts_suffix = m.group(1)
+    parent = selected_consolidado.parent
+
+    # Find sibling images with the same timestamp but different slot number
+    candidates: list[Path] = []
+    for path in sorted(parent.glob(f"*_{ts_suffix}.png")):
+        if path == selected_consolidado:
+            continue
+        diag = diagnostics.get(path.name, {})
+        label = diag.get("label", "")
+        # Accept consolidado_data (contains "VARIACAO DAS MEDIAS") as companion
+        if label == "consolidado_data":
+            candidates.append(path)
+
+    return candidates[0] if candidates else None
 
 
 def _extract_row_values(lines: list[str], label: str) -> tuple[list[float], int]:
@@ -307,6 +346,7 @@ def _extract_consolidado_row(text: str) -> tuple[list[float], int]:
     # or "ANALISE VOTALHADA <p1> <p2> <p3>"
     # These rows may not include a vote count.
     for header in (
+        r"ESTIMATIVA\s+VOTALHADA",
         r"MEDIA\s+FINAL\s+PONDERADA",
         r"ANALISE\s+VOTALHADA",
     ):
@@ -847,9 +887,11 @@ def _parse_series_row_from_tokens(
     return row, current_date, time_token
 
 
-def extract_series_rows_from_image(image_path: Path, participants: list[str]) -> list[dict]:
+def extract_series_rows_from_image(
+    image_path: Path, participants: list[str], top_ratio: float = 0.40,
+) -> list[dict]:
     """Extract series rows from the bottom table using crop + TSV parsing."""
-    temp_crop = _make_bottom_table_crop(image_path)
+    temp_crop = _make_bottom_table_crop(image_path, top_ratio=top_ratio)
     try:
         words = _run_tesseract_tsv(temp_crop, psm=6)
         text_fallback_psm6 = _run_tesseract_text(temp_crop, psm=6)
@@ -1614,6 +1656,37 @@ def main() -> int:
         alt_text=alt_text,
         source_image=selected,
     )
+
+    # If series is empty, try a companion time-series image (split layout)
+    series_image = None
+    if not parsed.get("serie_temporal"):
+        companion = find_companion_series_image(selected, diagnostics)
+        if companion is not None:
+            # Standalone time series card: data starts near the top,
+            # so use a smaller crop ratio than the default 0.40
+            companion_series = extract_series_rows_from_image(
+                companion, participants, top_ratio=0.15,
+            )
+            if companion_series:
+                cleaned = _clean_series_rows(companion_series, participants)
+                if cleaned:
+                    cleaned, corr, warn = _apply_series_time_sanity(cleaned, participants)
+                    parsed["serie_temporal"] = cleaned
+                    parsed["time_corrections"] = corr
+                    parsed["time_warnings"] = warn
+                    series_image = str(companion)
+
+                    # If consolidado was computed from weighted platforms (not from
+                    # an explicit row), override with the last series entry — that's
+                    # the Estimativa Votalhada value, which is more accurate.
+                    last_series = cleaned[-1]
+                    parsed["consolidado"] = {
+                        participants[0]: last_series[participants[0]],
+                        participants[1]: last_series[participants[1]],
+                        participants[2]: last_series[participants[2]],
+                        "total_votos": last_series["votos"],
+                    }
+
     errors = validate_snapshot(parsed, participants)
 
     result = {
@@ -1622,6 +1695,8 @@ def main() -> int:
         "parsed": parsed,
         "validation_errors": errors,
     }
+    if series_image:
+        result["series_image"] = series_image
     if args.debug:
         result["diagnostics"] = diagnostics
 
