@@ -1665,6 +1665,25 @@ gh workflow run daily-update.yml
 
 **Always verify the cronologia after rebuild** — it's the single source of truth for the game timeline on index.qmd and evolucao.qmd. Missing events here means they won't appear on the site.
 
+**Cronologia event ordering**: Events within the same day display in chronological order controlled by `CATEGORY_ORDER` in `scripts/builders/timeline.py`. The expected intra-day sequence is:
+
+```
+Morning:   entrada → saida → lider → anjo → monstro → imune
+Afternoon: big_fone → presente_anjo → ta_com_nada
+Ceremony:  paredao_imunidade → paredao_indicacao → paredao_votacao →
+           dinamica → paredao_contragolpe → paredao_bate_volta → paredao_formacao
+Live show: sincerao → barrado_baile
+Elim night: paredao_resultado → ganha_ganha → veto_ganha_ganha → ganha_ganha_escolha
+```
+
+If events appear in the wrong order on the site, check `CATEGORY_ORDER` values — lower number = earlier in the day.
+
+**Cronologia detail text**: The timeline builder auto-generates details from structured data:
+- `paredao_resultado`: from `paredoes.json` resultado (e.g., "Breno eliminado (58.96%)")
+- `ganha_ganha`: built from `veto`/`decisao` fields (e.g., "Marciele vetou Samira; Jordana escolheu R$ 20 mil")
+- `power_events`: uses the `detail` field directly
+- Scaffolds (generic placeholders) are suppressed when real events exist for the same (date, category) or (week, category) for singletons
+
 ### What auto-updates after rebuild + deploy
 
 Once `build_derived_data.py` runs and the site deploys, the following update **automatically** — no manual action needed:
