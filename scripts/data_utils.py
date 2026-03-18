@@ -1179,9 +1179,11 @@ def group_cronologia_events(timeline_events: list[dict]) -> list[dict]:
     for week_num, dates_dict in sorted(weeks.items(), key=lambda item: item[0], reverse=True):
         dates: list[dict] = []
         for date_str, date_events in sorted(dates_dict.items(), key=lambda item: item[0], reverse=True):
+            # Within a day: chronological order (earliest first).
+            # Days/weeks are newest-first, but events within a day read top-to-bottom.
             dates.append({
                 "date": date_str,
-                "events": list(reversed(date_events)),
+                "events": date_events,
             })
         grouped.append({"week": week_num, "dates": dates})
     return grouped

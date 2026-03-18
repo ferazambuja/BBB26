@@ -776,10 +776,22 @@ def _merge_and_dedup_timeline(
 
     # --- 8. Scaffold events (lowest priority: fill gaps only) ---
     if scaffold_events:
-        covered = {(e["date"], e["category"]) for e in events}
+        covered_date_cat = {(e["date"], e["category"]) for e in events}
+        # For singleton categories, also suppress if a real event exists
+        # anywhere in the same week (handles date mismatches like P6
+        # where scaffold lands on Tue but real elimination was Wed).
+        covered_week_cat: set[tuple[int, str]] = set()
+        for e in events:
+            if e.get("source") not in ("scaffold",):
+                w = e.get("week", 0)
+                covered_week_cat.add((w, e["category"]))
         for se in scaffold_events:
-            if (se["date"], se["category"]) not in covered:
-                events.append(se)
+            if (se["date"], se["category"]) in covered_date_cat:
+                continue
+            cat = se.get("category", "")
+            if cat in _SINGLETON_CATEGORIES and (se.get("week", 0), cat) in covered_week_cat:
+                continue
+            events.append(se)
 
     # --- Suppress power_events that duplicate paredão sub-steps ---
     # Paredão sub-steps (from paredoes.json) are authoritative.
