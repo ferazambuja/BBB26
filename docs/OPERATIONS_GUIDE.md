@@ -1665,18 +1665,25 @@ gh workflow run daily-update.yml
 
 **Always verify the cronologia after rebuild** — it's the single source of truth for the game timeline on index.qmd and evolucao.qmd. Missing events here means they won't appear on the site.
 
-**Cronologia event ordering**: Events within the same day display in chronological order controlled by `CATEGORY_ORDER` in `scripts/builders/timeline.py`. The expected intra-day sequence is:
+**Cronologia display order**: Latest event on top within each day (consistent with newest-first for weeks and dates). Controlled by `CATEGORY_ORDER` in `scripts/builders/timeline.py` (lower number = earlier in the day = displayed at bottom).
+
+Expected intra-day sequence (bottom → top on display):
 
 ```
-Morning:   entrada → saida → lider → anjo → monstro → imune
-Afternoon: big_fone → presente_anjo → ta_com_nada
-Ceremony:  paredao_imunidade → paredao_indicacao → paredao_votacao →
-           dinamica → paredao_contragolpe → paredao_bate_volta → paredao_formacao
-Live show: sincerao → barrado_baile
-Elim night: paredao_resultado → ganha_ganha → veto_ganha_ganha → ganha_ganha_escolha
+                                                    ↑ displayed on top (latest)
+Elim night: ganha_ganha_escolha → veto_ganha_ganha → ganha_ganha → paredao_resultado
+Live show:  barrado_baile → sincerao
+Ceremony:   paredao_formacao → paredao_bate_volta → paredao_contragolpe →
+            dinamica → paredao_votacao → paredao_indicacao → paredao_imunidade
+Afternoon:  presente_anjo → big_fone
+Morning:    anjo → monstro → lider
+Meta:       saida → entrada
+                                                    ↓ displayed at bottom (earliest)
 ```
 
-If events appear in the wrong order on the site, check `CATEGORY_ORDER` values — lower number = earlier in the day.
+**Note**: Presente do Anjo happens early in the day (Almoço do Anjo, afternoon) — it just gets shown on the live TV show later. The `CATEGORY_ORDER` reflects when the event actually occurs, not when it airs.
+
+If events appear in the wrong order, check `CATEGORY_ORDER` values.
 
 **Cronologia detail text**: The timeline builder auto-generates details from structured data:
 - `paredao_resultado`: from `paredoes.json` resultado (e.g., "Breno eliminado (58.96%)")
