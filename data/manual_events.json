@@ -1,6 +1,6 @@
 {
   "_description": "Manual game events NOT available from the API. Roles (Líder, Anjo, Monstro, Imune, VIP) are auto-detected from API snapshots.",
-  "_last_updated": "2026-03-15",
+  "_last_updated": "2026-03-17",
   "_sources_note": "Each entry should include a 'fontes' array with URLs to GShow/news articles confirming the event.",
   "participants": {
     "Henri Castelli": {
@@ -4552,7 +4552,11 @@
         "vencedor": "Breno",
         "prova_date": "2026-03-14",
         "almoco_date": "2026-03-15",
-        "almoco_convidados": ["Samira", "Juliano Floss", "Milena"],
+        "almoco_convidados": [
+          "Samira",
+          "Juliano Floss",
+          "Milena"
+        ],
         "escolha": "video_familia",
         "usou_extra_poder": null,
         "imunizado": "Samira",
@@ -4823,7 +4827,28 @@
         ],
         "edges_notes": "Formato de placa dupla. As duas placas foram registradas como sinal negativo dirigido (ataque). Quando houve conflito entre bullet e fala, prevaleceu a justificativa falada."
       },
-      "ganha_ganha": null,
+      "ganha_ganha": {
+        "date": "2026-03-17",
+        "sorteados": [
+          "Marciele",
+          "Jordana",
+          "Samira"
+        ],
+        "cartas": "Jordana e Samira abriram R$ 10 mil + informação privilegiada. Marciele ficou com o poder de veto.",
+        "veto": {
+          "por": "Marciele",
+          "quem": "Samira"
+        },
+        "decisao": {
+          "quem": "Jordana",
+          "escolha": "R$ 20 mil",
+          "abriu_mao": "informação privilegiada"
+        },
+        "informacao": "Haverá um Contragolpe do mais votado pela casa.",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-abre-mao-de-informacao-privilegiada-pela-segunda-vez-e-ganha-r-20-mil-no-bbb-26.ghtml"
+        ]
+      },
       "notes": "Semana 9. Líder Alberto Cowboy (consecutivo, 9ª Prova do Líder). Dinâmica Pedra/Papel/Tesoura (sab) + Maquina do Poder (dom). Formacao do 9o Paredao dividida em dois programas ao vivo. Sincerao (seg): placa dupla 'quem faz alguem de bobo' e 'quem esta sendo feito de bobo'; Alberto Cowboy liderou a 1a placa (7) e Gabriela a 2a (5).",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-dinamica-inspirada-em-pedra-papel-e-tesoura-vai-emparedar-tres-participantes-entenda.ghtml",
@@ -6830,7 +6855,12 @@
       "week": 9,
       "type": "indicacao",
       "actor": "Jonas Sulzbach + Jordana + Marciele + Gabriela",
-      "actors": ["Jonas Sulzbach", "Jordana", "Marciele", "Gabriela"],
+      "actors": [
+        "Jonas Sulzbach",
+        "Jordana",
+        "Marciele",
+        "Gabriela"
+      ],
       "target": "Leandro",
       "source": "Dinâmica Pedra, Papel e Tesoura (Grupo Pedra)",
       "detail": "Grupo Pedra (cap. Jonas) emparedou Leandro.",
@@ -6846,7 +6876,12 @@
       "week": 9,
       "type": "indicacao",
       "actor": "Ana Paula Renault + Juliano Floss + Milena + Samira",
-      "actors": ["Ana Paula Renault", "Juliano Floss", "Milena", "Samira"],
+      "actors": [
+        "Ana Paula Renault",
+        "Juliano Floss",
+        "Milena",
+        "Samira"
+      ],
       "target": "Jonas Sulzbach",
       "source": "Dinâmica Pedra, Papel e Tesoura (Grupo Papel)",
       "detail": "Grupo Papel (cap. Ana Paula) emparedou Jonas.",
@@ -6862,7 +6897,12 @@
       "week": 9,
       "type": "indicacao",
       "actor": "Breno + Solange Couto + Leandro + Chaiany",
-      "actors": ["Breno", "Solange Couto", "Leandro", "Chaiany"],
+      "actors": [
+        "Breno",
+        "Solange Couto",
+        "Leandro",
+        "Chaiany"
+      ],
       "target": "Ana Paula Renault",
       "source": "Dinâmica Pedra, Papel e Tesoura (Grupo Tesoura)",
       "detail": "Grupo Tesoura (cap. Breno) emparedou Ana Paula.",
@@ -6871,6 +6911,38 @@
       "visibility": "public",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/ana-paula-renault-jonas-sulzbach-e-leandro-estao-no-paredao-apos-dinamica-em-grupo-no-bbb-26.ghtml"
+      ]
+    },
+    {
+      "date": "2026-03-17",
+      "week": 9,
+      "type": "veto_ganha_ganha",
+      "actor": "Samira",
+      "target": "Marciele",
+      "source": "Ganha-Ganha",
+      "detail": "Foi vetada por Marciele na dinâmica do Ganha-Ganha.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-abre-mao-de-informacao-privilegiada-pela-segunda-vez-e-ganha-r-20-mil-no-bbb-26.ghtml"
+      ]
+    },
+    {
+      "date": "2026-03-17",
+      "week": 9,
+      "type": "ganha_ganha_escolha",
+      "actor": "Jordana",
+      "target": "Marciele",
+      "source": "Ganha-Ganha",
+      "detail": "Ficou com a decisão na dinâmica após o veto de Marciele em Samira. Escolheu R$ 20 mil (segunda vez consecutiva).",
+      "impacto": "positivo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/jordana-abre-mao-de-informacao-privilegiada-pela-segunda-vez-e-ganha-r-20-mil-no-bbb-26.ghtml"
       ]
     }
   ],
