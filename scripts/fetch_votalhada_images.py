@@ -74,15 +74,86 @@ def get_post_url_for_paredao(numero: int) -> tuple[str, str]:
 
 def extract_image_urls(html: str) -> list[str]:
     """Extract img src URLs from the main post body (Blogger post content)."""
-    # Restrict to main post: content between id="Blog1" and typical end of post
-    blog1 = re.search(r'<div[^>]*id="Blog1"[^>]*>(.*?)</div>\s*</div>\s*</div>', html, re.DOTALL | re.IGNORECASE)
+    # Restrict to main post: content between id="Blog1" and typical end of post.
+    # (The exact DOM can drift; keep this best-effort and fall back to the whole HTML.)
+    blog1 = re.search(
+        r'<div[^>]*id="Blog1"[^>]*>(.*?)</div>\s*</div>\s*</div>',
+        html,
+        re.DOTALL | re.IGNORECASE,
+    )
     block = blog1.group(1) if blog1 else html
 
-    # All <img ... src="..."> in this block (Blogger in-post images usually use blogger.googleusercontent.com)
-    urls = re.findall(r'<img[^>]+src="(https?://[^"]+)"', block, re.IGNORECASE)
-    # Filter to in-post images only (Blogger CDN), keep order
-    in_post = [u for u in urls if "blogger.googleusercontent.com" in u or "blogspot.com" in u]
-    return in_post if in_post else urls
+    def _attr_value(tag: str, attr: str) -> str | None:
+        m = re.search(rf'\b{re.escape(attr)}\s*=\s*[\'"]([^\'"]+)[\'"]', tag, re.IGNORECASE)
+        return m.group(1) if m else None
+
+    def _first_url_from_srcset(srcset: str) -> str | None:
+        # srcset example: "url1 1x, url2 2x" -> take the first url1
+        parts = [p.strip() for p in srcset.split(",") if p.strip()]
+        if not parts:
+            return None
+        first = parts[0].split()
+        return first[0] if first else None
+
+    urls: list[str] = []
+    # Iterate img tags to preserve on-page order, and pick the best lazyload candidate.
+    for tag in re.findall(r"<img\b[^>]*>", block, re.IGNORECASE):
+        # Prefer actual lazyload payloads over the current `src` (which may be a placeholder).
+        chosen: str | None = None
+        chosen_from: str | None = None
+        for attr in ("data-original", "data-src", "src"):
+            v = _attr_value(tag, attr)
+            if v:
+                chosen = v
+                chosen_from = attr
+                break
+
+        # If we picked `src` but it's not Blogger CDN, the real poll images may be in srcset.
+        if chosen is None or (
+            chosen_from == "src"
+            and not ("blogger.googleusercontent.com" in chosen or "blogspot.com" in chosen)
+        ):
+            for attr in ("srcset", "data-srcset"):
+                v = _attr_value(tag, attr)
+                if v:
+                    chosen = _first_url_from_srcset(v)
+                    if chosen:
+                        break
+
+        if chosen and chosen.startswith("http"):
+            urls.append(chosen)
+
+    # Keep only the poll-card images (timestamped PNGs), plus the "000.jpg" slot.
+    # The page can include other Blogger images in the post header; those would
+    # shift the expected consolidados_* slot ordering.
+    # Observed patterns:
+    # - .../2026-03-17_194618.png (HHMMSS)
+    # - .../2026-03-17_19-46-18.png (HH-MM-SS) occasionally
+    card_name_re = re.compile(
+        r"^\d{4}-\d{2}-\d{2}_(?:\d{6}|\d{2}-\d{2}-\d{2})\.png$",
+        re.IGNORECASE,
+    )
+
+    def _is_card_url(u: str) -> bool:
+        name = u.split("/")[-1].split("?")[0]
+        if name == "000.jpg":
+            return True
+        return bool(card_name_re.match(name))
+
+    chosen_urls = [u for u in urls if ("blogger.googleusercontent.com" in u or "blogspot.com" in u) and _is_card_url(u)]
+
+    # De-dupe while preserving order (exact URL duplicates only).
+    def _dedupe_preserve(items: list[str]) -> list[str]:
+        seen: set[str] = set()
+        out: list[str] = []
+        for x in items:
+            if x in seen:
+                continue
+            seen.add(x)
+            out.append(x)
+        return out
+
+    return _dedupe_preserve(chosen_urls)
 
 
 def download_image(url: str, path: Path, session: requests.Session) -> bool:

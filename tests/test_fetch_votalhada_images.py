@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fetch_votalhada_images import (
     REPO_ROOT,
+    extract_image_urls,
     _display_path,
     _find_duplicate_capture,
     _format_platform_audit_lines,
@@ -74,3 +75,45 @@ def test_format_platform_audit_lines_includes_anomaly_details():
     assert "youtube" in joined
     assert "sum=100.37" in joined
     assert "max_delta=0.37" in joined
+
+
+def test_extract_image_urls_prefers_data_original_over_src():
+    html = """
+    <div>
+      <img
+        src="https://blogger.googleusercontent.com/img/b/x/placeholder/000.jpg"
+        data-original="https://blogger.googleusercontent.com/img/b/x/real/2026-03-17_194618.png"
+      />
+    </div>
+    """
+    urls = extract_image_urls(html)
+    assert urls == ["https://blogger.googleusercontent.com/img/b/x/real/2026-03-17_194618.png"]
+
+
+def test_extract_image_urls_falls_back_to_data_src():
+    html = """
+    <div>
+      <img
+        src="https://blogger.googleusercontent.com/img/b/x/placeholder/000.jpg"
+        data-src="https://blogger.googleusercontent.com/img/b/x/real/2026-03-17_194643.png"
+      />
+    </div>
+    """
+    urls = extract_image_urls(html)
+    assert urls == ["https://blogger.googleusercontent.com/img/b/x/real/2026-03-17_194643.png"]
+
+
+def test_extract_image_urls_uses_srcset_first_candidate():
+    html = """
+    <div>
+      <img
+        src="https://example.com/ignore.png"
+        srcset="
+          https://blogger.googleusercontent.com/img/b/x/real/2026-03-17_194999.png 1x,
+          https://blogger.googleusercontent.com/img/b/x/real/2026-03-17_195000.png 2x
+        "
+      />
+    </div>
+    """
+    urls = extract_image_urls(html)
+    assert urls == ["https://blogger.googleusercontent.com/img/b/x/real/2026-03-17_194999.png"]
