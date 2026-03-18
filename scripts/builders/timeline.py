@@ -386,10 +386,22 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
         for gg in gg_list:
             date = gg.get("date", we.get("start_date", ""))
             w = get_week_number(date) if date else week
+            # Build detail from structured fields if 'resultado' not set
+            gg_detail = gg.get("resultado", "")
+            if not gg_detail:
+                veto = gg.get("veto", {})
+                decisao = gg.get("decisao", {})
+                parts = []
+                if veto.get("por") and veto.get("quem"):
+                    parts.append(f"{veto['por']} vetou {veto['quem']}")
+                if decisao.get("quem") and decisao.get("escolha"):
+                    parts.append(f"{decisao['quem']} escolheu {decisao['escolha']}")
+                gg_detail = "; ".join(parts)
+            gg_participants = gg.get("participants", gg.get("sorteados", []))
             events.append({
                 "date": date, "week": w, "category": "ganha_ganha",
                 "emoji": "🎰", "title": "Ganha-Ganha",
-                "detail": gg.get("resultado", ""), "participants": gg.get("participants", []),
+                "detail": gg_detail, "participants": gg_participants,
                 "source": "weekly_events",
             })
         # Presente do Anjo (escolha: vídeo da família vs 2ª imunidade)
