@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-18T02:26:58.035313+00:00",
+    "generated_at": "2026-03-18T02:41:00.369930+00:00",
     "source": "snapshots+paredoes+manual_events"
   },
   "by_paredao": {
@@ -9041,7 +9041,7 @@
     },
     "9": {
       "numero": 9,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data_formacao": "2026-03-15",
       "indicados": [
         "Ana Paula Renault",
@@ -9049,37 +9049,37 @@
         "Leandro"
       ],
       "quick_insights": {
-        "analysis_date": "2026-03-17",
+        "analysis_date": "2026-03-15",
         "indicados_stats": [
           {
             "nome": "Ana Paula Renault",
-            "sentimento": 1.0,
-            "rank": 10,
-            "delta_3d": "≈ -0.5",
+            "sentimento": 0.5,
+            "rank": 8,
+            "delta_3d": "≈ -0.2",
             "dias_top5": 0,
-            "dias_bottom5": 39,
-            "dias_negativos": "27/64 (42%)",
+            "dias_bottom5": 37,
+            "dias_negativos": "27/62 (44%)",
             "negs_recebidas": 6
           },
           {
             "nome": "Breno",
-            "sentimento": 4.0,
-            "rank": 5,
-            "delta_3d": "▲ +0.8",
-            "dias_top5": 37,
+            "sentimento": 0.5,
+            "rank": 9,
+            "delta_3d": "▼ -2.3",
+            "dias_top5": 35,
             "dias_bottom5": 2,
-            "dias_negativos": "0/64 (0%)",
-            "negs_recebidas": 5
+            "dias_negativos": "0/62 (0%)",
+            "negs_recebidas": 6
           },
           {
             "nome": "Leandro",
-            "sentimento": 2.5,
-            "rank": 7,
-            "delta_3d": "▲ +0.8",
+            "sentimento": 0.0,
+            "rank": 11,
+            "delta_3d": "≈ -0.7",
             "dias_top5": 5,
-            "dias_bottom5": 19,
-            "dias_negativos": "17/59 (29%)",
-            "negs_recebidas": 6
+            "dias_bottom5": 18,
+            "dias_negativos": "17/57 (30%)",
+            "negs_recebidas": 8
           }
         ],
         "historical_series": [
@@ -9987,170 +9987,140 @@
             "date": "2026-03-15",
             "name": "Leandro",
             "sentiment": 0.0
-          },
-          {
-            "date": "2026-03-16",
-            "name": "Ana Paula Renault",
-            "sentiment": 1.0
-          },
-          {
-            "date": "2026-03-16",
-            "name": "Breno",
-            "sentiment": 3.5
-          },
-          {
-            "date": "2026-03-16",
-            "name": "Leandro",
-            "sentiment": 1.0
-          },
-          {
-            "date": "2026-03-17",
-            "name": "Ana Paula Renault",
-            "sentiment": 1.0
-          },
-          {
-            "date": "2026-03-17",
-            "name": "Breno",
-            "sentiment": 4.0
-          },
-          {
-            "date": "2026-03-17",
-            "name": "Leandro",
-            "sentiment": 2.5
           }
         ],
         "negs_recebidas": {
           "Ana Paula Renault": 6,
-          "Breno": 5,
-          "Leandro": 6
+          "Breno": 6,
+          "Leandro": 8
         }
       },
       "relationship_history": {
         "Juliano Floss→Marciele": {
           "pattern": "ex_amigos",
           "days_as_friends": 12,
-          "days_as_enemies": 52,
+          "days_as_enemies": 50,
           "days_mutual_friends": 11,
           "change_date": "2026-01-31",
           "narrative": "Foram amigos por 12 dias, romperam em 2026-01-31.",
-          "total_days": 64
+          "total_days": 62
         },
         "Gabriela→Solange Couto": {
           "pattern": "ex_amigos",
           "days_as_friends": 36,
-          "days_as_enemies": 23,
+          "days_as_enemies": 21,
           "days_mutual_friends": 15,
           "change_date": "2026-03-11",
           "narrative": "Foram amigos por 36 dias, romperam em 2026-03-11.",
-          "total_days": 59
+          "total_days": 57
         },
         "Leandro→Gabriela": {
           "pattern": "ex_amigos",
           "days_as_friends": 2,
-          "days_as_enemies": 57,
+          "days_as_enemies": 55,
           "days_mutual_friends": 2,
           "change_date": "2026-01-20",
           "narrative": "Foram amigos por 2 dias, romperam em 2026-01-20.",
-          "total_days": 59
+          "total_days": 57
         },
         "Milena→Marciele": {
           "pattern": "ex_amigos",
           "days_as_friends": 10,
-          "days_as_enemies": 54,
+          "days_as_enemies": 52,
           "days_mutual_friends": 10,
           "change_date": "2026-01-25",
           "narrative": "Foram amigos por 10 dias, romperam em 2026-01-25.",
-          "total_days": 64
+          "total_days": 62
         },
         "Marciele→Solange Couto": {
-          "pattern": "ex_amigos",
+          "pattern": "recem_inimigos",
           "days_as_friends": 21,
-          "days_as_enemies": 43,
+          "days_as_enemies": 41,
           "days_mutual_friends": 18,
           "change_date": "2026-03-15",
-          "narrative": "Foram amigos por 21 dias, romperam em 2026-03-15.",
-          "total_days": 64
+          "narrative": "Eram amigos por 21 dias, mudou há 1 dia(s)!",
+          "total_days": 62
         },
         "Breno→Marciele": {
           "pattern": "ex_amigos",
           "days_as_friends": 33,
-          "days_as_enemies": 31,
+          "days_as_enemies": 29,
           "days_mutual_friends": 33,
           "change_date": "2026-02-15",
           "narrative": "Foram amigos por 33 dias, romperam em 2026-02-15.",
-          "total_days": 64
+          "total_days": 62
         },
         "Jordana→Solange Couto": {
           "pattern": "ex_amigos",
           "days_as_friends": 24,
-          "days_as_enemies": 40,
+          "days_as_enemies": 38,
           "days_mutual_friends": 16,
           "change_date": "2026-03-11",
           "narrative": "Foram amigos por 24 dias, romperam em 2026-03-11.",
-          "total_days": 64
+          "total_days": 62
         },
         "Samira→Solange Couto": {
           "pattern": "ex_amigos",
           "days_as_friends": 26,
-          "days_as_enemies": 38,
+          "days_as_enemies": 36,
           "days_mutual_friends": 17,
           "change_date": "2026-02-24",
           "narrative": "Foram amigos por 26 dias, romperam em 2026-02-24.",
-          "total_days": 64
+          "total_days": 62
         },
         "Jonas Sulzbach→Solange Couto": {
           "pattern": "reconciliados",
-          "days_as_friends": 43,
+          "days_as_friends": 41,
           "days_as_enemies": 21,
-          "days_mutual_friends": 23,
+          "days_mutual_friends": 21,
           "change_date": "2026-03-14",
           "narrative": "Reconciliaram em 2026-03-14.",
-          "total_days": 64
+          "total_days": 62
         },
         "Chaiany→Jordana": {
           "pattern": "ex_amigos",
           "days_as_friends": 21,
-          "days_as_enemies": 38,
+          "days_as_enemies": 36,
           "days_mutual_friends": 16,
           "change_date": "2026-03-05",
           "narrative": "Foram amigos por 21 dias, romperam em 2026-03-05.",
-          "total_days": 59
+          "total_days": 57
         },
         "Ana Paula Renault→Solange Couto": {
           "pattern": "ex_amigos",
           "days_as_friends": 28,
-          "days_as_enemies": 36,
+          "days_as_enemies": 34,
           "days_mutual_friends": 21,
           "change_date": "2026-02-24",
           "narrative": "Foram amigos por 28 dias, romperam em 2026-02-24.",
-          "total_days": 64
+          "total_days": 62
         },
         "Solange Couto→Gabriela": {
-          "pattern": "ex_amigos",
+          "pattern": "recem_inimigos",
           "days_as_friends": 20,
-          "days_as_enemies": 39,
+          "days_as_enemies": 37,
           "days_mutual_friends": 15,
           "change_date": "2026-03-14",
-          "narrative": "Foram amigos por 20 dias, romperam em 2026-03-14.",
-          "total_days": 59
+          "narrative": "Eram amigos por 20 dias, mudou há 2 dia(s)!",
+          "total_days": 57
         },
         "Alberto Cowboy→Breno": {
-          "pattern": "ex_amigos",
+          "pattern": "recem_inimigos",
           "days_as_friends": 27,
-          "days_as_enemies": 36,
+          "days_as_enemies": 34,
           "days_mutual_friends": 24,
           "change_date": "2026-03-15",
-          "narrative": "Foram amigos por 27 dias, romperam em 2026-03-15.",
-          "total_days": 63
+          "narrative": "Eram amigos por 27 dias, mudou há 1 dia(s)!",
+          "total_days": 61
         },
         "Breno→Alberto Cowboy": {
           "pattern": "ex_amigos",
           "days_as_friends": 29,
-          "days_as_enemies": 35,
+          "days_as_enemies": 33,
           "days_mutual_friends": 24,
           "change_date": "2026-02-15",
           "narrative": "Foram amigos por 29 dias, romperam em 2026-02-15.",
-          "total_days": 64
+          "total_days": 62
         }
       },
       "vote_analysis": [
@@ -10165,10 +10135,10 @@
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 12 dias, romperam em 2026-01-31.",
           "days_as_friends": 12,
-          "days_as_enemies": 52,
+          "days_as_enemies": 50,
           "days_mutual_friends": 11,
           "change_date": "2026-01-31",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Gabriela",
@@ -10176,15 +10146,15 @@
           "tipo": "inimigos_declarados",
           "label": "⚔️ Hostilidade Mútua",
           "cor": "#3CB44B",
-          "emoji_dado": "🤮",
-          "emoji_recebido": "🤮",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 36 dias, romperam em 2026-03-11.",
           "days_as_friends": 36,
-          "days_as_enemies": 23,
+          "days_as_enemies": 21,
           "days_mutual_friends": 15,
           "change_date": "2026-03-11",
-          "total_days": 59
+          "total_days": 57
         },
         {
           "votante": "Leandro",
@@ -10197,10 +10167,10 @@
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 2 dias, romperam em 2026-01-20.",
           "days_as_friends": 2,
-          "days_as_enemies": 57,
+          "days_as_enemies": 55,
           "days_mutual_friends": 2,
           "change_date": "2026-01-20",
-          "total_days": 59
+          "total_days": 57
         },
         {
           "votante": "Milena",
@@ -10209,14 +10179,14 @@
           "label": "⚔️ Hostilidade Mútua",
           "cor": "#3CB44B",
           "emoji_dado": "🌱",
-          "emoji_recebido": "💼",
+          "emoji_recebido": "🍪",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 10 dias, romperam em 2026-01-25.",
           "days_as_friends": 10,
-          "days_as_enemies": 54,
+          "days_as_enemies": 52,
           "days_mutual_friends": 10,
           "change_date": "2026-01-25",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Marciele",
@@ -10226,13 +10196,13 @@
           "cor": "#f39c12",
           "emoji_dado": "🌱",
           "emoji_recebido": "❤️",
-          "hist_pattern": "ex_amigos",
-          "hist_narrative": "Foram amigos por 21 dias, romperam em 2026-03-15.",
+          "hist_pattern": "recem_inimigos",
+          "hist_narrative": "Eram amigos por 21 dias, mudou há 1 dia(s)!",
           "days_as_friends": 21,
-          "days_as_enemies": 43,
+          "days_as_enemies": 41,
           "days_mutual_friends": 18,
           "change_date": "2026-03-15",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Breno",
@@ -10245,42 +10215,42 @@
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 33 dias, romperam em 2026-02-15.",
           "days_as_friends": 33,
-          "days_as_enemies": 31,
+          "days_as_enemies": 29,
           "days_mutual_friends": 33,
           "change_date": "2026-02-15",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Jordana",
           "alvo": "Solange Couto",
-          "tipo": "inimigos_declarados",
-          "label": "⚔️ Hostilidade Mútua",
-          "cor": "#3CB44B",
-          "emoji_dado": "🐍",
-          "emoji_recebido": "🍪",
+          "tipo": "ponto_cego",
+          "label": "🎯 Ponto Cego do Alvo",
+          "cor": "#f39c12",
+          "emoji_dado": "🤮",
+          "emoji_recebido": "❤️",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 24 dias, romperam em 2026-03-11.",
           "days_as_friends": 24,
-          "days_as_enemies": 40,
+          "days_as_enemies": 38,
           "days_mutual_friends": 16,
           "change_date": "2026-03-11",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Samira",
           "alvo": "Solange Couto",
-          "tipo": "ponto_cego",
-          "label": "🎯 Ponto Cego do Alvo",
-          "cor": "#f39c12",
-          "emoji_dado": "💔",
-          "emoji_recebido": "❤️",
+          "tipo": "inimigos_declarados",
+          "label": "⚔️ Hostilidade Mútua",
+          "cor": "#3CB44B",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "💔",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 26 dias, romperam em 2026-02-24.",
           "days_as_friends": 26,
-          "days_as_enemies": 38,
+          "days_as_enemies": 36,
           "days_mutual_friends": 17,
           "change_date": "2026-02-24",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Jonas Sulzbach",
@@ -10292,11 +10262,11 @@
           "emoji_recebido": "❤️",
           "hist_pattern": "reconciliados",
           "hist_narrative": "Reconciliaram em 2026-03-14.",
-          "days_as_friends": 43,
+          "days_as_friends": 41,
           "days_as_enemies": 21,
-          "days_mutual_friends": 23,
+          "days_mutual_friends": 21,
           "change_date": "2026-03-14",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Chaiany",
@@ -10304,15 +10274,15 @@
           "tipo": "inimigos_declarados",
           "label": "⚔️ Hostilidade Mútua",
           "cor": "#3CB44B",
-          "emoji_dado": "🎯",
-          "emoji_recebido": "🐍",
+          "emoji_dado": "💔",
+          "emoji_recebido": "🌱",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 21 dias, romperam em 2026-03-05.",
           "days_as_friends": 21,
-          "days_as_enemies": 38,
+          "days_as_enemies": 36,
           "days_mutual_friends": 16,
           "change_date": "2026-03-05",
-          "total_days": 59
+          "total_days": 57
         },
         {
           "votante": "Ana Paula Renault",
@@ -10325,10 +10295,10 @@
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 28 dias, romperam em 2026-02-24.",
           "days_as_friends": 28,
-          "days_as_enemies": 36,
+          "days_as_enemies": 34,
           "days_mutual_friends": 21,
           "change_date": "2026-02-24",
-          "total_days": 64
+          "total_days": 62
         },
         {
           "votante": "Solange Couto",
@@ -10336,15 +10306,15 @@
           "tipo": "inimigos_declarados",
           "label": "⚔️ Hostilidade Mútua",
           "cor": "#3CB44B",
-          "emoji_dado": "🤮",
-          "emoji_recebido": "🤮",
-          "hist_pattern": "ex_amigos",
-          "hist_narrative": "Foram amigos por 20 dias, romperam em 2026-03-14.",
+          "emoji_dado": "🌱",
+          "emoji_recebido": "🌱",
+          "hist_pattern": "recem_inimigos",
+          "hist_narrative": "Eram amigos por 20 dias, mudou há 2 dia(s)!",
           "days_as_friends": 20,
-          "days_as_enemies": 39,
+          "days_as_enemies": 37,
           "days_mutual_friends": 15,
           "change_date": "2026-03-14",
-          "total_days": 59
+          "total_days": 57
         }
       ],
       "featured_story": null,

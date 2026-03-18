@@ -1207,7 +1207,7 @@
     },
     {
       "numero": 9,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-03-17",
       "data_formacao": "2026-03-15",
       "titulo": "9º Paredão — 17 de Março de 2026",
@@ -1226,7 +1226,11 @@
         },
         "contragolpe": null,
         "bate_volta": {
-          "participantes": ["Ana Paula Renault", "Leandro", "Solange Couto"],
+          "participantes": [
+            "Ana Paula Renault",
+            "Leandro",
+            "Solange Couto"
+          ],
           "vencedor": "Solange Couto",
           "prova": "Arremesso (acertar saquinhos em buracos, 3 graus de dificuldade, 3 chances)"
         },
@@ -1241,19 +1245,34 @@
           "regra": "Pedra vence Tesoura, Papel vence Pedra, Tesoura vence Papel. Grupo vencedor empareda 1 jogador do grupo perdedor.",
           "grupo_pedra": {
             "capitao": "Jonas Sulzbach",
-            "membros": ["Jonas Sulzbach", "Jordana", "Marciele", "Gabriela"],
+            "membros": [
+              "Jonas Sulzbach",
+              "Jordana",
+              "Marciele",
+              "Gabriela"
+            ],
             "emparedou": "Leandro",
             "emparedou_de_grupo": "tesoura"
           },
           "grupo_papel": {
             "capitao": "Ana Paula Renault",
-            "membros": ["Ana Paula Renault", "Juliano Floss", "Milena", "Samira"],
+            "membros": [
+              "Ana Paula Renault",
+              "Juliano Floss",
+              "Milena",
+              "Samira"
+            ],
             "emparedou": "Jonas Sulzbach",
             "emparedou_de_grupo": "pedra"
           },
           "grupo_tesoura": {
             "capitao": "Breno",
-            "membros": ["Breno", "Solange Couto", "Leandro", "Chaiany"],
+            "membros": [
+              "Breno",
+              "Solange Couto",
+              "Leandro",
+              "Chaiany"
+            ],
             "emparedou": "Ana Paula Renault",
             "emparedou_de_grupo": "papel"
           }
@@ -1320,8 +1339,33 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/breno-se-emociona-com-recado-de-familiares-no-presente-do-anjo-saudade-delas.ghtml",
           "arquivo": "docs/scraped/breno-se-emociona-com-recado-de-familiares-no-presente-do-anjo-saudade-delas.md",
           "titulo": "Breno se emociona com recado de familiares no Presente do Anjo"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-breno-e-o-oitavo-eliminado-do-reality.ghtml",
+          "arquivo": "docs/scraped/quem-saiu-do-bbb-26-breno-e-o-oitavo-eliminado-do-reality.md",
+          "titulo": "Quem saiu do BBB 26? Breno é o oitavo eliminado do reality"
         }
-      ]
+      ],
+      "resultado": {
+        "eliminado": "Breno",
+        "votos": {
+          "Breno": {
+            "voto_unico": 54.08,
+            "voto_torcida": 70.33,
+            "voto_total": 58.96
+          },
+          "Ana Paula Renault": {
+            "voto_unico": 26.23,
+            "voto_torcida": 22.71,
+            "voto_total": 25.17
+          },
+          "Leandro": {
+            "voto_unico": 19.69,
+            "voto_torcida": 6.96,
+            "voto_total": 15.87
+          }
+        }
+      }
     }
   ]
 }

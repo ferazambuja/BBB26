@@ -1634,6 +1634,8 @@ If the participant takes the money, keep `decisao.escolha` / `decisao.abriu_mao`
 
 **Note on `actor`/`target` in veto**: The `actor` is the **vetoed person** (they receive the negative impact), `target` is the person who did the veto. This matches the relations scoring direction (impact flows toward the actor).
 
+**Reminder**: Every `power_event` entry **must** include a `fontes` array with the source URL. The audit (`build_derived_data.py`) will hard-fail if `fontes` is missing.
+
 ### 4. Rebuild, commit, publish + deploy
 
 Follow [Commit & Publish Workflow](#commit--publish-workflow):

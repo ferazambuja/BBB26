@@ -1,14 +1,14 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-16T00:16:35.441202+00:00",
-    "content_hash": "1115eeb94ffbdc9b3419ebcea7fb402ac525087c63974f97199e3514aaf223cc"
+    "generated_at": "2026-03-18T02:41:00.369930+00:00",
+    "content_hash": "f9f3b702bda53ed115ba15cd60c377c6a22fff56274c4925514756199a9e4d09"
   },
   "stats": {
     "metrics": {
       "first_timer": {
-        "rate": 0.7143,
-        "n": 5,
-        "total": 7,
+        "rate": 0.75,
+        "n": 6,
+        "total": 8,
         "scope": "real_only"
       },
       "route_casa": {
@@ -24,38 +24,38 @@
         "scope": "real_only"
       },
       "route_lider": {
-        "rate": 0.2857,
-        "n": 2,
-        "total": 7,
+        "rate": 0.375,
+        "n": 3,
+        "total": 8,
         "scope": "real_only"
       },
       "bv_presence_by_paredao": {
-        "rate": 0.8571,
-        "n": 6,
-        "total": 7,
+        "rate": 0.875,
+        "n": 7,
+        "total": 8,
         "scope": "real_only"
       },
       "bv_winners_escaped": {
         "rate": 1.0,
-        "n": 8,
-        "total": 8,
+        "n": 9,
+        "total": 9,
         "scope": "real_only"
       },
       "bv_losers_survived": {
-        "rate": 0.6,
-        "n": 6,
-        "total": 10,
+        "rate": 0.6667,
+        "n": 8,
+        "total": 12,
         "scope": "real_only"
       },
       "bv_losers_eliminated": {
-        "rate": 0.4,
+        "rate": 0.3333,
         "n": 4,
-        "total": 10,
+        "total": 12,
         "scope": "real_only"
       }
     },
     "facts": {
-      "bv_total_participants": 18,
+      "bv_total_participants": 21,
       "route_key_labels": {
         "route_casa": "Casa",
         "route_contragolpe": "Contragolpe",
@@ -87,17 +87,32 @@
           "eliminated": true
         },
         {
+          "route": "Dinâmica (Grupo Pedra)",
+          "n": 0,
+          "total": 1,
+          "eliminated": false
+        },
+        {
+          "route": "Dinâmica (Grupo Tesoura)",
+          "n": 0,
+          "total": 1,
+          "eliminated": false
+        },
+        {
           "route": "Duelo de Risco",
           "n": 0,
           "total": 1,
           "eliminated": false
         }
       ],
-      "unknown_routes": [],
+      "unknown_routes": [
+        "Dinâmica (Grupo Tesoura)",
+        "Dinâmica (Grupo Pedra)"
+      ],
       "scope_sizes": {
         "with_indicados": 9,
-        "all_finalized": 8,
-        "real_only": 7
+        "all_finalized": 9,
+        "real_only": 8
       },
       "appearance_counter": {
         "Milena": 3,
