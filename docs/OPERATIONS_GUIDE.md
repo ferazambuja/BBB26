@@ -2327,14 +2327,16 @@ Ensure no `tmp/` capture artifacts are staged.
 
 ## Capture Timing & Polling Strategy
 
-### Current strategy (as of 2026-03-09)
+### Current strategy (as of 2026-03-18)
 
-The workflow uses **15-minute polling** (`*/15 * * * *`). This replaced the previous approach of fixed cron slots + temporary probes.
+**Primary: Local polling on Proxmox LXC** — true 15-minute intervals via systemd timer. Fetches API, builds derived data, pushes to `main`, triggers GitHub Actions for Quarto render + Pages deploy. See `deploy/README.md` for setup.
 
-- `fetch_data.py` runs every 15 minutes but only takes ~30 seconds (uses `--fetch-only`, no heavy deps).
+**Fallback: GitHub Actions cron** (`*/15 * * * *`) — still configured but unreliable. Measured actual gaps: avg **67 minutes** (min 18, max 191). Only 1 out of 29 measured gaps was near 15 minutes. GitHub Actions cron has no SLA and is routinely throttled to 30–120 min intervals.
+
+- `fetch_data.py` only takes ~30 seconds (uses `--fetch-only`, no heavy deps).
 - Snapshots are saved **only when the data hash changes** — dedup rate ~61%.
-- Expected: ~5–15 actual snapshots/day out of 96 polls.
-- The build-deploy job only runs when data actually changed (or on manual dispatch).
+- Expected: ~5–15 actual snapshots/day.
+- Both local and GitHub polling use the same hash dedup — no duplicate snapshots regardless of who fetches.
 
 ### Why 15-minute polling
 
