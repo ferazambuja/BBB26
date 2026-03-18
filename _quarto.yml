@@ -5,7 +5,6 @@ project:
     - data/derived/*.json
   render:
     - index.qmd
-    - datas.qmd
     - evolucao.qmd
     - economia.qmd
     - relacoes.qmd
@@ -13,10 +12,7 @@ project:
     - paredoes.qmd
     - cartola.qmd
     - provas.qmd
-    - clusters.qmd
     - votacao.qmd
-    - planta_debug.qmd
-    - relacoes_debug.qmd
 
 website:
   title: "BBB 26 — Painel de Reações"
@@ -25,7 +21,7 @@ website:
     locale: pt_BR
   twitter-card:
     card-style: summary_large_image
-  image: assets/social-preview.jpg
+  image: assets/social-preview.png
   search: false
   navbar:
     title: "BBB26"
@@ -48,16 +44,6 @@ website:
         text: "Paredões"
       - href: votacao.qmd
         text: "Votação"
-      - text: "Mais"
-        menu:
-          - href: datas.qmd
-            text: "Datas"
-          - href: clusters.qmd
-            text: "Clusters"
-          - href: planta_debug.qmd
-            text: "Planta (debug)"
-          - href: relacoes_debug.qmd
-            text: "Relações (debug)"
   page-footer:
     center: |
       Projeto independente de análise de dados, sem vínculo com a TV Globo ou o BBB · Dados da API pública do GloboPlay + registros manuais (podem conter erros ou atrasos) · [Reportar problema](https://github.com/ferazambuja/BBB26/issues)
