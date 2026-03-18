@@ -60,10 +60,12 @@ CATEGORY_ORDER: dict[str, int] = {
     # --- Live show events (Mon-Fri ~22h) ---
     "sincerao": 50,
     "troca_vip": 53, "troca_xepa": 54, "barrado_baile": 55,
-    # --- Elimination night (Tuesday ~22h) ---
+    # --- Elimination night (Tuesday) ---
+    # Ganha-Ganha is drawn earlier in the day, before the live show.
+    # Elimination result is announced last during the live show (~22h30).
+    "ganha_ganha": 56, "veto_ganha_ganha": 57, "ganha_ganha_escolha": 58,
     "paredao_resultado": 60,
     "quarto_secreto_convite": 61,
-    "ganha_ganha": 62, "veto_ganha_ganha": 63, "ganha_ganha_escolha": 64,
 }
 
 _SCAFFOLD_EVENTS: list[dict] = [
