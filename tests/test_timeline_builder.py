@@ -929,9 +929,12 @@ def test_paredao_resultado_before_ganha_ganha():
     tuesday_events = [e for e in events if e.get("date") == "2026-03-11"]
     cats = [e["category"] for e in tuesday_events]
 
+    # Ganha-Ganha happens BEFORE the elimination result (drawn earlier in the day).
+    # In the data (chronological), ganha_ganha comes first; the display reverses
+    # so resultado appears on top.
     if "paredao_resultado" in cats and "ganha_ganha" in cats:
-        assert cats.index("paredao_resultado") < cats.index("ganha_ganha"), (
-            f"paredao_resultado should come before ganha_ganha; got order: {cats}"
+        assert cats.index("ganha_ganha") < cats.index("paredao_resultado"), (
+            f"ganha_ganha should come before paredao_resultado in data; got: {cats}"
         )
 
 

@@ -149,16 +149,32 @@ def _collect_timeline_auto_events(
 
     # --- 1. Entries and exits from eliminations_detected ---
     participant_details = manual_events.get("participants", {})
+    # Build a lookup: eliminated participant name → paredão data date.
+    # This ensures saida events land on the paredão night (Tue), not the
+    # next-morning API detection date (often Wed).
+    _paredao_exit_date: dict[str, str] = {}
+    for _pe in manual_events.get("_paredoes_raw", {}).get("paredoes", []):
+        _elim = (_pe.get("resultado") or {}).get("eliminado")
+        if _elim and _pe.get("data"):
+            _paredao_exit_date[_elim] = _pe["data"]
+    # Also use manual exit_date when available (desistentes, desclassificados).
+    for _name, _info in participant_details.items():
+        if _info.get("exit_date"):
+            _paredao_exit_date.setdefault(_name, _info["exit_date"])
+
     for rec in eliminations_detected:
-        date = rec["date"]
-        week = get_week_number(date)
+        det_date = rec["date"]
         for name in rec.get("added", []):
+            week = get_week_number(det_date)
             events.append({
-                "date": date, "week": week, "category": "entrada",
+                "date": det_date, "week": week, "category": "entrada",
                 "emoji": "✅", "title": f"{name} entrou",
                 "detail": "", "participants": [name], "source": "eliminations_detected",
             })
         for name in rec.get("missing", []):
+            # Use paredão date or manual exit_date when available.
+            date = _paredao_exit_date.get(name, det_date)
+            week = get_week_number(date)
             info = participant_details.get(name, {})
             status = info.get("status", "saiu")
             reason = info.get("exit_reason", "")
@@ -856,8 +872,12 @@ def build_game_timeline(
     provas_dict = provas_data if isinstance(provas_data, dict) else {}
     week_end_dates = get_effective_week_end_dates(manual_events, paredoes_dict, provas_dict)
 
+    # Inject paredoes data so _collect_timeline_auto_events can use paredão dates for saida events.
+    manual_events_with_paredoes = dict(manual_events)
+    manual_events_with_paredoes["_paredoes_raw"] = paredoes_dict
+
     events: list[dict] = []
-    events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events))
+    events.extend(_collect_timeline_auto_events(eliminations_detected, auto_events, manual_events_with_paredoes))
     events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data, manual_events))
     events.extend(_collect_timeline_manual_events(manual_events))
     events.extend(_collect_timeline_paredao_events(paredoes_data, provas_data))
