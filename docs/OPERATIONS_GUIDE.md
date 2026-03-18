@@ -1667,18 +1667,16 @@ gh workflow run daily-update.yml
 
 **Cronologia display order**: Latest event on top within each day (consistent with newest-first for weeks and dates). Controlled by `CATEGORY_ORDER` in `scripts/builders/timeline.py` (lower number = earlier in the day = displayed at bottom).
 
-Expected intra-day sequence (bottom → top on display):
+Expected display order (top → bottom):
 
 ```
-                                                    ↑ displayed on top (latest)
-Elim night: ganha_ganha_escolha → veto_ganha_ganha → ganha_ganha → paredao_resultado
+Elim night: ganha_ganha_escolha → veto_ganha_ganha → ganha_ganha → paredao_resultado  ← top (latest)
 Live show:  barrado_baile → sincerao
 Ceremony:   paredao_formacao → paredao_bate_volta → paredao_contragolpe →
             dinamica → paredao_votacao → paredao_indicacao → paredao_imunidade
 Afternoon:  presente_anjo → big_fone
 Morning:    anjo → monstro → lider
-Meta:       saida → entrada
-                                                    ↓ displayed at bottom (earliest)
+Meta:       saida → entrada                                                            ← bottom (earliest)
 ```
 
 **Note**: Presente do Anjo happens early in the day (Almoço do Anjo, afternoon) — it just gets shown on the live TV show later. The `CATEGORY_ORDER` reflects when the event actually occurs, not when it airs.
