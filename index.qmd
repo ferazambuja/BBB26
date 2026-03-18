@@ -6,6 +6,8 @@ lang: pt-BR
 format:
   html:
     code-tools: false
+    css:
+      - assets/index.css
 execute:
   echo: false
   warning: false
@@ -15,24 +17,61 @@ execute:
 #| label: setup
 #| include: false
 
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
-from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
+from functools import partial
 
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     require_clean_manual_events, setup_bbb_dark_theme,
-    load_paredoes_raw, load_index_data, load_game_timeline,
+    load_paredoes_raw, load_paredoes_transformed,
+    load_votalhada_polls, get_poll_for_paredao,
+    load_index_data, load_game_timeline,
     avatar_html as _avatar_html,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
     ANALYSIS_DESCRIPTIONS, render_cronologia_html,
+)
+from paredao_viz import (
+    build_paredao_card_payload,
+    build_paredao_history,
+    render_paredao_index_card,
+)
+from builders.index_data_builder import POWER_TAG_LABELS
+from index_viz import (
+    av as _av,
+    av_group_border as _av_group_border,
+    build_rxn_detail_html,
+    card_header,
+    COMP_LABELS,
+    days_ago_str as _days_ago_str,
+    fmt_date_br,
+    make_cross_table_html,
+    make_event_chips as _make_event_chips,
+    make_reaction_summary_html,
+    pair_story_card as _pair_story_card,
+    render_dramatic_event_row as _render_dramatic_event_row,
+    render_actor_avatars as _render_actor_avatars,
+    render_avatar_row as _render_avatar_row,
+    render_blindado_row as _render_blindado_row,
+    render_break_row as _render_break_row,
+    render_overflow_toggle as _render_overflow_toggle,
+    render_pair_chip,
+    render_profile_card,
+    render_profile_sinc_row,
+    render_pulse_row,
+    render_ranked_lane as _render_ranked_lane,
+    render_saldo_card,
+    plant_color,
+    render_status_chip,
+    SOURCE_ICONS,
+    stat_chip,
+    render_toggle_pair_lane as _render_toggle_pair_lane,
+    render_na_mira_row as _render_na_mira_row,
+    render_agressor_row as _render_agressor_row,
+    render_vx_row as _render_vx_row,
 )
 
 require_clean_manual_events()
@@ -51,6 +90,13 @@ if not index_data:
 latest = index_data.get("latest", {})
 MEMBER_OF = index_data.get("member_of", {})
 AVATARS = index_data.get("avatars", {})
+av = partial(_av, avatars=AVATARS, avatar_html=_avatar_html)
+av_group_border = partial(_av_group_border, member_of=MEMBER_OF)
+pair_story_card = partial(_pair_story_card, avatar_fn=av, group_border_fn=av_group_border)
+PAREDOES_RAW = load_paredoes_raw().get("paredoes", [])
+PAREDOES_TRANSFORMED = load_paredoes_transformed(member_of=MEMBER_OF)
+PAREDAO_ATUAL = PAREDOES_TRANSFORMED[-1] if PAREDOES_TRANSFORMED else None
+VOTALHADA_POLLS = load_votalhada_polls()
 
 meta_generated_at = index_data.get("_metadata", {}).get("generated_at")
 try:
@@ -58,338 +104,13 @@ try:
     DATA_GENERATED_DATE_BRT = _gen_dt.astimezone(timezone(timedelta(hours=-3))).date()
 except Exception:
     DATA_GENERATED_DATE_BRT = datetime.now(timezone(timedelta(hours=-3))).date()
+
+days_ago_str = partial(_days_ago_str, anchor_brt=DATA_GENERATED_DATE_BRT)
 ```
 
 ```{python}
 #| label: viz-functions
 #| include: false
-
-def make_sentiment_ranking(rows, title_suffix="", fixed_height=None):
-    """Retorna go.Figure com ranking horizontal de sentimento."""
-    if not rows:
-        return go.Figure()
-
-    df_sent = pd.DataFrame(rows).sort_values('score', ascending=True)
-
-    color_map = {name: GROUP_COLORS.get(m, '#999')
-                 for name, m in zip(df_sent['name'], df_sent['group'])}
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=df_sent['name'],
-        x=df_sent['score'],
-        orientation='h',
-        marker_color=[color_map[n] for n in df_sent['name']],
-        text=[f"{s:+.1f}" for s in df_sent['score']],
-        textposition='outside',
-        hovertemplate='%{y}: %{x:+.1f}<br>❤️: %{customdata[0]} | Neg: %{customdata[1]}<extra></extra>',
-        customdata=list(zip(df_sent['hearts'], df_sent['negative'])),
-        showlegend=False
-    ))
-
-    title = "Ranking de Sentimento"
-    if title_suffix:
-        title += f" — {title_suffix}"
-
-    left_margin = 150
-    chart_height = fixed_height if fixed_height else max(500, len(df_sent) * 32)
-
-    fig.update_layout(
-        title=title,
-        xaxis_title="Score de Sentimento",
-        yaxis_title="",
-        height=chart_height,
-        margin=dict(l=left_margin),
-        shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
-                     line=dict(color='red', dash='dash', width=1))]
-    )
-
-    for group, color in GROUP_COLORS.items():
-        fig.add_trace(go.Scatter(
-            x=[None], y=[None], mode='markers',
-            marker=dict(size=10, color=color),
-            name=group, showlegend=True
-        ))
-
-    return fig
-
-
-def make_cross_table_heatmap(participants, matrix, title_suffix=""):
-    """Retorna go.Figure com heatmap da tabela cruzada de reações."""
-    active_names_ht = sorted([p['name'] for p in participants
-                              if not p.get('characteristics', {}).get('eliminated')])
-
-    heat_data = np.zeros((len(active_names_ht), len(active_names_ht)))
-    rxn_labels = []
-    for i, giver in enumerate(active_names_ht):
-        row_labels = []
-        for j, receiver in enumerate(active_names_ht):
-            if giver == receiver:
-                heat_data[i, j] = np.nan
-                row_labels.append('—')
-            else:
-                rxn = matrix.get((giver, receiver), '')
-                weight = SENTIMENT_WEIGHTS.get(rxn, 0)
-                heat_data[i, j] = weight
-                emoji = REACTION_EMOJI.get(rxn, '?')
-                row_labels.append(emoji)
-        rxn_labels.append(row_labels)
-
-    short_names = [n.split()[0] if len(n) > 12 else n for n in active_names_ht]
-
-    fig = go.Figure(data=go.Heatmap(
-        z=heat_data,
-        x=short_names,
-        y=short_names,
-        colorscale=[
-            [0, '#d73027'],
-            [0.25, '#fc8d59'],
-            [0.5, '#ffffbf'],
-            [1.0, '#1a9850'],
-        ],
-        zmin=-1, zmax=1,
-        text=[[rxn_labels[i][j] for j in range(len(active_names_ht))] for i in range(len(active_names_ht))],
-        texttemplate='%{text}',
-        textfont=dict(size=14),
-        hovertemplate='%{y} → %{x}: %{text}<extra></extra>',
-        colorbar=dict(title="Sentimento", tickvals=[-1, -0.5, 0, 1],
-                      ticktext=['Forte Neg', 'Leve Neg', 'Neutro', 'Positivo'])
-    ))
-
-    title = "Mapa de Reações"
-    if title_suffix:
-        title += f" — {title_suffix}"
-
-    fig.update_layout(
-        title=title,
-        xaxis_title="Receptor ←",
-        yaxis_title="Emissor →",
-        height=750,
-        xaxis=dict(tickangle=45, side='bottom'),
-        yaxis=dict(autorange='reversed')
-    )
-
-    return fig
-
-
-def make_cross_table_html(cross_data, title_suffix=""):
-    """Retorna HTML string com tabela cruzada de reações (sticky header/column)."""
-    active_names = cross_data.get("names", [])
-    matrix = cross_data.get("matrix", [])
-    short_names = [n.split()[0] if len(n) > 10 else n for n in active_names]
-
-    # Color mapping based on sentiment
-    def get_cell_style(rxn):
-        if not rxn:
-            return "background: #444; color: #888;"
-        weight = SENTIMENT_WEIGHTS.get(rxn, 0)
-        if weight == 1:  # Positive
-            return "background: #1a9850; color: #fff;"
-        elif weight == -0.5:  # Mild negative
-            return "background: #fc8d59; color: #000;"
-        elif weight == -1:  # Strong negative
-            return "background: #d73027; color: #fff;"
-        return "background: #ffffbf; color: #000;"
-
-    # Build HTML table
-    html = []
-    html.append(f'''
-<div class="scroll-x">
-<style>
-.cross-table {{
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: var(--fs-base);
-    width: max-content;
-}}
-.cross-table th, .cross-table td {{
-    padding: 4px 6px;
-    text-align: center;
-    border: 1px solid #555;
-    min-width: 36px;
-    white-space: nowrap;
-}}
-.cross-table thead th {{
-    position: sticky;
-    top: 0;
-    background: #222;
-    z-index: 2;
-    font-weight: bold;
-}}
-.cross-table tbody th {{
-    position: sticky;
-    left: 0;
-    background: #222;
-    z-index: 1;
-    font-weight: bold;
-    text-align: right;
-}}
-.cross-table thead th:first-child {{
-    z-index: 3;
-    left: 0;
-}}
-.cross-table td {{ font-size: var(--fs-xl); }}
-.cross-table td:hover {{ outline: 2px solid #fff; }}
-</style>
-<table class="cross-table">
-<thead>
-<tr>
-<th class="th-soft">→ deu / ↓ recebeu</th>
-''')
-
-    # Header row with receiver names
-    for short in short_names:
-        html.append(f'<th>{short}</th>')
-    html.append('</tr></thead><tbody>')
-
-    # Data rows
-    for i, giver in enumerate(active_names):
-        html.append(f'<tr><th>{short_names[i]}</th>')
-        for j, receiver in enumerate(active_names):
-            if giver == receiver:
-                html.append('<td class="u-s117">—</td>')
-            else:
-                rxn = matrix[i][j] if i < len(matrix) and j < len(matrix[i]) else ""
-                emoji = REACTION_EMOJI.get(rxn, '?') if rxn else '?'
-                style = get_cell_style(rxn)
-                tooltip = f"{giver} → {receiver}: {rxn or 'N/A'}"
-                html.append(f'<td style=\"{style}\" title=\"{tooltip}\">{emoji}</td>')
-        html.append('</tr>')
-
-    html.append('</tbody></table></div>')
-
-    return '\n'.join(html)
-
-
-def make_reaction_summary_html(summary_data, collapsed_rows=5):
-    """Retorna HTML com tabela de reações recebidas, colapsável com cores."""
-    summary_rows = summary_data.get("rows", [])
-    max_hearts = summary_data.get("max_hearts", 1) or 1
-    max_neg = summary_data.get("max_neg", 1) or 1
-    n_total = len(summary_rows)
-
-    def heart_color(val):
-        if val == 0: return "color: #666;"
-        intensity = min(val / max_hearts, 1)
-        if intensity > 0.7: return "background: #1a9850; color: #fff; font-weight: bold;"
-        if intensity > 0.4: return "background: #91cf60; color: #000;"
-        return "color: #a6d96a;"
-
-    def neg_color(val):
-        if val == 0: return "color: #666;"
-        if val >= 3: return "background: #d73027; color: #fff; font-weight: bold;"
-        if val >= 2: return "background: #fc8d59; color: #000;"
-        return "color: #fdae61;"
-
-    def score_color(val):
-        if val >= 10: return "background: #1a9850; color: #fff; font-weight: bold;"
-        if val >= 5: return "color: #66bd63;"
-        if val >= 0: return "color: #a6d96a;"
-        if val >= -5: return "color: #fdae61;"
-        if val >= -10: return "color: #f46d43;"
-        return "background: #d73027; color: #fff; font-weight: bold;"
-
-    html = []
-    html.append(f'''
-<style>
-.summary-table {{
-    border-collapse: collapse;
-    font-size: var(--fs-base);
-    width: 100%;
-}}
-.summary-table th, .summary-table td {{
-    padding: 6px 8px;
-    text-align: center;
-    border-bottom: 1px solid #444;
-}}
-.summary-table th {{
-    background: #222;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}}
-.summary-table th:first-child, .summary-table td:first-child {{
-    text-align: left;
-    position: sticky;
-    left: 0;
-    background: #222;
-    z-index: 2;
-}}
-.summary-table thead th:first-child {{ z-index: 3; }}
-.summary-table tbody tr:hover {{ background: #333; }}
-.collapsed-rows {{ display: none; }}
-.expand-btn {{
-    display: block;
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-    background: #2a2a2a;
-    border: 1px solid #444;
-    border-radius: 6px;
-    color: #ccc;
-    cursor: pointer;
-    font-size: var(--fs-base);
-}}
-.expand-btn:hover {{ background: #333; }}
-</style>
-<div class="scroll-x">
-<table class="summary-table" id="reaction-summary-table">
-<thead>
-<tr>
-<th>Participante</th>
-<th>❤️</th>
-<th>🌱</th>
-<th>💼</th>
-<th>🍪</th>
-<th>🐍</th>
-<th>🎯</th>
-<th>🤮</th>
-<th>🤥</th>
-<th>💔</th>
-<th>Score</th>
-</tr>
-</thead>
-<tbody>
-''')
-
-    for i, r in enumerate(summary_rows):
-        row_class = 'collapsed-rows' if i >= collapsed_rows else ''
-        html.append(f'<tr class="{row_class}">')
-        html.append(f'<td>{r["name"]}</td>')
-        html.append(f'<td style="{heart_color(r["hearts"])}">{r["hearts"]}</td>')
-        html.append(f'<td style="{neg_color(r["planta"])}">{r["planta"] or "·"}</td>')
-        html.append(f'<td style="{neg_color(r["mala"])}">{r["mala"] or "·"}</td>')
-        html.append(f'<td style="{neg_color(r["biscoito"])}">{r["biscoito"] or "·"}</td>')
-        html.append(f'<td style="{neg_color(r["cobra"])}">{r["cobra"] or "·"}</td>')
-        html.append(f'<td style="{neg_color(r["alvo"])}">{r["alvo"] or "·"}</td>')
-        html.append(f'<td style="{neg_color(r["vomito"])}">{r["vomito"] or "·"}</td>')
-        html.append(f'<td style="{neg_color(r["mentiroso"])}">{r["mentiroso"] or "·"}</td>')
-        html.append(f'<td style="{neg_color(r["coracao_partido"])}">{r["coracao_partido"] or "·"}</td>')
-        html.append(f'<td style="{score_color(r["score"])}">{r["score"]:+.1f}</td>')
-        html.append('</tr>')
-
-    html.append('</tbody></table></div>')
-
-    if n_total > collapsed_rows:
-        html.append(f'''
-<button class="expand-btn" onclick="
-    var rows = document.querySelectorAll('.collapsed-rows');
-    var btn = this;
-    if (btn.dataset.expanded === 'true') {{
-        rows.forEach(r => r.style.display = 'none');
-        btn.innerHTML = '▼ Ver todos os {n_total} participantes';
-        btn.dataset.expanded = 'false';
-    }} else {{
-        rows.forEach(r => r.style.display = 'table-row');
-        btn.innerHTML = '▲ Mostrar menos';
-        btn.dataset.expanded = 'true';
-    }}
-" data-expanded="false">▼ Ver todos os {n_total} participantes</button>
-''')
-
-    return '\n'.join(html)
-
-
 ```
 
 # Cronologia do Jogo {#cronologia-jogo}
@@ -416,89 +137,25 @@ hl_cards = index_data.get("highlights", {}).get("cards", [])
 
 CARD_STORY_ORDER = {
     "context": 0,
+    "paredao": 5,
     "ranking": 10,
     "changes": 20,
     "dramatic": 30,
     "hostilities": 40,
     "sincerao": 50,
-    "paredao": 60,
     "breaks": 70,
     "blindados": 80,
+    "visados": 85,
+    "nunca_paredao": 87,
+    "figurinha_repetida": 88,
     "impact": 90,
     "positive_impact": 100,
     "vulnerability": 110,
-    "mais_alvo": 120,
     "mais_agressor": 130,
     "vip": 140,
     "xepa": 150,
 }
 hl_cards = sorted(hl_cards, key=lambda c: CARD_STORY_ORDER.get(c.get("type"), 999))
-
-def fmt_date_br(date_str: str) -> str:
-    if not date_str:
-        return ""
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
-    except Exception:
-        return date_str
-
-def days_ago_str(date_str: str, ref_date: str | None = None) -> str:
-    if not date_str:
-        return ""
-    # Relative labels should reflect real calendar date (BRT anchor), not latest data date.
-    # Anchor to build date metadata when available.
-    _anchor_brt = DATA_GENERATED_DATE_BRT
-    try:
-        d0 = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except Exception:
-        return ""
-    delta = (_anchor_brt - d0).days
-    if delta < 0:
-        return ""
-    if delta == 0:
-        return "hoje"
-    if delta == 1:
-        return "há 1 dia"
-    return f"há {delta} dias"
-
-def av(name, size=48, border_color="#555"):
-    """Avatar image tag, clickable to the participant's profile."""
-    slug = name.lower().replace(" ", "-")
-    return _avatar_html(name, AVATARS, size=size, show_name=False,
-                        link=f'#perfil-{slug}', border_color=border_color,
-                        fallback_initials=True)
-
-def av_group_border(name: str) -> str:
-    grp = MEMBER_OF.get(name, "")
-    return GROUP_COLORS.get(grp, "#666")
-
-def card_header(icon, title, link=None, badge=None, source_tag=None, subtitle=None):
-    """Card header with icon, title, optional link, badge, data source tag, and subtitle."""
-    title_html = title
-    link_html = f' <a href="{link}" class="fs-xs u-s254">ver mais ↗</a>' if link else ""
-    badge_html = f' <span class="fs-xs u-s187">{badge}</span>' if badge else ""
-    source_html = f' <span class="fs-2xs u-s253">{source_tag}</span>' if source_tag else ""
-    subtitle_html = f'<div class="fs-sm u-s258">{subtitle}</div>' if subtitle else ""
-    return (f'<div class="u-s073">'
-            f'<div class="u-s333">'
-            f'<span class="fs-2xl">{icon}</span>'
-            f'<span class="fs-base u-s392">{title_html}</span>'
-            f'{badge_html}{source_html}{link_html}'
-            f'</div>'
-            f'{subtitle_html}</div>')
-
-def stat_chip(value, label, color="#888"):
-    """Small stat chip."""
-    return (f'<span class="u-s373">'
-            f'<span class="fs-xl" style="font-weight:700;color:{color};">{value}</span>'
-            f'<span class="fs-2xs u-s259">{label}</span></span>')
-
-def progress_bar(value, max_val, color="#3498db", height=6):
-    """Mini progress bar."""
-    pct = min(100, value / max_val * 100) if max_val > 0 else 0
-    return (f'<div style="background:rgba(255,255,255,0.08);border-radius:{height//2}px;height:{height}px;width:100%;overflow:hidden;">'
-            f'<div style="width:{pct:.0f}%;height:100%;background:{color};border-radius:{height//2}px;"></div></div>')
-
 
 if not hl_cards:
     print(f'''<div class="dark-card tc u-s468">
@@ -539,6 +196,7 @@ else:
             delta_all = card.get("delta_all", [])
             mup = card.get("movers_up")
             mdown = card.get("movers_down")
+            movers_label = card.get("movers_label", "📅 Variação vs ontem")
 
             header = card_header(
                 card["icon"], card["title"], card.get("link"), streak_txt,
@@ -546,41 +204,27 @@ else:
                 subtitle="Score de hoje (❤️ = +1, negativas = −0.5 a −1). Dado do dia, não acumulado."
             )
 
-            # ── Helper: subtle expand toggle ──
-            def _toggle(n):
-                return (
-                    f'<details class="sinc-more" style="margin-top:4px;">'
-                    f'<summary style="list-style:none;cursor:pointer;text-align:center;'
-                    f'padding:4px 0;color:#666;font-size:var(--fs-xs);">'
-                    f'<span style="background:rgba(255,255,255,0.08);padding:2px 14px;'
-                    f'border-radius:10px;">⋯ {n}</span></summary>'
-                )
-
-            # ── Top 6 (only score > 0, medal borders) ──
-            medals = ["🥇", "🥈", "🥉", "4º", "5º", "6º"]
-            medal_borders = ["#f1c40f", "#c0c0c0", "#cd7f32", "#27ae60", "#27ae60", "#27ae60"]
-            podium_all = card.get("podium_all") or podium
-            # Only show participants with positive scores
+            # ── Top (main layout + in-card toggle) ──
+            medals = ["🥇", "🥈", "🥉", "4º", "5º"]
             podium_positive = [p for p in podium_all if p["score"] > 0]
-            inline_podium = podium_positive[:6]
-            overflow_podium = podium_positive[6:]
+            inline_podium = podium_positive[:5]
+            overflow_podium = podium_positive[5:]
             podium_html = '<div>'
             podium_html += '<div class="fs-2xs u-s060">⬆ Mais queridos</div>'
             podium_html += '<div class="u-s065">'
             for i, p in enumerate(inline_podium):
                 name = p["name"]
                 score = p["score"]
-                border = medal_borders[i] if i < len(medal_borders) else "#27ae60"
                 label = medals[i] if i < len(medals) else f"{i+1}º"
                 podium_html += (
                     f'<div class="u-s344">'
-                    f'{av(name, 42, border)}'
+                    f'{av(name, 42, "#27ae60")}'
                     f'<span class="fs-md u-s026">{label} {name.split()[0]} {score:+.1f}</span>'
                     f'</div>'
                 )
-            podium_html += '</div>'  # close u-s065
+            podium_html += '</div>'
             if overflow_podium:
-                podium_html += _toggle(len(overflow_podium))
+                podium_html += _render_overflow_toggle(len(overflow_podium))
                 podium_html += '<div class="u-s065">'
                 for i, p in enumerate(overflow_podium, start=len(inline_podium) + 1):
                     name = p["name"]
@@ -592,13 +236,11 @@ else:
                         f'</div>'
                     )
                 podium_html += '</div></details>'
-            podium_html += '</div>'  # close column wrapper
+            podium_html += '</div>'
 
-            # ── Bottom 6 (only score < 0, red borders, worst first) ──
+            # ── Bottom (main layout + in-card toggle) ──
             bottom_html = ""
-            bottom_all = card.get("bottom_all") or bottom3
             if bottom_all:
-                # Only show participants with negative scores
                 bottom_negative = [p for p in bottom_all if p["score"] < 0]
                 inline_bottom = bottom_negative[:6]
                 overflow_bottom = bottom_negative[6:]
@@ -616,9 +258,9 @@ else:
                             f'<span class="fs-md" style="color:{score_color};font-weight:700;">⬇ {name.split()[0]} {score:+.1f}</span>'
                             f'</div>'
                         )
-                    bottom_html += '</div>'  # close u-s065
+                    bottom_html += '</div>'
                     if overflow_bottom:
-                        bottom_html += _toggle(len(overflow_bottom))
+                        bottom_html += _render_overflow_toggle(len(overflow_bottom))
                         bottom_html += '<div class="u-s065">'
                         for p in overflow_bottom:
                             name = p["name"]
@@ -631,13 +273,12 @@ else:
                                 f'</div>'
                             )
                         bottom_html += '</div></details>'
-                    bottom_html += '</div>'  # close column wrapper
+                    bottom_html += '</div>'
 
-            # ── Movers (up to 3 risers + 3 fallers inline, overflow toggle) ──
+            # ── Movers (main layout + in-card toggle) ──
             movers_html = ""
             mup_list = mup if isinstance(mup, list) else ([mup] if mup else [])
             mdown_list = mdown if isinstance(mdown, list) else ([mdown] if mdown else [])
-            delta_all = card.get("delta_all", [])
             inline_deltas = []
             if mup_list or mdown_list:
                 inline_deltas = [{"name": d["name"], "delta": d["delta"]} for d in mup_list + mdown_list]
@@ -647,37 +288,24 @@ else:
                 inline_names = {d["name"] for d in inline_deltas}
                 overflow_deltas = [d for d in delta_all if d.get("name") not in inline_names]
                 movers_html = '<div>'
-                movers_html += '<div class="fs-2xs u-s060">📅 Variação vs ontem</div>'
+                movers_html += f'<div class="fs-2xs u-s060">{movers_label}</div>'
                 movers_html += '<div class="u-s065">'
-                for mu in mup_list:
+                for d in inline_deltas:
+                    is_up = d.get("delta", 0) >= 0
+                    name = d["name"]
+                    icon = "📈" if is_up else "📉"
+                    row_cls = "u-s345" if is_up else "u-s341"
+                    text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
+                    border = "#27ae60" if is_up else "#e74c3c"
                     movers_html += (
-                        f'<div class="u-s345">'
-                        f'{av(mu["name"], 42, "#27ae60")}'
-                        f'<span class="fs-md u-s026">📈 {mu["name"].split()[0]} {mu["delta"]:+.1f}</span>'
-                        f'</div>')
-                for md in mdown_list:
-                    movers_html += (
-                        f'<div class="u-s341">'
-                        f'{av(md["name"], 42, "#e74c3c")}'
-                        f'<span class="text-neg fs-md">📉 {md["name"].split()[0]} {md["delta"]:+.1f}</span>'
-                        f'</div>')
-                if not mup_list and not mdown_list:
-                    for d in inline_deltas:
-                        is_up = d.get("delta", 0) >= 0
-                        name = d["name"]
-                        icon = "📈" if is_up else "📉"
-                        row_cls = "u-s345" if is_up else "u-s341"
-                        text_cls = "fs-md u-s026" if is_up else "text-neg fs-md"
-                        border = "#27ae60" if is_up else "#e74c3c"
-                        movers_html += (
-                            f'<div class="{row_cls}">'
-                            f'{av(name, 42, border)}'
-                            f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
-                            f'</div>'
-                        )
-                movers_html += '</div>'  # close u-s065
+                        f'<div class="{row_cls}">'
+                        f'{av(name, 42, border)}'
+                        f'<span class="{text_cls}">{icon} {name.split()[0]} {d["delta"]:+.1f}</span>'
+                        f'</div>'
+                    )
+                movers_html += '</div>'
                 if overflow_deltas:
-                    movers_html += _toggle(len(overflow_deltas))
+                    movers_html += _render_overflow_toggle(len(overflow_deltas))
                     movers_html += '<div class="u-s065">'
                     for d in overflow_deltas:
                         is_up = d.get("delta", 0) >= 0
@@ -693,10 +321,10 @@ else:
                             f'</div>'
                         )
                     movers_html += '</div></details>'
-                movers_html += '</div>'  # close column wrapper
+                movers_html += '</div>'
 
             # 3-column grid on desktop, stacks on mobile
-            print(f'''<div class="dark-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
+            print(f'''<div class="dark-card ranking-highlight-card" style="grid-column:1/-1;border-top:4px solid {color};padding:1rem 1.2rem;">
 {header}
 <div class="u-s370">
 {podium_html}
@@ -719,15 +347,6 @@ else:
             net = imp - wor
             net_txt = f"+{net}" if net > 0 else str(net)
 
-            def _pulse_row(label: str, value: int, color_row: str) -> str:
-                return (
-                    f'<div style="display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;">'
-                    f'<span class="fs-2xs" style="color:#aaa;">{label}</span>'
-                    f'{progress_bar(value, total_delta, color_row, height=6)}'
-                    f'<span class="fs-sm" style="color:{color_row};font-weight:700;">{value}</span>'
-                    f'</div>'
-                )
-
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Mudanças de ontem para hoje no queridômetro. Melhoria = reação ficou mais positiva; piora = mais negativa.")}
 <div class="u-s332">
@@ -735,9 +354,9 @@ else:
 <span class="fs-base meta-text">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
 </div>
 <div style="display:grid;gap:6px;margin-top:4px;">
-{_pulse_row("Melhorias", imp, "#27ae60")}
-{_pulse_row("Pioras", wor, "#e74c3c")}
-{_pulse_row("Laterais", lat, "#888")}
+{render_pulse_row("Melhorias", imp, "#27ae60", total_delta=total_delta)}
+{render_pulse_row("Pioras", wor, "#e74c3c", total_delta=total_delta)}
+{render_pulse_row("Laterais", lat, "#888", total_delta=total_delta)}
 </div>
 <div class="fs-sm u-s362" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
 <span class="u-s054">+{hg} ❤️ ganhos</span>
@@ -758,7 +377,7 @@ else:
             badge = f"{today_count}" if scope == "today" else f"{total}"
             source_tag = "📅 Ontem → Hoje" if scope == "today" else "📅 Histórico recente"
             card_title = card["title"] if scope == "today" else (
-                "Hostilidades Recentes" if is_hostile else "Mudanças Dramáticas (Recente)"
+                "Hostilidades Recentes" if is_hostile else "Mudanças Dramáticas"
             )
             if is_hostile:
                 subtitle = (
@@ -781,53 +400,26 @@ else:
                     subtitle=subtitle
                 )
 
-            def _event_row(it: dict) -> str:
-                g = it["giver"]
-                r = it["receiver"]
-                date_str = it.get("date", "")
-                when = fmt_date_br(date_str)
-                age_txt = days_ago_str(date_str, ref_date)
-                when_txt = when
-                if age_txt:
-                    when_txt = f"{when} ({age_txt})" if when else age_txt
-
-                if is_hostile:
-                    old_e = it.get("old_emoji", "?")
-                    new_e = it.get("new_emoji", it.get("emoji", "?"))
-                    main_txt = f'{g.split()[0]} {new_e} {r.split()[0]}'
-                    sub_txt = f'Hostilidade unilateral · {old_e}→{new_e} · {when_txt}'
-                    g_color, r_color, row_border = "#f39c12", "#e74c3c", "#f39c12"
-                else:
-                    old_e = it.get("old_emoji", "?")
-                    new_e = it.get("new_emoji", "?")
-                    sev = it.get("severity", 0)
-                    sev_txt = "alta" if sev >= 1.5 else ("média" if sev >= 1.0 else "leve")
-                    main_txt = f'{g.split()[0]} {old_e}→{new_e} {r.split()[0]}'
-                    sub_txt = f'Mudança {sev_txt} · {when_txt}'
-                    g_color, r_color = "#666", "#27ae60" if new_e == "❤️" else "#e74c3c"
-                    row_border = "#e74c3c" if sev >= 1.5 else "#8e44ad"
-
-                return (
-                    f'<div class="u-s342" style="border-left:3px solid {row_border};">'
-                    f'{av(g, 42, g_color)}'
-                    f'<div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;">'
-                    f'<span class="fs-sm" style="font-weight:600;">{main_txt}</span>'
-                    f'<span class="fs-2xs" style="opacity:0.68;">{sub_txt}</span>'
-                    f'</div>'
-                    f'{av(r, 42, r_color)}'
-                    f'</div>'
-                )
-
             inline_items = items[:4]
             overflow_items = items[4:]
             pairs_html = '<div class="u-s358">'
-            pairs_html += "".join(_event_row(it) for it in inline_items)
+            pairs_html += "".join(
+                _render_dramatic_event_row(
+                    it,
+                    ref_date=ref_date,
+                    is_hostile=is_hostile,
+                    fmt_date_fn=fmt_date_br,
+                    days_ago_fn=days_ago_str,
+                    pair_story_card_fn=pair_story_card,
+                )
+                for it in inline_items
+            )
             if overflow_items:
                 pairs_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
                     f'<div class="u-s358">'
-                    f'{"".join(_event_row(it) for it in overflow_items)}'
+                    f'{"".join(_render_dramatic_event_row(it, ref_date=ref_date, is_hostile=is_hostile, fmt_date_fn=fmt_date_br, days_ago_fn=days_ago_str, pair_story_card_fn=pair_story_card) for it in overflow_items)}'
                     f'</div>'
                     f'</details>'
                 )
@@ -846,6 +438,7 @@ else:
             fmt = card.get("format", "")
             reaction_reference_date = card.get("reaction_reference_date")
             neg_ranked = radar.get("neg_ranked", [])
+            neg_lanes = radar.get("neg_lanes", [])
             pos_ranked = radar.get("pos_ranked", [])
             not_targeted = radar.get("not_targeted", [])
 
@@ -860,135 +453,51 @@ else:
                     reaction_ref_pt = reaction_reference_date
                 subtitle = f"{subtitle} Reações de referência: {reaction_ref_pt}."
 
-            def _rank_chip(entry: dict, lane_type: str, is_top: bool, *, force_count: int | None = None) -> str:
-                name = entry.get("name", "")
-                first = name.split()[0] if name else "?"
-                slug = name.lower().replace(" ", "-")
-                count = force_count if force_count is not None else int(entry.get("count", 0) or 0)
-                lane_colors = {
-                    "attack": "#e67e22",
-                    "praise": "#27ae60",
-                    "safe": "#3498db",
-                }
-                avatar = _avatar_html(
-                    name,
-                    AVATARS,
-                    size=30,
-                    show_name=False,
-                    border_color=lane_colors.get(lane_type, "#666"),
-                    fallback_initials=True,
-                )
-                top_cls = " top" if is_top else ""
-                return (
-                    f'<a href="#perfil-{slug}" class="sinc-person-chip {lane_type}{top_cls}">'
-                    f'<span class="sinc-person-avatar">{avatar}</span>'
-                    f'<span class="sinc-person-meta">'
-                    f'<span class="sinc-person-name">{first}</span>'
-                    f'<span class="sinc-count-badge {lane_type}">{count}x</span>'
-                    f'</span>'
-                    f'</a>'
-                )
-
-            def _render_ranked_lane(
-                title: str,
-                icon: str,
-                ranked: list[dict],
-                empty_text: str,
-                lane_type: str,
-                *,
-                highlight_top: bool = True,
-                force_count: int | None = None,
-            ) -> str:
-                lane = [f'<div class="sinc-lane"><div class="sinc-lane-head">{icon} {title}</div>']
-                if not ranked:
-                    lane.append(f'<div class="sinc-empty">{empty_text}</div></div>')
-                    return "".join(lane)
-
-                top_count = ranked[0].get("count", 0)
-                inline_items = ranked[:INLINE_MAX_RANKED]
-                overflow_items = ranked[INLINE_MAX_RANKED:]
-                lane.append('<div class="sinc-people-grid">')
-                lane.extend(
-                    _rank_chip(
-                        it,
-                        lane_type,
-                        highlight_top and it.get("count", 0) == top_count,
-                        force_count=force_count,
+            lanes = []
+            if neg_lanes:
+                lanes.extend(
+                    _render_ranked_lane(
+                        lane.get("label", "Atacados"),
+                        "💣",
+                        lane.get("ranked", []),
+                        "Sem ataques na semana.",
+                        "attack",
+                        inline_max=INLINE_MAX_RANKED,
+                        avatar_html_fn=_avatar_html,
+                        avatars=AVATARS,
+                        avatar_size=30,
                     )
-                    for it in inline_items
+                    for lane in neg_lanes
                 )
-                lane.append('</div>')
-                if overflow_items:
-                    lane.append(
-                        f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
-                        f'<div class="sinc-more-list"><div class="sinc-people-grid">'
-                    )
-                    lane.extend(_rank_chip(it, lane_type, False, force_count=force_count) for it in overflow_items)
-                    lane.append('</div></div></details>')
-                lane.append('</div>')
-                return "".join(lane)
-
-            def _render_pair_lane(title: str, icon: str, pairs: list[dict], mode: str, *, show_header: bool = True) -> str:
-                lane = ['<div class="sinc-lane">']
-                if show_header:
-                    lane.append(f'<div class="sinc-lane-head">{icon} {title}</div>')
-                if not pairs:
-                    lane.append('<div class="sinc-empty">Sem casos nesta semana.</div></div>')
-                    return "".join(lane)
-
-                inline_items = pairs[:INLINE_MAX_PAIRS]
-                overflow_items = pairs[INLINE_MAX_PAIRS:]
-
-                def _pair_chip(item: dict) -> str:
-                    a_name = item.get("ator", "")
-                    b_name = item.get("alvo", "")
-                    a_first = a_name.split()[0] if a_name else "?"
-                    b_first = b_name.split()[0] if b_name else "?"
-                    a_slug = a_name.lower().replace(" ", "-")
-                    b_slug = b_name.lower().replace(" ", "-")
-                    tipo = item.get("tipo_label", "?")
-                    emoji = item.get("emoji", "?")
-                    if mode == "contra":
-                        detail = f"{tipo} mas dá {emoji}"
-                    else:
-                        detail = f"{tipo} + {emoji}"
-                    return (
-                        f'<span class="sinc-chip-muted">'
-                        f'<a href="#perfil-{a_slug}" class="sinc-chip">{a_first}</a>'
-                        f' → <a href="#perfil-{b_slug}" class="sinc-chip">{b_first}</a> '
-                        f'<span class="sinc-chip-muted">({detail})</span>'
-                        f'</span>'
-                    )
-
-                lane.append('<div class="sinc-chip-wrap">')
-                lane.extend(_pair_chip(it) for it in inline_items)
-                lane.append('</div>')
-                if overflow_items:
-                    lane.append(
-                        f'<details class="sinc-more"><summary>+{len(overflow_items)} restantes</summary>'
-                        f'<div class="sinc-more-list">'
-                    )
-                    lane.extend(_pair_chip(it) for it in overflow_items)
-                    lane.append('</div></details>')
-                lane.append('</div>')
-                return "".join(lane)
-
-            def _render_toggle_pair_lane(title: str, icon: str, pairs: list[dict], mode: str) -> str:
-                count = len(pairs)
-                body = _render_pair_lane(title, icon, pairs, mode, show_header=False)
-                return (
-                    f'<details class="sinc-toggle">'
-                    f'<summary>{icon} {title} <span class="sinc-toggle-count">({count})</span></summary>'
-                    f'{body}'
-                    f'</details>'
-                )
-
-            lanes = [
-                _render_ranked_lane("Atacados", "💣", neg_ranked, "Sem ataques na semana.", "attack"),
-            ]
+            else:
+                lanes = [
+                    _render_ranked_lane(
+                        "Atacados",
+                        "💣",
+                        neg_ranked,
+                        "Sem ataques na semana.",
+                        "attack",
+                        inline_max=INLINE_MAX_RANKED,
+                        avatar_html_fn=_avatar_html,
+                        avatars=AVATARS,
+                        avatar_size=30,
+                    ),
+                ]
 
             if pos_ranked:
-                lanes.append(_render_ranked_lane("Elogiados", "🏆", pos_ranked, "Sem elogios na semana.", "praise"))
+                lanes.append(
+                    _render_ranked_lane(
+                        "Elogiados",
+                        "🏆",
+                        pos_ranked,
+                        "Sem elogios na semana.",
+                        "praise",
+                        inline_max=INLINE_MAX_RANKED,
+                        avatar_html_fn=_avatar_html,
+                        avatars=AVATARS,
+                        avatar_size=30,
+                    )
+                )
 
             safe_ranked = [{"name": n, "count": 0} for n in not_targeted]
             lanes.append(
@@ -998,16 +507,34 @@ else:
                     safe_ranked,
                     "Ninguém ficou poupado na semana.",
                     "safe",
+                    inline_max=INLINE_MAX_RANKED,
+                    avatar_html_fn=_avatar_html,
+                    avatars=AVATARS,
+                    avatar_size=30,
                     highlight_top=False,
                     force_count=0,
                 )
             )
 
             toggle_sections = [
-                _render_toggle_pair_lane("Contradições", "⚡", contras, "contra"),
-                _render_toggle_pair_lane("Conflito Confirmado", "🎯", aligned_neg, "aligned"),
+                _render_toggle_pair_lane(
+                    "Contradições",
+                    "⚡",
+                    contras,
+                    "contra",
+                    inline_max=INLINE_MAX_PAIRS,
+                    render_pair_chip_fn=render_pair_chip,
+                ),
+                _render_toggle_pair_lane(
+                    "Conflito Confirmado",
+                    "🎯",
+                    aligned_neg,
+                    "aligned",
+                    inline_max=INLINE_MAX_PAIRS,
+                    render_pair_chip_fn=render_pair_chip,
+                ),
             ]
-            body_html = f'<div class="sinc-card">{"".join(lanes)}{"".join(toggle_sections)}</div>'
+            body_html = f'<div class="sinc-card" data-sinc-sync-card>{"".join(lanes)}{"".join(toggle_sections)}</div>'
             count_txt = f"{len(neg_ranked) + len(pos_ranked)}" if (neg_ranked or pos_ranked) else ""
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
@@ -1017,163 +544,49 @@ else:
 
         # ── 🗳️ Paredão ──
         elif ctype == "paredao":
-            nominees = card.get("nominees", [])
-            avatars_html = '<div class="u-s363">'
-            for name in nominees:
-                avatars_html += (
-                    f'<div class="u-s057">'
-                    f'{av(name, 60, "#e74c3c")}'
-                    f'<span class="fs-xs u-s270">{name.split()[0]}</span>'
-                    f'</div>'
-                )
-            avatars_html += '</div>'
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), subtitle="Participantes emparedados — clique para análise de votos e reações.")}
-{avatars_html}
-</div>''')
-
-        # ── 🎯 Mais Alvo ──
-        elif ctype == "mais_alvo":
-            items_accum = card.get("items", [])
-            items_recent = card.get("items_recent", [])
-            items_accum_all = card.get("items_all") or items_accum
-            items_recent_all = card.get("items_recent_all") or items_recent
-            total = card.get("total", len(items_accum))
-            card_id = "alvo-toggle"
-
-            def _render_alvo_rows(items, rid):
-                worst = abs(items[0]["score"]) if items else 1
-                html = f'<div id="{rid}" class="u-s058">'
-                inline_items = items[:5]
-                overflow_items = items[5:]
-                for it in inline_items:
-                    _name = it["name"]
-                    _slug = _name.lower().replace(" ", "-")
-                    score = it["score"]
-                    bar_pct = min(100, abs(score) / worst * 100)
-                    html += (
-                        f'<div class="u-s056">'
-                        f'<a href="#perfil-{_slug}" style="text-decoration:none">{av(_name, 42, "#c0392b")}</a>'
-                        f'<div class="u-s066">'
-                        f'<div class="u-s059">'
-                        f'<a href="#perfil-{_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_name.split()[0]}</a>'
-                        f'<span class="text-neg fs-sm">{score:.1f}</span>'
-                        f'</div>'
-                        f'<div class="u-s014">'
-                        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
-                        f'</div>'
-                        f'</div></div>'
-                    )
-                if overflow_items:
-                    html += (
-                        f'<details class="sinc-more">'
-                        f'<summary>+{len(overflow_items)} restantes</summary>'
-                        f'<div class="u-s058">'
-                    )
-                    for it in overflow_items:
-                        _name = it["name"]
-                        _slug = _name.lower().replace(" ", "-")
-                        score = it["score"]
-                        bar_pct = min(100, abs(score) / worst * 100)
-                        html += (
-                            f'<div class="u-s056">'
-                            f'<a href="#perfil-{_slug}" style="text-decoration:none">{av(_name, 42, "#c0392b")}</a>'
-                            f'<div class="u-s066">'
-                            f'<div class="u-s059">'
-                            f'<a href="#perfil-{_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_name.split()[0]}</a>'
-                            f'<span class="text-neg fs-sm">{score:.1f}</span>'
-                            f'</div>'
-                            f'<div class="u-s014">'
-                            f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e74c3c;border-radius:3px;"></div>'
-                            f'</div>'
-                            f'</div></div>'
-                        )
-                    html += '</div></details>'
-                html += '</div>'
-                return html
-
-            accum_html = _render_alvo_rows(items_accum_all, f"{card_id}-accum")
-            recent_html = _render_alvo_rows(items_recent_all, f"{card_id}-recent")
-
-            toggle_html = (
-                f'<div style="display:flex;gap:6px;margin-bottom:8px;">'
-                f'<button id="{card_id}-btn-accum" class="fs-2xs" onclick="'
-                f"document.getElementById('{card_id}-accum').style.display='block';"
-                f"document.getElementById('{card_id}-recent').style.display='none';"
-                f"this.style.opacity='1';document.getElementById('{card_id}-btn-recent').style.opacity='0.5';"
-                f'" style="padding:2px 8px;border:1px solid #555;border-radius:4px;background:#2a2a2a;color:#ccc;cursor:pointer;">Acumulado</button>'
-                f'<button id="{card_id}-btn-recent" class="fs-2xs" onclick="'
-                f"document.getElementById('{card_id}-recent').style.display='block';"
-                f"document.getElementById('{card_id}-accum').style.display='none';"
-                f"this.style.opacity='1';document.getElementById('{card_id}-btn-accum').style.opacity='0.5';"
-                f'" style="padding:2px 8px;border:1px solid #555;border-radius:4px;background:#2a2a2a;color:#ccc;cursor:pointer;opacity:0.5;">Recente</button>'
-                f'</div>'
-            )
-
-            # Recent starts hidden
-            recent_html = recent_html.replace(f'id="{card_id}-recent"', f'id="{card_id}-recent" style="display:none"', 1)
-
-            rows_html = toggle_html + accum_html + recent_html
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Quem mais foi alvo de indicações, votos e eventos de poder. Alterne entre visão acumulada e recente.")}
-{rows_html}
+            payload = card.get("payload") or {}
+            if PAREDAO_ATUAL:
+                _pa_numero = PAREDAO_ATUAL.get("numero")
+                _pa_history = build_paredao_history(PAREDOES_RAW, _pa_numero)
+                _pa_poll = get_poll_for_paredao(VOTALHADA_POLLS, _pa_numero)
+                payload = build_paredao_card_payload(PAREDAO_ATUAL, _pa_poll, VOTALHADA_POLLS, _pa_history)
+            status_badge = payload.get("status_label", "Em votação")
+            print(f'''<div class="info-panel highlight-card-span-3" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), status_badge, source_tag="🧮 Nosso Modelo", subtitle=card.get("subtitle", "Leitura atual do paredão; quando fechar, o card troca para o resultado oficial."))}
+{render_paredao_index_card(payload, AVATARS)}
 </div>''')
 
         # ── ⚔️ Mais Agressor ──
         elif ctype == "mais_agressor":
-            items = card.get("items", [])
-            items_all = card.get("items_all") or items
-            total = card.get("total", len(items))
-            worst_aggr = items_all[0].get("power_hits", 1) if items_all else 1
+            items_all = card.get("items_all") or card.get("items", [])
+            items_exited = card.get("items_exited", [])
+            total = card.get("total", len(items_all))
             inline_items = items_all[:5]
             overflow_items = items_all[5:]
+            max_hits = max((it.get("power_hits", 0) for it in items_all), default=1) or 1
+
             rows_html = '<div class="u-s058">'
-            for it in inline_items:
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                score = it.get("power_hits", 0)
-                bar_pct = min(100, score / worst_aggr * 100) if worst_aggr else 0
-                rows_html += (
-                    f'<div class="u-s056">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
-                    f'</div>'
-                    f'</div></div>'
-                )
+            rows_html += "".join(
+                _render_agressor_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS)
+                for it in inline_items
+            )
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s058">'
+                    f'<div class="u-s058">{"".join(_render_agressor_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in overflow_items)}</div>'
+                    f'</details>'
                 )
-                for it in overflow_items:
-                    name = it["name"]
-                    name_slug = name.lower().replace(" ", "-")
-                    score = it.get("power_hits", 0)
-                    bar_pct = min(100, score / worst_aggr * 100) if worst_aggr else 0
-                    rows_html += (
-                        f'<div class="u-s056">'
-                        f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
-                        f'<div class="u-s066">'
-                        f'<div class="u-s059">'
-                        f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                        f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score}</span>'
-                        f'</div>'
-                        f'<div class="u-s014">'
-                        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
-                        f'</div>'
-                        f'</div></div>'
-                    )
-                rows_html += '</div></details>'
+            if items_exited:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Mostrar eliminados ({len(items_exited)})</summary>'
+                    f'<div class="u-s058">{"".join(_render_agressor_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in items_exited)}</div>'
+                    f'</details>'
+                )
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Acumulado", subtitle="Quem mais fez indicações, monstro, vetos e outros ataques deliberados ao longo do jogo.")}
+{card_header(card["icon"], card["title"], card.get("link"), f"{total} ativos", source_tag="📈 Acumulado", subtitle="Quem mais fez indicações, monstros, vetos e outros ataques deliberados.")}
 {rows_html}
 </div>''')
 
@@ -1254,44 +667,24 @@ else:
             severity_badge = f"{strong_count} graves" if strong_count else None
             break_ref_date = card.get("reference_date") or latest.get("date")
 
-            def _break_row(it: dict) -> str:
-                g = it["giver"]
-                r = it["receiver"]
-                streak = it["streak"]
-                new_e = it.get("new_emoji", "?")
-                sev = it.get("severity", "mild")
-                sev_border = "#e74c3c" if sev == "strong" else "#8e44ad"
-                date_str = it.get("date", "")
-                try:
-                    date_fmt = datetime.strptime(date_str, "%Y-%m-%d").strftime("%d/%m")
-                except Exception:
-                    date_fmt = ""
-                age_txt = days_ago_str(date_str, break_ref_date)
-                when_txt = f"{date_fmt} ({age_txt})" if date_fmt and age_txt else (date_fmt or age_txt)
-                date_badge = f'<span class="fs-2xs" style="opacity:0.7;margin-left:auto">Rompimento: {when_txt}</span>' if when_txt else ""
-                alert_html = '<span class="fs-xs" style="color:#e74c3c;font-weight:700">🚨</span>' if sev == "strong" else ""
-                return (
-                    f'<div class="u-s342" style="border-left:3px solid {sev_border};">'
-                    f'{av(g, 42, av_group_border(g))}'
-                    f'<div class="u-s057">'
-                    f'<span class="fs-xs meta-chip">{streak}d ❤️</span>'
-                    f'<span class="fs-base">→ {new_e}</span>'
-                    f'</div>'
-                    f'{av(r, 42, av_group_border(r))}'
-                    f'{alert_html}'
-                    f'{date_badge}'
-                    f'</div>'
-                )
-
             inline_items = items[:4]
             overflow_items = items[4:]
             rows_html = '<div class="u-s357">'
-            rows_html += "".join(_break_row(it) for it in inline_items)
+            rows_html += "".join(
+                _render_break_row(
+                    it,
+                    break_ref_date=break_ref_date,
+                    fmt_date_fn=fmt_date_br,
+                    days_ago_fn=days_ago_str,
+                    pair_story_card_fn=pair_story_card,
+                )
+                for it in inline_items
+            )
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s357">{"".join(_break_row(it) for it in overflow_items)}</div>'
+                    f'<div class="u-s357">{"".join(_render_break_row(it, break_ref_date=break_ref_date, fmt_date_fn=fmt_date_br, days_ago_fn=days_ago_str, pair_story_card_fn=pair_story_card) for it in overflow_items)}</div>'
                     f'</details>'
                 )
             rows_html += '</div>'
@@ -1304,61 +697,207 @@ else:
         # ── 🛡️ Mais Blindados ──
         elif ctype == "blindados":
             items = card.get("items", [])
+            items_all = card.get("items_all") or items
+            display_limit = int(card.get("display_limit") or len(items) or 5)
             n_par = card.get("n_paredoes", 1)
-            inline_items = items[:5]
-            overflow_items = items[5:]
-
-            def _blindado_row(it: dict) -> str:
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                paredao_count = it.get("paredao", 0)
-                prot = it.get("protected", 0)
-                avail = it.get("available", 0)
-                votes = it.get("votes", 0)
-                has_bv = it.get("bv_escape", False)
-                prot_text = it.get("prot_text", "")
-
-                border = "#3498db" if prot >= 3 else ("#27ae60" if paredao_count == 0 else "#f39c12")
-                par_color = "#27ae60" if paredao_count == 0 else ("#f39c12" if paredao_count == 1 else "#e74c3c")
-                par_label = f"{paredao_count} paredão" if paredao_count == 1 else f"{paredao_count} paredões"
-                bar_pct = min(100, prot / n_par * 100) if n_par > 0 else 0
-                prot_badges = []
-                if has_bv:
-                    prot_badges.append("<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#1b3f5c;color:#9dd3ff;'>BV</span>")
-                if prot_text:
-                    prot_badges.append(f"<span class='fs-2xs' style='padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;'>{prot_text}</span>")
-                prot_badges_html = " ".join(prot_badges)
-                extra_badges = f"<div style='margin-top:3px;'>{prot_badges_html}</div>" if prot_badges_html else ""
-
-                return (
-                    f'<div class="u-s056" style="align-items:flex-start;">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:{par_color};font-weight:700;">{par_label}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#3498db;border-radius:3px;"></div>'
-                    f'</div>'
-                    f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} em {avail} elegível{"" if avail == 1 else "eis"} · protegido {prot}x</div>'
-                    f'{extra_badges}'
-                    f'</div></div>'
-                )
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
 
             rows_html = '<div class="u-s058">'
-            rows_html += "".join(_blindado_row(it) for it in inline_items)
+            rows_html += "".join(_render_blindado_row(it, n_par=n_par, avatar_fn=av) for it in inline_items)
             if overflow_items:
                 rows_html += (
                     f'<details class="sinc-more">'
                     f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s058">{"".join(_blindado_row(it) for it in overflow_items)}</div>'
+                    f'<div class="u-s058">{"".join(_render_blindado_row(it, n_par=n_par, avatar_fn=av) for it in overflow_items)}</div>'
                     f'</details>'
                 )
             rows_html += '</div>'
 
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle="Participantes mais protegidos nas votações da casa. Menos paredões + mais proteções = mais blindado.")}
+{rows_html}
+</div>''')
+
+        # ── 🎯 Mais Alvo ──
+        elif ctype == "visados":
+            items_all = card.get("items_all") or card.get("items", [])
+            items_exited = card.get("items_exited", [])
+            display_limit = int(card.get("display_limit") or 4)
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
+            max_hits = max((it.get("power_hits", 0) for it in items_all), default=1) or 1
+
+            rows_html = '<div class="u-s058">'
+            rows_html += "".join(
+                _render_na_mira_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS)
+                for it in inline_items
+            )
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s058">{"".join(_render_na_mira_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in overflow_items)}</div>'
+                    f'</details>'
+                )
+            if items_exited:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Mostrar eliminados ({len(items_exited)})</summary>'
+                    f'<div class="u-s058">{"".join(_render_na_mira_row(it, max_hits=max_hits, avatar_fn=av, tag_labels=POWER_TAG_LABELS) for it in items_exited)}</div>'
+                    f'</details>'
+                )
+            rows_html += '</div>'
+
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f"{card.get('total', len(items_all))} ativos", source_tag="📈 Acumulado", subtitle="Quem mais sofreu indicações, monstros, vetos e outros ataques deliberados.")}
+{rows_html}
+</div>''')
+
+        # ── ✨ Nunca foi ao Paredão ──
+        elif ctype == "nunca_paredao":
+            items = card.get("items", [])
+            items_all = card.get("items_all") or items
+            items_exited = card.get("items_exited", [])
+            display_limit = int(card.get("display_limit") or len(items) or 5)
+            n_par = card.get("n_paredoes", 1)
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
+
+            def _nunca_row(it: dict) -> str:
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                votes = it.get("votes_total", 0)
+                prot = it.get("protected", 0)
+                avail = it.get("available", 0)
+                status = it.get("status", "active")
+                is_exited = status != "active"
+                border = "#27ae60"
+                if is_exited:
+                    name_html = f'<span class="fs-md u-s068" style="color:#888;">{name.split()[0]}</span>'
+                    avatar = _avatar_html(name, AVATARS, size=42, show_name=False, border_color="#555", grayscale=True, fallback_initials=True)
+                    exit_label = it.get("status_label", "")
+                    exit_badge = f'<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#333;color:#888;">{exit_label}</span>' if exit_label else ""
+                else:
+                    name_html = f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    avatar = f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
+                    exit_badge = ""
+
+                cnote = it.get("context_note", "")
+                if cnote:
+                    stats_line = f'<div class="fs-2xs" style="color:#888;">{cnote}</div>'
+                else:
+                    stats_line = f'<div class="fs-2xs" style="color:#888;">{votes} voto{"s" if votes != 1 else ""} recebido{"s" if votes != 1 else ""} · protegido {prot}x de {avail} elegível</div>'
+
+                return (
+                    f'<div class="u-s056" style="align-items:flex-start;">'
+                    f'{avatar}'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'{name_html}'
+                    f'<span class="fs-sm" style="color:#27ae60;font-weight:700;">0 paredões</span>'
+                    f'</div>'
+                    f'{stats_line}'
+                    f'{exit_badge}'
+                    f'</div></div>'
+                )
+
+            rows_html = '<div class="u-s058">'
+            rows_html += "".join(_nunca_row(it) for it in inline_items)
+            if overflow_items:
+                rows_html += (
+                    f'<details class="sinc-more">'
+                    f'<summary>+{len(overflow_items)} restantes</summary>'
+                    f'<div class="u-s058">{"".join(_nunca_row(it) for it in overflow_items)}</div>'
+                    f'</details>'
+                )
+            if items_exited:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Saíram sem ir ao Paredão ({len(items_exited)})</summary>'
+                    f'<div class="u-s058">{"".join(_nunca_row({**it, "status": it.get("status", "exited")}) for it in items_exited)}</div>'
+                    f'</details>'
+                )
+            rows_html += '</div>'
+
+            context_line = card.get("context_line", "")
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f"{n_par} paredões", source_tag="📈 Acumulado", subtitle=context_line)}
+{rows_html}
+</div>''')
+
+        # ── 🔁 Figurinha Repetida ──
+        elif ctype == "figurinha_repetida":
+            items = card.get("items", [])
+            items_all = card.get("items_all") or items
+            display_limit = int(card.get("display_limit") or len(items) or 5)
+            inline_items = items_all[:display_limit]
+            overflow_items = items_all[display_limit:]
+            max_count = max((it.get("appearance_count", 0) for it in items_all), default=1) or 1
+
+            def _figurinha_row(it: dict) -> str:
+                name = it["name"]
+                name_slug = name.lower().replace(" ", "-")
+                count = it.get("appearance_count", 0)
+                is_active = it.get("active", True)
+                was_eliminated = it.get("was_eliminated", False)
+                returned = it.get("returned", False)
+                route_summary = it.get("route_summary", {})
+                border = "#8e44ad" if count >= 3 else ("#e67e22" if count >= 2 else "#7f8c8d")
+                bar_pct = min(100, count / max_count * 100) if max_count > 0 else 0
+
+                if is_active:
+                    name_html = f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
+                    avatar = f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, border)}</a>'
+                else:
+                    name_html = f'<span class="fs-md u-s068" style="color:#888;">{name.split()[0]}</span>'
+                    avatar = _avatar_html(name, AVATARS, size=42, show_name=False, border_color="#555", grayscale=True, fallback_initials=True)
+
+                count_badge = f'<span class="fs-sm" style="color:{border};font-weight:700;">{count}x</span>'
+                route_badges = []
+                for route, rcount in sorted(route_summary.items()):
+                    route_badges.append(
+                        f'<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;white-space:nowrap;">{route} {rcount}x</span>'
+                    )
+                extra = ""
+                if returned:
+                    extra += '<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;">Voltou 🔮</span>'
+                if was_eliminated:
+                    extra += '<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#5a1a1a;color:#ff9999;">Eliminado</span>'
+                badges_html = " ".join(route_badges) + (" " + extra if extra else "")
+
+                return (
+                    f'<div class="u-s056" style="align-items:flex-start;">'
+                    f'{avatar}'
+                    f'<div class="u-s066">'
+                    f'<div class="u-s059">'
+                    f'{name_html}'
+                    f'{count_badge}'
+                    f'</div>'
+                    f'<div class="u-s014">'
+                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
+                    f'</div>'
+                    f'<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;">{badges_html}</div>'
+                    f'</div></div>'
+                )
+
+            active_items = [it for it in items_all if it.get("active", True)]
+            eliminated_items = [it for it in items_all if not it.get("active", True)]
+
+            rows_html = '<div class="u-s058">'
+            rows_html += "".join(_figurinha_row(it) for it in active_items)
+            rows_html += '</div>'
+            if eliminated_items:
+                rows_html += (
+                    f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">'
+                    f'<summary>Eliminados ({len(eliminated_items)})</summary>'
+                    f'<div class="u-s058">{"".join(_figurinha_row(it) for it in eliminated_items)}</div>'
+                    f'</details>'
+                )
+
+            stat_line = card.get("stat_line", "")
+            print(f'''<div class="info-panel" style="border-left-color:{color};">
+{card_header(card["icon"], card["title"], card.get("link"), f'{len(active_items)} ativos', source_tag="📈 Acumulado", subtitle=stat_line)}
 {rows_html}
 </div>''')
 
@@ -1370,30 +909,9 @@ else:
             day_key = "vip" if is_vip else "xepa"
             max_days = max((it["total"] for it in items), default=1) or 1
 
-            def _render_vx_row(it):
-                name = it["name"]
-                name_slug = name.lower().replace(" ", "-")
-                days = it[day_key]
-                total = it["total"]
-                pct = round(days / total * 100) if total > 0 else 0
-                bar_pct = min(100, days / max_days * 100) if max_days > 0 else 0
-                return (
-                    f'<div class="u-s056">'
-                    f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 38, accent)}</a>'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<a href="#perfil-{name_slug}" class="fs-sm u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:{accent};font-weight:700;">{days}d ({pct}%)</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:{accent};border-radius:3px;"></div>'
-                    f'</div>'
-                    f'</div></div>'
-                )
-
             rows_html = '<div class="u-s058">'
             for it in items[:5]:
-                rows_html += _render_vx_row(it)
+                rows_html += _render_vx_row(it, day_key=day_key, accent=accent, max_days=max_days, avatar_fn=av)
             rows_html += '</div>'
 
             # Collapsible section for items beyond top 5
@@ -1406,7 +924,7 @@ else:
                     '<div class="u-s058">'
                 )
                 for it in rest:
-                    rows_html += _render_vx_row(it)
+                    rows_html += _render_vx_row(it, day_key=day_key, accent=accent, max_days=max_days, avatar_fn=av)
                 rows_html += '</div></details>'
 
             subtitle = "Quem passou mais dias no VIP ao longo do jogo." if is_vip else "Quem passou mais dias na Xepa ao longo do jogo."
@@ -1420,70 +938,9 @@ else:
             pass  # handled above in section header
 
     # ── 💰 Saldo de Estalecas (always last card, from profiles data) ──
-    saldo_profiles = sorted(
-        [p for p in index_data.get("profiles", []) if p.get("active", True)],
-        key=lambda x: x.get("balance", 0), reverse=True
-    )
-    if saldo_profiles:
-        max_bal = max(abs(p.get("balance", 0)) for p in saldo_profiles) or 1
-        inline_profiles = saldo_profiles[:5]
-        overflow_profiles = saldo_profiles[5:]
-        saldo_rows = '<div class="u-s355">'
-        medals = ["🥇", "🥈", "🥉", "4º", "5º"]
-        for i, p in enumerate(inline_profiles):
-            name = p["name"]
-            bal = p.get("balance", 0)
-            grupo = p.get("group", "")
-            cor = GROUP_COLORS.get(grupo, "#999")
-            bal_color = "#1a9850" if bal > 1000 else ("#66bd63" if bal > 0 else ("#888" if bal == 0 else "#e74c3c"))
-            label = medals[i] if i < len(medals) else f"{i+1}º"
-            bar_pct = min(100, abs(bal) / max_bal * 100) if max_bal > 0 else 0
-            saldo_rows += (
-                f'<div class="u-s056">'
-                f'{av(name, 42, cor)}'
-                f'<div class="u-s066">'
-                f'<div class="u-s059">'
-                f'<span class="fs-md u-s068">{label} {name.split()[0]}</span>'
-                f'<span class="fs-base" style="color:{bal_color};font-weight:700;">{bal:,}</span>'
-                f'</div>'
-                f'<div class="u-s014">'
-                f'<div style="width:{bar_pct:.0f}%;height:100%;background:{bal_color};border-radius:3px;"></div>'
-                f'</div>'
-                f'</div></div>'
-            )
-        if overflow_profiles:
-            saldo_rows += (
-                f'<details class="sinc-more">'
-                f'<summary>+{len(overflow_profiles)} restantes</summary>'
-                f'<div class="u-s355">'
-            )
-            for i, p in enumerate(overflow_profiles, start=len(inline_profiles) + 1):
-                name = p["name"]
-                bal = p.get("balance", 0)
-                grupo = p.get("group", "")
-                cor = GROUP_COLORS.get(grupo, "#999")
-                bal_color = "#1a9850" if bal > 1000 else ("#66bd63" if bal > 0 else ("#888" if bal == 0 else "#e74c3c"))
-                label = f"{i}º"
-                bar_pct = min(100, abs(bal) / max_bal * 100) if max_bal > 0 else 0
-                saldo_rows += (
-                    f'<div class="u-s056">'
-                    f'{av(name, 42, cor)}'
-                    f'<div class="u-s066">'
-                    f'<div class="u-s059">'
-                    f'<span class="fs-md u-s068">{label} {name.split()[0]}</span>'
-                    f'<span class="fs-base" style="color:{bal_color};font-weight:700;">{bal:,}</span>'
-                    f'</div>'
-                    f'<div class="u-s014">'
-                    f'<div style="width:{bar_pct:.0f}%;height:100%;background:{bal_color};border-radius:3px;"></div>'
-                    f'</div>'
-                    f'</div></div>'
-                )
-            saldo_rows += '</div></details>'
-        saldo_rows += '</div>'
-        print(f'''<div class="info-panel u-s199">
-{card_header("💰", "Saldo de Estalecas", "evolucao.html#saldo", source_tag="📸 Dado do dia", subtitle="Ranking dos participantes com mais estalecas. Moeda do jogo usada em compras e dinâmicas de poder.")}
-{saldo_rows}
-</div>''')
+    saldo_card = index_data.get("saldo_card", {})
+    if saldo_card:
+        print(render_saldo_card(saldo_card, avatar_fn=av))
 
     print('</div>')  # close grid
 ```
@@ -1492,20 +949,22 @@ else:
 #| label: paredao-status-card
 #| output: asis
 
-paredao_names = index_data.get("paredao", {}).get("names", [])
-if paredao_names:
-    status_text = "Em Votação"
-    status_color = "#e74c3c"
-    status_icon = "🗳️"
-    names_display = ", ".join(sorted(paredao_names))
-    detail_html = f'<div class="fs-lg u-s022">Emparedados: <strong>{names_display}</strong></div>'
-else:
-    status_text = "Aguardando formação"
-    status_color = "#6c757d"
-    status_icon = "⏳"
-    detail_html = '<div class="fs-base u-s020">Nenhum paredão ativo no momento</div>'
+paredao_card = index_data.get("paredao", {}).get("card")
+if not (paredao_card and paredao_card.get("state") != "empty"):
+    paredao_names = index_data.get("paredao", {}).get("names", [])
+    if paredao_names:
+        status_text = "Em Votação"
+        status_color = "#e74c3c"
+        status_icon = "🗳️"
+        names_display = ", ".join(sorted(paredao_names))
+        detail_html = f'<div class="fs-lg u-s022">Emparedados: <strong>{names_display}</strong></div>'
+    else:
+        status_text = "Aguardando formação"
+        status_color = "#6c757d"
+        status_icon = "⏳"
+        detail_html = '<div class="fs-base u-s020">Nenhum paredão ativo no momento</div>'
 
-print(f'''
+    print(f'''
 <div class="info-panel" style="padding: 1rem 1.2rem; margin: 1rem 0 1.5rem 0; border-left-color: {status_color}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
 <div>
 <div class="fs-xl u-s385">
@@ -1522,551 +981,6 @@ Ver análise →
 </div>
 ''')
 ```
-
-# Rankings {#ranking-sentimento}
-
-<style>
-.ranking-mobile-summary,
-.ranking-mobile-cta {
-  display: none;
-}
-
-.ranking-mobile-summary {
-  margin: 0.6rem 0 0.9rem;
-}
-
-.ranking-mobile-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 0.75rem 0.8rem;
-  margin-bottom: 0.65rem;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.ranking-mobile-card h4 {
-  margin: 0 0 0.45rem 0;
-  font-size: var(--fs-lg);
-  color: #fff;
-}
-
-.ranking-mobile-card ul {
-  margin: 0.25rem 0 0;
-  padding-left: 1rem;
-  line-height: 1.35;
-}
-
-.ranking-mobile-card li {
-  margin: 0.16rem 0;
-  color: #d0d0d0;
-  font-size: var(--fs-sm);
-}
-
-.ranking-mobile-kpis {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.ranking-mobile-kpi {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 0.35rem 0.25rem;
-  text-align: center;
-}
-
-.ranking-mobile-kpi .v {
-  display: block;
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.1;
-}
-
-.ranking-mobile-kpi .l {
-  display: block;
-  font-size: var(--fs-2xs);
-  color: #9aa0a6;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.ranking-mobile-note {
-  color: #9aa0a6;
-  font-size: var(--fs-xs);
-  line-height: 1.3;
-}
-
-@media (max-width: 575.98px) {
-  #cell-sentiment-ranking-today,
-  #cell-evolution-queridometro,
-  #cell-evolution-strategic {
-    display: none;
-  }
-
-  #tabset-1-1 > div:not(.ranking-mobile-summary),
-  #tabset-1-2 > div:not(.ranking-mobile-summary),
-  #tabset-2-2 > div:not(.ranking-mobile-summary),
-  #tabset-1-1 > p.text-muted.small,
-  #tabset-1-2 > p.text-muted.small {
-    display: none !important;
-  }
-
-  .ranking-desktop-only {
-    display: none !important;
-  }
-
-  .ranking-mobile-summary,
-  .ranking-mobile-cta {
-    display: block;
-  }
-}
-</style>
-
-```{python}
-#| label: composite-score-desc
-#| output: asis
-print(ANALYSIS_DESCRIPTIONS.get("composite_score_chart", ANALYSIS_DESCRIPTIONS.get("composite_score_brief", "")))
-```
-
-```{python}
-#| label: ranking-prep
-#| include: false
-
-ranking_data = index_data.get("ranking", {})
-_ranking_height = ranking_data.get("height", 500)
-today_rows = ranking_data.get("today", [])
-
-
-def _short_name(name):
-    return (name or "?").split()[0]
-
-
-def _fmt_signed(value, decimals=1):
-    return f"{value:+.{decimals}f}"
-
-
-def _render_list(rows, empty_text, value_fmt):
-    if not rows:
-        return f"<p class='ranking-mobile-note'>{empty_text}</p>"
-    items = []
-    for row in rows:
-        nm = _short_name(row["name"])
-        items.append(f"<li><strong>{nm}</strong>: {value_fmt(row)}</li>")
-    return "<ul>" + "".join(items) + "</ul>"
-
-
-def render_mobile_queridometro_summary(today_rows, change_week):
-    if not today_rows:
-        return "<div class='ranking-mobile-summary'><p class='ranking-mobile-note'>Sem dados de ranking.</p></div>"
-
-    df = pd.DataFrame(today_rows).copy()
-    df["score"] = pd.to_numeric(df.get("score", 0), errors="coerce").fillna(0.0)
-    df["hearts"] = pd.to_numeric(df.get("hearts", 0), errors="coerce").fillna(0.0)
-    df["negative"] = pd.to_numeric(df.get("negative", 0), errors="coerce").fillna(0.0)
-    df["touch"] = df["hearts"] + df["negative"]
-    df["neg_ratio"] = np.where(df["touch"] > 0, df["negative"] / df["touch"], 0.0)
-
-    kpi_blindados = int((df["score"] >= 4).sum())
-    kpi_neutros = int(((df["score"] >= -1) & (df["score"] <= 1)).sum())
-    kpi_alerta = int((df["score"] <= -2).sum())
-
-    pressure = (df[df["touch"] >= 8]
-                .sort_values(["neg_ratio", "negative"], ascending=[False, False])
-                .head(3))
-    pressure_rows = [{
-        "name": r["name"],
-        "neg_ratio": r["neg_ratio"],
-        "negative": r["negative"],
-        "hearts": r["hearts"],
-    } for _, r in pressure.iterrows()]
-
-    week_up = sorted(
-        [r for r in change_week if r.get("delta", 0) > 0],
-        key=lambda x: x.get("delta", 0),
-        reverse=True
-    )[:2]
-    week_down = sorted(
-        [r for r in change_week if r.get("delta", 0) < 0],
-        key=lambda x: x.get("delta", 0)
-    )[:2]
-
-    week_up_html = _render_list(
-        week_up,
-        "Sem subidas relevantes na semana.",
-        lambda r: f"<span class='u-s054'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>"
-    )
-    week_down_html = _render_list(
-        week_down,
-        "Sem quedas relevantes na semana.",
-        lambda r: f"<span class='u-s005'>{_fmt_signed(r.get('delta', 0), 1)} pts</span>"
-    )
-
-    pressure_html = _render_list(
-        pressure_rows,
-        "Sem pressão de rejeição acima da média hoje.",
-        lambda r: f"{(r['neg_ratio'] * 100):.0f}% negativas ({int(r['negative'])} neg / {int(r['hearts'])} ❤️)"
-    )
-
-    return (
-        '<div class="ranking-mobile-summary">\n'
-        '<div class="ranking-mobile-card">\n'
-        '<h4>📱 Radar rápido (hoje)</h4>\n'
-        '<div class="ranking-mobile-kpis">\n'
-        f'<div class="ranking-mobile-kpi"><span class="v">{kpi_blindados}</span><span class="l">blindados (≥4)</span></div>\n'
-        f'<div class="ranking-mobile-kpi"><span class="v">{kpi_neutros}</span><span class="l">zona cinza</span></div>\n'
-        f'<div class="ranking-mobile-kpi"><span class="v">{kpi_alerta}</span><span class="l">alerta (≤-2)</span></div>\n'
-        '</div>\n'
-        '<p class="ranking-mobile-note u-s013">Resumo diferente do card do topo: foco em risco e concentração, não em pódio.</p>\n'
-        '</div>\n'
-        '<div class="ranking-mobile-card">\n'
-        '<h4>🗓️ Viradas da semana</h4>\n'
-        '<p class="ranking-mobile-note u-s011">Maior alta</p>\n'
-        f'{week_up_html}\n'
-        '<p class="ranking-mobile-note u-s089">Maior queda</p>\n'
-        f'{week_down_html}\n'
-        '</div>\n'
-        '<div class="ranking-mobile-card">\n'
-        '<h4>🔥 Pressão de rejeição</h4>\n'
-        f'{pressure_html}\n'
-        '</div>\n'
-        '<div class="ranking-mobile-cta ranking-mobile-note">\n'
-        'Gráfico completo no desktop ou na página dedicada:\n'
-        '<a href="evolucao.html#sentimento" class="u-s059">ver evolução do queridômetro ↗</a>\n'
-        '</div>\n'
-        '</div>'
-    )
-
-
-def _recent_swings(data_rows, score_key, lookback_days=7):
-    if not data_rows:
-        return [], [], None, None
-
-    df = pd.DataFrame(data_rows).copy()
-    if df.empty or "name" not in df.columns or "date" not in df.columns or score_key not in df.columns:
-        return [], [], None, None
-
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"]).sort_values("date")
-    if df.empty:
-        return [], [], None, None
-
-    unique_dates = sorted(df["date"].drop_duplicates())
-    if len(unique_dates) < 2:
-        return [], [], None, None
-
-    start_idx = max(0, len(unique_dates) - 1 - lookback_days)
-    start_date = unique_dates[start_idx]
-    end_date = unique_dates[-1]
-
-    window = df[df["date"] >= start_date].copy()
-    first_vals = window.groupby("name")[score_key].first()
-    last_vals = window.groupby("name")[score_key].last()
-    deltas = (last_vals - first_vals).dropna()
-    if deltas.empty:
-        return [], [], start_date, end_date
-
-    top_up = deltas.sort_values(ascending=False).head(3)
-    top_down = deltas.sort_values().head(3)
-
-    up_rows = [{
-        "name": n,
-        "delta": float(v),
-        "current": float(last_vals.get(n, np.nan)),
-    } for n, v in top_up.items()]
-    down_rows = [{
-        "name": n,
-        "delta": float(v),
-        "current": float(last_vals.get(n, np.nan)),
-    } for n, v in top_down.items()]
-
-    return up_rows, down_rows, start_date, end_date
-
-
-def render_mobile_evolution_summary(data_rows, score_key, section_title, cta_href, score_decimals=1):
-    up_rows, down_rows, start_date, end_date = _recent_swings(data_rows, score_key, lookback_days=7)
-    if start_date is None or end_date is None:
-        return (
-            "<div class='ranking-mobile-summary'>"
-            "<p class='ranking-mobile-note'>Sem série temporal suficiente para resumo móvel.</p>"
-            "</div>"
-        )
-
-    date_window = f"{start_date.strftime('%d/%m')} → {end_date.strftime('%d/%m')}"
-    delta_fmt = lambda r: (
-        f"<span style='color:{'#27ae60' if r['delta'] >= 0 else '#e74c3c'};'>"
-        f"{_fmt_signed(r['delta'], score_decimals)}</span>"
-        f" (agora {r['current']:+.{score_decimals}f})"
-    )
-
-    up_html = _render_list(up_rows[:2], "Sem altas relevantes no período.", delta_fmt)
-    down_html = _render_list(down_rows[:2], "Sem quedas relevantes no período.", delta_fmt)
-
-    return (
-        '<div class="ranking-mobile-summary">\n'
-        '<div class="ranking-mobile-card">\n'
-        f'<h4>📈 {section_title} — últimos 7 dias</h4>\n'
-        f'<p class="ranking-mobile-note u-s011">Janela: {date_window}</p>\n'
-        '<p class="ranking-mobile-note u-s439">Subidas</p>\n'
-        f'{up_html}\n'
-        '<p class="ranking-mobile-note u-s089">Quedas</p>\n'
-        f'{down_html}\n'
-        '</div>\n'
-        '<div class="ranking-mobile-cta ranking-mobile-note">\n'
-        'Série completa:\n'
-        f'<a href="{cta_href}" class="u-s059">abrir gráficos detalhados ↗</a>\n'
-        '</div>\n'
-        '</div>'
-    )
-```
-
-::: {.panel-tabset}
-
-## Queridômetro
-
-```{python}
-#| label: ranking-mobile-summary-queridometro
-#| output: asis
-
-print(render_mobile_queridometro_summary(today_rows, ranking_data.get("change_week", [])))
-```
-
-```{python}
-#| label: sentiment-ranking-today
-
-fig = make_sentiment_ranking(today_rows, title_suffix=latest.get("label", ""), fixed_height=_ranking_height)
-fig.show()
-```
-
-## Evolução
-
-```{python}
-#| label: evolution-shared
-#| include: false
-
-# Shared setup for evolution charts
-_paredoes_markers = []
-_paredoes_json = load_paredoes_raw()
-if _paredoes_json.get('paredoes'):
-    for _p in _paredoes_json['paredoes']:
-        _paredoes_markers.append({
-            'date': pd.to_datetime(_p['data']),
-            'label': f"🗳️ {_p['numero']}º Paredão",
-        })
-
-# Consistent color palette across both charts
-_all_participants = sorted(set(
-    row["name"] for row in index_data.get("timeline", [])
-))
-_palette = (
-    px.colors.qualitative.Plotly + px.colors.qualitative.D3 +
-    px.colors.qualitative.Set2 + px.colors.qualitative.Bold
-)
-_part_colors = {name: _palette[i % len(_palette)] for i, name in enumerate(_all_participants)}
-
-
-def make_evolution_chart(data_rows, score_key, title, y_label, score_fmt="+.1f"):
-    """Build an evolution chart with rank annotations and paredão markers."""
-    if not data_rows:
-        return None
-
-    df = pd.DataFrame([{
-        "Data": pd.to_datetime(row["date"]),
-        "Participante": row["name"],
-        "Score": row[score_key],
-        "Grupo": row.get("group", "?"),
-        "Rank": row.get("rank"),
-    } for row in data_rows])
-
-    if df.empty or len(df['Data'].unique()) < 2:
-        return None
-
-    all_parts = sorted(df['Participante'].unique())
-
-    # Find biggest movers: participants with largest score change from first to last appearance
-    first_scores = df.sort_values('Data').groupby('Participante')['Score'].first()
-    last_scores = df.sort_values('Data').groupby('Participante')['Score'].last()
-    deltas = (last_scores - first_scores).dropna()
-
-    top5 = set(last_scores.nlargest(5).index)
-    bottom5 = set(last_scores.nsmallest(5).index)
-    movers = set(deltas.abs().nlargest(5).index)
-    highlight = top5 | bottom5
-
-    fig = go.Figure()
-
-    for name in all_parts:
-        df_p = df[df['Participante'] == name].sort_values('Data')
-        is_hl = name in highlight
-        is_mover = name in movers
-
-        # Use precomputed rank from data
-        ranks = df_p['Rank'].tolist() if 'Rank' in df_p.columns else [None] * len(df_p)
-
-        hover_text = [
-            f"{name}: {s:{score_fmt}} (#{r})" if r else f"{name}: {s:{score_fmt}}"
-            for s, r in zip(df_p['Score'], ranks)
-        ]
-
-        fig.add_trace(go.Scatter(
-            x=df_p['Data'], y=df_p['Score'],
-            mode='lines+markers',
-            name=f"{'📈 ' if is_mover and name in movers - highlight else ''}{name}",
-            line=dict(
-                width=3 if is_hl else 1.5,
-                color=_part_colors.get(name, '#999'),
-            ),
-            marker=dict(size=6 if is_hl else 3),
-            hovertext=hover_text,
-            hoverinfo='text',
-            visible=True if is_hl else 'legendonly',
-        ))
-
-    # Rank annotations at last date for visible traces
-    last_date = df['Data'].max()
-    last_df = df[df['Data'] == last_date].copy()
-    if 'Rank' not in last_df.columns or last_df['Rank'].isna().all():
-        last_df['Rank'] = last_df['Score'].rank(ascending=False, method='min').astype(int)
-    for _, row in last_df.iterrows():
-        if row['Participante'] in highlight:
-            fig.add_annotation(
-                x=last_date, y=row['Score'],
-                text=f"#{int(row['Rank'])}",
-                showarrow=False,
-                font=dict(size=9, color='#aaa'),
-                xshift=28,
-            )
-
-    # Zero line
-    fig.add_shape(type='line',
-                  x0=df['Data'].min(), x1=df['Data'].max(),
-                  y0=0, y1=0,
-                  line=dict(color='red', dash='dash', width=1))
-
-    # Paredão markers
-    y_min = df['Score'].min()
-    y_max = df['Score'].max()
-    y_range = [y_min - abs(y_max - y_min) * 0.1, y_max + abs(y_max - y_min) * 0.1]
-    for marker in _paredoes_markers:
-        if df['Data'].min() <= marker['date'] <= df['Data'].max():
-            fig.add_shape(
-                type='line', x0=marker['date'], x1=marker['date'],
-                y0=y_range[0], y1=y_range[1],
-                line=dict(color='#FF6B6B', dash='dot', width=1.5),
-            )
-            fig.add_annotation(
-                x=marker['date'], y=y_range[1],
-                text=marker['label'],
-                showarrow=False,
-                font=dict(size=10, color='#FF6B6B'),
-                yshift=10,
-            )
-
-    fig.update_layout(
-        title=title,
-        xaxis_title="Data",
-        yaxis_title=y_label,
-        height=max(550, len(all_parts) * 20),
-        hovermode='x',
-        legend=dict(
-            font=dict(size=10),
-            itemsizing='constant',
-            bgcolor='rgba(0,0,0,0.5)',
-        ),
-        margin=dict(r=200),
-    )
-
-    # Add updatemenus for quick presets
-    n_traces = len(all_parts)
-    fig.update_layout(
-        updatemenus=[dict(
-            type='buttons',
-            direction='right',
-            x=0.0, y=1.12,
-            xanchor='left', yanchor='top',
-            bgcolor='rgba(50,50,50,0.8)',
-            font=dict(color='#ccc', size=10),
-            buttons=[
-                dict(label='Top 5 + Bottom 5',
-                     method='update',
-                     args=[{'visible': [
-                         True if name in highlight else 'legendonly'
-                         for name in all_parts
-                     ] + [True] * (len(fig.data) - n_traces)}]),
-                dict(label='Maiores Mudanças',
-                     method='update',
-                     args=[{'visible': [
-                         True if name in movers else 'legendonly'
-                         for name in all_parts
-                     ] + [True] * (len(fig.data) - n_traces)}]),
-                dict(label='Todos',
-                     method='update',
-                     args=[{'visible': [True] * len(fig.data)}]),
-            ],
-        )]
-    )
-
-    return fig
-```
-
-::: {.panel-tabset}
-
-### Queridômetro
-
-```{python}
-#| label: evolution-queridometro
-#| output: asis
-
-timeline_data = index_data.get("timeline", [])
-print(render_mobile_evolution_summary(
-    timeline_data,
-    score_key="sentiment",
-    section_title="Evolução do queridômetro",
-    cta_href="evolucao.html#sentimento",
-    score_decimals=1,
-))
-fig_evo_q = make_evolution_chart(
-    timeline_data, "sentiment",
-    title="Evolução do Queridômetro",
-    y_label="Score de Sentimento (soma reações)",
-    score_fmt="+.1f",
-)
-if fig_evo_q:
-    fig_evo_q.show()
-    print("<p class='text-muted small u-s038'>Score = soma ponderada de reações recebidas (❤️ +1, leves −0.5, fortes −1). Use os botões acima para alternar entre presets.</p>")
-else:
-    print("<p class='text-muted'>Dados insuficientes para gráfico de evolução.</p>")
-```
-
-### Estratégico
-
-```{python}
-#| label: evolution-strategic
-#| output: asis
-
-strat_timeline_data = index_data.get("strategic_timeline", [])
-print(render_mobile_evolution_summary(
-    strat_timeline_data,
-    score_key="score",
-    section_title="Evolução estratégica",
-    cta_href="evolucao.html#estrategico",
-    score_decimals=2,
-))
-fig_evo_s = make_evolution_chart(
-    strat_timeline_data, "score",
-    title="Evolução do Score Estratégico",
-    y_label="Score Composto (média recebida)",
-    score_fmt="+.3f",
-)
-if fig_evo_s:
-    fig_evo_s.show()
-    print(f"<p class='text-muted small u-s038'>{ANALYSIS_DESCRIPTIONS['strategic_evolution_caption']}</p>")
-else:
-    print("<p class='text-muted'>Dados de relações não disponíveis para evolução estratégica.</p>")
-```
-
-:::
-
-:::
 
 # Tabela Cruzada de Reações {#crosstable}
 
@@ -2162,899 +1076,18 @@ from IPython.display import display, HTML as IPyHTML
 
 profiles = index_data.get("profiles", [])
 
-source_icons = {
-    'big fone': '📞',
-    'caixas-surpresa': '🎁',
-    'prova do líder': '👑',
-    'prova do anjo': '😇',
-    'castigo do monstro': '👹',
-    'dinâmica da casa': '🎬',
-}
-
-print("""
-<style>
-/* ═══ Profile Card ═══ */
-.profile-card {
-    background: #2a2a2a;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    margin-bottom: 1.5rem;
-}
-
-/* Hero header */
-.profile-hero-inner {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-}
-.profile-hero-inner .stat-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    position: relative;
-    margin-top: 0.4rem;
-    align-items: center;
-}
-
-/* Status strip */
-.profile-status-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.6rem 1rem;
-    border-bottom: 1px solid #444;
-    background: #333;
-}
-
-/* Status detail (tappable <details>) */
-.status-detail {
-    flex: 1;
-    min-width: 140px;
-}
-.status-detail summary {
-    cursor: pointer;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.8rem;
-    border-radius: 8px;
-}
-.status-detail summary::-webkit-details-marker { display: none; }
-.status-detail[open] .status-breakdown {
-    padding: 0.5rem 0.8rem;
-    font-size: var(--fs-sm);
-}
-.status-breakdown .sb-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.6rem;
-    padding: 0.15rem 0;
-    border-bottom: 1px solid #333;
-}
-.status-breakdown .sb-row:last-child { border-bottom: none; }
-.status-breakdown .sb-muted { color: #999; font-size: var(--fs-xs); margin-top: 0.3rem; }
-
-/* Reactions grid */
-.profile-reactions-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.8rem;
-    padding: 0.8rem 1rem;
-    border-bottom: 1px solid #444;
-    background: #333;
-}
-.rxn-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    background: #2f2f2f;
-    padding: 0.2rem 0.5rem;
-    border-radius: 8px;
-    font-size: var(--fs-md);
-    color: #ddd;
-}
-
-.rxn-detail summary::-webkit-details-marker { display: none; }
-.stat-row details { position: relative; display: inline; margin: 0; padding: 0; }
-.stat-row details > summary.rxn-chip {
-    list-style: none;
-    margin: 0;
-    padding: 0.2rem 0.5rem;
-    font-size: var(--fs-md);
-    line-height: 1.4;
-}
-.stat-row details > summary.rxn-chip::-webkit-details-marker { display: none; }
-.stat-row details > summary.rxn-chip::marker { display: none; content: ""; }
-.stat-row .rxn-chip { line-height: 1.4; font-size: var(--fs-md); }
-.rxn-detail[open] summary .rxn-hint { display: none; }
-
-/* Relations grid */
-.profile-relations {
-    padding: 0.8rem 1rem;
-    border-bottom: 1px solid #444;
-}
-.relation-section {
-    margin-bottom: 0.6rem;
-    padding: 0.5rem;
-    border-radius: 6px;
-}
-.relation-section:last-child { margin-bottom: 0; }
-.relation-label {
-    font-weight: 700;
-    font-size: var(--fs-md);
-    margin-bottom: 0.35rem;
-}
-.avatar-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: flex-start;
-}
-
-/* Game dynamics (collapsible) */
-.game-dynamics-detail summary {
-    cursor: pointer;
-    font-weight: 700;
-    color: #fff;
-    font-size: var(--fs-base);
-    padding: 0.6rem 0;
-    list-style: none;
-}
-.game-dynamics-detail summary::-webkit-details-marker { display: none; }
-.game-dynamics-detail summary::before {
-    content: '▶ ';
-    font-size: var(--fs-xs);
-    color: #888;
-}
-.game-dynamics-detail[open] summary::before {
-    content: '▼ ';
-}
-
-/* Curiosities */
-.curiosity-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.3rem 0;
-    font-size: var(--fs-base);
-    color: #ccc;
-}
-.curiosity-icon { font-size: var(--fs-lg); flex-shrink: 0; }
-
-/* Mobile responsive */
-@media (max-width: 600px) {
-    .profile-hero-inner {
-        flex-direction: column;
-        text-align: center;
-    }
-    .profile-hero-inner .stat-row {
-        justify-content: center;
-    }
-    .profile-status-strip {
-        flex-direction: column;
-    }
-    .profile-status-strip .status-detail {
-        min-width: 100%;
-    }
-    .profile-reactions-grid {
-        grid-template-columns: 1fr !important;
-    }
-}
-</style>
-""")
-
-def plant_color(score):
-    if score >= 80:
-        return "#2f7d46"
-    if score >= 60:
-        return "#6c8a3c"
-    if score >= 40:
-        return "#b9772a"
-    return "#a94442"
-
-def render_actor_avatars(actors, border_color="#666", color_lookup=None, size=24, skip_icons=None):
-    if not actors:
-        return ''
-    parts = []
-    for a in actors:
-        color = border_color
-        if color_lookup and a in color_lookup:
-            color = color_lookup[a]
-        if a in AVATARS and AVATARS[a]:
-            parts.append(
-                f'<img src="{AVATARS[a]}" style="width:{size}px;height:{size}px;border-radius:50%;'
-                f'border:1.5px solid {color};object-fit:cover;margin-right:-3px;">'
-            )
-        else:
-            icon = None
-            lower = a.lower() if isinstance(a, str) else ''
-            for k, v in source_icons.items():
-                if k in lower:
-                    icon = v
-                    break
-            if "dinâmica da casa" in lower:
-                continue
-            if icon and skip_icons and icon in skip_icons:
-                continue
-            parts.append(f'<span class="fs-base">{icon or "🎬"}</span>')
-    return ''.join(parts)
-
-
-def make_event_chips(events, border_color, color_lookup=None):
-    if not events:
-        return "<span class='u-s058'>—</span>"
-    chips = []
-    for ev in events:
-        emoji = ev.get("emoji", "•")
-        label = ev.get("label", ev.get("type"))
-        count = ev.get("count", 1)
-        actors = ev.get("actors", [])
-        count_prefix = f"{count}x " if count > 1 else ""
-        chip_border = border_color
-        actor_html = render_actor_avatars(
-            actors,
-            chip_border,
-            color_lookup=color_lookup,
-            size=20,
-            skip_icons={emoji} if emoji else None,
-        )
-        actor_label = " + ".join(actors) if actors else ""
-        title = f"{label} — {actor_label}" if actor_label else label
-        chips.append(
-            f"<span style='display:inline-flex; align-items:center; gap:0.25rem; background:#2f2f2f; "
-            f"border:1px solid {chip_border}; color:#ddd; border-radius:8px; padding:0.2rem 0.5rem; "
-            f"margin:0.1rem; line-height:1.4;' title='{title}' class='fs-md'>"
-            f"{count_prefix}{emoji} {label} {actor_html}</span>"
-        )
-    return ' '.join(chips)
-
-
-def render_status_chip(emoji, label, level, color, detail_html=""):
-    """Tappable status indicator with optional breakdown."""
-    r, g, b = int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
-    bg = f"rgba({r},{g},{b},0.12)"
-    if detail_html:
-        return (
-            f'<details class="status-detail">'
-            f'<summary style="background:{bg};border-left:3px solid {color};">'
-            f'<span class="fs-lg">{emoji}</span>'
-            f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
-            f'<div class="fs-2xs u-s061">{label}</div></div>'
-            f'</summary>'
-            f'<div class="status-breakdown">{detail_html}</div>'
-            f'</details>'
-        )
-    return (
-        f'<div style="display:flex;align-items:center;gap:0.4rem;background:{bg};'
-        f'padding:0.4rem 0.8rem;border-radius:8px;border-left:3px solid {color};flex:1;min-width:140px;">'
-        f'<span class="fs-lg">{emoji}</span>'
-        f'<div><div class="fs-sm" style="font-weight:700;color:{color};">{level}</div>'
-        f'<div class="fs-2xs u-s061">{label}</div></div>'
-        f'</div>'
-    )
-
-def render_avatar_row(items, border_color, max_show=999):
-    """Row of avatars with name + score under each. Shows ALL by default."""
-    if not items:
-        return '<span class="fs-md u-s058">—</span>'
-    html = '<div class="avatar-row">'
-    for item in items:
-        if isinstance(item, str):
-            n = item
-            score_html = ""
-        else:
-            n = item.get("name", "")
-            # Show "their_score" (what they think of me) as the primary displayed score
-            ts = item.get("their_score")
-            ms = item.get("my_score")
-            if ts is not None:
-                sc_color = "#28a745" if ts >= 0 else "#dc3545"
-                score_html = f'<div class="fs-2xs" style="color:{sc_color};font-weight:600;">{ts:+.1f}</div>'
-            elif ms is not None:
-                sc_color = "#28a745" if ms >= 0 else "#dc3545"
-                score_html = f'<div class="fs-2xs" style="color:{sc_color};font-weight:600;">{ms:+.1f}</div>'
-            else:
-                score_html = ""
-        first_name = n.split()[0] if n else ""
-        html += (
-            f'<div class="u-s352">'
-            f'{av(n, 48, border_color)}'
-            f'<div class="fs-2xs u-s266">{first_name}</div>'
-            f'{score_html}'
-            f'</div>'
-        )
-    html += '</div>'
-    return html
-
-
-COMP_LABELS = {
-    "power_event": "Eventos de poder",
-    "sincerao": "Sincerão",
-    "vote": "Votos",
-    "vip": "VIP",
-    "anjo": "Anjo",
-    "visibility": "Visibilidade",
-}
+render_actor_avatars = partial(_render_actor_avatars, avatars=AVATARS, source_icons=SOURCE_ICONS)
+make_event_chips = partial(_make_event_chips, render_actor_avatars_fn=render_actor_avatars)
+render_avatar_row = partial(_render_avatar_row, avatar_fn=av)
 
 for p in profiles:
-    name = p.get('name')
-    member_of = p.get('member_of', '?')
-    group = p.get('group', '?')
-    balance = p.get('balance', 0)
-    roles = p.get('roles', [])
-    score = p.get('score', 0)
-
-    rel = p.get("relations", {})
-    allies = rel.get("allies", [])
-    enemies = rel.get("enemies", [])
-    false_friends = rel.get("false_friends", [])
-    blind_targets = rel.get("blind_targets", [])
-
-    n_allies = len(allies)
-    n_enemies = len(enemies)
-    n_false_friends = len(false_friends)
-
-    ally_names = {a["name"] for a in allies}
-    enemy_names = {n["name"] for n in enemies}
-    false_friend_names = {n["name"] for n in false_friends}
-    blind_names = {n["name"] for n in blind_targets}
-
-    relation_colors = {}
-    relation_colors.update({n: "#28a745" for n in ally_names})
-    relation_colors.update({n: "#dc3545" for n in enemy_names})
-    relation_colors.update({n: "#ffc107" for n in false_friend_names})
-    relation_colors.update({n: "#6f42c1" for n in blind_names})
-
-    events = p.get("events", {})
-    pos_html = make_event_chips(events.get("pos_week", []), "#28a745", relation_colors)
-    neg_html = make_event_chips(events.get("neg_week", []), "#dc3545", relation_colors)
-    pos_hist_html = make_event_chips(events.get("pos_hist", []), "#2ecc71", relation_colors) if events.get("pos_hist") else ""
-    neg_hist_html = make_event_chips(events.get("neg_hist", []), "#e74c3c", relation_colors) if events.get("neg_hist") else ""
-    hist_html = ""
-    if events.get("pos_hist"):
-        hist_html += f"<span class='u-s055'>{pos_hist_html}</span>"
-    if events.get("neg_hist"):
-        hist_html += f"<span class='u-s271'>{neg_hist_html}</span>"
-
-    votes = p.get("votes_received", [])
-    if votes:
-        vote_rows = []
-        for v in votes:
-            voter = v.get("voter")
-            count = v.get("count", 1)
-            is_revealed = v.get("revealed", False)
-            count_badge = f'<span class="fs-2xs u-s148">{count}×</span>' if count > 1 else ""
-            border = relation_colors.get(voter, "#666")
-            reveal_badge = ' <span class="fs-sm u-s025">👁️</span>' if is_revealed else ""
-            voter_avatar = av(voter, 36, border) if voter in AVATARS else ""
-            voter_first = voter.split()[0] if voter else ""
-            vote_rows.append(
-                f"<div class='u-s334'>"
-                f"{voter_avatar}"
-                f"<span class='fs-base u-s272'>{voter_first}</span>"
-                f"{count_badge}{reveal_badge}</div>"
-            )
-        votes_html = ''.join(vote_rows)
-    else:
-        votes_html = ""
-
-    sinc = p.get("sincerao", {})
-    sinc_summary = sinc.get("summary", {})
-    sinc_current = sinc.get("current", {})
-    sinc_season = sinc.get("season", {})
-    sinc_total = sinc_summary.get("received_total", 0) + sinc_summary.get("given_total", 0)
-
-    # Build sincerao HTML: Recebeu + Fez for current week, then season history
-    sincerao_html = ""
-    if sinc_total > 0:
-        CURRENT_INLINE_MAX = 8
-        HISTORY_INLINE_MAX = 10
-        sinc_parts = []
-
-        def _render_profile_sinc_chip(ix: dict, who_key: str) -> str:
-            emoji = ix.get("emoji", "")
-            who_first = ix.get(who_key, "").split()[0] if ix.get(who_key) else ""
-            label = ix.get("label", "")
-            valence_cls = "pos" if ix.get("valence", "neg") == "pos" else "neg"
-            return (
-                f"<span class='profile-sinc-chip {valence_cls}'>"
-                f"{emoji} {who_first} <span class='profile-sinc-chip-text'>{label}</span></span>"
-            )
-
-        def _render_profile_row(row_label: str, interactions: list[dict], who_key: str, inline_max: int, week_prefix: str = "") -> str:
-            if not interactions:
-                return ""
-            inline = interactions[:inline_max]
-            overflow = interactions[inline_max:]
-            chips = "".join(_render_profile_sinc_chip(ix, who_key) for ix in inline)
-            row_html = (
-                f"<div class='profile-sinc-row'>"
-                f"{week_prefix}"
-                f"<span class='profile-sinc-label'>{row_label}</span>"
-                f"<div class='profile-sinc-chip-wrap'>{chips}</div>"
-                f"</div>"
-            )
-            if overflow:
-                overflow_chips = "".join(_render_profile_sinc_chip(ix, who_key) for ix in overflow)
-                row_html += (
-                    f"<details class='profile-sinc-more'>"
-                    f"<summary>+{len(overflow)} desta semana</summary>"
-                    f"<div class='profile-sinc-chip-wrap profile-sinc-overflow'>{overflow_chips}</div>"
-                    f"</details>"
-                )
-            return row_html
-
-        # -- Current week (Recebeu / Fez) --
-        current_rows = []
-        current_received = sinc_current.get("received", [])
-        if current_received:
-            current_rows.append(_render_profile_row("Recebeu", current_received, "actor", CURRENT_INLINE_MAX))
-
-        current_given = sinc_current.get("given", [])
-        if current_given:
-            current_rows.append(_render_profile_row("Fez", current_given, "target", CURRENT_INLINE_MAX))
-
-        if current_rows:
-            sinc_parts.append(f"<div class='profile-sinc-current'>{''.join(current_rows)}</div>")
-
-        # -- Season history (collapsed): both received AND given per past week --
-        received_by_week = sinc_season.get("received_by_week", [])
-        given_by_week = sinc_season.get("given_by_week", [])
-        current_wk = sinc.get("current_week")
-
-        past_weeks_set = set()
-        for w in received_by_week:
-            if w.get("week") != current_wk:
-                past_weeks_set.add(w["week"])
-        for w in given_by_week:
-            if w.get("week") != current_wk:
-                past_weeks_set.add(w["week"])
-
-        if past_weeks_set:
-            recv_lookup = {w["week"]: w["interactions"] for w in received_by_week}
-            given_lookup = {w["week"]: w["interactions"] for w in given_by_week}
-            history_rows = []
-            for wk in sorted(past_weeks_set, reverse=True):
-                week_parts = []
-                week_badge = f"<span class='profile-sinc-week'>S{wk}</span>"
-                week_badge_ghost = "<span class='profile-sinc-week ghost'></span>"
-
-                recv_ints = recv_lookup.get(wk, [])
-                if recv_ints:
-                    week_parts.append(
-                        _render_profile_row(
-                            "Recebeu",
-                            recv_ints,
-                            "actor",
-                            HISTORY_INLINE_MAX,
-                            week_prefix=week_badge,
-                        )
-                    )
-
-                given_ints = given_lookup.get(wk, [])
-                if given_ints:
-                    week_parts.append(
-                        _render_profile_row(
-                            "Fez",
-                            given_ints,
-                            "target",
-                            HISTORY_INLINE_MAX,
-                            week_prefix=(week_badge_ghost if recv_ints else week_badge),
-                        )
-                    )
-
-                if week_parts:
-                    history_rows.append(f"<div class='profile-sinc-week-block'>{''.join(week_parts)}</div>")
-
-            if history_rows:
-                n_past = len(past_weeks_set)
-                sinc_parts.append(
-                    f"<details class='profile-sinc-history'>"
-                    f"<summary>+ {n_past} semana{'s' if n_past > 1 else ''} anterior{'es' if n_past > 1 else ''}</summary>"
-                    f"<div class='profile-sinc-history-body'>{''.join(history_rows)}</div>"
-                    f"</details>"
-                )
-
-        sincerao_html = "".join(sinc_parts)
-
-    # Contradiction data (now inside sincerao.summary)
-    sinc_contra_count = sinc_summary.get("contradiction_count", 0)
-    sinc_contra_targets = sinc_summary.get("contradiction_targets", [])
-
-    risk_level = p.get("risk_level")
-    risk_color = p.get("risk_color")
-    external_level = p.get("external_level")
-    external_color = p.get("external_color")
-    animosity_level = p.get("animosity_level")
-    animosity_color = p.get("animosity_color")
-    scores_data = p.get("scores", {})
-
-    avatar_url = AVATARS.get(name, '')
-    cor_grupo = GROUP_COLORS.get(member_of, '#666')
-    name_slug = name.lower().replace(" ", "-")
-    role_text = ", ".join(roles) if roles else ""
-    score_color = '#28a745' if score >= 0 else '#dc3545'
-
-    # ═══ [1] HERO HEADER ═══
-    avatar_img = (
-        f'<img src="{avatar_url}" alt="{name}" '
-        f'style="width:88px;height:88px;border-radius:50%;object-fit:cover;'
-        f'border:3px solid {cor_grupo};flex-shrink:0;">'
-    ) if avatar_url else ""
-
-    group_pill = (
-        f'<span style="display:inline-block;background:{cor_grupo};color:#fff;'
-        f'padding:2px 8px;border-radius:10px;font-weight:600;" class="fs-xs">{member_of}</span>'
-    )
-    role_pill = (
-        f' <span class="fs-xs u-s372">{role_text}</span>'
-    ) if role_text else ""
-
-    vip_w = p.get("vip_weeks", 0)
-    xepa_w = p.get("xepa_weeks", 0)
-    current_group = group
-    group_label = "VIP" if current_group.lower() == "vip" else "Xepa"
-    group_chip_color = "#f1c40f" if current_group.lower() == "vip" else "#888"
-
-    # ── Game stats from precomputed data ──
-    gs = p.get("game_stats", {})
-    n_votes = gs.get("total_house_votes", 0)
-    n_paredoes = gs.get("paredao_count", 0)
-    cartola_pts = gs.get("cartola_total", 0)
-    cartola_rank = gs.get("cartola_rank")
-    prova_wins = gs.get("prova_wins", 0)
-
-    # Votos chip (expandable if has detail)
-    votes_detail_rows = ""
-    for vd in gs.get("house_votes_detail", []):
-        voters_str = ", ".join(vd.get("voters", []))
-        votes_detail_rows += (
-            f"<div class='u-s072'>"
-            f"<b>{vd.get('numero', '?')}º Paredão</b> ({vd.get('data', '')})<br>"
-            f"<span class='meta-inline'>Votaram: {voters_str}</span></div>"
-        )
-    if votes_detail_rows:
-        votos_chip = (
-            f'<details class="u-s061">'
-            f'<summary class="rxn-chip u-s208">'
-            f'🗳️ <b>{n_votes}</b> {"voto" if n_votes == 1 else "votos"}</summary>'
-            f'<div class="u-s472">'
-            f'{votes_detail_rows}</div></details>'
-        )
-    else:
-        votos_chip = (
-            f'<span class="rxn-chip u-s019">'
-            f'🗳️ <b>{n_votes}</b> votos</span>'
-        )
-
-    # Paredões chip (expandable if has history)
-    paredao_detail_rows = ""
-    for ph in gs.get("paredao_history", []):
-        res = ph.get("resultado", "?")
-        res_color = "#e74c3c" if res == "Eliminado" else "#2ecc71" if res == "Sobreviveu" else "#f1c40f"
-        vt = ph.get("voto_total")
-        vt_str = f" — {vt:.2f}%" if vt is not None else ""
-        paredao_detail_rows += (
-            f"<div class='u-s072'>"
-            f"<b>{ph.get('numero', '?')}º Paredão</b> ({ph.get('data', '')})<br>"
-            f"<span class='meta-inline'>Como: {ph.get('como', '?')}</span> · "
-            f"<span style='color:{res_color};'>{res}{vt_str}</span></div>"
-        )
-    if n_paredoes > 0 and paredao_detail_rows:
-        paredoes_chip = (
-            f'<details class="u-s061">'
-            f'<summary class="rxn-chip u-s207">'
-            f'🏛️ <b>{n_paredoes}</b> {"paredão" if n_paredoes == 1 else "paredões"}</summary>'
-            f'<div class="u-s473">'
-            f'{paredao_detail_rows}</div></details>'
-        )
-    else:
-        paredoes_chip = (
-            f'<span class="rxn-chip u-s019">'
-            f'🏛️ <b>0</b> paredões</span>'
-        )
-
-    # Cartola chip
-    rank_str = f" ({cartola_rank}º)" if cartola_rank else ""
-    cartola_chip = (
-        f'<span class="rxn-chip u-s206">'
-        f'🏆 <b>{cartola_pts}</b> pts{rank_str}</span>'
-    )
-
-    # Prova chip (only if wins > 0)
-    prova_chip = ""
-    if prova_wins > 0:
-        prova_chip = (
-            f'<span class="rxn-chip u-s203">'
-            f'🥇 <b>{prova_wins}</b> {"vitória" if prova_wins == 1 else "vitórias"}</span>'
-        )
-
-    # Bate e Volta chip (only if escapes > 0)
-    n_bv = gs.get("bv_escapes", 0)
-    bv_chip = ""
-    if n_bv > 0:
-        bv_chip = (
-            f'<span class="rxn-chip u-s204">'
-            f'🔄 <b>{n_bv}</b> Bate e Volta</span>'
-        )
-
-    stat_chips = (
-        f'<div class="stat-row">'
-        f'<span class="rxn-chip" style="border:1px solid {score_color};">'
-        f'<span style="font-weight:700;color:{score_color};">{score:+.1f}</span> Sentimento</span>'
-        f'<span class="rxn-chip u-s205">'
-        f'{balance:,} Saldo</span>'
-        f'<span class="rxn-chip" style="border:1px solid {group_chip_color};">'
-        f'<span style="font-weight:700;color:{group_chip_color};">{group_label}</span>'
-        f' VIP {vip_w}× · Xepa {xepa_w}×</span>'
-        f'{votos_chip}{paredoes_chip}{bv_chip}{cartola_chip}{prova_chip}'
-        f'</div>'
-    )
-
-    # ═══ [2] STATUS STRIP ═══
-    ff_names_list = [f["name"] for f in false_friends[:5]]
-    ff_names_str = ", ".join(ff_names_list)
-    if len(false_friends) > 5:
-        ff_names_str += f" +{len(false_friends) - 5}"
-    vuln_detail = (
-        f"<div class='sb-row'><span>Falsos amigos</span><span>{n_false_friends}</span></div>"
-        f"<div class='sb-row'><span>Aliados</span><span>{n_allies}</span></div>"
-        f"<div class='sb-row'><span>Inimigos</span><span>{n_enemies}</span></div>"
-        f"<div class='sb-row'><span>Alvos ocultos</span><span>{len(blind_targets)}</span></div>"
-    )
-    if ff_names_list:
-        vuln_detail += f"<div class='sb-muted'>Pontos cegos: {ff_names_str}</div>"
-    vuln_chip = render_status_chip("🎯", "Vulnerabilidade", risk_level, risk_color, vuln_detail)
-
-    ext_score = scores_data.get("external", 0)
-    ext_pos = scores_data.get("external_positive", 0)
-    ext_count = scores_data.get("external_count", 0)
-    ext_bd = scores_data.get("external_breakdown", {})
-    ext_detail = "".join(
-        f"<div class='sb-row'><span>{COMP_LABELS.get(k, k)}</span><span>{v:+.1f}</span></div>"
-        for k, v in sorted(ext_bd.items(), key=lambda x: x[1])
-    ) if ext_bd else "<div class='sb-muted'>Nenhum evento negativo recebido.</div>"
-    ext_detail += f"<div class='sb-muted'>Total: {ext_score:.1f} | Positivos: +{ext_pos:.1f} | Eventos: {ext_count}</div>"
-    impact_chip = render_status_chip("🎯", "Impacto Recebido", external_level, external_color, ext_detail)
-
-    anim_score = scores_data.get("animosity", 0)
-    anim_bd = scores_data.get("animosity_breakdown", {})
-    anim_detail = "".join(
-        f"<div class='sb-row'><span>{COMP_LABELS.get(k, k)}</span><span>{v:+.1f}</span></div>"
-        for k, v in sorted(anim_bd.items(), key=lambda x: x[1])
-    ) if anim_bd else "<div class='sb-muted'>Nenhum evento negativo causado.</div>"
-    anim_detail += f"<div class='sb-muted'>Total: {anim_score:.1f}</div>"
-    hostility_chip = render_status_chip("⚔️", "Agressividade", animosity_level, animosity_color, anim_detail)
-
-    plant_info = p.get("plant_index") or {}
-    plant_chip_html = ""
-    if plant_info and plant_info.get("score") is not None:
-        score_roll = plant_info.get("rolling", plant_info.get("score", 0))
-        score_val = int(round(score_roll))
-        plant_week_num = plant_info.get("week")
-        plant_color_hex = plant_color(score_val)
-        bd_rows = []
-        for item in plant_info.get("breakdown", []):
-            pts = item.get("points", 0)
-            if pts > 0:
-                bd_rows.append(f"<div class='sb-row'><span>{item.get('label', '')}</span><span>+{pts}</span></div>")
-        plant_detail = "".join(bd_rows) if bd_rows else "<div class='sb-muted'>Sem sinais fortes.</div>"
-        plant_detail += f"<div class='sb-muted'>Semana {plant_week_num} | Rolling {score_roll:.1f}</div>"
-        plant_chip_html = render_status_chip("🌱", "Planta Index", f"{score_val}/100", plant_color_hex, plant_detail)
-
-    contra_chip = ""
-    if sinc_contra_count:
-        targets_txt = ", ".join(sinc_contra_targets)
-        contra_detail = f"<div class='sb-muted'>Diz que não gosta no Sincerão, mas dá ❤️ para: {targets_txt}</div>"
-        contra_chip = render_status_chip("⚡", "Contradição", f"{sinc_contra_count}x", "#6f42c1", contra_detail)
-
-    status_chips = vuln_chip + impact_chip + hostility_chip
-    if plant_chip_html:
-        status_chips += plant_chip_html
-    if contra_chip:
-        status_chips += contra_chip
-
-    # ═══ [3] REACTIONS BAR ═══
-    rxn_received_chips = " ".join(
-        f'<span class="rxn-chip">{r["emoji"]}×{r["count"]}</span>'
-        for r in p.get('rxn_summary', [])
-    )
-    rxn_given_chips = " ".join(
-        f'<span class="rxn-chip">{r["emoji"]}×{r["count"]}</span>'
-        for r in p.get('given_summary', [])
-    )
-
-    # Expandable per-person reaction detail
-    received_detail = p.get("received_detail", [])
-    given_detail = p.get("given_detail", [])
-
-    def build_rxn_detail_html(detail_list):
-        if not detail_list:
-            return ""
-        # Group by emoji
-        groups = OrderedDict()
-        for d in detail_list:
-            emoji = d.get("emoji", "?")
-            groups.setdefault(emoji, []).append(d["name"])
-        rows = []
-        for emoji, names_list in groups.items():
-            avatars_html = "".join(
-                f'<div class="u-s351">'
-                f'{av(n, 36, "#555")}'
-                f'<div class="fs-2xs u-s265">{n.split()[0]}</div>'
-                f'</div>'
-                for n in names_list
-            )
-            rows.append(
-                f'<div class="u-s037">'
-                f'<div class="fs-md u-s405">{emoji} ({len(names_list)})</div>'
-                f'<div class="u-s359">{avatars_html}</div>'
-                f'</div>'
-            )
-        return "".join(rows)
-
-    received_detail_html = build_rxn_detail_html(received_detail)
-    given_detail_html = build_rxn_detail_html(given_detail)
-
-    # ═══ [4] RELATIONS GRID ═══
-    relations_html = (
-        '<div class="fs-xs u-s244">'
-        'Score = queridômetro + eventos acumulados (votos, poder, Sincerão). '
-        'Positivo = relação boa · Negativo = hostilidade.'
-        '</div>'
-    )
-    if allies:
-        relations_html += (
-            f'<div class="relation-section u-s188">'
-            f'<div class="relation-label u-s055">✅ Aliados ({n_allies})</div>'
-            f'{render_avatar_row(allies, "#28a745")}'
-            f'<div class="fs-sm u-s245">Score positivo mútuo. Votos seguros.</div>'
-            f'</div>'
-        )
-    if enemies:
-        enemy_emoji_text = ", ".join(
-            f'{e["name"].split()[0]} ({e.get("my_emoji","?")}↔{e.get("their_emoji","?")})'
-            for e in enemies[:6]
-        )
-        relations_html += (
-            f'<div class="relation-section u-s169">'
-            f'<div class="relation-label u-s062">⚔️ Inimigos ({n_enemies})</div>'
-            f'{render_avatar_row(enemies, "#dc3545")}'
-            f'<div class="fs-sm u-s252">{enemy_emoji_text}</div>'
-            f'<div class="fs-sm u-s057">Score negativo mútuo. Votos contra esperados.</div>'
-            f'</div>'
-        )
-    if false_friends:
-        ff_emoji_text = ", ".join(
-            f'<span class="u-s062">{f["name"].split()[0]} ({f.get("their_emoji","?")})</span>'
-            for f in false_friends[:6]
-        )
-        relations_html += (
-            f'<div class="relation-section u-s184">'
-            f'<div class="relation-label u-s293">⚠️ Falsos Amigos ({n_false_friends}) — PERIGO</div>'
-            f'{render_avatar_row(false_friends, "#ffc107")}'
-            f'<div class="fs-sm u-s079">{ff_emoji_text}</div>'
-            f'<div class="fs-sm u-s057">Seu score é positivo, o deles negativo. Votam contra 2-3×.</div>'
-            f'</div>'
-        )
-    if blind_targets:
-        bt_emoji_text = ", ".join(
-            f'<span class="u-s028">{b["name"].split()[0]} ({b.get("my_emoji","?")})</span>'
-            for b in blind_targets[:6]
-        )
-        relations_html += (
-            f'<div class="relation-section u-s165">'
-            f'<div class="relation-label u-s028">🗡️ Alvos Ocultos ({len(blind_targets)})</div>'
-            f'{render_avatar_row(blind_targets, "#6f42c1")}'
-            f'<div class="fs-sm u-s079">{bt_emoji_text}</div>'
-            f'<div class="fs-sm u-s057">Seu score é negativo, o deles positivo. Não sabem.</div>'
-            f'</div>'
-        )
-
-    # ═══ [5] GAME DYNAMICS ═══
-    has_dynamics = (events.get('pos_week') or events.get('neg_week') or votes or sincerao_html
-                    or events.get('pos_hist') or events.get('neg_hist'))
-    dynamics_html = ""
-    if has_dynamics:
-        dynamics_inner = ""
-        if events.get('pos_week'):
-            dynamics_inner += (
-                f"<div class='u-s338'>"
-                f"<strong class='fs-base u-s055'>+ Benefícios</strong> {pos_html}</div>"
-            )
-        if events.get('neg_week'):
-            dynamics_inner += (
-                f"<div class='u-s337'>"
-                f"<strong class='fs-base u-s062'>− Prejuízos</strong> {neg_html}</div>"
-            )
-        if votes:
-            dynamics_inner += (
-                f"<div class='u-s037'>"
-                f"<strong class='fs-base u-s294'>🗳️ Votos recebidos</strong>"
-                f"<div class='u-s353'>{votes_html}</div></div>"
-            )
-        if sincerao_html:
-            sinc_count_label = f" ({sinc_total})" if sinc_total else ""
-            dynamics_inner += (
-                f"<div style='display:flex;flex-direction:column;gap:2px'>"
-                f"<strong class='fs-base u-s025'>🔥 Sincerão{sinc_count_label}</strong>{sincerao_html}</div>"
-            )
-        if events.get('pos_hist') or events.get('neg_hist'):
-            dynamics_inner += (
-                f"<div class='u-s335'>"
-                f"<strong class='fs-base u-s061'>📜 Histórico</strong> {hist_html}</div>"
-            )
-        dynamics_html = (
-            f'<div class="u-s465">'
-            f'<div class="fs-base u-s390">⚡ Dinâmicas do Jogo</div>'
-            f'<div class="fs-base">{dynamics_inner}</div>'
-            f'</div>'
-        )
-
-    # ═══ [6] CURIOSIDADES ═══
-    curiosities = p.get("curiosities", [])
-    curiosities_html = ""
-    if curiosities:
-        items_html = "".join(
-            f'<div class="curiosity-item">'
-            f'<span class="curiosity-icon">{c["icon"]}</span>'
-            f'<span>{c["text"]}</span></div>'
-            for c in curiosities
-        )
-        curiosities_html = (
-            f'<div class="u-s464">'
-            f'<div class="fs-base u-s391">💡 Curiosidades</div>'
-            f'{items_html}</div>'
-        )
-
-    # ═══ ASSEMBLE CARD ═══
-    relations_content = relations_html if relations_html else '<div class="fs-base u-s058">Sem relações classificadas.</div>'
-    card_html = (
-        f'<div id="perfil-{name_slug}" class="profile-card u-s039">'
-        f'<div style="background:linear-gradient(90deg,rgba(48,48,48,0.9),rgba(48,48,48,0.3));border-left:5px solid {cor_grupo};">'
-        f'<div class="profile-hero-inner">'
-        f'{avatar_img}'
-        f'<div>'
-        f'<h3 class="fs-2xl u-s434">{name}</h3>'
-        f'<div class="u-s356">'
-        f'{group_pill}{role_pill}'
-        f'</div>'
-        f'{stat_chips}'
-        f'</div>'
-        f'</div>'
-        f'</div>'
-        f'<div class="profile-status-strip">'
-        f'{status_chips}'
-        f'</div>'
-        f'<div class="profile-reactions-grid">'
-        f'<div>'
-        f'<details class="rxn-detail">'
-        f'<summary class="u-s046">'
-        f'<div class="fs-sm u-s068">RECEBEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>'
-        f'{rxn_received_chips}'
-        f'</summary>'
-        f'<div class="u-s103">{received_detail_html}</div>'
-        f'</details>'
-        f'</div>'
-        f'<div>'
-        f'<details class="rxn-detail">'
-        f'<summary class="u-s046">'
-        f'<div class="fs-sm u-s068">DEU <span class="rxn-hint fs-2xs u-s065">▶ clique p/ detalhes</span></div>'
-        f'{rxn_given_chips}'
-        f'</summary>'
-        f'<div class="u-s103">{given_detail_html}</div>'
-        f'</details>'
-        f'</div>'
-        f'</div>'
-        f'{dynamics_html}'
-        f'<div class="profile-relations">'
-        f'{relations_content}'
-        f'</div>'
-        f'{curiosities_html}'
-        f'</div>'
+    card_html = render_profile_card(
+        p,
+        avatars=AVATARS,
+        group_colors=GROUP_COLORS,
+        avatar_fn=av,
+        make_event_chips_fn=make_event_chips,
+        render_avatar_row_fn=render_avatar_row,
     )
     display(IPyHTML(card_html))
 ```

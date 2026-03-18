@@ -6,6 +6,7 @@ lang: pt-BR
 format:
   html:
     code-tools: false
+    body-classes: paredao-page
 execute:
   echo: false
   warning: false
@@ -18,27 +19,29 @@ execute:
 import json
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
 from collections import defaultdict, Counter
+from html import escape
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
     load_snapshots_full, build_reaction_matrix,
     load_reaction_matrices, deserialize_matrix,
-    load_paredoes_transformed,
+    load_paredoes_transformed, load_index_data,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     build_precision_methodology_text,
-    require_clean_manual_events, calc_sentiment, setup_bbb_dark_theme,
-    genero, get_nominee_badge,
+    require_clean_manual_events, prepare_plotly_for_quarto, setup_bbb_dark_theme,
+    genero, get_nominee_badge, resolve_leaders,
     make_poll_timeseries,
     avatar_html, avatar_img,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     ANALYSIS_DESCRIPTIONS,
 )
-from paredao_viz import build_paredao_history
+from paredao_viz import build_paredao_history, render_featured_story
+prepare_plotly_for_quarto()
+import plotly.express as px
+import plotly.graph_objects as go
 
 require_clean_manual_events()
 setup_bbb_dark_theme()
@@ -109,14 +112,13 @@ if len(paredoes_finalizados) >= 1:
         salvos = [x for x in p['participantes'] if x['resultado'] not in ('ELIMINADA', 'QUARTO_SECRETO')]
         is_falso = p.get('paredao_falso', False)
 
-        _col_label = '→ Q. Secreto' if is_falso else 'Eliminado(a)'
         _num_label = f"{p['numero']}º 🔮" if is_falso else f"{p['numero']}º"
+        _selected_name = mais_votado['nome'] if mais_votado else '—'
 
         row = {
             'Nº': _num_label,
             'Data': p['data'],
-            _col_label: mais_votado['nome'] if mais_votado else '—',
-            'Grupo': mais_votado['grupo'] if mais_votado else '—',
+            'Eliminado(a)': _selected_name,
             'Voto Único': f"{mais_votado['voto_unico']:.1f}%" if mais_votado and mais_votado.get('voto_unico') else '—',
             'Voto Torcida': f"{mais_votado['voto_torcida']:.1f}%" if mais_votado and mais_votado.get('voto_torcida') else '—',
             'Média Final': f"{mais_votado['voto_total']:.1f}%" if mais_votado else '—',
@@ -124,11 +126,15 @@ if len(paredoes_finalizados) >= 1:
         }
         hist_rows.append(row)
 
-    df_hist = pd.DataFrame(hist_rows)
-    print(df_hist.to_markdown(index=False))
+    df_hist = pd.DataFrame(hist_rows).fillna('—')
+    print('<div class="scroll-x poll-elim-summary-wrap">')
+    print(df_hist.to_html(index=False, classes='table table-striped table-sm poll-elim-summary', border=0, escape=False))
+    print('</div>')
 ```
 
-## Precisão das Enquetes (Votalhada)
+## Precisão das Enquetes (Votalhada) {#precisão-das-enquetes-votalhada}
+
+> **Nota metodológica (10 de março de 2026):** o Votalhada passou a exibir uma nova `Média Final Ponderada (0,3 x 0,7)` e removeu a série horária do card final. Temporariamente, este arquivo mantém a **fórmula anterior**, ponderada pelo número de votos de cada plataforma, enquanto analisamos o impacto da mudança e recalculamos comparações históricas.
 
 ```{python}
 #| label: poll-accuracy-summary
@@ -313,7 +319,8 @@ if len(finalized_polls) >= 1:
 
     # Platform accuracy table
     print("\n### 🏆 Precisão por Plataforma\n")
-    print('<table class="table table-striped table-sm u-s447">')
+    print('<div class="scroll-x poll-precision-table-wrap">')
+    print('<table class="table table-striped table-sm u-s447 poll-precision-table">')
     print('<thead><tr><th>Plataforma</th>')
     for poll in finalized_polls:
         print(f'<th class="tc">{poll["numero"]}º Par.</th>')
@@ -346,7 +353,7 @@ if len(finalized_polls) >= 1:
 
     # Add consolidado row
     consolidado_errs = [abs(r['enquete'] - r['voto_total']) for r in poll_vs_votes]
-    print(f'<tr class="u-s049"><td><strong>📊 Votalhada</strong></td>')
+    print('<tr class="poll-precision-row-votalhada"><td><strong>📊 Votalhada</strong></td>')
     for err in consolidado_errs:
         err_color = '#3CB44B' if err < 10 else '#f39c12' if err < 20 else '#E6194B'
         print(f'<td class="tc"><span style="color:{err_color};">{err:.1f}</span></td>')
@@ -360,7 +367,7 @@ if len(finalized_polls) >= 1:
         _bt_results = backtest['per_paredao']
         model_errs = [r['model_mae'] for r in _bt_results if r['model_mae'] is not None]
         if model_errs:
-            print(f'<tr class="u-s048"><td><strong>🧮 Nosso Modelo</strong></td>')
+            print('<tr class="poll-precision-row-model"><td><strong>🧮 Nosso Modelo</strong></td>')
             for r in _bt_results:
                 if r['model_mae'] is not None:
                     err_color = '#3CB44B' if r['model_mae'] < 10 else '#f39c12' if r['model_mae'] < 20 else '#E6194B'
@@ -377,7 +384,7 @@ if len(finalized_polls) >= 1:
             print(f'<td class="tc">{medal_m}</td>')
             print('</tr>')
 
-    print('</tbody></table>')
+    print('</tbody></table></div>')
     print('<p class="text-muted small">Erro = diferença em pontos percentuais entre previsão e resultado real (Média Final). Nosso Modelo usa leave-one-out cross-validation.</p>\n')
 
     # ── Platform Average Error Bar Chart ──
@@ -502,7 +509,7 @@ if len(finalized_polls) >= 1:
     # ══════════════════════════════════════════════════════════════
     if backtest and len(backtest['per_paredao']) >= 3:
         _bt_agg = backtest['aggregate']
-        print("\n## 🧮 Nosso Modelo — Back-test\n")
+        print("\n## 🧮 Nosso Modelo — Teste retrospectivo {#nosso-modelo-back-test}\n")
         _method_text = build_precision_methodology_text(polls_data)
         # Convert markdown bold to HTML
         import re as _re
@@ -716,9 +723,9 @@ for pr in _paredoes_raw:
         continue
     num = pr["numero"]
     form = pr.get("formacao", {})
-    # Líder can't receive votes
-    if form.get("lider"):
-        ineligible_map[form["lider"]].append((num, "Líder"))
+    # Líder(es) can't receive votes
+    for l in resolve_leaders(form):
+        ineligible_map[l].append((num, "Líder"))
     # Already nominated (indicados_finais)
     for ind in pr.get("indicados_finais", []):
         ineligible_map[ind["nome"]].append((num, "no Paredão"))
@@ -755,14 +762,29 @@ if never_voted:
     print('</div>')
 else:
     # All have received votes — show most shielded (lowest eligibility ratio)
+    # Count BV escapes per participant from paredão data
+    _bv_escapes: Counter = Counter()
+    for pr in _paredoes_raw:
+        if not pr.get("votos_casa"):
+            continue
+        _form = pr.get("formacao", {})
+        _indicados = {(ind["nome"] if isinstance(ind, dict) else ind)
+                      for ind in pr.get("indicados_finais", [])}
+        _bv = _form.get("bate_volta", {}) or {}
+        _bv_winners = _bv.get("vencedores") or ([_bv["vencedor"]] if _bv.get("vencedor") else [])
+        for _bw in _bv_winners:
+            if _bw and _bw not in _indicados:
+                _bv_escapes[_bw] += 1
+
     eligibility = {}
     for name in active_names:
         exemptions = ineligible_map.get(name, [])
         n_eligible = n_paredoes_with_votes - len(exemptions)
         votes = sum(len(voters) for voters in target_votes.get(name, {}).values())
+        bv_n = _bv_escapes.get(name, 0)
         eligibility[name] = {'eligible': n_eligible, 'total': n_paredoes_with_votes,
                              'ratio': n_eligible / n_paredoes_with_votes if n_paredoes_with_votes else 1,
-                             'votes': votes, 'exemptions': exemptions}
+                             'votes': votes, 'exemptions': exemptions, 'bv_escapes': bv_n}
 
     # Show participants eligible in ≤ 50% of paredões, or top 3 least eligible
     shielded = sorted(eligibility.items(), key=lambda x: (x[1]['ratio'], x[1]['votes']))
@@ -780,12 +802,14 @@ else:
         url = AVATARS.get(name, '')
         pct = data['ratio'] * 100
         color = '#3498db' if pct <= 40 else '#f1c40f' if pct <= 60 else '#aaa'
+        bv_n = data.get('bv_escapes', 0)
+        bv_label = f' + {bv_n} Bate-Volta' if bv_n > 0 else ''
         print(f'<div class="tc u-s484">')
         if url:
             print(f'<img src="{url}" width="56" height="56" style="border-radius:50%; border:3px solid {color};" alt="{name}" title="{name}">')
         print(f'<div class="fs-sm u-s082">{name}</div>')
         print(f'<div class="fs-base tabnum" style="color:{color}; font-weight:700; margin-top:2px;">{data["eligible"]}/{data["total"]}</div>')
-        print(f'<div class="fs-2xs meta-text">elegível ({pct:.0f}%)</div>')
+        print(f'<div class="fs-2xs meta-text">elegível ({pct:.0f}%){bv_label}</div>')
         if data['exemptions']:
             # Group reasons
             from collections import Counter as _Ctr
@@ -797,6 +821,148 @@ else:
     print('</div>')
     print('</div>')
 
+```
+
+### Nunca foi ao Paredão {#nunca-paredao}
+
+> O card "Intocáveis" acima mostra quem nunca recebeu votos da casa. Esta seção mostra quem **nunca foi ao Paredão** — conceitos diferentes, pois é possível receber votos sem ser o mais votado.
+
+```{python}
+#| output: asis
+_idx_data = load_index_data()
+_nunca_card = None
+_fig_card = None
+if _idx_data:
+    for _c in _idx_data.get("highlights", {}).get("cards", []):
+        if _c.get("type") == "nunca_paredao":
+            _nunca_card = _c
+        elif _c.get("type") == "figurinha_repetida":
+            _fig_card = _c
+
+if _nunca_card:
+    _items = _nunca_card.get("items_all", [])
+    _exited = _nunca_card.get("items_exited", [])
+    _n_par = _nunca_card.get("n_paredoes", 0)
+    if _items or _exited:
+        print(f'<div class="info-panel" style="border-left-color:#27ae60;">')
+        print(f'<h4 class="u-s074">✨ Nunca foi ao Paredão</h4>')
+        print(f'<p class="fs-base u-s262">{_nunca_card.get("context_line", "")}</p>')
+        print(f'<div class="u-s058">')
+        for _it in _items:
+            _name = _it["name"]
+            _votes = _it.get("votes_total", 0)
+            _prot = _it.get("protected", 0)
+            _avail = _it.get("available", 0)
+            _url = AVATARS.get(_name, "")
+            print(f'<div class="u-s056">')
+            if _url:
+                print(f'<img src="{_url}" width="56" height="56" style="border-radius:50%; border:3px solid #27ae60;" alt="{_name}" title="{_name}">')
+            print(f'<div class="u-s066">')
+            print(f'<div class="fs-sm u-s082">{_name}</div>')
+            print(f'<div class="fs-2xs" style="color:#888;">{_votes} voto{"s" if _votes != 1 else ""} · protegido {_prot}x de {_avail} elegível</div>')
+            print(f'</div></div>')
+        if _exited:
+            print(f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">')
+            print(f'<summary>Saíram sem ir ao Paredão ({len(_exited)})</summary>')
+            print(f'<div class="u-s058">')
+            for _it in _exited:
+                _name = _it["name"]
+                _label = _it.get("status_label", "")
+                _cnote = _it.get("context_note", "")
+                _votes = _it.get("votes_total", 0)
+                _prot = _it.get("protected", 0)
+                _avail = _it.get("available", 0)
+                _url = AVATARS.get(_name, "")
+                print(f'<div class="u-s056">')
+                if _url:
+                    print(f'<img src="{_url}" width="56" height="56" style="border-radius:50%; border:3px solid #555; filter:grayscale(100%);" alt="{_name}" title="{_name}">')
+                print(f'<div class="u-s066">')
+                print(f'<div class="fs-sm u-s082" style="color:#888;">{_name}</div>')
+                if _cnote:
+                    print(f'<div class="fs-2xs" style="color:#666;">{_label} · {_cnote}</div>')
+                else:
+                    print(f'<div class="fs-2xs" style="color:#666;">{_label} · {_votes} voto{"s" if _votes != 1 else ""} · protegido {_prot}x de {_avail} elegível</div>')
+                print(f'</div></div>')
+            print(f'</div>')
+            print(f'</details>')
+        print(f'</div></div>')
+    else:
+        print('<p class="fs-base text-muted">Todos os participantes ativos já foram ao Paredão.</p>')
+else:
+    print('<p class="fs-base text-muted">Dados não disponíveis.</p>')
+```
+
+### Figurinha Repetida {#figurinha-repetida}
+
+```{python}
+#| output: asis
+if _fig_card:
+    _items = _fig_card.get("items_all", [])
+    _stats = _fig_card.get("stats", {})
+    _stat_line = _fig_card.get("stat_line", "")
+    def _render_fig_item(_it):
+        _name = _it["name"]
+        _count = _it.get("appearance_count", 0)
+        _is_active = _it.get("active", True)
+        _routes = _it.get("route_summary", {})
+        _returned = _it.get("returned", False)
+        _was_elim = _it.get("was_eliminated", False)
+        _url = AVATARS.get(_name, "")
+        _border = "#8e44ad" if _count >= 3 else ("#e67e22" if _count >= 2 else "#7f8c8d")
+        print(f'<div class="u-s056" style="align-items:flex-start;">')
+        if _url:
+            _gs = ' filter:grayscale(100%);' if not _is_active else ''
+            _bc = _border if _is_active else '#555'
+            print(f'<img src="{_url}" width="56" height="56" style="border-radius:50%; border:3px solid {_bc};{_gs}" alt="{_name}" title="{_name}">')
+        print(f'<div class="u-s066">')
+        _name_style = '' if _is_active else ' style="color:#888;"'
+        print(f'<div class="fs-sm u-s082"{_name_style}>{_name} <span style="color:{_border};font-weight:700;">{_count}x</span></div>')
+        _badges = []
+        for _r, _rc in sorted(_routes.items()):
+            _badges.append(f'<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#2d1b3f;color:#d9b3ff;">{_r} {_rc}x</span>')
+        if _returned:
+            _badges.append('<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#123b2a;color:#8fe3b8;">Voltou 🔮</span>')
+        if _was_elim:
+            _badges.append('<span class="fs-2xs" style="padding:1px 6px;border-radius:999px;background:#5a1a1a;color:#ff9999;">Eliminado</span>')
+        _history = _it.get("history", [])
+        _hist_parts = []
+        for _h in _history:
+            _hres = "✅" if _h["resultado"] == "sobreviveu" else ("🔮" if _h["resultado"] == "quarto_secreto" else "❌")
+            _pct = f' ({_h["voto_total"]:.1f}%)' if _h.get("voto_total") is not None else ""
+            _hist_parts.append(f'P{_h["numero"]}{_pct} {_hres}')
+        print(f'<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:4px;">{" ".join(_badges)}</div>')
+        if _hist_parts:
+            print(f'<div class="fs-2xs" style="color:#888;margin-top:2px;">{" · ".join(_hist_parts)}</div>')
+        print(f'</div></div>')
+
+    if _items:
+        _active_fig = [_it for _it in _items if _it.get("active", True)]
+        _elim_fig = [_it for _it in _items if not _it.get("active", True)]
+        print(f'<div class="info-panel" style="border-left-color:#8e44ad;">')
+        print(f'<h4 class="u-s074">🔁 Figurinha Repetida</h4>')
+        if _stat_line:
+            print(f'<p class="fs-base u-s262">{_stat_line}</p>')
+        print(f'<div class="u-s058">')
+        for _it in _active_fig:
+            _render_fig_item(_it)
+        print(f'</div>')
+        if _elim_fig:
+            print(f'<details class="sinc-more" style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">')
+            print(f'<summary>Eliminados ({len(_elim_fig)})</summary>')
+            print(f'<div class="u-s058">')
+            for _it in _elim_fig:
+                _render_fig_item(_it)
+            print(f'</div>')
+            print(f'</details>')
+        print(f'</div>')
+    else:
+        print('<p class="fs-base text-muted">Nenhum participante foi ao Paredão mais de uma vez.</p>')
+else:
+    print('<p class="fs-base text-muted">Dados não disponíveis.</p>')
+```
+
+```{python}
+#| output: asis
 # ── Vote target table (all participants) ─────────────────────────────────────
 # Grayscale helpers for exited participants
 def avatar_html_bw(name, avatars, size, is_active):
@@ -861,14 +1027,20 @@ n_snapshots = len(snapshots)
 latest = snapshots[-1]
 print(f'<p class="text-muted small">📅 Dados disponíveis: <strong>{snapshots[0]["label"]}</strong> → <strong>{latest["label"]}</strong> ({n_snapshots} coletas)</p>')
 
+paredoes_visiveis = [p for p in paredoes if p.get('status') in ('finalizado', 'em_andamento')]
+
 # Generate Bootstrap nav-tabs
 tabs_html = '<ul class="nav nav-tabs" id="paredaoTabs" role="tablist">'
-for i, paredao in enumerate(reversed(paredoes_finalizados)):
+for i, paredao in enumerate(reversed(paredoes_visiveis)):
     par_num = paredao['numero']
-    mais_votado = next((x for x in paredao['participantes'] if x['resultado'] in ('ELIMINADA', 'QUARTO_SECRETO')), None)
-    mv_name = mais_votado['nome'].split()[0] if mais_votado else '?'
+    is_finalizado = paredao.get('status') == 'finalizado'
+    mais_votado = next((x for x in paredao['participantes'] if x.get('resultado') in ('ELIMINADA', 'QUARTO_SECRETO')), None)
+    mv_name = mais_votado['nome'].split()[0] if mais_votado else 'ao vivo'
     is_falso = paredao.get('paredao_falso', False)
-    tab_label = f'{par_num}º Paredão Falso ({mv_name})' if is_falso else f'{par_num}º Paredão ({mv_name})'
+    if not is_finalizado:
+        tab_label = f'{par_num}º Paredão (ao vivo)'
+    else:
+        tab_label = f'{par_num}º Paredão Falso ({mv_name})' if is_falso else f'{par_num}º Paredão ({mv_name})'
     active = 'active' if i == 0 else ''
     selected = 'true' if i == 0 else 'false'
     tabs_html += f'''
@@ -892,19 +1064,20 @@ _prec_all = calculate_precision_weights(polls_data)
 # Pre-load raw paredões data for history building (once, not per-loop)
 _raw_paredoes_arc = json.loads(Path('data/paredoes.json').read_text(encoding='utf-8')).get('paredoes', [])
 
-# Generate tab content for each finalized paredão
+# Generate tab content for each visible paredão
 print('<div class="tab-content" id="paredaoTabsContent">')
 
-for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent first
+for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
     par_num = paredao['numero']
     par_date = paredao['data']
+    is_finalizado = paredao.get('status') == 'finalizado'
 
     analysis_date = paredao.get('data_formacao') or par_date
     snap_p, matrix_p, idx_p = get_snapshot_for_date(analysis_date, snapshots, all_matrices)
     snap_participants = snap_p['participants']
 
-    mais_votado = next((x for x in paredao['participantes'] if x['resultado'] in ('ELIMINADA', 'QUARTO_SECRETO')), None)
-    salvos = [x for x in paredao['participantes'] if x['resultado'] not in ('ELIMINADA', 'QUARTO_SECRETO')]
+    mais_votado = next((x for x in paredao['participantes'] if x.get('resultado') in ('ELIMINADA', 'QUARTO_SECRETO')), None)
+    salvos = [x for x in paredao['participantes'] if x.get('resultado') not in ('ELIMINADA', 'QUARTO_SECRETO')]
 
     # Tab pane wrapper
     active = 'show active' if i == 0 else ''
@@ -912,7 +1085,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     _par_type = 'Paredão Falso' if _is_par_falso else 'Paredão'
     print(f'<div class="tab-pane fade {active}" id="paredao-{par_num}" role="tabpanel" aria-labelledby="tab-{par_num}">')
     print(f'<h3 class="u-s039">{par_num}º {_par_type} — {paredao["data"]}</h3>')
-    print(f'<p class="text-muted small">📅 Coerência social usa queridômetro do dia <strong>{analysis_date}</strong> (formação). Score base: 70% janela reativa + 30% memória de sequência.</p>')
+    if is_finalizado:
+        print(f'<p class="text-muted small">📅 Coerência social usa queridômetro do dia <strong>{analysis_date}</strong> (formação). Score base: 70% janela reativa + 30% memória de sequência.</p>')
+    else:
+        print(f'<p class="text-muted small">📅 Paredão em andamento. A coerência social usa o queridômetro mais recente disponível em <strong>{analysis_date}</strong>.</p>')
 
     # ══════════════════════════════════════════════════════════════
     # HEADER WITH RESULT CARDS
@@ -938,6 +1114,11 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                 suf = 'A' if genero(nome) == 'f' else 'O'
                 badge_text = f'ELIMINAD{suf}'
             img_filter = 'grayscale(100%)'
+        elif not is_finalizado:
+            border_color = '#f39c12'
+            badge_bg = '#f39c12'
+            badge_text = 'NA BERLINDA'
+            img_filter = 'none'
         else:
             border_color = '#3CB44B'
             badge_bg = '#3CB44B'
@@ -958,7 +1139,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             print(f'<img src="{avatar_url}" alt="{nome}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
         print(f'<div class="fs-base u-s063">{first_name}</div>')
         print(f'<span class="fs-2xs" style="display:inline-block; padding:0.15rem 0.4rem; background:{badge_bg}; color:#fff; border-radius:8px; font-weight:bold; margin:0.2rem 0;">{badge_text}</span>')
-        print(f'<div class="fs-xl u-s063">{voto_total:.1f}%</div>')
+        if is_finalizado:
+            print(f'<div class="fs-xl u-s063">{voto_total:.1f}%</div>')
+        else:
+            print(f'<div class="fs-2xs meta-text" style="margin-top:0.35rem;">{part.get("como", "Ainda no paredão")}</div>')
         print('</div>')
     print('</div>')
 
@@ -992,42 +1176,48 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     # ══════════════════════════════════════════════════════════════
 
     df_p = pd.DataFrame(paredao['participantes'])
-    has_breakdown = 'voto_unico' in df_p.columns and df_p['voto_unico'].notna().all()
+    has_result = is_finalizado and 'resultado' in df_p.columns and 'voto_total' in df_p.columns and df_p['voto_total'].notna().all()
+    has_breakdown = has_result and 'voto_unico' in df_p.columns and df_p['voto_unico'].notna().all()
 
-    fig = go.Figure()
+    if has_result:
+        fig = go.Figure()
 
-    if has_breakdown:
+        if has_breakdown:
+            fig.add_trace(go.Bar(
+                x=df_p['nome'], y=df_p['voto_unico'],
+                text=[f"{v:.1f}%" for v in df_p['voto_unico']],
+                textposition='outside', name='Voto Único (70%)',
+                marker_color='#1976D2',
+            ))
+            fig.add_trace(go.Bar(
+                x=df_p['nome'], y=df_p['voto_torcida'],
+                text=[f"{v:.1f}%" for v in df_p['voto_torcida']],
+                textposition='outside', name='Voto Torcida (30%)',
+                marker_color='#FF9800',
+            ))
+
+        colors_total = ['#E6194B' if r == 'ELIMINADA' else '#3CB44B' for r in df_p['resultado']]
         fig.add_trace(go.Bar(
-            x=df_p['nome'], y=df_p['voto_unico'],
-            text=[f"{v:.1f}%" for v in df_p['voto_unico']],
-            textposition='outside', name='Voto Único (70%)',
-            marker_color='#1976D2',
-        ))
-        fig.add_trace(go.Bar(
-            x=df_p['nome'], y=df_p['voto_torcida'],
-            text=[f"{v:.1f}%" for v in df_p['voto_torcida']],
-            textposition='outside', name='Voto Torcida (30%)',
-            marker_color='#FF9800',
+            x=df_p['nome'], y=df_p['voto_total'],
+            text=[f"{v:.1f}%" for v in df_p['voto_total']],
+            textposition='outside', name='Média Final',
+            marker_color=colors_total,
         ))
 
-    colors_total = ['#E6194B' if r == 'ELIMINADA' else '#3CB44B' for r in df_p['resultado']]
-    fig.add_trace(go.Bar(
-        x=df_p['nome'], y=df_p['voto_total'],
-        text=[f"{v:.1f}%" for v in df_p['voto_total']],
-        textposition='outside', name='Média Final',
-        marker_color=colors_total,
-    ))
-
-    fig.update_layout(
-        title=dict(text=f"Resultado: {par_num}º Paredão", y=0.95, x=0.5, xanchor='center'),
-        xaxis_title="", yaxis_title="Votos (%)",
-        yaxis_range=[0, max(df_p['voto_total'].max(), df_p.get('voto_torcida', pd.Series([0])).max()) * 1.25],
-        barmode='group',
-        height=400,
-        margin=dict(t=80),
-        legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
-    )
-    fig.show()
+        fig.update_layout(
+            title=dict(text=f"Resultado: {par_num}º Paredão", y=0.95, x=0.5, xanchor='center'),
+            xaxis_title="", yaxis_title="Votos (%)",
+            yaxis_range=[0, max(df_p['voto_total'].max(), df_p.get('voto_torcida', pd.Series([0])).max()) * 1.25],
+            barmode='group',
+            height=400,
+            margin=dict(t=80),
+            legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+        )
+        fig.show()
+    else:
+        print('<div class="info-panel" style="margin:0.8rem 0 1.1rem; border-left-color:#f39c12;">')
+        print('<strong>Resultado ainda aberto.</strong> O gráfico de votação aparece aqui quando o paredão for encerrado. Até lá, a leitura abaixo foca na formação, nas relações e na narrativa do alvo.')
+        print('</div>')
 
     # ══════════════════════════════════════════════════════════════
     # COERÊNCIA SOCIAL (votos + indicações vs queridômetro da formação)
@@ -1216,7 +1406,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
                 print('</tr>')
 
-        print(f'<tr class="u-s049"><td><strong>📊 Votalhada</strong></td>')
+        print('<tr class="poll-precision-row-votalhada"><td><strong>📊 Votalhada</strong></td>')
         _cvals = [consolidado.get(n, 0) for n in participantes_poll]
         for nome in participantes_poll:
             val = consolidado.get(nome, 0)
@@ -1229,7 +1419,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         # Model row
         _tab_model = predict_precision_weighted(poll, _prec_all) if _prec_all.get('sufficient') else None
         if _tab_model:
-            print(f'<tr class="u-s048"><td><strong>🧮 Nosso Modelo</strong></td>')
+            print('<tr class="poll-precision-row-model"><td><strong>🧮 Nosso Modelo</strong></td>')
             _amvals = [_tab_model['prediction'].get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = _tab_model['prediction'].get(nome, 0)
@@ -1420,44 +1610,6 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
         print(f"<br>**{n_incoerente}/{total}** incoerentes (deu ❤️ mas votou contra)\n")
 
     # ══════════════════════════════════════════════════════════════
-    # RANKING DE SENTIMENTO (compact)
-    # ══════════════════════════════════════════════════════════════
-
-    sentiment_data = []
-    for p in snap_participants:
-        if p.get('characteristics', {}).get('eliminated'):
-            continue
-        name = p['name']
-        score = calc_sentiment(p)
-        member_of = p.get('characteristics', {}).get('memberOf', '?')
-        sentiment_data.append({'name': name, 'score': score, 'memberOf': member_of})
-
-    df_sent = pd.DataFrame(sentiment_data).sort_values('score', ascending=True)
-
-    print(f"\n### Ranking de Sentimento ({snap_p['label']})\n")
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=df_sent['name'],
-        x=df_sent['score'],
-        orientation='h',
-        marker_color=[GROUP_COLORS.get(m, '#999') for m in df_sent['memberOf']],
-        text=[f"{s:+.1f}" for s in df_sent['score']],
-        textposition='outside',
-    ))
-
-    fig.update_layout(
-        xaxis_title="Score",
-        yaxis_title="",
-        height=max(400, len(df_sent) * 22),
-        margin=dict(l=120, t=30),
-        shapes=[dict(type='line', x0=0, x1=0, y0=-0.5, y1=len(df_sent)-0.5,
-                     line=dict(color='red', dash='dash', width=1))]
-    )
-
-    fig.show()
-
-    # ══════════════════════════════════════════════════════════════
     # PER-NOMINEE ANALYSIS — Structured storytelling per nominee
     # Uses precomputed data from paredao_analysis.json
     # ══════════════════════════════════════════════════════════════
@@ -1468,6 +1620,7 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
     vagg = _pa_entry.get("vote_aggregates", {})
     per_nominee_data = _pa_entry.get("per_nominee", {})
     indicator_reactions = _pa_entry.get("indicator_reactions", [])
+    featured_story = _pa_entry.get("featured_story")
     rh_data = _pa_entry.get("relationship_history", {})
     qi = _pa_entry.get("quick_insights", {})
     indicados_stats = qi.get("indicados_stats", [])
@@ -1510,6 +1663,10 @@ for i, paredao in enumerate(reversed(paredoes_finalizados)):  # Most recent firs
             if vp_ind.get("total", 0) > 0:
                 hc_str = f" · Alta confiança: {vp_hc['correct']}/{vp_hc['total']} ({vp_hc['pct']:.1f}%)" if vp_hc.get("total", 0) > 0 else ""
                 print(f"🤖 **Previsão do modelo:** acertou {vp_ind['correct']}/{vp_ind['total']} votos ({vp_ind['pct']:.1f}%){hc_str}\n")
+
+        if featured_story:
+            print(render_featured_story(featured_story))
+            print()
 
         # Anatomia dos Votos chart
         print("#### Anatomia dos Votos\n")
