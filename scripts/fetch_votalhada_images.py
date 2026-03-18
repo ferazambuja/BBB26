@@ -123,9 +123,9 @@ def extract_image_urls(html: str) -> list[str]:
         if chosen and chosen.startswith("http"):
             urls.append(chosen)
 
-    # Keep only the poll-card images (timestamped PNGs), plus the "000.jpg" slot.
-    # The page can include other Blogger images in the post header; those would
-    # shift the expected consolidados_* slot ordering.
+    # Keep only the poll-card images (timestamped PNGs).
+    # Excludes banners like "000.jpg" (Pesquisa de Popularidade) and
+    # other Blogger images in the post header/comments.
     # Observed patterns:
     # - .../2026-03-17_194618.png (HHMMSS)
     # - .../2026-03-17_19-46-18.png (HH-MM-SS) occasionally
@@ -136,8 +136,6 @@ def extract_image_urls(html: str) -> list[str]:
 
     def _is_card_url(u: str) -> bool:
         name = u.split("/")[-1].split("?")[0]
-        if name == "000.jpg":
-            return True
         return bool(card_name_re.match(name))
 
     chosen_urls = [u for u in urls if ("blogger.googleusercontent.com" in u or "blogspot.com" in u) and _is_card_url(u)]
