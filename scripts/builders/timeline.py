@@ -36,8 +36,8 @@ _SCAFFOLD_FIRST_WEEK: dict[str, int] = {
 # Intra-day chronological ordering. Lower number = earlier in the day.
 # Used by build_game_timeline() to sort events within each date.
 CATEGORY_ORDER: dict[str, int] = {
-    # --- Entries/exits (meta-events, day start) ---
-    "entrada": 0, "saida": 1,
+    # --- Entries (day start) ---
+    "entrada": 0,
     # --- Morning/afternoon role confirmations (~10h-15h) ---
     "lider": 10, "anjo": 11, "monstro": 12, "imune": 13,
     "consenso_anjo_monstro": 14,
@@ -66,6 +66,8 @@ CATEGORY_ORDER: dict[str, int] = {
     "ganha_ganha": 56, "veto_ganha_ganha": 57, "ganha_ganha_escolha": 58,
     "paredao_resultado": 60,
     "quarto_secreto_convite": 61,
+    # --- Exit (always the final event of the night) ---
+    "saida": 70,
 }
 
 _SCAFFOLD_EVENTS: list[dict] = [
