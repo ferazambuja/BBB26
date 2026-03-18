@@ -1636,15 +1636,34 @@ If the participant takes the money, keep `decisao.escolha` / `decisao.abriu_mao`
 
 **Reminder**: Every `power_event` entry **must** include a `fontes` array with the source URL. The audit (`build_derived_data.py`) will hard-fail if `fontes` is missing.
 
-### 4. Rebuild, commit, publish + deploy
+### 4. Rebuild, verify cronologia, commit, publish + deploy
 
-Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
+# 1. Rebuild derived data
 python scripts/build_derived_data.py
+
+# 2. Verify cronologia has the new events
+python3 -c "
+import json
+gt = json.load(open('data/derived/game_timeline.json'))
+events = gt.get('events', gt) if isinstance(gt, dict) else gt
+today = [e for e in events if isinstance(e, dict) and e.get('date') == 'YYYY-MM-DD']
+for e in today:
+    print(f'  {e.get(\"category\"):25s} | {e.get(\"title\",\"\"):50s} | source={e.get(\"source\")}')
+"
+# Expected: paredao_resultado + ganha_ganha + power_events all present
+# If missing: check that manual_events.json and paredoes.json are saved correctly
+
+# 3. Commit
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "paredão N result + ganha-ganha"
-# Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
+git commit -m "public: data: paredão N result + ganha-ganha"
+
+# 4. Push + deploy
+git pull --rebase origin main && git push origin main
+gh workflow run daily-update.yml
 ```
+
+**Always verify the cronologia after rebuild** — it's the single source of truth for the game timeline on index.qmd and evolucao.qmd. Missing events here means they won't appear on the site.
 
 ### What auto-updates after rebuild + deploy
 
