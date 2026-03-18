@@ -1124,22 +1124,22 @@ else:
             items = card.get("items", [])
             items_all = card.get("items_all") or items
             total = card.get("total", len(items))
-            worst_aggr = abs(items_all[0]["score"]) if items_all else 1
+            worst_aggr = items_all[0].get("power_hits", 1) if items_all else 1
             inline_items = items_all[:5]
             overflow_items = items_all[5:]
             rows_html = '<div class="u-s058">'
             for it in inline_items:
                 name = it["name"]
                 name_slug = name.lower().replace(" ", "-")
-                score = it["score"]
-                bar_pct = min(100, abs(score) / worst_aggr * 100)
+                score = it.get("power_hits", 0)
+                bar_pct = min(100, score / worst_aggr * 100) if worst_aggr else 0
                 rows_html += (
                     f'<div class="u-s056">'
                     f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
                     f'<div class="u-s066">'
                     f'<div class="u-s059">'
                     f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                    f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score:.1f}</span>'
+                    f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score}</span>'
                     f'</div>'
                     f'<div class="u-s014">'
                     f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
@@ -1155,15 +1155,15 @@ else:
                 for it in overflow_items:
                     name = it["name"]
                     name_slug = name.lower().replace(" ", "-")
-                    score = it["score"]
-                    bar_pct = min(100, abs(score) / worst_aggr * 100)
+                    score = it.get("power_hits", 0)
+                    bar_pct = min(100, score / worst_aggr * 100) if worst_aggr else 0
                     rows_html += (
                         f'<div class="u-s056">'
                         f'<a href="#perfil-{name_slug}" style="text-decoration:none">{av(name, 42, "#8e44ad")}</a>'
                         f'<div class="u-s066">'
                         f'<div class="u-s059">'
                         f'<a href="#perfil-{name_slug}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{name.split()[0]}</a>'
-                        f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score:.1f}</span>'
+                        f'<span class="fs-sm" style="color:#8e44ad;font-weight:700">{score}</span>'
                         f'</div>'
                         f'<div class="u-s014">'
                         f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
@@ -1625,7 +1625,7 @@ Ver análise →
 ```{python}
 #| label: composite-score-desc
 #| output: asis
-print(ANALYSIS_DESCRIPTIONS["composite_score_chart"])
+print(ANALYSIS_DESCRIPTIONS.get("composite_score_chart", ANALYSIS_DESCRIPTIONS.get("composite_score_brief", "")))
 ```
 
 ```{python}
