@@ -13,7 +13,7 @@ The main GitHub Actions pipeline (`.github/workflows/daily-update.yml`) runs the
 
 1. `python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing`
 2. `python scripts/build_derived_data.py`
-3. `quarto render`
+3. `python scripts/quarto_render_safe.py`
 
 When your change is broad, shared, or hard to reason about locally, use that same order.
 
@@ -25,11 +25,11 @@ When your change is broad, shared, or hard to reason about locally, use that sam
 | Manual data (`data/manual_events.json`, `data/paredoes.json`, `data/provas.json`, `data/votalhada/polls.json`) | `python scripts/build_derived_data.py` and inspect `docs/MANUAL_EVENTS_AUDIT.md`; render the affected page if the data is user-facing. |
 | Shared loaders, constants, weights, date/week logic (`scripts/data_utils.py`) | `pytest -q tests/test_data_utils.py tests/test_data_utils_extended.py tests/test_loaders.py tests/test_build_pipeline.py` |
 | Derived builders / pipeline (`scripts/builders/*`, `scripts/derived_pipeline.py`, `scripts/build_derived_data.py`) | `pytest -q tests/test_build_pipeline.py tests/test_integration_analysis.py tests/test_integration_scoring.py` plus any subsystem-specific tests below; then `python scripts/build_derived_data.py` |
-| Main dashboard (`index.qmd`, `scripts/index_viz.py`) | `pytest -q tests/test_index_qmd_contract.py tests/test_index_viz.py tests/test_index_render_contract.py tests/test_index_highlights.py` and `quarto render index.qmd` |
-| Relations / social graph (`relacoes.qmd`) | `pytest -q tests/test_integration_analysis.py tests/test_integration_scoring.py` and `quarto render relacoes.qmd` |
+| Main dashboard (`index.qmd`, `scripts/index_viz.py`) | `pytest -q tests/test_index_qmd_contract.py tests/test_index_viz.py tests/test_index_render_contract.py tests/test_index_highlights.py` and `python scripts/quarto_render_safe.py index.qmd` |
+| Relations / social graph (`relacoes.qmd`) | `pytest -q tests/test_integration_analysis.py tests/test_integration_scoring.py` and `python scripts/quarto_render_safe.py relacoes.qmd` |
 | Current paredão / archive / voting (`paredao.qmd`, `paredoes.qmd`, `votacao.qmd`, `scripts/paredao_viz.py`, `scripts/votacao_viz.py`) | `pytest -q tests/test_paredao_active_card.py tests/test_paredao_viz_contract.py tests/test_paredoes_ui_contract.py tests/test_votacao_ui_contract.py` and render the affected page(s) |
-| Cartola (`cartola.qmd`, Cartola scoring code/data) | `pytest -q tests/test_cartola_official_safeguards.py tests/test_cartola_lider_fallback.py tests/test_cartola_points_language.py tests/test_cartola_ui_contract.py` and `quarto render cartola.qmd` |
-| Provas (`provas.qmd`, prova rankings) | `pytest -q tests/test_provas_ui_contract.py tests/test_prova_rankings_warnings.py` and `quarto render provas.qmd` |
+| Cartola (`cartola.qmd`, Cartola scoring code/data) | `pytest -q tests/test_cartola_official_safeguards.py tests/test_cartola_lider_fallback.py tests/test_cartola_points_language.py tests/test_cartola_ui_contract.py` and `python scripts/quarto_render_safe.py cartola.qmd` |
+| Provas (`provas.qmd`, prova rankings) | `pytest -q tests/test_provas_ui_contract.py tests/test_prova_rankings_warnings.py` and `python scripts/quarto_render_safe.py provas.qmd` |
 | Economia / balance (`economia.qmd`, `economia_v2.qmd`, `scripts/builders/balance.py`) | `pytest -q tests/test_balance_events.py` and render the affected economy page(s) |
 | Votalhada fetch / OCR / poll model | `pytest -q tests/test_fetch_votalhada_images.py tests/test_votalhada_ocr_batch_validate.py tests/test_votalhada_ocr_feasibility.py tests/test_votalhada_platform_consistency_audit.py tests/test_votalhada_manual_formula_policy.py` |
 | Git/public safety tooling (`.githooks/pre-push`, `.github/workflows/public-policy-report.yml`, workflow docs) | Proofread docs and command examples; run `bash -n .githooks/pre-push` if the hook changed. |
@@ -60,21 +60,21 @@ When your change is broad, shared, or hard to reason about locally, use that sam
 ```bash
 python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
 python scripts/build_derived_data.py
-quarto render
+python scripts/quarto_render_safe.py
 ```
 
 ### Fast dashboard loop
 
 ```bash
 pytest -q tests/test_index_qmd_contract.py tests/test_index_viz.py tests/test_index_render_contract.py
-quarto render index.qmd
+python scripts/quarto_render_safe.py index.qmd
 ```
 
 ### Fast manual-data loop
 
 ```bash
 python scripts/build_derived_data.py
-quarto render paredao.qmd
+python scripts/quarto_render_safe.py paredao.qmd
 ```
 
 ### Layout / screenshot review

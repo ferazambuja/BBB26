@@ -163,7 +163,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--fetch", action="store_true", help="Run fetch_votalhada_images.py before OCR.")
     p.add_argument("--apply", action="store_true", help="Apply updates to data/votalhada/polls.json.")
     p.add_argument("--build", action="store_true", help="Run scripts/build_derived_data.py after apply.")
-    p.add_argument("--render", action="store_true", help="Run quarto render paredao.qmd after apply/build.")
+    p.add_argument("--render", action="store_true", help="Run the lock-safe Quarto render wrapper for paredao.qmd after apply/build.")
     p.add_argument("--dry-run", action="store_true", help="Alias for validate-only report (no apply).")
     p.add_argument("--output", type=Path, help="Optional JSON report output path.")
     return p.parse_args()
@@ -251,7 +251,7 @@ def main() -> int:
                 _run([sys.executable, "scripts/build_derived_data.py"])
                 result["build_ran"] = True
             if args.render:
-                _run(["quarto", "render", "paredao.qmd"])
+                _run([sys.executable, "scripts/quarto_render_safe.py", "paredao.qmd"])
                 result["render_ran"] = True
 
     out_text = json.dumps(result, ensure_ascii=False, indent=2)

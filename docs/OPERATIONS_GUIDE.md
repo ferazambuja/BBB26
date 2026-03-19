@@ -93,8 +93,8 @@ Use this table when you already know **what changed** and need the shortest safe
 |-------------|-------------|----------|----------------------|
 | Manual event / paredão / prova / poll data | `data/manual_events.json`, `data/paredoes.json`, `data/provas.json`, `data/votalhada/polls.json` | `python scripts/build_derived_data.py` | `docs/MANUAL_EVENTS_AUDIT.md` + affected page |
 | Shared scoring / loader / date logic | `scripts/data_utils.py`, `scripts/builders/*`, `scripts/derived_pipeline.py` | targeted `pytest` + `python scripts/build_derived_data.py` | affected derived JSON + affected page |
-| Reusable render helper | `scripts/*_viz.py` | targeted `pytest` + `quarto render <affected-page>.qmd` | rendered HTML / page screenshots |
-| Page-only composition / prose / layout | `*.qmd`, `assets/*`, `_quarto.yml` | targeted `pytest` + `quarto render <affected-page>.qmd` | local page render and, when needed, screenshot capture |
+| Reusable render helper | `scripts/*_viz.py` | targeted `pytest` + `python scripts/quarto_render_safe.py <affected-page>.qmd` | rendered HTML / page screenshots |
+| Page-only composition / prose / layout | `*.qmd`, `assets/*`, `_quarto.yml` | targeted `pytest` + `python scripts/quarto_render_safe.py <affected-page>.qmd` | local page render and, when needed, screenshot capture |
 | Git/publication workflow | `.githooks/pre-push`, `.github/workflows/public-policy-report.yml`, `scripts/sync_public.sh` (legacy), workflow docs | `bash -n .githooks/pre-push` when the hook changes; `pytest tests/test_sync_public_script.py -q` only if the legacy helper changed | push policy and legacy recovery flow |
 | Documentation only | `README.md`, `docs/*.md`, `data/votalhada/README.md` | consistency check of links/cross-references | no site rebuild required unless instructions or examples changed materially |
 
@@ -1752,9 +1752,25 @@ python scripts/scrape_gshow.py "<barrado-no-baile-url>" -o docs/scraped/
 Example source (liderança dupla):
 - `https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/barrado-no-baile-ana-paula-renault-e-escolhida-pelos-lideres-jonas-sulzbach-e-alberto-cowboy.ghtml`
 
-### 1. Add/update `data/manual_events.json` → `power_events`
+If the task description and the source URL/title disagree, trust the **article title/body** and update the event the source actually describes. Wednesday `festa/` links often describe **Barrado no Baile**, even when a request casually says "ganha-ganha".
 
-Add one `barrado_baile` event:
+### 1. Add/update `data/manual_events.json` → `weekly_events[N].barrado_baile` + `power_events`
+
+First, keep the week-level mirror in sync:
+
+```json
+{
+  "barrado_baile": [
+    {
+      "date": "YYYY-MM-DD",
+      "lider": "Lider A",
+      "alvo": "Emparedado"
+    }
+  ]
+}
+```
+
+Then add one `barrado_baile` power event:
 
 ```json
 {
@@ -1775,17 +1791,23 @@ Add one `barrado_baile` event:
 ```
 
 Single-líder case: keep only `actor: "Name"` (the optional `actors` array is mainly for consensus/duo actions).
+Keep `weekly_events[].barrado_baile` updated because `scripts/update_programa_doc.py` renders `docs/PROGRAMA_BBB26.md` from week-level metadata, while the timeline/scoring layers consume the `power_events` entry.
 
 ### 2. Rebuild + validate
 
 ```bash
 python scripts/build_derived_data.py
+python scripts/update_programa_doc.py
 
-# Verify the event was stored as expected
+# Verify the week mirror was stored as expected
+jq '.weekly_events[] | select(.week==N) | .barrado_baile' data/manual_events.json
+
+# Verify the power event was stored as expected
 jq '.power_events[] | select(.type=="barrado_baile" and .date=="YYYY-MM-DD")' data/manual_events.json
 ```
 
 Expected:
+- week mirror includes `lider` / `alvo`
 - `type = "barrado_baile"`
 - `actor`/`target` names match API spelling
 - source URL present in `fontes`
@@ -1794,7 +1816,7 @@ Expected:
 
 Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
-git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md docs/PROGRAMA_BBB26.md
 git commit -m "barrado no baile W{N} (Target)"
 # Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
@@ -2414,6 +2436,27 @@ Common causes:
 - API temporarily down → re-trigger: `gh workflow run daily-update.yml`
 - Quarto render error → test locally with `quarto render`
 - Audit failure → fix manual data, push, re-trigger
+
+### Parallel page renders fail with `database is locked` or missing `_site/data/derived/*.json`
+
+Symptom:
+- Two `quarto render <page>.qmd` commands run at the same time in the same project.
+- One render aborts with errors such as:
+  - `database is locked`
+  - `NotFound: ... utime '_site/data/derived/relations_scores.json'`
+
+Root cause:
+- Quarto project renders are **not concurrency-safe** inside the same repo/output dir. The project cache and `_site/` resource copy step race with each other.
+
+Use the repo wrapper instead of raw parallel `quarto render` calls:
+```bash
+python scripts/quarto_render_safe.py index.qmd
+python scripts/quarto_render_safe.py evolucao.qmd
+```
+
+Notes:
+- `scripts/quarto_render_safe.py` uses a project-wide lock under `.quarto/render.lock` and serializes concurrent callers.
+- If a raw `quarto render` command already failed, rerun it through the wrapper or run a single full-site render: `python scripts/quarto_render_safe.py`
 
 ### Site not updating after push
 

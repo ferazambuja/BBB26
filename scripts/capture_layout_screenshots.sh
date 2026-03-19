@@ -44,8 +44,8 @@ if [[ -z "$OUTPUT_DIR" ]]; then
 fi
 
 if (( RENDER )); then
-  echo "[STEP] quarto render"
-  quarto render
+  echo "[STEP] safe quarto render"
+  python3 scripts/quarto_render_safe.py
 fi
 
 if (( INSTALL_BROWSER )); then

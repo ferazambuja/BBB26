@@ -343,7 +343,7 @@ def install_playwright_browser(package_ref: str, browser: str) -> None:
 
 
 def run_quarto_render(quarto_bin: str) -> None:
-    command = [quarto_bin, "render"]
+    command = [sys.executable, str(REPO_ROOT / "scripts" / "quarto_render_safe.py"), "--quarto-bin", quarto_bin]
     subprocess.run(command, check=True, cwd=REPO_ROOT)
 
 
@@ -436,7 +436,7 @@ def parse_args() -> argparse.Namespace:
         help="Viewport height used for stitched mobile fallback captures (reduces tile count).",
     )
     parser.add_argument("--skip-install", action="store_true")
-    parser.add_argument("--render", action="store_true", help="Run `quarto render` first.")
+    parser.add_argument("--render", action="store_true", help="Run the lock-safe Quarto render wrapper first.")
     parser.add_argument("--quarto-bin", type=str, default="quarto")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--fail-fast", action="store_true")
