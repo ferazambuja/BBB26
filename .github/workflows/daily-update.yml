@@ -1,18 +1,15 @@
 name: BBB26 Daily Update
 
-# 15-minute polling strategy
+# Two execution paths:
 #
-# The fetch job runs every 15 minutes but only takes ~30 seconds.
-# It uses --fetch-only (needs only `requests`, no heavy deps).
-# fetch_data.py saves ONLY if the data hash changed — dedup rate ~61%.
-# Expected: ~5-15 actual snapshots/day out of 96 polls.
+# 1. Cron (fallback): fetch → build → render → deploy (full pipeline)
+#    GitHub Actions cron is unreliable (avg 67-min gaps). The LXC handles
+#    primary polling. This remains as fallback.
 #
-# The build-deploy job only runs when data actually changed (or manual dispatch).
-# This avoids wasting compute on the full pipeline (pytest + build + quarto render).
-#
-# Balance changes, role changes, and reaction updates happen at unpredictable
-# times throughout the day. 15-min polling catches granular balance events
-# (punições, compras, mesada) as they happen.
+# 2. Manual dispatch (from LXC): render → deploy ONLY
+#    The LXC already fetched + built derived data + pushed to main.
+#    GitHub just needs to render Quarto pages and deploy to Pages.
+#    This saves ~2 min of redundant fetch + build.
 
 on:
   schedule:
@@ -98,7 +95,10 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      # ── Steps below only run on cron (full pipeline). ──
+      # On manual dispatch, the LXC already built derived data — skip to render.
       - name: Validate JSON snapshots
+        if: github.event_name == 'schedule'
         run: |
           python -c "
           import json
@@ -110,7 +110,6 @@ jobs:
               try:
                   with open(f) as fp:
                       data = json.load(fp)
-                  # Basic structure validation
                   if 'participants' in data:
                       participants = data['participants']
                   else:
@@ -135,12 +134,15 @@ jobs:
           "
 
       - name: Build derived data
+        if: github.event_name == 'schedule'
         run: python scripts/build_derived_data.py
 
       - name: Run integrity audit
+        if: github.event_name == 'schedule'
         run: python scripts/audit_data_integrity.py --fail-on none
 
       - name: Print integrity audit summary
+        if: github.event_name == 'schedule'
         run: |
           python - <<'PY'
           import json
@@ -157,6 +159,7 @@ jobs:
           PY
 
       - name: Run tests
+        if: github.event_name == 'schedule'
         run: python -m pytest tests/ -v --tb=short --cov=scripts --cov-report=term-missing
 
       - name: Set up Quarto
@@ -171,6 +174,7 @@ jobs:
           path: '_site'
 
       - name: Upload data artifact
+        if: github.event_name == 'schedule'
         uses: actions/upload-artifact@v4
         with:
           name: new-data
@@ -210,21 +214,20 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Only commit derived data on cron runs (LXC already committed on dispatch)
       - name: Download data artifact
+        if: github.event_name == 'schedule'
         uses: actions/download-artifact@v4
         with:
           name: new-data
           path: .
 
       - name: Commit derived data changes
+        if: github.event_name == 'schedule'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
           git diff --staged --quiet || git commit -m "data: derived update $(date -u +%Y-%m-%d_%H-%M) UTC"
-          # Pull --rebase to handle race with 15-min fetch polls that may have
-          # pushed a new snapshot commit between build checkout and now.
-          # If docs/SCORING_AND_INDEXES.md conflicts (human edit vs bot-managed block),
-          # abort and let the next successful run self-heal the marker block.
           git pull --rebase origin main || true
           git push
