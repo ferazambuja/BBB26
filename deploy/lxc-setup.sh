@@ -118,15 +118,18 @@ fi
 echo "=== BBB26 LXC Setup — Phase 2 ==="
 echo ""
 
-# Verify SSH works
+# Verify SSH works (ssh -T always exits 1 on GitHub — check stderr text)
 echo "[1/4] Testing GitHub SSH access..."
-if ! su - "$BBB_USER" -c "ssh -T git@github.com" 2>&1 | grep -qi "successfully authenticated"; then
+SSH_OUTPUT=$(su - "$BBB_USER" -c "ssh -T git@github.com 2>&1" || true)
+if echo "$SSH_OUTPUT" | grep -qi "successfully authenticated"; then
+    echo "  SSH access confirmed."
+else
     echo "ERROR: SSH to GitHub failed. Did you add the deploy key?"
+    echo "  Output: $SSH_OUTPUT"
     echo "  Key: $(cat ${BBB_HOME}/.ssh/bbb26_deploy.pub)"
     echo "  URL: https://github.com/ferazambuja/BBB26/settings/keys/new"
     exit 1
 fi
-echo "  SSH access confirmed."
 
 # ── Clone repo ──────────────────────────────────────────────────────
 echo "[2/4] Cloning repo and installing Python deps..."
