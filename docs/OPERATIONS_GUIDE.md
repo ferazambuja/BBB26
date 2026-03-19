@@ -2338,6 +2338,8 @@ Ensure no `tmp/` capture artifacts are staged.
 - Expected: ~5–15 actual snapshots/day.
 - Both local and GitHub polling use the same hash dedup — no duplicate snapshots regardless of who fetches.
 
+**Resilience**: If the LXC is down, GitHub Actions cron continues as fallback (full pipeline: fetch + build + render + deploy). Timing degrades to ~1h gaps but data is never lost. When the LXC triggers a manual dispatch, GitHub skips fetch/build/tests and only renders + deploys (~2 min instead of ~4 min).
+
 ### Why 15-minute polling
 
 Probe-era analysis (Mar 3–8) confirmed that queridômetro reactions, balance changes, and role updates happen at **unpredictable times** throughout the day — not just around 15:00 BRT as previously assumed. Examples: 10:36 BRT on Mar 3; 11:50, 12:45, 13:52 BRT on Mar 4. High-frequency polling catches all granular events (punições, compras, mesada, role changes) as they happen.
