@@ -15,72 +15,102 @@ LXC (every 15 min via systemd timer)
       → gh workflow run daily-update.yml (triggers Quarto render + Pages deploy)
 ```
 
-The LXC handles: fetch + build + commit + push.
-GitHub Actions handles: Quarto render + GitHub Pages deploy.
+## Setup (ssh BBB)
 
-## Quick Setup
+### Phase 1 — Install deps + generate SSH key
 
 ```bash
-# 1. Copy setup script to LXC
-scp deploy/lxc-setup.sh root@<lxc-ip>:/tmp/
+# From your Mac:
+scp deploy/lxc-setup.sh deploy/bbb26-fetch.service deploy/bbb26-fetch.timer BBB:/tmp/
 
-# 2. Run setup (as root on LXC)
-ssh root@<lxc-ip> bash /tmp/lxc-setup.sh
+# SSH into the LXC:
+ssh BBB
 
-# 3. Add the SSH deploy key to GitHub (printed during setup)
-#    → https://github.com/ferazambuja/BBB26/settings/keys/new
-#    → Check "Allow write access"
+# Run Phase 1 (as root):
+bash /tmp/lxc-setup.sh
+```
 
-# 4. Authenticate gh CLI on LXC
-ssh root@<lxc-ip> -- su - bbb26 -c "gh auth login"
+This installs Python, Quarto, git, gh CLI, tesseract, and generates an SSH deploy key.
+It prints the public key at the end.
 
-# 5. Test a single poll
-ssh root@<lxc-ip> -- su - bbb26 -c "cd ~/BBB26 && python3 scripts/schedule_data_fetch.py --once --run-now"
+### Add deploy key to GitHub
 
-# 6. Enable the timer
-ssh root@<lxc-ip> systemctl enable --now bbb26-fetch.timer
+1. Copy the printed SSH public key
+2. Go to https://github.com/ferazambuja/BBB26/settings/keys/new
+3. Title: `bbb26-lxc`
+4. Paste the key
+5. **Check "Allow write access"**
+6. Click "Add key"
 
-# 7. Monitor
-ssh root@<lxc-ip> journalctl -u bbb26-fetch -f
-ssh root@<lxc-ip> systemctl list-timers bbb26-fetch.timer
+### Phase 2 — Clone repo + install timer
+
+```bash
+# Still on the LXC (or ssh BBB again):
+
+# Test SSH works:
+su - bbb26 -c "ssh -T git@github.com"
+# Should say: "Hi ferazambuja/BBB26! You've successfully authenticated"
+
+# Run Phase 2:
+bash /tmp/lxc-setup.sh --phase2
+```
+
+### Authenticate gh CLI
+
+```bash
+su - bbb26 -c "gh auth login"
+# Choose: GitHub.com → SSH → Paste authentication token
+# Get a token at: https://github.com/settings/tokens (scopes: repo, workflow)
+```
+
+### Test single poll
+
+```bash
+su - bbb26 -c "cd ~/BBB26 && python3 scripts/schedule_data_fetch.py --once --run-now --build"
+```
+
+### Enable the timer
+
+```bash
+systemctl enable --now bbb26-fetch.timer
+
+# Verify:
+systemctl list-timers bbb26-fetch.timer
+```
+
+### Monitor
+
+```bash
+# Follow logs live:
+journalctl -u bbb26-fetch -f
+
+# Last 50 entries:
+journalctl -u bbb26-fetch -n 50
+
+# Check last run status:
+systemctl status bbb26-fetch.service
+
+# Check git log:
+su - bbb26 -c "cd ~/BBB26 && git log --oneline -5"
 ```
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `lxc-setup.sh` | One-time setup: Python, Quarto, git, gh, SSH key, systemd |
+| `lxc-setup.sh` | Two-phase setup: Phase 1 (deps + SSH key), Phase 2 (clone + timer) |
 | `bbb26-fetch.service` | systemd service: single poll cycle |
 | `bbb26-fetch.timer` | systemd timer: fires every 15 min (wall clock aligned) |
-| `../scripts/schedule_data_fetch.py` | The actual polling script |
-
-## Monitoring
-
-```bash
-# Check timer status
-systemctl list-timers bbb26-fetch.timer
-
-# Last 50 log lines
-journalctl -u bbb26-fetch -n 50
-
-# Follow live
-journalctl -u bbb26-fetch -f
-
-# Check if data was pushed
-su - bbb26 -c "cd ~/BBB26 && git log --oneline -5"
-```
+| `../scripts/schedule_data_fetch.py` | The polling script |
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
 | Timer not firing | `systemctl enable --now bbb26-fetch.timer` |
-| Push fails (auth) | Check SSH key: `su - bbb26 -c "ssh -T git@github.com"` |
-| Push fails (conflict) | Script auto-retries with `git pull --rebase`. Check `journalctl`. |
-| Build fails | Check `journalctl -u bbb26-fetch` for Python errors. Run manually: `su - bbb26 -c "cd ~/BBB26 && python3 scripts/build_derived_data.py"` |
-| gh workflow dispatch fails | Re-auth: `su - bbb26 -c "gh auth login"` |
+| Push fails (auth) | `su - bbb26 -c "ssh -T git@github.com"` — check deploy key |
+| Push fails (conflict) | Script auto-retries with `git pull --rebase` |
+| Build fails | `journalctl -u bbb26-fetch -n 100` for error details |
+| gh dispatch fails | `su - bbb26 -c "gh auth login"` to re-authenticate |
 | Stale repo | `su - bbb26 -c "cd ~/BBB26 && git pull --rebase origin main"` |
-
-## Commit Identity
-
-LXC commits use author `bbb26-lxc <bbb26-lxc@local>`. The pre-push hook allows this on `main` (human commits don't require `public:` prefix anymore per the updated hook).
+| Check timer schedule | `systemctl list-timers bbb26-fetch.timer` |
