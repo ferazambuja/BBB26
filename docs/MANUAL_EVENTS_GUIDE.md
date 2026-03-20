@@ -332,6 +332,12 @@ Rarely needed — for Cartola events **not auto-detected** by any pipeline.
 
 Future/upcoming events that haven't happened yet. Displayed in the **Cronologia do Jogo** (both `index.qmd` and `evolucao.qmd`) with distinct styling (dashed borders, 🔮 prefix, yellow time badge).
 
+**Workflow note**: this section is schema/lifecycle only. For the practical "close old week, open new week, decide what repeats vs what is special this week" procedure, use [Week Rollover Runbook](./OPERATIONS_GUIDE.md#week-rollover-runbook-thursdayfriday) in `docs/OPERATIONS_GUIDE.md`.
+
+**Granularity rule**: if the source/article/video enumerates a same-day sequence, store separate scheduled entries in that order instead of compressing everything into one summary. Use `lider_classificatoria` for Thursday afternoon qualifying rounds before the live `lider` final.
+
+**Scaffold rule**: on the open cycle, the timeline builder now auto-creates the standard recurring backbone (`lider`, `anjo`, `monstro`, Sunday Paredão sub-steps, `sincerao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`). Use `scheduled_events` mainly for `dinamica`, `lider_classificatoria`, or week-specific overrides.
+
 **Schema:**
 ```json
 {
@@ -348,7 +354,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 
 **Fields:**
 - `date` — expected date (YYYY-MM-DD)
-- `week` — week number
+- `week` — week number (bridge note: loaders also accept `cycle`, but tracked raw files still use `week` for now)
 - `category` — same categories as other events (e.g., `big_fone`, `anjo`, `paredao_formacao`, `paredao_resultado`)
 - `emoji` — display emoji
 - `title` — event title for display in timeline
@@ -360,6 +366,8 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 **How it works:**
 - `build_game_timeline()` adds these with `"source": "scheduled"`. **Lifecycle is automatic**: past events (date < today) get `"status": ""` (resolved, solid display); future events get `"status": "scheduled"` (pending, dashed borders + 🔮). Same-day events with a `time` field stay pending (tonight); without `time` they're resolved. No manual `time` removal needed — the display transitions automatically the next day.
 - Auto-dedup (two-tier): **singleton categories** (anjo, lider, paredao_formacao, sincerao, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed when resolved (past date) or by exact title match. Future non-singleton events are kept even if a real event exists.
+- Open-cycle backbone: recurring schedule rows for the active cycle are auto-generated even before the real event happens. A manual scheduled entry with the same `(date, category)` cleanly overrides that generic scaffold.
+- Ordered same-day steps: for multiple entries on the same date with the same category (common with `dinamica`), append them in chronological order in JSON. The chronology UI reverses each day for display, so the last same-day entry in the file appears at the top of that day.
 - **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then **update** the scheduled entry with the real result (title, detail, fontes). Do NOT delete it — the auto-dedup suppresses it. Clean up old entries during the next week's Líder Transition setup.
 
 **When to fill:** When GShow publishes the "Dinâmica da Semana" article (usually Thursday/Friday), add all upcoming events for the week.

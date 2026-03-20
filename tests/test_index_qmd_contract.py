@@ -75,6 +75,14 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "render_saldo_card" in content
 
 
+def test_index_qmd_uses_cycle_wording_in_context_chip():
+    content = INDEX_QMD.read_text(encoding="utf-8")
+
+    assert 'ctx_cycle = ctx.get("cycle", ctx.get("week", "?"))' in content
+    assert 'Ciclo do Paredão {ctx_cycle}' in content
+    assert 'Semana {ctx_week}' not in content
+
+
 def test_index_qmd_no_longer_defines_first_extracted_helpers_inline():
     content = INDEX_QMD.read_text(encoding="utf-8")
 

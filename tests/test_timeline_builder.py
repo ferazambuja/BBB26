@@ -142,7 +142,10 @@ def test_monstro_fallback_from_weekly_events():
     }
 
     events = build_game_timeline([], [], manual_events, None)
-    monstro_events = [e for e in events if e.get("category") == "monstro"]
+    monstro_events = [
+        e for e in events
+        if e.get("category") == "monstro" and e.get("date") == "2026-03-14"
+    ]
     assert any(
         e.get("title") == "Jonas Sulzbach → Monstro"
         and e.get("source") == "weekly_events"
@@ -194,7 +197,10 @@ def test_monstro_fallback_handles_monstro_escolha_list():
     }
 
     events = build_game_timeline([], [], manual_events, None)
-    monstro_events = [e for e in events if e.get("category") == "monstro"]
+    monstro_events = [
+        e for e in events
+        if e.get("category") == "monstro" and e.get("date") == "2026-02-07"
+    ]
     names = {e.get("title") for e in monstro_events}
     assert "Milena → Monstro" in names
     assert "Juliano Floss → Monstro" in names
@@ -295,6 +301,28 @@ def test_future_scheduled_event_stays_scheduled():
     assert dinamica_events[0]["time"] == "Ao Vivo"
 
 
+def test_scheduled_event_prefers_declared_cycle_over_date_inference(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
+    manual_events = {
+        "scheduled_events": [
+            {
+                "date": "2026-01-21",
+                "cycle": 2,
+                "category": "dinamica",
+                "emoji": "⚡",
+                "title": "Override de ciclo",
+                "detail": "Programação do ciclo seguinte.",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-01-19")
+    scheduled = next(e for e in events if e.get("source") == "scheduled" and e.get("title") == "Override de ciclo")
+
+    assert scheduled["week"] == 2
+    assert scheduled["cycle"] == 2
+
+
 def test_same_day_with_time_stays_scheduled():
     """An event on reference_date with time field is still pending (tonight)."""
     manual_events = {
@@ -356,7 +384,7 @@ def test_past_monstro_suppressed_by_real_monstro():
     }
 
     events = build_game_timeline([], auto_events, manual_events, None, reference_date="2026-03-15")
-    monstro_events = [e for e in events if e.get("category") == "monstro"]
+    monstro_events = [e for e in events if e.get("category") == "monstro" and e.get("date") == "2026-03-14"]
     assert len(monstro_events) == 1, (
         f"Past monstro should be suppressed by real monstro; got {len(monstro_events)}"
     )
@@ -644,11 +672,11 @@ def test_scheduled_substeps_use_known_lider_and_anjo():
     }
 
     events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
-    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled" and e.get("date") == "2026-03-15"]
     assert len(imun) == 1
     assert "Breno" in imun[0]["title"]
 
-    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled"]
+    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled" and e.get("date") == "2026-03-15"]
     assert len(indic) == 1
     assert "Alberto Cowboy" in indic[0]["title"]
 
@@ -704,8 +732,8 @@ def test_scheduled_substeps_suppressed_when_real_data_filled():
     # Real imunidade from step 1 should exist
     real_imun = [e for e in events if e.get("category") == "paredao_imunidade" and not e.get("status")]
     assert len(real_imun) == 1
-    # No scheduled imunidade placeholder
-    sched_imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    # No scheduled imunidade placeholder for THIS paredão's date
+    sched_imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled" and e.get("date") == "2026-03-15"]
     assert len(sched_imun) == 0
 
 
@@ -731,11 +759,11 @@ def test_scheduled_substeps_fallback_to_provas_for_anjo_lider():
     }
 
     events = build_game_timeline([], [], {}, paredoes_data, provas_data, reference_date="2026-03-15")
-    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled" and e.get("date") == "2026-03-15"]
     assert len(imun) == 1
     assert "Breno" in imun[0]["title"], f"Expected Breno in title, got: {imun[0]['title']}"
 
-    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled"]
+    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled" and e.get("date") == "2026-03-15"]
     assert len(indic) == 1
     assert "Alberto Cowboy" in indic[0]["title"], f"Expected Alberto Cowboy in title, got: {indic[0]['title']}"
 
@@ -755,11 +783,11 @@ def test_scheduled_substeps_generic_when_lider_anjo_unknown():
     }
 
     events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-15")
-    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled"]
+    imun = [e for e in events if e.get("category") == "paredao_imunidade" and e.get("status") == "scheduled" and e.get("date") == "2026-03-15"]
     assert len(imun) == 1
     assert "Imunidade do Anjo" in imun[0]["title"]
 
-    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled"]
+    indic = [e for e in events if e.get("category") == "paredao_indicacao" and e.get("status") == "scheduled" and e.get("date") == "2026-03-15"]
     assert len(indic) == 1
     assert "Indicação do Líder" in indic[0]["title"]
 
@@ -838,6 +866,89 @@ def test_scaffold_open_week_generates_events(monkeypatch):
         and e.get("date") == "2026-01-19"
         for e in events
     )
+
+
+def test_open_week_scaffold_generates_full_standard_cycle(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
+    events = build_game_timeline([], [], {}, None, reference_date="2026-01-22")
+    scaffold_keys = {
+        (e.get("date"), e.get("category"))
+        for e in events
+        if e.get("source") == "scaffold"
+    }
+
+    expected = {
+        ("2026-01-22", "lider"),
+        ("2026-01-24", "anjo"),
+        ("2026-01-24", "monstro"),
+        ("2026-01-25", "presente_anjo"),
+        ("2026-01-25", "paredao_imunidade"),
+        ("2026-01-25", "paredao_indicacao"),
+        ("2026-01-25", "paredao_votacao"),
+        ("2026-01-25", "paredao_contragolpe"),
+        ("2026-01-25", "paredao_bate_volta"),
+        ("2026-01-25", "paredao_formacao"),
+        ("2026-01-26", "sincerao"),
+        ("2026-01-27", "ganha_ganha"),
+        ("2026-01-27", "paredao_resultado"),
+        ("2026-01-28", "barrado_baile"),
+    }
+    assert expected <= scaffold_keys
+
+    lider = next(
+        e for e in events
+        if e.get("source") == "scaffold" and e.get("date") == "2026-01-22" and e.get("category") == "lider"
+    )
+    assert lider.get("cycle") == lider.get("week") == 2
+
+
+def test_resolved_archive_cycle_does_not_backfill_generic_contragolpe_without_authority():
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 2,
+                "semana": 2,
+                "data_formacao": "2026-01-25",
+                "formacao": {
+                    "lider": "Babu Santana",
+                    "indicado_lider": "Matheus",
+                },
+                "indicados_finais": [{"nome": "Matheus"}, {"nome": "Sol Vega"}],
+                "votos_casa": {"V1": "Sol Vega"},
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], {}, paredoes_data, reference_date="2026-03-19")
+    assert not any(
+        e.get("source") == "scaffold"
+        and e.get("date") == "2026-01-25"
+        and e.get("category") == "paredao_contragolpe"
+        for e in events
+    )
+
+
+def test_open_week_uses_non_standard_schedule_profile(monkeypatch):
+    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
+    manual_events = {
+        "weekly_events": [
+            {
+                "week": 2,
+                "start_date": "2026-01-22",
+                "schedule_profile": "accelerated_finale",
+            }
+        ]
+    }
+
+    events = build_game_timeline([], [], manual_events, None, reference_date="2026-01-22")
+    scaffold_keys = {
+        (e.get("date"), e.get("category"))
+        for e in events
+        if e.get("source") == "scaffold"
+    }
+
+    assert ("2026-01-28", "paredao_resultado") in scaffold_keys
+    assert ("2026-01-28", "barrado_baile") not in scaffold_keys
 
 
 # --- Intra-day chronological ordering tests ---
@@ -996,4 +1107,3 @@ def test_all_timeline_categories_in_cat_order():
     assert not missing, (
         f"Categories in game_timeline.json without explicit CATEGORY_ORDER entry: {sorted(missing)}"
     )
-

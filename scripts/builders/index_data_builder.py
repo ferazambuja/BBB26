@@ -413,6 +413,48 @@ def load_json(path: Path, default: Any) -> Any:
     return default
 
 
+def _iter_cycle_entries(manual_events: dict | None) -> list[dict]:
+    """Return canonical cycle entries, accepting legacy weekly_events."""
+    if not isinstance(manual_events, dict):
+        return []
+    cycles = manual_events.get("cycles")
+    if isinstance(cycles, list):
+        return [item for item in cycles if isinstance(item, dict)]
+    weekly = manual_events.get("weekly_events", [])
+    return [item for item in weekly if isinstance(item, dict)]
+
+
+def _get_event_cycle(item: dict, fallback: int = 0) -> int:
+    """Read canonical cycle first, then legacy week/semana keys."""
+    for key in ("cycle", "week", "semana"):
+        value = item.get(key)
+        if isinstance(value, int):
+            return value
+    return fallback
+
+
+def _resolve_current_cycle_week(current_week: int, manual_events: dict | None, paredoes: dict | None) -> int:
+    """Pick the active cycle from live paredão state or the manually opened cycle."""
+    active_paredao = next(
+        (p for p in (paredoes or {}).get("paredoes", []) if p.get("status") == "em_andamento"),
+        None,
+    )
+    if isinstance(active_paredao, dict):
+        active_cycle = _get_event_cycle(active_paredao)
+        if active_cycle:
+            return active_cycle
+
+    manual_open_cycles = sorted(
+        _get_event_cycle(item)
+        for item in _iter_cycle_entries(manual_events)
+        if not item.get("end_date") and _get_event_cycle(item)
+    )
+    if manual_open_cycles:
+        return max(current_week, manual_open_cycles[-1])
+
+    return current_week
+
+
 def build_big_fone_consensus(
     manual_events: dict,
     current_cycle_week: int | None,
@@ -701,6 +743,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     roles_daily = parsed["roles_daily"]
     participants_index = parsed["participants_index"]
     paredoes = parsed["paredoes"]
+    manual_events = parsed.get("manual_events", {})
 
     def plant_week_has_signals(week_entry: dict | None) -> bool:
         if not week_entry:
@@ -846,6 +889,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
             "leaders": leader_names,
             "start": start_date,
             "end": end_date,
+            "cycle": week_num,
             "week": week_num,
             "vip": sorted(period_vip),
             "xepa": sorted(period_xepa),
@@ -866,8 +910,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
         vip_recipients.discard(_hl)
     if leader_start_date:
         vip_recipients = {n for n in vip_recipients if first_seen.get(n, leader_start_date) <= leader_start_date}
-    active_paredao = next((p for p in paredoes.get("paredoes", []) if p.get("status") == "em_andamento"), None)
-    current_cycle_week = active_paredao.get("semana") if active_paredao else current_week
+    current_cycle_week = _resolve_current_cycle_week(current_week, manual_events, paredoes)
 
     return {
         "plant_week": plant_week,
@@ -1558,6 +1601,7 @@ def _compute_breaks_and_context_cards(
     current_week: int,
     daily_snapshots: list[dict],
     reference_date: str | None = None,
+    current_cycle_week: int | None = None,
 ) -> tuple[list[str], list[dict]]:
     """Streak breaks (alliance ruptures) and week context cards.
 
@@ -1606,18 +1650,20 @@ def _compute_breaks_and_context_cards(
         )
 
     # -- Week context --
+    context_cycle = current_cycle_week or current_week
     n_active = len([p for p in latest["participants"]
                     if not p.get("characteristics", {}).get("eliminated")])
     cards.append({
         "type": "context",
         "icon": "📅", "title": "Contexto",
         "color": "#2ecc71",
-        "week": current_week,
+        "cycle": context_cycle,
+        "week": context_cycle,
         "days": len(daily_snapshots),
         "active": n_active,
     })
     highlights.append(
-        f"📅 **Semana {current_week}** — {len(daily_snapshots)} dias de dados, {n_active} participantes ativos"
+        f"📅 **Ciclo do Paredão {context_cycle}** — {len(daily_snapshots)} dias de dados, {n_active} participantes ativos"
     )
 
     return highlights, cards
@@ -2068,6 +2114,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     relations_data = ctx["relations_data"]
     sinc_data = ctx["sinc_data"]
     current_week = ctx["current_week"]
+    current_cycle_week = ctx["current_cycle_week"]
     latest = ctx["latest"]
     latest_date = ctx["latest_date"]
 
@@ -2113,7 +2160,8 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
 
     # Breaks and context
     bc_hl, bc_cards = _compute_breaks_and_context_cards(
-        relations_data, active_set, latest, current_week, daily_snapshots, latest_date)
+        relations_data, active_set, latest, current_week, daily_snapshots, latest_date,
+        current_cycle_week=current_cycle_week)
     highlights.extend(bc_hl)
     cards.extend(bc_cards)
 
@@ -3619,6 +3667,11 @@ def build_index_data() -> dict | None:
         "card": paredao_card,
     }
 
+    for card in hl["cards"]:
+        if card.get("type") == "context":
+            card["cycle"] = ctx["current_cycle_week"]
+            card["week"] = ctx["current_cycle_week"]
+
     hl["cards"] = [c for c in hl["cards"] if c.get("type") != "paredao"]
     if paredao_card and paredao_card.get("state") != "empty":
         is_finalized_paredao = paredao_card.get("state") == "finalized"
@@ -3643,6 +3696,7 @@ def build_index_data() -> dict | None:
             "label": ctx["latest_date"],
         },
         "current_week": ctx["current_week"],
+        "current_cycle": ctx["current_cycle_week"],
         "current_cycle_week": ctx["current_cycle_week"],
         "active_names": ctx["active_names"],
         "member_of": ctx["member_of"],

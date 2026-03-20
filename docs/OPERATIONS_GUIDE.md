@@ -8,7 +8,7 @@
 > **For verification strategy**: See `docs/TESTING.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-16
+> **Last updated**: 2026-03-19
 
 ---
 
@@ -45,7 +45,7 @@ This file is ~2,400 lines. **Do not read it all at once.** Use this map to jump 
 | Line | Section | What's there |
 |------|---------|-------------|
 | ~424 | Triggering Site Updates | How/when GitHub Pages deploys |
-| ~467 | Weekly Calendar | Standard week pattern + history tables |
+| ~467 | Weekly Calendar | Standard week pattern + week rollover runbook + history tables |
 | ~1879 | Scheduled Events | How to add future events |
 | ~1951 | Manual Data Files | Schema summaries for each data file |
 | ~2079 | Economia / Compras | Balance auto-detection rules |
@@ -61,6 +61,7 @@ This file is ~2,400 lines. **Do not read it all at once.** Use this map to jump 
 |------|------|-------|
 | **Update after ANY manual edit** | After editing any data file | [Git Workflow](#git-workflow-main-first) |
 | **Review archived `local/private-main` history (legacy)** | Only if you still have old local commits | [Git Workflow](#git-workflow-main-first) |
+| **Close old week / open new week** | Thursday/Friday after dynamics article | [Week Rollover Runbook](#week-rollover-runbook-thursdayfriday) |
 | **New Líder crowned** (Thursday) | Thursday ~22h | [Líder Transition Checklist](#líder-transition-checklist-thursday-night) |
 | **Prova do Anjo results** (Saturday) | Saturday afternoon | [Anjo / Monstro Checklist](#anjo--monstro-update-checklist-saturday) |
 | **Presente do Anjo** (Sunday afternoon) | Sunday ~14h-17h | [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) |
@@ -72,7 +73,7 @@ This file is ~2,400 lines. **Do not read it all at once.** Use this map to jump 
 | **Barrado no Baile** (Wednesday) | Wednesday daytime | [Barrado no Baile Checklist](#barrado-no-baile-checklist-wednesday) |
 | **Sincerão data** (Monday) | Monday ~22h | [Sincerão Update](#sincerão-update-monday) |
 | **Ganha-Ganha / Barrado / power events** | Various | [Manual Data Files](#manual-data-files--when-and-how) |
-| **Add scheduled events for upcoming week** | After dynamics article | [Scheduled Events](#scheduled-events-upcoming-week) |
+| **Add scheduled events for upcoming week** | After dynamics article | [Week Rollover Runbook](#week-rollover-runbook-thursdayfriday) + [Scheduled Events](#scheduled-events-upcoming-week) |
 | **Participant exit** (quit/disqualified) | When it happens | [Manual Data Files → manual_events.json](#1-datamanual_eventsjson) |
 | **Workflow failed on GitHub** | After failure | [Troubleshooting](#troubleshooting) |
 | **Merge feature branch to main** | Feature work done | [Git Workflow → feature branch](#feature-branch--main-multi-commit-features) |
@@ -388,6 +389,59 @@ Each BBB week follows a predictable pattern anchored to the Líder cycle.
 
 > **Key rule**: The **Prova do Líder is the FIRST event of the new week**. Everything before it on the same day (e.g., afternoon Anjo prova) belongs to the PREVIOUS week. `WEEK_END_DATES` stores the last day of each week = the day BEFORE the Prova do Líder. When assigning `week` to events in `provas.json` or `manual_events.json`, use the **operational week** (which Líder presided), not `get_week_number(date)` — they can differ on Prova do Líder day.
 
+### Week Rollover Runbook (Thursday/Friday)
+
+Use this as the default workflow when the "Dinâmica da Semana" article lands and the next week opens.
+
+**Mental model**:
+- You do not "end week `N`" in isolation. You end it by opening week `N+1`.
+- `weekly_events[N+1].notes` should describe only what is unusual about that week.
+- The open cycle now gets the recurring Thursday→Wednesday schedule automatically. Add manual entries only for custom copy, non-standard mechanics, or `lider_classificatoria`.
+
+**Always repeats every week**
+
+| Repeat | Action now | Where | Manual `scheduled_events`? |
+|--------|------------|-------|----------------------------|
+| Week boundary | Set `weekly_events[N].end_date` to Wednesday and append `weekly_events[N+1]` with Thursday `start_date` | `data/manual_events.json` | No |
+| Source capture | Scrape the dynamics article and store both URL + scraped file path | `docs/scraped/` + `fontes` | n/a |
+| Thursday Líder slot | Default `lider` row is scaffolded for the open cycle. Add `lider_classificatoria` only if the source splits the Prova do Líder. | `scheduled_events` | Only when split/custom |
+| Friday custom dynamic | Add the Friday `dinamica` from the article | `scheduled_events` | Yes |
+| Saturday baseline visibility | Default `anjo` / `monstro` rows are scaffolded for the open cycle | manual override optional | No, unless custom |
+| Rebuild sanity | Rebuild and inspect the next week in timeline + program summary | derived files + docs | n/a |
+
+**Scaffolded every week — override only when this week is special**
+
+| Slot | Default source | Add a manual override when... |
+|------|----------------|-------------------------------|
+| `lider` (Thursday) | scaffold on the open cycle | timing/copy needs to be more specific before the result exists |
+| `anjo` (Saturday) | scaffold on the open cycle | the article gives useful custom copy or a non-standard rule |
+| `monstro` (Saturday) | scaffold on the open cycle | the article already states a special Monstro mechanic |
+| `presente_anjo` (Sunday) | scaffold | the rule changes (e.g. double immunity / family video tradeoff) |
+| `paredao_imunidade` / `paredao_indicacao` / `paredao_votacao` / `paredao_contragolpe` / `paredao_bate_volta` (Sunday) | scaffold on the open cycle; real `paredoes.json` later | the week article needs a more specific public-facing step description |
+| `paredao_formacao` (Sunday) | scaffold | formation has custom mechanics (contragolpe, extra emparedado, split show, etc.) |
+| `sincerao` (Monday) | scaffold | the article already gives a week-specific format worth surfacing early |
+| `paredao_resultado` (Tuesday) | scaffold | unusual timing or custom copy matters |
+| `ganha_ganha` (Tuesday) | scaffold | the article announces a non-generic twist |
+| `barrado_baile` (Wednesday) | scaffold | the article announces a special rule/time; otherwise record the real result on Wednesday |
+
+**Special only for that week**
+- One-off Friday/Saturday mechanics such as Exilado, Máquina do Poder, rescue games, extra emparedado, etc. Model these as `scheduled_events[].category = "dinamica"` until they resolve.
+- Any rule that changes the normal Sunday ceremony should appear in the Sunday override detail, not buried in a generic note.
+- Dual leadership, consensus mechanics, or other unusual governance rules should be summarized once in `weekly_events[N+1].notes`.
+- Once outcomes become real, move them to the authoritative layer: `provas.json`, `paredoes.json`, `weekly_events`, `power_events`, or `special_events`.
+
+**Same-day sequence rule**
+- If the article/video explicitly breaks a day into ordered steps, store separate scheduled entries instead of one compressed summary.
+- Thursday default split when available: `lider_classificatoria` (afternoon) then `lider` (live final). After classificatórias resolve: (a) update the `lider_classificatoria` event with results + fontes, (b) update the `lider` event title with finalist names, (c) create the provas.json entry with `vencedor: null` + classificatória fases, (d) update any downstream `dinamica` that references "os eliminados da liderança" with actual names.
+- Sunday default split in the open cycle: `presente_anjo`, `paredao_imunidade`, `paredao_indicacao`, `paredao_votacao`, `paredao_contragolpe`, `paredao_bate_volta`, `paredao_formacao`.
+- Resolved archive cycles do not get fake Sunday mechanics backfilled; the detailed Sunday sub-steps come from authoritative `paredoes.json` data once they exist.
+
+**Schedule profile hook**
+- Optional: set `weekly_events[N].schedule_profile` when the cycle rhythm is not the standard Thursday→Wednesday order.
+- Supported profiles today:
+  - `standard` — normal BBB cadence
+  - `accelerated_finale` — altered late-game cadence; Wednesday carries the elimination slot instead of `barrado_baile`
+
 Two recurring event types:
 - **Sincerão** (Monday live show) — happens every week with a different format/theme
 - **Week Dynamic** (Friday, varies) — the unique dynamic from the weekly dynamics article
@@ -441,50 +495,41 @@ Separate from Sincerão. Announced in the dynamics article (published ~Thursday)
 
 ### Recurring Events Checklist (per week)
 
-**Auto-scaffolding**: The timeline builder automatically generates placeholder events for recurring slots (Sincerão, Ganha-Ganha, Barrado no Baile, Presente do Anjo, Formação do Paredão, Eliminação). You do **not** need to add manual `scheduled_events` for these unless you want to override title/detail or time. Manual `scheduled_events` are now mainly for **week-specific dynamics** (e.g. Friday dynamic, Saturday shock, custom anjo/monstro placeholders).
+**Auto-scaffolding**: The open cycle now gets the recurring backbone automatically: `lider`, `anjo`, `monstro`, `presente_anjo`, the Sunday Paredão sub-steps, `paredao_formacao`, `sincerao`, `paredao_resultado`, `ganha_ganha`, and `barrado_baile` (or the selected `schedule_profile`). You do **not** need to add manual `scheduled_events` for those unless you want to override title/detail/time.
 
-When planning a new week, ensure:
+Use the [Week Rollover Runbook](#week-rollover-runbook-thursdayfriday) first. Quick decision rule:
 
-- [ ] **Sincerão** (Monday) — scaffolded; add to `weekly_events[N].sincerao` when it happens (edges + stats)
-- [ ] **Ganha-Ganha** (Tuesday) — scaffolded
-- [ ] **Barrado no Baile** (Wednesday) — scaffolded; record in power_events when it happens
-- [ ] **Prova do Líder** (Thursday) — see Líder Transition Checklist (provas.json)
-- [ ] **Week Dynamic** (Friday) — **manual** `scheduled_events` or `special_events`; varies each week
-- [ ] **Prova do Anjo** (Saturday) — API auto-detects; optional scheduled placeholder
-- [ ] **Monstro** (Saturday) — API / weekly_events; optional scheduled placeholder
-- [ ] **Presente do Anjo** (Sunday afternoon) — scaffolded
-- [ ] **Paredão Formation** (Sunday ~22h45) — scaffolded; formation sub-steps from paredoes.json when complete
-- [ ] **Eliminação** (Tuesday) — scaffolded
+- Add manual `scheduled_events` every week for: each extra `dinamica`.
+- Add `lider_classificatoria` only when Thursday is explicitly split in the source.
+- Override scaffolded recurring slots only when the current article makes them non-generic: `lider`, `anjo`, `monstro`, Sunday Paredão sub-steps, `presente_anjo`, `paredao_formacao`, `sincerao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`.
+
+**Week-close invariant**:
+- Do not "end a week" without opening the next one.
+- `weekly_events[N+1].notes` should answer only one question: what is special about this week?
+- Every rollover entry should cite both the original GShow URL and `docs/scraped/<arquivo>.md`.
 
 **Operational invariant**:
 - Real events (from API, paredoes, weekly_events, power_events) and manual scheduled events take priority over scaffold placeholders.
 - Use manual `scheduled_events` for week-specific dynamics and optional overrides (e.g. custom time or description).
 
-**Scrape + map workflow (required before editing `scheduled_events`)**:
-1. Scrape the dynamics article first (published Thursday):
-   ```bash
-   python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/
-   ```
-2. Start from the recurring weekly baseline template (below).
-3. Build a day-by-day event list from the scraped file (`docs/scraped/*.md`) to identify **additional week-specific dynamics**.
-4. Register all upcoming week events in one pass (`anjo`, `monstro`, `presente_anjo`, `sincerao`, `paredao_formacao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`, plus `dinamica` extras).
-5. If Líder/VIP are still unknown, keep placeholders in descriptions (`a definir`) and update later from the Prova do Líder + VIP article workflow.
-6. Always include both the original URL and scraped file path in `fontes`.
-
 ### Baseline weekly template (reference; most slots auto-scaffolded)
 
-The timeline builder auto-generates scaffold events for the recurring slots below. You only need to add manual `scheduled_events` for **week-specific** items (e.g. Friday dynamic, extra dinâmicas). Reference for week `N`:
+The table below answers the practical question "does this repeat automatically, or do I need to add it manually?" for week `N`:
 
-| Day | Category | Suggested title | Required detail hint |
-|-----|----------|-----------------|----------------------|
-| Saturday | `anjo` | Prova do Anjo | Standard Saturday prova |
-| Saturday | `monstro` | Castigo do Monstro | Anjo escolhe o(s) alvo(s) do Monstro |
-| Sunday (afternoon) | `presente_anjo` | Presente do Anjo | Anjo escolhe entre 2ª imunidade ou vídeo da família + almoço |
-| Sunday (night) | `paredao_formacao` | Formação do Paredão | Keep Líder as `a definir` if unresolved |
-| Monday | `sincerao` | Sincerão | Formato da semana a definir until confirmed |
-| Tuesday | `paredao_resultado` | Eliminação | Resultado do paredão da semana |
-| Tuesday | `ganha_ganha` | Ganha-Ganha | Veto + decisão (prêmio vs informação) |
-| Wednesday | `barrado_baile` | Barrado no Baile | Líder vigente barra alguém da festa |
+| Day | Category | Default source | Add manually when... |
+|-----|----------|----------------|----------------------|
+| Thursday | `lider_classificatoria` | manual | the source/video announces qualifying rounds before the live final |
+| Thursday | `lider` | scaffold on the open cycle, then real `provas.json` fallback | the source has better pre-result wording or a custom time |
+| Friday | `dinamica` | manual | the article announces any week-specific mechanic |
+| Saturday | `anjo` | scaffold on the open cycle, then `provas.json` real event | the article gives useful custom copy |
+| Saturday | `monstro` | scaffold on the open cycle, then `weekly_events.anjo.monstro` / API real event | the article already defines a special Monstro rule |
+| Sunday (afternoon) | `presente_anjo` | scaffold | the week changes the rule or the article gives meaningful custom detail |
+| Sunday (night) | `paredao_imunidade` / `paredao_indicacao` / `paredao_votacao` / `paredao_contragolpe` / `paredao_bate_volta` | scaffold on the open cycle, then real `paredoes.json` steps | the week article requires more specific copy |
+| Sunday (night) | `paredao_formacao` | scaffold | the formation is non-generic (contragolpe, extra emparedado, split show, etc.) |
+| Monday | `sincerao` | scaffold | the format is already known and worth surfacing early |
+| Tuesday | `paredao_resultado` | scaffold | timing/copy is unusually specific |
+| Tuesday | `ganha_ganha` | scaffold | the article announces a non-generic twist |
+| Wednesday | `barrado_baile` | scaffold in `standard` profile | the article announces a special rule/time |
 
 **Verification (required before commit)**:
 Baseline recurring events (Sincerão, Ganha-Ganha, Barrado, Presente do Anjo, Formação do Paredão, Eliminação) are **auto-scaffolded** by the timeline builder — they do not need manual `scheduled_events` entries. To verify scaffolds appear correctly in the built timeline:
@@ -537,6 +582,15 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    - If only phase 1 is known, save phase 1 immediately with a provisional `nota`.
    - Append/update phase 2 as soon as it finishes (same prova entry).
    - Keep provenance explicit for each update (provisional + official when available).
+
+   **Split Prova do Líder (classificatórias + final ao vivo)**:
+   When the Prova do Líder is split into afternoon classificatórias and evening final:
+   1. Create the prova entry with `vencedor: null` after classificatórias finish (don't wait for the final).
+   2. Use 2 `fases`: (1) `eliminatoria` for those eliminated in qualifying rounds, (2) `classificatoria` for the finalists vs eliminated intermediates.
+   3. Add `nota_ranking` explaining the entry is intentionally partial ("Classificatórias apenas — final ao vivo pendente").
+   4. After the final: fill `vencedor`, add a phase 3 with the final result, update `nota`, and remove the "pendente" note from `nota_ranking`.
+   5. **Cross-reference with scheduled events**: Update the `lider_classificatoria` event with result details and the `lider` event with finalist names. Also update Friday `dinamica` if the first-eliminated feed into it.
+   6. **Phase mapping**: When the classificatória has multiple sub-stages (e.g., 3 stages of "senses") but the article only names eliminations from the first sub-stage and the final classifiers, consolidate the intermediate sub-stages into a single `classificatoria` fase (pattern: "Eliminatória + finalists but not intermediate rounds" from [How to extract positions](#how-to-extract-positions-from-articles)).
 
    **Resistance/dupla provas — full elimination order**:
    - For resistance or elimination-format provas, record **ALL participants** in order of exit (last out = pos 1)
@@ -1978,9 +2032,58 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 
 This means you can schedule events, update their title/detail/fontes when they happen, and the Cronologia automatically transitions them from scheduled→real styling the next day. No need to remove `time` or set a `resolved` flag.
 
-**Common categories for scheduling**: `sincerao`, `ganha_ganha`, `barrado_baile`, `anjo`, `monstro`, `presente_anjo`, `paredao_formacao`, `paredao_resultado`, `dinamica`.
+**Common categories for scheduling**: `lider_classificatoria`, `dinamica`, and any recurring slot that needs a more specific override than the generic scaffold.
 
-**Auto-generated categories** (from `paredoes.json`, do NOT schedule these): `paredao_imunidade`, `paredao_indicacao`, `paredao_votacao`, `paredao_contragolpe`, `paredao_bate_volta`. These ceremony sub-steps are created automatically when formation data is filled. See [Paredão Formation → Auto-generated Ceremony Sub-Steps](#auto-generated-ceremony-sub-steps-in-cronologia).
+**Auto-generated categories** (generally do NOT schedule these unless you need a custom override): `lider`, `anjo`, `monstro`, `presente_anjo`, `paredao_imunidade`, `paredao_indicacao`, `paredao_votacao`, `paredao_contragolpe`, `paredao_bate_volta`, `paredao_formacao`, `sincerao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`. The timeline builder creates these automatically for the open cycle, and `paredoes.json` replaces the Sunday ceremony steps with authoritative data once the formation resolves.
+
+### Minimal week rollover template
+
+Use this as the copy-paste starting point when the dynamics article opens a new week.
+
+```jsonc
+// In weekly_events:
+{
+  "week": 10,
+  "start_date": "2026-03-19",
+  "end_date": null,
+  "schedule_profile": "standard",
+  "notes": "Only what is special about this week.",
+  "fontes": [
+    "<dynamics-article-url>",
+    "docs/scraped/<arquivo>.md"
+  ]
+}
+```
+
+```jsonc
+// Minimum manual scheduled events for the new week:
+[
+  {
+    "date": "2026-03-19",
+    "week": 10,
+    "category": "lider_classificatoria",
+    "emoji": "🏁",
+    "title": "Prova do Líder — etapas classificatórias",
+    "detail": "Classificatórias durante a tarde.",
+    "time": "Tarde",
+    "fontes": ["<dynamics-article-url>", "docs/scraped/<arquivo>.md"]
+  },
+  {
+    "date": "2026-03-20",
+    "week": 10,
+    "category": "dinamica",
+    "emoji": "⚡",
+    "title": "Dinâmica da semana",
+    "detail": "Describe only the week-specific mechanic.",
+    "fontes": ["<dynamics-article-url>", "docs/scraped/<arquivo>.md"]
+  }
+]
+```
+
+`schedule_profile` is optional. Leave it as `standard` unless the cycle cadence changes late in the season. Today the only non-standard profile is `accelerated_finale`.
+
+Add more entries only when the current week changes a recurring slot or introduces extra mechanics.
+If the source/video enumerates a same-day sequence, append those entries in chronological order in the JSON.
 
 ### Weekly schedule from dynamics article (required)
 
@@ -1990,16 +2093,22 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
    ```bash
    python scripts/scrape_gshow.py "<dinamica-semana-url>" -o docs/scraped/
    ```
-2. Add the recurring weekly baseline template first (`anjo`, `monstro`, `presente_anjo`, `sincerao`, `paredao_formacao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`).
-3. Extract week-specific dynamic entries by date/time from the scraped markdown.
-4. Add these extra `dinamica` (and related) entries on top of the baseline.
-5. Keep unresolved roles explicit:
+2. Do the **always-repeat** rollover work from [Week Rollover Runbook](#week-rollover-runbook-thursdayfriday):
+   - close week `N` and open week `N+1` in `weekly_events`
+   - add the Thursday `lider` placeholder, plus `lider_classificatoria` when the source/video shows afternoon qualifying rounds
+   - add optional Saturday `anjo` / `monstro` placeholders if you want them visible before results
+3. Add only the **special-this-week** items from the article:
+   - every extra Friday/Saturday mechanic goes in `scheduled_events` as `dinamica`
+   - override scaffolded slots only when the article makes them non-generic
+   - if the source/video enumerates same-day ceremony steps, split them into separate scheduled entries in source order instead of compressing them into one summary
+   - if you create a same-day placeholder that should still render as upcoming (for example Thursday's `Prova do Líder` before the live final), include a non-empty `time`; same-day scheduled events without `time` render as resolved
+4. Keep unresolved roles explicit:
    - If Líder is not known yet, keep wording generic (`indicação do Líder vigente (a definir)`).
    - If VIP list is not known yet, do not infer names; wait for the VIP source and update only when confirmed.
-6. Link provenance in each entry (`fontes`):
+5. Link provenance in each entry (`fontes`):
    - dynamics article URL
    - `docs/scraped/<arquivo>.md`
-7. Run the baseline verification command in [Baseline weekly template (reference; most slots auto-scaffolded)](#baseline-weekly-template-reference-most-slots-auto-scaffolded) before commit.
+6. Run the baseline verification command in [Baseline weekly template (reference; most slots auto-scaffolded)](#baseline-weekly-template-reference-most-slots-auto-scaffolded) before commit.
 
 **Example mapped from**  
 `https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-maquina-do-poder-e-participantes-emparedados-no-sabado-14-entenda.ghtml`

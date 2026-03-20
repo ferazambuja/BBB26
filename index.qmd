@@ -163,7 +163,7 @@ if not hl_cards:
 else:
     # Extract context card data for the header
     ctx = next((c for c in hl_cards if c.get("type") == "context"), {})
-    ctx_week = ctx.get("week", "?")
+    ctx_cycle = ctx.get("cycle", ctx.get("week", "?"))
     ctx_days = ctx.get("days", 0)
     ctx_active = ctx.get("active", 0)
 
@@ -172,7 +172,7 @@ else:
 <h2 class="fs-2xl u-s435">📋 Destaques do Dia <span class="fs-base u-s250">({date_display_pt})</span></h2>
 <div class="u-s399"></div>
 <div class="fs-base u-s365">
-<span>📅 <b class="text-light">Semana {ctx_week}</b></span>
+<span>📅 <b class="text-light">Ciclo do Paredão {ctx_cycle}</b></span>
 <span>{ctx_days} dias de dados</span>
 <span>{ctx_active} participantes ativos</span>
 </div>

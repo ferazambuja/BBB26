@@ -319,7 +319,7 @@ WEEK_END_DATES: list[str] = [
     "2026-02-25",  # Week 6 — Jonas Sulzbach Líder; 6º Paredão Feb 25; barrado Feb 25
     "2026-03-05",  # Week 7 — Samira Líder; 7º Paredão (Falso) Mar 3; dupla liderança (W8) definida Mar 6
     "2026-03-11",  # Week 8 — Alberto Cowboy + Jonas Sulzbach co-Líderes; 8º Paredão Mar 10; Alberto Líder solo (9ª PdL) Mar 12
-    # Week 9 remains open until the next Líder cycle is confirmed in data.
+    "2026-03-18",  # Week 9 — Alberto Cowboy Líder; 9º Paredão Mar 18; Alberto Líder tetra (10ª PdL) Mar 19
 ]
 
 
@@ -344,6 +344,18 @@ def _record_week_start(start_by_week: dict[int, str], week: Any, date_str: Any) 
         start_by_week[week] = date_str
 
 
+def _cycle_value(item: dict[str, Any], *keys: str) -> Any:
+    """Read canonical cycle-aware keys, falling back to legacy week/semana names."""
+    for key in keys:
+        value = item.get(key)
+        if value is not None:
+            return value
+    for key in ("cycle", "week", "semana"):
+        if key in item and item.get(key) is not None:
+            return item.get(key)
+    return None
+
+
 def _compute_effective_week_end_dates(
     manual_events: dict[str, Any],
     paredoes_data: dict[str, Any],
@@ -357,21 +369,26 @@ def _compute_effective_week_end_dates(
     """
     week_starts: dict[int, str] = {}
 
-    for item in manual_events.get("weekly_events", []):
-        _record_week_start(week_starts, item.get("week"), item.get("start_date"))
+    cycle_entries = manual_events.get("cycles")
+    if not isinstance(cycle_entries, list):
+        cycle_entries = manual_events.get("weekly_events", [])
+
+    for item in cycle_entries:
+        _record_week_start(week_starts, _cycle_value(item, "cycle", "week"), item.get("start_date"))
 
     for section in ("power_events", "special_events", "scheduled_events"):
         for item in manual_events.get(section, []):
-            _record_week_start(week_starts, item.get("week"), item.get("date"))
+            _record_week_start(week_starts, _cycle_value(item, "cycle", "week"), item.get("date"))
 
     for item in paredoes_data.get("paredoes", []):
-        week = item.get("semana")
-        if week is None:
-            week = item.get("week")
-        _record_week_start(week_starts, week, item.get("data_formacao") or item.get("data"))
+        _record_week_start(
+            week_starts,
+            _cycle_value(item, "cycle", "semana", "week"),
+            item.get("data_formacao") or item.get("data"),
+        )
 
     for item in provas_data.get("provas", []):
-        _record_week_start(week_starts, item.get("week"), item.get("date"))
+        _record_week_start(week_starts, _cycle_value(item, "cycle", "week"), item.get("date"))
 
     candidate_end_by_week: dict[int, str] = {}
     for week, start_date in week_starts.items():
@@ -476,6 +493,25 @@ def get_week_start_date(week_num: int, week_end_dates: list[str] | None = None) 
         prev_end = boundaries[-1] if boundaries else BBB26_PREMIERE
     d = datetime.strptime(prev_end, "%Y-%m-%d").date()
     return (d + timedelta(days=1)).isoformat()
+
+
+def get_effective_cycle_end_dates(
+    manual_events: dict[str, Any] | None = None,
+    paredoes_data: dict[str, Any] | None = None,
+    provas_data: dict[str, Any] | None = None,
+) -> list[str]:
+    """Canonical alias for get_effective_week_end_dates() during the bridge period."""
+    return get_effective_week_end_dates(manual_events, paredoes_data, provas_data)
+
+
+def get_cycle_number(date_str: str, cycle_end_dates: list[str] | None = None) -> int:
+    """Canonical alias for get_week_number() during the bridge period."""
+    return get_week_number(date_str, cycle_end_dates)
+
+
+def get_cycle_start_date(cycle_num: int, cycle_end_dates: list[str] | None = None) -> str:
+    """Canonical alias for get_week_start_date() during the bridge period."""
+    return get_week_start_date(cycle_num, cycle_end_dates)
 
 
 def calc_sentiment(participant: dict) -> float:
@@ -1121,7 +1157,7 @@ def build_precision_methodology_text(polls_data: dict) -> str:
 # ══════════════════════════════════════════════════════════════
 
 TIMELINE_CAT_COLORS = {
-    "entrada": "#28a745", "saida": "#dc3545", "lider": "#ffc107",
+    "entrada": "#28a745", "saida": "#dc3545", "lider_classificatoria": "#f4d35e", "lider": "#ffc107",
     "anjo": "#87ceeb", "monstro": "#9b59b6", "imune": "#17a2b8",
     "big_fone": "#ff6b35", "paredao_formacao": "#e74c3c",
     "paredao_resultado": "#c0392b", "indicacao": "#e67e22",
@@ -1144,7 +1180,7 @@ TIMELINE_CAT_COLORS = {
 }
 
 TIMELINE_CAT_LABELS = {
-    "entrada": "Entrada", "saida": "Saída", "lider": "Líder",
+    "entrada": "Entrada", "saida": "Saída", "lider_classificatoria": "Classificatórias", "lider": "Líder",
     "anjo": "Anjo", "monstro": "Monstro", "imune": "Imune",
     "big_fone": "Big Fone", "paredao_formacao": "Paredão",
     "paredao_resultado": "Resultado", "indicacao": "Indicação",
@@ -1168,10 +1204,10 @@ TIMELINE_CAT_LABELS = {
 
 
 def group_cronologia_events(timeline_events: list[dict]) -> list[dict]:
-    """Group timeline events by week and date in display order."""
+    """Group timeline events by cycle/week and date in display order."""
     weeks: dict[int, dict[str, list[dict]]] = {}
     for ev in timeline_events:
-        week = ev.get("week", 0)
+        week = ev.get("cycle", ev.get("week", 0))
         date_str = ev.get("date", "")
         weeks.setdefault(week, {}).setdefault(date_str, []).append(ev)
 
@@ -1187,8 +1223,13 @@ def group_cronologia_events(timeline_events: list[dict]) -> list[dict]:
                 "date": date_str,
                 "events": list(reversed(date_events)),
             })
-        grouped.append({"week": week_num, "dates": dates})
+        grouped.append({"week": week_num, "cycle": week_num, "dates": dates})
     return grouped
+
+
+def format_cronologia_cycle_label(cycle_num: Any) -> str:
+    """Format the shared chronology group label with cycle wording."""
+    return f"Ciclo do Paredão {cycle_num}"
 
 
 def _prepare_cronologia_event(ev: dict) -> dict:
@@ -1247,7 +1288,7 @@ def _render_cronologia_rows(
 
     for week_group in grouped_events:
         parts.append(
-            f'<tr><td colspan="{columns}" class="cron-week">Semana {week_group["week"]}</td></tr>'
+            f'<tr><td colspan="{columns}" class="cron-week">{format_cronologia_cycle_label(week_group.get("cycle", week_group["week"]))}</td></tr>'
         )
         for day_group in week_group["dates"]:
             date_str = day_group["date"]
@@ -1393,7 +1434,9 @@ def _render_cronologia_mobile_table(grouped_events: list[dict], variant: str, to
 def _render_cronologia_day_panel(grouped_events: list[dict]) -> str:
     parts = ['<div class="cronologia-shell cronologia-shell--review cronologia-day-panel">']
     for week_group in grouped_events:
-        parts.append(f'<section class="cronologia-week-panel"><h4 class="cron-week">Semana {week_group["week"]}</h4>')
+        parts.append(
+            f'<section class="cronologia-week-panel"><h4 class="cron-week">{format_cronologia_cycle_label(week_group.get("cycle", week_group["week"]))}</h4>'
+        )
         for day_group in week_group["dates"]:
             parts.append(f'<div class="cronologia-day-card"><div class="cron-date">📅 {day_group["date"]}</div>')
             for ev in day_group["events"]:

@@ -7,6 +7,9 @@ from data_utils import (
     calc_sentiment,
     normalize_route_label,
     utc_to_game_date,
+    get_cycle_number,
+    get_cycle_start_date,
+    get_effective_cycle_end_dates,
     get_week_number,
     get_week_start_date,
     get_effective_week_end_dates,
@@ -175,7 +178,7 @@ class TestGetWeekNumber:
         """When week N+1 has dated signals, week N boundary is inferred."""
         manual = {
             "scheduled_events": [
-                {"week": 10, "date": "2026-03-21"},
+                {"week": 11, "date": "2026-03-28"},
             ]
         }
         inferred = get_effective_week_end_dates(
@@ -184,15 +187,15 @@ class TestGetWeekNumber:
             provas_data={},
         )
         assert len(inferred) == len(WEEK_END_DATES) + 1
-        assert inferred[-1] == "2026-03-20"
-        assert get_week_number("2026-03-20", inferred) == 9
-        assert get_week_number("2026-03-21", inferred) == 10
+        assert inferred[-1] == "2026-03-27"
+        assert get_week_number("2026-03-27", inferred) == 10
+        assert get_week_number("2026-03-28", inferred) == 11
 
     def test_inference_requires_contiguous_week_signal(self):
         """Do not infer week ends when the immediate next week has no signal."""
         manual = {
             "scheduled_events": [
-                {"week": 11, "date": "2026-03-28"},
+                {"week": 12, "date": "2026-04-04"},
             ]
         }
         inferred = get_effective_week_end_dates(
@@ -238,6 +241,29 @@ class TestGetWeekStartDate:
 
     def test_week_0_clamps_to_premiere(self):
         assert get_week_start_date(0) == "2026-01-13"
+
+
+class TestCycleCompatibility:
+    """Test cycle aliases and bridge behavior."""
+
+    def test_cycle_aliases_match_week_helpers(self):
+        inferred = ["2026-01-21", "2026-01-28"]
+        assert get_cycle_number("2026-01-25", inferred) == get_week_number("2026-01-25", inferred)
+        assert get_cycle_start_date(2, inferred) == get_week_start_date(2, inferred)
+
+    def test_cycle_boundary_inference_accepts_canonical_cycle_keys(self):
+        manual = {
+            "scheduled_events": [
+                {"cycle": 11, "date": "2026-03-28"},
+            ]
+        }
+        inferred = get_effective_cycle_end_dates(
+            manual_events=manual,
+            paredoes_data={},
+            provas_data={},
+        )
+        assert len(inferred) == len(WEEK_END_DATES) + 1
+        assert inferred[-1] == "2026-03-27"
 
 
 class TestParseRoles:

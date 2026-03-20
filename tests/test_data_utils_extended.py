@@ -947,7 +947,7 @@ class TestRenderCronologiaHtml:
             },
         ]
         html = render_cronologia_html(events)
-        assert "Semana 1" in html
+        assert "Ciclo do Paredão 1" in html
         assert "Entrada" in html
         assert "2026-01-13" in html
         assert "table" in html
@@ -973,8 +973,8 @@ class TestRenderCronologiaHtml:
         ]
         html = render_cronologia_html(events)
         # Latest week should appear first in the HTML
-        idx_w2 = html.index("Semana 2")
-        idx_w1 = html.index("Semana 1")
+        idx_w2 = html.index("Ciclo do Paredão 2")
+        idx_w1 = html.index("Ciclo do Paredão 1")
         assert idx_w2 < idx_w1  # Week 2 before Week 1
 
     def test_live_cronologia_html_combines_desktop_baseline_and_mobile_open_variant(self):

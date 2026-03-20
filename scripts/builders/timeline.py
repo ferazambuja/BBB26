@@ -25,7 +25,15 @@ _SINGLETON_CATEGORIES = frozenset({
 
 # First week (1-based) when each scaffold category is generated (0 = never scaffold).
 _SCAFFOLD_FIRST_WEEK: dict[str, int] = {
+    "lider": 1,
+    "anjo": 1,
+    "monstro": 1,
     "presente_anjo": 1,
+    "paredao_imunidade": 1,
+    "paredao_indicacao": 1,
+    "paredao_votacao": 1,
+    "paredao_contragolpe": 1,
+    "paredao_bate_volta": 1,
     "paredao_formacao": 1,
     "sincerao": 1,
     "paredao_resultado": 2,  # W1 elimination was Wed, not Tue
@@ -39,6 +47,7 @@ CATEGORY_ORDER: dict[str, int] = {
     # --- Entries (day start) ---
     "entrada": 0,
     # --- Morning/afternoon role confirmations (~10h-15h) ---
+    "lider_classificatoria": 9,
     "lider": 10, "anjo": 11, "monstro": 12, "imune": 13,
     "consenso_anjo_monstro": 14,
     # --- Afternoon events (~14h-17h) ---
@@ -70,25 +79,81 @@ CATEGORY_ORDER: dict[str, int] = {
     "saida": 70,
 }
 
-_SCAFFOLD_EVENTS: list[dict] = [
-    {"weekday": 6, "category": "presente_anjo", "emoji": "🎁", "title": "Presente do Anjo", "detail": "Anjo escolhe entre 2ª imunidade ou vídeo da família."},
-    {"weekday": 6, "category": "paredao_formacao", "emoji": "🗳️", "title": "Formação do Paredão", "detail": "Indicação do Líder, votação da casa, contragolpe, bate e volta."},
-    {"weekday": 0, "category": "sincerao", "emoji": "🗣️", "title": "Sincerão", "detail": "Sincerão ao vivo."},
-    {"weekday": 1, "category": "paredao_resultado", "emoji": "🏁", "title": "Eliminação", "detail": "Resultado do Paredão."},
-    {"weekday": 1, "category": "ganha_ganha", "emoji": "🎰", "title": "Ganha-Ganha", "detail": "Após a eliminação."},
-    {"weekday": 2, "category": "barrado_baile", "emoji": "🚫", "title": "Barrado no Baile", "detail": "Líder escolhe quem fica fora da próxima festa."},
-]
+_SCAFFOLD_PROFILES: dict[str, list[dict]] = {
+    "standard": [
+        {"weekday": 3, "category": "lider", "emoji": "👑", "title": "Prova do Líder", "detail": "Etapa final ao vivo que define a liderança da semana.", "open_only": True},
+        {"weekday": 5, "category": "anjo", "emoji": "😇", "title": "Prova do Anjo", "detail": "Prova do Anjo da semana, disputada durante o dia.", "open_only": True},
+        {"weekday": 5, "category": "monstro", "emoji": "👹", "title": "Castigo do Monstro", "detail": "Após a Prova do Anjo, o Anjo define o Castigo do Monstro. Alvo(s) ainda a definir.", "open_only": True},
+        {"weekday": 6, "category": "presente_anjo", "emoji": "🎁", "title": "Presente do Anjo", "detail": "Anjo escolhe entre a 2ª imunidade ou o vídeo da família."},
+        {"weekday": 6, "category": "paredao_imunidade", "emoji": "🛡️", "title": "Imunidade do Anjo", "detail": "Anjo define quem será imunizado.", "open_only": True},
+        {"weekday": 6, "category": "paredao_indicacao", "emoji": "🎯", "title": "Indicação do Líder", "detail": "Líder indica um participante ao Paredão.", "open_only": True},
+        {"weekday": 6, "category": "paredao_votacao", "emoji": "🗳️", "title": "Votação da Casa", "detail": "Casa vota e define o mais votado da noite.", "open_only": True},
+        {"weekday": 6, "category": "paredao_contragolpe", "emoji": "⚔️", "title": "Contragolpe", "detail": "Mais votado pela casa puxa outro participante para a berlinda.", "open_only": True},
+        {"weekday": 6, "category": "paredao_bate_volta", "emoji": "🔄", "title": "Bate e Volta", "detail": "Emparedados disputam a prova para escapar do Paredão.", "open_only": True},
+        {"weekday": 6, "category": "paredao_formacao", "emoji": "🗳️", "title": "Formação do Paredão", "detail": "Imunidade do Anjo, indicação do Líder, votação da casa, contragolpe e bate e volta."},
+        {"weekday": 0, "category": "sincerao", "emoji": "🗣️", "title": "Sincerão", "detail": "Sincerão ao vivo."},
+        {"weekday": 1, "category": "paredao_resultado", "emoji": "🏁", "title": "Eliminação", "detail": "Resultado do Paredão."},
+        {"weekday": 1, "category": "ganha_ganha", "emoji": "🎰", "title": "Ganha-Ganha", "detail": "Após a eliminação."},
+        {"weekday": 2, "category": "barrado_baile", "emoji": "🚫", "title": "Barrado no Baile", "detail": "Líder escolhe quem fica fora da próxima festa."},
+    ],
+    "accelerated_finale": [
+        {"weekday": 3, "category": "lider", "emoji": "👑", "title": "Prova do Líder", "detail": "Etapa final ao vivo que define a liderança da semana.", "open_only": True},
+        {"weekday": 5, "category": "anjo", "emoji": "😇", "title": "Prova do Anjo", "detail": "Prova do Anjo da semana, disputada durante o dia.", "open_only": True},
+        {"weekday": 5, "category": "monstro", "emoji": "👹", "title": "Castigo do Monstro", "detail": "Após a Prova do Anjo, o Anjo define o Castigo do Monstro. Alvo(s) ainda a definir.", "open_only": True},
+        {"weekday": 6, "category": "presente_anjo", "emoji": "🎁", "title": "Presente do Anjo", "detail": "Anjo escolhe entre a 2ª imunidade ou o vídeo da família."},
+        {"weekday": 6, "category": "paredao_imunidade", "emoji": "🛡️", "title": "Imunidade do Anjo", "detail": "Anjo define quem será imunizado.", "open_only": True},
+        {"weekday": 6, "category": "paredao_indicacao", "emoji": "🎯", "title": "Indicação do Líder", "detail": "Líder indica um participante ao Paredão.", "open_only": True},
+        {"weekday": 6, "category": "paredao_votacao", "emoji": "🗳️", "title": "Votação da Casa", "detail": "Casa vota e define o mais votado da noite.", "open_only": True},
+        {"weekday": 6, "category": "paredao_contragolpe", "emoji": "⚔️", "title": "Contragolpe", "detail": "Mais votado pela casa puxa outro participante para a berlinda.", "open_only": True},
+        {"weekday": 6, "category": "paredao_bate_volta", "emoji": "🔄", "title": "Bate e Volta", "detail": "Emparedados disputam a prova para escapar do Paredão.", "open_only": True},
+        {"weekday": 6, "category": "paredao_formacao", "emoji": "🗳️", "title": "Formação do Paredão", "detail": "Imunidade do Anjo, indicação do Líder, votação da casa, contragolpe e bate e volta."},
+        {"weekday": 0, "category": "sincerao", "emoji": "🗣️", "title": "Sincerão", "detail": "Sincerão ao vivo."},
+        {"weekday": 1, "category": "ganha_ganha", "emoji": "🎰", "title": "Ganha-Ganha", "detail": "Após a eliminação."},
+        {"weekday": 2, "category": "paredao_resultado", "emoji": "🏁", "title": "Eliminação", "detail": "Resultado do Paredão em ritmo acelerado de reta final."},
+    ],
+}
+
+
+def _iter_cycle_entries(manual_events: dict) -> list[dict]:
+    """Return canonical cycle entries, accepting the legacy weekly_events key."""
+    cycles = manual_events.get("cycles")
+    if isinstance(cycles, list):
+        return cycles
+    return manual_events.get("weekly_events", [])
+
+
+def _get_event_cycle(item: dict, fallback: int = 0) -> int:
+    """Read canonical cycle first, then legacy week/semana keys."""
+    cycle = item.get("cycle")
+    if cycle is None:
+        cycle = item.get("week")
+    if cycle is None:
+        cycle = item.get("semana")
+    return cycle if isinstance(cycle, int) else fallback
+
+
+def _resolve_schedule_profile_name(manual_events: dict, week_num: int) -> str:
+    """Resolve the scaffold profile for a cycle, defaulting to standard."""
+    for item in _iter_cycle_entries(manual_events):
+        if _get_event_cycle(item) != week_num:
+            continue
+        profile = item.get("schedule_profile") or item.get("cycle_profile")
+        if isinstance(profile, str) and profile in _SCAFFOLD_PROFILES:
+            return profile
+    return "standard"
 
 
 def _generate_weekly_scaffolds(
     week_end_dates: list[str],
     reference_date: str,
+    manual_events: dict | None = None,
 ) -> list[dict]:
     """Generate scaffold events for recurring weekly slots (Sincerão, Ganha-Ganha, etc.).
 
     Only fills gaps: real or manual scheduled events take priority. Events before
     reference_date get status "" (resolved); on or after get status "scheduled".
     """
+    manual_events = manual_events or {}
     ref_dt = datetime.strptime(reference_date, "%Y-%m-%d").date()
     cap_end = ref_dt + timedelta(days=7)
 
@@ -106,15 +171,20 @@ def _generate_weekly_scaffolds(
         else:
             end_dt = start_dt + timedelta(days=8)
         end_dt = min(end_dt, cap_end)
+        is_open_cycle = week_num == num_weeks
+        profile_name = _resolve_schedule_profile_name(manual_events, week_num)
+        profile_events = _SCAFFOLD_PROFILES.get(profile_name, _SCAFFOLD_PROFILES["standard"])
 
         day = start_dt
         while day <= end_dt:
             wday = day.weekday()  # 0=Mon, 6=Sun
             day_str = day.isoformat()
-            for tpl in _SCAFFOLD_EVENTS:
+            for tpl in profile_events:
                 cat = tpl["category"]
                 first = _SCAFFOLD_FIRST_WEEK.get(cat, 0)
                 if week_num < first:
+                    continue
+                if tpl.get("open_only") and not is_open_cycle:
                     continue
                 if tpl["weekday"] != wday:
                     continue
@@ -122,6 +192,7 @@ def _generate_weekly_scaffolds(
                 out.append({
                     "date": day_str,
                     "week": get_week_number(day_str, week_end_dates),
+                    "cycle": get_week_number(day_str, week_end_dates),
                     "category": cat,
                     "emoji": tpl["emoji"],
                     "title": tpl["title"],
@@ -766,7 +837,7 @@ def _merge_and_dedup_timeline(
     existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
         date = se.get("date") or ""
-        week = get_week_number(date) if date else 0
+        week = _get_event_cycle(se, fallback=get_week_number(date) if date else 0)
         cat = se.get("category", "dinamica")
         key = (date, cat)
         time_field = se.get("time") or ""
@@ -785,7 +856,7 @@ def _merge_and_dedup_timeline(
         if key in existing_date_cat and (cat in _SINGLETON_CATEGORIES or is_resolved):
             continue
         events.append({
-            "date": date, "week": week, "category": cat,
+            "date": date, "week": week, "cycle": week, "category": cat,
             "emoji": se.get("emoji", "🔮"), "title": se.get("title", ""),
             "detail": se.get("detail", ""),
             "participants": se.get("participants", []),
@@ -847,6 +918,8 @@ def _merge_and_dedup_timeline(
         key = (e["date"], e["category"], e["title"])
         if key not in seen:
             seen.add(key)
+            if "cycle" not in e and "week" in e:
+                e["cycle"] = e["week"]
             unique.append(e)
 
     return unique
@@ -881,7 +954,7 @@ def build_game_timeline(
     events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data, manual_events))
     events.extend(_collect_timeline_manual_events(manual_events))
     events.extend(_collect_timeline_paredao_events(paredoes_data, provas_data))
-    scaffold_events = _generate_weekly_scaffolds(week_end_dates, reference_date)
+    scaffold_events = _generate_weekly_scaffolds(week_end_dates, reference_date, manual_events)
     return _merge_and_dedup_timeline(
         events, manual_events,
         reference_date=reference_date,

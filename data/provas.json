@@ -2965,6 +2965,91 @@
           "titulo": "Quem está no 9° Paredão do BBB 26? Ana Paula Renault, Breno e Leandro formam a berlinda"
         }
       ]
+    },
+    {
+      "numero": 27,
+      "tipo": "lider",
+      "week": 10,
+      "date": "2026-03-19",
+      "nome": "10ª Prova do Líder — Sentidos (classificatórias + final ao vivo)",
+      "formato": "eliminatoria_fases_sentidos",
+      "vencedor": "Alberto Cowboy",
+      "vip": ["Jonas Sulzbach", "Jordana", "Marciele"],
+      "vip_source": "oficial_gshow",
+      "participantes_total": 12,
+      "excluidos": [
+        {"nome": "Babu Santana", "motivo": "Eliminado no 8º Paredão"},
+        {"nome": "Breno", "motivo": "Eliminado no 9º Paredão"}
+      ],
+      "nota": "Prova em 4 etapas baseada nos 5 sentidos. Classificatórias (tarde): paladar/olfato (4 eliminados), visão (2 eliminados), tato (3 eliminados). Final ao vivo (audição): carrossel de bags com som de vinheta — primeiro a acertar as 2 bags corretas vence. Alberto Cowboy venceu (4º título de Líder, 'É tetra!').",
+      "fases": [
+        {
+          "fase": 1,
+          "tipo": "eliminatoria",
+          "nota": "Etapa 1 — Paladar e Olfato. Joga um por vez. Botões de nariz (olfato) e boca (paladar) na tela com alimentos. Botão correto: +1 ponto; botão errado: -3 pontos. Samira, Leandro, Chaiany e Juliano Floss eliminados.",
+          "classificacao": [
+            {"pos": 1, "nome": "Alberto Cowboy", "nota": "Avançou"},
+            {"pos": 1, "nome": "Ana Paula Renault", "nota": "Avançou"},
+            {"pos": 1, "nome": "Gabriela", "nota": "Avançou"},
+            {"pos": 1, "nome": "Jonas Sulzbach", "nota": "Avançou"},
+            {"pos": 1, "nome": "Jordana", "nota": "Avançou"},
+            {"pos": 1, "nome": "Marciele", "nota": "Avançou"},
+            {"pos": 1, "nome": "Milena", "nota": "Avançou"},
+            {"pos": 1, "nome": "Solange Couto", "nota": "Avançou"},
+            {"pos": 9, "nome": "Samira", "nota": "Eliminada na 1ª etapa (paladar/olfato)"},
+            {"pos": 9, "nome": "Leandro", "nota": "Eliminado na 1ª etapa (paladar/olfato)"},
+            {"pos": 9, "nome": "Chaiany", "nota": "Eliminada na 1ª etapa (paladar/olfato)"},
+            {"pos": 9, "nome": "Juliano Floss", "nota": "Eliminado na 1ª etapa (paladar/olfato)"}
+          ]
+        },
+        {
+          "fase": 2,
+          "tipo": "classificatoria",
+          "nota": "Etapa 2 (Visão) e Etapa 3 (Tato). Visão: Solange Couto e Jonas Sulzbach eliminados. Tato: caixas com alimentos ocultos — manusear pelo tato, escolher 3 de 6 plaquinhas e apertar botão. Ana Paula Renault, Gabriela e Marciele eliminadas. Alberto Cowboy, Jordana e Milena classificados para a final.",
+          "classificacao": [
+            {"pos": 1, "nome": "Alberto Cowboy", "nota": "Classificado para a final", "tied": true},
+            {"pos": 1, "nome": "Jordana", "nota": "Classificada para a final", "tied": true},
+            {"pos": 1, "nome": "Milena", "nota": "Classificada para a final", "tied": true},
+            {"pos": 4, "nome": "Ana Paula Renault", "nota": "Eliminada na 3ª etapa (tato)", "tied": true},
+            {"pos": 4, "nome": "Gabriela", "nota": "Eliminada na 3ª etapa (tato)", "tied": true},
+            {"pos": 4, "nome": "Marciele", "nota": "Eliminada na 3ª etapa (tato)", "tied": true},
+            {"pos": 7, "nome": "Jonas Sulzbach", "nota": "Eliminado na 2ª etapa (visão)", "tied": true},
+            {"pos": 7, "nome": "Solange Couto", "nota": "Eliminada na 2ª etapa (visão)", "tied": true}
+          ]
+        },
+        {
+          "fase": 3,
+          "tipo": "final_ao_vivo",
+          "nota": "Final ao vivo — Audição. Carrossel de bags girando com sons de vinheta. Cada participante dava um palpite na sua vez. Primeiro a acertar as 2 bags corretas vence. Alberto Cowboy acertou primeiro.",
+          "classificacao": [
+            {"pos": 1, "nome": "Alberto Cowboy"},
+            {"pos": 2, "nome": "Jordana", "tied": true},
+            {"pos": 2, "nome": "Milena", "tied": true}
+          ]
+        }
+      ],
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/prova-do-lider-confira-quem-se-classificou-para-a-fase-final.ghtml",
+          "arquivo": "docs/scraped/prova-do-lider-confira-quem-se-classificou-para-a-fase-final.md",
+          "titulo": "Prova do Líder: confira quem se classificou para a fase final"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-e-comemora-e-tetra.ghtml",
+          "arquivo": "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-e-comemora-e-tetra.md",
+          "titulo": "Quem ganhou a Prova do Líder do BBB 26? Alberto Cowboy vence e comemora: 'É tetra!'"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/alberto-cowboy-e-o-novo-lider-do-bbb-26-veja-quantos-pontos-o-mineiro-soma-no-cartola-bbb-1.ghtml",
+          "arquivo": "docs/scraped/alberto-cowboy-e-o-novo-lider-do-bbb-26-veja-quantos-pontos-o-mineiro-soma-no-cartola-bbb-1.md",
+          "titulo": "Alberto Cowboy é o novo Líder do BBB 26: veja quantos pontos o mineiro soma no Cartola BBB"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/lider-alberto-cowboy-define-novo-vip-saiba-como-fica-a-pontuacao-na-10a-rodada-do-cartola-bbb.ghtml",
+          "arquivo": "docs/scraped/lider-alberto-cowboy-define-novo-vip-saiba-como-fica-a-pontuacao-na-10a-rodada-do-cartola-bbb.md",
+          "titulo": "Líder Alberto Cowboy define novo VIP: saiba como fica a pontuação na 10ª rodada do Cartola BBB"
+        }
+      ]
     }
   ]
 }
