@@ -968,7 +968,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 
 | Scope | Count | Definition |
 |---|---|---|
-| `with_indicados` | 9 | Paredões com indicados_finais |
+| `with_indicados` | 10 | Paredões com indicados_finais |
 | `all_finalized` | 9 | Finalizados (inclui falso) |
 | `real_only` | 8 | Finalizados reais (exclui falso) |
 
@@ -985,6 +985,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P7 | Alberto Cowboy, Jordana, Breno | Breno | 54.66% | Sim | finalizado |
 | P8 | Babu Santana, Chaiany, Milena | Babu Santana | 68.62% | Não | finalizado |
 | P9 | Ana Paula Renault, Breno, Leandro | Breno | 58.96% | Não | finalizado |
+| P10 | Leandro | — | — | Não | em_andamento |
 
 ### Route Effectiveness (`real_only`)
 
