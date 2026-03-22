@@ -1114,7 +1114,7 @@ Add a Bate e Volta prova entry with the results.
 If `data/manual_events.json → scheduled_events` has entries for events that just happened (e.g., a `dinamica` for the week's dynamic, `monstro` for the Castigo), update them with the real result:
 - Replace the placeholder `title` and `detail` with what actually happened
 - Add the formation article URL to `fontes`
-- The `time` field can stay — the timeline builder automatically treats past-date events as real (see [Scheduled Events → Automatic lifecycle](#scheduled-events-upcoming-week))
+- **Remove the `time` field** when filling real results. The `time` field keeps same-day events pending (🔮 + dashed borders). If a build runs between the event and the 06:00 BRT game-date flip, the event will incorrectly show as pending even though it already happened. Removing `time` ensures immediate resolution on the event date
 
 The `paredao_formacao` sub-step is auto-generated from `paredoes.json`, but custom dynamics and other scheduled events must be manually updated.
 
@@ -2022,15 +2022,15 @@ Add to `data/manual_events.json` → `scheduled_events` array:
 - `"Ao Vivo"` — event will happen during the **daily prime-time TV show** (the evening broadcast). Future events only.
 - `"A definir"` — time/broadcast not confirmed yet. Future events only.
 - `"7h"`, `"14h"`, etc. — specific scheduled or known time. Can be used for **both** future and past events when the event had a specific announced time (e.g., Big Fone at 14h, pre-announced dynamic at 7h).
-- **After the event happens**: removing `time` is optional — past events are automatically resolved by the date-based lifecycle. However, removing `time` on the same day accelerates the visual transition from dashed→solid for same-day rendering.
+- **After the event happens**: **remove the `time` field** when updating with real results. The `time` field keeps same-day events pending — builds between the event and 06:00 BRT game-date flip will show the event as pending (🔮 + dashed) even though it already happened. Removing `time` ensures immediate resolution.
 
 **Automatic lifecycle**: The timeline builder uses the event date to determine display style — **no manual flag needed**:
 - **Past** (date < today) → always displayed as a real event (solid borders, no 🔮). If a real auto-generated event already exists for the same `(date, category)`, the entry is suppressed as redundant.
-- **Today with `time`** → still scheduled (event is tonight)
+- **Today with `time`** → still scheduled (event is tonight — **remove `time` once the event happens**)
 - **Today without `time`** → resolved (already happened today)
 - **Future** → always scheduled (dashed borders, 🔮 prefix, yellow time badge)
 
-This means you can schedule events, update their title/detail/fontes when they happen, and the Cronologia automatically transitions them from scheduled→real styling the next day. No need to remove `time` or set a `resolved` flag.
+This means you can schedule events, update their title/detail/fontes when they happen, and **remove the `time` field** so the Cronologia immediately transitions from scheduled→real styling. No `resolved` flag is needed — just removing `time` is sufficient.
 
 **Common categories for scheduling**: `lider_classificatoria`, `dinamica`, and any recurring slot that needs a more specific override than the generic scaffold.
 
