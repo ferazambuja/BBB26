@@ -985,7 +985,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P7 | Alberto Cowboy, Jordana, Breno | Breno | 54.66% | Sim | finalizado |
 | P8 | Babu Santana, Chaiany, Milena | Babu Santana | 68.62% | Não | finalizado |
 | P9 | Ana Paula Renault, Breno, Leandro | Breno | 58.96% | Não | finalizado |
-| P10 | Leandro | — | — | Não | em_andamento |
+| P10 | Jordana | — | — | Não | em_andamento |
 
 ### Route Effectiveness (`real_only`)
 

@@ -1376,7 +1376,7 @@
       "semana": 10,
       "total_esperado": 3,
       "formacao": {
-        "resumo": "Triângulo de Risco: 4 primeiros eliminados da Prova do Líder (Chaiany, Juliano Floss, Leandro e Samira) disputam sorteio de caixas na 1ª etapa (sexta). Leandro encontrou o bracelete na caixa 2 e está emparedado. 2ª etapa ao vivo no sábado com troca de caixas. Formação continua domingo com indicação do Líder, votação da casa e Contragolpe.",
+        "resumo": "Triângulo de Risco: 4 primeiros eliminados da Prova do Líder (Chaiany, Juliano Floss, Leandro e Samira) disputam sorteio de caixas na 1ª etapa (sexta). Leandro encontrou o bracelete na caixa 2 e ficou temporariamente emparedado. Na 2ª etapa (sábado, ao vivo), Leandro escondeu o cartão PAREDÃO na caixa 2 e escolheu Jonas e Jordana. Jonas pegou caixa 3, Jordana pegou caixa 2, Leandro ficou com caixa 1. Após rodada de trocas (Leandro trocou para caixa 2, Jonas manteve, Jordana trocou com Leandro), Jordana ficou com o cartão PAREDÃO e substituiu Leandro na berlinda. Formação continua domingo com indicação do Líder, votação da casa e Contragolpe.",
         "lider": "Alberto Cowboy",
         "lideres": ["Alberto Cowboy"],
         "anjo": "Leandro",
@@ -1385,13 +1385,25 @@
           "motivo": "4 primeiros eliminados da Prova do Líder",
           "etapa_1": {
             "data": "2026-03-20",
-            "resultado": "Leandro escolheu caixa 2 (bracelete) — emparedado",
+            "resultado": "Leandro escolheu caixa 2 (bracelete) — emparedado temporário",
             "escolhas": {"Chaiany": 1, "Leandro": 2, "Juliano Floss": 3, "Samira": 4}
+          },
+          "etapa_2": {
+            "data": "2026-03-21",
+            "escolhidos": ["Jonas Sulzbach", "Jordana"],
+            "escondeu_cartao": "caixa 2",
+            "escolha_inicial": {"Jonas Sulzbach": 3, "Jordana": 2, "Leandro": 1},
+            "trocas": [
+              "Leandro trocou caixa 1 → caixa 2",
+              "Jonas Sulzbach manteve caixa 3",
+              "Jordana trocou caixa 2 → caixa 1 (com Leandro, ficou com caixa que tinha o cartão)"
+            ],
+            "resultado": "Jordana ficou com o cartão PAREDÃO — substituiu Leandro na berlinda"
           }
         }
       },
       "indicados_finais": [
-        {"nome": "Leandro", "grupo": "Pipoca", "como": "Dinâmica (Triângulo de Risco — 1ª etapa)"}
+        {"nome": "Jordana", "grupo": "Pipoca", "como": "Dinâmica (Triângulo de Risco)"}
       ],
       "fontes": [
         {
@@ -1403,6 +1415,11 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/triangulo-de-risco-do-bbb-26-leandro-boneco-esta-no-paredao-apos-primeira-etapa-da-dinamica.ghtml",
           "arquivo": "docs/scraped/triangulo-de-risco-do-bbb-26-leandro-boneco-esta-no-paredao-apos-primeira-etapa-da-dinamica.md",
           "titulo": "Triângulo de Risco do BBB 26: Leandro Boneco está no Paredão após primeira etapa da dinâmica"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/triangulo-de-risco-do-bbb-26-jordana-esta-no-paredao-e-leandro-boneco-escapa-da-berlinda.ghtml",
+          "arquivo": "docs/scraped/triangulo-de-risco-do-bbb-26-jordana-esta-no-paredao-e-leandro-boneco-escapa-da-berlinda.md",
+          "titulo": "Triângulo de Risco do BBB 26: Jordana está no Paredão e Leandro Boneco escapa da berlinda"
         }
       ]
     }
