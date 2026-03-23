@@ -1161,27 +1161,64 @@ Before each elimination (~21h BRT), collect poll data from [Votalhada](https://v
 
 Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
 
-**OCR layout note (updated March 16, 2026):**
-- Votalhada switched to a new card layout on March 10: `VOTO DA TORCIDA`, `VOTO ÚNICO (CPF)`, `ANÁLISE VOTALHADA` sections
-- The OCR parser was updated on March 16 to handle the new layout (platform extraction works; series/time have known limitations)
-- For operational updates: OCR gate works for platform data; use **vision/manual extraction** as fallback for series and capture time if OCR misses them
-- Recompute the consolidado with the **previous** Votalhada formula: weighted average by platform vote count
-- Full status: `.private/docs/VOTALHADA_OCR_STATUS.md`
+### Automated Pipeline (Primary Path)
 
-**Current ops policy**: use manual fetches/updates. The default production flow is:
+The LXC handles Votalhada collection automatically when `--votalhada --votalhada-auto-update` flags are enabled on the systemd timer.
 
-1. `fetch_votalhada_images.py`
-2. `votalhada_auto_update.py --dry-run`
-3. `votalhada_auto_update.py --apply --build`
-
-The local scheduler is disabled by default for live ops right now.
-
-If a local scheduler is already running, stop it before continuing:
-
-```bash
-pkill -f schedule_votalhada_fetch.py
-pkill -f "tail -f logs/votalhada_scheduler.log"
+**Architecture:**
 ```
+systemd timer (every 15 min)
+  → schedule_data_fetch.py --votalhada --votalhada-auto-update
+    1. Detects active paredão (paredoes.json → status: "em_andamento")
+    2. Bootstraps polls.json entry if missing (get_final_nominees extracts nominees after Bate e Volta)
+    3. fetch_votalhada_images.py --paredao N --dedupe size+sha256
+    4. If new images detected:
+       → deploy/votalhada_claude_update.sh <N> <images_dir>  (gitignored, LXC-only)
+         → Claude Code headless reads consolidado card via vision
+         → Updates polls.json (consolidado, plataformas, serie_temporal)
+    5. git commit + push + trigger deploy
+```
+
+**What happens automatically for a brand-new paredão:**
+1. Paredão formation recorded in `paredoes.json` (Sunday night checklist)
+2. Next scheduler cycle detects `em_andamento` → `_bootstrap_polls_entry()` creates skeleton in `polls.json` with correct nominees
+3. `fetch_votalhada_images.py` attempts to download from Votalhada (exits gracefully with code 3 if page doesn't exist yet)
+4. When Votalhada publishes the post (typically Monday morning), images are captured and Claude extracts values
+5. Each subsequent Votalhada update is captured, deduped, and processed automatically through Tuesday elimination
+
+**Monitoring:**
+```bash
+# Follow live
+journalctl -u bbb26-fetch -f
+
+# Filter for votalhada lines today
+journalctl -u bbb26-fetch --since today | grep -i votalhada
+
+# Check latest polls.json update
+ssh BBB "sudo su - bbb26 -c 'cd ~/BBB26 && python3 -c \"import json; p=json.load(open(\\\"data/votalhada/polls.json\\\")); e=p[\\\"paredoes\\\"][-1]; print(f\\\"P{e[\\\\\\\"numero\\\\\\\"]}: {e.get(\\\\\\\"data_coleta\\\\\\\",\\\\\\\"no coleta\\\\\\\")} — {len(e.get(\\\\\\\"serie_temporal\\\\\\\",[])) } series rows\\\")\"'"
+
+# Quick status check
+journalctl -u bbb26-fetch -n 5 --no-pager
+```
+
+**Manual trigger (immediate cycle):**
+```bash
+ssh BBB "sudo su - bbb26 -c 'cd ~/BBB26 && python3 scripts/schedule_data_fetch.py --once --run-now --votalhada --votalhada-auto-update --build --trigger-deploy 2>&1'"
+```
+
+**Troubleshooting:**
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| No images fetched | Votalhada post not published yet | Wait — scheduler retries every 15 min (exit code 3 = not found yet) |
+| Images fetched but no polls.json update | Claude headless failed or no new data | Check `journalctl -u bbb26-fetch -n 100`, run Claude script manually |
+| Wrong nominees in polls.json | Bate e Volta not recorded in paredoes.json | Update paredoes.json first, delete wrong polls.json entry, re-bootstrap |
+| All images "Skipped duplicate" | Votalhada hasn't updated since last capture | Normal — dedup working correctly |
+| Claude reads wrong values | Low-res image or column mismatch | Verify with vision in conversation, manually correct polls.json |
+
+### Manual Fallback (when automation is unavailable)
+
+If the LXC automation is unavailable, use manual fetches + Claude vision in a conversation:
 
 **Vote-window baseline (for trend projections):**
 - Voting usually opens on Sunday/Monday after the live show.
@@ -1190,235 +1227,38 @@ pkill -f "tail -f logs/votalhada_scheduler.log"
   - `fechamento_votacao` (ISO, with timezone), e.g. `"2026-04-14T23:15:00-03:00"`.
   - If missing, dashboards assume Tuesday 22:45 BRT by default.
 
-### 1. Fetch poll images with the script
+### 1. Fetch poll images
 
 ```bash
-# By paredão number (auto-derives URL from paredoes.json or current month)
 python scripts/fetch_votalhada_images.py --paredao N
-
-# Or by direct URL
-python scripts/fetch_votalhada_images.py --url "https://votalhada.blogspot.com/YYYY/MM/pesquisaN.html"
-
-# Optional: save platform-card audit JSON + fail on anomalies
-python scripts/fetch_votalhada_images.py --paredao N \
-  --platform-audit-output tmp/votalhada_ocr/platform_consistency_latest.json \
-  --platform-audit-strict
 ```
 
-**URL pattern**: Votalhada always uses `https://votalhada.blogspot.com/{year}/{month}/pesquisa{N}.html`. The script derives this automatically from `paredoes.json` when the skeleton exists. If no skeleton exists yet (e.g., new paredão not created), the script falls back to the **current BRT month/year** — so `--paredao 8` works immediately without needing a `paredoes.json` entry.
+**URL pattern**: `https://votalhada.blogspot.com/{year}/{month}/pesquisaN.html`. Auto-derived from `paredoes.json` `data_formacao`. Falls back to current BRT month if no entry exists.
 
-Quick URL generation for any paredão:
+Images saved to `data/votalhada/YYYY_MM_DD/` with datetime suffix (e.g., `consolidados_2026-03-22_21-05.png`).
+
+### 2. Extract values with Claude vision
+
+In a Claude Code conversation, read the consolidado card and update polls.json:
+1. Read the latest `consolidados_5_*.png` (or `consolidados_6_*.png` for series) with the Read tool
+2. Extract: card date/time, platform Média rows (Sites, YouTube, Twitter, Instagram + vote counts), ESTIMATIVA VOTALHADA row, total votes
+3. Update `data/votalhada/polls.json` — overwrite `consolidado`/`plataformas`, append new `serie_temporal` row (dedupe by hora)
+
+### 3. Rebuild, commit, publish
 
 ```bash
-# Generate the Votalhada URL for paredão N (replace N with the number)
-N=8; echo "https://votalhada.blogspot.com/$(date -u -d '-3 hours' +%Y/%m)/pesquisa${N}.html"
-
-# macOS (BSD date)
-N=8; echo "https://votalhada.blogspot.com/$(TZ=America/Sao_Paulo date +%Y/%m)/pesquisa${N}.html"
+python scripts/build_derived_data.py
+git add data/ && git commit -m "public: votalhada P{N} update"
+git push origin main
+gh workflow run daily-update.yml
 ```
 
-Images are saved to `data/votalhada/YYYY_MM_DD/` with a datetime suffix by default (e.g., `consolidados_2026-03-02_21-05.png`), preserving a history of captures for OCR training/regression work. Prefer keeping that history; do not use `--no-timestamp` unless you explicitly want overwrite mode.
+### Data update rules
 
-**Run multiple times** (e.g., 01:00 and 21:00 BRT) to capture poll evolution.
-
-After each fetch, the script automatically runs a **platform-card consistency audit** (Sites/YouTube/Twitter/Instagram):
-- checks displayed `Média` row sums (PT-BR decimals with comma) and flags source-side drifts like YouTube `100,37`
-- reports `ok` / `anomaly` / `inconclusive` per platform card
-- use `--skip-platform-audit` to disable if needed
-
-Standalone audit command (same logic):
-
-```bash
-python scripts/votalhada_platform_consistency_audit.py \
-  --images-dir data/votalhada/YYYY_MM_DD \
-  --output tmp/votalhada_ocr/platform_consistency_latest.json
-```
-
-### 2. Run latest-capture OCR gate (recommended when layout is stable)
-
-Preferred validate-only command:
-
-```bash
-python scripts/votalhada_auto_update.py \
-  --paredao N \
-  --images-dir data/votalhada/YYYY_MM_DD \
-  --dry-run \
-  --output tmp/votalhada_ocr/paredao_N_latest.json
-```
-
-This is the production gate:
-- auto-selects the best consolidado card by content
-- validates only the **latest timestamped capture set** in the folder
-- keeps older images available for OCR training instead of treating them as release blockers
-- blocks apply if the parsed capture is not newer than `polls.json`
-
-Review the dry-run output before applying:
-- `validation_errors` must be empty
-- `gate_errors` must be empty
-- `parsed.capture_hora` must exist
-- `parsed.serie_temporal` must be non-empty
-
-If the final card has the new `0,3 x 0,7` layout and no timed series table, do **not** trust OCR operationally for that capture. Switch to vision/manual extraction and recompute the legacy vote-weighted consolidado instead.
-
-### 3. Apply and rebuild
-
-```bash
-python scripts/votalhada_auto_update.py \
-  --paredao N \
-  --images-dir data/votalhada/YYYY_MM_DD \
-  --apply \
-  --build \
-  --output tmp/votalhada_ocr/paredao_N_apply.json
-```
-
-This apply step:
-- updates `data/votalhada/polls.json`
-- keeps prior image history and appends only the new capture set
-- rebuilds derived data after the apply
-
-Optional render check after apply:
-
-```bash
-quarto render paredao.qmd
-```
-
-### Optional debugging and audit tools
-
-Focused batch gate for the same latest capture set:
-
-```bash
-python scripts/votalhada_ocr_batch_validate.py \
-  --images-root data/votalhada \
-  --folders YYYY_MM_DD \
-  --paredao N \
-  --fail-on-errors
-```
-
-For OCR research / historical audits, run the same validator against the full folder history:
-
-```bash
-python scripts/votalhada_ocr_batch_validate.py \
-  --images-root data/votalhada \
-  --folders YYYY_MM_DD \
-  --paredao N \
-  --scope full-history \
-  --fail-on-errors
-```
-
-`full-history` is expected to surface older noisy/conflicted captures. That does **not** mean the current latest capture is bad.
-
-Fallback raw parser (Consolidado-only)
-
-Use the OCR parser on the fetched folder:
-
-```bash
-python scripts/votalhada_ocr_feasibility.py \
-  --images-dir data/votalhada/YYYY_MM_DD \
-  --paredao N \
-  --debug \
-  --output tmp/votalhada_ocr/paredao_N_latest.json
-```
-
-The parser is **content-based**:
-- It scans all PNGs and selects the best `consolidado_data` image by OCR signature.
-- It does **not** rely on fixed filename index (`consolidados_5`, `consolidados_6`, etc.).
-- It uses only the selected consolidado card (top+bottom crops from the same file), not platform cards.
-
-The parser supports dynamic top-table schemas seen across BBB25/BBB26:
-- 3-platform: `Sites`, `YouTube`, `Twitter`
-- 4-platform with `Instagram`
-- 4-platform with `Outras Redes`
-- split rows `Média Threads` + `Média Instagram`
-
-### Validation reference
-
-From the OCR output JSON:
-- `validation_errors` must be empty
-- `parsed.serie_temporal` must be non-empty
-- `parsed.capture_hora` must exist
-- inspect `parsed.time_corrections` and `parsed.time_warnings` (report them in update notes)
-
-Current parser safeguards for known Votalhada card quirks:
-- Platform sums allow small display-rounding drift (up to ~`0.60`), because some source cards visibly round to values like `100.55` or `100.37` on YouTube.
-- If a series row has valid date/time + 3 percentages but OCR misses the rightmost votes cell, parser backfills votes from consolidado/platform totals.
-- For single-row fallback captures, parser uses the image filename date (`YYYY-MM-DD`) to correct clearly noisy OCR day/month tokens.
-- For suspicious rollover OCR slips (`03:00`/`03:30`), parser applies guarded repair to `08:00`/`08:30` and logs it under `time_corrections`.
-
-Current limitation (updated March 16, 2026):
-- Platform extraction works on both old and new card layouts
-- Series extraction and capture time (hora) have known issues on the new layout — OCR may miss series rows or misread midnight cards
-- Use vision/manual fallback for series data until these issues are resolved
-
-If any validation error appears, stop and inspect with vision before editing `data/votalhada/polls.json`.
-
-Time sanity checklist before applying:
-- `capture_hora` must match the latest bottom-table row and the top-right hour on the selected consolidado card.
-- repeated `HH:MM` across different days is valid (do not collapse by time-only).
-- if `time_corrections` is non-empty, verify corrected rows with vision before writing `polls.json`.
-
-Recommended OCR regression tests before changing parser behavior:
-
-```bash
-pytest -q \
-  tests/test_votalhada_ocr_batch_validate.py \
-  tests/test_votalhada_ocr_feasibility.py \
-  tests/test_votalhada_platform_consistency_audit.py \
-  tests/test_fetch_votalhada_images.py
-```
-
-### Historical series handling
-
-`serie_temporal` in consolidado is cumulative: each new capture adds rows over time.
-
-Rules when applying OCR results:
-- `serie_temporal`: append only new `hora` entries; never delete existing past rows
-- `consolidado` and `plataformas`: overwrite with latest snapshot
+- `serie_temporal`: append-only by `hora` — never delete existing rows
+- `consolidado` and `plataformas`: overwrite with latest values
 - `data_coleta`: overwrite with latest capture timestamp
-
-Quick regression check between two OCR outputs (`prev.json` and `curr.json`):
-
-```bash
-python - <<'PY'
-import json
-from pathlib import Path
-
-prev = json.loads(Path("tmp/votalhada_ocr/prev.json").read_text())
-curr = json.loads(Path("tmp/votalhada_ocr/curr.json").read_text())
-
-prev_rows = prev["parsed"]["serie_temporal"]
-curr_rows = curr["parsed"]["serie_temporal"]
-print("prev_rows:", len(prev_rows), "curr_rows:", len(curr_rows))
-print("prev_capture:", prev["parsed"]["capture_hora"])
-print("curr_capture:", curr["parsed"]["capture_hora"])
-PY
-```
-
-Expected behavior:
-- `curr_rows >= prev_rows` in most captures
-- If `curr_capture_hora` is newer, the latest vote total should not decrease
-
-### Detailed apply reference
-
-After OCR validation passes:
-Preferred apply command:
-
-```bash
-python scripts/votalhada_auto_update.py \
-  --paredao N \
-  --images-dir data/votalhada/YYYY_MM_DD \
-  --apply \
-  --build \
-  --output tmp/votalhada_ocr/paredao_N_apply.json
-```
-
-What it does:
-1. append new series rows by `hora`
-2. overwrite latest `consolidado` and `plataformas`
-3. set `predicao_eliminado` to participant with highest consolidado %
-4. update `data_coleta`
-5. preserve all historical image paths already stored in `polls.json`
-
-**AI Agent Instructions**: See `data/votalhada/README.md` → "AI Agent Instructions" for detailed parsing rules.
+- `predicao_eliminado`: participant with highest consolidado %
 
 ### Paredão Falso ("Quem SALVAR?") handling
 
