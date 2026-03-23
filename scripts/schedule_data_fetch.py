@@ -129,7 +129,11 @@ def _bootstrap_polls_entry(paredao_num: int) -> bool:
     """
     # Load existing polls.json (or create structure)
     if POLLS_JSON.exists():
-        polls_data = json.loads(POLLS_JSON.read_text(encoding="utf-8"))
+        try:
+            polls_data = json.loads(POLLS_JSON.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            print(f"[bootstrap] polls.json has invalid JSON: {e}")
+            return False
     else:
         polls_data = {
             "_description": "Poll aggregation data from Votalhada",
@@ -195,8 +199,7 @@ def _fetch_votalhada(paredao_num: int) -> bool:
     rc = _run_cmd(
         [sys.executable, str(VOTALHADA_SCRIPT),
          "--paredao", str(paredao_num),
-         "--dedupe", "size+sha256",
-         "--skip-platform-audit"],
+         "--dedupe", "size+sha256"],
         "votalhada-fetch",
     )
     if rc != 0:
