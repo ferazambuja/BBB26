@@ -210,7 +210,7 @@ def test_live_page_explains_votalhada_7030_vs_weighted_model():
     assert "Como cada leitura funciona" in live
     assert "soma votos de todas as fontes" in live
     assert "é a leitura que aparece no card" in live
-    assert "Nosso modelo" in live
+    assert "Nosso Modelo" in live
 
 
 def test_live_page_has_mobile_friendly_poll_timeseries_key():

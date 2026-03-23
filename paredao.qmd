@@ -819,7 +819,7 @@ if ultimo:
                         f'<ul style="margin:4px 0 0 0;padding-left:1.2em">'
                         f'<li>Sites: {_sites_pct:.0f}% do volume (erro {_rmse_hist.get("sites", 0):.1f} p.p.)</li>'
                         f'<li>Twitter: {_tw_pct:.0f}% do volume (erro {_rmse_hist.get("twitter", 0):.1f} p.p.)</li>'
-                        f'<li>No Modelo: Twitter {_wu.get("twitter", 0)*100:.0f}% · '
+                        f'<li>Nosso Modelo: Twitter {_wu.get("twitter", 0)*100:.0f}% · '
                         f'Instagram {_wu.get("instagram", 0)*100:.0f}% · '
                         f'Sites {_wu.get("sites", 0)*100:.0f}%</li>'
                         f'</ul>'
@@ -903,7 +903,7 @@ if ultimo:
                 _weight_parts = [f'{_plat_labels_d.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
                 _rmse_info = _prec.get('rmse', {})
                 print(f'<details class="fs-md u-s024">')
-                print(f'<summary class="text-muted u-s297">ℹ️ Como cada leitura funciona: {" · ".join(_weight_parts)}</summary>')
+                print(f'<summary class="text-muted u-s297">ℹ️ Como cada leitura funciona — Nosso Modelo: {" · ".join(_weight_parts)}</summary>')
                 print(f'<div class="fs-base u-s467">')
                 _votalhada_parts = [
                     (_plat_labels_d.get(p, p), round(_plat_volumes.get(p, 0) * 100 / _total_plat_votos))
