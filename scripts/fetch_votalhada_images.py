@@ -123,14 +123,16 @@ def extract_image_urls(html: str) -> list[str]:
         if chosen and chosen.startswith("http"):
             urls.append(chosen)
 
-    # Keep only the poll-card images (timestamped PNGs).
+    # Keep only the poll-card images (PNGs).
     # Excludes banners like "000.jpg" (Pesquisa de Popularidade) and
     # other Blogger images in the post header/comments.
     # Observed patterns:
-    # - .../2026-03-17_194618.png (HHMMSS)
-    # - .../2026-03-17_19-46-18.png (HH-MM-SS) occasionally
+    # - .../2026-03-17_194618.png (HHMMSS, old layout)
+    # - .../2026-03-17_19-46-18.png (HH-MM-SS, old layout)
+    # - .../1.Twitter.png, 5.Consolidados.png (numbered platform names, new layout)
     card_name_re = re.compile(
-        r"^\d{4}-\d{2}-\d{2}_(?:\d{6}|\d{2}-\d{2}-\d{2})\.png$",
+        r"^(?:\d{4}-\d{2}-\d{2}_(?:\d{6}|\d{2}-\d{2}-\d{2})|"
+        r"\d+\.\w+)\.png$",
         re.IGNORECASE,
     )
 

@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-03-17T21:00-03:00",
+  "_last_updated": "2026-03-23T03:30-03:00",
   "paredoes": [
     {
       "numero": 1,
@@ -1352,6 +1352,77 @@
         "eliminado": "Breno",
         "predicao_correta": true
       }
+    },
+    {
+      "numero": 10,
+      "data_paredao": "2026-03-24",
+      "data_coleta": "2026-03-23T01:00:00-03:00",
+      "participantes": [
+        "Gabriela",
+        "Jonas Sulzbach",
+        "Juliano Floss"
+      ],
+      "consolidado": {
+        "Gabriela": 12.77,
+        "Jonas Sulzbach": 47.92,
+        "Juliano Floss": 39.37,
+        "total_votos": 2373937,
+        "predicao_eliminado": "Jonas Sulzbach",
+        "nota": "Primeira coleta (01:00). Valores da ESTIMATIVA VOTALHADA."
+      },
+      "plataformas": {
+        "sites": {
+          "Gabriela": 9.08,
+          "Jonas Sulzbach": 30.31,
+          "Juliano Floss": 60.61,
+          "votos": 482380,
+          "label": "Voto da Torcida"
+        },
+        "youtube": {
+          "Gabriela": 14.35,
+          "Jonas Sulzbach": 35.7,
+          "Juliano Floss": 50.15,
+          "votos": 308662
+        },
+        "twitter": {
+          "Gabriela": 6.78,
+          "Jonas Sulzbach": 58.72,
+          "Juliano Floss": 34.5,
+          "votos": 338880
+        },
+        "instagram": {
+          "Gabriela": 17.76,
+          "Jonas Sulzbach": 52.12,
+          "Juliano Floss": 30.12,
+          "votos": 1244015
+        }
+      },
+      "serie_temporal": [
+        {
+          "hora": "23/mar 01:00",
+          "Gabriela": 12.77,
+          "Jonas Sulzbach": 47.92,
+          "Juliano Floss": 39.37,
+          "votos": 2373937,
+          "nota": "Primeira coleta. Valores da ESTIMATIVA VOTALHADA."
+        }
+      ],
+      "metodologia": {
+        "modo": "manual_vision",
+        "formula_votalhada_exibida": "ESTIMATIVA VOTALHADA (0,3 x 0,7)",
+        "coleta_modo": "visao_manual",
+        "serie_temporal": "Valores da ESTIMATIVA VOTALHADA exibidos no card."
+      },
+      "imagens": [
+        "data/votalhada/2026_03_22/consolidados_2026-03-23_06-23-09.png",
+        "data/votalhada/2026_03_22/consolidados_2_2026-03-23_06-23-09.png",
+        "data/votalhada/2026_03_22/consolidados_3_2026-03-23_06-23-09.png",
+        "data/votalhada/2026_03_22/consolidados_4_2026-03-23_06-23-09.png",
+        "data/votalhada/2026_03_22/consolidados_5_2026-03-23_06-23-09.png"
+      ],
+      "fontes": [
+        "https://votalhada.blogspot.com/2026/03/pesquisa10.html"
+      ]
     }
   ]
 }
