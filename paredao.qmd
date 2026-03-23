@@ -804,8 +804,11 @@ if ultimo:
                         f'→ agora {_curr_model:.2f}% no Modelo ({_curr_model - _prev_real:+.2f} p.p.)'
                     )
                 if _hist_parts:
-                    _hist_lines = '<br>'.join([f'• {part}' for part in _hist_parts])
-                    _curiosities.append(f'📚 Histórico oficial por emparedado:<br>{_hist_lines}')
+                    _hist_lines = ''.join([f'<li>{part}</li>' for part in _hist_parts])
+                    _curiosities.append(
+                        f'📚 <strong>Histórico oficial por emparedado</strong>:'
+                        f'<ul style="margin:4px 0 0 0;padding-left:1.2em">{_hist_lines}</ul>'
+                    )
 
             # 5) One high-signal volume vs precision insight.
             if _model_pred and _prec and _prec.get('sufficient') and _total_plat_votos > 0:
