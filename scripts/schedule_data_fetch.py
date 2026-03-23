@@ -37,6 +37,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 FETCH_SCRIPT = REPO_ROOT / "scripts" / "fetch_data.py"
 VOTALHADA_SCRIPT = REPO_ROOT / "scripts" / "fetch_votalhada_images.py"
 PAREDOES_JSON = REPO_ROOT / "data" / "paredoes.json"
+VOTALHADA_CLAUDE_SCRIPT = REPO_ROOT / "deploy" / "votalhada_claude_update.sh"
 
 
 def _format_dt(dt: datetime) -> str:
@@ -99,6 +100,21 @@ def _get_active_paredao() -> int | None:
     return None
 
 
+def _get_votalhada_folder(paredao_num: int) -> str:
+    """Return the votalhada folder name for a paredão (e.g., '2026_03_22')."""
+    if not PAREDOES_JSON.exists():
+        return ""
+    try:
+        data = json.loads(PAREDOES_JSON.read_text(encoding="utf-8"))
+        for p in data.get("paredoes", []):
+            if p["numero"] == paredao_num:
+                date_str = p.get("data_formacao") or p.get("data", "")
+                return date_str.replace("-", "_")
+    except Exception:
+        pass
+    return ""
+
+
 def _fetch_votalhada(paredao_num: int) -> bool:
     """Fetch Votalhada images for the given paredão. Returns True if new images saved."""
     rc = _run_cmd(
@@ -147,6 +163,25 @@ def _poll_once(args: argparse.Namespace) -> dict:
         else:
             print("[poll] No active paredão — skipping Votalhada fetch.")
 
+    # 2c. Auto-update polls.json via Claude Code headless (optional)
+    if args.votalhada_auto_update and result["votalhada_fetched"]:
+        paredao_num = _get_active_paredao()
+        if paredao_num and VOTALHADA_CLAUDE_SCRIPT.exists():
+            images_dir = str(REPO_ROOT / "data" / "votalhada" /
+                           _get_votalhada_folder(paredao_num))
+            rc = _run_cmd(
+                ["bash", str(VOTALHADA_CLAUDE_SCRIPT), str(paredao_num), images_dir],
+                "votalhada-claude",
+            )
+            if rc == 0 and _has_git_changes("data/votalhada/polls.json"):
+                result["votalhada_updated"] = True
+                print(f"[poll] polls.json updated via Claude for P{paredao_num}!")
+            else:
+                print("[poll] Claude auto-update produced no polls.json changes.")
+        else:
+            if not VOTALHADA_CLAUDE_SCRIPT.exists():
+                print(f"[poll] Claude script not found: {VOTALHADA_CLAUDE_SCRIPT}")
+
     if not result["data_changed"]:
         return result
 
@@ -170,6 +205,8 @@ def _poll_once(args: argparse.Namespace) -> dict:
         add_paths.extend(["data/derived/", "docs/MANUAL_EVENTS_AUDIT.md", "docs/SCORING_AND_INDEXES.md"])
     if result["votalhada_fetched"]:
         add_paths.append("data/votalhada/")
+    if result.get("votalhada_updated"):
+        add_paths.append("data/votalhada/polls.json")
     _run_cmd(["git", "add"] + add_paths, "git-add")
 
     if not _has_git_changes():
@@ -180,9 +217,12 @@ def _poll_once(args: argparse.Namespace) -> dict:
     msg_parts = []
     if result.get("data_changed") and _has_git_changes("data/snapshots/"):
         msg_parts.append(f"snapshot {timestamp} UTC")
-    if result["votalhada_fetched"]:
+    if result["votalhada_fetched"] or result.get("votalhada_updated"):
         paredao_num = _get_active_paredao()
-        msg_parts.append(f"votalhada P{paredao_num} fetch")
+        label = "votalhada P{} fetch".format(paredao_num)
+        if result.get("votalhada_updated"):
+            label += " + polls.json update"
+        msg_parts.append(label)
     msg = "data: " + " + ".join(msg_parts) if msg_parts else f"data: snapshot {timestamp} UTC"
     _run_cmd(["git", "commit", "-m", msg], "git-commit")
     rc = _run_cmd(["git", "push", "origin", "main"], "git-push")
@@ -221,6 +261,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--votalhada", action="store_true",
         help="Fetch Votalhada poll images for the active paredão (deduped).",
+    )
+    parser.add_argument(
+        "--votalhada-auto-update", action="store_true",
+        help="Auto-update polls.json via Claude Code headless when new images are found.",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
@@ -285,7 +329,9 @@ def main() -> int:
             if result["deployed"]:
                 status_parts.append("deploy triggered")
         if result.get("votalhada_fetched"):
-            status_parts.append("votalhada")
+            status_parts.append("votalhada images")
+        if result.get("votalhada_updated"):
+            status_parts.append("polls.json updated")
         if not status_parts:
             status_parts.append("no change")
 
