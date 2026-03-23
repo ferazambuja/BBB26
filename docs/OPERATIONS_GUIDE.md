@@ -1997,6 +1997,69 @@ Expected:
 
 ---
 
+## Tá Com Nada Checklist (when Vacilômetro explodes)
+
+**Tá Com Nada** is a collective house punishment triggered when the Vacilômetro (infraction counter) explodes. ALL privileges are suspended: fridge sealed, only basic items (rice, beans, salt, oil, coffee). Even VIP loses advantages. Lasts until lifted (typically 1-3 days). Happened twice in BBB 26: W3 (Feb 2, Ana Paula + Milena) and W10 (Mar 20, Jonas).
+
+### When it happens
+
+- [ ] Scrape the GShow article about the punishment
+- [ ] Identify: who triggered it (instigador), what they did (motivo), who was in VIP (vip_afetados)
+
+### Data updates
+
+- [ ] Add `ta_com_nada` block to the relevant week in `manual_events.json` → `weekly_events`:
+
+```json
+"ta_com_nada": {
+  "date": "YYYY-MM-DD",
+  "instigadores": ["Name"],
+  "motivos": {
+    "Name": "What they did (punição gravíssima description)"
+  },
+  "vip_afetados": ["VIP members who lost privileges"],
+  "consequencia": "Full description of what happened and when it ended",
+  "notas": "Context notes",
+  "fontes": ["url", "docs/scraped/slug.md"]
+}
+```
+
+- [ ] Update the week's `notes` field to mention the Tá Com Nada
+
+### What is auto-detected (no manual action needed)
+
+| What | How | Where |
+|------|-----|-------|
+| Balance → 0 transitions | `balance.py` detects any balance dropping to zero in snapshots | `balance_events.json` |
+| Timeline event | `timeline.py` reads `ta_com_nada` from `weekly_events` | `game_timeline.json` |
+| Individual punição suppression | Power events with type `punicao_gravissima` / `punicao_coletiva` on the same date are suppressed in the timeline (dedup with the collective Tá Com Nada event) | `timeline.py` |
+
+### What is NOT needed
+
+- **Individual power_events per participant** — the W3 Tá Com Nada had individual entries for every participant (16 entries). This is optional and only useful if you want relationship edges (instigador → each victim). The timeline builder handles the collective event from the `weekly_events` block alone.
+- **Manual balance adjustments** — the balance builder auto-detects balance→0 from snapshots. The `-500 estalecas` punição is captured as a balance change in the API.
+- **Cartola overrides** — no Cartola points are scored for Tá Com Nada itself.
+
+### Economy impact
+
+Tá Com Nada affects the `economia.qmd` page:
+- Balance drops visible in the balance timeline chart
+- The `saldo_zero` event type in `balance_events.json` tracks transitions to zero
+- VIP members are most visibly affected (lose 1000→0 instead of 500→0)
+- The `ta_com_nada_dates` field in `daily_metrics.json` tracks occurrences per participant
+
+### Rebuild + commit
+
+```bash
+python scripts/build_derived_data.py
+git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
+git commit -m "public: W{N} Tá Com Nada — {instigador} ({motivo})"
+git push origin main
+gh workflow run daily-update.yml
+```
+
+---
+
 ## Scheduled Events (upcoming week)
 
 Future events displayed in the Cronologia do Jogo with dashed borders, 🔮 prefix, and yellow time badge.
