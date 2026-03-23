@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import time
@@ -34,6 +35,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FETCH_SCRIPT = REPO_ROOT / "scripts" / "fetch_data.py"
+VOTALHADA_SCRIPT = REPO_ROOT / "scripts" / "fetch_votalhada_images.py"
+PAREDOES_JSON = REPO_ROOT / "data" / "paredoes.json"
 
 
 def _format_dt(dt: datetime) -> str:
@@ -82,9 +85,39 @@ def _run_cmd(cmd: list[str], label: str) -> int:
     return proc.returncode
 
 
+def _get_active_paredao() -> int | None:
+    """Return the numero of the active paredão (em_andamento), or None."""
+    if not PAREDOES_JSON.exists():
+        return None
+    try:
+        data = json.loads(PAREDOES_JSON.read_text(encoding="utf-8"))
+        for p in data.get("paredoes", []):
+            if p.get("status") == "em_andamento":
+                return p["numero"]
+    except Exception:
+        pass
+    return None
+
+
+def _fetch_votalhada(paredao_num: int) -> bool:
+    """Fetch Votalhada images for the given paredão. Returns True if new images saved."""
+    rc = _run_cmd(
+        [sys.executable, str(VOTALHADA_SCRIPT),
+         "--paredao", str(paredao_num),
+         "--dedupe", "size+sha256",
+         "--skip-platform-audit"],
+        "votalhada-fetch",
+    )
+    if rc != 0:
+        print(f"[votalhada] Fetch failed for P{paredao_num}.")
+        return False
+    return _has_git_changes("data/votalhada/")
+
+
 def _poll_once(args: argparse.Namespace) -> dict:
     """Run one poll cycle. Returns status dict."""
-    result = {"fetched": False, "data_changed": False, "built": False, "pushed": False, "deployed": False}
+    result = {"fetched": False, "data_changed": False, "built": False, "pushed": False, "deployed": False,
+              "votalhada_fetched": False}
 
     # 1. Fetch
     rc = _run_cmd([sys.executable, str(FETCH_SCRIPT), "--fetch-only"], "fetch")
@@ -93,12 +126,29 @@ def _poll_once(args: argparse.Namespace) -> dict:
         print("[poll] Fetch failed, skipping rest of cycle.")
         return result
 
-    # 2. Check for new data
-    if not _has_git_changes("data/snapshots/", "data/latest.json"):
-        print("[poll] No data changes — API hash unchanged.")
+    # 2. Check for new API data
+    if _has_git_changes("data/snapshots/", "data/latest.json"):
+        result["data_changed"] = True
+        print("[poll] New API data detected!")
+    else:
+        print("[poll] No API data changes — hash unchanged.")
+
+    # 2b. Votalhada image fetch (optional, only when paredão is active)
+    if args.votalhada:
+        paredao_num = _get_active_paredao()
+        if paredao_num:
+            print(f"[poll] Active paredão P{paredao_num} — fetching Votalhada images.")
+            if _fetch_votalhada(paredao_num):
+                result["votalhada_fetched"] = True
+                result["data_changed"] = True
+                print(f"[poll] New Votalhada images for P{paredao_num}!")
+            else:
+                print("[poll] No new Votalhada images (unchanged or unavailable).")
+        else:
+            print("[poll] No active paredão — skipping Votalhada fetch.")
+
+    if not result["data_changed"]:
         return result
-    result["data_changed"] = True
-    print("[poll] New data detected!")
 
     # 3. Build derived data (optional)
     if args.build:
@@ -118,6 +168,8 @@ def _poll_once(args: argparse.Namespace) -> dict:
     add_paths = ["data/snapshots/", "data/latest.json"]
     if result["built"]:
         add_paths.extend(["data/derived/", "docs/MANUAL_EVENTS_AUDIT.md", "docs/SCORING_AND_INDEXES.md"])
+    if result["votalhada_fetched"]:
+        add_paths.append("data/votalhada/")
     _run_cmd(["git", "add"] + add_paths, "git-add")
 
     if not _has_git_changes():
@@ -125,7 +177,13 @@ def _poll_once(args: argparse.Namespace) -> dict:
         return result
 
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M")
-    msg = f"data: snapshot {timestamp} UTC"
+    msg_parts = []
+    if result.get("data_changed") and _has_git_changes("data/snapshots/"):
+        msg_parts.append(f"snapshot {timestamp} UTC")
+    if result["votalhada_fetched"]:
+        paredao_num = _get_active_paredao()
+        msg_parts.append(f"votalhada P{paredao_num} fetch")
+    msg = "data: " + " + ".join(msg_parts) if msg_parts else f"data: snapshot {timestamp} UTC"
     _run_cmd(["git", "commit", "-m", msg], "git-commit")
     rc = _run_cmd(["git", "push", "origin", "main"], "git-push")
     result["pushed"] = rc == 0
@@ -161,6 +219,10 @@ def _parse_args() -> argparse.Namespace:
         help="Dispatch daily-update.yml after push (requires gh CLI).",
     )
     parser.add_argument(
+        "--votalhada", action="store_true",
+        help="Fetch Votalhada poll images for the active paredão (deduped).",
+    )
+    parser.add_argument(
         "--dry-run", action="store_true",
         help="Print schedule without executing.",
     )
@@ -181,6 +243,7 @@ def main() -> int:
     print(f"BBB26 data polling scheduler")
     print(f"  interval: {args.interval} min")
     print(f"  build: {args.build}")
+    print(f"  votalhada: {args.votalhada}")
     print(f"  trigger-deploy: {args.trigger_deploy}")
     print(f"  repo: {REPO_ROOT}")
     print(f"  now (UTC): {_format_dt(datetime.now(timezone.utc))}")
@@ -221,7 +284,9 @@ def main() -> int:
                 status_parts.append("pushed")
             if result["deployed"]:
                 status_parts.append("deploy triggered")
-        else:
+        if result.get("votalhada_fetched"):
+            status_parts.append("votalhada")
+        if not status_parts:
             status_parts.append("no change")
 
         print(f"\n[scheduler] Cycle {cycle} done: {' · '.join(status_parts)}")
