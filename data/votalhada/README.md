@@ -11,6 +11,15 @@ Votalhada uses a card layout with three sections:
 - **VOTO ÚNICO (CPF)**: YouTube + Twitter + Instagram (one vote per CPF)
 - **ESTIMATIVA VOTALHADA**: Blended prediction (0.3 × Sites + 0.7 × Voto Único)
 
+### Post-10/mar/2026 storage policy
+
+From **March 10, 2026**, Votalhada stopped showing its old vote-weighted consolidado and started displaying only the `0,3 × 0,7` estimate on the card.
+
+This repo keeps the two formulas separate:
+- `consolidado`: **legacy vote-weighted average** recomputed from the platform rows and their vote counts
+- `serie_temporal`: the **displayed** `ESTIMATIVA VOTALHADA (0,3 × 0,7)` values from the card
+- `plataformas`: the raw platform rows used to recompute the legacy weighted value
+
 ## Quick Workflow
 
 **Primary path — LXC automated pipeline**
@@ -56,8 +65,9 @@ git push origin main && gh workflow run daily-update.yml
 ```
 
 Data update rules:
-- `consolidado` and `plataformas`: overwrite with latest values
-- `serie_temporal`: append only new `hora` rows (cumulative, dedupe by hora)
+- `consolidado`: recompute the legacy vote-weighted average from `plataformas`
+- `plataformas`: overwrite with latest platform rows + vote counts
+- `serie_temporal`: append only new `hora` rows using the displayed `ESTIMATIVA VOTALHADA` values (cumulative, dedupe by hora)
 - `imagens`: append new image paths
 
 ## Updating Preliminary Data
@@ -93,14 +103,14 @@ Add the `resultado_real` field:
 
 | Field | Description |
 |-------|-------------|
-| `consolidado` | Weighted average across all platforms |
+| `consolidado` | Legacy weighted average across all platforms by vote volume |
 | `plataformas.sites` | "Média Proporcional" from Sites |
 | `plataformas.youtube` | "Média" from YouTube |
 | `plataformas.twitter` | "Média" from Twitter |
 | `plataformas.instagram` | "Média" row when Instagram is present |
 | `plataformas.outras_redes` | "Outras Redes" aggregate (BBB25/BBB26 variants) |
 | `plataformas.threads` | "Média Threads" when split rows are present |
-| `serie_temporal` | Hourly evolution of consolidado |
+| `serie_temporal` | Hourly evolution of the displayed `0,3 × 0,7` estimate |
 
 ### We Don't Store
 
@@ -152,7 +162,7 @@ print([i['nome'] for i in par['indicados_finais']])
 | **YouTube** | Community polls, moderate sample |
 | **Twitter** | Most volatile, vocal fanbases, smaller sample |
 | **Instagram / Outras Redes / Threads** | Extra social signal; row labels vary by season/layout |
-| **Consolidado** | Weighted average — best overall predictor |
+| **Consolidado** | Legacy vote-weighted average recomputed from the platform rows |
 
 ## AI Agent Instructions
 

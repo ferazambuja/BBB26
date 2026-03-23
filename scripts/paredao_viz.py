@@ -19,9 +19,12 @@ from data_utils import (
     artigo,
     backtest_precision_model,
     calculate_precision_weights,
+    calculate_votalhada_estimate_3070,
     genero,
+    has_votalhada_formula_change,
     normalize_route_label,
     parse_votalhada_hora,
+    poll_has_weighted_latest_overlay,
     predict_precision_weighted,
     safe_html,
 )
@@ -769,14 +772,11 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
         order = {nome: idx for idx, (nome, _) in enumerate(votalhada_rank)}
         rows.sort(key=lambda r: (order.get(r["name"], 999), r["name"]))
 
-    # Compute mirror 0.3×0.7 from platform data if all 4 platforms present
+    # Mirror the displayed 0.3 × 0.7 formula only for post-change polls.
     plataformas = poll.get("plataformas", {})
     mirror_3070: dict[str, float] = {}
-    if all(p in plataformas for p in ("sites", "youtube", "twitter", "instagram")):
-        for nome in participantes:
-            s = float(plataformas["sites"].get(nome, 0))
-            cpf_avg = sum(float(plataformas[p].get(nome, 0)) for p in ("youtube", "twitter", "instagram")) / 3.0
-            mirror_3070[nome] = round(0.3 * s + 0.7 * cpf_avg, 2)
+    if has_votalhada_formula_change(poll):
+        mirror_3070 = calculate_votalhada_estimate_3070(plataformas, participantes)
 
     mirror_rank = sorted(
         [(nome, mirror_3070.get(nome, 0)) for nome in participantes],
@@ -811,25 +811,80 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
 
 
 def _votalhada_blurb(payload: dict) -> str:
-    """Return the Votalhada panel description based on whether mirror_3070 is available."""
+    """Return the Votalhada panel description."""
     mirror = payload.get("mirror_3070", {})
     if mirror.get("available"):
-        return "Análise 0,3 × 0,7 (Torcida × Voto Único)"
+        return "Votalhada (Ponderada): cada plataforma pesa pelo volume de votos."
     return "Média por volume de votos das fontes."
 
 
-def _mirror_3070_line(payload: dict, winner_name: str) -> str:
-    """Show legacy weighted value as secondary when mirror_3070 is available."""
+def _mirror_3070_line(payload: dict) -> str:
+    """Show the displayed 0.3 × 0.7 analysis as secondary when available."""
     mirror = payload.get("mirror_3070", {})
     if not mirror.get("available"):
         return ""
-    legacy_pct = payload.get("votalhada", {}).get("pct")
-    if legacy_pct is None:
+    mirror_pct = mirror.get("pct")
+    mirror_name = mirror.get("name")
+    legacy_name = payload.get("votalhada", {}).get("name")
+    if mirror_pct is None:
         return ""
+    if mirror_name and mirror_name != legacy_name:
+        text = f'Votalhada 70%/30%: {safe_html(mirror_name.split()[0])} com {_format_pct(mirror_pct)}'
+    else:
+        text = f'Votalhada 70%/30%: {_format_pct(mirror_pct)}'
     return (
-        f'<div class="poll-compare-pct" style="font-size:0.75em;color:#f0ad4e;">'
-        f'(ponderada por votos: {_format_pct(legacy_pct)})'
+        f'<div class="poll-compare-pct poll-compare-pct--secondary">'
+        f'{text}'
         f'</div>'
+    )
+
+
+def render_poll_timeseries_key(poll: dict | None, *, model_available: bool) -> str:
+    """Render a compact model legend outside the Plotly figure."""
+    if not poll or not poll.get("serie_temporal"):
+        return ""
+
+    primary_label = "Votalhada 70%/30%" if has_votalhada_formula_change(poll) else "Votalhada"
+    items = [
+        (
+            "is-v7030",
+            primary_label,
+            "linha cheia do histórico exibido no card",
+        ),
+    ]
+    if model_available:
+        items.append(
+            (
+                "is-model",
+                "Nosso Modelo",
+                "linha pontilhada, ponderada por histórico de acerto",
+            )
+        )
+    if poll_has_weighted_latest_overlay(poll):
+        items.append(
+            (
+                "is-weighted",
+                "Votalhada (Ponderada)",
+                "quadrado vazado na última coleta",
+            )
+        )
+
+    cards = "".join(
+        (
+            f'<div class="poll-timeseries-key-item">'
+            f'<span class="poll-timeseries-swatch {klass}" aria-hidden="true"></span>'
+            f'<div class="poll-timeseries-key-copy"><strong>{safe_html(title)}</strong>'
+            f'<span>{safe_html(copy)}</span></div>'
+            f'</div>'
+        )
+        for klass, title, copy in items
+    )
+    return (
+        '<section class="poll-timeseries-key">'
+        '<div class="poll-timeseries-key-title">Leituras do gráfico</div>'
+        f'<div class="poll-timeseries-key-grid">{cards}</div>'
+        '<div class="poll-timeseries-key-note">As cores continuam identificando cada participante.</div>'
+        '</section>'
     )
 
 
@@ -843,12 +898,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     mirror = payload.get("mirror_3070", {})
     v_name = v.get("name", "—")
     m_name = m.get("name", "—")
-    # Show mirror_3070 as primary Votalhada value when available
-    v_pct_legacy = v.get("pct")
-    if mirror.get("available") and mirror.get("values"):
-        v_pct = mirror["values"].get(v_name, v_pct_legacy)
-    else:
-        v_pct = v_pct_legacy
+    v_pct = v.get("pct")
     m_pct = m.get("pct")
 
     agreement = payload.get("agreement")
@@ -877,13 +927,21 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
 
     # Formula comparison line (old vs new Votalhada)
     formula_line = ""
-    if mirror.get("available") and v_pct_legacy is not None and v_pct is not None:
-        diff = v_pct - v_pct_legacy
-        if abs(diff) >= 0.1:
+    mirror_name = mirror.get("name")
+    mirror_pct = mirror.get("pct")
+    if mirror.get("available") and mirror_pct is not None and v_pct is not None:
+        if mirror_name and mirror_name != v_name:
             formula_line = (
-                f"Nova fórmula: {v_pct:.2f}% vs antiga: {v_pct_legacy:.2f}% "
-                f"({diff:+.1f} p.p. no líder)"
+                f"No Votalhada 70%/30%, {mirror_name.split()[0]} lidera com {mirror_pct:.2f}% "
+                f"(vs {v_name.split()[0]} {v_pct:.2f}% no Votalhada ponderado)."
             )
+        else:
+            diff = mirror_pct - v_pct
+            if abs(diff) >= 0.1:
+                formula_line = (
+                    f"Votalhada 70%/30%: {mirror_pct:.2f}% vs Votalhada ponderado: {v_pct:.2f}% "
+                    f"({diff:+.1f} p.p.)."
+                )
 
     if agreement:
         lead_line = f"Ambos apontam {safe_html(m_name.split()[0])} ao comparar {decision_hint}."
@@ -961,7 +1019,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'<div class="poll-compare-winner">{v_avatar}<div>'
         f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
         f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
-        f'{_mirror_3070_line(payload, v_name)}'
+        f'{_mirror_3070_line(payload)}'
         f'</div></div></div>'
         f'</div>'
         f'<div class="poll-compare-strip">{rows_compact}</div>'

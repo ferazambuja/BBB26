@@ -1554,7 +1554,7 @@ class TestMakePollTimeseries:
         model_traces = [tr for tr in fig.data if getattr(getattr(tr, "line", None), "dash", None) == "dot"]
         assert len(model_traces) == len(poll["participantes"])
         assert all(len(tr.y) == len(poll["serie_temporal"]) for tr in model_traces)
-        assert "linha pontilhada" in fig.layout.title.text
+        assert "Janela:" in fig.layout.title.text
 
     def test_empty_serie_temporal(self):
         from data_utils import make_poll_timeseries

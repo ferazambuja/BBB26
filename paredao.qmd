@@ -230,7 +230,9 @@ from data_utils import (
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted,
     backtest_precision_model,
+    calculate_votalhada_estimate_3070,
     genero, artigo, get_nominee_badge,
+    has_votalhada_formula_change,
     make_poll_timeseries,
     parse_votalhada_hora,
     avatar_html, avatar_img,
@@ -244,6 +246,7 @@ from paredao_viz import (
     render_paredao_index_card,
     render_paredao_live_card,
     render_poll_comparison_card,
+    render_poll_timeseries_key,
     render_nominee_cards_em_andamento,
     render_nominee_cards_finalized,
     build_paredao_history,
@@ -547,18 +550,11 @@ if ultimo:
                     print(f'<td class="tc text-muted fs-md">{votos_str}</td>')
                     print('</tr>')
 
-            # Compute mirror 0.3×0.7 formula from platform data
-            _has_cpf_platforms = all(p in plataformas for p in ('sites', 'youtube', 'twitter', 'instagram'))
-            _mirror_3070 = {}
-            if _has_cpf_platforms:
-                for _n in participantes_poll:
-                    _s = plataformas['sites'].get(_n, 0)
-                    _cpf_avg = sum(plataformas[p].get(_n, 0) for p in ('youtube', 'twitter', 'instagram')) / 3.0
-                    _mirror_3070[_n] = round(0.3 * _s + 0.7 * _cpf_avg, 2)
+            _mirror_3070 = calculate_votalhada_estimate_3070(plataformas, participantes_poll)
 
             # Votalhada consolidado row (legacy weighted)
-            _show_both = bool(_mirror_3070)
-            _legacy_label = '📊 Média Ponderada' if _show_both else '📊 Votalhada'
+            _show_both = has_votalhada_formula_change(poll) and bool(_mirror_3070)
+            _legacy_label = '📊 Votalhada (Ponderada)' if _show_both else '📊 Votalhada'
             print(f'<tr class="u-s168"><td class="fs-base u-s002">{_legacy_label}</td>')
             _cvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
@@ -572,7 +568,7 @@ if ultimo:
 
             # Mirror 0.3×0.7 row (new Votalhada formula)
             if _mirror_3070:
-                print(f'<tr class="u-s168"><td class="fs-base u-s002">📊 Análise 0,3×0,7</td>')
+                print(f'<tr class="u-s168"><td class="fs-base u-s002">📊 Votalhada 70%/30%</td>')
                 _mvals_3070 = [_mirror_3070.get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _mirror_3070.get(nome, 0)
@@ -829,7 +825,7 @@ if ultimo:
                     )
 
             # 6) Formula change insight — compare old vs new Votalhada formula.
-            if _mirror_3070 and _has_cpf_platforms:
+            if _show_both:
                 # Compute retroactive MAE for both formulas across finalized paredões
                 _finalized = [p for p in polls_data.get('paredoes', []) if p.get('resultado_real')]
                 if len(_finalized) >= 3:
@@ -906,12 +902,19 @@ if ultimo:
                 _weight_parts = [f'{_plat_labels_d.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
                 _rmse_info = _prec.get('rmse', {})
                 print(f'<details class="fs-md u-s024">')
-                print(f'<summary class="text-muted u-s297">ℹ️ Como funciona o modelo: {" · ".join(_weight_parts)}</summary>')
+                print(f'<summary class="text-muted u-s297">ℹ️ Como cada leitura funciona: {" · ".join(_weight_parts)}</summary>')
                 print(f'<div class="fs-base u-s467">')
-                # Use pre-computed platform volumes for explanation text
-                _sites_share_exp = round(_plat_volumes.get('sites', 0) * 100 / _total_plat_votos) if _total_plat_votos > 0 else 0
-                print(f'<p class="u-s084">O Votalhada soma votos de todas as fontes — quem tem mais votos pesa mais (Sites ~{_sites_share_exp}%). Mas ter muitos votos não significa acertar o resultado.</p>')
-                print(f'<p class="u-s084">Nosso modelo olha para os <strong>{len([p for p in polls_data.get("paredoes", []) if p.get("resultado_real")])} paredões anteriores</strong> e calcula quais plataformas erraram menos. Quem acertou mais ganha mais peso:</p>')
+                _votalhada_parts = [
+                    (_plat_labels_d.get(p, p), round(_plat_volumes.get(p, 0) * 100 / _total_plat_votos))
+                    for p in sorted(_plat_volumes, key=lambda p: -_plat_volumes.get(p, 0))
+                    if _plat_volumes.get(p, 0) > 0
+                ]
+                _votalhada_inline = " · ".join([f"{label} {share}%" for label, share in _votalhada_parts])
+                _n_hist = len([p for p in polls_data.get("paredoes", []) if p.get("resultado_real")])
+                print(f'<p class="u-s084"><strong>O Votalhada (Ponderada)</strong> soma votos de todas as fontes — quem tem mais votos pesa mais ({_votalhada_inline}). Mas ter muitos votos não significa acertar o resultado.</p>')
+                if _show_both:
+                    print('<p class="u-s084"><strong>O Votalhada 70%/30%</strong> é a leitura que aparece no card: 30% Sites + 70% média simples de YouTube, Twitter e Instagram.</p>')
+                print(f'<p class="u-s084"><strong>Nosso modelo</strong> olha para os <strong>{_n_hist} paredões anteriores</strong> e calcula quais plataformas erraram menos. Quem acertou mais ganha mais peso:</p>')
                 print(f'<table class="fs-base u-s088">')
                 print(f'<tr><th>Plataforma</th><th class="tc">Erro médio</th><th class="tc">Peso Votalhada</th><th class="tc">Peso Modelo</th></tr>')
                 for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
@@ -924,7 +927,7 @@ if ultimo:
                 _bt_consol_mae = _bt_agg.get('consolidado_mae', 0)
                 _bt_model_mae = _bt_agg.get('model_mae', 0)
                 if _bt_consol_mae > 0 and _bt_model_mae > 0:
-                    print(f'<p class="u-s041">Resultado: o erro médio cai de {_bt_consol_mae:.1f} para {_bt_model_mae:.1f} p.p. comparado ao consolidado do Votalhada.</p>')
+                    print(f'<p class="u-s041">Resultado: o erro médio cai de {_bt_consol_mae:.1f} para {_bt_model_mae:.1f} p.p. comparado ao Votalhada (Ponderada).</p>')
                 else:
                     print(f'<p class="u-s041">Resultado: o modelo pondera pela precisão histórica de cada plataforma.</p>')
                 print(f'</div></details>')
@@ -934,6 +937,7 @@ if ultimo:
             if poll.get('serie_temporal'):
                 fig_ts = make_poll_timeseries(poll, model_prediction=_model_pred)
                 if fig_ts:
+                    print(render_poll_timeseries_key(poll, model_available=bool(_model_pred)))
                     fig_ts.show()
 
         # ── Paredão history for nominees with past appearances ──
@@ -1750,6 +1754,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     model_prediction=_model_pred_fin,
                 )
                 if fig_ts:
+                    print(render_poll_timeseries_key(poll, model_available=bool(_model_pred_fin)))
                     fig_ts.show()
 
             # Platform breakdown table

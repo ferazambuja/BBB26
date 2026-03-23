@@ -1242,7 +1242,11 @@ Images saved to `data/votalhada/YYYY_MM_DD/` with datetime suffix (e.g., `consol
 In a Claude Code conversation, read the consolidado card and update polls.json:
 1. Read the latest `consolidados_5_*.png` (or `consolidados_6_*.png` for series) with the Read tool
 2. Extract: card date/time, platform Média rows (Sites, YouTube, Twitter, Instagram + vote counts), ESTIMATIVA VOTALHADA row, total votes
-3. Update `data/votalhada/polls.json` — overwrite `consolidado`/`plataformas`, append new `serie_temporal` row (dedupe by hora)
+3. Update `data/votalhada/polls.json`:
+   - recompute `consolidado` with the **legacy vote-weighted formula** (platform percentages weighted by each platform's vote count)
+   - overwrite `plataformas` with the latest platform rows
+   - append `serie_temporal` with the **displayed** ESTIMATIVA / VARIAÇÃO DAS MÉDIAS values (dedupe by `hora`)
+   - keep post-10/mar/2026 polls on `metodologia.modo = manual_vision_legacy_weighted`
 
 ### 3. Rebuild, commit, publish
 
@@ -1256,7 +1260,9 @@ gh workflow run daily-update.yml
 ### Data update rules
 
 - `serie_temporal`: append-only by `hora` — never delete existing rows
-- `consolidado` and `plataformas`: overwrite with latest values
+- `serie_temporal` stores the **displayed 0,3 x 0,7 ESTIMATIVA VOTALHADA** values after 10/mar/2026
+- `consolidado`: overwrite with the **legacy vote-weighted average** recalculated from `plataformas`
+- `plataformas`: overwrite with the latest platform rows and vote counts
 - `data_coleta`: overwrite with latest capture timestamp
 - `predicao_eliminado`: participant with highest consolidado %
 

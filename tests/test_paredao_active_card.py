@@ -274,9 +274,27 @@ def test_poll_comparison_renderer_outputs_unified_compare_card(_repo_data):
     assert "Concordam" in html
     assert "Confiança" in html
     assert "Diferença no líder" in html
-    assert "Análise 0,3" in html or "Média por volume de votos" in html
+    assert "Votalhada 70%/30%" in html or "Votalhada (Ponderada)" in html
     assert "ponderadas por histórico de acerto" in html
     assert 'href="paredoes.html#precisão-das-enquetes-votalhada"' in html
     # Check that the poll leader's name appears in the rendered HTML
     leader_name = payload["votalhada"]["name"]
     assert leader_name.split()[0] in html
+
+
+def test_formula_change_card_keeps_legacy_weighted_value_primary(_repo_data):
+    poll = get_poll_for_paredao(_repo_data["polls_data"], 10)
+    precision = calculate_precision_weights(_repo_data["polls_data"])
+    model_prediction = predict_precision_weighted(poll, precision)
+
+    payload = build_poll_comparison_payload(poll, model_prediction)
+    html = render_poll_comparison_card(payload, _repo_data["avatars"])
+
+    assert payload["votalhada"]["name"] == "Jonas Sulzbach"
+    assert payload["votalhada"]["pct"] == pytest.approx(44.82, abs=1e-6)
+    assert payload["mirror_3070"]["name"] == "Juliano Floss"
+    assert payload["mirror_3070"]["pct"] == pytest.approx(45.08, abs=1e-6)
+    assert "Votalhada (Ponderada)" in html
+    assert "Votalhada 70%/30%" in html
+    assert "Jonas Sulzbach" in html
+    assert "Juliano Floss" in html

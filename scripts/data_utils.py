@@ -1619,6 +1619,90 @@ def parse_votalhada_hora(hora_str: str, year: int = 2026) -> datetime:
     return datetime(year, MONTH_MAP_PT[month_str], int(day_str), hour, minute)
 
 
+def has_votalhada_formula_change(poll: dict | None) -> bool:
+    """Return True when the poll uses the post-2026-03-10 dual-formula policy."""
+    metodologia = (poll or {}).get("metodologia", {}) or {}
+    if metodologia.get("modo") == "manual_vision_legacy_weighted":
+        return True
+
+    haystack = " ".join(
+        str(metodologia.get(key, ""))
+        for key in ("formula_votalhada_exibida", "formula_nossa", "disclaimer_publico", "serie_temporal")
+    ).lower()
+    return any(token in haystack for token in ("0,3 x 0,7", "0.3 x 0.7", "0,3×0,7", "0.3×0.7"))
+
+
+def poll_has_weighted_latest_overlay(poll: dict | None) -> bool:
+    """Return True when the latest weighted snapshot differs from the displayed series."""
+    if not has_votalhada_formula_change(poll):
+        return False
+
+    poll = poll or {}
+    participantes = poll.get("participantes", []) or []
+    serie = poll.get("serie_temporal", []) or []
+    consolidado = poll.get("consolidado", {}) or {}
+    if not participantes or not serie:
+        return False
+
+    latest = serie[-1]
+    return any(
+        abs(float(consolidado.get(nome, 0) or 0) - float(latest.get(nome, 0) or 0)) >= 0.05
+        for nome in participantes
+    )
+
+
+def calculate_votalhada_vote_weighted(
+    plataformas: dict[str, Any],
+    participantes: list[str],
+) -> dict[str, float]:
+    """Recompute the legacy Votalhada average weighted by platform vote volume."""
+    valid_platforms = []
+    for payload in plataformas.values():
+        if not isinstance(payload, dict):
+            continue
+        votos = int(payload.get("votos", 0) or 0)
+        if votos <= 0:
+            continue
+        valid_platforms.append(payload)
+
+    total_votes = sum(int(payload.get("votos", 0) or 0) for payload in valid_platforms)
+    if total_votes <= 0:
+        return {}
+
+    weighted: dict[str, float] = {}
+    for nome in participantes:
+        pct = sum(
+            float(payload.get(nome, 0) or 0) * int(payload.get("votos", 0) or 0)
+            for payload in valid_platforms
+        ) / total_votes
+        weighted[nome] = round(pct, 2)
+    return weighted
+
+
+def calculate_votalhada_estimate_3070(
+    plataformas: dict[str, Any],
+    participantes: list[str],
+) -> dict[str, float]:
+    """Mirror the displayed 0.3 × 0.7 Votalhada formula from platform rows."""
+    sites = plataformas.get("sites")
+    if not isinstance(sites, dict):
+        return {}
+
+    cpf_platforms = [
+        key for key in ("youtube", "twitter", "instagram")
+        if isinstance(plataformas.get(key), dict)
+    ]
+    if not cpf_platforms:
+        return {}
+
+    estimate: dict[str, float] = {}
+    for nome in participantes:
+        sites_pct = float(sites.get(nome, 0) or 0)
+        cpf_avg = sum(float(plataformas[key].get(nome, 0) or 0) for key in cpf_platforms) / len(cpf_platforms)
+        estimate[nome] = round(0.3 * sites_pct + 0.7 * cpf_avg, 2)
+    return estimate
+
+
 def make_poll_timeseries(
     poll: dict,
     resultado_real: dict | None = None,
@@ -1667,6 +1751,31 @@ def make_poll_timeseries(
             marker=dict(size=4 if compact else 6),
             hovertemplate=f'{nome}: ' + '%{y:.2f}%<br>%{x|%d/%m %H:%M}<extra></extra>',
         ))
+
+    latest = serie[-1]
+    show_weighted_overlay = poll_has_weighted_latest_overlay(poll)
+    if show_weighted_overlay:
+        consolidado = poll.get("consolidado", {}) or {}
+        if show_weighted_overlay:
+            for nome in participantes:
+                legacy_val = float(consolidado.get(nome, 0) or 0)
+                fig.add_trace(go.Scatter(
+                    x=[times[-1]],
+                    y=[legacy_val],
+                    mode='markers',
+                    name=f'{nome.split()[0]} · Média ponderada',
+                    showlegend=False,
+                    marker=dict(
+                        size=8 if compact else 10,
+                        symbol='square-open',
+                        color=nominee_colors.get(nome, '#ddd'),
+                        line=dict(color='#f0ad4e', width=2),
+                    ),
+                    hovertemplate=(
+                        f'{nome} (Média Ponderada): '
+                        + '%{y:.2f}%<br>%{x|%d/%m %H:%M}<extra></extra>'
+                    ),
+                ))
 
     # Overlay projected model history from the consolidado series.
     # We only store consolidado by timestamp; platform-level historical snapshots
@@ -1748,8 +1857,6 @@ def make_poll_timeseries(
                 )
 
     subtitle = f"{first_t} → {last_t}" if compact else f"Janela: {first_t} → {last_t}"
-    if model_values:
-        subtitle += " · linha pontilhada = Nosso Modelo (histórico estimado)"
     fig.update_layout(
         title=dict(
             text=f"Evolução das Enquetes<br><sup>{subtitle}</sup>",

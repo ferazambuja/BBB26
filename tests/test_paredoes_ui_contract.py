@@ -202,6 +202,31 @@ def test_paredao_and_archive_pages_have_votalhada_formula_change_disclaimer_hook
     assert "fórmula anterior" in archive
 
 
+def test_live_page_explains_votalhada_7030_vs_weighted_model():
+    live = _read(PAREDAO_QMD)
+
+    assert "Votalhada 70%/30%" in live
+    assert "Votalhada (Ponderada)" in live
+    assert "Como cada leitura funciona" in live
+    assert "soma votos de todas as fontes" in live
+    assert "é a leitura que aparece no card" in live
+    assert "Nosso modelo" in live
+
+
+def test_live_page_has_mobile_friendly_poll_timeseries_key():
+    live = _read(PAREDAO_QMD)
+    helper = _read(PAREDAO_VIZ)
+    css = _read(CARDS_CSS)
+
+    assert "render_poll_timeseries_key" in live
+    assert "Leituras do gráfico" in helper
+    assert ".poll-timeseries-key" in css
+    assert ".poll-timeseries-key-grid" in css
+    assert ".poll-timeseries-swatch.is-v7030" in css
+    assert ".poll-timeseries-swatch.is-model" in css
+    assert ".poll-timeseries-swatch.is-weighted" in css
+
+
 def test_platform_tables_avoid_flex_utility_row_classes():
     live = _read(PAREDAO_QMD)
     archive = _read(PAREDOES_QMD)

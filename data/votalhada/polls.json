@@ -1185,12 +1185,12 @@
         "Leandro"
       ],
       "consolidado": {
-        "Ana Paula Renault": 21.72,
-        "Breno": 54.66,
-        "Leandro": 23.51,
+        "Ana Paula Renault": 31.54,
+        "Breno": 46.68,
+        "Leandro": 21.69,
         "total_votos": 7203406,
         "predicao_eliminado": "Breno",
-        "nota": "Pesquisa Final. Valores da ESTIMATIVA VOTALHADA (fórmula 0,3 x 0,7)."
+        "nota": "Pesquisa Final. Recalculado com a fórmula anterior do Votalhada (média ponderada pelo número de votos por plataforma); o card exibido seguia mostrando a estimativa 0,3 x 0,7."
       },
       "plataformas": {
         "sites": {
@@ -1363,12 +1363,12 @@
         "Juliano Floss"
       ],
       "consolidado": {
-        "Gabriela": 10.54,
-        "Jonas Sulzbach": 44.51,
-        "Juliano Floss": 45.08,
+        "Gabriela": 12.2,
+        "Jonas Sulzbach": 44.82,
+        "Juliano Floss": 43.07,
         "total_votos": 7353043,
-        "predicao_eliminado": "Juliano Floss",
-        "nota": "15:00 capture. Estimativa Votalhada. Floss held a narrow lead over Jonas."
+        "predicao_eliminado": "Jonas Sulzbach",
+        "nota": "15:00 capture. Recalculado com a fórmula anterior do Votalhada (média ponderada pelo número de votos por plataforma); o card exibido seguia mostrando a estimativa 0,3 x 0,7."
       },
       "plataformas": {
         "sites": {
@@ -1401,23 +1401,23 @@
         {
           "hora": "23/mar 01:00",
           "Gabriela": 12.77,
-          "Jonas Sulzbach": 47.96,
+          "Jonas Sulzbach": 47.92,
           "Juliano Floss": 39.37,
-          "votos": 2890805
+          "votos": 2373937
         },
         {
           "hora": "23/mar 08:00",
-          "Gabriela": 11.02,
-          "Jonas Sulzbach": 47.67,
-          "Juliano Floss": 41.37,
-          "votos": 4890805
+          "Gabriela": 12.09,
+          "Jonas Sulzbach": 46.64,
+          "Juliano Floss": 41.41,
+          "votos": 4800045
         },
         {
           "hora": "23/mar 12:00",
-          "Gabriela": 10.62,
+          "Gabriela": 11.02,
           "Jonas Sulzbach": 43.7,
-          "Juliano Floss": 45.28,
-          "votos": 6086053
+          "Juliano Floss": 45.39,
+          "votos": 6046059
         },
         {
           "hora": "23/mar 15:00",
@@ -1428,8 +1428,10 @@
         }
       ],
       "metodologia": {
-        "modo": "manual_vision",
-        "formula_votalhada_exibida": "ESTIMATIVA VOTALHADA (0,3 x 0,7)",
+        "modo": "manual_vision_legacy_weighted",
+        "disclaimer_publico": "Em 10 de março de 2026, o Votalhada passou a exibir uma nova 'Média Final Ponderada (0,3 x 0,7)' e removeu a série horária do card final. Temporariamente, este site mantém a fórmula anterior, ponderada pelo número de votos de cada plataforma, enquanto analisamos a mudança.",
+        "formula_votalhada_exibida": "0,3 x 0,7: 0,3 * Sites + 0,7 * média simples de YouTube, Twitter e Instagram",
+        "formula_nossa": "Média ponderada pelo número de votos de cada plataforma (fórmula anterior do Votalhada)",
         "coleta_modo": "visao_manual",
         "serie_temporal": "Valores da ESTIMATIVA VOTALHADA exibidos no card."
       },

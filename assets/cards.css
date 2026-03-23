@@ -1151,6 +1151,13 @@ body.paredao-page main.content h2.poll-section-title {
   font-size: var(--fs-lg);
 }
 
+.poll-compare-pct--secondary {
+  margin-top: 0.18rem;
+  color: #f0c453;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+
 .poll-compare-bridge {
   border-radius: 14px;
   padding: 0.75rem;
@@ -1239,6 +1246,119 @@ body.paredao-page main.content h2.poll-section-title {
 
 .poll-compare-val.is-delta.is-close {
   color: #f0c453;
+}
+
+.poll-timeseries-key {
+  margin: 0.85rem 0 0.7rem;
+  padding: 0.72rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.poll-timeseries-key-title {
+  color: #eef4ff;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.poll-timeseries-key-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.poll-timeseries-key-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.poll-timeseries-key-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.poll-timeseries-key-copy strong {
+  color: #fff;
+  font-size: var(--fs-sm);
+  line-height: 1.25;
+}
+
+.poll-timeseries-key-copy span {
+  color: #c7d2e1;
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+
+.poll-timeseries-key-note {
+  margin-top: 0.55rem;
+  color: #b5c2d6;
+  font-size: var(--fs-xs);
+}
+
+.poll-timeseries-swatch {
+  width: 28px;
+  min-width: 28px;
+  height: 12px;
+  margin-top: 0.18rem;
+  position: relative;
+}
+
+.poll-timeseries-swatch::before,
+.poll-timeseries-swatch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.poll-timeseries-swatch.is-v7030::before {
+  left: 0;
+  right: 0;
+  border-top: 3px solid #8dd1ff;
+}
+
+.poll-timeseries-swatch.is-v7030::after {
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8dd1ff;
+}
+
+.poll-timeseries-swatch.is-model::before {
+  left: 0;
+  right: 0;
+  border-top: 3px dotted #63dbbd;
+}
+
+.poll-timeseries-swatch.is-model::after {
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%) rotate(45deg);
+  border: 2px solid #63dbbd;
+  background: rgba(0, 0, 0, 0);
+}
+
+.poll-timeseries-swatch.is-weighted::before {
+  left: 0;
+  right: 0;
+  border-top: 2px dashed rgba(240, 173, 78, 0.65);
+}
+
+.poll-timeseries-swatch.is-weighted::after {
+  left: 7px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #f0ad4e;
+  background: rgba(0, 0, 0, 0);
 }
 
 /* ── Platform precision tables (desktop + mobile) ── */
@@ -1464,6 +1584,18 @@ body.paredao-page main.content h2.poll-section-title {
 
   .poll-compare-strip {
     grid-template-columns: 1fr;
+  }
+
+  .poll-timeseries-key-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .poll-timeseries-key {
+    padding: 0.7rem;
+  }
+
+  .poll-compare-pct--secondary {
+    font-size: var(--fs-xs);
   }
 
   .poll-precision-table {
