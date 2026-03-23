@@ -1376,11 +1376,28 @@
       "semana": 10,
       "total_esperado": 3,
       "formacao": {
-        "resumo": "Triângulo de Risco: 4 primeiros eliminados da Prova do Líder (Chaiany, Juliano Floss, Leandro e Samira) disputam sorteio de caixas na 1ª etapa (sexta). Leandro encontrou o bracelete na caixa 2 e ficou temporariamente emparedado. Na 2ª etapa (sábado, ao vivo), Leandro escondeu o cartão PAREDÃO na caixa 2 e escolheu Jonas e Jordana. Jonas pegou caixa 3, Jordana pegou caixa 2, Leandro ficou com caixa 1. Após rodada de trocas (Leandro trocou para caixa 2, Jonas manteve, Jordana trocou com Leandro), Jordana ficou com o cartão PAREDÃO e substituiu Leandro na berlinda. Formação continua domingo com indicação do Líder, votação da casa e Contragolpe.",
+        "resumo": "Triângulo de Risco: Jordana emparedada via dinâmica (substituiu Leandro na 2ª etapa). Anjo Leandro imunizou Solange Couto (abriu mão da 2ª imunidade pelo vídeo da família). Líder Alberto Cowboy indicou Juliano Floss. Casa votou: Jonas Sulzbach mais votado com 8 votos. Contragolpe: Jonas puxou Gabriela. Bate e Volta: Jordana, Jonas e Gabriela — Jordana venceu e escapou. Paredão final: Gabriela, Jonas Sulzbach e Juliano Floss.",
         "lider": "Alberto Cowboy",
         "lideres": ["Alberto Cowboy"],
         "anjo": "Leandro",
         "anjo_escolha": "Abriu mão da 2ª imunidade para ver vídeo da família com Chaiany, Juliano Floss e Solange Couto",
+        "imunizado": {
+          "por": "Leandro",
+          "quem": "Solange Couto",
+          "motivo": "Ela foi a única pessoa que disse: 'se eu ganhar essa prova, lhe imunizo'. E eu estava em risco. Guardei aquilo no meu coração e agora estou podendo retribuir"
+        },
+        "indicado_lider": "Juliano Floss",
+        "motivo_lider": "Por ele nunca ter ido, por eu ser o Paredão perfeito dele, somos oposição aqui dentro",
+        "contragolpe": {
+          "de": "Jonas Sulzbach",
+          "para": "Gabriela",
+          "motivo": "Prefiro ter adversários reais do que ter uma pessoa que pode estourar a qualquer momento. É uma pessoa complicada de conviver"
+        },
+        "bate_volta": {
+          "participantes": ["Jordana", "Jonas Sulzbach", "Gabriela"],
+          "vencedor": "Jordana",
+          "prova": "3 fases: sequência de caixas, jogo da memória e porta premiada"
+        },
         "triangulo_de_risco": {
           "participantes": ["Chaiany", "Juliano Floss", "Leandro", "Samira"],
           "motivo": "4 primeiros eliminados da Prova do Líder",
@@ -1404,8 +1421,24 @@
         }
       },
       "indicados_finais": [
-        {"nome": "Jordana", "grupo": "Pipoca", "como": "Dinâmica (Triângulo de Risco)"}
+        {"nome": "Jordana", "grupo": "Pipoca", "como": "Dinâmica (Triângulo de Risco) + escapou na Bate e Volta"},
+        {"nome": "Juliano Floss", "grupo": "Pipoca", "como": "Líder"},
+        {"nome": "Jonas Sulzbach", "grupo": "Camarote", "como": "Mais votado pela casa (8 votos)"},
+        {"nome": "Gabriela", "grupo": "Pipoca", "como": "Contragolpe (puxada por Jonas Sulzbach)"}
       ],
+      "votos_casa": {
+        "Jordana": "Leandro",
+        "Gabriela": "Jonas Sulzbach",
+        "Leandro": "Jonas Sulzbach",
+        "Jonas Sulzbach": "Leandro",
+        "Milena": "Jonas Sulzbach",
+        "Solange Couto": "Jonas Sulzbach",
+        "Marciele": "Leandro",
+        "Juliano Floss": "Jonas Sulzbach",
+        "Chaiany": "Jonas Sulzbach",
+        "Ana Paula Renault": "Jonas Sulzbach",
+        "Samira": "Jonas Sulzbach"
+      },
       "fontes": [
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-alberto-cowboy-vence-e-comemora-e-tetra.ghtml",
@@ -1421,6 +1454,26 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/triangulo-de-risco-do-bbb-26-jordana-esta-no-paredao-e-leandro-boneco-escapa-da-berlinda.ghtml",
           "arquivo": "docs/scraped/triangulo-de-risco-do-bbb-26-jordana-esta-no-paredao-e-leandro-boneco-escapa-da-berlinda.md",
           "titulo": "Triângulo de Risco do BBB 26: Jordana está no Paredão e Leandro Boneco escapa da berlinda"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-10o-paredao.ghtml",
+          "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-10o-paredao.md",
+          "titulo": "BBB 26: veja quem votou em quem na formação do 10º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-jonas-sulzbach-puxa-gabriela-no-contragolpe.ghtml",
+          "arquivo": "docs/scraped/bbb-26-jonas-sulzbach-puxa-gabriela-no-contragolpe.md",
+          "titulo": "BBB 26: Jonas Sulzbach puxa Gabriela no Contragolpe do 10º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/decimo-paredao-do-bbb-26-jordana-escapa-da-berlinda-na-prova-bate-e-volta.ghtml",
+          "arquivo": "docs/scraped/decimo-paredao-do-bbb-26-jordana-escapa-da-berlinda-na-prova-bate-e-volta.md",
+          "titulo": "Décimo Paredão do BBB 26: Jordana escapa da berlinda na Prova Bate e Volta"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-10-paredao-do-bbb-26-gabriela-jonas-sulzbach-e-juliano-floss-formam-a-berlinda.ghtml",
+          "arquivo": "docs/scraped/quem-esta-no-10-paredao-do-bbb-26-gabriela-jonas-sulzbach-e-juliano-floss-formam-a-berlinda.md",
+          "titulo": "Quem está no 10° Paredão do BBB 26? Gabriela, Jonas Sulzbach e Juliano Floss formam a berlinda"
         }
       ]
     }

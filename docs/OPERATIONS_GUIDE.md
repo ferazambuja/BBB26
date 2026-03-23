@@ -1031,7 +1031,7 @@ git commit -m "Presente do Anjo W{N} (Name chose video/immunity)"
 | W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
 | W8 | Milena | video_familia | Ana Paula Renault, Juliano Floss, Samira | Ana Paula Renault |
 | W9 | Breno | video_familia | Samira, Juliano Floss, Milena | Samira |
-| W10 | Leandro | video_familia | Chaiany, Juliano Floss, Solange Couto | *(pending formation)* |
+| W10 | Leandro | video_familia | Chaiany, Juliano Floss, Solange Couto | Solange Couto |
 
 **Pattern**: 10/10 Anjos chose family video. The 2nd immunity has never been used.
 
