@@ -77,7 +77,12 @@ def build_paredao_history(
     all_paredoes: list[dict],
     current_numero: int,
 ) -> dict[str, list[dict]]:
-    """Build per-participant paredão history from all paredões before the current one."""
+    """Build per-participant paredão history from all paredões before the current one.
+
+    Excludes Bate e Volta winners (they escaped and were not on the final paredão).
+    """
+    from data_utils import get_bv_winners
+
     history: dict[str, list[dict]] = {}
     for p in all_paredoes:
         num = p.get('numero', 0)
@@ -87,8 +92,11 @@ def build_paredao_history(
         resultado = p.get('resultado', {})
         eliminado = resultado.get('eliminado', '')
         votos = resultado.get('votos', {})
+        bv_winners = get_bv_winners(p)
         for ind in p.get('indicados_finais', []):
             nome = ind['nome']
+            if nome in bv_winners:
+                continue  # BV winners escaped — not counted as paredão appearance
             como = ind.get('como', '?')
             entry: dict = {'paredao': num, 'como': como, 'falso': falso}
             if votos and nome in votos:

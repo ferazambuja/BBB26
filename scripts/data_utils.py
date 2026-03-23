@@ -563,6 +563,22 @@ def _load_json_file(path: str | Path, default: Any) -> Any:
         return json.load(f)
 
 
+def get_bv_winners(paredao_entry: dict) -> set[str]:
+    """Return set of Bate e Volta winner names for a paredão entry.
+
+    Works with both raw paredoes.json entries (formacao.bate_volta) and
+    transformed entries (bate_volta at top level).
+    """
+    formacao = paredao_entry.get("formacao", {})
+    if isinstance(formacao, str):
+        formacao = {}
+    bv = formacao.get("bate_volta") or paredao_entry.get("bate_volta") or {}
+    if not bv:
+        return set()
+    winners = bv.get("vencedores") or ([bv["vencedor"]] if bv.get("vencedor") else [])
+    return set(winners)
+
+
 def load_paredoes_raw() -> dict:
     """Load data/paredoes.json. Returns dict with 'paredoes' key."""
     return _load_json_file("data/paredoes.json", {"paredoes": []})
@@ -613,9 +629,12 @@ def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[d
             entry['imunizado'] = im
         if p.get('resultado'):
             entry['resultado'] = p['resultado']
+        bv_winners = get_bv_winners(p)
         if p['status'] == 'finalizado' and p.get('resultado'):
             entry['participantes'] = []
             for ind in p.get('indicados_finais', []):
+                if ind['nome'] in bv_winners:
+                    continue  # BV winners escaped — not on final paredão
                 grupo = ind.get('grupo', '?')
                 if grupo == '?' and member_of:
                     grupo = member_of.get(ind['nome'], '?')
@@ -641,6 +660,7 @@ def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[d
             entry['participantes'] = [
                 {'nome': ind['nome'], 'grupo': ind.get('grupo', '?'), 'como': ind.get('como', '')}
                 for ind in p.get('indicados_finais', [])
+                if ind['nome'] not in bv_winners  # BV winners escaped
             ]
             entry['total_esperado'] = 3
         paredoes.append(entry)

@@ -10,7 +10,7 @@ import unicodedata
 from collections import Counter
 from typing import Any
 
-from data_utils import normalize_route_label, compute_protected_names, BBB26_PREMIERE
+from data_utils import normalize_route_label, compute_protected_names, BBB26_PREMIERE, get_bv_winners
 from builders.vote_prediction import extract_paredao_eligibility
 
 ACTIVE_LAST_SEEN = "9999-12-31"
@@ -105,8 +105,11 @@ def _build_nominee_history(paredoes: list[dict]) -> dict[str, list[dict]]:
         is_fake = _is_fake(p)
         resultado_data = p.get("resultado") or {}
         votos = resultado_data.get("votos") or {}
+        bv_winners = get_bv_winners(p)
         for ind in p.get("indicados_finais", []):
             nome = ind["nome"] if isinstance(ind, dict) else ind
+            if nome in bv_winners:
+                continue  # BV winners escaped — not a real paredão appearance
             como_raw = ind.get("como", "") if isinstance(ind, dict) else ""
             result = "eliminado" if nome == eliminated else "sobreviveu"
             if is_fake and nome == eliminated:
@@ -134,9 +137,11 @@ def _compute_first_timer_metric(real_only: list[dict]) -> dict:
     first_timers = 0
     total_elims = 0
     for p in sorted(real_only, key=lambda x: x.get("numero", 0)):
+        _bv = get_bv_winners(p)
         indicados = [
             (ind["nome"] if isinstance(ind, dict) else ind)
             for ind in p.get("indicados_finais", [])
+            if (ind["nome"] if isinstance(ind, dict) else ind) not in _bv
         ]
         eliminated = _get_eliminated(p)
         if eliminated:
@@ -162,8 +167,11 @@ def _compute_route_metrics(real_only: list[dict]) -> tuple[dict, dict[str, str],
     route_elims: Counter[str] = Counter()
     for p in real_only:
         eliminated = _get_eliminated(p)
+        _bv = get_bv_winners(p)
         for ind in p.get("indicados_finais", []):
             nome = ind["nome"] if isinstance(ind, dict) else ind
+            if nome in _bv:
+                continue  # BV winners escaped
             como = ind.get("como", "") if isinstance(ind, dict) else ""
             route = normalize_route_label(como)
             route_counts[route] += 1
@@ -525,11 +533,14 @@ def build_figurinha_repetida_items(
 
 
 def _collect_all_nominees(paredoes_list: list[dict]) -> set[str]:
-    """Collect all names that ever appeared in indicados_finais."""
+    """Collect all names that ever appeared in indicados_finais (excl. BV escapes)."""
     nominees: set[str] = set()
     for p in paredoes_list:
+        bv_winners = get_bv_winners(p)
         for ind in p.get("indicados_finais", []):
-            nominees.add(ind["nome"] if isinstance(ind, dict) else ind)
+            nome = ind["nome"] if isinstance(ind, dict) else ind
+            if nome not in bv_winners:
+                nominees.add(nome)
     return nominees
 
 

@@ -20,6 +20,7 @@ from data_utils import (
     utc_to_game_date, get_week_number, get_week_start_date, get_effective_week_end_dates,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
     genero, resolve_leaders, compute_protected_names, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao, GROUP_COLORS,
+    get_bv_winners,
 )
 from builders.paredao_exposure import (
     compute_paredao_exposure_stats,
@@ -3276,12 +3277,14 @@ def _build_profile_footer(name: str, allies: list[dict], enemies: list[dict], gi
     if len(_secret_voters) >= 3:
         curiosities.append({"icon": "🤐", "text": f"Alvo oculto: {len(_secret_voters)} votos secretos", "priority": 5})
 
-    # 24. Paredão target: nominated multiple times across paredões
-    _n_nominations = sum(
-        1 for par in paredoes.get("paredoes", [])
-        for ind in par.get("indicados_finais", [])
-        if (ind.get("nome", "") if isinstance(ind, dict) else ind) == name
-    )
+    # 24. Paredão target: nominated multiple times across paredões (excl. BV escapes)
+    _n_nominations = 0
+    for par in paredoes.get("paredoes", []):
+        _bv = get_bv_winners(par)
+        for ind in par.get("indicados_finais", []):
+            _ind_name = ind.get("nome", "") if isinstance(ind, dict) else ind
+            if _ind_name == name and _ind_name not in _bv:
+                _n_nominations += 1
     if _n_nominations >= 2:
         curiosities.append({"icon": "⚠️", "text": f"Alvo frequente: {_n_nominations}× no paredão", "priority": 5})
 
@@ -3289,13 +3292,14 @@ def _build_profile_footer(name: str, allies: list[dict], enemies: list[dict], gi
     curiosities.sort(key=lambda x: x.get("priority", 0), reverse=True)
     curiosities = curiosities[:8]
 
-    # -- Game stats for stat chips --
+    # -- Game stats for stat chips (excl. BV escapes) --
     paredao_history = []
     for par in paredoes.get("paredoes", []):
+        _bv = get_bv_winners(par)
         for ind in par.get("indicados_finais", []):
             nome = ind.get("nome", "") if isinstance(ind, dict) else ind
-            if nome != name:
-                continue
+            if nome != name or nome in _bv:
+                continue  # Skip BV winners — they escaped
             como = ind.get("como", "?") if isinstance(ind, dict) else "?"
             resultado = par.get("resultado", {})
             eliminado = resultado.get("eliminado", "") if resultado else ""
