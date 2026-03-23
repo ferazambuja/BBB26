@@ -37,3 +37,46 @@ def test_p8_uses_manual_legacy_weighted_snapshot_after_formula_change():
     assert "0,3 x 0,7" in metodologia["formula_votalhada_exibida"]
     assert "ponderada pelo número de votos" in metodologia["formula_nossa"]
 
+
+def test_p10_latest_manual_snapshot_matches_23_mar_15h_capture():
+    poll = _poll(10)
+
+    assert poll["data_coleta"] == "2026-03-23T15:00:00-03:00"
+    assert poll["consolidado"]["Gabriela"] == 10.54
+    assert poll["consolidado"]["Jonas Sulzbach"] == 44.51
+    assert poll["consolidado"]["Juliano Floss"] == 45.08
+    assert poll["consolidado"]["total_votos"] == 7353043
+    assert poll["consolidado"]["predicao_eliminado"] == "Juliano Floss"
+
+    assert poll["plataformas"]["sites"] == {
+        "Gabriela": 8.21,
+        "Jonas Sulzbach": 37.51,
+        "Juliano Floss": 54.28,
+        "votos": 2097805,
+        "label": "Voto da Torcida",
+    }
+    assert poll["plataformas"]["youtube"] == {
+        "Gabriela": 13.00,
+        "Jonas Sulzbach": 36.92,
+        "Juliano Floss": 50.64,
+        "votos": 1210600,
+    }
+    assert poll["plataformas"]["twitter"] == {
+        "Gabriela": 5.85,
+        "Jonas Sulzbach": 55.61,
+        "Juliano Floss": 38.53,
+        "votos": 704888,
+    }
+    assert poll["plataformas"]["instagram"] == {
+        "Gabriela": 15.76,
+        "Jonas Sulzbach": 50.00,
+        "Juliano Floss": 34.24,
+        "votos": 3339750,
+    }
+
+    last_row = poll["serie_temporal"][-1]
+    assert last_row["hora"] == "23/mar 15:00"
+    assert last_row["Gabriela"] == 10.54
+    assert last_row["Jonas Sulzbach"] == 44.51
+    assert last_row["Juliano Floss"] == 45.08
+    assert last_row["votos"] == 7353043
