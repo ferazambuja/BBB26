@@ -815,10 +815,14 @@ if ultimo:
                 _tw_pct = (_plat_volumes.get('twitter', 0) * 100 / _total_plat_votos) if _total_plat_votos else 0
                 if _rmse_hist and (_sites_pct > 20 or _tw_pct > 0):
                     _curiosities.append(
-                        f'⚖️ Volume x precisão: Sites { _sites_pct:.0f}% do volume (erro {_rmse_hist.get("sites", 0):.1f} p.p.) '
-                        f'vs Twitter {_tw_pct:.0f}% (erro {_rmse_hist.get("twitter", 0):.1f} p.p.). '
-                        f'No Modelo: Twitter {_wu.get("twitter", 0)*100:.0f}% · Instagram {_wu.get("instagram", 0)*100:.0f}% · '
-                        f'Sites {_wu.get("sites", 0)*100:.0f}%.'
+                        f'⚖️ <strong>Volume x precisão</strong>:'
+                        f'<ul style="margin:4px 0 0 0;padding-left:1.2em">'
+                        f'<li>Sites: {_sites_pct:.0f}% do volume (erro {_rmse_hist.get("sites", 0):.1f} p.p.)</li>'
+                        f'<li>Twitter: {_tw_pct:.0f}% do volume (erro {_rmse_hist.get("twitter", 0):.1f} p.p.)</li>'
+                        f'<li>No Modelo: Twitter {_wu.get("twitter", 0)*100:.0f}% · '
+                        f'Instagram {_wu.get("instagram", 0)*100:.0f}% · '
+                        f'Sites {_wu.get("sites", 0)*100:.0f}%</li>'
+                        f'</ul>'
                     )
 
             # 6) Formula change insight — compare old vs new Votalhada formula.
@@ -859,12 +863,14 @@ if ultimo:
                             _bd_mirror = _mirror_3070.get(_biggest_diff_name, 0)
                             _bd_delta = _bd_mirror - _bd_legacy
                             _curiosities.append(
-                                f'🔬 <strong>Fórmula nova vs antiga</strong>: desde o P8, o Votalhada usa '
-                                f'0,3 × Torcida + 0,7 × Voto Único. '
-                                f'Nos {_n_fin} paredões anteriores, a nova fórmula teria errado <strong>{_m_avg:.1f} p.p.</strong> '
-                                f'vs <strong>{_l_avg:.1f} p.p.</strong> da antiga (−{_pct_gain:.0f}%). '
-                                f'Hoje, a maior diferença é em <strong>{_biggest_diff_name.split()[0]}</strong>: '
-                                f'{_bd_legacy:.1f}% → {_bd_mirror:.1f}% ({_bd_delta:+.1f} p.p.).'
+                                f'🔬 <strong>Fórmula nova vs antiga</strong>:'
+                                f'<ul style="margin:4px 0 0 0;padding-left:1.2em">'
+                                f'<li>Desde o P8: Votalhada usa 0,3 × Torcida + 0,7 × Voto Único</li>'
+                                f'<li>Nos {_n_fin} paredões: nova errou <strong>{_m_avg:.1f} p.p.</strong> '
+                                f'vs <strong>{_l_avg:.1f} p.p.</strong> da antiga (−{_pct_gain:.0f}%)</li>'
+                                f'<li>Hoje: maior diferença em <strong>{_biggest_diff_name.split()[0]}</strong> — '
+                                f'{_bd_legacy:.1f}% → {_bd_mirror:.1f}% ({_bd_delta:+.1f} p.p.)</li>'
+                                f'</ul>'
                             )
 
             # 7) Optional context: turnout.
