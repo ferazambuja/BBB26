@@ -1396,6 +1396,20 @@ Add `resultado_real` to the paredão's poll entry:
 
 ### 2b. Rebuild + Cartola + model sanity check (required before commit)
 
+**How the poll model updates automatically:**
+
+Adding `resultado_real` to a poll entry is the ONLY manual step. Everything else recalculates:
+
+| Component | What happens | Where |
+|-----------|-------------|-------|
+| **Precision weights** | `calculate_precision_weights()` recalculates RMSE per platform and inverse-RMSE² weights using ALL finalized polls | `data_utils.py` |
+| **Back-test (LOO)** | `backtest_precision_model()` re-runs leave-one-out cross-validation on all finalized polls | `data_utils.py` |
+| **Vote prediction** | `build_derived_data.py` → `vote_prediction.json` uses updated weights for the current paredão | `builders/vote_prediction.py` |
+| **Archive page** | `paredoes.qmd` renders the back-test table and methodology text dynamically at build time — no hardcoded text to update | `paredoes.qmd` |
+| **Paredão page** | `paredao.qmd` renders ⚖️ Volume, 🔬 Fórmula, and 📚 Histórico insights dynamically | `paredao.qmd` |
+
+**Nothing is hardcoded** — weights, RMSE values, back-test results, and methodology text all derive from the data. Just add `resultado_real`, rebuild, and verify below.
+
 ```bash
 python scripts/build_derived_data.py
 
