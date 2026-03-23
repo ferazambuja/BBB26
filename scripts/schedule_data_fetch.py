@@ -38,6 +38,7 @@ FETCH_SCRIPT = REPO_ROOT / "scripts" / "fetch_data.py"
 VOTALHADA_SCRIPT = REPO_ROOT / "scripts" / "fetch_votalhada_images.py"
 PAREDOES_JSON = REPO_ROOT / "data" / "paredoes.json"
 VOTALHADA_CLAUDE_SCRIPT = REPO_ROOT / "deploy" / "votalhada_claude_update.sh"
+VOTALHADA_CODEX_VERIFY = REPO_ROOT / "deploy" / "votalhada_codex_verify.sh"
 
 
 def _format_dt(dt: datetime) -> str:
@@ -257,6 +258,25 @@ def _poll_once(args: argparse.Namespace) -> dict:
             if rc == 0 and _has_git_changes("data/votalhada/polls.json"):
                 result["votalhada_updated"] = True
                 print(f"[poll] polls.json updated via Claude for P{paredao_num}!")
+
+                # 2d. Codex verification (independent cross-check)
+                if VOTALHADA_CODEX_VERIFY.exists():
+                    print(f"[poll] Running Codex verification...")
+                    vrc = _run_cmd(
+                        ["bash", str(VOTALHADA_CODEX_VERIFY), str(paredao_num), images_dir],
+                        "codex-verify",
+                    )
+                    if vrc == 0:
+                        result["votalhada_verified"] = True
+                        print("[poll] Codex VERIFIED Claude's extraction.")
+                    elif vrc == 2:
+                        result["votalhada_verified"] = False
+                        print("[poll] Codex DISAGREES — reverting polls.json, manual review needed.")
+                        _run_cmd(["git", "checkout", "--", "data/votalhada/polls.json"], "revert-polls")
+                        result["votalhada_updated"] = False
+                    else:
+                        print("[poll] Codex verification failed (error) — keeping Claude's update.")
+                        result["votalhada_verified"] = None
             else:
                 print("[poll] Claude auto-update produced no polls.json changes.")
         else:
@@ -412,7 +432,15 @@ def main() -> int:
         if result.get("votalhada_fetched"):
             status_parts.append("votalhada images")
         if result.get("votalhada_updated"):
-            status_parts.append("polls.json updated")
+            verified = result.get("votalhada_verified")
+            if verified is True:
+                status_parts.append("polls.json updated (codex verified)")
+            elif verified is False:
+                status_parts.append("polls.json REVERTED (codex disagreed)")
+            elif verified is None:
+                status_parts.append("polls.json updated (codex unavailable)")
+            else:
+                status_parts.append("polls.json updated")
         if not status_parts:
             status_parts.append("no change")
 
