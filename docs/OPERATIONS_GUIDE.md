@@ -955,7 +955,7 @@ GShow publishes Cartola-specific recap articles for Líder, Anjo, VIP, Monstro, 
 
 The Presente do Anjo happens Sunday afternoon (~14h-17h BRT). The Anjo invites 2-3 guests for an Almoço do Anjo and makes a choice: watch a family video OR gain a 2nd immunity to give at formation.
 
-**Key fact**: As of W7, every Anjo has chosen `video_familia` (no one has ever used the 2nd immunity).
+**Key fact**: As of W10, every Anjo has chosen `video_familia` (no one has ever used the 2nd immunity).
 
 ### 1. Scrape the Presente do Anjo article
 
@@ -1030,9 +1030,10 @@ git commit -m "Presente do Anjo W{N} (Name chose video/immunity)"
 | W6 | Chaiany | video_familia | Gabriela, Babu Santana, Solange Couto | Gabriela |
 | W7 | Alberto Cowboy | video_familia | Gabriela, Jordana, Marciele | Jonas Sulzbach |
 | W8 | Milena | video_familia | Ana Paula Renault, Juliano Floss, Samira | Ana Paula Renault |
-| W9 | Breno | *(pending Sunday)* | *(pending)* | *(pending)* |
+| W9 | Breno | video_familia | Samira, Juliano Floss, Milena | Samira |
+| W10 | Leandro | video_familia | Chaiany, Juliano Floss, Solange Couto | *(pending formation)* |
 
-**Pattern**: 8/8 Anjos chose family video. The 2nd immunity has never been used.
+**Pattern**: 10/10 Anjos chose family video. The 2nd immunity has never been used.
 
 ---
 
