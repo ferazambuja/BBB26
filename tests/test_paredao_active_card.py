@@ -291,9 +291,9 @@ def test_formula_change_card_keeps_legacy_weighted_value_primary(_repo_data):
     html = render_poll_comparison_card(payload, _repo_data["avatars"])
 
     assert payload["votalhada"]["name"] == "Jonas Sulzbach"
-    assert payload["votalhada"]["pct"] == pytest.approx(44.82, abs=1e-6)
-    assert payload["mirror_3070"]["name"] == "Juliano Floss"
-    assert payload["mirror_3070"]["pct"] == pytest.approx(45.08, abs=1e-6)
+    assert payload["votalhada"]["pct"] == pytest.approx(44.99, abs=1e-6)
+    assert payload["mirror_3070"]["name"] == "Jonas Sulzbach"
+    assert payload["mirror_3070"]["pct"] == pytest.approx(45.15, abs=1e-6)
     assert "Votalhada (Ponderada)" in html
     assert "Votalhada 70%/30%" in html
     assert "Jonas Sulzbach" in html

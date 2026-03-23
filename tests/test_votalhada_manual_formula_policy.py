@@ -65,37 +65,37 @@ def test_p9_keeps_legacy_weighted_consolidado_and_3070_series_separate():
 def test_p10_latest_manual_snapshot_keeps_weighted_consolidado_separate_from_displayed_3070():
     poll = _poll(10)
 
-    assert poll["data_coleta"] == "2026-03-23T15:00:00-03:00"
-    assert poll["consolidado"]["Gabriela"] == 12.20
-    assert poll["consolidado"]["Jonas Sulzbach"] == 44.82
-    assert poll["consolidado"]["Juliano Floss"] == 43.07
-    assert poll["consolidado"]["total_votos"] == 7353043
+    assert poll["data_coleta"] == "2026-03-23T18:00:00-03:00"
+    assert poll["consolidado"]["Gabriela"] == 11.62
+    assert poll["consolidado"]["Jonas Sulzbach"] == 44.99
+    assert poll["consolidado"]["Juliano Floss"] == 43.48
+    assert poll["consolidado"]["total_votos"] == 8063703
     assert poll["consolidado"]["predicao_eliminado"] == "Jonas Sulzbach"
 
     assert poll["plataformas"]["sites"] == {
-        "Gabriela": 8.21,
-        "Jonas Sulzbach": 37.51,
-        "Juliano Floss": 54.28,
-        "votos": 2097805,
+        "Gabriela": 7.43,
+        "Jonas Sulzbach": 39.49,
+        "Juliano Floss": 53.08,
+        "votos": 2532063,
         "label": "Voto da Torcida",
     }
     assert poll["plataformas"]["youtube"] == {
-        "Gabriela": 13.00,
-        "Jonas Sulzbach": 36.92,
-        "Juliano Floss": 50.64,
-        "votos": 1210600,
+        "Gabriela": 12.72,
+        "Jonas Sulzbach": 37.28,
+        "Juliano Floss": 50.55,
+        "votos": 1361400,
     }
     assert poll["plataformas"]["twitter"] == {
-        "Gabriela": 5.85,
-        "Jonas Sulzbach": 55.61,
-        "Juliano Floss": 38.53,
-        "votos": 704888,
+        "Gabriela": 5.77,
+        "Jonas Sulzbach": 55.60,
+        "Juliano Floss": 38.63,
+        "votos": 733804,
     }
     assert poll["plataformas"]["instagram"] == {
-        "Gabriela": 15.76,
-        "Jonas Sulzbach": 50.00,
-        "Juliano Floss": 34.24,
-        "votos": 3339750,
+        "Gabriela": 15.53,
+        "Jonas Sulzbach": 49.82,
+        "Juliano Floss": 34.65,
+        "votos": 3436436,
     }
 
     assert poll["serie_temporal"] == [
@@ -126,6 +126,13 @@ def test_p10_latest_manual_snapshot_keeps_weighted_consolidado_separate_from_dis
             "Jonas Sulzbach": 44.51,
             "Juliano Floss": 45.08,
             "votos": 7353043,
+        },
+        {
+            "hora": "23/mar 18:00",
+            "Gabriela": 10.17,
+            "Jonas Sulzbach": 45.15,
+            "Juliano Floss": 44.82,
+            "votos": 8063703,
         },
     ]
 
@@ -162,3 +169,72 @@ def test_formula_change_timeseries_gets_weighted_overlay_markers():
     assert len(weighted_traces) == 3
     assert all(len(tr.x) == 1 for tr in weighted_traces)
     assert "Janela:" in fig.layout.title.text
+
+
+def test_formula_change_helpers_distinguish_formula_recalc_from_displayed_card_values():
+    from data_utils import (
+        calculate_votalhada_estimate_3070,
+        calculate_votalhada_vote_weighted,
+        get_latest_votalhada_displayed_values,
+    )
+
+    participantes = ["Gabriela", "Jonas Sulzbach", "Juliano Floss"]
+    plataformas = {
+        "sites": {
+            "Gabriela": 7.43,
+            "Jonas Sulzbach": 39.49,
+            "Juliano Floss": 53.08,
+            "votos": 2532063,
+        },
+        "youtube": {
+            "Gabriela": 12.72,
+            "Jonas Sulzbach": 37.28,
+            "Juliano Floss": 50.55,
+            "votos": 1361400,
+        },
+        "twitter": {
+            "Gabriela": 5.77,
+            "Jonas Sulzbach": 55.60,
+            "Juliano Floss": 38.63,
+            "votos": 733804,
+        },
+        "instagram": {
+            "Gabriela": 15.53,
+            "Jonas Sulzbach": 49.82,
+            "Juliano Floss": 34.65,
+            "votos": 3436436,
+        },
+    }
+
+    estimate_3070 = calculate_votalhada_estimate_3070(plataformas, participantes)
+    weighted = calculate_votalhada_vote_weighted(plataformas, participantes)
+    displayed = get_latest_votalhada_displayed_values(
+        {
+            "participantes": participantes,
+            "serie_temporal": [
+                {
+                    "hora": "23/mar 18:00",
+                    "Gabriela": 10.17,
+                    "Jonas Sulzbach": 45.15,
+                    "Juliano Floss": 44.82,
+                    "votos": 8063703,
+                }
+            ],
+        }
+    )
+
+    assert estimate_3070 == {
+        "Gabriela": 10.17,
+        "Jonas Sulzbach": 45.14,
+        "Juliano Floss": 44.82,
+    }
+    assert weighted == {
+        "Gabriela": 11.62,
+        "Jonas Sulzbach": 44.99,
+        "Juliano Floss": 43.48,
+    }
+    assert displayed == {
+        "Gabriela": 10.17,
+        "Jonas Sulzbach": 45.15,
+        "Juliano Floss": 44.82,
+    }

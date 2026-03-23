@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from bisect import bisect_left
+from decimal import Decimal, ROUND_HALF_UP
 from functools import lru_cache
 from datetime import datetime, timedelta, timezone
 from html import escape as _html_escape
@@ -26,6 +27,11 @@ if TYPE_CHECKING:
 
 UTC = timezone.utc
 BRT = timezone(timedelta(hours=-3))
+
+
+def _round_pct_half_up(value: float) -> float:
+    """Round percentages like the published cards (0.005 rounds up)."""
+    return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 def safe_html(text: str) -> str:
@@ -1651,6 +1657,23 @@ def poll_has_weighted_latest_overlay(poll: dict | None) -> bool:
     )
 
 
+def get_latest_votalhada_displayed_values(poll: dict | None) -> dict[str, float]:
+    """Return the latest displayed Votalhada percentages from the card-backed series."""
+    poll = poll or {}
+    participantes = poll.get("participantes", []) or []
+    serie = poll.get("serie_temporal", []) or []
+    if not participantes or not serie:
+        return {}
+
+    latest = serie[-1]
+    values: dict[str, float] = {}
+    for nome in participantes:
+        if nome not in latest:
+            return {}
+        values[nome] = float(latest.get(nome, 0) or 0)
+    return values
+
+
 def calculate_votalhada_vote_weighted(
     plataformas: dict[str, Any],
     participantes: list[str],
@@ -1675,7 +1698,7 @@ def calculate_votalhada_vote_weighted(
             float(payload.get(nome, 0) or 0) * int(payload.get("votos", 0) or 0)
             for payload in valid_platforms
         ) / total_votes
-        weighted[nome] = round(pct, 2)
+        weighted[nome] = _round_pct_half_up(pct)
     return weighted
 
 
@@ -1699,7 +1722,7 @@ def calculate_votalhada_estimate_3070(
     for nome in participantes:
         sites_pct = float(sites.get(nome, 0) or 0)
         cpf_avg = sum(float(plataformas[key].get(nome, 0) or 0) for key in cpf_platforms) / len(cpf_platforms)
-        estimate[nome] = round(0.3 * sites_pct + 0.7 * cpf_avg, 2)
+        estimate[nome] = _round_pct_half_up(0.3 * sites_pct + 0.7 * cpf_avg)
     return estimate
 
 

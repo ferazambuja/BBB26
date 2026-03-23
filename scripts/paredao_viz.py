@@ -21,6 +21,7 @@ from data_utils import (
     calculate_precision_weights,
     calculate_votalhada_estimate_3070,
     genero,
+    get_latest_votalhada_displayed_values,
     has_votalhada_formula_change,
     normalize_route_label,
     parse_votalhada_hora,
@@ -776,7 +777,7 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
     plataformas = poll.get("plataformas", {})
     mirror_3070: dict[str, float] = {}
     if has_votalhada_formula_change(poll):
-        mirror_3070 = calculate_votalhada_estimate_3070(plataformas, participantes)
+        mirror_3070 = get_latest_votalhada_displayed_values(poll) or calculate_votalhada_estimate_3070(plataformas, participantes)
 
     mirror_rank = sorted(
         [(nome, mirror_3070.get(nome, 0)) for nome in participantes],

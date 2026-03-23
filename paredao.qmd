@@ -232,6 +232,7 @@ from data_utils import (
     backtest_precision_model,
     calculate_votalhada_estimate_3070,
     genero, artigo, get_nominee_badge,
+    get_latest_votalhada_displayed_values,
     has_votalhada_formula_change,
     make_poll_timeseries,
     parse_votalhada_hora,
@@ -550,7 +551,7 @@ if ultimo:
                     print(f'<td class="tc text-muted fs-md">{votos_str}</td>')
                     print('</tr>')
 
-            _mirror_3070 = calculate_votalhada_estimate_3070(plataformas, participantes_poll)
+            _mirror_3070 = get_latest_votalhada_displayed_values(poll) or calculate_votalhada_estimate_3070(plataformas, participantes_poll)
 
             # Votalhada consolidado row (legacy weighted)
             _show_both = has_votalhada_formula_change(poll) and bool(_mirror_3070)
