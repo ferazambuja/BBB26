@@ -115,6 +115,81 @@ def _get_votalhada_folder(paredao_num: int) -> str:
     return ""
 
 
+POLLS_JSON = REPO_ROOT / "data" / "votalhada" / "polls.json"
+
+
+def _bootstrap_polls_entry(paredao_num: int) -> bool:
+    """Create a skeleton polls.json entry for a paredão if one doesn't exist.
+
+    Reads paredoes.json, calls get_final_nominees() to get the actual nominees
+    (after Bate e Volta removal), and writes a skeleton entry with empty
+    consolidado/plataformas/serie_temporal.
+
+    Returns True if a new entry was created, False if it already existed.
+    """
+    # Load existing polls.json (or create structure)
+    if POLLS_JSON.exists():
+        polls_data = json.loads(POLLS_JSON.read_text(encoding="utf-8"))
+    else:
+        polls_data = {
+            "_description": "Poll aggregation data from Votalhada",
+            "_source": "votalhada.blogspot.com",
+            "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
+            "_last_updated": "",
+            "paredoes": [],
+        }
+
+    # Check if entry already exists
+    for entry in polls_data.get("paredoes", []):
+        if entry.get("numero") == paredao_num:
+            return False
+
+    # Read paredoes.json to get nominees
+    if not PAREDOES_JSON.exists():
+        print(f"[bootstrap] paredoes.json not found — cannot bootstrap P{paredao_num}")
+        return False
+
+    paredoes_data = json.loads(PAREDOES_JSON.read_text(encoding="utf-8"))
+    paredao_entry = None
+    for p in paredoes_data.get("paredoes", []):
+        if p["numero"] == paredao_num:
+            paredao_entry = p
+            break
+
+    if paredao_entry is None:
+        print(f"[bootstrap] P{paredao_num} not found in paredoes.json")
+        return False
+
+    # Import get_final_nominees from data_utils
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from data_utils import get_final_nominees
+
+    nominees = get_final_nominees(paredao_entry)
+    if not nominees:
+        print(f"[bootstrap] P{paredao_num} has no nominees (indicados_finais empty or all escaped)")
+        return False
+
+    data_paredao = paredao_entry.get("data", "")
+
+    skeleton = {
+        "numero": paredao_num,
+        "data_paredao": data_paredao,
+        "participantes": nominees,
+        "consolidado": {},
+        "plataformas": {},
+        "serie_temporal": [],
+    }
+
+    polls_data["paredoes"].append(skeleton)
+    POLLS_JSON.parent.mkdir(parents=True, exist_ok=True)
+    POLLS_JSON.write_text(
+        json.dumps(polls_data, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"[bootstrap] Created polls.json skeleton for P{paredao_num}: {nominees}")
+    return True
+
+
 def _fetch_votalhada(paredao_num: int) -> bool:
     """Fetch Votalhada images for the given paredão. Returns True if new images saved."""
     rc = _run_cmd(
@@ -153,6 +228,9 @@ def _poll_once(args: argparse.Namespace) -> dict:
     if args.votalhada:
         paredao_num = _get_active_paredao()
         if paredao_num:
+            # Bootstrap polls.json entry if it doesn't exist yet
+            if _bootstrap_polls_entry(paredao_num):
+                result["data_changed"] = True
             print(f"[poll] Active paredão P{paredao_num} — fetching Votalhada images.")
             if _fetch_votalhada(paredao_num):
                 result["votalhada_fetched"] = True

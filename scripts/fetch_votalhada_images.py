@@ -369,7 +369,7 @@ def main() -> None:
     urls = extract_image_urls(html)
     if not urls:
         print("No images found in post body.", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(3)  # exit 3 = "page not available yet" (distinct from real errors)
     print(f"Found {len(urls)} image(s).")
 
     suffix = ""

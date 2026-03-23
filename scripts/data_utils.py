@@ -579,6 +579,20 @@ def get_bv_winners(paredao_entry: dict) -> set[str]:
     return set(winners)
 
 
+def get_final_nominees(paredao_entry: dict) -> list[str]:
+    """Return actual voting nominees after Bate e Volta removal.
+
+    Reads indicados_finais and removes the bate_volta winner (who escaped).
+    Returns the list of names that are actually in the paredao for voting.
+    """
+    indicados = [ind["nome"] for ind in paredao_entry.get("indicados_finais", [])]
+    bv = paredao_entry.get("formacao", {}).get("bate_volta") or {}
+    vencedor = bv.get("vencedor")
+    if vencedor and vencedor in indicados:
+        indicados.remove(vencedor)
+    return indicados
+
+
 def load_paredoes_raw() -> dict:
     """Load data/paredoes.json. Returns dict with 'paredoes' key."""
     return _load_json_file("data/paredoes.json", {"paredoes": []})
