@@ -242,8 +242,10 @@ from data_utils import (
     ANALYSIS_DESCRIPTIONS,
 )
 from paredao_viz import (
+    EMPATE_THRESHOLD_PP,
     build_paredao_card_payload,
     build_poll_comparison_payload,
+    is_empate_tecnico,
     render_paredao_index_card,
     render_paredao_live_card,
     render_poll_comparison_card,
@@ -499,8 +501,6 @@ if ultimo:
 
             _consol_elim = consolidado.get("predicao_eliminado", "—")
             _sorted_consol = sorted([(n, consolidado.get(n, 0)) for n in participantes_poll], key=lambda x: -x[1])
-            _is_tie = len(_sorted_consol) >= 2 and abs(_sorted_consol[0][1] - _sorted_consol[1][1]) < 2.0
-
             _model_elim = None
             if _model_pred:
                 _model_elim = _model_pred['predicao_eliminado']
@@ -553,11 +553,27 @@ if ultimo:
 
             _mirror_3070 = get_latest_votalhada_displayed_values(poll) or calculate_votalhada_estimate_3070(plataformas, participantes_poll)
 
+            # Helper: compute top-2 gap for a values list
+            def _row_gap(vals):
+                s = sorted(vals, reverse=True)
+                return abs(s[0] - s[1]) if len(s) >= 2 else None
+
+            _empate_border = 'border-left:3px solid #f0c453;'
+            def _empate_tip(gap):
+                return (
+                    f' <span title="Empate técnico: diferença de apenas {gap:.1f} p.p. entre 1º e 2º — '
+                    f'dentro da margem de erro" '
+                    f'style="color:#f0c453;cursor:help">⚖️</span>'
+                ) if gap is not None else ''
+
             # Votalhada consolidado row (legacy weighted)
             _show_both = has_votalhada_formula_change(poll) and bool(_mirror_3070)
             _legacy_label = '📊 Votalhada (Ponderada)' if _show_both else '📊 Votalhada'
-            print(f'<tr class="u-s168"><td class="fs-base u-s002">{_legacy_label}</td>')
             _cvals = [consolidado.get(n, 0) for n in participantes_poll]
+            _c_gap = _row_gap(_cvals)
+            _c_empate = is_empate_tecnico(_c_gap)
+            _c_row_style = f' style="{_empate_border}"' if _c_empate else ''
+            print(f'<tr class="u-s168"><td class="fs-base u-s002"{_c_row_style}>{_legacy_label}{_empate_tip(_c_gap) if _c_empate else ""}</td>')
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
                 style = _poll_highlight(val, _cvals)
@@ -569,26 +585,32 @@ if ultimo:
 
             # Mirror 0.3×0.7 row (new Votalhada formula)
             if _mirror_3070:
-                print(f'<tr class="u-s168"><td class="fs-base u-s002">📊 Votalhada 70%/30%</td>')
                 _mvals_3070 = [_mirror_3070.get(n, 0) for n in participantes_poll]
+                _m3_gap = _row_gap(_mvals_3070)
+                _m3_empate = is_empate_tecnico(_m3_gap)
+                _m3_row_style = f' style="{_empate_border}"' if _m3_empate else ''
+                print(f'<tr class="u-s168"><td class="fs-base u-s002"{_m3_row_style}>📊 Votalhada 70%/30%{_empate_tip(_m3_gap) if _m3_empate else ""}</td>')
                 for nome in participantes_poll:
                     val = _mirror_3070.get(nome, 0)
                     style = _poll_highlight(val, _mvals_3070)
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
-                print(f'<td class="tc text-muted fs-sm">recalculado</td>')
+                print(f'<td class="tc"></td>')
                 print('</tr>')
 
             # Our model row
             if _model_pred:
-                print(f'<tr class="u-s012"><td class="fs-base u-s002">🧮 Nosso Modelo</td>')
                 _mvals = [_model_pred['prediction'].get(n, 0) for n in participantes_poll]
+                _mo_gap = _row_gap(_mvals)
+                _mo_empate = is_empate_tecnico(_mo_gap)
+                _mo_row_style = f' style="{_empate_border}"' if _mo_empate else ''
+                print(f'<tr class="u-s012"><td class="fs-base u-s002"{_mo_row_style}>🧮 Nosso Modelo{_empate_tip(_mo_gap) if _mo_empate else ""}</td>')
                 for nome in participantes_poll:
                     val = _model_pred['prediction'].get(nome, 0)
                     style = _poll_highlight(val, _mvals)
                     if 'font-weight' not in style:
                         style = 'font-weight:bold;' + style
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
-                print(f'<td class="tc text-muted fs-sm">ponderado</td>')
+                print(f'<td class="tc"></td>')
                 print('</tr>')
 
             print('</tbody></table>')
@@ -856,12 +878,8 @@ if ultimo:
                             continue
                         # Legacy MAE
                         _l_mae = sum(abs(_fcons.get(n, 0) - _freal.get(n, 0)) for n in _fparts) / len(_fparts)
-                        # Mirror 3070 MAE
-                        _m_vals = {}
-                        for _fn in _fparts:
-                            _fs = _fplat['sites'].get(_fn, 0)
-                            _fc = sum(_fplat[p].get(_fn, 0) for p in ('youtube', 'twitter', 'instagram')) / 3.0
-                            _m_vals[_fn] = 0.3 * _fs + 0.7 * _fc
+                        # Mirror 3070 MAE (using shared helper)
+                        _m_vals = calculate_votalhada_estimate_3070(_fplat, _fparts)
                         _m_mae = sum(abs(_m_vals.get(n, 0) - _freal.get(n, 0)) for n in _fparts) / len(_fparts)
                         _legacy_mae_sum += _l_mae
                         _mirror_mae_sum += _m_mae
@@ -871,11 +889,6 @@ if ultimo:
                         _m_avg = _mirror_mae_sum / _n_fin
                         _pct_gain = ((_l_avg - _m_avg) / _l_avg * 100) if _l_avg > 0 else 0
                         if _pct_gain > 5:
-                            # Show the biggest mover between formulas for current poll
-                            _biggest_diff_name = max(participantes_poll, key=lambda n: abs(_mirror_3070.get(n, 0) - consolidado.get(n, 0)))
-                            _bd_legacy = consolidado.get(_biggest_diff_name, 0)
-                            _bd_mirror = _mirror_3070.get(_biggest_diff_name, 0)
-                            _bd_delta = _bd_mirror - _bd_legacy
                             # Also compute our model's MAE for the comparison
                             _model_mae_sum, _model_n = 0.0, 0
                             for _fp2 in _finalized:
@@ -897,8 +910,6 @@ if ultimo:
                                 f'<li>Votalhada 70%/30%: <strong>{_m_avg:.1f} p.p.</strong> (−{_pct_gain:.0f}%)</li>'
                                 f'<li>Nosso Modelo (1/RMSE²): <strong>{_model_avg:.1f} p.p.</strong> (−{_model_pct:.0f}%)</li>'
                                 f'</ul>'
-                                f'Hoje: maior diferença entre fórmulas em <strong>{_biggest_diff_name.split()[0]}</strong> — '
-                                f'antiga {_bd_legacy:.1f}% vs 70%/30% {_bd_mirror:.1f}% ({_bd_delta:+.1f} p.p.).'
                             )
 
             # 7) Optional context: turnout.
@@ -1847,7 +1858,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     if 'font-weight' not in style:
                         style = 'font-weight:bold;' + style
                     print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
-                print(f'<td class="tc text-muted fs-md">ponderado</td>')
+                print(f'<td class="tc"></td>')
                 print('</tr>')
 
             print(f'<tr class="u-s015"><td class="u-s002">🏆 Resultado Real</td>')

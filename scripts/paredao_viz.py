@@ -111,6 +111,14 @@ def build_paredao_history(
     return history
 
 
+EMPATE_THRESHOLD_PP = 2.0  # p.p. — gap below this = "empate técnico"
+
+
+def is_empate_tecnico(gap_pp: float | None) -> bool:
+    """Return True if the top-2 gap is below the empate técnico threshold."""
+    return gap_pp is not None and gap_pp < EMPATE_THRESHOLD_PP
+
+
 _PAREDAO_ROLE_COLORS: dict[str, str] = {
     "danger": "#e74c3c",
     "warning": "#f39c12",
@@ -219,7 +227,7 @@ def _build_active_fact_lines(nominees: list[dict], vote_mode: str) -> list[str]:
     if len(with_model) >= 2:
         lead, runner = with_model[0], with_model[1]
         gap = abs((lead.get("model_pct") or 0.0) - (runner.get("model_pct") or 0.0))
-        if gap < 2.0:
+        if is_empate_tecnico(gap):
             facts.append(
                 f"Empate técnico no Nosso Modelo: {lead['first_name']} {lead['model_pct']:.2f}% "
                 f"vs {runner['first_name']} {runner['model_pct']:.2f}%."
@@ -522,7 +530,7 @@ def _build_card_curiosity_line(
             )
         if closing < -0.25:
             return f"Ritmo: {lead.split()[0]} só aumentou a vantagem nas últimas {k} atualizações.", []
-        if gap_now <= 2.0:
+        if is_empate_tecnico(gap_now):
             swap_txt = f" A liderança já trocou {leader_swaps}x." if leader_swaps > 0 else ""
             return (
                 f"Disputa aberta: diferença de {gap_now:.2f} p.p. entre "
@@ -786,26 +794,36 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
     mirror_name = mirror_rank[0][0] if mirror_rank else None
     mirror_pct = mirror_rank[0][1] if mirror_rank else None
 
+    votalhada_gap = _top2_gap(votalhada_rank)
+    model_gap = _top2_gap(model_rank) if model_rank else None
+    mirror_gap = _top2_gap(mirror_rank) if mirror_rank else None
+
     return {
         "vote_mode": vote_mode,
         "agreement": agreement,
         "votalhada": {
             "name": votalhada_name,
             "pct": votalhada_pct,
+            "top2_gap_pp": votalhada_gap,
+            "empate": is_empate_tecnico(votalhada_gap),
         },
         "mirror_3070": {
             "name": mirror_name,
             "pct": mirror_pct,
             "values": mirror_3070,
             "available": bool(mirror_3070),
+            "top2_gap_pp": mirror_gap,
+            "empate": is_empate_tecnico(mirror_gap),
         },
         "model": {
             "name": model_name,
             "pct": model_pct,
             "available": bool(model_rank),
+            "top2_gap_pp": model_gap,
+            "empate": is_empate_tecnico(model_gap),
         },
-        "votalhada_top2_gap_pp": _top2_gap(votalhada_rank),
-        "model_top2_gap_pp": _top2_gap(model_rank) if model_rank else None,
+        "votalhada_top2_gap_pp": votalhada_gap,
+        "model_top2_gap_pp": model_gap,
         "winner_delta_pp": winner_delta_pp,
         "rows": rows,
     }
@@ -833,9 +851,10 @@ def _mirror_3070_line(payload: dict) -> str:
         text = f'Votalhada 70%/30%: {safe_html(mirror_name.split()[0])} com {_format_pct(mirror_pct)}'
     else:
         text = f'Votalhada 70%/30%: {_format_pct(mirror_pct)}'
+    empate_tag = ' <span class="poll-compare-empate-inline">⚖️</span>' if mirror.get("empate") else ""
     return (
         f'<div class="poll-compare-pct poll-compare-pct--secondary">'
-        f'{text}'
+        f'{text}{empate_tag}'
         f'</div>'
     )
 
@@ -886,6 +905,59 @@ def render_poll_timeseries_key(poll: dict | None, *, model_available: bool) -> s
         f'<div class="poll-timeseries-key-grid">{cards}</div>'
         '<div class="poll-timeseries-key-note">As cores continuam identificando cada participante.</div>'
         '</section>'
+    )
+
+
+def _votalhada_primary_block(
+    payload: dict, v_avatar: str, v_panel: dict, mirror: dict, avatars: dict[str, str],
+) -> str:
+    """Render the Votalhada winner block — 70/30 as primary when available, weighted as secondary."""
+    if mirror.get("available") and mirror.get("pct") is not None:
+        # 70/30 is primary (big)
+        m_name = mirror.get("name", "—")
+        m_pct = mirror.get("pct")
+        m_avatar = avatar_img(m_name, avatars, 58, border_color="#9b59b6") if m_name != "—" else v_avatar
+        # Weighted is secondary (small)
+        v_name = v_panel.get("name", "—")
+        v_pct = v_panel.get("pct")
+        secondary = (
+            f'<div class="poll-compare-pct poll-compare-pct--secondary">'
+            f'Modelo antigo (ponderada): {_format_pct(v_pct)}'
+            f'{" ⚖️" if v_panel.get("empate") else ""}'
+            f'</div>'
+        )
+        return (
+            f'{m_avatar}<div>'
+            f'<div class="poll-compare-name">{safe_html(m_name)}</div>'
+            f'<div class="poll-compare-pct">com {_format_pct(m_pct)}</div>'
+            f'{_empate_badge(mirror)}'
+            f'{secondary}'
+            f'</div>'
+        )
+    else:
+        # No 70/30 — weighted is primary (old behavior)
+        v_name = v_panel.get("name", "—")
+        v_pct = v_panel.get("pct")
+        return (
+            f'{v_avatar}<div>'
+            f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
+            f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
+            f'{_empate_badge(v_panel)}'
+            f'</div>'
+        )
+
+
+def _empate_badge(panel: dict) -> str:
+    """Return an empate técnico badge HTML if the panel's gap is below threshold."""
+    if not panel.get("empate"):
+        return ""
+    gap = panel.get("top2_gap_pp")
+    if gap is None:
+        return ""
+    return (
+        f'<div class="poll-compare-empate">'
+        f'⚖️ empate técnico (Δ {gap:.1f} p.p.)'
+        f'</div>'
     )
 
 
@@ -1012,16 +1084,14 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'<div class="poll-compare-winner">{m_avatar}<div>'
         f'<div class="poll-compare-name">{safe_html(m_name)}</div>'
         f'<div class="poll-compare-pct">com {_format_pct(m_pct)}</div>'
+        f'{_empate_badge(m)}'
         f'</div></div></div>'
         f'<div class="poll-compare-side is-votalhada">'
         f'<div class="poll-compare-brand">📊 VOTALHADA</div>'
         f'<div class="poll-compare-blurb">{_votalhada_blurb(payload)}</div>'
         f'{votalhada_line}'
-        f'<div class="poll-compare-winner">{v_avatar}<div>'
-        f'<div class="poll-compare-name">{safe_html(v_name)}</div>'
-        f'<div class="poll-compare-pct">com {_format_pct(v_pct)}</div>'
-        f'{_mirror_3070_line(payload)}'
-        f'</div></div></div>'
+        f'<div class="poll-compare-winner">{_votalhada_primary_block(payload, v_avatar, v, mirror, avatars)}'
+        f'</div></div>'
         f'</div>'
         f'<div class="poll-compare-strip">{rows_compact}</div>'
         f'</section>'

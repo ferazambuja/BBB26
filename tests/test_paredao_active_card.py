@@ -21,9 +21,11 @@ from data_utils import (
     predict_precision_weighted,
 )
 from paredao_viz import (
+    EMPATE_THRESHOLD_PP,
     build_paredao_card_payload,
     build_paredao_history,
     build_poll_comparison_payload,
+    is_empate_tecnico,
     render_paredao_index_card,
     render_paredao_live_card,
     render_poll_comparison_card,
@@ -298,3 +300,48 @@ def test_formula_change_card_keeps_legacy_weighted_value_primary(_repo_data):
     assert "Votalhada 70%/30%" in html
     assert "Jonas Sulzbach" in html
     assert "Juliano Floss" in html
+
+
+# ---------- Empate técnico boundary tests ----------
+
+
+def test_is_empate_tecnico_boundary():
+    """Threshold is exclusive: gap < 2.0 is empate, gap >= 2.0 is not."""
+    assert is_empate_tecnico(1.99) is True
+    assert is_empate_tecnico(2.00) is False
+    assert is_empate_tecnico(2.01) is False
+    assert is_empate_tecnico(0.0) is True
+    assert is_empate_tecnico(None) is False
+
+
+def test_p10_empate_flags_selective(_repo_data):
+    """P10 weighted and 70/30 should be empate; model should NOT."""
+    poll = get_poll_for_paredao(_repo_data["polls_data"], 10)
+    precision = calculate_precision_weights(_repo_data["polls_data"])
+    model_prediction = predict_precision_weighted(poll, precision)
+    payload = build_poll_comparison_payload(poll, model_prediction)
+
+    # Weighted gap ~1.5 p.p. → empate
+    assert payload["votalhada"]["empate"] is True
+    assert payload["votalhada"]["top2_gap_pp"] < EMPATE_THRESHOLD_PP
+
+    # 70/30 gap ~0.3 p.p. → empate
+    assert payload["mirror_3070"]["empate"] is True
+    assert payload["mirror_3070"]["top2_gap_pp"] < EMPATE_THRESHOLD_PP
+
+    # Model gap ~10+ p.p. → NOT empate
+    assert payload["model"]["empate"] is False
+    assert payload["model"]["top2_gap_pp"] >= EMPATE_THRESHOLD_PP
+
+
+def test_empate_badge_only_on_empate_panels(_repo_data):
+    """Badge HTML appears on empate panels but NOT on the model panel when gap is large."""
+    poll = get_poll_for_paredao(_repo_data["polls_data"], 10)
+    precision = calculate_precision_weights(_repo_data["polls_data"])
+    model_prediction = predict_precision_weighted(poll, precision)
+    payload = build_poll_comparison_payload(poll, model_prediction)
+    html = render_poll_comparison_card(payload, _repo_data["avatars"])
+
+    assert "poll-compare-empate" in html
+    # The badge text should appear (at least for votalhada panel)
+    assert "empate técnico" in html
