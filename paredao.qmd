@@ -876,15 +876,29 @@ if ultimo:
                             _bd_legacy = consolidado.get(_biggest_diff_name, 0)
                             _bd_mirror = _mirror_3070.get(_biggest_diff_name, 0)
                             _bd_delta = _bd_mirror - _bd_legacy
+                            # Also compute our model's MAE for the comparison
+                            _model_mae_sum, _model_n = 0.0, 0
+                            for _fp2 in _finalized:
+                                _fp2_parts = _fp2.get('participantes', [])
+                                _fp2_real = _fp2.get('resultado_real', {})
+                                if not _fp2_parts or not _fp2_real:
+                                    continue
+                                _fp2_pred = predict_precision_weighted(_fp2, _prec)
+                                if _fp2_pred:
+                                    _fp2_mae = sum(abs(_fp2_pred['prediction'].get(n, 0) - _fp2_real.get(n, 0)) for n in _fp2_parts) / len(_fp2_parts)
+                                    _model_mae_sum += _fp2_mae
+                                    _model_n += 1
+                            _model_avg = _model_mae_sum / _model_n if _model_n else 0
+                            _model_pct = ((_l_avg - _model_avg) / _l_avg * 100) if _l_avg > 0 else 0
                             _curiosities.append(
-                                f'🔬 <strong>Fórmula nova vs antiga</strong>:'
+                                f'🔬 <strong>Comparação de erro médio nos {_n_fin} paredões</strong>:'
                                 f'<ul style="margin:4px 0 0 0;padding-left:1.2em">'
-                                f'<li>Desde o P8: Votalhada usa 0,3 × Torcida + 0,7 × Voto Único</li>'
-                                f'<li>Nos {_n_fin} paredões: nova errou <strong>{_m_avg:.1f} p.p.</strong> '
-                                f'vs <strong>{_l_avg:.1f} p.p.</strong> da antiga (−{_pct_gain:.0f}%)</li>'
-                                f'<li>Hoje: maior diferença em <strong>{_biggest_diff_name.split()[0]}</strong> — '
-                                f'{_bd_legacy:.1f}% → {_bd_mirror:.1f}% ({_bd_delta:+.1f} p.p.)</li>'
+                                f'<li>Votalhada antiga (ponderada por volume): <strong>{_l_avg:.1f} p.p.</strong></li>'
+                                f'<li>Votalhada 70%/30%: <strong>{_m_avg:.1f} p.p.</strong> (−{_pct_gain:.0f}%)</li>'
+                                f'<li>Nosso Modelo (1/RMSE²): <strong>{_model_avg:.1f} p.p.</strong> (−{_model_pct:.0f}%)</li>'
                                 f'</ul>'
+                                f'Hoje: maior diferença entre fórmulas em <strong>{_biggest_diff_name.split()[0]}</strong> — '
+                                f'antiga {_bd_legacy:.1f}% vs 70%/30% {_bd_mirror:.1f}% ({_bd_delta:+.1f} p.p.).'
                             )
 
             # 7) Optional context: turnout.
