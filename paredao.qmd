@@ -813,16 +813,30 @@ if ultimo:
                 _wu = _model_pred.get('weights_used', {})
                 _sites_pct = (_plat_volumes.get('sites', 0) * 100 / _total_plat_votos) if _total_plat_votos else 0
                 _tw_pct = (_plat_volumes.get('twitter', 0) * 100 / _total_plat_votos) if _total_plat_votos else 0
-                if _rmse_hist and (_sites_pct > 20 or _tw_pct > 0):
+                if _rmse_hist and len(_rmse_hist) >= 3:
+                    _plat_labels_err = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
+                    _vol_bullets = []
+                    for _ep in sorted(_rmse_hist, key=lambda p: -_plat_volumes.get(p, 0)):
+                        _evol = _plat_volumes.get(_ep, 0) * 100 / _total_plat_votos if _total_plat_votos else 0
+                        _eerr = _rmse_hist.get(_ep, 0)
+                        _vol_bullets.append(
+                            f'<li>{_plat_labels_err.get(_ep, _ep)}: {_evol:.0f}% dos votos '
+                            f'(RMSE {_eerr:.1f} p.p.)</li>'
+                        )
+                    _n_hist_err = _prec.get('n_paredoes', 0)
+                    _worst_plat = max(_rmse_hist, key=_rmse_hist.get)
+                    _worst_label = _plat_labels_err.get(_worst_plat, _worst_plat)
+                    _worst_vol = _plat_volumes.get(_worst_plat, 0) * 100 / _total_plat_votos if _total_plat_votos else 0
                     _curiosities.append(
-                        f'⚖️ <strong>Volume x precisão</strong>:'
+                        f'⚖️ <strong>Porcentagem do total de votos das enquetes</strong> '
+                        f'(RMSE = erro médio em {_n_hist_err} paredões):'
                         f'<ul style="margin:4px 0 0 0;padding-left:1.2em">'
-                        f'<li>Sites: {_sites_pct:.0f}% do volume (erro {_rmse_hist.get("sites", 0):.1f} p.p.)</li>'
-                        f'<li>Twitter: {_tw_pct:.0f}% do volume (erro {_rmse_hist.get("twitter", 0):.1f} p.p.)</li>'
-                        f'<li>Nosso Modelo: Twitter {_wu.get("twitter", 0)*100:.0f}% · '
-                        f'Instagram {_wu.get("instagram", 0)*100:.0f}% · '
-                        f'Sites {_wu.get("sites", 0)*100:.0f}%</li>'
+                        f'{"".join(_vol_bullets)}'
                         f'</ul>'
+                        f'A fórmula antiga do Votalhada (ponderada por volume) '
+                        f'dava ~{_worst_vol:.0f}% de peso a {_worst_label} — a plataforma com maior erro. '
+                        f'A fórmula 70%/30% atual ameniza isso, e nosso modelo vai além, '
+                        f'pesando pelo inverso do erro².'
                     )
 
             # 6) Formula change insight — compare old vs new Votalhada formula.
