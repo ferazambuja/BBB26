@@ -4944,6 +4944,47 @@
           "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil-no-bbb-26.ghtml"
         ]
       },
+      "sincerao": {
+        "date": "2026-03-23",
+        "format": "Chato de Galocha — cada participante aponta quem é o mais chato da casa, com 1 min de justificativa e 30s de réplica do alvo",
+        "participacao": [
+          "Gabriela", "Jonas Sulzbach", "Juliano Floss", "Leandro",
+          "Alberto Cowboy", "Marciele", "Solange Couto", "Chaiany",
+          "Samira", "Ana Paula Renault", "Jordana", "Milena"
+        ],
+        "protagonistas": ["Jonas Sulzbach", "Ana Paula Renault", "Gabriela"],
+        "notes": "Jonas foi o mais apontado (5 votos: Gabriela, Juliano Floss, Samira, Ana Paula, Milena). Ana Paula recebeu 3 (Cowboy, Solange, Chaiany). Juliano 2 (Marciele, Jordana). Cowboy 1 (Leandro). Gabriela 1 (Jonas). Confronto mútuo Jonas↔Gabriela — ambos se escolheram com críticas de instabilidade e falsidade. Jonas também criticado por suposto deboche de crise de ansiedade de Milena (tema levantado por Juliano, Ana Paula e Milena). 12 participantes presentes (todos ativos menos Jonas que saiu no dia seguinte).",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-participantes-apontam-quem-e-o-chato-de-galocha-do-bbb-26.ghtml",
+          "docs/scraped/sincerao-participantes-apontam-quem-e-o-chato-de-galocha-do-bbb-26.md"
+        ],
+        "stats": {
+          "most_targeted": [
+            {"name": "Jonas Sulzbach", "count": 5},
+            {"name": "Ana Paula Renault", "count": 3},
+            {"name": "Juliano Floss", "count": 2},
+            {"name": "Alberto Cowboy", "count": 1},
+            {"name": "Gabriela", "count": 1}
+          ],
+          "not_targeted": ["Marciele", "Solange Couto", "Chaiany", "Samira", "Leandro", "Milena", "Jordana"],
+          "mutual_confrontations": [["Jonas Sulzbach", "Gabriela"]]
+        },
+        "edges": [
+          {"actor": "Gabriela", "target": "Jonas Sulzbach", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Jonas Sulzbach", "target": "Gabriela", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Juliano Floss", "target": "Jonas Sulzbach", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Leandro", "target": "Alberto Cowboy", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Alberto Cowboy", "target": "Ana Paula Renault", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Marciele", "target": "Juliano Floss", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Solange Couto", "target": "Ana Paula Renault", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Chaiany", "target": "Ana Paula Renault", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Samira", "target": "Jonas Sulzbach", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Ana Paula Renault", "target": "Jonas Sulzbach", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Jordana", "target": "Juliano Floss", "type": "ataque", "tema": "chato de galocha"},
+          {"actor": "Milena", "target": "Jonas Sulzbach", "type": "ataque", "tema": "chato de galocha"}
+        ],
+        "edges_notes": "Formato de placa única negativa. Cada participante aponta exatamente 1 pessoa como 'chato de galocha'. Todos os edges são ataque com tema unificado."
+      },
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-contragolpe-e-triangulo-de-risco.ghtml",
         "docs/scraped/dinamica-da-semana-tem-contragolpe-e-triangulo-de-risco.md"
