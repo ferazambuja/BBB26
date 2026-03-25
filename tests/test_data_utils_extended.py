@@ -1646,7 +1646,7 @@ class TestPlotlyQuartoSetupOrder:
         "paredao.qmd",
         "paredoes.qmd",
         "cartola.qmd",
-        "economia_v2.qmd",
+        "_dev/drafts/economia_v2.qmd",
     ]
 
     def test_qmd_setup_calls_prepare_plotly_for_quarto_before_plotly_imports(self):

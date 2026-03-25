@@ -146,7 +146,7 @@ All files in `data/derived/`, built by `scripts/build_derived_data.py`:
 | `paredao_exposure_stats.json` | `compute_paredao_exposure_stats()` | `docs/SCORING_AND_INDEXES.md`, exposure cards | Paredão exposure analytics (route metrics, BV stats, facts). Hash-gated |
 | `vote_prediction.json` | `build_vote_prediction()` | `paredao.qmd`, `paredoes.qmd`, `index.qmd` | Líder nomination / vote prediction data |
 | `reaction_matrices.json` | `build_reaction_matrices()` | `relacoes.qmd` | Precomputed daily reaction matrices |
-| `balance_events.json` | `build_balance_events()` | `economia.qmd`, `economia_v2.qmd` | Balance deltas, compras/punições, fairness metrics |
+| `balance_events.json` | `build_balance_events()` | `economia.qmd`, `_dev/drafts/economia_v2.qmd` | Balance deltas, compras/punições, fairness metrics |
 | `integrity_audit.json` | `audit_data_integrity.py` | CI, operators | Cross-source data integrity audit report |
 | `validation.json` | `validate_manual_events()` | debugging and sanity review | Sanity checks |
 | `manual_events_audit.json` | `audit_manual_events.run_audit()` | `docs/MANUAL_EVENTS_AUDIT.md`, operators | Manual events audit report |
@@ -280,7 +280,7 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 
 ### Rendered Utility Pages
 
-- `economia_v2.qmd` — alternate narrative/mobile-focused economics page
+- `_dev/drafts/economia_v2.qmd` — alternate narrative/mobile-focused economics page (draft)
 - `cronologia_mobile_review.qmd` — mobile review surface for the timeline component
 
 ### Page Ownership Map
@@ -290,7 +290,7 @@ When a date is missed, build a synthetic snapshot from GShow's queridômetro art
 | Main dashboard | `index.qmd` | `scripts/index_viz.py`, `scripts/paredao_viz.py`, `data_utils.render_cronologia_html()` | `index_data.json`, `game_timeline.json`, `paredoes.json`, Votalhada loaders |
 | Evolution | `evolucao.qmd` | shared chart helpers in `data_utils.py` | `daily_metrics.json`, `relations_scores.json`, `roles_daily.json`, `index_data.json`, snapshots |
 | Economy | `economia.qmd` | page-local HTML helpers | `balance_events.json`, `index_data.json`, `participants_index.json`, snapshots, `manual_events.json` |
-| Economy V2 | `economia_v2.qmd` | page-local narrative helpers | `balance_events.json`, `index_data.json`, `participants_index.json`, snapshots, `manual_events.json` |
+| Economy V2 | `_dev/drafts/economia_v2.qmd` | page-local narrative helpers | `balance_events.json`, `index_data.json`, `participants_index.json`, snapshots, `manual_events.json` |
 | Relations | `relacoes.qmd` | page-local graph/table composition | `relations_scores.json`, `daily_metrics.json`, `clusters_data.json`, `reaction_matrices.json`, snapshots |
 | Current paredão | `paredao.qmd` | `scripts/paredao_viz.py` | `paredoes.json`, `relations_scores.json`, `roles_daily.json`, `participants_index.json`, `vote_prediction.json`, Votalhada polls |
 | Paredão archive | `paredoes.qmd` | `scripts/paredao_viz.py` | `paredao_analysis.json`, `vote_prediction.json`, `participants_index.json`, `paredoes.json` |

@@ -51,14 +51,14 @@ Use this table when changing formulas and you need to know **what UI will move**
 | Pair sentiment, contradictions, hostility, blocs | `relations_scores.json` | `relacoes.qmd`, `paredao.qmd`, `evolucao.qmd` |
 | Daily pulse, vulnerability, impact history | `daily_metrics.json` | `evolucao.qmd`, `index.qmd` |
 | Timeline events (past + scheduled) | `game_timeline.json` | `index.qmd`, `evolucao.qmd`, `cronologia_mobile_review.qmd` |
-| Index highlights, profiles, leader periods, strategic summaries | `index_data.json` | `index.qmd`, `economia.qmd`, `economia_v2.qmd` |
+| Index highlights, profiles, leader periods, strategic summaries | `index_data.json` | `index.qmd`, `economia.qmd`, `_dev/drafts/economia_v2.qmd` |
 | Plant / visibility signals | `plant_index.json` (also folded into `index_data.json`) | `index.qmd` visibility cards and profile summaries |
 | Sincerão edges | `sincerao_edges.json` | relations pipeline, `index_data.json`, Sincerão/profile sections |
 | Vote prediction / leader-target prediction | `vote_prediction.json` | `paredao.qmd`, `paredoes.qmd`, `index.qmd` |
 | Paredão archive analysis | `paredao_analysis.json` | `paredoes.qmd` |
 | Cartola points | `cartola_data.json` | `cartola.qmd` |
 | Prova rankings | `prova_rankings.json` | `provas.qmd` |
-| Balance fairness and house economy | `balance_events.json` | `economia.qmd`, `economia_v2.qmd` |
+| Balance fairness and house economy | `balance_events.json` | `economia.qmd`, `_dev/drafts/economia_v2.qmd` |
 
 ### Why power events are "modifiers"
 - They are **rare** and usually **one-to-one** (actor → target).

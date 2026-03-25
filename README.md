@@ -45,8 +45,8 @@ Além das páginas de navegação principal, `_quarto.yml` também renderiza:
 
 | Arquivo | Uso |
 |--------|-----|
-| `economia_v2.qmd` | Variante narrativa/mobile da página de economia |
 | `cronologia_mobile_review.qmd` | Página de revisão focada na cronologia em mobile |
+| `_dev/drafts/economia_v2.qmd` | Variante narrativa/mobile da economia (draft) |
 
 ## Stack
 

@@ -30,7 +30,7 @@ When your change is broad, shared, or hard to reason about locally, use that sam
 | Current paredão / archive / voting (`paredao.qmd`, `paredoes.qmd`, `votacao.qmd`, `scripts/paredao_viz.py`, `scripts/votacao_viz.py`) | `pytest -q tests/test_paredao_active_card.py tests/test_paredao_viz_contract.py tests/test_paredoes_ui_contract.py tests/test_votacao_ui_contract.py` and render the affected page(s) |
 | Cartola (`cartola.qmd`, Cartola scoring code/data) | `pytest -q tests/test_cartola_official_safeguards.py tests/test_cartola_lider_fallback.py tests/test_cartola_points_language.py tests/test_cartola_ui_contract.py` and `python scripts/quarto_render_safe.py cartola.qmd` |
 | Provas (`provas.qmd`, prova rankings) | `pytest -q tests/test_provas_ui_contract.py tests/test_prova_rankings_warnings.py` and `python scripts/quarto_render_safe.py provas.qmd` |
-| Economia / balance (`economia.qmd`, `economia_v2.qmd`, `scripts/builders/balance.py`) | `pytest -q tests/test_balance_events.py` and render the affected economy page(s) |
+| Economia / balance (`economia.qmd`, `_dev/drafts/economia_v2.qmd`, `scripts/builders/balance.py`) | `pytest -q tests/test_balance_events.py` and render the affected economy page(s) |
 | Votalhada fetch / poll model | `pytest -q tests/test_fetch_votalhada_images.py tests/test_votalhada_manual_formula_policy.py tests/test_get_final_nominees.py` |
 | Git/public safety tooling (`.githooks/pre-push`, `.github/workflows/public-policy-report.yml`, workflow docs) | Proofread docs and command examples; run `bash -n .githooks/pre-push` if the hook changed. |
 | Legacy sync / publish helper (`scripts/sync_public.sh`) | `pytest -q tests/test_sync_public_script.py` and run `scripts/sync_public.sh` in report mode if behavior changed |
