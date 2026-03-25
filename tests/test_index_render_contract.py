@@ -26,20 +26,17 @@ RENDER_RESIDUE = [
 
 
 @contextmanager
-def _preserve_generated_paths(root: Path, names: list[str], backup_root: Path):
+def _preserve_generated_paths(root: Path, names: list[str]):
+    """Rename render residue aside (same filesystem = instant), restore after."""
+    backup_root = root / ".test-backup"
+    backup_root.mkdir(exist_ok=True)
     preserved: list[str] = []
     for name in names:
         path = root / name
         if not path.exists():
             continue
         backup_path = backup_root / name
-        backup_path.parent.mkdir(parents=True, exist_ok=True)
-        if path.is_dir():
-            shutil.copytree(path, backup_path)
-            shutil.rmtree(path, ignore_errors=True)
-        else:
-            shutil.copy2(path, backup_path)
-            path.unlink()
+        path.rename(backup_path)
         preserved.append(name)
     try:
         yield
@@ -53,22 +50,19 @@ def _preserve_generated_paths(root: Path, names: list[str], backup_root: Path):
         for name in preserved:
             backup_path = backup_root / name
             restore_path = root / name
-            if restore_path.is_dir():
-                shutil.rmtree(restore_path, ignore_errors=True)
-            elif restore_path.exists():
-                restore_path.unlink()
-            restore_path.parent.mkdir(parents=True, exist_ok=True)
-            if backup_path.is_dir():
-                shutil.copytree(backup_path, restore_path, dirs_exist_ok=True)
-            else:
-                shutil.copy2(backup_path, restore_path)
+            if restore_path.exists():
+                if restore_path.is_dir():
+                    shutil.rmtree(restore_path, ignore_errors=True)
+                else:
+                    restore_path.unlink()
+            backup_path.rename(restore_path)
+        shutil.rmtree(backup_root, ignore_errors=True)
 
 
 @pytest.fixture(scope="module")
 def rendered_index_html(tmp_path_factory: pytest.TempPathFactory) -> str:
     output_dir = tmp_path_factory.mktemp("index-render-contract")
-    backup_dir = tmp_path_factory.mktemp("index-render-contract-backup")
-    with _preserve_generated_paths(REPO_ROOT, RENDER_RESIDUE, backup_dir):
+    with _preserve_generated_paths(REPO_ROOT, RENDER_RESIDUE):
         subprocess.run(
             ["quarto", "render", "index.qmd", "--output-dir", str(output_dir)],
             cwd=REPO_ROOT,
