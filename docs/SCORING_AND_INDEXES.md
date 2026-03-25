@@ -969,8 +969,8 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Scope | Count | Definition |
 |---|---|---|
 | `with_indicados` | 10 | Paredões com indicados_finais |
-| `all_finalized` | 9 | Finalizados (inclui falso) |
-| `real_only` | 8 | Finalizados reais (exclui falso) |
+| `all_finalized` | 10 | Finalizados (inclui falso) |
+| `real_only` | 9 | Finalizados reais (exclui falso) |
 
 ### Paredão Matrix
 
@@ -985,15 +985,15 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P7 | Alberto Cowboy, Jordana, Breno | Breno | 54.66% | Sim | finalizado |
 | P8 | Babu Santana, Chaiany, Milena | Babu Santana | 68.62% | Não | finalizado |
 | P9 | Ana Paula Renault, Breno, Leandro | Breno | 58.96% | Não | finalizado |
-| P10 | Jordana, Juliano Floss, Jonas Sulzbach, Gabriela | — | — | Não | em_andamento |
+| P10 | Jordana, Juliano Floss, Jonas Sulzbach, Gabriela | Jonas Sulzbach | 53.48% | Não | finalizado |
 
 ### Route Effectiveness (`real_only`)
 
 | Route | Eliminated | Total | Rate |
 |---|---|---|---|
-| Casa | 1 | 5 | 20.0% |
-| Contragolpe | 2 | 4 | 50.0% |
-| Líder | 3 | 8 | 37.5% |
+| Casa | 2 | 6 | 33.3% |
+| Contragolpe | 2 | 5 | 40.0% |
+| Líder | 3 | 9 | 33.3% |
 | Big Fone | Sim (n=1) | 1 | — |
 | Bloco do Paredão | Não (n=1) | 1 | — |
 | Caixas-Surpresa | Não (n=1) | 1 | — |
@@ -1002,18 +1002,18 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Dinâmica (Grupo Tesoura) | Não (n=1) | 1 | — |
 | Duelo de Risco | Não (n=1) | 1 | — |
 
-**First-timer elimination rate** (`real_only`): 6/8 = 75.0%
+**First-timer elimination rate** (`real_only`): 7/9 = 77.8%
 
 ### Bate-e-Volta Metrics (`real_only`)
 
 | Metric | n | Total | Rate |
 |---|---|---|---|
-| Paredões com BV | 7 | 8 | 87.5% |
-| Vencedores que escaparam | 9 | 9 | 100.0% |
-| Perdedores que sobreviveram | 8 | 12 | 66.7% |
-| Perdedores eliminados | 4 | 12 | 33.3% |
+| Paredões com BV | 8 | 9 | 88.9% |
+| Vencedores que escaparam | 10 | 10 | 100.0% |
+| Perdedores que sobreviveram | 9 | 14 | 64.3% |
+| Perdedores eliminados | 5 | 14 | 35.7% |
 
-Total BV participants: **21**
+Total BV participants: **24**
 
 ### Key Facts
 
