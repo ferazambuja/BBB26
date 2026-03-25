@@ -760,14 +760,15 @@ if ultimo:
                                     _m_lead = _sorted_model_c[0][0].split()[0]
                                     _m_runner = _sorted_model_c[1][0].split()[0]
                                     _rate_msg = (
-                                        f'📌 <strong>Encerramento da votação atingido</strong>. Leitura de virada congelada no fechamento. '
-                                        f'Última fotografia do modelo: <strong>{_m_lead}</strong> à frente de <strong>{_m_runner}</strong> '
-                                        f'(diferença de <strong>{_m_gap:.1f} p.p.</strong>).'
+                                        f'📌 <strong>Votalhada encerrou as coletas (21:00 BRT)</strong>. '
+                                        f'Última leitura do Nosso Modelo: <strong>{_m_lead}</strong> à frente de <strong>{_m_runner}</strong> '
+                                        f'(diferença de <strong>{_m_gap:.1f} p.p.</strong>). '
+                                        f'Aguardando resultado oficial ao vivo.'
                                     )
                                 else:
                                     _rate_msg = (
-                                        '📌 <strong>Encerramento da votação atingido</strong>. '
-                                        'Painel aguardando nova coleta final e resultado oficial.'
+                                        '📌 <strong>Votalhada encerrou as coletas (21:00 BRT)</strong>. '
+                                        'Aguardando resultado oficial ao vivo.'
                                     )
                     except Exception:
                         _rate_msg = None
