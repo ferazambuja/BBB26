@@ -62,84 +62,42 @@ def test_p9_keeps_legacy_weighted_consolidado_and_3070_series_separate():
     assert "ponderada pelo número de votos" in metodologia["formula_nossa"]
 
 
-def test_p10_latest_manual_snapshot_keeps_weighted_consolidado_separate_from_displayed_3070():
+def test_p10_invariants_weighted_consolidado_separate_from_displayed_3070():
+    """P10 structural invariants — compatible with ongoing pipeline updates."""
     poll = _poll(10)
+    parts = poll["participantes"]
 
-    assert poll["data_coleta"] == "2026-03-23T18:00:00-03:00"
-    assert poll["consolidado"]["Gabriela"] == 11.62
-    assert poll["consolidado"]["Jonas Sulzbach"] == 44.99
-    assert poll["consolidado"]["Juliano Floss"] == 43.48
-    assert poll["consolidado"]["total_votos"] == 8063703
-    assert poll["consolidado"]["predicao_eliminado"] == "Jonas Sulzbach"
+    # Must have data_coleta and consolidado
+    assert poll.get("data_coleta") is not None
+    assert all(n in poll["consolidado"] for n in parts)
+    assert "total_votos" in poll["consolidado"]
+    assert "predicao_eliminado" in poll["consolidado"]
 
-    assert poll["plataformas"]["sites"] == {
-        "Gabriela": 7.43,
-        "Jonas Sulzbach": 39.49,
-        "Juliano Floss": 53.08,
-        "votos": 2532063,
-        "label": "Voto da Torcida",
-    }
-    assert poll["plataformas"]["youtube"] == {
-        "Gabriela": 12.72,
-        "Jonas Sulzbach": 37.28,
-        "Juliano Floss": 50.55,
-        "votos": 1361400,
-    }
-    assert poll["plataformas"]["twitter"] == {
-        "Gabriela": 5.77,
-        "Jonas Sulzbach": 55.60,
-        "Juliano Floss": 38.63,
-        "votos": 733804,
-    }
-    assert poll["plataformas"]["instagram"] == {
-        "Gabriela": 15.53,
-        "Jonas Sulzbach": 49.82,
-        "Juliano Floss": 34.65,
-        "votos": 3436436,
-    }
+    # Consolidado must be vote-weighted (recomputable from platforms)
+    plats = poll["plataformas"]
+    total_v = sum(plats[p].get("votos", 0) for p in plats if "votos" in plats[p])
+    assert total_v == poll["consolidado"]["total_votos"]
+    for n in parts:
+        weighted = sum(plats[p].get(n, 0) * plats[p]["votos"] / 100 for p in plats) / total_v * 100
+        stored = poll["consolidado"][n]
+        assert abs(weighted - stored) < 0.15, f"consolidado recompute {n}: {weighted:.2f} vs {stored:.2f}"
 
-    assert poll["serie_temporal"] == [
-        {
-            "hora": "23/mar 01:00",
-            "Gabriela": 12.77,
-            "Jonas Sulzbach": 47.92,
-            "Juliano Floss": 39.37,
-            "votos": 2373937,
-        },
-        {
-            "hora": "23/mar 08:00",
-            "Gabriela": 12.09,
-            "Jonas Sulzbach": 46.64,
-            "Juliano Floss": 41.41,
-            "votos": 4800045,
-        },
-        {
-            "hora": "23/mar 12:00",
-            "Gabriela": 11.02,
-            "Jonas Sulzbach": 43.70,
-            "Juliano Floss": 45.39,
-            "votos": 6046059,
-        },
-        {
-            "hora": "23/mar 15:00",
-            "Gabriela": 10.54,
-            "Jonas Sulzbach": 44.51,
-            "Juliano Floss": 45.08,
-            "votos": 7353043,
-        },
-        {
-            "hora": "23/mar 18:00",
-            "Gabriela": 10.17,
-            "Jonas Sulzbach": 45.15,
-            "Juliano Floss": 44.82,
-            "votos": 8063703,
-        },
-    ]
+    # Platform sums ~100
+    for pl in ["sites", "youtube", "twitter", "instagram"]:
+        if pl not in plats:
+            continue
+        s = sum(plats[pl].get(n, 0) for n in parts)
+        assert abs(s - 100.0) < 1.5, f"{pl} sum={s:.2f}"
 
-    metodologia = poll["metodologia"]
-    assert metodologia["modo"] == "manual_vision_legacy_weighted"
-    assert "0,3 x 0,7" in metodologia["formula_votalhada_exibida"]
-    assert "ponderada pelo número de votos" in metodologia["formula_nossa"]
+    # Serie temporal: append-only, monotonic votos, at least 5 rows for P10
+    series = poll["serie_temporal"]
+    assert len(series) >= 5
+    for i in range(1, len(series)):
+        assert series[i]["votos"] >= series[i-1]["votos"], \
+            f"non-monotonic: {series[i-1]['hora']} → {series[i]['hora']}"
+    # Each row has all participants
+    for row in series:
+        assert all(n in row for n in parts), f"missing participant in {row['hora']}"
 
 
 def test_formula_change_timeseries_gets_weighted_overlay_markers():

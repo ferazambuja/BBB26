@@ -271,9 +271,10 @@ def _poll_once(args: argparse.Namespace) -> dict:
                         print("[poll] Codex VERIFIED Claude's extraction.")
                     elif vrc == 2:
                         result["votalhada_verified"] = False
-                        print("[poll] Codex DISAGREES — reverting polls.json, manual review needed.")
-                        _run_cmd(["git", "checkout", "--", "data/votalhada/polls.json"], "revert-polls")
+                        print("[poll] Codex DISAGREES — reverting all uncommitted changes.")
+                        _run_cmd(["git", "checkout", "--", "."], "revert-all")
                         result["votalhada_updated"] = False
+                        result["data_changed"] = False  # prevent commit attempt with dirty state
                     else:
                         print("[poll] Codex verification failed (error) — keeping Claude's update.")
                         result["votalhada_verified"] = None
@@ -297,8 +298,10 @@ def _poll_once(args: argparse.Namespace) -> dict:
             print("[poll] Build failed — committing snapshot only.")
 
     # 4. Git commit + push
-    # Pull first to handle concurrent pushes
+    # Stash any unexpected unstaged changes before pull (safety net for revert leftovers)
+    _run_cmd(["git", "stash", "--quiet"], "git-stash")
     _run_cmd(["git", "pull", "--rebase", "origin", "main"], "git-pull")
+    _run_cmd(["git", "stash", "pop", "--quiet"], "git-stash-pop")  # restore if anything was stashed
 
     # Stage files
     add_paths = ["data/snapshots/", "data/latest.json"]
