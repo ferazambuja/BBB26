@@ -1543,6 +1543,57 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
             if _sites_e > _tw_e + 5:
                 _arc_curiosities.append(f'⚖️ Neste paredão: Twitter errou {_tw_e:.1f} p.p. · Sites errou {_sites_e:.1f} p.p. — volume ≠ precisão')
 
+        # 9. Three-model analysis: when Votalhada 70/30 + our consolidado both miss
+        if _tab_model and _real_elim_a:
+            _consol_pred = consolidado.get('predicao_eliminado', max(participantes_poll, key=lambda n: consolidado.get(n, 0)))
+            _model_pred = _tab_model['predicao_eliminado']
+            # Compute Votalhada 70/30 formula
+            _s = plataformas.get('sites', {})
+            _yt = plataformas.get('youtube', {})
+            _tw = plataformas.get('twitter', {})
+            _ig = plataformas.get('instagram', {})
+            _has_all_plats = all(plataformas.get(p) for p in ['sites', 'youtube', 'twitter', 'instagram'])
+            if _has_all_plats:
+                _v7030 = {}
+                for _n in participantes_poll:
+                    _avg_social = (_yt.get(_n, 0) + _tw.get(_n, 0) + _ig.get(_n, 0)) / 3
+                    _v7030[_n] = 0.3 * _s.get(_n, 0) + 0.7 * _avg_social
+                _v7030_pred = max(participantes_poll, key=lambda n: _v7030.get(n, 0))
+                _v7030_wrong = _v7030_pred != _real_elim_a
+                _consol_wrong = _consol_pred != _real_elim_a
+                _model_right = _model_pred == _real_elim_a
+
+                if _v7030_wrong and _consol_wrong and _model_right:
+                    # Both Votalhada formulas missed, our model got it right
+                    _v7030_top = max(_v7030.values())
+                    _v7030_second = sorted(_v7030.values(), reverse=True)[1] if len(_v7030) >= 2 else 0
+                    _v7030_margin = _v7030_top - _v7030_second
+                    _consol_top = max(consolidado.get(n, 0) for n in participantes_poll)
+                    _consol_second = sorted([consolidado.get(n, 0) for n in participantes_poll], reverse=True)[1] if len(participantes_poll) >= 2 else 0
+                    _consol_margin = _consol_top - _consol_second
+                    _sites_weight_model = _prec_all.get('weights', {}).get('sites', 0) * 100
+
+                    _right_plats = []
+                    for _pn, _pd in [('Twitter', _tw), ('Instagram', _ig), ('YouTube', _yt), ('Sites', _s)]:
+                        _pvals = {n: _pd.get(n, 0) for n in participantes_poll}
+                        if max(_pvals, key=_pvals.get) == _real_elim_a:
+                            _right_plats.append(_pn)
+                    _wrong_plats = []
+                    for _pn, _pd in [('Sites', _s), ('YouTube', _yt), ('Twitter', _tw), ('Instagram', _ig)]:
+                        _pvals = {n: _pd.get(n, 0) for n in participantes_poll}
+                        if max(_pvals, key=_pvals.get) != _real_elim_a:
+                            _wrong_plats.append(_pn)
+
+                    _arc_curiosities.append(
+                        f'🎯 <strong>Ambas as fórmulas Votalhada erraram</strong> — Nosso Modelo acertou:'
+                        f'<ul style="margin:4px 0 0 0;padding-left:1.2em">'
+                        f'<li>Votalhada 70/30: {_v7030_pred.split()[0]} {_v7030[_v7030_pred]:.1f}% vs {_real_elim_a.split()[0]} {_v7030[_real_elim_a]:.1f}% (margem de apenas {_v7030_margin:.1f} p.p.)</li>'
+                        f'<li>Votalhada ponderada: {_consol_pred.split()[0]} {consolidado.get(_consol_pred, 0):.1f}% vs {_real_elim_a.split()[0]} {consolidado.get(_real_elim_a, 0):.1f}% (margem {_consol_margin:.1f} p.p.)</li>'
+                        f'<li>Plataformas que acertaram: <strong>{", ".join(_right_plats) if _right_plats else "nenhuma"}</strong> · Erraram: {", ".join(_wrong_plats)}</li>'
+                        f'<li>Nosso Modelo dá apenas {_sites_weight_model:.1f}% de peso a Sites (vs 30% na fórmula 70/30), priorizando as plataformas historicamente mais precisas</li>'
+                        f'</ul>'
+                    )
+
         if _arc_curiosities:
             print(f'<div class="u-s178">')
             print(f'<div class="fs-sm u-s395">💡 Curiosidades</div>')
