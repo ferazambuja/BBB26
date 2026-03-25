@@ -61,6 +61,11 @@ from data_utils import (
     require_clean_manual_events,
     setup_bbb_dark_theme,
     MONTH_MAP_PT,
+    # Platform + Votalhada
+    platform_label,
+    get_votalhada_source_url,
+    render_votalhada_logo,
+    VOTALHADA_HOME,
 )
 
 
@@ -1386,6 +1391,105 @@ class TestBacktestPrecisionModel:
     def test_empty_data(self):
         result = backtest_precision_model({"paredoes": []})
         assert result is None
+
+
+class TestPlatformLabel:
+    """Test platform_label() helper."""
+
+    def test_text_variant(self):
+        assert platform_label("youtube", variant="text") == "YouTube"
+        assert platform_label("instagram", variant="text") == "Instagram"
+
+    def test_html_variant_has_svg_class(self):
+        html = platform_label("youtube", variant="html")
+        assert "plat-icon--youtube" in html
+        assert "<svg" in html
+        assert "YouTube" in html
+
+    def test_html_instagram(self):
+        html = platform_label("instagram", variant="html")
+        assert "plat-icon--instagram" in html
+        assert "<svg" in html
+
+    def test_html_twitter(self):
+        html = platform_label("twitter", variant="html")
+        assert "plat-icon--twitter" in html
+
+    def test_html_sites_keeps_emoji(self):
+        html = platform_label("sites", variant="html")
+        assert "🌐" in html
+        assert "Sites" in html
+
+    def test_short_variant(self):
+        assert platform_label("youtube", variant="short") == "YT"
+        assert platform_label("twitter", variant="short") == "TW"
+        assert platform_label("instagram", variant="short") == "IG"
+        assert platform_label("sites", variant="short") == "Sites"
+
+    def test_unknown_key_falls_through(self):
+        assert platform_label("tiktok", variant="text") == "tiktok"
+        assert platform_label("tiktok", variant="html") == "tiktok"
+        assert platform_label("tiktok", variant="short") == "tiktok"
+
+    def test_default_variant_is_text(self):
+        assert platform_label("youtube") == "YouTube"
+
+
+class TestGetVotalhadaSourceUrl:
+    """Test get_votalhada_source_url() helper."""
+
+    def test_specific_poll_url(self):
+        poll = {"fontes": ["https://votalhada.blogspot.com/2026/03/pesquisa10.html"]}
+        assert get_votalhada_source_url(poll) == "https://votalhada.blogspot.com/2026/03/pesquisa10.html"
+
+    def test_homepage_in_fontes(self):
+        poll = {"fontes": ["https://votalhada.blogspot.com/"]}
+        assert get_votalhada_source_url(poll) == "https://votalhada.blogspot.com/"
+
+    def test_fontes_none(self):
+        poll = {"fontes": None}
+        assert get_votalhada_source_url(poll) == VOTALHADA_HOME
+
+    def test_fontes_missing(self):
+        assert get_votalhada_source_url({}) == VOTALHADA_HOME
+
+    def test_no_votalhada_url(self):
+        poll = {"fontes": ["https://gshow.globo.com/article.ghtml"]}
+        assert get_votalhada_source_url(poll) == VOTALHADA_HOME
+
+    def test_none_poll(self):
+        assert get_votalhada_source_url(None) == VOTALHADA_HOME
+
+    def test_mixed_fontes_prefers_votalhada(self):
+        poll = {"fontes": ["https://gshow.globo.com/x.ghtml", "https://votalhada.blogspot.com/2026/01/pesquisa1.html"]}
+        assert "votalhada" in get_votalhada_source_url(poll)
+
+
+class TestRenderVotalhadaLogo:
+    """Test render_votalhada_logo() helper."""
+
+    def test_default_size(self):
+        html = render_votalhada_logo()
+        assert 'class="votalhada-logo"' in html
+        assert 'alt="Votalhada"' in html
+        assert "votalhada-logo.png" in html
+
+    def test_large_size(self):
+        html = render_votalhada_logo(size="lg")
+        assert "votalhada-logo--lg" in html
+
+    def test_with_href(self):
+        html = render_votalhada_logo(href="https://votalhada.blogspot.com/")
+        assert '<a href="https://votalhada.blogspot.com/"' in html
+        assert 'target="_blank"' in html
+
+    def test_without_href(self):
+        html = render_votalhada_logo()
+        assert "<a " not in html
+
+    def test_extra_classes(self):
+        html = render_votalhada_logo(extra_classes="custom-class")
+        assert "custom-class" in html
 
 
 class TestParseVotalhadaHora:
