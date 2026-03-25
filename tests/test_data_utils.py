@@ -178,7 +178,7 @@ class TestGetWeekNumber:
         """When week N+1 has dated signals, week N boundary is inferred."""
         manual = {
             "scheduled_events": [
-                {"week": 12, "date": "2026-04-04"},
+                {"week": 11, "date": "2026-03-28"},
             ]
         }
         inferred = get_effective_week_end_dates(
@@ -187,15 +187,15 @@ class TestGetWeekNumber:
             provas_data={},
         )
         assert len(inferred) == len(WEEK_END_DATES) + 1
-        assert inferred[-1] == "2026-04-03"
-        assert get_week_number("2026-04-03", inferred) == 11
-        assert get_week_number("2026-04-04", inferred) == 12
+        assert inferred[-1] == "2026-03-27"
+        assert get_week_number("2026-03-27", inferred) == 10
+        assert get_week_number("2026-03-28", inferred) == 11
 
     def test_inference_requires_contiguous_week_signal(self):
         """Do not infer week ends when the immediate next week has no signal."""
         manual = {
             "scheduled_events": [
-                {"week": 13, "date": "2026-04-11"},
+                {"week": 12, "date": "2026-04-04"},
             ]
         }
         inferred = get_effective_week_end_dates(
@@ -254,7 +254,7 @@ class TestCycleCompatibility:
     def test_cycle_boundary_inference_accepts_canonical_cycle_keys(self):
         manual = {
             "scheduled_events": [
-                {"cycle": 12, "date": "2026-04-04"},
+                {"cycle": 11, "date": "2026-03-28"},
             ]
         }
         inferred = get_effective_cycle_end_dates(
@@ -263,7 +263,7 @@ class TestCycleCompatibility:
             provas_data={},
         )
         assert len(inferred) == len(WEEK_END_DATES) + 1
-        assert inferred[-1] == "2026-04-03"
+        assert inferred[-1] == "2026-03-27"
 
 
 class TestParseRoles:

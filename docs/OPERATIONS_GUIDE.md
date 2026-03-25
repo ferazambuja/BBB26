@@ -1859,13 +1859,26 @@ git commit -m "week N sincerão"
 
 **Required post-rebuild spot checks**:
 ```bash
+# 1. Cronologia event
 jq '.events[] | select(.date=="YYYY-MM-DD" and .category=="sincerao") | {date, source, detail}' data/derived/game_timeline.json
+
+# 2. Index highlight card
 jq '.highlights.cards[] | select(.type=="sincerao") | {title, format, reaction_reference_date}' data/derived/index_data.json
+
+# 3. Type coverage (no unknown types)
+jq '.sincerao.type_coverage' data/derived/index_data.json
+
+# 4. Sincerao edge count for the week
+jq '[.[] | select(.week==N)] | length' data/derived/sincerao_edges.json
 ```
 
 Expected:
 - `game_timeline.json` shows the real Monday event with `source = "weekly_events"` (not `scaffold`)
 - `index_data.json` exposes a `type = "sincerao"` card for the current week when supported edge types are present
+- `type_coverage.unknown` is empty — if not, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py`
+- Edge count matches the number of edges you added in `weekly_events[N].sincerao.edges`
+
+**Index card rendering**: The Sincerão card on `index.qmd` renders **automatically** from `index_data.json`. No manual QMD edits needed. The card code (line ~434 in `index.qmd`) handles both `neg_lanes` (multi-plaque formats like "bobo") and `neg_ranked` (single-plaque formats like "Chato de Galocha"). After deploy, verify the card appears at the top of the Painel page with the correct format title, radar lanes, contradiction/alignment pairs, and "Poupados" section.
 
 ---
 
