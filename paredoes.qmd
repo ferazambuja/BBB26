@@ -31,7 +31,7 @@ from data_utils import (
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     build_precision_methodology_text,
-    platform_label, get_votalhada_source_url, render_votalhada_logo,
+    platform_label, get_votalhada_source_url, render_votalhada_logo, render_poll_mobile_card,
     require_clean_manual_events, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     genero, get_nominee_badge, resolve_leaders,
     make_poll_timeseries,
@@ -1389,6 +1389,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         print(f'<div class="votalhada-attr">{render_votalhada_logo(href=_poll_url)}<span class="text-muted small">Dados agregados — coleta em {poll.get("data_coleta", "?")[:10]}</span></div>')
 
         # Compact platform table with avatars
+        print('<div class="poll-table-desktop">')
         print('<div class="u-s025">')
         print('<table class="table table-sm fs-base u-s092">')
         print('<thead><tr><th>Fonte</th>')
@@ -1441,6 +1442,17 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
             print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
         print('</tr>')
         print('</tbody></table>')
+        print('</div></div>')
+
+        # ── Mobile card variant (archive) ──
+        _arc_model_vals = _tab_model['prediction'] if _tab_model else None
+        print('<div class="poll-table-mobile">')
+        print(render_poll_mobile_card(
+            participantes_poll, plataformas, consolidado,
+            model_pred=_arc_model_vals,
+            resultado=resultado,
+            poll=poll,
+        ))
         print('</div>\n')
 
         # ── Curiosities box (archive) ──

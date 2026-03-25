@@ -237,7 +237,7 @@ from data_utils import (
     make_poll_timeseries,
     parse_votalhada_hora,
     avatar_html, avatar_img,
-    platform_label, get_votalhada_source_url, render_votalhada_logo,
+    platform_label, get_votalhada_source_url, render_votalhada_logo, render_poll_mobile_card,
     REACTION_EMOJI, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     ANALYSIS_DESCRIPTIONS,
@@ -522,6 +522,7 @@ if ultimo:
                     return f'font-weight:bold; color:{_color_min};'
                 return 'font-weight:bold; color:#f0ad4e;'
 
+            print('<div class="poll-table-desktop">')
             print('<div class="poll-precision-table-wrap">')
             print('<table class="table table-striped table-sm poll-precision-table poll-precision-table--compact" data-mobile-no-prune="1">')
             print('<thead><tr><th>Fonte</th>')
@@ -615,6 +616,17 @@ if ultimo:
                 print('</tr>')
 
             print('</tbody></table>')
+            print('</div></div>')
+
+            # ── Mobile card variant (live) ──
+            _live_model_vals = _model_pred['prediction'] if _model_pred else None
+            print('<div class="poll-table-mobile">')
+            print(render_poll_mobile_card(
+                participantes_poll, plataformas, consolidado,
+                model_pred=_live_model_vals,
+                mirror_3070=_mirror_3070,
+                poll=poll,
+            ))
             print('</div>')
 
             # ── Curiosidades (curadas: menos ruído, mais decisão) ──
@@ -1810,6 +1822,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     return f'font-weight:bold; color:{_color_min_f};'
                 return 'color:#ddd;'
 
+            # ── Desktop table ──
+            print('<div class="poll-table-desktop">')
             print('<div class="poll-precision-table-wrap">')
             print('<table class="table table-striped table-sm poll-precision-table poll-precision-table--compact" data-mobile-no-prune="1">')
             print('<thead><tr><th>Fonte</th>')
@@ -1885,6 +1899,18 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             print('<td class="tc text-muted">—</td>')
             print('</tr>')
             print('</tbody></table>')
+            print('</div></div>')
+
+            # ── Mobile card variant ──
+            print('<div class="poll-table-mobile">')
+            _fin_model_vals = _model_pred_fin['prediction'] if _model_pred_fin else None
+            print(render_poll_mobile_card(
+                participantes_poll, plataformas, consolidado,
+                model_pred=_fin_model_vals,
+                mirror_3070=_fin_3070,
+                resultado=resultado,
+                poll=poll,
+            ))
             print('</div>\n')
 
             # ── Análise de Precisão: Enquetes vs Tipos de Voto ──

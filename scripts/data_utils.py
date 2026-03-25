@@ -238,6 +238,75 @@ def render_votalhada_logo(
     return img
 
 
+def render_poll_mobile_card(
+    participantes: list[str],
+    plataformas: dict,
+    consolidado: dict,
+    *,
+    model_pred: dict | None = None,
+    mirror_3070: dict | None = None,
+    resultado: dict | None = None,
+    poll: dict | None = None,
+    highlight_fn: str = "eliminate",
+) -> str:
+    """Render a mobile-friendly card layout for poll platform data.
+
+    Each platform/model/result becomes a row with source label + inline nominee values.
+    Color-coding: max value red (eliminate) or green (save), min opposite.
+    """
+    _poll_url = get_votalhada_source_url(poll)
+    _vlogo = render_votalhada_logo(href=_poll_url)
+
+    def _short(name: str) -> str:
+        return name.split()[0]
+
+    def _val_class(val: float, vals: list[float], is_result: bool = False, elim_name: str = "", nome: str = "") -> str:
+        if is_result:
+            return "poll-mobile-val--elim" if nome == elim_name else "poll-mobile-val--safe"
+        if val == max(vals):
+            return "poll-mobile-val--max"
+        if val == min(vals):
+            return "poll-mobile-val--min"
+        return ""
+
+    def _row(label: str, values: dict, css_mod: str = "", is_result: bool = False, elim_name: str = "") -> str:
+        vals = [values.get(n, 0) for n in participantes]
+        parts = []
+        for n in participantes:
+            v = values.get(n, 0)
+            cls = _val_class(v, vals, is_result, elim_name, n)
+            cls_attr = f' class="poll-mobile-val {cls}"' if cls else ' class="poll-mobile-val"'
+            parts.append(f'<span{cls_attr}>{_short(n)} {v:.1f}%</span>')
+        row_cls = f"poll-mobile-row {css_mod}".strip()
+        return (
+            f'<div class="{row_cls}">'
+            f'<div class="poll-mobile-source">{label}</div>'
+            f'<div class="poll-mobile-values">{"".join(parts)}</div>'
+            f'</div>'
+        )
+
+    rows = []
+    platform_order = ["sites", "youtube", "twitter", "instagram"]
+    for plat in platform_order:
+        if plat in plataformas:
+            pdata = {n: plataformas[plat].get(n, 0) for n in participantes}
+            rows.append(_row(platform_label(plat, variant="html"), pdata))
+
+    if mirror_3070:
+        rows.append(_row(f"{_vlogo} 70%/30%", mirror_3070, "poll-mobile-row--votalhada"))
+
+    rows.append(_row(f"{_vlogo} Ponderada" if mirror_3070 else _vlogo, consolidado, "poll-mobile-row--votalhada"))
+
+    if model_pred:
+        rows.append(_row("📊 Nosso Modelo", model_pred, "poll-mobile-row--model"))
+
+    if resultado:
+        _elim = resultado.get("eliminado", "")
+        rows.append(_row("🏆 Resultado", resultado, "poll-mobile-row--result", is_result=True, elim_name=_elim))
+
+    return f'<div class="poll-mobile-card">{"".join(rows)}</div>'
+
+
 # ══════════════════════════════════════════════════════════════
 # Analysis Descriptions (single source of truth for QMD pages)
 # ══════════════════════════════════════════════════════════════
