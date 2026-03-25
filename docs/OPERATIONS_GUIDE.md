@@ -1427,6 +1427,11 @@ Adding `resultado_real` to a poll entry is the ONLY manual step. Everything else
 
 **Nothing is hardcoded** — weights, RMSE values, back-test results, and methodology text all derive from the data. Just add `resultado_real`, rebuild, and verify below.
 
+**Three models to compare after each result**:
+- **Votalhada 70/30** (their displayed formula): `0.3 × Sites + 0.7 × avg(YouTube, Twitter, Instagram)` — gives Sites 30% fixed weight
+- **Votalhada ponderada** (our consolidado): weighted by vote count per platform — gives Sites even more weight (typically largest volume)
+- **Nosso Modelo** (precision-weighted): `inverse-RMSE²` weights derived from historical accuracy — Sites typically gets ~5% (historically least accurate)
+
 ```bash
 python scripts/build_derived_data.py
 
@@ -1473,6 +1478,42 @@ Expected:
 - `precision_n_paredoes` equals `finalized_with_resultado_real`
 - `n_paredoes_backtest` equals `finalized_with_resultado_real`
 - `weights` are non-empty when enough finalized paredões exist
+
+**Back-test verification (required after every `resultado_real` update)**:
+
+After rebuild, verify the back-test updated correctly and review the weight shifts. This is important because each new result recalibrates the entire model — RMSE per platform changes, weights shift, and the leave-one-out back-test re-runs across ALL finalized paredões.
+
+```bash
+python - <<'PY'
+import json, sys, copy
+from pathlib import Path
+sys.path.append("scripts")
+from data_utils import calculate_precision_weights, backtest_precision_model
+
+polls = json.loads(Path("data/votalhada/polls.json").read_text(encoding="utf-8"))
+
+# Current weights
+precision = calculate_precision_weights(polls)
+backtest = backtest_precision_model(polls) or {}
+agg = backtest.get("aggregate", {})
+
+print("=== PRECISION WEIGHTS ===")
+for plat, w in sorted(precision["weights"].items(), key=lambda x: -x[1]):
+    print(f"  {plat:12s}: {w:.1%}  (RMSE {precision['rmse'][plat]:.2f})")
+
+print(f"\n=== BACK-TEST (LOO, {agg.get('n_paredoes')} paredões) ===")
+print(f"  Nosso Modelo:  {agg.get('model_correct')}/{agg.get('n_paredoes')}")
+print(f"  Votalhada:     {agg.get('consolidado_correct')}/{agg.get('n_paredoes')}")
+PY
+```
+
+Check:
+- All 4 platforms have non-zero weights that sum to ~100%
+- `model_correct` and `consolidado_correct` are plausible (model should be ≥ votalhada)
+- RMSE values are in a reasonable range (lower = more accurate platform)
+- If a platform's RMSE changed significantly, investigate whether the new paredão was an outlier for that platform
+
+**What the back-test measures**: Leave-one-out cross-validation — for each finalized paredão, the model is retrained on all OTHER paredões and tested on the held-out one. This avoids overfitting and gives an honest accuracy estimate. A perfect model score means the precision-weighting strategy is robust across all historical data, not just fitted to it.
 
 ### 3. Record Ganha-Ganha (same night, ~23h30)
 
