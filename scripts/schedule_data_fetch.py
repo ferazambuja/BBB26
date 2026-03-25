@@ -37,6 +37,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 FETCH_SCRIPT = REPO_ROOT / "scripts" / "fetch_data.py"
 VOTALHADA_SCRIPT = REPO_ROOT / "scripts" / "fetch_votalhada_images.py"
 PAREDOES_JSON = REPO_ROOT / "data" / "paredoes.json"
+VOTALHADA_CODEX_EXTRACT = REPO_ROOT / "deploy" / "votalhada_codex_extract.sh"
+VOTALHADA_VALIDATE_APPLY = REPO_ROOT / "deploy" / "votalhada_validate_apply.py"
+VOTALHADA_CLAUDE_VERIFY = REPO_ROOT / "deploy" / "votalhada_claude_verify.sh"
+# Legacy (kept for reference)
 VOTALHADA_CLAUDE_SCRIPT = REPO_ROOT / "deploy" / "votalhada_claude_update.sh"
 VOTALHADA_CODEX_VERIFY = REPO_ROOT / "deploy" / "votalhada_codex_verify.sh"
 
@@ -245,44 +249,65 @@ def _poll_once(args: argparse.Namespace) -> dict:
         else:
             print("[poll] No active paredão — skipping Votalhada fetch.")
 
-    # 2c. Auto-update polls.json via Claude Code headless (optional)
+    # 2c. Auto-update polls.json: Codex extracts → validate → Claude verifies → apply
     if args.votalhada_auto_update and result["votalhada_fetched"]:
         paredao_num = _get_active_paredao()
-        if paredao_num and VOTALHADA_CLAUDE_SCRIPT.exists():
-            images_dir = str(REPO_ROOT / "data" / "votalhada" /
-                           _get_votalhada_folder(paredao_num))
-            rc = _run_cmd(
-                ["bash", str(VOTALHADA_CLAUDE_SCRIPT), str(paredao_num), images_dir],
-                "votalhada-claude",
-            )
-            if rc == 0 and _has_git_changes("data/votalhada/polls.json"):
-                result["votalhada_updated"] = True
-                print(f"[poll] polls.json updated via Claude for P{paredao_num}!")
+        images_dir = str(REPO_ROOT / "data" / "votalhada" / _get_votalhada_folder(paredao_num)) if paredao_num else ""
 
-                # 2d. Codex verification (independent cross-check)
-                if VOTALHADA_CODEX_VERIFY.exists():
-                    print(f"[poll] Running Codex verification...")
-                    vrc = _run_cmd(
-                        ["bash", str(VOTALHADA_CODEX_VERIFY), str(paredao_num), images_dir],
-                        "codex-verify",
-                    )
-                    if vrc == 0:
-                        result["votalhada_verified"] = True
-                        print("[poll] Codex VERIFIED Claude's extraction.")
-                    elif vrc == 2:
-                        result["votalhada_verified"] = False
-                        print("[poll] Codex DISAGREES — reverting all uncommitted changes.")
-                        _run_cmd(["git", "checkout", "--", "."], "revert-all")
-                        result["votalhada_updated"] = False
-                        result["data_changed"] = False  # prevent commit attempt with dirty state
-                    else:
-                        print("[poll] Codex verification failed (error) — keeping Claude's update.")
-                        result["votalhada_verified"] = None
+        if paredao_num and VOTALHADA_CODEX_EXTRACT.exists():
+            # Step 1: Codex extracts values from card images
+            rc = _run_cmd(
+                ["bash", str(VOTALHADA_CODEX_EXTRACT), str(paredao_num), images_dir],
+                "codex-extract",
+            )
+            if rc != 0:
+                print("[poll] Codex extraction failed.")
             else:
-                print("[poll] Claude auto-update produced no polls.json changes.")
-        else:
-            if not VOTALHADA_CLAUDE_SCRIPT.exists():
-                print(f"[poll] Claude script not found: {VOTALHADA_CLAUDE_SCRIPT}")
+                # Step 2: Deterministic validation
+                vrc = _run_cmd(
+                    [sys.executable, str(VOTALHADA_VALIDATE_APPLY), str(paredao_num)],
+                    "validate",
+                )
+                if vrc == 2:
+                    print("[poll] Validation FAILED — not applying.")
+                elif vrc == 0:
+                    # Step 3: Claude verifies Codex's extraction (optional)
+                    claude_ok = True
+                    if VOTALHADA_CLAUDE_VERIFY.exists():
+                        print("[poll] Claude verifying Codex extraction...")
+                        crc = _run_cmd(
+                            ["bash", str(VOTALHADA_CLAUDE_VERIFY), str(paredao_num), images_dir],
+                            "claude-verify",
+                        )
+                        if crc == 2:
+                            claude_ok = False
+                            print("[poll] Claude DISAGREES with Codex — not applying.")
+                        elif crc != 0:
+                            print("[poll] Claude verify failed (error) — proceeding with Codex data.")
+
+                    if claude_ok:
+                        # Step 4: Apply validated extraction
+                        arc = _run_cmd(
+                            [sys.executable, str(VOTALHADA_VALIDATE_APPLY), str(paredao_num), "--apply"],
+                            "apply",
+                        )
+                        if arc == 0 and _has_git_changes("data/votalhada/polls.json"):
+                            result["votalhada_updated"] = True
+                            print(f"[poll] polls.json updated for P{paredao_num} (Codex→validate→apply)!")
+                        else:
+                            print("[poll] Apply produced no changes.")
+                    else:
+                        print("[poll] Skipping apply due to Claude disagreement.")
+        elif paredao_num:
+            # Fallback: use legacy Claude-as-extractor if Codex scripts not available
+            if VOTALHADA_CLAUDE_SCRIPT.exists():
+                rc = _run_cmd(
+                    ["bash", str(VOTALHADA_CLAUDE_SCRIPT), str(paredao_num), images_dir],
+                    "votalhada-claude-legacy",
+                )
+                if rc == 0 and _has_git_changes("data/votalhada/polls.json"):
+                    result["votalhada_updated"] = True
+                    print(f"[poll] polls.json updated via Claude (legacy) for P{paredao_num}.")
 
     if not result["data_changed"]:
         return result
