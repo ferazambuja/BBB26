@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-25T03:10:46.515717+00:00",
+    "generated_at": "2026-03-25T03:31:59.090622+00:00",
     "model_version": "enhanced_v1",
     "config": {
       "cluster_consensus_threshold": 0.5,
@@ -7947,6 +7947,506 @@
           }
         ]
       }
+    },
+    "11": {
+      "status": "em_andamento",
+      "formation_date": "2026-03-27",
+      "eligibility": {
+        "voters": [
+          "Alberto Cowboy",
+          "Ana Paula Renault",
+          "Chaiany",
+          "Gabriela",
+          "Jordana",
+          "Juliano Floss",
+          "Leandro",
+          "Marciele",
+          "Milena",
+          "Samira",
+          "Solange Couto"
+        ],
+        "eligible_targets": [
+          "Alberto Cowboy",
+          "Ana Paula Renault",
+          "Chaiany",
+          "Gabriela",
+          "Jordana",
+          "Juliano Floss",
+          "Leandro",
+          "Marciele",
+          "Milena",
+          "Samira",
+          "Solange Couto"
+        ],
+        "ineligible_reasons": {}
+      },
+      "predictions": {
+        "Alberto Cowboy": {
+          "predicted": "Milena",
+          "score": -13.1533,
+          "confidence": "Alta",
+          "gap": 2.3024,
+          "top3": [
+            {
+              "target": "Milena",
+              "score": -13.1533,
+              "components": {
+                "base_sentiment": -13.1533,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Leandro",
+              "score": -10.8509,
+              "components": {
+                "base_sentiment": -10.8509,
+                "cluster_consensus": -0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (50% → -0.00)"
+            },
+            {
+              "target": "Juliano Floss",
+              "score": -7.958,
+              "components": {
+                "base_sentiment": -7.958,
+                "cluster_consensus": -0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (50% → -0.00)"
+            }
+          ]
+        },
+        "Ana Paula Renault": {
+          "predicted": "Alberto Cowboy",
+          "score": -8.17,
+          "confidence": "Alta",
+          "gap": 1.9423,
+          "top3": [
+            {
+              "target": "Alberto Cowboy",
+              "score": -8.17,
+              "components": {
+                "base_sentiment": -8.17,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Solange Couto",
+              "score": -6.2277,
+              "components": {
+                "base_sentiment": -6.2277,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Marciele",
+              "score": -5.9835,
+              "components": {
+                "base_sentiment": -5.9835,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Chaiany": {
+          "predicted": "Jordana",
+          "score": -13.5405,
+          "confidence": "Alta",
+          "gap": 8.3729,
+          "top3": [
+            {
+              "target": "Jordana",
+              "score": -13.5405,
+              "components": {
+                "base_sentiment": -13.5405,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Ana Paula Renault",
+              "score": -5.1676,
+              "components": {
+                "base_sentiment": -5.1676,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Marciele",
+              "score": -3.2291,
+              "components": {
+                "base_sentiment": -3.2291,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Gabriela": {
+          "predicted": "Leandro",
+          "score": -8.4473,
+          "confidence": "Alta",
+          "gap": 0.6,
+          "top3": [
+            {
+              "target": "Leandro",
+              "score": -8.4473,
+              "components": {
+                "base_sentiment": -8.4973,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            },
+            {
+              "target": "Juliano Floss",
+              "score": -7.8473,
+              "components": {
+                "base_sentiment": -7.8473,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Solange Couto",
+              "score": -5.6318,
+              "components": {
+                "base_sentiment": -5.6818,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            }
+          ]
+        },
+        "Jordana": {
+          "predicted": "Leandro",
+          "score": -9.6564,
+          "confidence": "Alta",
+          "gap": 1.252,
+          "top3": [
+            {
+              "target": "Leandro",
+              "score": -9.6564,
+              "components": {
+                "base_sentiment": -9.6564,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Solange Couto",
+              "score": -8.4044,
+              "components": {
+                "base_sentiment": -8.4044,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Chaiany",
+              "score": -7.0036,
+              "components": {
+                "base_sentiment": -7.0036,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Juliano Floss": {
+          "predicted": "Marciele",
+          "score": -10.9093,
+          "confidence": "Alta",
+          "gap": 2.9536,
+          "top3": [
+            {
+              "target": "Marciele",
+              "score": -10.9093,
+              "components": {
+                "base_sentiment": -10.9093,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Alberto Cowboy",
+              "score": -7.9557,
+              "components": {
+                "base_sentiment": -7.5224,
+                "cluster_consensus": -0.1333,
+                "bloc_history": -0.3,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (67% → -0.13); bloco histórico (3 peers)"
+            },
+            {
+              "target": "Jordana",
+              "score": -3.4735,
+              "components": {
+                "base_sentiment": -3.4735,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Leandro": {
+          "predicted": "Alberto Cowboy",
+          "score": -14.316,
+          "confidence": "Alta",
+          "gap": 5.7591,
+          "top3": [
+            {
+              "target": "Alberto Cowboy",
+              "score": -14.316,
+              "components": {
+                "base_sentiment": -14.316,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Gabriela",
+              "score": -8.5569,
+              "components": {
+                "base_sentiment": -8.6069,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            },
+            {
+              "target": "Jordana",
+              "score": -8.5024,
+              "components": {
+                "base_sentiment": -8.5024,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Marciele": {
+          "predicted": "Juliano Floss",
+          "score": -9.3824,
+          "confidence": "Alta",
+          "gap": 0.9706,
+          "top3": [
+            {
+              "target": "Juliano Floss",
+              "score": -9.3824,
+              "components": {
+                "base_sentiment": -9.3824,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Leandro",
+              "score": -8.4118,
+              "components": {
+                "base_sentiment": -8.4118,
+                "cluster_consensus": -0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (50% → -0.00)"
+            },
+            {
+              "target": "Solange Couto",
+              "score": -5.5986,
+              "components": {
+                "base_sentiment": -5.5986,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Milena": {
+          "predicted": "Alberto Cowboy",
+          "score": -11.3635,
+          "confidence": "Alta",
+          "gap": 3.7604,
+          "top3": [
+            {
+              "target": "Alberto Cowboy",
+              "score": -11.3635,
+              "components": {
+                "base_sentiment": -11.3635,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Jordana",
+              "score": -7.6031,
+              "components": {
+                "base_sentiment": -7.6031,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Marciele",
+              "score": -3.6777,
+              "components": {
+                "base_sentiment": -3.6777,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Samira": {
+          "predicted": "Jordana",
+          "score": -6.9944,
+          "confidence": "Alta",
+          "gap": 1.6814,
+          "top3": [
+            {
+              "target": "Jordana",
+              "score": -6.9944,
+              "components": {
+                "base_sentiment": -6.9944,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Alberto Cowboy",
+              "score": -5.313,
+              "components": {
+                "base_sentiment": -4.8797,
+                "cluster_consensus": -0.1333,
+                "bloc_history": -0.3,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (67% → -0.13); bloco histórico (3 peers)"
+            },
+            {
+              "target": "Marciele",
+              "score": -4.2532,
+              "components": {
+                "base_sentiment": -4.2532,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        },
+        "Solange Couto": {
+          "predicted": "Gabriela",
+          "score": -6.6845,
+          "confidence": "Alta",
+          "gap": 0.9997,
+          "top3": [
+            {
+              "target": "Gabriela",
+              "score": -6.6845,
+              "components": {
+                "base_sentiment": -6.7345,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            },
+            {
+              "target": "Jordana",
+              "score": -5.6848,
+              "components": {
+                "base_sentiment": -5.6848,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Ana Paula Renault",
+              "score": -4.7494,
+              "components": {
+                "base_sentiment": -4.7494,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            }
+          ]
+        }
+      },
+      "aggregate": {
+        "vote_concentration": {
+          "Alberto Cowboy": 3,
+          "Jordana": 2,
+          "Leandro": 2,
+          "Milena": 1,
+          "Marciele": 1,
+          "Juliano Floss": 1,
+          "Gabriela": 1
+        },
+        "high_confidence_count": 11,
+        "low_confidence_count": 0
+      },
+      "lider_prediction": null
     }
   },
   "cumulative": {
