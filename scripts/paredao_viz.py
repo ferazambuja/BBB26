@@ -14,6 +14,7 @@ from data_utils import (
     POSITIVE,
     MILD_NEGATIVE,
     STRONG_NEGATIVE,
+    VOTALHADA_HOME,
     avatar_html,
     avatar_img,
     artigo,
@@ -22,11 +23,13 @@ from data_utils import (
     calculate_votalhada_estimate_3070,
     genero,
     get_latest_votalhada_displayed_values,
+    get_votalhada_source_url,
     has_votalhada_formula_change,
     normalize_route_label,
     parse_votalhada_hora,
     poll_has_weighted_latest_overlay,
     predict_precision_weighted,
+    render_votalhada_logo,
     safe_html,
 )
 
@@ -801,6 +804,7 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
     return {
         "vote_mode": vote_mode,
         "agreement": agreement,
+        "source_url": get_votalhada_source_url(poll),
         "votalhada": {
             "name": votalhada_name,
             "pct": votalhada_pct,
@@ -831,9 +835,10 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
 
 def _votalhada_blurb(payload: dict) -> str:
     """Return the Votalhada panel description."""
+    _link = f'<a href="{VOTALHADA_HOME}" target="_blank" rel="noopener">Votalhada</a>'
     mirror = payload.get("mirror_3070", {})
     if mirror.get("available"):
-        return "Votalhada (Ponderada): cada plataforma pesa pelo volume de votos."
+        return f"{_link} (Ponderada): cada plataforma pesa pelo volume de votos."
     return "Média por volume de votos das fontes."
 
 
@@ -1078,7 +1083,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'</div>'
         f'<div class="poll-compare-panels">'
         f'<div class="poll-compare-side is-model">'
-        f'<div class="poll-compare-brand">🧮 NOSSO MODELO</div>'
+        f'<div class="poll-compare-brand">📊 NOSSO MODELO</div>'
         f'<div class="poll-compare-blurb">Mesmas fontes, ponderadas por histórico de acerto.</div>'
         f'{trust_line}'
         f'<div class="poll-compare-winner">{m_avatar}<div>'
@@ -1087,7 +1092,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         f'{_empate_badge(m)}'
         f'</div></div></div>'
         f'<div class="poll-compare-side is-votalhada">'
-        f'<div class="poll-compare-brand">📊 VOTALHADA</div>'
+        f'<div class="poll-compare-brand">{render_votalhada_logo(href=payload.get("source_url", VOTALHADA_HOME))}</div>'
         f'<div class="poll-compare-blurb">{_votalhada_blurb(payload)}</div>'
         f'{votalhada_line}'
         f'<div class="poll-compare-winner">{_votalhada_primary_block(payload, v_avatar, v, mirror, avatars)}'
@@ -1148,9 +1153,9 @@ def _render_trust_badge(badge: dict, *, compact: bool = False) -> str:
     if href:
         return (
             f'<a class="paredao-card-trust" href="{safe_html(href)}" '
-            f'title="Ver explicação do teste retrospectivo">🧮 {safe_html(text)}</a>'
+            f'title="Ver explicação do teste retrospectivo">📊 {safe_html(text)}</a>'
         )
-    return f'<div class="paredao-card-trust">🧮 {safe_html(text)}</div>'
+    return f'<div class="paredao-card-trust">📊 {safe_html(text)}</div>'
 
 
 def render_paredao_live_card(payload: dict | None, avatars: dict[str, str]) -> str:
@@ -1186,7 +1191,7 @@ def render_paredao_live_card(payload: dict | None, avatars: dict[str, str]) -> s
         f'<div class="paredao-live-card is-{payload.get("state")}">'
         f'<div class="paredao-live-card-header">'
         f'<div class="paredao-live-card-title-block">'
-        f'<div class="paredao-card-kicker">🧮 {safe_html(payload.get("primary_source", "Nosso Modelo"))}</div>'
+        f'<div class="paredao-card-kicker">📊 {safe_html(payload.get("primary_source", "Nosso Modelo"))}</div>'
         f'<div class="paredao-live-title-row">'
         f'<h3 class="paredao-live-title">{safe_html(payload.get("headline", "Paredão"))}</h3>'
         f'<span class="paredao-card-status">{safe_html(payload.get("status_label", ""))}</span>'
@@ -1218,7 +1223,7 @@ def render_paredao_index_card(payload: dict | None, avatars: dict[str, str]) -> 
     if trust_badge.get("visible"):
         notes.append(
             f'<a class="paredao-index-note is-link" href="{safe_html(trust_badge.get("href", "paredoes.html#nosso-modelo-back-test"))}">'
-            f'🧮 {safe_html(trust_badge.get("text", ""))}'
+            f'📊 {safe_html(trust_badge.get("text", ""))}'
             f'</a>'
         )
     if curiosity_line:

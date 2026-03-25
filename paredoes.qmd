@@ -31,6 +31,7 @@ from data_utils import (
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
     build_precision_methodology_text,
+    platform_label, get_votalhada_source_url, render_votalhada_logo,
     require_clean_manual_events, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     genero, get_nominee_badge, resolve_leaders,
     make_poll_timeseries,
@@ -132,7 +133,7 @@ if len(paredoes_finalizados) >= 1:
     print('</div>')
 ```
 
-## Precisão das Enquetes (Votalhada) {#precisão-das-enquetes-votalhada}
+## <a href="https://votalhada.blogspot.com/" target="_blank" rel="noopener"><img src="assets/votalhada-logo.png" alt="Votalhada" class="votalhada-logo votalhada-logo--lg" /></a> Precisão das Enquetes {#precisão-das-enquetes-votalhada}
 
 > **Nota metodológica (10 de março de 2026):** o Votalhada passou a exibir uma nova `Média Final Ponderada (0,3 x 0,7)` e removeu a série horária do card final. Temporariamente, este arquivo mantém a **fórmula anterior**, ponderada pelo número de votos de cada plataforma, enquanto analisamos o impacto da mudança e recalculamos comparações históricas.
 
@@ -196,7 +197,7 @@ if len(finalized_polls) >= 1:
     platform_avg = {plat: np.mean([e['erro'] for e in errs]) for plat, errs in platform_errors.items() if errs}
     best_platform = min(platform_avg, key=platform_avg.get) if platform_avg else None
 
-    platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
+    # platform labels via centralized platform_label()
 
     # Backtest precision model
     backtest = backtest_precision_model(polls_data)
@@ -215,13 +216,13 @@ if len(finalized_polls) >= 1:
     print(f'<div class="u-s100"><strong>Mais próximo de</strong><br><span class="fs-2xl u-s002">{best_vote_label[best_vote_type]}</span><br><span class="text-muted">erro: {avg_errors[best_vote_type]:.1f} p.p.</span></div>')
 
     if best_platform:
-        print(f'<div class="u-s100"><strong>Plataforma mais precisa</strong><br><span class="fs-2xl">{platform_names.get(best_platform, best_platform)}</span><br><span class="text-muted">erro: {platform_avg[best_platform]:.1f} p.p.</span></div>')
+        print(f'<div class="u-s100"><strong>Plataforma mais precisa</strong><br><span class="fs-2xl">{platform_label(best_platform, variant="html")}</span><br><span class="text-muted">erro: {platform_avg[best_platform]:.1f} p.p.</span></div>')
 
     if backtest:
         _bt_agg = backtest['aggregate']
         _bt_imp = _bt_agg.get('improvement_pct', 0)
         _bt_color = '#00bc8c' if _bt_imp and _bt_imp > 0 else '#f39c12'
-        print(f'<div class="u-s451"><strong>🧮 Nosso Modelo</strong><br><span class="fs-4xl" style="color:{_bt_color}; font-weight:bold;">{_bt_agg["model_mae"]:.1f}</span><br><span class="text-muted">p.p. (LOO) — {_bt_imp:+.0f}%</span></div>')
+        print(f'<div class="u-s451"><strong>📊 Nosso Modelo</strong><br><span class="fs-4xl" style="color:{_bt_color}; font-weight:bold;">{_bt_agg["model_mae"]:.1f}</span><br><span class="text-muted">p.p. (LOO) — {_bt_imp:+.0f}%</span></div>')
 
     print(f'</div></div>\n')
 
@@ -258,7 +259,7 @@ if len(finalized_polls) >= 1:
         _m_pct = 100 * _m_correct / _n
         _m_col = '#00bc8c' if _m_pct >= 75 else '#f39c12' if _m_pct >= 50 else '#E6194B'
         print(f'<div class="u-s107">')
-        print(f'<div class="fs-base u-s233">🧮 Nosso Modelo</div>')
+        print(f'<div class="fs-base u-s233">📊 Nosso Modelo</div>')
         print(f'<div class="fs-4xl" style="color:{_m_col}; font-weight:bold;">{_m_correct}/{_n}</div>')
         print(f'<div class="text-muted fs-sm">acertos · MAE {_m_mae:.1f}</div>')
         print(f'</div>')
@@ -337,7 +338,7 @@ if len(finalized_polls) >= 1:
         medal = '🥇' if rank_map[plat] == 1 else '🥈' if rank_map[plat] == 2 else '🥉' if rank_map[plat] == 3 else f'{rank_map[plat]}º'
         row_style = 'background:rgba(60,180,75,0.15);' if rank_map[plat] == 1 else ''
 
-        print(f'<tr style="{row_style}"><td>{platform_names.get(plat, plat)}</td>')
+        print(f'<tr style="{row_style}"><td>{platform_label(plat, variant="html")}</td>')
 
         for poll in finalized_polls:
             err_data = next((e for e in platform_errors[plat] if e['paredao'] == poll['numero']), None)
@@ -367,7 +368,7 @@ if len(finalized_polls) >= 1:
         _bt_results = backtest['per_paredao']
         model_errs = [r['model_mae'] for r in _bt_results if r['model_mae'] is not None]
         if model_errs:
-            print('<tr class="poll-precision-row-model"><td><strong>🧮 Nosso Modelo</strong></td>')
+            print('<tr class="poll-precision-row-model"><td><strong>📊 Nosso Modelo</strong></td>')
             for r in _bt_results:
                 if r['model_mae'] is not None:
                     err_color = '#3CB44B' if r['model_mae'] < 10 else '#f39c12' if r['model_mae'] < 20 else '#E6194B'
@@ -390,7 +391,7 @@ if len(finalized_polls) >= 1:
     # ── Platform Average Error Bar Chart ──
     platform_colors = {'sites': '#3498db', 'youtube': '#e74c3c', 'twitter': '#1da1f2', 'instagram': '#e1306c'}
     sorted_plats = sorted(platform_avg.items(), key=lambda x: x[1])  # best first
-    plat_labels = [platform_names.get(p, p) for p, _ in sorted_plats]
+    plat_labels = [platform_label(p) for p, _ in sorted_plats]
     plat_errs = [e for _, e in sorted_plats]
     plat_colors = [platform_colors.get(p, '#999') for p, _ in sorted_plats]
 
@@ -426,10 +427,10 @@ if len(finalized_polls) >= 1:
             y_vals = [errs_by_par.get(p['numero'], None) for p in finalized_polls]
             fig_lines.add_trace(go.Scatter(
                 x=paredao_labels, y=y_vals, mode='lines+markers',
-                name=platform_names.get(plat, plat),
+                name=platform_label(plat),
                 line=dict(width=2.5, color=platform_colors.get(plat, '#999')),
                 marker=dict(size=8),
-                hovertemplate=f'{platform_names.get(plat, plat)}: ' + '%{y:.1f} p.p.<extra></extra>',
+                hovertemplate=f'{platform_label(plat)}: ' + '%{y:.1f} p.p.<extra></extra>',
                 connectgaps=True,
             ))
 
@@ -448,7 +449,7 @@ if len(finalized_polls) >= 1:
             _model_y = [_bt_errs_by_par.get(p['numero'], None) for p in finalized_polls]
             fig_lines.add_trace(go.Scatter(
                 x=paredao_labels, y=_model_y, mode='lines+markers',
-                name='🧮 Nosso Modelo',
+                name='📊 Nosso Modelo',
                 line=dict(width=3, color='#00bc8c', dash='dot'),
                 marker=dict(size=10, symbol='star'),
                 hovertemplate='Nosso Modelo: %{y:.1f} p.p.<extra></extra>',
@@ -479,7 +480,7 @@ if len(finalized_polls) >= 1:
 
             fig_grouped.add_trace(go.Bar(
                 name=par_label,
-                x=[platform_names.get(p, p) for p in platforms_order],
+                x=[platform_label(p) for p in platforms_order],
                 y=errs,
                 marker_color=paredao_colors[i % len(paredao_colors)],
                 text=[f"{e:.1f}" for e in errs],
@@ -509,7 +510,7 @@ if len(finalized_polls) >= 1:
     # ══════════════════════════════════════════════════════════════
     if backtest and len(backtest['per_paredao']) >= 3:
         _bt_agg = backtest['aggregate']
-        print("\n## 🧮 Nosso Modelo — Teste retrospectivo {#nosso-modelo-back-test}\n")
+        print("\n## 📊 Nosso Modelo — Teste retrospectivo {#nosso-modelo-back-test}\n")
         _method_text = build_precision_methodology_text(polls_data)
         # Convert markdown bold to HTML
         import re as _re
@@ -564,7 +565,7 @@ if len(finalized_polls) >= 1:
         print('</tbody></table>')
 
         print(f'<div class="u-s163">')
-        print(f'<strong>🧮 Resultado:</strong> Nosso Modelo reduz o erro médio de <strong>{_bt_agg["consolidado_mae"]:.1f}</strong> para <strong>{_bt_agg["model_mae"]:.1f}</strong> p.p. (<strong>{_imp:+.0f}%</strong>).')
+        print(f'<strong>📊 Resultado:</strong> Nosso Modelo reduz o erro médio de <strong>{_bt_agg["consolidado_mae"]:.1f}</strong> para <strong>{_bt_agg["model_mae"]:.1f}</strong> p.p. (<strong>{_imp:+.0f}%</strong>).')
         print(f' Acertou o mais votado em <strong>{_bt_agg["model_correct"]}/{_bt_agg["n_paredoes"]}</strong> paredões vs Votalhada <strong>{_bt_agg["consolidado_correct"]}/{_bt_agg["n_paredoes"]}</strong>.')
         print(f'</div>\n')
 
@@ -659,7 +660,7 @@ if len(finalized_polls) >= 1:
                         _trend_delta = _avg_second - _avg_first
                         if abs(_trend_delta) > 2:
                             _trend_dir = 'piorou' if _trend_delta > 0 else 'melhorou'
-                            _pl_name = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}.get(_pl, _pl)
+                            _pl_name = platform_label(_pl)
                             _gc.append(f'📈 {_pl_name} <strong>{_trend_dir}</strong> ao longo da temporada: {_avg_first:.1f} → {_avg_second:.1f} p.p. (Δ{_trend_delta:+.1f})')
 
         if _gc:
@@ -1383,6 +1384,10 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
                 return f'font-weight:bold; color:{_color_min_a};'
             return 'color:#ddd;'
 
+        # Votalhada logo attribution
+        _poll_url = get_votalhada_source_url(poll)
+        print(f'<div class="votalhada-attr">{render_votalhada_logo(href=_poll_url)}<span class="text-muted small">Dados agregados — coleta em {poll.get("data_coleta", "?")[:10]}</span></div>')
+
         # Compact platform table with avatars
         print('<div class="u-s025">')
         print('<table class="table table-sm fs-base u-s092">')
@@ -1393,12 +1398,11 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         print('</tr></thead><tbody>')
 
         platform_order = ['sites', 'youtube', 'twitter', 'instagram']
-        plat_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
         for plat in platform_order:
             if plat in plataformas:
                 pdata = plataformas[plat]
-                print(f'<tr><td>{plat_names.get(plat, plat)}</td>')
+                print(f'<tr><td>{platform_label(plat, variant="html")}</td>')
                 _apvals = [pdata.get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = pdata.get(nome, 0)
@@ -1419,7 +1423,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         # Model row
         _tab_model = predict_precision_weighted(poll, _prec_all) if _prec_all.get('sufficient') else None
         if _tab_model:
-            print('<tr class="poll-precision-row-model"><td><strong>🧮 Nosso Modelo</strong></td>')
+            print('<tr class="poll-precision-row-model"><td><strong>📊 Nosso Modelo</strong></td>')
             _amvals = [_tab_model['prediction'].get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = _tab_model['prediction'].get(nome, 0)
@@ -1449,7 +1453,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
             _model_err_a = abs(_tab_model['prediction'].get(_real_elim, 0) - resultado.get(_real_elim, 0))
             _consol_err_a = abs(consolidado.get(_real_elim, 0) - resultado.get(_real_elim, 0))
             if _model_err_a < _consol_err_a:
-                _arc_curiosities.append(f'🧮 <strong>Nosso Modelo</strong> errou menos ({_model_err_a:.1f} p.p.) que o Votalhada ({_consol_err_a:.1f} p.p.) neste paredão')
+                _arc_curiosities.append(f'📊 <strong>Nosso Modelo</strong> errou menos ({_model_err_a:.1f} p.p.) que o Votalhada ({_consol_err_a:.1f} p.p.) neste paredão')
             elif _consol_err_a < _model_err_a:
                 _arc_curiosities.append(f'📊 <strong>Votalhada</strong> errou menos ({_consol_err_a:.1f} p.p.) que Nosso Modelo ({_model_err_a:.1f} p.p.) neste paredão')
             else:
@@ -1458,7 +1462,6 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
                 _arc_curiosities.append(f'🔀 Modelos divergiram: Votalhada apostou em <strong>{_consol_elim_a.split()[0]}</strong>, Nosso Modelo em <strong>{_model_elim_a.split()[0]}</strong>')
         # Platform accuracy for this paredão
         _plat_errs_a = {}
-        _plat_names_h = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
         _real_elim_a = resultado.get('eliminado', '')
         _real_val_a = resultado.get(_real_elim_a, 0)
         for plat in ['sites', 'youtube', 'twitter', 'instagram']:
@@ -1469,7 +1472,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
             _best_p = min(_plat_errs_a, key=lambda k: _plat_errs_a[k])
             _worst_p = max(_plat_errs_a, key=lambda k: _plat_errs_a[k])
             if _plat_errs_a[_best_p] != _plat_errs_a[_worst_p]:
-                _arc_curiosities.append(f'🏆 Mais precisa: <strong>{_plat_names_h[_best_p]}</strong> (erro {_plat_errs_a[_best_p]:.1f} p.p.) · Menos precisa: <strong>{_plat_names_h[_worst_p]}</strong> ({_plat_errs_a[_worst_p]:.1f} p.p.)')
+                _arc_curiosities.append(f'🏆 Mais precisa: <strong>{platform_label(_best_p)}</strong> (erro {_plat_errs_a[_best_p]:.1f} p.p.) · Menos precisa: <strong>{platform_label(_worst_p)}</strong> ({_plat_errs_a[_worst_p]:.1f} p.p.)')
 
         # 4. Vote total + platform volume breakdown
         _arc_total_votos = consolidado.get('total_votos', 0)
@@ -1486,8 +1489,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
                     _arc_total_pv += _pv
             _vote_line = f'🗳️ <strong>{_arc_m:.1f}{_arc_unit} votos</strong>'
             if _arc_total_pv > 0:
-                _plat_label_a = {'sites': 'Sites', 'youtube': 'YT', 'twitter': 'TW', 'instagram': 'IG'}
-                _vol_strs = [f'{_plat_label_a.get(p, p)} {v*100/_arc_total_pv:.0f}%' for p, v in sorted(_arc_plat_v.items(), key=lambda x: -x[1])]
+                _vol_strs = [f'{platform_label(p, variant="short")} {v*100/_arc_total_pv:.0f}%' for p, v in sorted(_arc_plat_v.items(), key=lambda x: -x[1])]
                 _vote_line += f' ({" · ".join(_vol_strs)})'
             _arc_curiosities.append(_vote_line)
 

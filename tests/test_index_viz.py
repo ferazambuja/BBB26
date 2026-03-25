@@ -87,13 +87,13 @@ def test_card_header_renders_badge_source_link_and_subtitle():
         "Paredão Ativo",
         "paredao.html",
         badge="Resultado oficial",
-        source_tag="🧮 Nosso Modelo",
+        source_tag="📊 Nosso Modelo",
         subtitle="Resumo do paredão encerrado.",
     )
 
     assert "Paredão Ativo" in html
     assert "Resultado oficial" in html
-    assert "🧮 Nosso Modelo" in html
+    assert "📊 Nosso Modelo" in html
     assert 'href="paredao.html"' in html
     assert "Resumo do paredão encerrado." in html
 

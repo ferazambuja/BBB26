@@ -113,7 +113,7 @@ def test_backtest_explanation_uses_portuguese_label_with_stable_anchor():
     archive = _read(PAREDOES_QMD)
     helper = _read(PAREDAO_VIZ)
 
-    assert "## 🧮 Nosso Modelo — Teste retrospectivo {#nosso-modelo-back-test}" in archive
+    assert "## 📊 Nosso Modelo — Teste retrospectivo {#nosso-modelo-back-test}" in archive
     assert "Ver teste retrospectivo" in helper
 
 

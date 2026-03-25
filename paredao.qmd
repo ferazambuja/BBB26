@@ -237,6 +237,7 @@ from data_utils import (
     make_poll_timeseries,
     parse_votalhada_hora,
     avatar_html, avatar_img,
+    platform_label, get_votalhada_source_url, render_votalhada_logo,
     REACTION_EMOJI, SENTIMENT_WEIGHTS,
     POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE, GROUP_COLORS,
     ANALYSIS_DESCRIPTIONS,
@@ -521,8 +522,8 @@ if ultimo:
                     return f'font-weight:bold; color:{_color_min};'
                 return 'font-weight:bold; color:#f0ad4e;'
 
-            print('<div class="u-s025">')
-            print('<table class="table table-striped fs-base u-s095">')
+            print('<div class="poll-precision-table-wrap">')
+            print('<table class="table table-striped table-sm poll-precision-table poll-precision-table--compact" data-mobile-no-prune="1">')
             print('<thead><tr><th>Fonte</th>')
             for nome in participantes_poll:
                 avatar = avatar_img(nome, AVATARS, 42)
@@ -531,7 +532,6 @@ if ultimo:
             print('</tr></thead><tbody>')
 
             platform_order = ['sites', 'youtube', 'twitter', 'instagram']
-            platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
             # Track platform leaders for curiosities
             _plat_leaders = {}
@@ -540,7 +540,7 @@ if ultimo:
                     pdata = plataformas[plat]
                     votos = pdata.get('votos', 0)
                     votos_str = f"{votos:,.0f}".replace(',', '.')
-                    print(f'<tr><td class="fs-base">{platform_names.get(plat, plat)}</td>')
+                    print(f'<tr><td class="fs-base">{platform_label(plat, variant="html")}</td>')
                     _pvals = [pdata.get(n, 0) for n in participantes_poll]
                     _plat_leader = participantes_poll[_pvals.index(max(_pvals))]
                     _plat_leaders[plat] = _plat_leader
@@ -603,7 +603,7 @@ if ultimo:
                 _mo_gap = _row_gap(_mvals)
                 _mo_empate = is_empate_tecnico(_mo_gap)
                 _mo_row_style = f' style="{_empate_border}"' if _mo_empate else ''
-                print(f'<tr class="u-s012"><td class="fs-base u-s002"{_mo_row_style}>🧮 Nosso Modelo{_empate_tip(_mo_gap) if _mo_empate else ""}</td>')
+                print(f'<tr class="u-s012"><td class="fs-base u-s002"{_mo_row_style}>📊 Nosso Modelo{_empate_tip(_mo_gap) if _mo_empate else ""}</td>')
                 for nome in participantes_poll:
                     val = _model_pred['prediction'].get(nome, 0)
                     style = _poll_highlight(val, _mvals)
@@ -644,9 +644,9 @@ if ultimo:
                 else:
                     _run_n, _run_v, _gap_m = None, 0, 0
                 if _is_save_poll:
-                    _main_txt = f'🧮 <strong>Nosso Modelo</strong>: <strong>{_lead_n.split()[0]}</strong> lidera para <strong>seguir no jogo</strong> com {_lead_v:.2f}%'
+                    _main_txt = f'📊 <strong>Nosso Modelo</strong>: <strong>{_lead_n.split()[0]}</strong> lidera para <strong>seguir no jogo</strong> com {_lead_v:.2f}%'
                 else:
-                    _main_txt = f'🧮 <strong>Nosso Modelo</strong>: <strong>{_lead_n.split()[0]}</strong> é o nome mais provável para sair com {_lead_v:.2f}%'
+                    _main_txt = f'📊 <strong>Nosso Modelo</strong>: <strong>{_lead_n.split()[0]}</strong> é o nome mais provável para sair com {_lead_v:.2f}%'
                 if _run_n:
                     _main_txt += f' (margem de {_gap_m:.1f} p.p. sobre {_run_n.split()[0]})'
                 _curiosities.append(_main_txt)
@@ -837,18 +837,17 @@ if ultimo:
                 _sites_pct = (_plat_volumes.get('sites', 0) * 100 / _total_plat_votos) if _total_plat_votos else 0
                 _tw_pct = (_plat_volumes.get('twitter', 0) * 100 / _total_plat_votos) if _total_plat_votos else 0
                 if _rmse_hist and len(_rmse_hist) >= 3:
-                    _plat_labels_err = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
                     _vol_bullets = []
                     for _ep in sorted(_rmse_hist, key=lambda p: -_plat_volumes.get(p, 0)):
                         _evol = _plat_volumes.get(_ep, 0) * 100 / _total_plat_votos if _total_plat_votos else 0
                         _eerr = _rmse_hist.get(_ep, 0)
                         _vol_bullets.append(
-                            f'<li>{_plat_labels_err.get(_ep, _ep)}: {_evol:.0f}% dos votos '
+                            f'<li>{platform_label(_ep)}: {_evol:.0f}% dos votos '
                             f'(RMSE {_eerr:.1f} p.p.)</li>'
                         )
                     _n_hist_err = _prec.get('n_paredoes', 0)
                     _worst_plat = max(_rmse_hist, key=_rmse_hist.get)
-                    _worst_label = _plat_labels_err.get(_worst_plat, _worst_plat)
+                    _worst_label = platform_label(_worst_plat)
                     _worst_vol = _plat_volumes.get(_worst_plat, 0) * 100 / _total_plat_votos if _total_plat_votos else 0
                     _curiosities.append(
                         f'⚖️ <strong>Porcentagem do total de votos das enquetes</strong> '
@@ -939,14 +938,13 @@ if ultimo:
             # ── Weight breakdown (expandable details) ──
             if _model_pred:
                 _wu = _model_pred['weights_used']
-                _plat_labels_d = {'sites': 'Sites', 'youtube': 'YouTube', 'twitter': 'Twitter', 'instagram': 'Instagram'}
-                _weight_parts = [f'{_plat_labels_d.get(p,p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
+                _weight_parts = [f'{platform_label(p)} {w*100:.0f}%' for p, w in sorted(_wu.items(), key=lambda x: -x[1])]
                 _rmse_info = _prec.get('rmse', {})
                 print(f'<details class="fs-md u-s024">')
                 print(f'<summary class="text-muted u-s297">ℹ️ Como cada leitura funciona — Nosso Modelo: {" · ".join(_weight_parts)}</summary>')
                 print(f'<div class="fs-base u-s467">')
                 _votalhada_parts = [
-                    (_plat_labels_d.get(p, p), round(_plat_volumes.get(p, 0) * 100 / _total_plat_votos))
+                    (platform_label(p), round(_plat_volumes.get(p, 0) * 100 / _total_plat_votos))
                     for p in sorted(_plat_volumes, key=lambda p: -_plat_volumes.get(p, 0))
                     if _plat_volumes.get(p, 0) > 0
                 ]
@@ -961,7 +959,7 @@ if ultimo:
                 for p, w in sorted(_wu.items(), key=lambda x: -x[1]):
                     rmse_val = _rmse_info.get(p, 0)
                     _vol_pct = round(_plat_volumes.get(p, 0) * 100 / _total_plat_votos) if _total_plat_votos > 0 else 0
-                    print(f'<tr><td>{_plat_labels_d.get(p,p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_pct}%</td><td class="tc u-s002">{w*100:.0f}%</td></tr>')
+                    print(f'<tr><td>{platform_label(p)}</td><td class="tc">{rmse_val:.1f} p.p.</td><td class="tc">{_vol_pct}%</td><td class="tc u-s002">{w*100:.0f}%</td></tr>')
                 print(f'</table>')
                 # Dynamic backtest stats (computed earlier via backtest_precision_model)
                 _bt_agg = _bt.get('aggregate', {}) if _bt else {}
@@ -1724,7 +1722,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 _model_correct_fin = _model_pred_fin['predicao_eliminado'] == resultado.get('eliminado')
 
             print("\n## 📊 Enquetes vs Resultado\n")
-            print(f'<p class="text-muted small">Dados agregados de <a href="https://votalhada.blogspot.com/" target="_blank">Votalhada</a> — coleta em {poll.get("data_coleta", "?")[:10]}</p>\n')
+            _poll_url = get_votalhada_source_url(poll)
+            print(f'<div class="votalhada-attr">{render_votalhada_logo(href=_poll_url)}<span class="text-muted small">Dados agregados — coleta em {poll.get("data_coleta", "?")[:10]}</span></div>')
 
             # Status badges — Votalhada + Model side by side
             if accuracy and accuracy['predicao_correta']:
@@ -1762,7 +1761,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 fig_poll.add_trace(go.Bar(
                     x=participantes_poll, y=model_vals,
                     text=[f"{v:.1f}%" for v in model_vals],
-                    textposition='outside', name='🧮 Nosso Modelo',
+                    textposition='outside', name='📊 Nosso Modelo',
                     marker_color='#00bc8c',
                     hovertemplate='%{x}: %{y:.1f}% (Nosso Modelo)<extra></extra>',
                 ))
@@ -1810,8 +1809,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     return f'font-weight:bold; color:{_color_min_f};'
                 return 'color:#ddd;'
 
-            print('<div class="u-s025">')
-            print('<table class="table table-striped table-hover fs-lg u-s092">')
+            print('<div class="poll-precision-table-wrap">')
+            print('<table class="table table-striped table-sm poll-precision-table poll-precision-table--compact" data-mobile-no-prune="1">')
             print('<thead><tr><th>Fonte</th>')
             for nome in participantes_poll:
                 avatar = avatar_img(nome, AVATARS, 42)
@@ -1820,14 +1819,13 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             print('</tr></thead><tbody>')
 
             platform_order = ['sites', 'youtube', 'twitter', 'instagram']
-            platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
 
             for plat in platform_order:
                 if plat in plataformas:
                     pdata = plataformas[plat]
                     votos = pdata.get('votos', 0)
                     votos_str = f"{votos:,.0f}".replace(',', '.')
-                    print(f'<tr><td class="fs-base">{platform_names.get(plat, plat)}</td>')
+                    print(f'<tr><td class="fs-base">{platform_label(plat, variant="html")}</td>')
                     _pfvals = [pdata.get(n, 0) for n in participantes_poll]
                     for nome in participantes_poll:
                         val = pdata.get(nome, 0)
@@ -1851,7 +1849,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             # Model row
             if _model_pred_fin:
-                print('<tr class="poll-precision-row-model"><td class="u-s002">🧮 Nosso Modelo</td>')
+                print('<tr class="poll-precision-row-model"><td class="u-s002">📊 Nosso Modelo</td>')
                 _mfvals = [_model_pred_fin['prediction'].get(n, 0) for n in participantes_poll]
                 for nome in participantes_poll:
                     val = _model_pred_fin['prediction'].get(nome, 0)
@@ -1941,8 +1939,6 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 # Sort by error (ascending)
                 platform_errors.sort(key=lambda x: x[2])
 
-                platform_names = {'sites': '🌐 Sites', 'youtube': '▶️ YouTube', 'twitter': '𝕏 Twitter', 'instagram': '📷 Instagram'}
-
                 print(f'<p>Para <strong>{eliminado_nome}</strong> (resultado: {voto_total_elim:.1f}%):</p>')
                 print('<table class="table table-sm u-s443">')
                 print('<thead><tr><th>#</th><th>Plataforma</th><th class="tc">Previsão</th><th class="tc">Erro</th></tr></thead>')
@@ -1950,7 +1946,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 for rank, (plat, pval, perr) in enumerate(platform_errors, 1):
                     medal = '🥇' if rank == 1 else '🥈' if rank == 2 else '🥉' if rank == 3 else '4º'
                     row_style = 'background:rgba(60,180,75,0.2);' if rank == 1 else ''
-                    print(f'<tr style="{row_style}"><td>{medal}</td><td>{platform_names.get(plat, plat)}</td>')
+                    print(f'<tr style="{row_style}"><td>{medal}</td><td>{platform_label(plat, variant="html")}</td>')
                     print(f'<td class="tc">{pval:.1f}%</td>')
                     print(f'<td class="tc">{perr:.1f} p.p.</td>')
                     print('</tr>')
@@ -1990,7 +1986,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     print(f'<div class="u-s192">')
                     print(f'<p class="u-s011"><strong>✅ Taxa de acerto:</strong> {total_correct}/{total_polls} paredões ({100*total_correct/total_polls:.0f}%)</p>')
                     print(f'<p class="u-s041"><strong>📉 Padrão:</strong> Enquetes subestimam o mais votado em <strong>{abs(avg_underest):.1f} p.p.</strong> em média</p>')
-                    print(f'<p class="u-s041"><strong>🏆 Plataforma mais precisa:</strong> {platform_names.get(best_platform, best_platform)} (erro médio: {platform_total_err[best_platform]/total_polls:.1f} p.p.)</p>')
+                    print(f'<p class="u-s041"><strong>🏆 Plataforma mais precisa:</strong> {platform_label(best_platform, variant="html")} (erro médio: {platform_total_err[best_platform]/total_polls:.1f} p.p.)</p>')
                     print(f'</div>\n')
 
         # Resumo da formação (finalizado)
