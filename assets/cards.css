@@ -1473,9 +1473,17 @@ body.paredao-page main.content h2.poll-section-title {
 }
 .poll-mobile-val { white-space: nowrap; }
 .poll-mobile-val--max  { color: #e74c3c; font-weight: 700; }
+.poll-mobile-val--mid  { color: #f0ad4e; font-weight: 700; }
 .poll-mobile-val--min  { color: #2ecc71; font-weight: 700; }
 .poll-mobile-val--elim { color: #E6194B; font-weight: 700; }
 .poll-mobile-val--safe { color: #3CB44B; font-weight: 700; }
+
+.poll-mobile-votes {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: #999;
+  font-weight: 400;
+}
 
 @media (max-width: 400px) {
   .poll-mobile-row    { padding: 0.35rem 0.4rem; }

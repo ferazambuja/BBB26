@@ -267,20 +267,27 @@ def render_poll_mobile_card(
             return "poll-mobile-val--max"
         if val == min(vals):
             return "poll-mobile-val--min"
-        return ""
+        return "poll-mobile-val--mid"
 
-    def _row(label: str, values: dict, css_mod: str = "", is_result: bool = False, elim_name: str = "") -> str:
+    def _fmt_votes(v: int) -> str:
+        if v >= 1_000_000:
+            return f"{v / 1_000_000:.1f}M"
+        if v >= 1_000:
+            return f"{v / 1_000:.0f}mil"
+        return str(v)
+
+    def _row(label: str, values: dict, css_mod: str = "", is_result: bool = False, elim_name: str = "", votes: int = 0) -> str:
         vals = [values.get(n, 0) for n in participantes]
         parts = []
         for n in participantes:
             v = values.get(n, 0)
             cls = _val_class(v, vals, is_result, elim_name, n)
-            cls_attr = f' class="poll-mobile-val {cls}"' if cls else ' class="poll-mobile-val"'
-            parts.append(f'<span{cls_attr}>{_short(n)} {v:.1f}%</span>')
+            parts.append(f'<span class="poll-mobile-val {cls}">{_short(n)} {v:.1f}%</span>')
+        votes_html = f'<span class="poll-mobile-votes">{_fmt_votes(votes)}</span>' if votes else ""
         row_cls = f"poll-mobile-row {css_mod}".strip()
         return (
             f'<div class="{row_cls}">'
-            f'<div class="poll-mobile-source">{label}</div>'
+            f'<div class="poll-mobile-source">{label}{votes_html}</div>'
             f'<div class="poll-mobile-values">{"".join(parts)}</div>'
             f'</div>'
         )
@@ -290,12 +297,14 @@ def render_poll_mobile_card(
     for plat in platform_order:
         if plat in plataformas:
             pdata = {n: plataformas[plat].get(n, 0) for n in participantes}
-            rows.append(_row(platform_label(plat, variant="html"), pdata))
+            plat_votes = plataformas[plat].get("votos", 0)
+            rows.append(_row(platform_label(plat, variant="html"), pdata, votes=plat_votes))
 
+    _total_votes = consolidado.get("total_votos", 0)
     if mirror_3070:
         rows.append(_row(f"{_vlogo} 70%/30%", mirror_3070, "poll-mobile-row--votalhada"))
 
-    rows.append(_row(f"{_vlogo} Ponderada" if mirror_3070 else _vlogo, consolidado, "poll-mobile-row--votalhada"))
+    rows.append(_row(f"{_vlogo} Ponderada" if mirror_3070 else _vlogo, consolidado, "poll-mobile-row--votalhada", votes=_total_votes))
 
     if model_pred:
         rows.append(_row("📊 Nosso Modelo", model_pred, "poll-mobile-row--model"))
