@@ -199,6 +199,43 @@ def _bootstrap_polls_entry(paredao_num: int) -> bool:
     return True
 
 
+def _votalhada_capture_complete(paredao_num: int) -> bool:
+    """Check if the final Votalhada capture (21:00 on elimination day) is already recorded.
+
+    Votalhada's last update is at 21:00 BRT on elimination night.
+    Once we have a serie_temporal row ending in '21:00' on the paredão date,
+    there's nothing more to fetch.
+    """
+    if not POLLS_JSON.exists():
+        return False
+    try:
+        polls = json.loads(POLLS_JSON.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return False
+
+    for entry in polls.get("paredoes", []):
+        if entry.get("numero") != paredao_num:
+            continue
+        paredao_date = entry.get("data_paredao", "")  # e.g. "2026-03-24"
+        if not paredao_date:
+            return False
+        # Parse date to DD/mmm format used in serie_temporal
+        parts = paredao_date.split("-")
+        if len(parts) != 3:
+            return False
+        day = parts[2].lstrip("0")
+        month_map = {"01": "jan", "02": "fev", "03": "mar", "04": "abr", "05": "mai",
+                     "06": "jun", "07": "jul", "08": "ago", "09": "set", "10": "out",
+                     "11": "nov", "12": "dez"}
+        mon = month_map.get(parts[1], "")
+        target_hora = f"{day}/{mon} 21:00"  # e.g. "24/mar 21:00"
+
+        series = entry.get("serie_temporal", [])
+        return any(r.get("hora") == target_hora for r in series)
+
+    return False
+
+
 def _fetch_votalhada(paredao_num: int) -> bool:
     """Fetch Votalhada images for the given paredão. Returns True if new images saved."""
     rc = _run_cmd(
@@ -235,7 +272,9 @@ def _poll_once(args: argparse.Namespace) -> dict:
     # 2b. Votalhada image fetch (optional, only when paredão is active)
     if args.votalhada:
         paredao_num = _get_active_paredao()
-        if paredao_num:
+        if paredao_num and _votalhada_capture_complete(paredao_num):
+            print(f"[poll] P{paredao_num} Votalhada final capture (21:00) already recorded — skipping.")
+        elif paredao_num:
             # Bootstrap polls.json entry if it doesn't exist yet
             if _bootstrap_polls_entry(paredao_num):
                 result["data_changed"] = True

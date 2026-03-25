@@ -1183,8 +1183,19 @@ systemd timer (every 15 min)
 1. Paredão formation recorded in `paredoes.json` (Sunday night checklist)
 2. Next scheduler cycle detects `em_andamento` → `_bootstrap_polls_entry()` creates skeleton in `polls.json` with correct nominees
 3. `fetch_votalhada_images.py` attempts to download from Votalhada (exits gracefully with code 3 if page doesn't exist yet)
-4. When Votalhada publishes the post (typically Monday morning), images are captured and Claude extracts values
-5. Each subsequent Votalhada update is captured, deduped, and processed automatically through Tuesday elimination
+4. When Votalhada publishes the post (typically Monday morning), images are captured and Codex extracts values
+5. Each subsequent Votalhada update is captured, validated, and processed automatically through elimination day
+6. **Auto-stop**: once the 21:00 BRT capture on elimination day is recorded in `serie_temporal`, the scheduler stops fetching Votalhada images for that paredão (Votalhada's last update is always 21:00 BRT)
+
+**Pipeline**: Codex (gpt-5.4) extracts → deterministic validation (platform sums, CPF total, ESTIMATIVA formula, monotonic series) → Claude Opus verifies → apply to polls.json. Legacy Claude-as-extractor kept as fallback.
+
+**Votalhada card validation math** (used to catch extraction errors):
+- Platform percentages sum ~100 per platform
+- Média = simple_avg(YouTube, Twitter, Instagram)
+- CPF votos sum = YouTube + Twitter + Instagram votos
+- Total de Votos = Sites votos + CPF votos sum
+- ESTIMATIVA = 0.3 × Sites + 0.7 × Média
+- Vote-weighted consolidado recomputes from platform rows
 
 **Monitoring:**
 ```bash
