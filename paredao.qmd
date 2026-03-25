@@ -568,7 +568,8 @@ if ultimo:
 
             # Votalhada consolidado row (legacy weighted)
             _show_both = has_votalhada_formula_change(poll) and bool(_mirror_3070)
-            _legacy_label = '📊 Votalhada (Ponderada)' if _show_both else '📊 Votalhada'
+            _vlogo = render_votalhada_logo(href=get_votalhada_source_url(poll))
+            _legacy_label = f'{_vlogo} Ponderada' if _show_both else _vlogo
             _cvals = [consolidado.get(n, 0) for n in participantes_poll]
             _c_gap = _row_gap(_cvals)
             _c_empate = is_empate_tecnico(_c_gap)
@@ -589,7 +590,7 @@ if ultimo:
                 _m3_gap = _row_gap(_mvals_3070)
                 _m3_empate = is_empate_tecnico(_m3_gap)
                 _m3_row_style = f' style="{_empate_border}"' if _m3_empate else ''
-                print(f'<tr class="u-s168"><td class="fs-base u-s002"{_m3_row_style}>📊 Votalhada 70%/30%{_empate_tip(_m3_gap) if _m3_empate else ""}</td>')
+                print(f'<tr class="u-s168"><td class="fs-base u-s002"{_m3_row_style}>{_vlogo} 70%/30%{_empate_tip(_m3_gap) if _m3_empate else ""}</td>')
                 for nome in participantes_poll:
                     val = _mirror_3070.get(nome, 0)
                     style = _poll_highlight(val, _mvals_3070)
@@ -1723,13 +1724,13 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
 
             print("\n## 📊 Enquetes vs Resultado\n")
             _poll_url = get_votalhada_source_url(poll)
-            print(f'<div class="votalhada-attr">{render_votalhada_logo(href=_poll_url)}<span class="text-muted small">Dados agregados — coleta em {poll.get("data_coleta", "?")[:10]}</span></div>')
+            print(f'<div class="votalhada-attr">{render_votalhada_logo(href=_poll_url, size="lg")}<span class="text-muted small">Dados agregados — coleta em {poll.get("data_coleta", "?")[:10]}</span></div>')
 
             # Status badges — Votalhada + Model side by side
             if accuracy and accuracy['predicao_correta']:
                 status_html = '<span class="u-s146">✅ Votalhada correta</span>'
             else:
-                status_html = '<span class="u-s009">❌ Votalhada errada</span>'
+                status_html = '<span class="u-s009">✗ Votalhada errada</span>'
 
             erro_medio = accuracy['erro_medio'] if accuracy else 0
             print(f'<div class="tc u-s409">')
@@ -1740,7 +1741,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 if _model_correct_fin:
                     model_badge = '<span class="u-s128">✅ Nosso Modelo correto</span>'
                 else:
-                    model_badge = '<span class="u-s009">❌ Nosso Modelo errado</span>'
+                    model_badge = '<span class="u-s009">✗ Nosso Modelo errado</span>'
                 print(f'<span class="u-s410">{model_badge}</span>')
                 print(f'<span class="text-muted u-s075">Erro: <strong>{_model_mae_fin:.1f}</strong> p.p.</span>')
             print(f'</div>\n')
@@ -1751,7 +1752,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
             fig_poll.add_trace(go.Bar(
                 x=participantes_poll, y=enquete_vals,
                 text=[f"{v:.1f}%" for v in enquete_vals],
-                textposition='outside', name='📊 Votalhada',
+                textposition='outside', name='Votalhada',
                 marker_color='#9b59b6',
                 hovertemplate='%{x}: %{y:.1f}% (Votalhada)<extra></extra>',
             ))
@@ -1761,7 +1762,7 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 fig_poll.add_trace(go.Bar(
                     x=participantes_poll, y=model_vals,
                     text=[f"{v:.1f}%" for v in model_vals],
-                    textposition='outside', name='📊 Nosso Modelo',
+                    textposition='outside', name='Nosso Modelo',
                     marker_color='#00bc8c',
                     hovertemplate='%{x}: %{y:.1f}% (Nosso Modelo)<extra></extra>',
                 ))
@@ -1776,13 +1777,13 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 hovertemplate='%{x}: %{y:.1f}% (Real)<extra></extra>',
             ))
             fig_poll.update_layout(
-                title=dict(text='Votalhada vs Nosso Modelo vs Resultado', y=0.95, x=0.5, xanchor='center'),
+                title=dict(text='Votalhada vs Nosso Modelo vs Resultado', y=0.98, x=0.5, xanchor='center'),
                 xaxis_title="", yaxis_title="Votos (%)",
                 yaxis_range=[0, max(max(enquete_vals), max(resultado_vals)) * 1.25],
                 barmode='group',
-                height=400,
-                margin=dict(t=80, b=60),
-                legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='center', x=0.5),
+                height=420,
+                margin=dict(t=100, b=60),
+                legend=dict(orientation='h', yanchor='top', y=-0.15, xanchor='center', x=0.5),
             )
             fig_poll.show()
 
@@ -1834,9 +1835,24 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                     print(f'<td class="tc text-muted fs-base">{votos_str}</td>')
                     print('</tr>')
 
+            # Votalhada 70/30 row
+            _fin_3070 = get_latest_votalhada_displayed_values(poll) or calculate_votalhada_estimate_3070(plataformas, participantes_poll)
+            if _fin_3070:
+                _f30vals = [_fin_3070.get(n, 0) for n in participantes_poll]
+                print(f'<tr class="poll-precision-row-votalhada"><td class="u-s002">{render_votalhada_logo(href=_poll_url)} 70%/30%</td>')
+                for nome in participantes_poll:
+                    val = _fin_3070.get(nome, 0)
+                    style = _poll_hl_fin(val, _f30vals)
+                    if 'font-weight' not in style:
+                        style = 'font-weight:bold;' + style
+                    print(f'<td class="tc" style="{style}">{val:.1f}%</td>')
+                print('<td class="tc"></td>')
+                print('</tr>')
+
+            # Votalhada ponderada row
             total_votos = consolidado.get('total_votos', 0)
             total_str = f"{total_votos:,.0f}".replace(',', '.')
-            print('<tr class="poll-precision-row-votalhada"><td class="u-s002">📊 Votalhada</td>')
+            print(f'<tr class="poll-precision-row-votalhada"><td class="u-s002">{render_votalhada_logo(href=_poll_url)} Ponderada</td>')
             _cfvals = [consolidado.get(n, 0) for n in participantes_poll]
             for nome in participantes_poll:
                 val = consolidado.get(nome, 0)
