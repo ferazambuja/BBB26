@@ -551,14 +551,14 @@ def _build_card_curiosity_line(
             if m_rank[0][0] == v_rank[0][0]:
                 if m_gap is not None and v_gap is not None:
                     return (
-                        f"Modelo e Votalhada concordam em {m_rank[0][0].split()[0]} para {target}; "
+                        f"Nosso Modelo e Votalhada (Ponderada) concordam em {m_rank[0][0].split()[0]} para {target}; "
                         f"confiança {m_gap:.1f} vs {v_gap:.1f} p.p.",
                         [],
                     )
-                return f"Modelo e Votalhada concordam em {m_rank[0][0].split()[0]} para {target}.", []
+                return f"Nosso Modelo e Votalhada (Ponderada) concordam em {m_rank[0][0].split()[0]} para {target}.", []
             return (
-                f"Divergência: Modelo aponta {m_rank[0][0].split()[0]} ({m_rank[0][1]:.2f}%) "
-                f"e Votalhada aponta {v_rank[0][0].split()[0]} ({v_rank[0][1]:.2f}%).",
+                f"Divergência: Votalhada (Ponderada) aponta {v_rank[0][0].split()[0]} ({v_rank[0][1]:.2f}%) "
+                f"e Nosso Modelo aponta {m_rank[0][0].split()[0]} ({m_rank[0][1]:.2f}%).",
                 [],
             )
 
@@ -987,11 +987,11 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     votalhada_gap = payload.get("votalhada_top2_gap_pp")
     if model_gap is not None and votalhada_gap is not None:
         confidence_line = (
-            f"Confiança: Modelo Δtop2 {model_gap:.1f} p.p. "
-            f"vs Votalhada {votalhada_gap:.1f} p.p."
+            f"Confiança: Nosso Modelo Δtop2 {model_gap:.1f} p.p. "
+            f"vs Votalhada (Ponderada) {votalhada_gap:.1f} p.p."
         )
     elif model_gap is not None:
-        confidence_line = f"Confiança: Modelo Δtop2 {model_gap:.1f} p.p."
+        confidence_line = f"Confiança: Nosso Modelo Δtop2 {model_gap:.1f} p.p."
     else:
         confidence_line = "Confiança: aguardando histórico suficiente para o Nosso Modelo."
 
@@ -1020,7 +1020,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         lead_line = f"Ambos apontam {safe_html(m_name.split()[0])} ao comparar {decision_hint}."
     else:
         lead_line = (
-            f"Votalhada aponta {safe_html(v_name.split()[0])} e "
+            f"Votalhada (Ponderada) aponta {safe_html(v_name.split()[0])} e "
             f"Nosso Modelo aponta {safe_html(m_name.split()[0])} para {decision_hint}."
         )
 
