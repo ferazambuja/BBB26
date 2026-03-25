@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-25T01:46:23.601510+00:00",
+    "generated_at": "2026-03-25T03:05:24.210658+00:00",
     "source": "all_events"
   },
   "events": [
@@ -3358,26 +3358,71 @@
     {
       "date": "2026-03-24",
       "week": 10,
-      "cycle": 10,
       "category": "ganha_ganha",
       "emoji": "🎰",
       "title": "Ganha-Ganha",
-      "detail": "Após a eliminação.",
-      "participants": [],
-      "source": "scaffold",
-      "status": "scheduled"
+      "detail": "Samira vetou Alberto Cowboy; Milena escolheu R$ 20 mil",
+      "participants": [
+        "Milena",
+        "Samira",
+        "Alberto Cowboy"
+      ],
+      "source": "weekly_events",
+      "cycle": 10
     },
     {
       "date": "2026-03-24",
       "week": 10,
-      "cycle": 10,
+      "category": "veto_ganha_ganha",
+      "emoji": "⚡",
+      "title": "Alberto Cowboy → Samira — Veto (Ganha-Ganha)",
+      "detail": "Foi vetado por Samira na dinâmica do Ganha-Ganha.",
+      "participants": [
+        "Alberto Cowboy",
+        "Samira"
+      ],
+      "source": "power_events",
+      "cycle": 10
+    },
+    {
+      "date": "2026-03-24",
+      "week": 10,
+      "category": "ganha_ganha_escolha",
+      "emoji": "⚡",
+      "title": "Milena → Samira — Escolha (Ganha-Ganha)",
+      "detail": "Ficou com a decisão na dinâmica após o veto de Samira em Alberto Cowboy. Escolheu R$ 20 mil, abrindo mão da informação privilegiada (não haverá Prova Bate e Volta nesta semana).",
+      "participants": [
+        "Milena",
+        "Samira"
+      ],
+      "source": "power_events",
+      "cycle": 10
+    },
+    {
+      "date": "2026-03-24",
+      "week": 10,
       "category": "paredao_resultado",
       "emoji": "🏁",
-      "title": "Eliminação",
-      "detail": "Resultado do Paredão.",
-      "participants": [],
-      "source": "scaffold",
-      "status": "scheduled"
+      "title": "10º Paredão — Resultado",
+      "detail": "Jonas Sulzbach eliminado (53.48%)",
+      "participants": [
+        "Jonas Sulzbach"
+      ],
+      "source": "paredoes",
+      "cycle": 10
+    },
+    {
+      "date": "2026-03-24",
+      "week": 10,
+      "category": "saida",
+      "emoji": "❌",
+      "title": "Jonas Sulzbach saiu",
+      "detail": "Eliminado",
+      "participants": [
+        "Jonas Sulzbach"
+      ],
+      "source": "eliminations_detected",
+      "cycle": 10
     },
     {
       "date": "2026-03-25",
