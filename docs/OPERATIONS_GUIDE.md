@@ -1787,25 +1787,31 @@ Keep `weekly_events[].barrado_baile` updated because `scripts/update_programa_do
 ```bash
 python scripts/build_derived_data.py
 python scripts/update_programa_doc.py
+```
 
+### 3. Verify data + cronologia
+
+```bash
 # Verify the week mirror was stored as expected
 jq '.weekly_events[] | select(.week==N) | .barrado_baile' data/manual_events.json
 
 # Verify the power event was stored as expected
 jq '.power_events[] | select(.type=="barrado_baile" and .date=="YYYY-MM-DD")' data/manual_events.json
 
-# Verify cronologia event
+# Verify cronologia event appears in game_timeline.json
 jq '.events[] | select(.date=="YYYY-MM-DD" and .category=="barrado_baile") | {date, title, source}' data/derived/game_timeline.json
 ```
 
 Expected:
-- week mirror includes `lider` / `alvo`
+- week mirror includes `lider` / `alvo` / `desafio` (optional)
 - `type = "barrado_baile"`
-- `actor`/`target` names match API spelling
+- `actor`/`target` names match API spelling exactly
 - source URL present in `fontes`
-- cronologia event with `source = "power_events"` on the correct date
+- **cronologia event with `source = "power_events"` on the correct date** — if missing, the event won't appear on index.qmd or evolucao.qmd
 
-### 3. Commit + publish
+**Always verify the cronologia after rebuild** — the game timeline is the single source of truth for `index.qmd` and `evolucao.qmd`. A missing event here means it won't appear on the site even if the data is correct in `manual_events.json`.
+
+### 4. Commit + publish
 
 Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
