@@ -418,7 +418,8 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                 add_event_points(eliminado, week, 'quarto_secreto',
                                  CARTOLA_POINTS['quarto_secreto'], paredao_date)
             for nome in indicados:
-                if nome != eliminado:
+                if nome != eliminado and nome not in bv_winners_set:
+                    # BV winners get salvo_paredao (+25) instead of volta (+20)
                     add_event_points(nome, week, 'nao_eliminado_paredao',
                                      CARTOLA_POINTS['nao_eliminado_paredao'], paredao_date)
 
@@ -431,7 +432,6 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
             _lideres_arr = formacao_dict.get('lideres', [])
             lider_form = (formacao_dict.get('lider') or '').strip()
             lider_names_form = set(n.strip() for n in _lideres_arr) if _lideres_arr else ({lider_form} if lider_form else set())
-            anjo_form = (formacao_dict.get('anjo') or '').strip()
             imune_form = ''
             if isinstance(formacao_dict.get('imunizado'), dict):
                 imune_form = (formacao_dict.get('imunizado', {}).get('quem') or '').strip()
@@ -446,8 +446,11 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
 
             elegiveis = set(ativos)
             elegiveis -= lider_names_form
-            if anjo_form:
-                elegiveis.discard(anjo_form)
+            # Anjo is NOT excluded from elegiveis — the Anjo is only
+            # ineligible if they are also immune (handled by imune_form
+            # or extra_imunes). In standard weeks the Anjo immunizes
+            # someone else and remains eligible for voting/emparedamento.
+            # In modo turbo (autoimune), the Anjo IS the imunizado.
             if imune_form:
                 elegiveis.discard(imune_form)
             elegiveis -= extra_imunes
@@ -464,22 +467,44 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                                  CARTOLA_POINTS['nao_emparedado'], paredao_date)
 
             # Não recebeu votos da casa
+            # "Não recebeu votos" = was eligible to be voted by the house AND
+            # was NOT voted against. Excludes: anyone who received votes,
+            # BV winners, and anyone committed to paredão BEFORE voting
+            # (Líder-indicados, dinâmica entries). Contragolpe targets ARE
+            # eligible (they were available during voting, got pulled in after).
             votos_casa = p.get('votos_casa', {}) or {}
             if votos_casa:
                 receberam = set(votos_casa.values())
+                # Build set of people committed BEFORE house vote
+                pre_vote_committed = set()
+                pre_vote_committed |= lider_names_form  # Líder is excluded from voting pool
+                for ind in p.get('indicados_finais', []):
+                    como = (ind.get('como') or '').lower()
+                    nome_ind = ind.get('nome', '')
+                    # Líder-indicados and dinâmica entries were pre-committed
+                    if 'líder' in como or 'lider' in como or 'dinâmica' in como or 'triângulo' in como:
+                        pre_vote_committed.add(nome_ind)
+                pre_vote_committed |= bv_winners_set
+
                 for nome in elegiveis:
                     if nome in receberam:
+                        continue
+                    if nome in pre_vote_committed:
                         continue
                     if has_event(nome, week, 'imunizado'):
                         continue
                     add_event_points(nome, week, 'nao_recebeu_votos',
                                      CARTOLA_POINTS['nao_recebeu_votos'], paredao_date)
 
-    # Rule normalization (Líder doesn't accumulate)
+    # Rule normalization (Líder doesn't accumulate VIP or Imunizado,
+    # but DOES accumulate Monstro penalties and other events).
+    # VIP and Imunizado are already guarded at detection time (lines 96, 111),
+    # but manual/official events could re-add them — this is the safety net.
+    _LIDER_EXCLUDED = {'vip', 'imunizado'}
     for name, weeks in calculated_points.items():
         for week, events in weeks.items():
             if any(e[0] == 'lider' for e in events):
-                calculated_points[name][week] = [e for e in events if e[0] == 'lider']
+                calculated_points[name][week] = [e for e in events if e[0] not in _LIDER_EXCLUDED]
 
     # Merge with cartola_points_log
     all_points = defaultdict(lambda: defaultdict(list))
@@ -495,11 +520,8 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
             points = evt['points']
             existing = all_points[participant].get(week, [])
             already_has = any(e[0] == event_type for e in existing)
-            auto_types = {'lider', 'anjo', 'monstro', 'emparedado', 'imunizado', 'vip',
-                          'desistente', 'eliminado', 'desclassificado', 'atendeu_big_fone',
-                          'monstro_retirado_vip', 'quarto_secreto'}
-            if not already_has and event_type not in auto_types:
-                all_points[participant][week].append((event_type, points, None))
+            if not already_has:
+                all_points[participant][week].append((event_type, points, evt.get('date')))
 
     return all_points
 
