@@ -1793,6 +1793,9 @@ jq '.weekly_events[] | select(.week==N) | .barrado_baile' data/manual_events.jso
 
 # Verify the power event was stored as expected
 jq '.power_events[] | select(.type=="barrado_baile" and .date=="YYYY-MM-DD")' data/manual_events.json
+
+# Verify cronologia event
+jq '.events[] | select(.date=="YYYY-MM-DD" and .category=="barrado_baile") | {date, title, source}' data/derived/game_timeline.json
 ```
 
 Expected:
@@ -1800,6 +1803,7 @@ Expected:
 - `type = "barrado_baile"`
 - `actor`/`target` names match API spelling
 - source URL present in `fontes`
+- cronologia event with `source = "power_events"` on the correct date
 
 ### 3. Commit + publish
 
