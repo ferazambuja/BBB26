@@ -139,7 +139,7 @@ nav_html = [
     '<nav id="cartola-quick-jump" class="cartola-jump-nav" aria-label="Atalhos da página Cartola">',
     '<a class="cartola-jump-link" href="#participantes">Participantes</a>',
     '<a class="cartola-jump-link" href="#evolucao">Evolução</a>',
-    '<a class="cartola-jump-link" href="#semanas">Semanas</a>',
+    '<a class="cartola-jump-link" href="#rodadas">Rodadas</a>',
     '<a class="cartola-jump-link" href="#pontos">Sistema de Pontos</a>',
     '</nav>',
 ]
@@ -159,7 +159,7 @@ emit(f'''
 <section class="cartola-kpi-grid">
   <article class="cartola-kpi cartola-kpi-week">
     <p class="cartola-kpi-value">{current_cycle_week}</p>
-    <p class="cartola-kpi-label">Semana do Ciclo</p>
+    <p class="cartola-kpi-label">Rodada Atual</p>
   </article>
   <article class="cartola-kpi cartola-kpi-role">
     <p class="cartola-kpi-value">{leader_events_count}</p>
@@ -335,17 +335,17 @@ def render_extreme_top5_card(tone_class, kicker, entries, empty_text, caption):
 emit('<section class="cartola-extremes-grid" aria-label="Destaques de pontuação da semana e da temporada">')
 render_extreme_top5_card(
     "cartola-extreme-positive",
-    f"SEMANA {current_cycle_week} • MAIOR PONTUAÇÃO POSITIVA (TOP 5)",
+    f"RODADA {current_cycle_week} • MAIOR PONTUAÇÃO POSITIVA (TOP 5)",
     week_positive_top5,
-    "Nenhum participante com saldo positivo na semana",
-    "soma em eventos positivos da semana atual",
+    "Nenhum participante com saldo positivo na rodada",
+    "soma em eventos positivos da rodada atual",
 )
 render_extreme_top5_card(
     "cartola-extreme-negative",
-    f"SEMANA {current_cycle_week} • MAIOR PONTUAÇÃO NEGATIVA (TOP 5)",
+    f"RODADA {current_cycle_week} • MAIOR PONTUAÇÃO NEGATIVA (TOP 5)",
     week_negative_top5,
-    "Ainda não houve lançamentos negativos nesta semana",
-    "soma em eventos negativos da semana atual",
+    "Ainda não houve lançamentos negativos nesta rodada",
+    "soma em eventos negativos da rodada atual",
 )
 render_extreme_top5_card(
     "cartola-extreme-positive",
@@ -441,7 +441,7 @@ for p in ranked_all_players_for_jump:
         week_tone = 'points-pos' if week_total > 0 else ('points-neg' if week_total < 0 else 'points-zero')
         week_cells.append(
             f'<div class="cartola-player-week-cell">'
-            f'<span class="cartola-player-week-label">Semana {week}</span>'
+            f'<span class="cartola-player-week-label">Rodada {week}</span>'
             f'<span class="cartola-player-week-value {week_tone}">{week_total:+d}</span>'
             f'</div>'
         )
@@ -469,7 +469,7 @@ for p in ranked_all_players_for_jump:
 
   <div class="cartola-player-meta-grid">
     <div class="cartola-player-meta-card">
-      <p class="meta-label">Semana {current_cycle_week}</p>
+      <p class="meta-label">Rodada {current_cycle_week}</p>
       <p class="meta-value {cycle_tone}">{cycle_total:+d}</p>
     </div>
     <div class="cartola-player-meta-card">
@@ -513,7 +513,7 @@ cumulative_evolution = cartola.get("cumulative_evolution", [])
 
 if cumulative_evolution:
     df = pd.DataFrame(cumulative_evolution)
-    df.rename(columns={"week": "Semana", "name": "Participante", "cumulative_points": "Pontos"}, inplace=True)
+    df.rename(columns={"week": "Rodada", "name": "Participante", "cumulative_points": "Pontos"}, inplace=True)
 
     final_scores = df.groupby('Participante')['Pontos'].last().to_dict()
     sorted_participants = sorted(final_scores.keys(), key=lambda x: -final_scores[x])
@@ -617,9 +617,11 @@ else:
 
 <div id="cartola-chart-mode" class="cartola-chart-note">Modo inicial: <strong>Top 8</strong>. Use os botões do gráfico para alternar a leitura.</div>
 
-# Semanas {#semanas}
+# Rodadas {#rodadas}
 
-Detalhamento semanal por papéis, eventos e pontuação. Em mobile, abrimos por resumo e expandimos sob demanda.
+Detalhamento por rodada: papéis, eventos e pontuação. Cada rodada corresponde a um ciclo do Líder (pode ser mais curta que 7 dias em modo turbo). Em mobile, abrimos por resumo e expandimos sob demanda.
+
+> A partir do Top 10, uma rodada do Cartola BBB pode abranger mais de um ciclo. A Rodada 11, por exemplo, cobre os Ciclos 11 e 12 (duas eliminações com um único time escalado).
 
 ```{python}
 #| label: weekly-tabs
@@ -633,7 +635,7 @@ if max_week_for_display > 0:
         open_attr = ' open' if week == current_cycle_week else ''
         emit(f'''
 <details class="cartola-week-details"{open_attr}>
-<summary class="cartola-week-summary-toggle">Semana {week}</summary>
+<summary class="cartola-week-summary-toggle">Rodada {week}</summary>
 <div class="cartola-week-details-body">
 ''')
 
@@ -799,16 +801,16 @@ if max_week_for_display > 0:
   id="cartola-week-more-{week}"
   data-target="cartola-week-collapse-{week}"
   data-label-more="Ver pontuações completas"
-  data-label-less="Ver resumo semanal">
+  data-label-less="Ver resumo da rodada">
   Ver pontuações completas
 </button>
 ''')
         else:
-            print('\n*Nenhum ponto registrado nesta semana.*\n')
+            print('\n*Nenhum ponto registrado nesta rodada.*\n')
 
         print('</div></details>')
 else:
-    print('*Nenhuma semana registrada ainda.*\n')
+    print('*Nenhuma rodada registrada ainda.*\n')
 ```
 
 # Sistema de Pontos {#pontos}

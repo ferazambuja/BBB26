@@ -26,7 +26,7 @@ def test_cartola_has_scannable_section_shell_and_quick_jump():
     assert 'id="cartola-quick-jump"' in content
     assert 'href="#ranking"' not in content
     assert 'href="#participantes"' in content
-    assert 'href="#semanas"' in content
+    assert 'href="#rodadas"' in content
     assert 'href="#pontos"' in content
 
 
@@ -136,7 +136,7 @@ def test_cartola_top5_extremes_are_computed_from_events_dynamically():
     assert "events = [evt for evt in events if evt.get('week') == week_filter]" in content
     assert "build_extreme_candidates(current_cycle_week, include_inactive=False)" in content
     assert "build_extreme_candidates(include_inactive=True)" in content
-    assert "Semana {current_cycle_week}" in content
+    assert "Rodada {current_cycle_week}" in content
     assert "temporada" in content.lower()
 
 
@@ -153,8 +153,8 @@ def test_cartola_top5_extremes_handle_inactive_and_weekly_gaps():
     css = _read(CARTOLA_CSS)
     assert "status_by_participant" in content
     assert "is-inactive" in content
-    assert "Nenhum participante com saldo positivo na semana" in content
-    assert "Ainda não houve lançamentos negativos nesta semana" in content
+    assert "Nenhum participante com saldo positivo na rodada" in content
+    assert "Ainda não houve lançamentos negativos nesta rodada" in content
     assert "inclui participantes ativos e eliminados" in content
     assert ".cartola-extreme-row.is-inactive .cartola-extreme-row-avatar" in css
 
