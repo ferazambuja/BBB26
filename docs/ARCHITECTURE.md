@@ -181,29 +181,31 @@ BBB game weeks are Líder-cycle-based (not calendar). The **Prova do Líder is t
 
 | Week | End Date | Líder | Paredão | Next Líder |
 |------|----------|-------|---------|------------|
-| 1 | 2026-01-21 | Alberto Cowboy | 1º (Jan 21) | Babu (Jan 22) |
-| 2 | 2026-01-28 | Babu Santana | 2º (Jan 27) | Maxiane (Jan 29) |
-| 3 | 2026-02-04 | Maxiane | 3º (Feb 3) | Jonas (Feb 5) |
-| 4 | 2026-02-12 | Jonas Sulzbach | 4º (Feb 10) | Jonas (Feb 13) |
-| 5 | 2026-02-18 | Jonas Sulzbach | 5º (Feb 17) | Jonas (?) |
-| 6 | 2026-02-25 | Jonas Sulzbach | 6º (Feb 25) | Samira (Feb 26) |
-| 7 | TBD | Samira | 7º (Mar 3, Falso) | ??? |
+| 1 | 2026-01-21 | Alberto Cowboy | 1º (Jan 21, Aline) | Babu (Jan 22) |
+| 2 | 2026-01-28 | Babu Santana | 2º (Jan 27, Edilson) | Maxiane (Jan 29) |
+| 3 | 2026-02-04 | Maxiane | 3º (Feb 3, Marcelo) | Jonas (Feb 5) |
+| 4 | 2026-02-12 | Jonas Sulzbach | 4º (Feb 10, Sarah) | Jonas (Feb 13) |
+| 5 | 2026-02-18 | Jonas Sulzbach | 5º (Feb 17, Sol Vega) | Jonas (Feb 19) |
+| 6 | 2026-02-25 | Jonas Sulzbach | 6º (Feb 25, Maxiane) | Samira (Feb 26) |
+| 7 | 2026-03-05 | Samira | 7º (Mar 3, Falso — Breno) | Alberto+Jonas co-Líderes (Mar 6) |
+| 8 | 2026-03-11 | Alberto Cowboy + Jonas Sulzbach | 8º (Mar 10, Babu) | Alberto (Mar 12) |
+| 9 | 2026-03-18 | Alberto Cowboy | 9º (Mar 17, Breno) | Alberto tetra (Mar 19) |
+| 10 | 2026-03-25 | Alberto Cowboy (tetra) | 10º (Mar 24, Jonas) | TBD (Mar 26) |
+| 11 | 2026-03-28 | TBD | 11º (Mar 29, TBD) | TBD (Mar 29) — **compressed: 3 days** |
+| 12 | TBD | TBD | 12º (Mar 31, TBD) | TBD — **compressed: 2-3 days** |
 
 ---
 
 ## Participant Reference
 
-### Active Participants (14)
+### Active Participants (11)
 
 | API Name | Group | Notes |
 |----------|-------|-------|
 | `Alberto Cowboy` | Veterano | Full name used |
 | `Ana Paula Renault` | Veterano | Full name used |
-| `Babu Santana` | Veterano | Full name used |
-| `Breno` | Pipoca | First name only |
 | `Chaiany` | Pipoca | First name only (entered Jan 18) |
 | `Gabriela` | Pipoca | First name only (entered Jan 18) |
-| `Jonas Sulzbach` | Veterano | Full name used |
 | `Jordana` | Pipoca | First name only |
 | `Juliano Floss` | Camarote | Full name used |
 | `Leandro` | Pipoca | First name only (entered Jan 18) |
@@ -212,14 +214,14 @@ BBB game weeks are Líder-cycle-based (not calendar). The **Prova do Líder is t
 | `Samira` | Pipoca | First name only |
 | `Solange Couto` | Camarote | Full name used |
 
-### Eliminated/Exited (11)
+### Eliminated/Exited (14)
 
 | Name | Exit Type | Date | Details |
 |------|-----------|------|---------|
 | `Henri Castelli` | Desistente | Jan 15 | Quit |
 | `Pedro` | Desistente | Jan 19 | Quit |
 | `Aline Campos` | Eliminada | Jan 21 | 1º Paredão |
-| `Matheus` | Eliminado | Jan 28 | 2º Paredão |
+| `Matheus` | Eliminado | Jan 28 | 2º Paredão (entered Jan 18) |
 | `Paulo Augusto` | Desclassificado | Jan 30 | Agressão durante Big Fone |
 | `Brigido` | Eliminado | Feb 3 | 3º Paredão |
 | `Sarah Andrade` | Eliminada | Feb 10 | 4º Paredão |
@@ -227,6 +229,9 @@ BBB game weeks are Líder-cycle-based (not calendar). The **Prova do Líder is t
 | `Edilson` | Desclassificado | Feb 14 | Discussão com Leandro Boneco |
 | `Marcelo` | Eliminado | Feb 17 | 5º Paredão |
 | `Maxiane` | Eliminada | Feb 25 | 6º Paredão |
+| `Breno` | Eliminado | Mar 3 / Mar 17 | 7º Paredão Falso (Quarto Secreto Mar 3, retornou Mar 4); 9º Paredão (eliminado definitivo Mar 17) |
+| `Babu Santana` | Eliminado | Mar 10 | 8º Paredão |
+| `Jonas Sulzbach` | Eliminado | Mar 24 | 10º Paredão |
 
 ---
 

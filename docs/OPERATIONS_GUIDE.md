@@ -461,6 +461,28 @@ Two recurring event types:
 | **Domingo** | ~14h-17h | **Presente do Anjo** (almoço) | [Presente do Anjo Checklist](#presente-do-anjo-checklist-sunday-afternoon) | `manual_events.json` |
 | **Domingo** | ~22h45 | **Paredão Formation** | [Paredão Checklist](#paredão-formation-checklist-sunday) | `paredoes.json` |
 
+### Compressed Cycles (Top 10+, W11 onward)
+
+When the show enters the final phase, Líder cycles compress to **2–4 days** instead of the standard ~7. The standard weekly pattern table above no longer applies. Key differences:
+
+- **Some dynamics are dropped entirely**: Sincerão, Barrado no Baile, and Ganha-Ganha may not occur in compressed cycles. Do not add scheduled events for them unless the article/show confirms them.
+- **Anjo and Formation may happen on the same day** (e.g., W11: both on Friday).
+- **Elimination + Líder + Formation can all occur on the same day** (e.g., W12: all three on Sunday Mar 29).
+- **Use manual `scheduled_events` for all events** in compressed cycles. The scaffold profiles assume standard weekday assignments (Thu Líder, Sat Anjo, Sun Formation, Tue Elimination) which are wrong for compressed cycles. Manual events override scaffolds via singleton dedup.
+- **`WEEK_END_DATES` entries will be very close together** (1–3 days apart instead of 6–8). This is expected.
+- **Rollover may happen within hours of the previous elimination.** The "Thursday/Friday" rollover timing assumption from the standard runbook does not apply. Follow the same Líder Transition Checklist steps but adapt timing to the actual Prova do Líder date.
+- **P11 skeleton safety**: do NOT set `"status": "em_andamento"` until formation data exists. Use `"preparando"` when creating the skeleton after the Líder is crowned. The LXC scheduler triggers Votalhada bootstrap from `em_andamento` entries.
+- **Votalhada collection timing shifts**: if elimination is Sunday (not Tuesday), collect Votalhada data Saturday night or Sunday morning.
+
+**Reference schedule for W11–W12 (Top 10, Mar 26–31):**
+
+| Date | Day | Cycle | Events |
+|------|-----|-------|--------|
+| Thu Mar 26 | Thu | W11 | Prova do Líder |
+| Fri Mar 27 | Fri | W11 | Prova do Anjo + Paredão Formation (same night) |
+| Sun Mar 29 | Sun | W11→W12 | Elimination (11º) + Prova do Líder (W12) + Formation (12º) |
+| Tue Mar 31 | Tue | W12 | Elimination (12º) |
+
 ### Sincerão History (Monday — recurring weekly)
 
 Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for multiple rounds).
