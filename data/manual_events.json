@@ -4985,6 +4985,15 @@
         ],
         "edges_notes": "Formato de placa única negativa. Cada participante aponta exatamente 1 pessoa como 'chato de galocha'. Todos os edges são ataque com tema unificado."
       },
+      "barrado_baile": [
+        {
+          "date": "2026-03-25",
+          "lider": "Alberto Cowboy",
+          "alvo": "Ana Paula Renault",
+          "desafio": "Testar várias chaves para abrir cadeados (mesmo desafio da semana anterior)",
+          "nota": "5ª vez de Ana Paula no Barrado. Nas 4 anteriores: não cumpriu 3 vezes (chegou a dormir), tentou na 4ª mas não concluiu."
+        }
+      ],
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-contragolpe-e-triangulo-de-risco.ghtml",
         "docs/scraped/dinamica-da-semana-tem-contragolpe-e-triangulo-de-risco.md"
@@ -4994,10 +5003,12 @@
       "week": 11,
       "start_date": "2026-03-26",
       "end_date": "2026-03-28",
-      "notes": "Top 10 — semana comprimida com DUAS eliminações. Qui (26): Prova do Líder. Sex (27): Prova do Anjo + Formação do 11º Paredão (mesma noite). Dom (29): Eliminação + Prova do Líder + Formação do 12º Paredão (tudo no mesmo dia). Ter (31): 2ª Eliminação. Última rodada com 4 escalações no Cartola; a partir da 12ª rodada, apenas 3.",
+      "notes": "MODO TURBO (permanente até a final). Qui (26): Prova do Líder em 2 etapas (Eliminatória à tarde + Final ao vivo). Sex (27): Prova do Anjo (autoimune, sem Presente do Anjo, sem Monstro) + Formação do 11º Paredão (Líder + 2 mais votados = triplo; sem Contragolpe, sem Bate e Volta). Dom (29): Eliminação às 14h55 (programa da tarde) + Prova do Líder + Formação do 12º Paredão (programa noturno após Fantástico). Ter (31): 2ª Eliminação. Cartola: última rodada com 4 escalações.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/top-10-do-bbb-26-entenda-como-vai-funcionar-o-cartola-bbb-durante-este-periodo.ghtml",
-        "docs/scraped/top-10-do-bbb-26-entenda-como-vai-funcionar-o-cartola-bbb-durante-este-periodo.md"
+        "docs/scraped/top-10-do-bbb-26-entenda-como-vai-funcionar-o-cartola-bbb-durante-este-periodo.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
       ]
     },
     {
@@ -7178,6 +7189,22 @@
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-abre-mao-de-informacao-privilegiada-e-ganha-r-20-mil-no-bbb-26.ghtml"
       ]
+    },
+    {
+      "date": "2026-03-25",
+      "week": 10,
+      "type": "barrado_baile",
+      "actor": "Alberto Cowboy",
+      "target": "Ana Paula Renault",
+      "source": "Barrado no Baile",
+      "detail": "Líder barrou Ana Paula pela 5ª vez. Desafio: testar chaves para abrir cadeados (mesmo da semana anterior). Ana Paula não cumpriu nas 3 primeiras vezes e não concluiu na 4ª.",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/festa/noticia/ana-paula-renault-inicia-desafio-do-barrado-no-baile-quero-ir-para-irritar-quem-me-irrita.ghtml"
+      ]
     }
   ],
   "cartola_points_log": [],
@@ -7373,29 +7400,54 @@
     {
       "date": "2026-03-26",
       "week": 11,
+      "category": "lider_classificatoria",
+      "emoji": "🏁",
+      "title": "Prova do Líder — etapa Eliminatória",
+      "detail": "11ª Prova do Líder em 2 etapas: Eliminatória durante o dia. Modo turbo.",
+      "time": "A definir",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
+      ]
+    },
+    {
+      "date": "2026-03-26",
+      "week": 11,
       "category": "lider",
       "emoji": "👑",
-      "title": "Prova do Líder",
-      "detail": "11ª Prova do Líder. Top 10.",
-      "time": "Ao Vivo"
+      "title": "Prova do Líder — Final ao vivo",
+      "detail": "11ª Prova do Líder, etapa Final ao vivo. Modo turbo: Líder em 2 etapas.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
+      ]
     },
     {
       "date": "2026-03-27",
       "week": 11,
       "category": "anjo",
       "emoji": "😇",
-      "title": "Prova do Anjo",
-      "detail": "11ª Prova do Anjo.",
-      "time": "A definir"
+      "title": "Prova do Anjo — Anjo autoimune",
+      "detail": "11ª Prova do Anjo. Anjo será autoimune (não escolhe quem imunizar — se auto-imuniza). Não há mais Presente do Anjo nem Castigo do Monstro.",
+      "time": "A definir",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
+      ]
     },
     {
       "date": "2026-03-27",
       "week": 11,
       "category": "paredao_formacao",
       "emoji": "🗳️",
-      "title": "Formação do 11º Paredão",
-      "detail": "Formação do Paredão na mesma noite da Prova do Anjo.",
-      "time": "Ao Vivo"
+      "title": "Formação do 11º Paredão — triplo (Líder + 2 mais votados)",
+      "detail": "Modo turbo: Anjo autoimune, Líder faz decreto (empareda 1), casa vota e os 2 mais votados vão ao Paredão. Paredão triplo. Sem Contragolpe, sem Bate e Volta (permanentemente removidos).",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
+      ]
     },
     {
       "date": "2026-03-29",
@@ -7403,8 +7455,12 @@
       "category": "paredao_resultado",
       "emoji": "🏁",
       "title": "Eliminação (11º Paredão)",
-      "detail": "Resultado do 11º Paredão.",
-      "time": "Ao Vivo"
+      "detail": "Programa da tarde (14h55, após Temperatura Máxima). Eliminação do 11º Paredão.",
+      "time": "14h55",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
+      ]
     },
     {
       "date": "2026-03-29",
@@ -7412,8 +7468,12 @@
       "category": "lider",
       "emoji": "👑",
       "title": "Prova do Líder",
-      "detail": "12ª Prova do Líder, disputada logo após a eliminação.",
-      "time": "Ao Vivo"
+      "detail": "12ª Prova do Líder. Programa noturno (após Fantástico). Novo ciclo começa imediatamente após a eliminação da tarde.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
+      ]
     },
     {
       "date": "2026-03-29",
@@ -7421,8 +7481,12 @@
       "category": "paredao_formacao",
       "emoji": "🗳️",
       "title": "Formação do 12º Paredão",
-      "detail": "Formação do Paredão logo após a Prova do Líder.",
-      "time": "Ao Vivo"
+      "detail": "Formação do Paredão logo após a Prova do Líder no programa noturno. Modo turbo até o final.",
+      "time": "Ao Vivo",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-bbb-26-entra-em-modo-turbo-com-prova-do-lider-em-2-etapas-e-anjo-autoimune.md"
+      ]
     },
     {
       "date": "2026-03-31",
