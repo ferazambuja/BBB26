@@ -477,7 +477,7 @@ WEEK_END_DATES: list[str] = [
     "2026-03-05",  # Week 7 — Samira Líder; 7º Paredão (Falso) Mar 3; dupla liderança (W8) definida Mar 6
     "2026-03-11",  # Week 8 — Alberto Cowboy + Jonas Sulzbach co-Líderes; 8º Paredão Mar 10; Alberto Líder solo (9ª PdL) Mar 12
     "2026-03-18",  # Week 9 — Alberto Cowboy Líder; 9º Paredão Mar 18; Alberto Líder tetra (10ª PdL) Mar 19
-    # Week 10 boundary TBD — Prova do Líder expected Thu Mar 26; add after Líder is confirmed
+    "2026-03-25",  # Week 10 — Alberto Cowboy Líder (tetra); 10º Paredão Mar 24 (Jonas eliminated); next Líder Mar 26
 ]
 
 
