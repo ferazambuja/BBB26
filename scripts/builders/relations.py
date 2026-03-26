@@ -571,7 +571,7 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
 
     # Decide effective week for paredão scoring
     active_paredao = None
-    for p in paredoes.get("paredoes", []) if paredoes else []:
+    for p in reversed(paredoes.get("paredoes", []) if paredoes else []):
         if p.get("status") == "em_andamento":
             active_paredao = p
             break

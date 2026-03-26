@@ -97,7 +97,7 @@ def _get_active_paredao() -> int | None:
         return None
     try:
         data = json.loads(PAREDOES_JSON.read_text(encoding="utf-8"))
-        for p in data.get("paredoes", []):
+        for p in reversed(data.get("paredoes", [])):
             if p.get("status") == "em_andamento":
                 return p["numero"]
     except Exception:

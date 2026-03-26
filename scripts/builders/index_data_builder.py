@@ -437,7 +437,7 @@ def _get_event_cycle(item: dict, fallback: int = 0) -> int:
 def _resolve_current_cycle_week(current_week: int, manual_events: dict | None, paredoes: dict | None) -> int:
     """Pick the active cycle from live paredão state or the manually opened cycle."""
     active_paredao = next(
-        (p for p in (paredoes or {}).get("paredoes", []) if p.get("status") == "em_andamento"),
+        (p for p in reversed((paredoes or {}).get("paredoes", [])) if p.get("status") == "em_andamento"),
         None,
     )
     if isinstance(active_paredao, dict):
@@ -810,9 +810,10 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     lider_by_paredao: dict[int, str | None] = {}
     lideres_by_paredao: dict[int, list[str]] = {}
     for par in paredoes_list:
+        semana = par.get("semana", par["numero"])
         formacao = par.get("formacao", {})
-        lider_by_paredao[par["numero"]] = formacao.get("lider")
-        lideres_by_paredao[par["numero"]] = resolve_leaders(formacao)
+        lider_by_paredao[semana] = formacao.get("lider")
+        lideres_by_paredao[semana] = resolve_leaders(formacao)
 
     effective_week_ends = get_effective_week_end_dates()
     n_weeks = len(effective_week_ends)
