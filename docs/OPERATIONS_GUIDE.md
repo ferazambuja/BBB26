@@ -611,7 +611,11 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    2. Use 2 `fases`: (1) `eliminatoria` for those eliminated in qualifying rounds, (2) `classificatoria` for the finalists vs eliminated intermediates.
    3. Add `nota_ranking` explaining the entry is intentionally partial ("Classificatórias apenas — final ao vivo pendente").
    4. After the final: fill `vencedor`, add a phase 3 with the final result, update `nota`, and remove the "pendente" note from `nota_ranking`.
-   5. **Cross-reference with scheduled events**: Update the `lider_classificatoria` event with result details and the `lider` event with finalist names. Also update Friday `dinamica` if the first-eliminated feed into it.
+   5. **Cross-reference with scheduled events (MANDATORY — do this immediately after recording the prova)**:
+      - Update the `lider_classificatoria` scheduled event with result details: new `title` (who advanced), new `detail` (format, top 3, DQ if any), updated `fontes`.
+      - **CRITICAL: Remove the `time` field** when updating with real results. The `time` field keeps the event as "pending" (dashed border, 🔮 prefix). Removing it triggers immediate resolution (solid border). Without this, the cronologia shows a stale "A definir" badge on an event that already happened.
+      - Update the `lider` scheduled event with finalist names if known before the final.
+      - Also update Friday `dinamica` if the first-eliminated feed into it.
    6. **Phase mapping**: When the classificatória has multiple sub-stages (e.g., 3 stages of "senses") but the article only names eliminations from the first sub-stage and the final classifiers, consolidate the intermediate sub-stages into a single `classificatoria` fase (pattern: "Eliminatória + finalists but not intermediate rounds" from [How to extract positions](#how-to-extract-positions-from-articles)).
 
    **Resistance/dupla provas — full elimination order**:
