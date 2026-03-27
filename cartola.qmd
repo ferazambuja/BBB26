@@ -522,7 +522,7 @@ if cumulative_evolution:
     trace_order = []
 
     for name in sorted_participants:
-        df_p = df[df['Participante'] == name].sort_values('Semana')
+        df_p = df[df['Participante'] == name].sort_values('Rodada')
         if df_p.empty:
             continue
 
@@ -531,7 +531,7 @@ if cumulative_evolution:
         trace_order.append(name)
 
         fig.add_trace(go.Scatter(
-            x=df_p['Semana'],
+            x=df_p['Rodada'],
             y=df_p['Pontos'],
             mode='lines+markers',
             name=f"{name} ({final_pts:+d})",
@@ -550,7 +550,7 @@ if cumulative_evolution:
 
     fig.update_layout(
         title="Evolução da Pontuação Cartola (Top 8)",
-        xaxis_title="Semana",
+        xaxis_title="Rodada",
         yaxis_title="Pontos Acumulados",
         xaxis=dict(tickmode='linear', tick0=1, dtick=1),
         yaxis=dict(zeroline=True, zerolinecolor='rgba(255,255,255,0.3)', zerolinewidth=1),
