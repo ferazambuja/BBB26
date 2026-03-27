@@ -707,7 +707,15 @@ def _collect_timeline_paredao_events(
             anjo = anjo or _lookup_provas_winner(provas_data, "anjo", p_week)
             # Imunidade placeholder (only if not already emitted as real in step 1)
             if not (autoimune and anjo) and not (imun and isinstance(imun, dict) and imun.get("quem")):
-                if anjo:
+                if autoimune and not anjo:
+                    # Autoimune but Anjo name unknown yet — skip the "escolhe" placeholder
+                    events.append({
+                        "date": data_form, "cycle": week, "category": "paredao_imunidade",
+                        "emoji": "🛡️", "title": f"{num}º {tipo_label} — Anjo autoimune",
+                        "detail": "Anjo se auto-imuniza (sem escolha de imunidade)",
+                        "participants": [], "source": "paredoes", "status": "scheduled",
+                    })
+                elif anjo:
                     events.append({
                         "date": data_form, "cycle": week, "category": "paredao_imunidade",
                         "emoji": "🛡️", "title": f"{num}º {tipo_label} — {anjo} imuniza",

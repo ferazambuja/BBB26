@@ -717,6 +717,14 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    ```
    **Note**: `formacao.lider` (nested under `formacao`), NOT top-level `lider`.
 
+   **Anjo autoimune (compressed cycles)**: When the Anjo is autoimune (self-immune, no choice of who to immunize), add these fields to the paredão skeleton formation as soon as the Anjo result is known:
+   ```json
+   "anjo": "Anjo Name",
+   "anjo_autoimune": true,
+   "imunizado": {"por": "Anjo Name", "quem": "Anjo Name", "motivo": "Anjo autoimune — se auto-imuniza"}
+   ```
+   Without `anjo_autoimune: true`, the cronologia incorrectly shows "Anjo escolhe quem imunizar" (the generic placeholder). With it, the cronologia shows "se autoimunizou" and skips the "escolhe" step. This is critical for compressed cycles (W11+) where the Anjo is always autoimune.
+
    **Dual Leadership**: When two Líderes share power (e.g., Week 8 "Liderança em Dobro"):
    ```json
    "formacao": {"lider": "Name A + Name B", "lideres": ["Name A", "Name B"]}
@@ -914,9 +922,12 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 
 **Fill-later fields** (Sunday [Presente do Anjo](#presente-do-anjo-checklist-sunday-afternoon)): `almoco_date`, `almoco_convidados`, `escolha`, `usou_extra_poder`, `imunizado`. Fill after the Sunday afternoon show.
 
+**Anjo autoimune (REQUIRED for compressed cycles W11+)**: When the Anjo is autoimune, also update `paredoes.json` immediately — add `anjo`, `anjo_autoimune`, and `imunizado` to the formation skeleton. Without this, the cronologia shows the wrong "escolhe quem imunizar" placeholder. See the [Paredão Skeleton](#líder-transition-checklist-thursday-night) for the exact JSON fields.
+
 **Monstro**: API auto-detects the role. Fill `monstro` name from article or API.
-- `monstro_tipo`: descriptive name of the castigo (e.g., "Monstro Movendo Areia", "Castigo do Monstro — Fantasia de abóbora")
-- `monstro_motivo`: Anjo's stated reason + consequences (e.g., loss of estalecas, VIP→Xepa)
+- `monstro` field format: **string** for single target (`"Name"`), **list of strings** for multiple targets (`["Name1", "Name2"]`). **Never use an object** — the timeline builder expects string or list, not `{alvos: [...]}`.
+- `monstro_tipo`: descriptive name of the castigo (e.g., "Os Iluminados — revezar refletores", "Fantasia de abóbora")
+- `monstro_motivo`: Anjo's stated reason + consequences (e.g., "Escolheu Ana Paula e Milena. -300 estalecas, saem do VIP para Xepa")
 - Note: GShow sometimes publishes a separate "Castigo do Monstro" article — scrape it if available and add to `fontes`
 
 **Cartola `monstro_retirado_vip`**: Auto-detected. If the Monstro recipient was in VIP in the previous snapshot, the -5 penalty is automatically applied. No manual entry needed.
