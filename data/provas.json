@@ -5,7 +5,6 @@
     {
       "numero": 1,
       "tipo": "lider",
-      "week": 1,
       "date": "2026-01-14",
       "nome": "Prova do Líder — Resistência (26h)",
       "formato": "resistencia",
@@ -136,12 +135,12 @@
         "Sol Vega",
         "Solange Couto"
       ],
-      "vip_source": "api_fallback"
+      "vip_source": "api_fallback",
+      "cycle": 1
     },
     {
       "numero": 2,
       "tipo": "anjo",
-      "week": 1,
       "date": "2026-01-17",
       "nome": "Prova do Anjo — Dupla Velocidade",
       "formato": "dupla_velocidade",
@@ -251,12 +250,12 @@
         }
       ],
       "nota": "Duplas competiram em velocidade. Na final individual, Jonas Sulzbach venceu sua parceira Sarah Andrade. Pedro e Paulo Augusto desclassificados por descumprimento de regras. Chaiany, Gabriela, Leandro e Matheus entraram no jogo em 18/01 (Casa de Vidro) e, por isso, não eram elegíveis na prova de 17/01.",
-      "nota_ranking": "Ranking baseado em duplas. Fase 1 tem 9 duplas com posições (não nomes individuais). Fase 2 tem apenas o ranking individual da dupla vencedora (Jonas 1º, Sarah 2ª). Todos os 18 participantes são ranqueados pelas posições de suas duplas, mas o ranking individual além da final não está disponível."
+      "nota_ranking": "Ranking baseado em duplas. Fase 1 tem 9 duplas com posições (não nomes individuais). Fase 2 tem apenas o ranking individual da dupla vencedora (Jonas 1º, Sarah 2ª). Todos os 18 participantes são ranqueados pelas posições de suas duplas, mas o ranking individual além da final não está disponível.",
+      "cycle": 1
     },
     {
       "numero": 3,
       "tipo": "bate_volta",
-      "week": 1,
       "date": "2026-01-19",
       "nome": "Prova Bate e Volta — Jogo da Memória",
       "formato": "memoria",
@@ -292,12 +291,12 @@
           "titulo": "Primeiro Paredão do BBB 26: Paulo Augusto se livra da berlinda na Prova Bate e Volta"
         }
       ],
-      "nota": "Jogo da memória entre três emparedados. Paulo Augusto venceu e escapou do 1º Paredão. Aline Campos e Ana Paula Renault permaneceram. A disputa ocorreu na noite de 18/01 durante a formação; a matéria de resultado foi publicada às 00h17 de 19/01."
+      "nota": "Jogo da memória entre três emparedados. Paulo Augusto venceu e escapou do 1º Paredão. Aline Campos e Ana Paula Renault permaneceram. A disputa ocorreu na noite de 18/01 durante a formação; a matéria de resultado foi publicada às 00h17 de 19/01.",
+      "cycle": 1
     },
     {
       "numero": 4,
       "tipo": "lider",
-      "week": 2,
       "date": "2026-01-22",
       "nome": "Prova do Líder — Equilíbrio",
       "formato": "equilibrio",
@@ -380,12 +379,12 @@
         "Milena",
         "Solange Couto"
       ],
-      "vip_source": "api_fallback"
+      "vip_source": "api_fallback",
+      "cycle": 2
     },
     {
       "numero": 5,
       "tipo": "anjo",
-      "week": 2,
       "date": "2026-01-23",
       "nome": "Prova do Anjo — Dupla Pontuação",
       "formato": "dupla_pontuacao",
@@ -513,14 +512,13 @@
           "titulo": "Quem é o Anjo do BBB 26? Jonas Sulzbach vence segunda prova"
         }
       ],
-      "nota": "Duplas competiram por pontuação. Jonas e Sarah lideraram com 64 pontos. Na final individual, Jonas venceu Sarah e se tornou Anjo pela segunda vez. Data publicação GShow: 23/01/2026 18h30."
-      ,
-      "nota_ranking": "Fase 1 usa ranking com empate (posição 4 compartilhada por 3 duplas), por isso as posições 5 e 6 não aparecem."
+      "nota": "Duplas competiram por pontuação. Jonas e Sarah lideraram com 64 pontos. Na final individual, Jonas venceu Sarah e se tornou Anjo pela segunda vez. Data publicação GShow: 23/01/2026 18h30.",
+      "nota_ranking": "Fase 1 usa ranking com empate (posição 4 compartilhada por 3 duplas), por isso as posições 5 e 6 não aparecem.",
+      "cycle": 2
     },
     {
       "numero": 6,
       "tipo": "lider",
-      "week": 3,
       "date": "2026-01-29",
       "nome": "Prova do Líder — Circuito Mercado Pago + Celulares",
       "formato": "circuito_equipe_sorte",
@@ -682,12 +680,12 @@
         "Sarah Andrade",
         "Solange Couto"
       ],
-      "vip_source": "api_fallback"
+      "vip_source": "api_fallback",
+      "cycle": 3
     },
     {
       "numero": 7,
       "tipo": "anjo",
-      "week": 3,
       "date": "2026-01-31",
       "nome": "Prova do Anjo — Barris Amstel + Duelos",
       "formato": "eliminacao_duelos",
@@ -942,14 +940,13 @@
           "titulo": "Prova do Anjo BBB 26: vencedor duas vezes, Jonas quebra regra e é desclassificado (Itatiaia — Jonas DQ detail not in GShow)"
         }
       ],
-      "nota": "Fase 1: barris Amstel (lúpulo/malte/água avança, milho elimina). 8 avançaram. Fase 2: duelos com barco e pelúcias em quartas/semis/final. Sarah venceu Breno na final. Jonas desclassificado por tocar o pino vermelho; Ana Paula desclassificada por não armazenar ingredientes corretamente. Excluídos: Maxiane (Líder), Brigido (vetado por Breno). GShow: 'terceira Prova do Anjo'."
-      ,
-      "nota_ranking": "Fase 1 é bucket de status (8 classificados = posição 1; 10 eliminados = posição 9). Fase 2 segue mata-mata e as posições intermediárias podem não ser contínuas."
+      "nota": "Fase 1: barris Amstel (lúpulo/malte/água avança, milho elimina). 8 avançaram. Fase 2: duelos com barco e pelúcias em quartas/semis/final. Sarah venceu Breno na final. Jonas desclassificado por tocar o pino vermelho; Ana Paula desclassificada por não armazenar ingredientes corretamente. Excluídos: Maxiane (Líder), Brigido (vetado por Breno). GShow: 'terceira Prova do Anjo'.",
+      "nota_ranking": "Fase 1 é bucket de status (8 classificados = posição 1; 10 eliminados = posição 9). Fase 2 segue mata-mata e as posições intermediárias podem não ser contínuas.",
+      "cycle": 3
     },
     {
       "numero": 8,
       "tipo": "bate_volta",
-      "week": 3,
       "date": "2026-02-01",
       "nome": "Prova Bate e Volta — 3º Paredão",
       "formato": null,
@@ -988,12 +985,12 @@
           "titulo": "Jonas Sulzbach se livra do Paredão na Prova Bate e Volta do BBB 26"
         }
       ],
-      "nota": "Jonas Sulzbach venceu Leandro e escapou do 3º Paredão. Brigido (vetado pelo Big Fone) e Ana Paula (indicação do líder) não disputaram."
+      "nota": "Jonas Sulzbach venceu Leandro e escapou do 3º Paredão. Brigido (vetado pelo Big Fone) e Ana Paula (indicação do líder) não disputaram.",
+      "cycle": 3
     },
     {
       "numero": 9,
       "tipo": "lider",
-      "week": 4,
       "date": "2026-02-05",
       "nome": "Prova do Líder — Cadeados e Cubos (Agilidade)",
       "formato": "agilidade_fases",
@@ -1086,12 +1083,12 @@
         "Sarah Andrade",
         "Sol Vega"
       ],
-      "vip_source": "api_fallback"
+      "vip_source": "api_fallback",
+      "cycle": 4
     },
     {
       "numero": 10,
       "tipo": "anjo",
-      "week": 4,
       "date": "2026-02-07",
       "nome": "Prova do Anjo — Vegetais Sazón (Dupla Velocidade)",
       "formato": "dupla_velocidade",
@@ -1223,14 +1220,13 @@
           "titulo": "Entenda as regras da quarta Prova do Anjo do BBB 26"
         }
       ],
-      "nota": "Duplas em velocidade com canhão + cumbuca de vegetais Sazón. Na final individual, Alberto Cowboy venceu Ana Paula Renault. Alberto teve mal-estar antes da final."
-      ,
-      "nota_ranking": "Fase 1 tem top 6 por tempo e um bloco de desclassificados/fora do corte na posição 7 (sem ordenação individual adicional)."
+      "nota": "Duplas em velocidade com canhão + cumbuca de vegetais Sazón. Na final individual, Alberto Cowboy venceu Ana Paula Renault. Alberto teve mal-estar antes da final.",
+      "nota_ranking": "Fase 1 tem top 6 por tempo e um bloco de desclassificados/fora do corte na posição 7 (sem ordenação individual adicional).",
+      "cycle": 4
     },
     {
       "numero": 11,
       "tipo": "bate_volta",
-      "week": 4,
       "date": "2026-02-08",
       "nome": "Prova Bate e Volta — 4º Paredão",
       "formato": "caixinhas",
@@ -1271,12 +1267,12 @@
           "titulo": "Samira se livra do Paredão na Prova Bate e Volta do BBB 26"
         }
       ],
-      "nota": "Três etapas com 12 caixinhas em 9 rodadas. Samira acertou mais caixas e escapou do 4º Paredão."
+      "nota": "Três etapas com 12 caixinhas em 9 rodadas. Samira acertou mais caixas e escapou do 4º Paredão.",
+      "cycle": 4
     },
     {
       "numero": 12,
       "tipo": "lider",
-      "week": 5,
       "date": "2026-02-13",
       "nome": "Prova do Líder — Resistência (pontuação)",
       "formato": "resistencia_pontuacao",
@@ -1346,12 +1342,12 @@
         "Jordana",
         "Marciele"
       ],
-      "vip_source": "api_fallback"
+      "vip_source": "api_fallback",
+      "cycle": 5
     },
     {
       "numero": 13,
       "tipo": "anjo",
-      "week": 5,
       "date": "2026-02-14",
       "nome": "Prova do Anjo — Tabuleiro de Celulares",
       "formato": "tabuleiro",
@@ -1410,12 +1406,12 @@
         }
       ],
       "nota": "Sorteio por celulares definiu 9 participantes no tabuleiro. Gabriela avançou nas casas com mensagens e se consagrou Anjo da semana.",
-      "nota_ranking": "Formato tabuleiro — apenas o vencedor tem posição definida. Demais participantes não possuem classificação."
+      "nota_ranking": "Formato tabuleiro — apenas o vencedor tem posição definida. Demais participantes não possuem classificação.",
+      "cycle": 5
     },
     {
       "numero": 14,
       "tipo": "bate_volta",
-      "week": 5,
       "date": "2026-02-15",
       "nome": "Prova Bate e Volta — 5º Paredão",
       "formato": "eliminatoria",
@@ -1468,12 +1464,12 @@
           "titulo": "Quem está no 5° Paredão do BBB 26? Marcelo, Samira e Solange Couto formam a berlinda"
         }
       ],
-      "nota": "Cinco participantes disputaram. Jordana, Alberto Cowboy e Breno escaparam. Samira e Solange Couto permaneceram no 5º Paredão com Marcelo."
+      "nota": "Cinco participantes disputaram. Jordana, Alberto Cowboy e Breno escaparam. Samira e Solange Couto permaneceram no 5º Paredão com Marcelo.",
+      "cycle": 5
     },
     {
       "numero": 15,
       "tipo": "lider",
-      "week": 6,
       "date": "2026-02-19",
       "nome": "Prova do Líder — Duplas (Chopeira + Lançamento)",
       "formato": "dupla_fases",
@@ -1592,12 +1588,12 @@
         "Jordana",
         "Maxiane"
       ],
-      "vip_source": "api_fallback"
+      "vip_source": "api_fallback",
+      "cycle": 6
     },
     {
       "numero": 16,
       "tipo": "anjo",
-      "week": 6,
       "date": "2026-02-21",
       "nome": "Prova do Anjo — Eliminação em Círculo + Quiz",
       "formato": "eliminacao_quiz",
@@ -1765,14 +1761,13 @@
           "titulo": "Quem é o Anjo do BBB 26? Chaiany vence a sexta prova"
         }
       ],
-      "nota": "Fase 1: círculo de mãos dadas com eliminação progressiva em 5 rodadas (sorteado escolhe quem eliminar, eliminado leva um vizinho). Fase 2: quiz de 8 perguntas — Chaiany venceu com menor pontuação (4 pontos)."
-      ,
-      "nota_ranking": "Fase 1 elimina em pares por rodada (alvo + vizinho), por isso há posições repetidas e saltos (5/7/9/11/13)."
+      "nota": "Fase 1: círculo de mãos dadas com eliminação progressiva em 5 rodadas (sorteado escolhe quem eliminar, eliminado leva um vizinho). Fase 2: quiz de 8 perguntas — Chaiany venceu com menor pontuação (4 pontos).",
+      "nota_ranking": "Fase 1 elimina em pares por rodada (alvo + vizinho), por isso há posições repetidas e saltos (5/7/9/11/13).",
+      "cycle": 6
     },
     {
       "numero": 17,
       "tipo": "bate_volta",
-      "week": 6,
       "date": "2026-02-22",
       "nome": "Prova Bate e Volta — 6º Paredão",
       "vencedor": "Alberto Cowboy",
@@ -1806,12 +1801,12 @@
           "titulo": "Quem está no 6° Paredão do BBB 26? Chaiany, Maxiane e Milena formam a berlinda"
         }
       ],
-      "nota": "Alberto Cowboy venceu Maxiane e escapou do 6º Paredão. Chaiany vetada por Alberto (Colar do Poder da Máquina do Poder)."
+      "nota": "Alberto Cowboy venceu Maxiane e escapou do 6º Paredão. Chaiany vetada por Alberto (Colar do Poder da Máquina do Poder).",
+      "cycle": 6
     },
     {
       "numero": 18,
       "tipo": "lider",
-      "week": 7,
       "date": "2026-02-26",
       "nome": "7ª Prova do Líder — Rampa + Roleta (duas etapas)",
       "formato": "pontuacao_duplas_eliminacao",
@@ -2015,12 +2010,12 @@
         "Juliano Floss",
         "Milena"
       ],
-      "vip_source": "oficial_gshow"
+      "vip_source": "oficial_gshow",
+      "cycle": 7
     },
     {
       "numero": 19,
       "tipo": "anjo",
-      "week": 7,
       "date": "2026-02-28",
       "nome": "7ª Prova do Anjo — Trios + Caixas (duas etapas)",
       "formato": "trios_eliminacao",
@@ -2168,12 +2163,12 @@
           "arquivo": "docs/scraped/quem-e-o-anjo-do-bbb-26-alberto-cowboy-vence-a-setima-prova.md",
           "titulo": "Quem é o Anjo do BBB 26? Alberto Cowboy vence a sétima prova"
         }
-      ]
+      ],
+      "cycle": 7
     },
     {
       "numero": 20,
       "tipo": "bate_volta",
-      "week": 7,
       "date": "2026-03-01",
       "nome": "Prova Bate e Volta — 7º Paredão (Falso)",
       "vencedor": "Marciele",
@@ -2206,12 +2201,12 @@
         }
       ],
       "excluidos": [],
-      "nota": "Marciele venceu a Prova Bate e Volta do 7º Paredão (Falso) e escapou. Alberto Cowboy e Breno permaneceram com Jordana na votação."
+      "nota": "Marciele venceu a Prova Bate e Volta do 7º Paredão (Falso) e escapou. Alberto Cowboy e Breno permaneceram com Jordana na votação.",
+      "cycle": 7
     },
     {
       "numero": 21,
       "tipo": "lider",
-      "week": 8,
       "date": "2026-03-06",
       "nome": "8ª Prova do Líder — Resistência em Duplas (liderança compartilhada)",
       "formato": "resistencia_duplas",
@@ -2355,12 +2350,12 @@
         "Marciele",
         "Solange Couto"
       ],
-      "vip_source": "oficial_gshow"
+      "vip_source": "oficial_gshow",
+      "cycle": 8
     },
     {
       "numero": 22,
       "tipo": "anjo",
-      "week": 8,
       "date": "2026-03-07",
       "nome": "8ª Prova do Anjo — Percurso Individual por Tempo (4 fases)",
       "formato": "percurso_tempo_4fases",
@@ -2499,12 +2494,12 @@
           "arquivo": "docs/scraped/jonas-sulzbach-recebe-castigo-do-monstro-no-bbb-26.md",
           "titulo": "Jonas Sulzbach recebe Castigo do Monstro no BBB 26"
         }
-      ]
+      ],
+      "cycle": 8
     },
     {
       "numero": 23,
       "tipo": "bate_volta",
-      "week": 8,
       "date": "2026-03-08",
       "nome": "Prova Bate e Volta — 8º Paredão",
       "formato": "nao_especificado",
@@ -2546,12 +2541,12 @@
           "arquivo": "docs/scraped/quem-esta-no-8-paredao-do-bbb-26-babu-santana-chaiany-e-milena-formam-a-berlinda.md",
           "titulo": "Quem está no 8° Paredão do BBB 26? Babu Santana, Chaiany e Milena formam a berlinda"
         }
-      ]
+      ],
+      "cycle": 8
     },
     {
       "numero": 24,
       "tipo": "lider",
-      "week": 9,
       "date": "2026-03-12",
       "nome": "9ª Prova do Líder — Celulares premiados (trios + final individual)",
       "formato": "trios_pontuacao_eliminacao",
@@ -2782,12 +2777,12 @@
           "arquivo": "docs/scraped/lider-alberto-cowboy-faz-divisao-entre-vip-e-xepa-confira-como-ficou-a-casa.md",
           "titulo": "Líder Alberto Cowboy faz divisão entre VIP e Xepa; confira como ficou a casa"
         }
-      ]
+      ],
+      "cycle": 9
     },
     {
       "numero": 25,
       "tipo": "anjo",
-      "week": 9,
       "date": "2026-03-14",
       "nome": "9ª Prova do Anjo — Corrida de Carrinhos Betano (Duelos em Chave)",
       "formato": "duelos_corrida_chave",
@@ -2825,48 +2820,120 @@
           "duelos": [
             {
               "duelo": 1,
-              "participantes": ["Leandro", "Jonas Sulzbach"],
+              "participantes": [
+                "Leandro",
+                "Jonas Sulzbach"
+              ],
               "vencedor": "Leandro",
-              "pontos": {"Leandro": 179.37, "Jonas Sulzbach": 178.98},
+              "pontos": {
+                "Leandro": 179.37,
+                "Jonas Sulzbach": 178.98
+              },
               "rodadas": {
-                "Leandro": [22.79, 49.34, 107.24],
-                "Jonas Sulzbach": [22.56, 49.74, 106.68]
+                "Leandro": [
+                  22.79,
+                  49.34,
+                  107.24
+                ],
+                "Jonas Sulzbach": [
+                  22.56,
+                  49.74,
+                  106.68
+                ]
               }
             },
             {
               "duelo": 2,
-              "participantes": ["Chaiany", "Juliano Floss"],
+              "participantes": [
+                "Chaiany",
+                "Juliano Floss"
+              ],
               "vencedor": "Juliano Floss",
-              "pontos": {"Juliano Floss": 106.00, "Chaiany": 102.12},
+              "pontos": {
+                "Juliano Floss": 106.0,
+                "Chaiany": 102.12
+              },
               "nota": "Pontuação parcial visível (1 rodada: 26.50×4=106.00 vs 25.53×4=102.12)"
             },
             {
               "duelo": 3,
-              "participantes": ["Solange Couto", "Ana Paula Renault"],
+              "participantes": [
+                "Solange Couto",
+                "Ana Paula Renault"
+              ],
               "vencedor": "Ana Paula Renault",
-              "pontos": {"Ana Paula Renault": 106.28, "Solange Couto": 102.40},
+              "pontos": {
+                "Ana Paula Renault": 106.28,
+                "Solange Couto": 102.4
+              },
               "nota": "Pontuação parcial visível (1 rodada: 26.57×4=106.28 vs 25.60×4=102.40)"
             },
             {
               "duelo": 4,
-              "participantes": ["Breno", "Marciele"],
+              "participantes": [
+                "Breno",
+                "Marciele"
+              ],
               "vencedor": "Breno",
-              "pontos": {"Breno": 176.41, "Marciele": 153.32},
+              "pontos": {
+                "Breno": 176.41,
+                "Marciele": 153.32
+              },
               "rodadas": {
-                "Breno": [22.63, 47.94, 105.84],
-                "Marciele": [0.00, 46.88, 106.44]
+                "Breno": [
+                  22.63,
+                  47.94,
+                  105.84
+                ],
+                "Marciele": [
+                  0.0,
+                  46.88,
+                  106.44
+                ]
               }
             }
           ],
           "classificacao": [
-            {"pos": 1, "nome": "Leandro", "nota": "Venceu QF1 (179.37 vs 178.98)"},
-            {"pos": 1, "nome": "Juliano Floss", "nota": "Venceu QF2"},
-            {"pos": 1, "nome": "Ana Paula Renault", "nota": "Venceu QF3"},
-            {"pos": 1, "nome": "Breno", "nota": "Venceu QF4 (176.41 vs 153.32)"},
-            {"pos": 5, "nome": "Jonas Sulzbach", "nota": "Eliminado QF1 (178.98 vs 179.37)"},
-            {"pos": 5, "nome": "Chaiany", "nota": "Eliminada QF2"},
-            {"pos": 5, "nome": "Solange Couto", "nota": "Eliminada QF3"},
-            {"pos": 5, "nome": "Marciele", "nota": "Eliminada QF4 (153.32 vs 176.41)"}
+            {
+              "pos": 1,
+              "nome": "Leandro",
+              "nota": "Venceu QF1 (179.37 vs 178.98)"
+            },
+            {
+              "pos": 1,
+              "nome": "Juliano Floss",
+              "nota": "Venceu QF2"
+            },
+            {
+              "pos": 1,
+              "nome": "Ana Paula Renault",
+              "nota": "Venceu QF3"
+            },
+            {
+              "pos": 1,
+              "nome": "Breno",
+              "nota": "Venceu QF4 (176.41 vs 153.32)"
+            },
+            {
+              "pos": 5,
+              "nome": "Jonas Sulzbach",
+              "nota": "Eliminado QF1 (178.98 vs 179.37)"
+            },
+            {
+              "pos": 5,
+              "nome": "Chaiany",
+              "nota": "Eliminada QF2"
+            },
+            {
+              "pos": 5,
+              "nome": "Solange Couto",
+              "nota": "Eliminada QF3"
+            },
+            {
+              "pos": 5,
+              "nome": "Marciele",
+              "nota": "Eliminada QF4 (153.32 vs 176.41)"
+            }
           ]
         },
         {
@@ -2876,40 +2943,100 @@
           "duelos": [
             {
               "duelo": "SF1",
-              "participantes": ["Leandro", "Juliano Floss"],
+              "participantes": [
+                "Leandro",
+                "Juliano Floss"
+              ],
               "vencedor": "Leandro",
-              "pontos": {"Leandro": 205.90, "Juliano Floss": 202.99},
+              "pontos": {
+                "Leandro": 205.9,
+                "Juliano Floss": 202.99
+              },
               "rodadas": {
-                "Leandro": [33.28, 59.22, 113.40],
-                "Juliano Floss": [31.52, 59.07, 112.40]
+                "Leandro": [
+                  33.28,
+                  59.22,
+                  113.4
+                ],
+                "Juliano Floss": [
+                  31.52,
+                  59.07,
+                  112.4
+                ]
               }
             },
             {
               "duelo": "SF2",
-              "participantes": ["Ana Paula Renault", "Breno"],
+              "participantes": [
+                "Ana Paula Renault",
+                "Breno"
+              ],
               "vencedor": "Breno",
-              "pontos": {"Breno": 205.99, "Ana Paula Renault": 205.07},
+              "pontos": {
+                "Breno": 205.99,
+                "Ana Paula Renault": 205.07
+              },
               "rodadas": {
-                "Breno": [33.26, 58.53, 114.20],
-                "Ana Paula Renault": [32.96, 58.56, 113.55]
+                "Breno": [
+                  33.26,
+                  58.53,
+                  114.2
+                ],
+                "Ana Paula Renault": [
+                  32.96,
+                  58.56,
+                  113.55
+                ]
               }
             },
             {
               "duelo": "Final",
-              "participantes": ["Leandro", "Breno"],
+              "participantes": [
+                "Leandro",
+                "Breno"
+              ],
               "vencedor": "Breno",
-              "pontos": {"Breno": 194.04, "Leandro": 127.62},
+              "pontos": {
+                "Breno": 194.04,
+                "Leandro": 127.62
+              },
               "rodadas": {
-                "Breno": [27.04, 62.24, 104.76],
-                "Leandro": [27.12, 0.00, 100.50]
+                "Breno": [
+                  27.04,
+                  62.24,
+                  104.76
+                ],
+                "Leandro": [
+                  27.12,
+                  0.0,
+                  100.5
+                ]
               }
             }
           ],
           "classificacao": [
-            {"pos": 1, "nome": "Breno", "nota": "Venceu Final (194.04 vs 127.62)"},
-            {"pos": 2, "nome": "Leandro", "nota": "Vice-campeão (127.62 — 0.00 na rodada 2 da final)"},
-            {"pos": 3, "nome": "Ana Paula Renault", "nota": "Eliminada SF2 (205.07 vs 205.99)", "tied": true},
-            {"pos": 3, "nome": "Juliano Floss", "nota": "Eliminado SF1 (202.99 vs 205.90)", "tied": true}
+            {
+              "pos": 1,
+              "nome": "Breno",
+              "nota": "Venceu Final (194.04 vs 127.62)"
+            },
+            {
+              "pos": 2,
+              "nome": "Leandro",
+              "nota": "Vice-campeão (127.62 — 0.00 na rodada 2 da final)"
+            },
+            {
+              "pos": 3,
+              "nome": "Ana Paula Renault",
+              "nota": "Eliminada SF2 (205.07 vs 205.99)",
+              "tied": true
+            },
+            {
+              "pos": 3,
+              "nome": "Juliano Floss",
+              "nota": "Eliminado SF1 (202.99 vs 205.90)",
+              "tied": true
+            }
           ]
         }
       ],
@@ -2929,12 +3056,12 @@
           "arquivo": "docs/scraped/prova_anjo_9_twitter_dantinhas.md",
           "titulo": "Cobertura ao vivo @Dantinhas — 9ª Prova do Anjo (excluídos, duelos, scores)"
         }
-      ]
+      ],
+      "cycle": 9
     },
     {
       "numero": 26,
       "tipo": "bate_volta",
-      "week": 9,
       "date": "2026-03-15",
       "nome": "Prova Bate e Volta — 9º Paredão (Arremesso)",
       "formato": "arremesso",
@@ -2952,9 +3079,18 @@
           "fase": 1,
           "tipo": "bate_volta",
           "classificacao": [
-            {"pos": 1, "nome": "Solange Couto"},
-            {"pos": 2, "nome": "Ana Paula Renault"},
-            {"pos": 3, "nome": "Leandro"}
+            {
+              "pos": 1,
+              "nome": "Solange Couto"
+            },
+            {
+              "pos": 2,
+              "nome": "Ana Paula Renault"
+            },
+            {
+              "pos": 3,
+              "nome": "Leandro"
+            }
           ]
         }
       ],
@@ -2964,22 +3100,32 @@
           "arquivo": "docs/scraped/quem-esta-no-9-paredao-do-bbb-26-ana-paula-renault-breno-e-leandro-formam-a-berlinda.md",
           "titulo": "Quem está no 9° Paredão do BBB 26? Ana Paula Renault, Breno e Leandro formam a berlinda"
         }
-      ]
+      ],
+      "cycle": 9
     },
     {
       "numero": 27,
       "tipo": "lider",
-      "week": 10,
       "date": "2026-03-19",
       "nome": "10ª Prova do Líder — Sentidos (classificatórias + final ao vivo)",
       "formato": "eliminatoria_fases_sentidos",
       "vencedor": "Alberto Cowboy",
-      "vip": ["Jonas Sulzbach", "Jordana", "Marciele"],
+      "vip": [
+        "Jonas Sulzbach",
+        "Jordana",
+        "Marciele"
+      ],
       "vip_source": "oficial_gshow",
       "participantes_total": 12,
       "excluidos": [
-        {"nome": "Babu Santana", "motivo": "Eliminado no 8º Paredão"},
-        {"nome": "Breno", "motivo": "Eliminado no 9º Paredão"}
+        {
+          "nome": "Babu Santana",
+          "motivo": "Eliminado no 8º Paredão"
+        },
+        {
+          "nome": "Breno",
+          "motivo": "Eliminado no 9º Paredão"
+        }
       ],
       "nota": "Prova em 4 etapas baseada nos 5 sentidos. Classificatórias (tarde): paladar/olfato (4 eliminados), visão (2 eliminados), tato (3 eliminados). Final ao vivo (audição): carrossel de bags com som de vinheta — primeiro a acertar as 2 bags corretas vence. Alberto Cowboy venceu (4º título de Líder, 'É tetra!').",
       "fases": [
@@ -2988,18 +3134,66 @@
           "tipo": "eliminatoria",
           "nota": "Etapa 1 — Paladar e Olfato. Joga um por vez. Botões de nariz (olfato) e boca (paladar) na tela com alimentos. Botão correto: +1 ponto; botão errado: -3 pontos. Samira, Leandro, Chaiany e Juliano Floss eliminados.",
           "classificacao": [
-            {"pos": 1, "nome": "Alberto Cowboy", "nota": "Avançou"},
-            {"pos": 1, "nome": "Ana Paula Renault", "nota": "Avançou"},
-            {"pos": 1, "nome": "Gabriela", "nota": "Avançou"},
-            {"pos": 1, "nome": "Jonas Sulzbach", "nota": "Avançou"},
-            {"pos": 1, "nome": "Jordana", "nota": "Avançou"},
-            {"pos": 1, "nome": "Marciele", "nota": "Avançou"},
-            {"pos": 1, "nome": "Milena", "nota": "Avançou"},
-            {"pos": 1, "nome": "Solange Couto", "nota": "Avançou"},
-            {"pos": 9, "nome": "Samira", "nota": "Eliminada na 1ª etapa (paladar/olfato)"},
-            {"pos": 9, "nome": "Leandro", "nota": "Eliminado na 1ª etapa (paladar/olfato)"},
-            {"pos": 9, "nome": "Chaiany", "nota": "Eliminada na 1ª etapa (paladar/olfato)"},
-            {"pos": 9, "nome": "Juliano Floss", "nota": "Eliminado na 1ª etapa (paladar/olfato)"}
+            {
+              "pos": 1,
+              "nome": "Alberto Cowboy",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 1,
+              "nome": "Ana Paula Renault",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 1,
+              "nome": "Gabriela",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 1,
+              "nome": "Jonas Sulzbach",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 1,
+              "nome": "Jordana",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 1,
+              "nome": "Marciele",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 1,
+              "nome": "Milena",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 1,
+              "nome": "Solange Couto",
+              "nota": "Avançou"
+            },
+            {
+              "pos": 9,
+              "nome": "Samira",
+              "nota": "Eliminada na 1ª etapa (paladar/olfato)"
+            },
+            {
+              "pos": 9,
+              "nome": "Leandro",
+              "nota": "Eliminado na 1ª etapa (paladar/olfato)"
+            },
+            {
+              "pos": 9,
+              "nome": "Chaiany",
+              "nota": "Eliminada na 1ª etapa (paladar/olfato)"
+            },
+            {
+              "pos": 9,
+              "nome": "Juliano Floss",
+              "nota": "Eliminado na 1ª etapa (paladar/olfato)"
+            }
           ]
         },
         {
@@ -3007,14 +3201,54 @@
           "tipo": "classificatoria",
           "nota": "Etapa 2 (Visão) e Etapa 3 (Tato). Visão: Solange Couto e Jonas Sulzbach eliminados. Tato: caixas com alimentos ocultos — manusear pelo tato, escolher 3 de 6 plaquinhas e apertar botão. Ana Paula Renault, Gabriela e Marciele eliminadas. Alberto Cowboy, Jordana e Milena classificados para a final.",
           "classificacao": [
-            {"pos": 1, "nome": "Alberto Cowboy", "nota": "Classificado para a final", "tied": true},
-            {"pos": 1, "nome": "Jordana", "nota": "Classificada para a final", "tied": true},
-            {"pos": 1, "nome": "Milena", "nota": "Classificada para a final", "tied": true},
-            {"pos": 4, "nome": "Ana Paula Renault", "nota": "Eliminada na 3ª etapa (tato)", "tied": true},
-            {"pos": 4, "nome": "Gabriela", "nota": "Eliminada na 3ª etapa (tato)", "tied": true},
-            {"pos": 4, "nome": "Marciele", "nota": "Eliminada na 3ª etapa (tato)", "tied": true},
-            {"pos": 7, "nome": "Jonas Sulzbach", "nota": "Eliminado na 2ª etapa (visão)", "tied": true},
-            {"pos": 7, "nome": "Solange Couto", "nota": "Eliminada na 2ª etapa (visão)", "tied": true}
+            {
+              "pos": 1,
+              "nome": "Alberto Cowboy",
+              "nota": "Classificado para a final",
+              "tied": true
+            },
+            {
+              "pos": 1,
+              "nome": "Jordana",
+              "nota": "Classificada para a final",
+              "tied": true
+            },
+            {
+              "pos": 1,
+              "nome": "Milena",
+              "nota": "Classificada para a final",
+              "tied": true
+            },
+            {
+              "pos": 4,
+              "nome": "Ana Paula Renault",
+              "nota": "Eliminada na 3ª etapa (tato)",
+              "tied": true
+            },
+            {
+              "pos": 4,
+              "nome": "Gabriela",
+              "nota": "Eliminada na 3ª etapa (tato)",
+              "tied": true
+            },
+            {
+              "pos": 4,
+              "nome": "Marciele",
+              "nota": "Eliminada na 3ª etapa (tato)",
+              "tied": true
+            },
+            {
+              "pos": 7,
+              "nome": "Jonas Sulzbach",
+              "nota": "Eliminado na 2ª etapa (visão)",
+              "tied": true
+            },
+            {
+              "pos": 7,
+              "nome": "Solange Couto",
+              "nota": "Eliminada na 2ª etapa (visão)",
+              "tied": true
+            }
           ]
         },
         {
@@ -3022,9 +3256,20 @@
           "tipo": "final_ao_vivo",
           "nota": "Final ao vivo — Audição. Carrossel de bags girando com sons de vinheta. Cada participante dava um palpite na sua vez. Primeiro a acertar as 2 bags corretas vence. Alberto Cowboy acertou primeiro.",
           "classificacao": [
-            {"pos": 1, "nome": "Alberto Cowboy"},
-            {"pos": 2, "nome": "Jordana", "tied": true},
-            {"pos": 2, "nome": "Milena", "tied": true}
+            {
+              "pos": 1,
+              "nome": "Alberto Cowboy"
+            },
+            {
+              "pos": 2,
+              "nome": "Jordana",
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Milena",
+              "tied": true
+            }
           ]
         }
       ],
@@ -3049,12 +3294,12 @@
           "arquivo": "docs/scraped/lider-alberto-cowboy-define-novo-vip-saiba-como-fica-a-pontuacao-na-10a-rodada-do-cartola-bbb.md",
           "titulo": "Líder Alberto Cowboy define novo VIP: saiba como fica a pontuação na 10ª rodada do Cartola BBB"
         }
-      ]
+      ],
+      "cycle": 10
     },
     {
       "numero": 28,
       "tipo": "anjo",
-      "week": 10,
       "date": "2026-03-21",
       "nome": "10ª Prova do Anjo — Torre do Anjo (empilhar cilindros com pinça)",
       "formato": "tomada_de_tempo",
@@ -3072,23 +3317,90 @@
           "fase": 1,
           "tipo": "tomada_de_tempo",
           "classificacao": [
-            {"pos": 1, "nome": "Leandro", "nota": "Único a completar a torre"},
-            {"pos": 2, "nome": "Ana Paula Renault", "nota": "Desclassificada", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Chaiany", "nota": "Desclassificada", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Gabriela", "nota": "Desclassificada", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Jonas Sulzbach", "nota": "Desclassificado", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Jordana", "nota": "Desclassificada", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Juliano Floss", "nota": "Desclassificado", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Marciele", "nota": "Desclassificada", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Milena", "nota": "Desclassificada", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Samira", "nota": "Desclassificada", "dq": true, "tied": true},
-            {"pos": 2, "nome": "Solange Couto", "nota": "Desclassificada", "dq": true, "tied": true}
+            {
+              "pos": 1,
+              "nome": "Leandro",
+              "nota": "Único a completar a torre"
+            },
+            {
+              "pos": 2,
+              "nome": "Ana Paula Renault",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Chaiany",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Gabriela",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Jonas Sulzbach",
+              "nota": "Desclassificado",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Jordana",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Juliano Floss",
+              "nota": "Desclassificado",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Marciele",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Milena",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Samira",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            },
+            {
+              "pos": 2,
+              "nome": "Solange Couto",
+              "nota": "Desclassificada",
+              "dq": true,
+              "tied": true
+            }
           ]
         }
       ],
       "monstro": {
         "tipo": "Cara e Coroa",
-        "alvos": ["Alberto Cowboy", "Jonas Sulzbach"],
+        "alvos": [
+          "Alberto Cowboy",
+          "Jonas Sulzbach"
+        ],
         "escolhido_por": "Leandro",
         "descricao": "Dupla fica unida (costas coladas) até a Formação do Paredão de domingo, com pausas sinalizadas por som de moedas"
       },
@@ -3108,12 +3420,12 @@
           "arquivo": "docs/scraped/entenda-as-regras-da-decima-prova-do-anjo-do-bbb-26.md",
           "titulo": "Entenda as regras da décima Prova do Anjo do BBB 26"
         }
-      ]
+      ],
+      "cycle": 10
     },
     {
       "numero": 29,
       "tipo": "bate_volta",
-      "week": 10,
       "date": "2026-03-22",
       "nome": "Prova Bate e Volta — 10º Paredão",
       "formato": "eliminatoria",
@@ -3125,9 +3437,22 @@
           "fase": 1,
           "tipo": "eliminatoria",
           "classificacao": [
-            {"pos": 1, "nome": "Jordana", "nota": "Venceu e escapou do Paredão"},
-            {"pos": 2, "nome": "Jonas Sulzbach", "nota": "Perdeu"},
-            {"pos": 2, "nome": "Gabriela", "nota": "Perdeu", "tied": true}
+            {
+              "pos": 1,
+              "nome": "Jordana",
+              "nota": "Venceu e escapou do Paredão"
+            },
+            {
+              "pos": 2,
+              "nome": "Jonas Sulzbach",
+              "nota": "Perdeu"
+            },
+            {
+              "pos": 2,
+              "nome": "Gabriela",
+              "nota": "Perdeu",
+              "tied": true
+            }
           ]
         }
       ],
@@ -3137,12 +3462,12 @@
           "arquivo": "docs/scraped/decimo-paredao-do-bbb-26-jordana-escapa-da-berlinda-na-prova-bate-e-volta.md",
           "titulo": "Décimo Paredão do BBB 26: Jordana escapa da berlinda na Prova Bate e Volta"
         }
-      ]
+      ],
+      "cycle": 10
     },
     {
       "numero": 30,
       "tipo": "lider",
-      "week": 11,
       "date": "2026-03-26",
       "nome": "11ª Prova do Líder — Tabuleiro (classificatórias + final ao vivo)",
       "formato": "tomada_de_tempo_classificatoria",
@@ -3158,17 +3483,61 @@
           "fase": 1,
           "tipo": "classificatoria",
           "classificacao": [
-            {"pos": 1, "nome": "Alberto Cowboy", "nota": "Melhor tempo — classificado para final"},
-            {"pos": 2, "nome": "Leandro", "nota": "2º melhor tempo — classificado para final"},
-            {"pos": 3, "nome": "Ana Paula Renault", "nota": "3º melhor tempo — classificada para final"},
-            {"pos": 4, "nome": "Jordana", "nota": "Eliminada na classificatória"},
-            {"pos": 5, "nome": "Solange Couto", "nota": "Eliminada na classificatória"},
-            {"pos": 6, "nome": "Samira", "nota": "Eliminada na classificatória"},
-            {"pos": 7, "nome": "Gabriela", "nota": "Eliminada na classificatória"},
-            {"pos": 8, "nome": "Chaiany", "nota": "Eliminada na classificatória"},
-            {"pos": 9, "nome": "Milena", "nota": "Eliminada na classificatória"},
-            {"pos": 10, "nome": "Juliano Floss", "nota": "Eliminado na classificatória"},
-            {"pos": 11, "nome": "Marciele", "nota": "Desclassificada"}
+            {
+              "pos": 1,
+              "nome": "Alberto Cowboy",
+              "nota": "Melhor tempo — classificado para final"
+            },
+            {
+              "pos": 2,
+              "nome": "Leandro",
+              "nota": "2º melhor tempo — classificado para final"
+            },
+            {
+              "pos": 3,
+              "nome": "Ana Paula Renault",
+              "nota": "3º melhor tempo — classificada para final"
+            },
+            {
+              "pos": 4,
+              "nome": "Jordana",
+              "nota": "Eliminada na classificatória"
+            },
+            {
+              "pos": 5,
+              "nome": "Solange Couto",
+              "nota": "Eliminada na classificatória"
+            },
+            {
+              "pos": 6,
+              "nome": "Samira",
+              "nota": "Eliminada na classificatória"
+            },
+            {
+              "pos": 7,
+              "nome": "Gabriela",
+              "nota": "Eliminada na classificatória"
+            },
+            {
+              "pos": 8,
+              "nome": "Chaiany",
+              "nota": "Eliminada na classificatória"
+            },
+            {
+              "pos": 9,
+              "nome": "Milena",
+              "nota": "Eliminada na classificatória"
+            },
+            {
+              "pos": 10,
+              "nome": "Juliano Floss",
+              "nota": "Eliminado na classificatória"
+            },
+            {
+              "pos": 11,
+              "nome": "Marciele",
+              "nota": "Desclassificada"
+            }
           ]
         }
       ],
@@ -3183,7 +3552,8 @@
           "arquivo": "docs/scraped/bbb-26-alberto-cowboy-chora-apos-se-classificar-para-etapa-final-da-prova-do-lider.md",
           "titulo": "BBB 26: Alberto Cowboy chora após se classificar para etapa final da Prova do Líder"
         }
-      ]
+      ],
+      "cycle": 11
     }
   ]
 }

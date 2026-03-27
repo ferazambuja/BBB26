@@ -956,7 +956,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 **Implemented (2026-01-28)**:
 - `data/derived/cartola_data.json` — Cartola BBB points (leaderboard, weekly breakdown, stats, seen/current roles). Computed by `build_cartola_data()` in `build_derived_data.py`.
 - `cartola.qmd` now loads precomputed JSON instead of computing ~430 lines inline.
-- Cartola constants (`CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI`) and `get_week_number()` moved to `data_utils.py`.
+- Cartola constants (`CARTOLA_POINTS`, `POINTS_LABELS`, `POINTS_EMOJI`) and `get_cycle_number()` moved to `data_utils.py`.
 - `scripts/analyze_snapshots.py` fixed: uses relative path, imports from `data_utils`, fixed `Coração partido` misclassification bug (was `STRONG_NEGATIVE`, now correctly `MILD_NEGATIVE`).
 
 <!-- PAREDAO_EXPOSURE:START -->

@@ -51,7 +51,10 @@ def run_audit():
 
     # Missing fields / fontes
     for i, ev in enumerate(power_events):
-        missing = [k for k in ["date", "week", "type", "target", "origem", "impacto"] if not ev.get(k)]
+        _required = ["date", "type", "target", "origem", "impacto"]
+        missing = [k for k in _required if not ev.get(k)]
+        if not (ev.get("cycle")):
+            missing.append("cycle")
         if missing:
             issues["missing_fields"].append((i, missing, ev))
         fontes = ev.get("fontes")
@@ -76,7 +79,7 @@ def run_audit():
     # Manual vs Auto duplicates
     auto_index = defaultdict(list)
     for ev in auto_events:
-        key = (ev.get("week"), ev.get("type"), ev.get("target"))
+        key = (ev.get("cycle"), ev.get("type"), ev.get("target"))
         auto_index[key].append(ev)
 
     # Types where manual events intentionally complement auto-detection
@@ -85,30 +88,30 @@ def run_audit():
     for i, ev in enumerate(power_events):
         if ev.get("type") in manual_complement_types:
             continue
-        key = (ev.get("week"), ev.get("type"), ev.get("target"))
+        key = (ev.get("cycle"), ev.get("type"), ev.get("target"))
         if key in auto_index:
             issues["manual_vs_auto"].append((i, ev, auto_index[key]))
 
     # Duplicate manual entries
     seen = defaultdict(list)
     for i, ev in enumerate(power_events):
-        key = (ev.get("week"), ev.get("type"), ev.get("actor"), ev.get("target"), ev.get("date"))
+        key = (ev.get("cycle"), ev.get("type"), ev.get("actor"), ev.get("target"), ev.get("date"))
         seen[key].append(i)
     for key, idxs in seen.items():
         if len(idxs) > 1:
             issues["duplicate_manual"].append((key, idxs))
 
     # Sincerão integrity
-    for i, weekly in enumerate(manual.get("weekly_events", [])):
+    for i, weekly in enumerate(manual.get("cycles", [])):
         sinc_raw = weekly.get("sincerao")
         if not sinc_raw:
             continue
         sinc_list = sinc_raw if isinstance(sinc_raw, list) else [sinc_raw]
         for sinc in sinc_list:
             if not sinc.get("fontes"):
-                issues["sinc_missing_sources"].append((i, weekly.get("week"), sinc))
+                issues["sinc_missing_sources"].append((i, weekly.get("cycle"), sinc))
             if not sinc.get("date"):
-                issues["sinc_missing_date"].append((i, weekly.get("week"), sinc))
+                issues["sinc_missing_date"].append((i, weekly.get("cycle"), sinc))
 
     # Eliminations detected by API vs manual log
     manual_participants = manual.get("participants", {}) if isinstance(manual.get("participants"), dict) else {}
@@ -142,7 +145,7 @@ def run_audit():
     section("Unknown actors", [f"index {i} actor {a} — {ev.get('type')}" for i, a, ev in issues.get("unknown_actor", [])])
     section("Unknown targets", [f"index {i} target {t} — {ev.get('type')}" for i, t, ev in issues.get("unknown_target", [])])
     section("Self-inflicted missing flags", [f"index {i} — {ev.get('type')} {ev.get('actor')} → {ev.get('target')}" for i, ev in issues.get("self_flag_missing", [])])
-    section("Manual vs Auto potential duplicates", [f"index {i} — manual {ev.get('type')} {ev.get('target')} week {ev.get('week')}" for i, ev, _ in issues.get("manual_vs_auto", [])])
+    section("Manual vs Auto potential duplicates", [f"index {i} — manual {ev.get('type')} {ev.get('target')} cycle {ev.get('cycle')}" for i, ev, _ in issues.get("manual_vs_auto", [])])
     section("Duplicate manual entries", [f"{key} indexes {idxs}" for key, idxs in issues.get("duplicate_manual", [])])
     section("Sincerão missing sources", [f"weekly idx {i} week {wk}" for i, wk, _ in issues.get("sinc_missing_sources", [])])
     section("Sincerão missing date", [f"weekly idx {i} week {wk}" for i, wk, _ in issues.get("sinc_missing_date", [])])

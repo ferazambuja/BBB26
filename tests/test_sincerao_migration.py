@@ -62,7 +62,7 @@ class TestSincTypeMeta:
 
         seen_types: set[str] = set()
 
-        for weekly in manual.get("weekly_events", []):
+        for weekly in manual.get("cycles", []):
             sinc = weekly.get("sincerao")
             if not sinc:
                 continue
@@ -158,7 +158,7 @@ def _make_sinc_data(edges: list[dict], weeks: list[dict] | None = None,
 
 def _make_edge(actor: str, target: str, etype: str, week: int,
                tema: str | None = None, slot: int | None = None) -> dict:
-    edge = {"actor": actor, "target": target, "type": etype, "week": week, "date": "2026-01-20"}
+    edge = {"actor": actor, "target": target, "type": etype, "cycle": week, "date": "2026-01-20"}
     if tema:
         edge["tema"] = tema
     if slot is not None:
@@ -183,19 +183,19 @@ class TestProfileSincerao:
                 _make_edge("Breno", "Milena", "nao_ganha", 6),
             ],
             weeks=[
-                {"week": 7, "format": "Ataques + Elogios"},
-                {"week": 6, "format": "Regua"},
+                {"cycle": 7, "format": "Ataques + Elogios"},
+                {"cycle": 6, "format": "Regua"},
             ],
             aggregates=[
-                {"week": 7, "scores": {"Breno": -0.5}, "reasons": {"Breno": ["💣 ataque"]}},
-                {"week": 6, "scores": {"Breno": 0.2}, "reasons": {"Breno": ["🏆 elogio"]}},
+                {"cycle": 7, "scores": {"Breno": -0.5}, "reasons": {"Breno": ["💣 ataque"]}},
+                {"cycle": 6, "scores": {"Breno": 0.2}, "reasons": {"Breno": ["🏆 elogio"]}},
             ],
         )
 
-    def test_received_current_week(self, sinc_data_basic):
+    def test_received_current_cycle(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={7: "Bombas + Podio", 6: "Regua"})
         current_received = result["current"]["received"]
         # Breno receives: ataque from Alberto, regua_fora from Milena in week 7
@@ -207,10 +207,10 @@ class TestProfileSincerao:
         for i in current_received:
             assert "_" not in i["label"] or i["type"] == "new_future_type"
 
-    def test_given_current_week(self, sinc_data_basic):
+    def test_given_current_cycle(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={7: "Bombas + Podio", 6: "Regua"})
         current_given = result["current"]["given"]
         # Breno gives: elogio to Gabriela, ataque to Alberto in week 7
@@ -222,7 +222,7 @@ class TestProfileSincerao:
     def test_summary_totals(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         s = result["summary"]
         # Received: ataque(neg) + regua_fora(neg) in W7, elogio(pos) in W6 = 2 neg, 1 pos
@@ -237,11 +237,11 @@ class TestProfileSincerao:
     def test_season_received_by_week(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={7: "Bombas + Podio", 6: "Regua"})
         season_received = result["season"]["received_by_week"]
         # Should be sorted descending (newest first)
-        weeks = [w["week"] for w in season_received]
+        weeks = [w["cycle"] for w in season_received]
         assert weeks == [7, 6]
         # Week 7: 2 interactions received
         assert len(season_received[0]["interactions"]) == 2
@@ -251,10 +251,10 @@ class TestProfileSincerao:
     def test_season_given_by_week(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={7: "Bombas + Podio", 6: "Regua"})
         season_given = result["season"]["given_by_week"]
-        weeks = [w["week"] for w in season_given]
+        weeks = [w["cycle"] for w in season_given]
         assert weeks == [7, 6]
         # Week 7: 2 given (elogio + ataque)
         assert len(season_given[0]["interactions"]) == 2
@@ -266,7 +266,7 @@ class TestProfileSincerao:
 
         # Breno gives ataque to Alberto but also gives Coração in queridometro
         matrix = {("Breno", "Alberto Cowboy"): "Coração"}
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix=matrix, sinc_weeks_meta={})
         assert result["summary"]["contradiction_count"] == 1
         assert "Alberto Cowboy" in result["summary"]["contradiction_targets"]
@@ -276,7 +276,7 @@ class TestProfileSincerao:
 
         # Legacy/unaccented label should still count as contradiction
         matrix = {("Breno", "Alberto Cowboy"): "Coracao"}
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix=matrix, sinc_weeks_meta={})
         assert result["summary"]["contradiction_count"] == 1
 
@@ -285,14 +285,14 @@ class TestProfileSincerao:
 
         # Breno gives ataque to Alberto but gives Cobra (no contradiction)
         matrix = {("Breno", "Alberto Cowboy"): "Cobra"}
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix=matrix, sinc_weeks_meta={})
         assert result["summary"]["contradiction_count"] == 0
 
     def test_gender_resolution_in_received(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         ataque_items = [i for i in result["current"]["received"] if i["type"] == "ataque"]
         # "maior traidor(a)" -> "maior traidor" for Breno (masculine)
@@ -301,18 +301,18 @@ class TestProfileSincerao:
     def test_regua_fora_gets_human_label(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         fora_items = [i for i in result["current"]["received"] if i["type"] == "regua_fora"]
         assert len(fora_items) == 1
         assert fora_items[0]["label"] == "fora da régua"  # NOT "regua_fora"
 
-    def test_current_week_field(self, sinc_data_basic):
+    def test_current_cycle_field(self, sinc_data_basic):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", sinc_data_basic, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data_basic, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={})
-        assert result["current_week"] == 7
+        assert result["current_cycle"] == 7
 
     def test_attack_only_week_has_no_positive_and_still_renders_sections(self):
         """Weeks with only attack options (all negative) should be represented cleanly."""
@@ -326,7 +326,7 @@ class TestProfileSincerao:
         result = _build_profile_sincerao(
             "Breno",
             sinc_data,
-            current_week=8,
+            current_cycle=8,
             latest_matrix={},
             sinc_weeks_meta={8: "Só ataques"},
         )
@@ -343,7 +343,7 @@ class TestProfileSincerao:
     def test_empty_sinc_data(self):
         from builders.index_data_builder import _build_profile_sincerao
 
-        result = _build_profile_sincerao("Breno", _make_sinc_data([]), current_week=7,
+        result = _build_profile_sincerao("Breno", _make_sinc_data([]), current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         assert result["summary"]["received_total"] == 0
         assert result["summary"]["given_total"] == 0
@@ -362,7 +362,7 @@ class TestProfileSincerao_InteractionShape:
         sinc_data = _make_sinc_data([
             _make_edge("Alberto Cowboy", "Breno", "ataque", 7, tema="maior traidor(a)"),
         ])
-        result = _build_profile_sincerao("Breno", sinc_data, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         item = result["current"]["received"][0]
         assert "type" in item
@@ -377,7 +377,7 @@ class TestProfileSincerao_InteractionShape:
         sinc_data = _make_sinc_data([
             _make_edge("Breno", "Gabriela", "elogio", 7, slot=1),
         ])
-        result = _build_profile_sincerao("Breno", sinc_data, current_week=7,
+        result = _build_profile_sincerao("Breno", sinc_data, current_cycle=7,
                                           latest_matrix={}, sinc_weeks_meta={})
         item = result["current"]["given"][0]
         assert "target" in item
@@ -488,9 +488,9 @@ class TestSincWeekResolution:
 
         sinc_data = _make_sinc_data(
             edges=[_make_edge("A", "B", "ataque", 7)],
-            aggregates=[{"week": 7, "scores": {"B": -1}}],
+            aggregates=[{"cycle": 7, "scores": {"B": -1}}],
         )
-        week_used, available = _resolve_sinc_week(sinc_data, current_week=8)
+        week_used, available = _resolve_sinc_week(sinc_data, current_cycle=8)
         assert available == [7]
         assert week_used == 7
 
@@ -610,7 +610,7 @@ class TestBreaksCardReferenceDate:
             relations_data=relations_data,
             active_set={"A", "B"},
             latest=latest,
-            current_week=8,
+            current_cycle=8,
             daily_snapshots=[{"date": "2026-03-01", "participants": latest["participants"]}],
             reference_date="2026-03-05",
         )
@@ -634,7 +634,7 @@ class TestTopLevelSincerao:
         with open(path) as f:
             data = json.load(f)
         sinc = data.get("sincerao", {})
-        assert "current_week" in sinc
+        assert "current_cycle" in sinc
         assert "available_weeks" in sinc
         assert "reaction_reference_date" in sinc
         assert "radar" in sinc
@@ -642,7 +642,7 @@ class TestTopLevelSincerao:
         assert "type_coverage" in sinc
         assert "seen" in sinc["type_coverage"]
         assert "unknown" in sinc["type_coverage"]
-        if sinc.get("current_week") is not None:
+        if sinc.get("current_cycle") is not None:
             assert sinc.get("reaction_reference_date")
         pairs = sinc.get("pairs", {})
         assert "contradictions" in pairs
@@ -657,7 +657,7 @@ class TestTopLevelSincerao:
         with open(path) as f:
             data = json.load(f)
         sinc = data.get("sincerao", {})
-        assert "week" not in sinc  # renamed to current_week
+        assert "week" not in sinc  # renamed to current_cycle
         pairs = sinc.get("pairs", {})
         assert "aligned_pos" not in pairs
         assert "aligned_neg" not in pairs
@@ -674,8 +674,8 @@ class TestTopLevelSincerao:
         sinc_card = next((c for c in cards if c.get("type") == "sincerao"), None)
         if not sinc_card:
             pytest.skip("No sincerao highlight card for current dataset")
-        assert sinc_card.get("week") == sinc.get("current_week")
-        if sinc.get("current_week") is not None:
+        assert sinc_card.get("cycle") == sinc.get("current_cycle")
+        if sinc.get("current_cycle") is not None:
             assert sinc_card.get("reaction_reference_date") == sinc.get("reaction_reference_date")
 
     def test_list_cards_expose_full_payload_for_in_card_toggles(self):
@@ -750,7 +750,7 @@ class TestProfileSincerao_Contract:
             data = json.load(f)
         for prof in data.get("profiles", [])[:3]:
             sinc = prof.get("sincerao", {})
-            assert "current_week" in sinc
+            assert "current_cycle" in sinc
             assert "summary" in sinc
             s = sinc["summary"]
             assert "received_total" in s
@@ -803,7 +803,7 @@ class TestRealWeek9SinceraoData:
         with open(path, encoding="utf-8") as f:
             manual = json.load(f)
 
-        week9 = next(w for w in manual.get("weekly_events", []) if w.get("week") == 9)
+        week9 = next(w for w in manual.get("cycles", []) if w.get("cycle") == 9)
         sinc = week9.get("sincerao")
 
         assert sinc is not None

@@ -291,7 +291,7 @@ if cf_events:
     emit('<div class="eco-bar-chart">')
     max_pct = max(max(e["vip_avg_pct"], e["xepa_avg_pct"]) for e in cf_events) or 1
     for ev in cf_events:
-        w = ev["week"]
+        w = ev["cycle"]
         vip_pct = ev["vip_avg_pct"]
         xepa_pct = ev["xepa_avg_pct"]
         vip_w = vip_pct / max_pct * 100
@@ -373,7 +373,7 @@ if punicao_events:
     # Group by week
     by_week = {}
     for e in punicao_events:
-        w = e.get("week", 0)
+        w = e["cycle"]
         by_week.setdefault(w, []).append(e)
 
     emit('<div style="max-width: 800px; margin: 0 auto;">')
@@ -484,10 +484,10 @@ for se in special_events:
         break
 
 if maquina_event:
-    # Also look for detailed data in weekly_events maquina_do_poder
-    weekly_ev = manual_events.get("weekly_events", [])
+    # Also look for detailed data in cycles[] maquina_do_poder
+    cycles_ev = manual_events.get("cycles", [])
     maquina_detail = None
-    for we in weekly_ev:
+    for we in cycles_ev:
         if we.get("maquina_do_poder"):
             md = we["maquina_do_poder"]
             if md.get("date") == maquina_event.get("date"):
@@ -841,7 +841,7 @@ if investigation_notes:
     </summary>
     <div style="padding: 8px 14px; font-size: var(--fs-md); color: #aaa;">'''.format(len(investigation_notes)))
     for note in investigation_notes:
-        emit(f'<p style="margin:4px 0;">W{note["week"]} ({note["date"]}): {note["note"]}</p>')
+        emit(f'<p style="margin:4px 0;">W{note["cycle"]} ({note["date"]}): {note["note"]}</p>')
     emit('</div></details>')
 ```
 
@@ -860,7 +860,7 @@ if cf_events:
     for ev in cf_events:
         total = ev["total_spent"]
         n = ev["n_participants"]
-        w = ev["week"]
+        w = ev["cycle"]
         vip_pct = ev["vip_avg_pct"]
         xepa_pct = ev["xepa_avg_pct"]
 

@@ -40,7 +40,7 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
     """Compute final positions for every participant in a single prova."""
     numero = prova["numero"]
     tipo = prova["tipo"]
-    week = prova["week"]
+    week = prova.get("cycle") or prova["week"]
     prova_date = prova.get("date", "")
     fases = prova.get("fases", [])
     excluded_names = {e["nome"] for e in prova.get("excluidos", [])}
@@ -175,7 +175,7 @@ def _score_single_prova(prova: dict, pi_map: dict[str, dict]) -> dict:
     return {
         "numero": numero,
         "tipo": tipo,
-        "week": week,
+        "cycle": week,
         "date": prova_date,
         "positions": positions,
         "available_names": available_names,
@@ -238,7 +238,7 @@ def _compute_prova_leaderboard(prova_results: list[dict], all_participant_names:
                 stats["detail"].append({
                     "prova": pr["numero"],
                     "tipo": pr["tipo"],
-                    "week": pr["week"],
+                    "cycle": pr["cycle"],
                     "position": None,
                     "base_pts": None,
                     "weighted_pts": None,
@@ -254,7 +254,7 @@ def _compute_prova_leaderboard(prova_results: list[dict], all_participant_names:
                 stats["detail"].append({
                     "prova": pr["numero"],
                     "tipo": pr["tipo"],
-                    "week": pr["week"],
+                    "cycle": pr["cycle"],
                     "position": None,
                     "base_pts": None,
                     "weighted_pts": None,
@@ -284,7 +284,7 @@ def _compute_prova_leaderboard(prova_results: list[dict], all_participant_names:
             stats["detail"].append({
                 "prova": pr["numero"],
                 "tipo": pr["tipo"],
-                "week": pr["week"],
+                "cycle": pr["cycle"],
                 "position": final_pos if pos != "dq" else "dq",
                 "base_pts": base_pts,
                 "weighted_pts": weighted_pts,
@@ -357,7 +357,7 @@ def build_prova_rankings(provas_data: dict | None, participants_index: list[dict
         provas_summary.append({
             "numero": pr["numero"],
             "tipo": pr["tipo"],
-            "week": pr["week"],
+            "cycle": pr["cycle"],
             "date": pr["date"],
             "vencedor": pr["vencedor"],
             "participantes": pr["participantes_total"],

@@ -8,7 +8,7 @@ from typing import Any
 from data_utils import (
     SENTIMENT_WEIGHTS,
     build_reaction_matrix,
-    get_week_number,
+    get_cycle_number,
 )
 
 CLUSTER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22']
@@ -390,7 +390,7 @@ def build_clusters_data(relations_scores: dict, participants_index: list[dict] |
         "_metadata": {
             "generated_at": meta.get("generated_at", ""),
             "date": meta.get("date", ""),
-            "week": meta.get("week", 0),
+            "cycle": meta.get("cycle", meta.get("week", 0)),
             "reference_date": meta.get("reference_date_daily", ""),
             "n_active": n_active,
             "n_clusters": n_clusters,
@@ -446,7 +446,7 @@ def build_cluster_evolution(daily_snapshots: list[dict], participants_index: lis
     # Sample one snapshot per week (use last snapshot of each week)
     snapshots_by_week = {}
     for snap in daily_snapshots:
-        week = get_week_number(snap["date"])
+        week = get_cycle_number(snap["date"])
         snapshots_by_week[week] = snap
 
     sampled_weeks = sorted(snapshots_by_week.keys())
@@ -568,7 +568,7 @@ def build_cluster_evolution(daily_snapshots: list[dict], participants_index: lis
 
         timeline.append({
             "date": date_str,
-            "week": week,
+            "cycle": week,
             "n_active": n_active,
             "n_clusters": len(comms),
             "silhouette": silhouette,
@@ -587,7 +587,7 @@ def build_cluster_evolution(daily_snapshots: list[dict], participants_index: lis
         for t in entry.get("transitions", []):
             all_transitions.append({
                 **t,
-                "week": entry["week"],
+                "cycle": entry["cycle"],
                 "date": entry["date"],
             })
 
@@ -598,7 +598,7 @@ def build_cluster_evolution(daily_snapshots: list[dict], participants_index: lis
     return {
         "_metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "n_weeks": len(timeline),
+            "n_cycles": len(timeline),
             "total_transitions": len(all_transitions),
         },
         "timeline": timeline,

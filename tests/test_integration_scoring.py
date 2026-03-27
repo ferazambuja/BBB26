@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 
 from build_derived_data import build_relations_scores, build_plant_index
-from data_utils import get_week_number
+from data_utils import get_cycle_number
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -167,12 +167,12 @@ def _build_manual_events() -> dict:
                 "type": "indicacao",
                 "actor": "Alice",
                 "target": "Dave",
-                "week": 1,
+                "cycle": 1,
                 "date": "2026-01-15",
                 "detail": "test nomination",
             },
         ],
-        "weekly_events": [],
+        "cycles": [],
         "special_events": [],
         "scheduled_events": [],
         "cartola_points_log": [],
@@ -186,7 +186,7 @@ def _build_auto_events() -> list[dict]:
             "type": "lider",
             "actor": "Alice",
             "date": "2026-01-13",
-            "week": 1,
+            "cycle": 1,
             "source": "auto",
         },
     ]

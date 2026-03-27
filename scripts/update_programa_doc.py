@@ -74,19 +74,19 @@ def build_table(manual_events: dict) -> str:
     rows.append("| Semana | Datas (aprox.) | Dinâmicas/ocorrências | Observações |")
     rows.append("|-------:|----------------|-----------------------|-------------|")
 
-    weekly = manual_events.get("weekly_events", [])
+    weekly = manual_events.get("cycles", [])
     if not weekly:
         rows.append("| — | — | — | — |")
         return "\n".join(rows)
 
-    weekly_sorted = sorted(weekly, key=lambda x: x.get("week", 0))
+    weekly_sorted = sorted(weekly, key=lambda x: x.get("cycle", 0))
     for entry in weekly_sorted:
-        week = entry.get("week", "—")
+        week = entry.get("cycle", "—")
         dates = f"{_fmt_date(entry.get('start_date'))} – {_fmt_date(entry.get('end_date'))}"
 
         dynamics = []
         for key, value in entry.items():
-            if key in {"week", "start_date", "end_date", "notes", "fontes"}:
+            if key in {"cycle", "start_date", "end_date", "notes", "fontes"}:
                 continue
             line = summarize_value(key, value)
             if line:

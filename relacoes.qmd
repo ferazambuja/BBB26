@@ -448,7 +448,7 @@ if voting_blocs:
     for bloc in voting_blocs:
         voters = bloc.get("voters", [])
         target = bloc.get("target", "?")
-        week = bloc.get("week", "?")
+        week = bloc.get("cycle", "?")
         size = len(voters)
         voter_str = ", ".join(voters[:5])
         if len(voters) > 5:
@@ -825,7 +825,7 @@ if contradictions:
         q_score = c.get("queridometro", 0)
         q_display = "❤️" if q_score > 0 else f"{q_score:+.1f}"
         vote_kind = c.get("vote_kind", "?")
-        week = c.get("week", "?")
+        week = c.get("cycle", "?")
         date = c.get("date", "?")
         print(f'<tr><td>{escape(str(voter))}</td>'
               f'<td>{escape(str(target))}</td>'
@@ -843,7 +843,7 @@ if contradictions:
         q_score = c.get("queridometro", 0)
         q_display = "❤️" if q_score > 0 else f"{q_score:+.1f}"
         vote_kind = c.get("vote_kind", "?")
-        week = c.get("week", "?")
+        week = c.get("cycle", "?")
         date = c.get("date", "?")
         print('<article class="rel-contr-card">')
         print('<div class="rel-contr-head">'

@@ -78,7 +78,7 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
 def test_index_qmd_uses_cycle_wording_in_context_chip():
     content = INDEX_QMD.read_text(encoding="utf-8")
 
-    assert 'ctx_cycle = ctx.get("cycle", ctx.get("week", "?"))' in content
+    assert 'ctx_cycle = ctx.get("cycle", "?")' in content
     assert 'Ciclo do Paredão {ctx_cycle}' in content
     assert 'Semana {ctx_week}' not in content
 

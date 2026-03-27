@@ -369,7 +369,7 @@ class TestBuildBalanceEvents:
             assert "id" in ev
             assert "type" in ev
             assert "game_date" in ev
-            assert "week" in ev
+            assert "cycle" in ev
             assert "from_snapshot" in ev
             assert "to_snapshot" in ev
             assert "changes" in ev
@@ -440,21 +440,21 @@ class TestComprasFairnessPerCapita:
             {
                 "type": "compras",
                 "game_date": "2026-02-01",
-                "week": 3,
+                "cycle": 3,
                 "from_snapshot": "2026-02-01_12-00-00",
                 "changes": {"Alice": -200, "Bob": -100, "Carol": -250},
             },
             {
                 "type": "compras",
                 "game_date": "2026-02-08",
-                "week": 4,
+                "cycle": 4,
                 "from_snapshot": "2026-02-08_12-00-00",
                 "changes": {"Alice": -100, "Bob": -100, "Carol": -400},
             },
         ]
 
         fairness = build_compras_fairness(events, snapshots, {})
-        by_week = {ev["week"]: ev for ev in fairness["events"]}
+        by_week = {ev["cycle"]: ev for ev in fairness["events"]}
 
         w3 = by_week[3]
         assert w3["vip_n"] == 2

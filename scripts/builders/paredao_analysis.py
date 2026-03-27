@@ -60,7 +60,7 @@ def _normalize_story_event(
         "event_type": event_type,
         "label": _story_event_label(event_type),
         "date": date,
-        "week": week,
+        "cycle": week,
         "detail": detail or _story_event_label(event_type),
         "source_kind": source_kind,
     }
@@ -89,7 +89,7 @@ def _group_power_decisions(
         entry = grouped.setdefault(key, {
             "actor": actor,
             "date": event.get("date", ""),
-            "week": event.get("week"),
+            "cycle": event.get("cycle"),
             "event_type": event_type,
             "label": _story_event_label(event_type),
             "targets": [],
@@ -125,7 +125,7 @@ def _group_power_decisions(
             entry = grouped.setdefault(key, {
                 "actor": actor,
                 "date": par.get("data_formacao") or par.get("data", ""),
-                "week": par.get("semana"),
+                "cycle": par.get("cycle"),
                 "event_type": "indicacao",
                 "label": _story_event_label("indicacao"),
                 "targets": [],
@@ -181,7 +181,7 @@ def _build_power_usage_story(
             "actor": row["actor"],
             "target": SPOTLIGHT_ALLY,
             "date": row["date"],
-            "week": row["week"],
+            "cycle": row.get("cycle"),
             "event_type": row["event_type"],
             "label": row["label"],
             "detail": detail,
@@ -221,7 +221,7 @@ def _collect_spotlight_timeline(
             target=target,
             event_type=event.get("type", ""),
             date=event.get("date", ""),
-            week=event.get("week"),
+            week=event.get("cycle"),
             detail=event.get("detail", ""),
             source_kind="manual",
         ))
@@ -238,7 +238,7 @@ def _collect_spotlight_timeline(
             target=target,
             event_type=event.get("type", ""),
             date=event.get("date", ""),
-            week=event.get("week"),
+            week=event.get("cycle"),
             detail=event.get("detail", ""),
             source_kind="auto",
         ))
@@ -257,7 +257,7 @@ def _collect_spotlight_timeline(
             target=target,
             event_type=event_type,
             date=event.get("date", ""),
-            week=event.get("week"),
+            week=event.get("cycle"),
             detail=detail,
             source_kind="sincerao",
         ))
@@ -273,14 +273,14 @@ def _collect_spotlight_timeline(
                 target=SPOTLIGHT_TARGET,
                 event_type="indicacao",
                 date=par.get("data_formacao") or par.get("data", ""),
-                week=par.get("semana"),
+                week=par.get("cycle"),
                 detail=f"Indicação em consenso. {reason}",
                 source_kind="paredao",
             ))
 
     timeline.sort(key=lambda item: (
         item.get("date", ""),
-        item.get("week") or 0,
+        item.get("cycle") or 0,
         item.get("actor", ""),
         item.get("target", ""),
         item.get("event_type", ""),
@@ -1116,14 +1116,14 @@ def build_paredao_badges(daily_snapshots: list[dict], paredoes_data: dict | None
         votos = par.get("votos_casa", {}) or {}
         if not votos:
             continue
-        week = par.get("semana")
+        week = par.get("cycle")
         for voter, target in votos.items():
             votes_received_by_week[week][target][voter] += 1
 
     by_paredao = {}
     for par in paredoes_list:
         data_form = par.get("data_formacao") or par.get("data")
-        week = par.get("semana")
+        week = par.get("cycle")
         numero = par.get("numero")
         if not data_form or not week or not numero:
             continue

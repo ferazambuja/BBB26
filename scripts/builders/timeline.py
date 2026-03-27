@@ -5,9 +5,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 from data_utils import (
-    get_effective_week_end_dates,
-    get_week_number,
-    get_week_start_date,
+    get_effective_cycle_end_dates,
+    get_cycle_number,
+    get_cycle_start_date,
     normalize_actors,
     utc_to_game_date,
     POWER_EVENT_LABELS,
@@ -115,20 +115,13 @@ _SCAFFOLD_PROFILES: dict[str, list[dict]] = {
 
 
 def _iter_cycle_entries(manual_events: dict) -> list[dict]:
-    """Return canonical cycle entries, accepting the legacy weekly_events key."""
-    cycles = manual_events.get("cycles")
-    if isinstance(cycles, list):
-        return cycles
-    return manual_events.get("weekly_events", [])
+    """Return canonical cycle entries."""
+    return manual_events.get("cycles", [])
 
 
 def _get_event_cycle(item: dict, fallback: int = 0) -> int:
-    """Read canonical cycle first, then legacy week/semana keys."""
+    """Read canonical cycle key."""
     cycle = item.get("cycle")
-    if cycle is None:
-        cycle = item.get("week")
-    if cycle is None:
-        cycle = item.get("semana")
     return cycle if isinstance(cycle, int) else fallback
 
 
@@ -144,7 +137,7 @@ def _resolve_schedule_profile_name(manual_events: dict, week_num: int) -> str:
 
 
 def _generate_weekly_scaffolds(
-    week_end_dates: list[str],
+    cycle_end_dates: list[str],
     reference_date: str,
     manual_events: dict | None = None,
 ) -> list[dict]:
@@ -158,15 +151,15 @@ def _generate_weekly_scaffolds(
     cap_end = ref_dt + timedelta(days=7)
 
     out: list[dict] = []
-    num_weeks = len(week_end_dates) + 1  # include open week
+    num_weeks = len(cycle_end_dates) + 1  # include open week
     for week_num in range(1, num_weeks + 1):
-        start_str = get_week_start_date(week_num, week_end_dates)
+        start_str = get_cycle_start_date(week_num, cycle_end_dates)
         try:
             start_dt = datetime.strptime(start_str, "%Y-%m-%d").date()
         except ValueError:
             continue
-        if week_num <= len(week_end_dates):
-            end_str = week_end_dates[week_num - 1]
+        if week_num <= len(cycle_end_dates):
+            end_str = cycle_end_dates[week_num - 1]
             end_dt = datetime.strptime(end_str, "%Y-%m-%d").date()
         else:
             end_dt = start_dt + timedelta(days=8)
@@ -191,8 +184,7 @@ def _generate_weekly_scaffolds(
                 status = "" if day < ref_dt else "scheduled"
                 out.append({
                     "date": day_str,
-                    "week": get_week_number(day_str, week_end_dates),
-                    "cycle": get_week_number(day_str, week_end_dates),
+                    "cycle": get_cycle_number(day_str, cycle_end_dates),
                     "category": cat,
                     "emoji": tpl["emoji"],
                     "title": tpl["title"],
@@ -236,23 +228,23 @@ def _collect_timeline_auto_events(
     for rec in eliminations_detected:
         det_date = rec["date"]
         for name in rec.get("added", []):
-            week = get_week_number(det_date)
+            week = get_cycle_number(det_date)
             events.append({
-                "date": det_date, "week": week, "category": "entrada",
+                "date": det_date, "cycle": week, "category": "entrada",
                 "emoji": "✅", "title": f"{name} entrou",
                 "detail": "", "participants": [name], "source": "eliminations_detected",
             })
         for name in rec.get("missing", []):
             # Use paredão date or manual exit_date when available.
             date = _paredao_exit_date.get(name, det_date)
-            week = get_week_number(date)
+            week = get_cycle_number(date)
             info = participant_details.get(name, {})
             status = info.get("status", "saiu")
             reason = info.get("exit_reason", "")
             status_emoji = {"desistente": "🚪", "eliminada": "❌", "eliminado": "❌", "desclassificado": "⛔"}.get(status, "❌")
             detail = f"{status.capitalize()}" + (f" — {reason}" if reason else "")
             events.append({
-                "date": date, "week": week, "category": "saida",
+                "date": date, "cycle": week, "category": "saida",
                 "emoji": status_emoji, "title": f"{name} saiu",
                 "detail": detail, "participants": [name], "source": "eliminations_detected",
             })
@@ -267,10 +259,10 @@ def _collect_timeline_auto_events(
         cat, emoji = type_map.get(t, ("poder", "⚡"))
         date = ev.get("date", "")
         # Always compute week from date (ignore stored week)
-        week = get_week_number(date) if date else 0
+        week = get_cycle_number(date) if date else 0
         target = ev.get("target", "")
         events.append({
-            "date": date, "week": week, "category": cat,
+            "date": date, "cycle": week, "category": cat,
             "emoji": emoji, "title": f"{target} → {t.capitalize()}",
             "detail": ev.get("detail", ""), "participants": [target] if target else [],
             "source": "auto_events",
@@ -319,7 +311,7 @@ def _collect_timeline_provas_fallback_events(
         date = ev.get("date", "")
         if not target:
             continue
-        week = get_week_number(date) if date else int(ev.get("week", 0) or 0)
+        week = get_cycle_number(date) if date else int(ev.get("cycle") or ev.get("week", 0) or 0)
         if week > 0:
             auto_by_type_week[t][week].add(target)
 
@@ -329,12 +321,12 @@ def _collect_timeline_provas_fallback_events(
         if not date:
             continue
         # Use stored week from provas.json (operational week) when available.
-        # Fall back to get_week_number(date) only if missing.
+        # Fall back to get_cycle_number(date) only if missing.
         # Reason: Anjo prova can happen on the same day as the next Líder prova,
-        # making get_week_number(date) return the NEW week, but the Anjo belongs
+        # making get_cycle_number(date) return the NEW week, but the Anjo belongs
         # to the PREVIOUS week operationally (e.g., W2 Anjo on Jan 29 = W3 by date).
-        stored_week = prova.get("week")
-        week = int(stored_week) if stored_week else get_week_number(date)
+        stored_week = prova.get("cycle")
+        week = int(stored_week) if stored_week else get_cycle_number(date)
         winners = _extract_prova_winners(prova)
 
         if tipo == "lider":
@@ -342,7 +334,7 @@ def _collect_timeline_provas_fallback_events(
                 if winner in auto_by_type_week["lider"].get(week, set()):
                     continue
                 events.append({
-                    "date": date, "week": week, "category": "lider",
+                    "date": date, "cycle": week, "category": "lider",
                     "emoji": "👑", "title": f"{winner} → Lider",
                     "detail": prova.get("nota", ""),
                     "participants": [winner], "source": "provas",
@@ -353,22 +345,22 @@ def _collect_timeline_provas_fallback_events(
                 if winner in auto_by_type_week["anjo"].get(week, set()):
                     continue
                 events.append({
-                    "date": date, "week": week, "category": "anjo",
+                    "date": date, "cycle": week, "category": "anjo",
                     "emoji": "😇", "title": f"{winner} → Anjo",
                     "detail": prova.get("nota", ""),
                     "participants": [winner], "source": "provas",
                 })
 
-    # Monstro fallback from weekly_events.anjo.monstro (or monstro_escolha for multi-target)
+    # Monstro fallback from cycles[].anjo.monstro (or monstro_escolha for multi-target)
     if manual_events and isinstance(manual_events, dict):
-        for we in manual_events.get("weekly_events", []):
+        for we in _iter_cycle_entries(manual_events):
             anjo = we.get("anjo")
             if not anjo or not isinstance(anjo, dict):
                 continue
             prova_date = anjo.get("prova_date", "")
             if not prova_date:
                 continue
-            w = we.get("week", 0)
+            w = _get_event_cycle(we)
             if not w:
                 continue
             # Collect monstro names: single string or monstro_escolha list
@@ -387,10 +379,10 @@ def _collect_timeline_provas_fallback_events(
                 if name in auto_week_set:
                     continue
                 events.append({
-                    "date": prova_date, "week": w, "category": "monstro",
+                    "date": prova_date, "cycle": w, "category": "monstro",
                     "emoji": "👹", "title": f"{name} → Monstro",
                     "detail": anjo.get("monstro_tipo", ""),
-                    "participants": [name], "source": "weekly_events",
+                    "participants": [name], "source": "cycles",
                 })
 
     return events
@@ -407,7 +399,7 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
     # --- 3. Power events (manual) ---
     # Collect dates with ta_com_nada so individual punição events are suppressed in timeline
     tcn_dates = set()
-    for we in manual_events.get("weekly_events", []):
+    for we in _iter_cycle_entries(manual_events):
         tcn = we.get("ta_com_nada")
         if tcn and isinstance(tcn, dict) and tcn.get("date"):
             tcn_dates.add(tcn["date"])
@@ -426,7 +418,7 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
         if t in ("punicao_gravissima", "punicao_coletiva") and date in tcn_dates:
             continue
         # Always compute week from date (ignore stored week — may use old calendar math)
-        week = get_week_number(date) if date else 0
+        week = get_cycle_number(date) if date else 0
         actor = ev.get("actor", "")
         target = ev.get("target", "")
         emoji = power_emoji.get(t, "⚡")
@@ -439,44 +431,44 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
         actors_list = normalize_actors(ev)
         participants = list(dict.fromkeys(p for p in actors_list + [target] if p))
         events.append({
-            "date": date, "week": week, "category": t,
+            "date": date, "cycle": week, "category": t,
             "emoji": emoji, "title": " — ".join(title_parts),
             "detail": ev.get("detail", ""), "participants": participants,
             "source": "power_events",
         })
 
     # --- 4. Weekly events (Big Fone, Sincerão, Ganha-Ganha, Barrado no Baile) ---
-    for we in manual_events.get("weekly_events", []):
-        week = we.get("week", 0)
+    for we in _iter_cycle_entries(manual_events):
+        week = _get_event_cycle(we)
         # Big Fone
         for bf in (we.get("big_fone") or []):
             date = bf.get("date", we.get("start_date", ""))
-            w = get_week_number(date) if date else week
+            w = get_cycle_number(date) if date else week
             atendeu = bf.get("atendeu", "")
             events.append({
-                "date": date, "week": w, "category": "big_fone",
+                "date": date, "cycle": w, "category": "big_fone",
                 "emoji": "📞", "title": f"Big Fone — {atendeu} atendeu",
                 "detail": bf.get("consequencia", ""), "participants": [atendeu] if atendeu else [],
-                "source": "weekly_events",
+                "source": "cycles",
             })
         # Sincerão (supports single dict or array)
         sinc_raw = we.get("sincerao")
         sinc_list = sinc_raw if isinstance(sinc_raw, list) else [sinc_raw] if isinstance(sinc_raw, dict) else []
         for sinc in sinc_list:
             date = sinc.get("date", "")
-            w = get_week_number(date) if date else week
+            w = get_cycle_number(date) if date else week
             fmt = sinc.get("format", "")
             events.append({
-                "date": date, "week": w, "category": "sincerao",
+                "date": date, "cycle": w, "category": "sincerao",
                 "emoji": "🗣️", "title": "Sincerão",
-                "detail": fmt, "participants": [], "source": "weekly_events",
+                "detail": fmt, "participants": [], "source": "cycles",
             })
         # Ganha-Ganha (supports single dict or array)
         gg_raw = we.get("ganha_ganha")
         gg_list = gg_raw if isinstance(gg_raw, list) else [gg_raw] if isinstance(gg_raw, dict) else []
         for gg in gg_list:
             date = gg.get("date", we.get("start_date", ""))
-            w = get_week_number(date) if date else week
+            w = get_cycle_number(date) if date else week
             # Build detail from structured fields if 'resultado' not set
             gg_detail = gg.get("resultado", "")
             if not gg_detail:
@@ -490,16 +482,16 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
                 gg_detail = "; ".join(parts)
             gg_participants = gg.get("participants", gg.get("sorteados", []))
             events.append({
-                "date": date, "week": w, "category": "ganha_ganha",
+                "date": date, "cycle": w, "category": "ganha_ganha",
                 "emoji": "🎰", "title": "Ganha-Ganha",
                 "detail": gg_detail, "participants": gg_participants,
-                "source": "weekly_events",
+                "source": "cycles",
             })
         # Presente do Anjo (escolha: vídeo da família vs 2ª imunidade)
         anjo = we.get("anjo")
         if anjo and isinstance(anjo, dict) and anjo.get("escolha"):
             almoco_date = anjo.get("almoco_date", "")
-            w = get_week_number(almoco_date) if almoco_date else week
+            w = get_cycle_number(almoco_date) if almoco_date else week
             vencedor = anjo.get("vencedor", "")
             escolha = anjo.get("escolha", "")
             convidados = anjo.get("almoco_convidados", [])
@@ -510,36 +502,36 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
             else:
                 detail = f"{vencedor} usou a 2ª imunidade (abriu mão do vídeo da família)"
             events.append({
-                "date": almoco_date, "week": w, "category": "presente_anjo",
+                "date": almoco_date, "cycle": w, "category": "presente_anjo",
                 "emoji": "🎁", "title": f"Presente do Anjo — {vencedor}",
                 "detail": detail,
                 "participants": [vencedor] + convidados,
-                "source": "weekly_events",
+                "source": "cycles",
             })
         # Barrado no Baile — timeline entries come from power_events, not here
-        # (weekly_events stores metadata only: lider, alvo, date)
+        # (cycles[] stores metadata only: lider, alvo, date)
         # Tá Com Nada
         tcn = we.get("ta_com_nada")
         if tcn and isinstance(tcn, dict):
             date = tcn.get("date", we.get("start_date", ""))
-            w = get_week_number(date) if date else week
+            w = get_cycle_number(date) if date else week
             instigadores = tcn.get("instigadores", [])
             title = f"Tá Com Nada — {' e '.join(instigadores)}" if instigadores else "Tá Com Nada"
             events.append({
-                "date": date, "week": w, "category": "ta_com_nada",
+                "date": date, "cycle": w, "category": "ta_com_nada",
                 "emoji": "🚨", "title": title,
                 "detail": tcn.get("consequencia", ""), "participants": instigadores,
-                "source": "weekly_events",
+                "source": "cycles",
             })
 
     # --- 6. Special events (dinâmicas, new entrants) ---
     for se in manual_events.get("special_events", []):
         date = se.get("date", "")
-        week = get_week_number(date) if date else 0
+        week = get_cycle_number(date) if date else 0
         name = se.get("name", se.get("description", "Evento especial"))
         participants = se.get("participants", se.get("participants_affected", []))
         events.append({
-            "date": date, "week": week, "category": "dinamica",
+            "date": date, "cycle": week, "category": "dinamica",
             "emoji": "⚡", "title": name,
             "detail": se.get("description", se.get("resultado", "")),
             "participants": participants if isinstance(participants, list) else [],
@@ -559,7 +551,7 @@ def _lookup_provas_winner(provas_data: dict | list | None, tipo: str, week: int)
     for prova in provas_list:
         if prova.get("tipo") != tipo:
             continue
-        prova_week = prova.get("week", 0)
+        prova_week = prova.get("cycle") or prova.get("week", 0)
         if prova_week and int(prova_week) == week:
             winners = _extract_prova_winners(prova)
             if winners:
@@ -593,7 +585,7 @@ def _collect_timeline_paredao_events(
         data_form = p.get("data_formacao", "")
         if not data_form:
             continue
-        week = get_week_number(data_form)
+        week = get_cycle_number(data_form)
         formacao = p.get("formacao", {})
         indicados = [i.get("nome", "") for i in p.get("indicados_finais", [])]
         paredao_falso = p.get("paredao_falso", False)
@@ -605,7 +597,7 @@ def _collect_timeline_paredao_events(
         autoimune = formacao.get("anjo_autoimune", False)
         if autoimune and anjo:
             events.append({
-                "date": data_form, "week": week, "category": "paredao_imunidade",
+                "date": data_form, "cycle": week, "category": "paredao_imunidade",
                 "emoji": "🛡️", "title": f"{num}º {tipo_label} — {anjo} se autoimunizou",
                 "detail": f"Anjo autoimune — não pôde imunizar outro participante",
                 "participants": [anjo], "source": "paredoes",
@@ -614,7 +606,7 @@ def _collect_timeline_paredao_events(
             por = imun.get("por", anjo)
             quem = imun["quem"]
             events.append({
-                "date": data_form, "week": week, "category": "paredao_imunidade",
+                "date": data_form, "cycle": week, "category": "paredao_imunidade",
                 "emoji": "🛡️", "title": f"{num}º {tipo_label} — {por} imunizou {quem}",
                 "detail": f"Anjo {por} imuniza {quem}",
                 "participants": [por, quem], "source": "paredoes",
@@ -629,7 +621,7 @@ def _collect_timeline_paredao_events(
             if motivo:
                 detail += f": {motivo}"
             events.append({
-                "date": data_form, "week": week, "category": "paredao_indicacao",
+                "date": data_form, "cycle": week, "category": "paredao_indicacao",
                 "emoji": "🎯", "title": f"{num}º {tipo_label} — Líder indicou {indicado_lider}",
                 "detail": detail,
                 "participants": [lider, indicado_lider], "source": "paredoes",
@@ -648,7 +640,7 @@ def _collect_timeline_paredao_events(
                 all_voted = sorted(vote_counts.items(), key=lambda x: -x[1])
                 detail_parts = [f"{name} ({count} votos)" for name, count in all_voted[:3]]
                 events.append({
-                    "date": data_form, "week": week, "category": "paredao_votacao",
+                    "date": data_form, "cycle": week, "category": "paredao_votacao",
                     "emoji": "🗳️", "title": f"{num}º {tipo_label} — Mais votado: {most_voted[0]}",
                     "detail": "; ".join(detail_parts),
                     "participants": most_voted, "source": "paredoes",
@@ -658,7 +650,7 @@ def _collect_timeline_paredao_events(
         cg = formacao.get("contragolpe") or {}
         if cg.get("de") and cg.get("para"):
             events.append({
-                "date": data_form, "week": week, "category": "paredao_contragolpe",
+                "date": data_form, "cycle": week, "category": "paredao_contragolpe",
                 "emoji": "⚔️", "title": f"{num}º {tipo_label} — Contragolpe: {cg['de']} → {cg['para']}",
                 "detail": f"{cg['de']} contragolpeou {cg['para']}",
                 "participants": [cg["de"], cg["para"]], "source": "paredoes",
@@ -678,7 +670,7 @@ def _collect_timeline_paredao_events(
             else:
                 detail = f"Disputada por {', '.join(bv_players)}" if bv_players else ""
             events.append({
-                "date": data_form, "week": week, "category": "paredao_bate_volta",
+                "date": data_form, "cycle": week, "category": "paredao_bate_volta",
                 "emoji": "🔄", "title": f"{num}º {tipo_label} — Bate e Volta",
                 "detail": detail,
                 "participants": bv_winners or bv_players, "source": "paredoes",
@@ -690,7 +682,7 @@ def _collect_timeline_paredao_events(
         if indicados and votos_casa:
             nomes = ", ".join(indicados)
             events.append({
-                "date": data_form, "week": week, "category": "paredao_formacao",
+                "date": data_form, "cycle": week, "category": "paredao_formacao",
                 "emoji": "🔥", "title": f"{num}º {tipo_label} — Formado",
                 "detail": f"Emparedados: {nomes}",
                 "participants": indicados, "source": "paredoes",
@@ -698,7 +690,7 @@ def _collect_timeline_paredao_events(
         elif indicados and not votos_casa:
             nomes = ", ".join(indicados)
             events.append({
-                "date": data_form, "week": week, "category": "dinamica",
+                "date": data_form, "cycle": week, "category": "dinamica",
                 "emoji": "⏳", "title": f"{num}º {tipo_label} — Em formação",
                 "detail": f"Emparedados parciais: {nomes} (formação continua ao vivo)",
                 "participants": indicados, "source": "paredoes",
@@ -710,21 +702,21 @@ def _collect_timeline_paredao_events(
         # Falls back to provas.json for Anjo/Líder when formacao doesn't have them.
         # Real sub-steps (steps 1-5) suppress these via singleton dedup once filled.
         if not votos_casa and data_form:
-            p_week = p.get("semana", week)
+            p_week = p.get("cycle", week)
             lider = formacao.get("lider", "") or _lookup_provas_winner(provas_data, "lider", p_week)
             anjo = anjo or _lookup_provas_winner(provas_data, "anjo", p_week)
             # Imunidade placeholder (only if not already emitted as real in step 1)
             if not (autoimune and anjo) and not (imun and isinstance(imun, dict) and imun.get("quem")):
                 if anjo:
                     events.append({
-                        "date": data_form, "week": week, "category": "paredao_imunidade",
+                        "date": data_form, "cycle": week, "category": "paredao_imunidade",
                         "emoji": "🛡️", "title": f"{num}º {tipo_label} — {anjo} imuniza",
                         "detail": f"Anjo {anjo} escolhe quem imunizar",
                         "participants": [anjo], "source": "paredoes", "status": "scheduled",
                     })
                 else:
                     events.append({
-                        "date": data_form, "week": week, "category": "paredao_imunidade",
+                        "date": data_form, "cycle": week, "category": "paredao_imunidade",
                         "emoji": "🛡️", "title": f"{num}º {tipo_label} — Imunidade do Anjo",
                         "detail": "Anjo escolhe quem imunizar",
                         "participants": [], "source": "paredoes", "status": "scheduled",
@@ -734,35 +726,35 @@ def _collect_timeline_paredao_events(
             if not (indicado_lider and lider):
                 if lider:
                     events.append({
-                        "date": data_form, "week": week, "category": "paredao_indicacao",
+                        "date": data_form, "cycle": week, "category": "paredao_indicacao",
                         "emoji": "🎯", "title": f"{num}º {tipo_label} — {lider} indica",
                         "detail": f"Líder {lider} indica ao Paredão",
                         "participants": [lider], "source": "paredoes", "status": "scheduled",
                     })
                 else:
                     events.append({
-                        "date": data_form, "week": week, "category": "paredao_indicacao",
+                        "date": data_form, "cycle": week, "category": "paredao_indicacao",
                         "emoji": "🎯", "title": f"{num}º {tipo_label} — Indicação do Líder",
                         "detail": "Líder indica ao Paredão",
                         "participants": [], "source": "paredoes", "status": "scheduled",
                     })
             # Votação placeholder
             events.append({
-                "date": data_form, "week": week, "category": "paredao_votacao",
+                "date": data_form, "cycle": week, "category": "paredao_votacao",
                 "emoji": "🗳️", "title": f"{num}º {tipo_label} — Votação da Casa",
                 "detail": "Participantes votam no confessionário",
                 "participants": [], "source": "paredoes", "status": "scheduled",
             })
             # Contragolpe placeholder
             events.append({
-                "date": data_form, "week": week, "category": "paredao_contragolpe",
+                "date": data_form, "cycle": week, "category": "paredao_contragolpe",
                 "emoji": "⚔️", "title": f"{num}º {tipo_label} — Contragolpe",
                 "detail": "Mais votado pela casa contragolpeia um participante",
                 "participants": [], "source": "paredoes", "status": "scheduled",
             })
             # Bate e Volta placeholder
             events.append({
-                "date": data_form, "week": week, "category": "paredao_bate_volta",
+                "date": data_form, "cycle": week, "category": "paredao_bate_volta",
                 "emoji": "🔄", "title": f"{num}º {tipo_label} — Bate e Volta",
                 "detail": "Emparedados disputam prova para escapar do Paredão",
                 "participants": [], "source": "paredoes", "status": "scheduled",
@@ -772,7 +764,7 @@ def _collect_timeline_paredao_events(
         resultado = p.get("resultado", {})
         data_elim = p.get("data", "")
         if resultado and data_elim:
-            r_week = get_week_number(data_elim)
+            r_week = get_cycle_number(data_elim)
             eliminado = resultado.get("eliminado", "")
             votos = resultado.get("votos", {})
             pct = ""
@@ -788,7 +780,7 @@ def _collect_timeline_paredao_events(
             else:
                 detail = ""
             events.append({
-                "date": data_elim, "week": r_week, "category": "paredao_resultado",
+                "date": data_elim, "cycle": r_week, "category": "paredao_resultado",
                 "emoji": "🔮" if is_falso else "🏁",
                 "title": f"{num}º Paredão Falso — Resultado" if is_falso else f"{num}º Paredão — Resultado",
                 "detail": detail,
@@ -837,7 +829,7 @@ def _merge_and_dedup_timeline(
     existing_date_cat = {(e["date"], e["category"]) for e in events}
     for se in manual_events.get("scheduled_events", []):
         date = se.get("date") or ""
-        week = _get_event_cycle(se, fallback=get_week_number(date) if date else 0)
+        week = _get_event_cycle(se, fallback=get_cycle_number(date) if date else 0)
         cat = se.get("category", "dinamica")
         key = (date, cat)
         time_field = se.get("time") or ""
@@ -856,7 +848,7 @@ def _merge_and_dedup_timeline(
         if key in existing_date_cat and (cat in _SINGLETON_CATEGORIES or is_resolved):
             continue
         events.append({
-            "date": date, "week": week, "cycle": week, "category": cat,
+            "date": date, "cycle": week, "category": cat,
             "emoji": se.get("emoji", "🔮"), "title": se.get("title", ""),
             "detail": se.get("detail", ""),
             "participants": se.get("participants", []),
@@ -874,13 +866,13 @@ def _merge_and_dedup_timeline(
         covered_week_cat: set[tuple[int, str]] = set()
         for e in events:
             if e.get("source") not in ("scaffold",):
-                w = e.get("week", 0)
+                w = e.get("cycle", e.get("week", 0))
                 covered_week_cat.add((w, e["category"]))
         for se in scaffold_events:
             if (se["date"], se["category"]) in covered_date_cat:
                 continue
             cat = se.get("category", "")
-            if cat in _SINGLETON_CATEGORIES and (se.get("week", 0), cat) in covered_week_cat:
+            if cat in _SINGLETON_CATEGORIES and (se.get("cycle", se.get("week", 0)), cat) in covered_week_cat:
                 continue
             events.append(se)
 
@@ -918,8 +910,6 @@ def _merge_and_dedup_timeline(
         key = (e["date"], e["category"], e["title"])
         if key not in seen:
             seen.add(key)
-            if "cycle" not in e and "week" in e:
-                e["cycle"] = e["week"]
             unique.append(e)
 
     return unique
@@ -943,7 +933,7 @@ def build_game_timeline(
         reference_date = utc_to_game_date(datetime.now(timezone.utc))
     paredoes_dict = paredoes_data if isinstance(paredoes_data, dict) else {}
     provas_dict = provas_data if isinstance(provas_data, dict) else {}
-    week_end_dates = get_effective_week_end_dates(manual_events, paredoes_dict, provas_dict)
+    cycle_end_dates = get_effective_cycle_end_dates(manual_events, paredoes_dict, provas_dict)
 
     # Inject paredoes data so _collect_timeline_auto_events can use paredão dates for saida events.
     manual_events_with_paredoes = dict(manual_events)
@@ -954,7 +944,7 @@ def build_game_timeline(
     events.extend(_collect_timeline_provas_fallback_events(auto_events, provas_data, manual_events))
     events.extend(_collect_timeline_manual_events(manual_events))
     events.extend(_collect_timeline_paredao_events(paredoes_data, provas_data))
-    scaffold_events = _generate_weekly_scaffolds(week_end_dates, reference_date, manual_events)
+    scaffold_events = _generate_weekly_scaffolds(cycle_end_dates, reference_date, manual_events)
     return _merge_and_dedup_timeline(
         events, manual_events,
         reference_date=reference_date,

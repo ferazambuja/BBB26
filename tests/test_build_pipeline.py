@@ -187,7 +187,7 @@ def sample_power_events():
             "actor": "Alice",
             "target": "Bob",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
             "visibility": "public",
         },
         {
@@ -195,7 +195,7 @@ def sample_power_events():
             "actor": "Carol",
             "target": "Dave",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
             "visibility": "public",
         },
         {
@@ -203,7 +203,7 @@ def sample_power_events():
             "actor": "Alice",
             "target": "Carol",
             "date": "2026-01-21",
-            "week": 1,
+            "cycle": 1,
             "visibility": "public",
         },
     ]
@@ -219,7 +219,7 @@ def sample_sincerao_edges():
                 "target": "Bob",
                 "type": "elogio",
                 "slot": 1,
-                "week": 2,
+                "cycle": 2,
                 "date": "2026-01-25",
                 "tema": "Amizade",
             },
@@ -227,7 +227,7 @@ def sample_sincerao_edges():
                 "actor": "Carol",
                 "target": "Dave",
                 "type": "ataque",
-                "week": 2,
+                "cycle": 2,
                 "date": "2026-01-25",
                 "tema": "Jogo",
             },
@@ -236,7 +236,7 @@ def sample_sincerao_edges():
                 "target": "Alice",
                 "type": "regua",
                 "slot": 3,
-                "week": 2,
+                "cycle": 2,
                 "date": "2026-01-25",
                 "tema": "Falsidade",
             },
@@ -637,7 +637,7 @@ class TestBuildPowerEventEdges:
             "actor": "Alice",
             "target": "Bob",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
             "visibility": "secret",
         }]
         collector = EdgeCollector()
@@ -651,7 +651,7 @@ class TestBuildPowerEventEdges:
             "actor": "Alice",
             "target": "Alice",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
             "self": True,
         }]
         collector = EdgeCollector()
@@ -664,7 +664,7 @@ class TestBuildPowerEventEdges:
             "actor": "Prova do Líder",
             "target": "Alice",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
         }]
         collector = EdgeCollector()
         _build_power_event_edges(events, 1, collector)
@@ -676,7 +676,7 @@ class TestBuildPowerEventEdges:
             "actor": "Alice",
             "target": "Bob",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
         }]
         collector = EdgeCollector()
         _build_power_event_edges(events, 1, collector)
@@ -688,7 +688,7 @@ class TestBuildPowerEventEdges:
             "actor": "Alice",
             "target": "Bob",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
             "visibility": "secret",
         }]
         collector = EdgeCollector()
@@ -706,7 +706,7 @@ class TestBuildPowerEventEdges:
             "actors": ["Alice", "Bob"],
             "target": "Carol",
             "date": "2026-01-20",
-            "week": 1,
+            "cycle": 1,
             "visibility": "public",
         }]
         collector = EdgeCollector()
@@ -1064,5 +1064,5 @@ class TestBuildAutoEvents:
         events = build_auto_events(roles)
         assert len(events) == 1
         event = events[0]
-        required_fields = {"date", "week", "type", "actor", "target", "detail", "impacto", "origem", "source"}
+        required_fields = {"date", "cycle", "type", "actor", "target", "detail", "impacto", "origem", "source"}
         assert required_fields.issubset(event.keys())

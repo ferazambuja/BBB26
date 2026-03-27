@@ -224,12 +224,12 @@ def manual_events():
     """Basic manual events with one power event (indicacao)."""
     return {
         "participants": {},
-        "weekly_events": [],
+        "cycles": [],
         "special_events": [],
         "power_events": [
             {
                 "date": "2026-01-19",
-                "week": 1,
+                "cycle": 1,
                 "type": "indicacao",
                 "actor": "Alice",
                 "target": "Dave",
@@ -432,7 +432,7 @@ class TestWeek8MilenaSpotlight:
             item["actor"] == "Jonas Sulzbach"
             and item["target"] == "Milena"
             and item["event_type"] == "indicacao"
-            and item["week"] == 8
+            and item["cycle"] == 8
             for item in timeline
         )
         assert any(item["actor"] == "Milena" and item["target"] == "Jonas Sulzbach" for item in timeline)

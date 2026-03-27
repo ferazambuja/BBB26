@@ -41,14 +41,14 @@ def _events(result: dict, name: str, event_type: str, week: int) -> list[dict]:
     row = next(p for p in result["leaderboard"] if p["name"] == name)
     return [
         evt for evt in row.get("events", [])
-        if evt.get("event") == event_type and evt.get("week") == week
+        if evt.get("event") == event_type and evt.get("cycle") == week
     ]
 
 
 def _manual_base() -> dict:
     return {
         "participants": {},
-        "weekly_events": [],
+        "cycles": [],
         "special_events": [],
         "power_events": [],
         "cartola_points_log": [],
@@ -75,7 +75,7 @@ def test_vip_uses_official_list_plus_troca_vip_and_deduplicates():
             "type": "troca_vip",
             "target": "Ana Paula Renault",
             "date": "2026-02-13",
-            "week": 5,
+            "cycle": 5,
             "detail": "Troca Xepa->VIP",
         }
     ]
@@ -84,7 +84,7 @@ def test_vip_uses_official_list_plus_troca_vip_and_deduplicates():
             {
                 "numero": 12,
                 "tipo": "lider",
-                "week": 5,
+                "cycle": 5,
                 "date": "2026-02-13",
                 "vencedor": "Jonas Sulzbach",
                 "vip": ["Gabriela", "Jordana", "Marciele", "Breno"],
@@ -129,7 +129,7 @@ def test_vip_strict_mode_fails_when_api_has_unexpected_extra_name():
             {
                 "numero": 21,
                 "tipo": "lider",
-                "week": 8,
+                "cycle": 8,
                 "date": "2026-03-06",
                 "vencedor": "Alberto Cowboy",
                 "vencedores": ["Alberto Cowboy", "Jonas Sulzbach"],
@@ -163,9 +163,9 @@ def test_monstro_retirado_vip_fallback_uses_official_vip_even_if_api_misses_tran
         }
     ]
     manual_events = _manual_base()
-    manual_events["weekly_events"] = [
+    manual_events["cycles"] = [
         {
-            "week": 7,
+            "cycle": 7,
             "anjo": {
                 "vencedor": "Alberto Cowboy",
                 "prova_date": "2026-02-28",
@@ -178,7 +178,7 @@ def test_monstro_retirado_vip_fallback_uses_official_vip_even_if_api_misses_tran
             {
                 "numero": 18,
                 "tipo": "lider",
-                "week": 7,
+                "cycle": 7,
                 "date": "2026-02-26",
                 "vencedor": "Samira",
                 "vip": ["Ana Paula Renault", "Breno", "Juliano Floss", "Milena"],
@@ -218,7 +218,7 @@ def test_anjo_imunizado_and_emparedado_use_official_fallbacks_when_api_roles_mis
             "actor": "Sarah Andrade",
             "target": "Sol Vega",
             "date": "2026-02-01",
-            "week": 3,
+            "cycle": 3,
             "detail": "Anjo imuniza",
         }
     ]
@@ -227,7 +227,7 @@ def test_anjo_imunizado_and_emparedado_use_official_fallbacks_when_api_roles_mis
             {
                 "numero": 7,
                 "tipo": "anjo",
-                "week": 3,
+                "cycle": 3,
                 "date": "2026-01-31",
                 "vencedor": "Sarah Andrade",
             }

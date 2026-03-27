@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from data_utils import CARTOLA_POINTS, get_week_number, parse_roles
+from data_utils import CARTOLA_POINTS, get_cycle_number, parse_roles
 from builders.participants import _normalize_big_fone
 
 
@@ -62,7 +62,7 @@ def _detect_cartola_roles(daily_snapshots: list[dict], calculated_points: dict) 
 
     for snap in daily_snapshots:
         date = snap['date']
-        week = get_week_number(date)
+        week = get_cycle_number(date)
 
         current_holders, current_vip = _collect_current_holders_and_vip(snap['participants'])
 
@@ -148,7 +148,7 @@ def _week_from_payload(week_raw, date_str: str) -> int:
     if isinstance(week_raw, int) and week_raw > 0:
         return week_raw
     if date_str:
-        return get_week_number(date_str)
+        return get_cycle_number(date_str)
     return 1
 
 
@@ -192,7 +192,7 @@ def _collect_official_role_events(provas_data: dict | None, manual_events: dict,
                 continue
             tipo = str(prova.get('tipo', '')).strip().lower()
             date_str = str(prova.get('date') or '').strip()
-            week = _week_from_payload(prova.get('week'), date_str)
+            week = _week_from_payload(prova.get('cycle'), date_str)
             winners = _normalize_name_list(prova.get('vencedores')) or _normalize_name_list(prova.get('vencedor'))
 
             if tipo in {'lider', 'líder'}:
@@ -208,10 +208,10 @@ def _collect_official_role_events(provas_data: dict | None, manual_events: dict,
             if tipo == 'anjo':
                 add_official('anjo', week, winners, date_str, strict=True)
 
-    for week_event in manual_events.get('weekly_events', []):
+    for week_event in manual_events.get('cycles', []):
         if not isinstance(week_event, dict):
             continue
-        week = week_event.get('week')
+        week = week_event.get('cycle')
         if not isinstance(week, int):
             continue
         anjo = week_event.get('anjo')
@@ -232,7 +232,7 @@ def _collect_official_role_events(provas_data: dict | None, manual_events: dict,
             continue
         ev_type = ev.get('type')
         date_str = str(ev.get('date') or '').strip()
-        week = _week_from_payload(ev.get('week'), date_str)
+        week = _week_from_payload(ev.get('cycle'), date_str)
         target = str(ev.get('target') or '').strip()
         if not target:
             continue
@@ -245,7 +245,7 @@ def _collect_official_role_events(provas_data: dict | None, manual_events: dict,
         if not isinstance(paredao, dict):
             continue
         date_str = str(paredao.get('data_formacao') or paredao.get('data') or '').strip()
-        week = _week_from_payload(paredao.get('semana'), date_str)
+        week = _week_from_payload(paredao.get('cycle'), date_str)
         indicados = [
             str(item.get('nome') or '').strip()
             for item in paredao.get('indicados_finais', [])
@@ -335,8 +335,8 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
         calculated_points[name][week].append((event_key, points, date_str))
 
     # Manual events
-    for week_event in manual_events.get('weekly_events', []):
-        week = week_event.get('week', 1)
+    for week_event in manual_events.get('cycles', []):
+        week = week_event.get('cycle', 1)
         start_date = week_event.get('start_date', '')
         bf_list = _normalize_big_fone(week_event.get('big_fone'))
         for big_fone in bf_list:
@@ -352,7 +352,7 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
         name = name.strip()
         status = info.get('status')
         exit_date = info.get('exit_date', '')
-        week = get_week_number(exit_date) if exit_date else 1
+        week = get_cycle_number(exit_date) if exit_date else 1
         if status == 'desistente':
             calculated_points[name][week].append(('desistente', CARTOLA_POINTS['desistente'], exit_date))
         elif status in ('eliminada', 'eliminado'):
@@ -374,7 +374,7 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
         paredao_date = p.get('data', '')
         if not paredao_date:
             continue
-        week = p.get('semana') or get_week_number(paredao_date)
+        week = p.get('cycle') or get_cycle_number(paredao_date)
         indicados = [i.get('nome') for i in p.get('indicados_finais', []) if i.get('nome')]
         if not indicados:
             continue
@@ -440,7 +440,7 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
             for ev in manual_events.get('power_events', []):
                 if ev.get('type') != 'imunidade':
                     continue
-                ev_week = get_week_number(ev['date']) if ev.get('date') else ev.get('week', 0)
+                ev_week = get_cycle_number(ev['date']) if ev.get('date') else ev.get('cycle', 0)
                 if ev_week == week and ev.get('target'):
                     extra_imunes.add(ev['target'].strip())
 
@@ -514,7 +514,7 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
 
     for entry in manual_events.get('cartola_points_log', []):
         participant = entry['participant']
-        week = entry['week']
+        week = entry.get('cycle') or entry['week']
         for evt in entry.get('events', []):
             event_type = evt['event']
             points = evt['points']
@@ -560,7 +560,7 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
         events_list = []
         for week, events in sorted(all_points[name].items()):
             for evt, pts, date in events:
-                events_list.append({"week": week, "event": evt, "points": pts, "date": date})
+                events_list.append({"cycle": week, "event": evt, "points": pts, "date": date})
         leaderboard.append({
             'name': name,
             'total': total,
@@ -583,17 +583,17 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
 
     leaderboard = sorted(leaderboard, key=lambda x: (-x['total'], x['name']))
 
-    # Weekly points (serializable)
-    weekly_points = {}
+    # Cycle points (serializable)
+    cycle_points = {}
     for participant in all_points:
         for week, events in all_points[participant].items():
             week_str = str(week)
-            if week_str not in weekly_points:
-                weekly_points[week_str] = {}
-            weekly_points[week_str][participant] = [[evt, pts, date] for evt, pts, date in events]
+            if week_str not in cycle_points:
+                cycle_points[week_str] = {}
+            cycle_points[week_str][participant] = [[evt, pts, date] for evt, pts, date in events]
 
     # Stats
-    n_weeks = max([get_week_number(s['date']) for s in daily_snapshots], default=1) if daily_snapshots else 1
+    n_cycles = max([get_cycle_number(s['date']) for s in daily_snapshots], default=1) if daily_snapshots else 1
 
     seen_roles = {"Líder": [], "Anjo": [], "Monstro": []}
     for entry in leaderboard:
@@ -623,14 +623,14 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
     # Cumulative evolution: running totals per participant per week
     cumulative_evolution = []
     running_totals_evo = defaultdict(int)
-    for week in range(1, n_weeks + 1):
+    for week in range(1, n_cycles + 1):
         for participant in all_points:
             if week in all_points[participant]:
                 week_pts = sum(pts for _, pts, _ in all_points[participant][week])
                 running_totals_evo[participant] += week_pts
             if running_totals_evo[participant] != 0:
                 cumulative_evolution.append({
-                    "week": week,
+                    "cycle": week,
                     "name": participant,
                     "cumulative_points": running_totals_evo[participant],
                 })
@@ -638,11 +638,11 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
     return {
         "_metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "n_weeks": n_weeks,
+            "n_cycles": n_cycles,
             "n_snapshots": len(daily_snapshots),
         },
         "leaderboard": leaderboard,
-        "weekly_points": weekly_points,
+        "cycle_points": cycle_points,
         "cumulative_evolution": cumulative_evolution,
         "stats": {
             "n_with_points": len([p for p in leaderboard if p['total'] != 0]),

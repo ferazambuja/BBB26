@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from data_utils import get_week_number
+from data_utils import get_cycle_number
 from builders.sincerao import split_names as _split_names
 
 # ── Plant Index constants ──
@@ -166,7 +166,7 @@ def _compute_plant_component_scores(
 def _compute_plant_rolling_averages(weeks_out: list[dict]) -> None:
     """Compute rolling averages in-place for plant index weekly scores."""
     history: dict[str, list[float]] = defaultdict(list)
-    for week in sorted(weeks_out, key=lambda x: x["week"]):
+    for week in sorted(weeks_out, key=lambda x: x["cycle"]):
         for name, rec in week["scores"].items():
             history[name].append(rec["score"])
             recent = history[name][-PLANT_INDEX_ROLLING_WEEKS:]
@@ -234,34 +234,34 @@ def _process_week_reactions(week_snaps: list[dict]) -> dict:
 def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, auto_events: list[dict] | None, sincerao_edges: dict | None, paredoes: dict | None = None) -> dict:
     weekly = defaultdict(lambda: {"dates": [], "snapshots": []})
     for snap in daily_snapshots:
-        week = get_week_number(snap["date"])
+        week = get_cycle_number(snap["date"])
         weekly[week]["dates"].append(snap["date"])
         weekly[week]["snapshots"].append(snap)
 
     events_by_week = defaultdict(list)
     for ev in (manual_events.get("power_events", []) if manual_events else []):
         d = ev.get("date", "")
-        week = get_week_number(d) if d else ev.get("week", 0)
+        week = get_cycle_number(d) if d else (ev.get("cycle") or ev.get("week", 0))
         if week:
             events_by_week[week].append(ev)
     for ev in auto_events or []:
         d = ev.get("date", "")
-        week = get_week_number(d) if d else ev.get("week", 0)
+        week = get_cycle_number(d) if d else (ev.get("cycle") or ev.get("week", 0))
         if week:
             events_by_week[week].append(ev)
 
-    weekly_events_by_week = {}
-    for w in (manual_events.get("weekly_events", []) if manual_events else []):
-        week = w.get("week")
-        if week:
-            weekly_events_by_week[week] = w
+    cycle_entries_by_cycle = {}
+    for w in (manual_events.get("cycles", []) if manual_events else []):
+        cycle = w.get("cycle")
+        if cycle:
+            cycle_entries_by_cycle[cycle] = w
 
     # Add derived events: return from paredão
     if paredoes:
         for p in paredoes.get("paredoes", []):
             resultado = p.get("resultado") or {}
             eliminado = resultado.get("eliminado")
-            semana = p.get("semana")
+            semana = p.get("cycle")
             data = p.get("data")
             indicados = [i.get("nome") for i in p.get("indicados_finais", []) if i.get("nome")]
             for nome in indicados:
@@ -270,7 +270,7 @@ def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, a
                 if semana:
                     events_by_week[semana].append({
                         "date": data,
-                        "week": semana,
+                        "cycle": semana,
                         "type": "volta_paredao",
                         "actor": None,
                         "target": nome,
@@ -282,11 +282,11 @@ def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, a
 
     sinc_edges_by_week = defaultdict(list)
     for edge in (sincerao_edges or {}).get("edges", []):
-        week = edge.get("week")
+        week = edge.get("cycle")
         if week:
             sinc_edges_by_week[week].append(edge)
 
-    sinc_weeks = {w.get("week"): w for w in (sincerao_edges or {}).get("weeks", [])}
+    sinc_weeks = {w.get("cycle"): w for w in (sincerao_edges or {}).get("weeks", [])}
 
     prev_sincerao_values: dict[str, float] = {}
 
@@ -335,7 +335,7 @@ def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, a
                     power_activity[target] += target_w
 
         # Ganha-Ganha: leve sinal de atividade para os sorteados
-        weekly_meta = weekly_events_by_week.get(week, {})
+        weekly_meta = cycle_entries_by_cycle.get(week, {})
         gg_raw = weekly_meta.get("ganha_ganha") if isinstance(weekly_meta, dict) else None
         gg_list = gg_raw if isinstance(gg_raw, list) else [gg_raw] if isinstance(gg_raw, dict) else []
         for ganha in gg_list:
@@ -404,17 +404,17 @@ def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, a
             )
 
         weeks_out.append({
-            "week": week,
+            "cycle": week,
             "date_range": {"start": week_dates[0], "end": week_dates[-1]},
             "scores": scores,
         })
 
     _compute_plant_rolling_averages(weeks_out)
 
-    latest_week = max((w["week"] for w in weeks_out), default=None)
+    latest_week = max((w["cycle"] for w in weeks_out), default=None)
     latest_scores = {}
     if latest_week is not None:
-        latest_entry = next((w for w in weeks_out if w["week"] == latest_week), None)
+        latest_entry = next((w for w in weeks_out if w["cycle"] == latest_week), None)
         if latest_entry:
             latest_scores = latest_entry["scores"]
 
@@ -429,5 +429,5 @@ def build_plant_index(daily_snapshots: list[dict], manual_events: dict | None, a
             "bonus_plateia": PLANT_INDEX_BONUS_PLATEIA,
         },
         "weeks": weeks_out,
-        "latest": {"week": latest_week, "scores": latest_scores},
+        "latest": {"cycle": latest_week, "scores": latest_scores},
     }

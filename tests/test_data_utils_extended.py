@@ -512,9 +512,9 @@ class TestAdditionalCentralizedLoaders:
         assert load_provas_raw().get("provas", [])[0].get("tipo") == "lider"
 
     def test_load_manual_events(self, tmp_path, monkeypatch):
-        self._write(tmp_path / "data" / "manual_events.json", {"weekly_events": []})
+        self._write(tmp_path / "data" / "manual_events.json", {"cycles": []})
         monkeypatch.chdir(tmp_path)
-        assert load_manual_events().get("weekly_events") == []
+        assert load_manual_events().get("cycles") == []
 
     def test_load_auto_events(self, tmp_path, monkeypatch):
         self._write(tmp_path / "data" / "derived" / "auto_events.json", {"events": [{"type": "lider"}]})

@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from data_utils import parse_roles, get_week_number
+from data_utils import parse_roles, get_cycle_number
 
 
 ROLES = ["Líder", "Anjo", "Monstro", "Imune", "Paredão"]
@@ -96,7 +96,7 @@ def build_auto_events(daily_roles: list[dict]) -> list[dict]:
 
     for entry in daily_roles:
         date = entry["date"]
-        week = get_week_number(date)
+        week = get_cycle_number(date)
         roles = entry["roles"]
         anjo_name = next(iter(roles.get("Anjo", [])), None)
 
@@ -114,7 +114,7 @@ def build_auto_events(daily_roles: list[dict]) -> list[dict]:
                 for curr_name in new_holders:
                     events.append({
                         "date": date,
-                        "week": week,
+                        "cycle": week,
                         "type": meta["type"],
                         "actor": meta["actor"],
                         "target": curr_name,
@@ -132,7 +132,7 @@ def build_auto_events(daily_roles: list[dict]) -> list[dict]:
                         actor = anjo_name
                     events.append({
                         "date": date,
-                        "week": week,
+                        "cycle": week,
                         "type": meta["type"],
                         "actor": actor,
                         "target": name,
@@ -162,7 +162,7 @@ def apply_big_fone_context(auto_events: list[dict], manual_events: dict) -> list
     if not auto_events or not manual_events:
         return auto_events
     big_fone_map = []
-    for w in manual_events.get("weekly_events", []) if manual_events else []:
+    for w in manual_events.get("cycles", []) if manual_events else []:
         bf_list = _normalize_big_fone(w.get("big_fone") if isinstance(w, dict) else None)
         for bf in bf_list:
             atendeu = bf.get("atendeu")

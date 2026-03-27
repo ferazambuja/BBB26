@@ -105,16 +105,16 @@ def test_static_vip_xepa_cards_link_to_relacoes_anchor():
 
 def test_sincerao_card_link_points_to_existing_relacoes_anchor():
     sinc_data = {
-        "weeks": [{"week": 1, "format": "Sincerão #1"}],
+        "weeks": [{"cycle": 1, "format": "Sincerão #1"}],
         "edges": [
-            {"week": 1, "type": "ataque", "actor": "Ana", "target": "Beto"},
+            {"cycle": 1, "type": "ataque", "actor": "Ana", "target": "Beto"},
         ],
     }
     latest_matrix = {("Ana", "Beto"): "Coração"}
 
     _highlights, cards, *_rest = _compute_sincerao_highlight(
         sinc_data=sinc_data,
-        current_week=1,
+        current_cycle=1,
         latest_matrix=latest_matrix,
         active_set={"Ana", "Beto"},
     )
@@ -125,19 +125,19 @@ def test_sincerao_card_link_points_to_existing_relacoes_anchor():
 
 def test_sincerao_card_splits_negative_lanes_by_tema_when_needed():
     sinc_data = {
-        "weeks": [{"week": 9, "date": "2026-03-16", "format": "quem faz alguem de bobo + quem esta sendo feito de bobo"}],
+        "weeks": [{"cycle": 9, "date": "2026-03-16", "format": "quem faz alguem de bobo + quem esta sendo feito de bobo"}],
         "edges": [
-            {"week": 9, "type": "ataque", "actor": "Ana", "target": "Beto", "tema": "faz alguem de bobo"},
-            {"week": 9, "type": "ataque", "actor": "Cora", "target": "Beto", "tema": "faz alguem de bobo"},
-            {"week": 9, "type": "ataque", "actor": "Duda", "target": "Eva", "tema": "esta sendo feito de bobo"},
-            {"week": 9, "type": "ataque", "actor": "Fabi", "target": "Eva", "tema": "esta sendo feito de bobo"},
-            {"week": 9, "type": "ataque", "actor": "Gabi", "target": "Eva", "tema": "esta sendo feito de bobo"},
+            {"cycle": 9, "type": "ataque", "actor": "Ana", "target": "Beto", "tema": "faz alguem de bobo"},
+            {"cycle": 9, "type": "ataque", "actor": "Cora", "target": "Beto", "tema": "faz alguem de bobo"},
+            {"cycle": 9, "type": "ataque", "actor": "Duda", "target": "Eva", "tema": "esta sendo feito de bobo"},
+            {"cycle": 9, "type": "ataque", "actor": "Fabi", "target": "Eva", "tema": "esta sendo feito de bobo"},
+            {"cycle": 9, "type": "ataque", "actor": "Gabi", "target": "Eva", "tema": "esta sendo feito de bobo"},
         ],
     }
 
     _highlights, cards, *_rest = _compute_sincerao_highlight(
         sinc_data=sinc_data,
-        current_week=9,
+        current_cycle=9,
         latest_matrix={},
         active_set={"Ana", "Beto", "Cora", "Duda", "Eva", "Fabi", "Gabi"},
     )
@@ -158,17 +158,17 @@ def test_sincerao_card_splits_negative_lanes_by_tema_when_needed():
 
 def test_sincerao_card_keeps_unlabeled_negative_targets_visible_when_split_lanes_exist():
     sinc_data = {
-        "weeks": [{"week": 9, "date": "2026-03-16", "format": "placa dupla com sobra sem tema"}],
+        "weeks": [{"cycle": 9, "date": "2026-03-16", "format": "placa dupla com sobra sem tema"}],
         "edges": [
-            {"week": 9, "type": "ataque", "actor": "Ana", "target": "Beto", "tema": "faz alguem de bobo"},
-            {"week": 9, "type": "ataque", "actor": "Cora", "target": "Eva", "tema": "esta sendo feito de bobo"},
-            {"week": 9, "type": "ataque", "actor": "Duda", "target": "Lia"},
+            {"cycle": 9, "type": "ataque", "actor": "Ana", "target": "Beto", "tema": "faz alguem de bobo"},
+            {"cycle": 9, "type": "ataque", "actor": "Cora", "target": "Eva", "tema": "esta sendo feito de bobo"},
+            {"cycle": 9, "type": "ataque", "actor": "Duda", "target": "Lia"},
         ],
     }
 
     _highlights, cards, *_rest = _compute_sincerao_highlight(
         sinc_data=sinc_data,
-        current_week=9,
+        current_cycle=9,
         latest_matrix={},
         active_set={"Ana", "Beto", "Cora", "Duda", "Eva", "Lia"},
     )

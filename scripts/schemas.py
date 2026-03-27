@@ -15,7 +15,7 @@ PAREDAO_SCHEMA = {
                     "data": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
                     "titulo": {"type": "string", "minLength": 1},
                     "data_formacao": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
-                    "semana": {"type": "integer", "minimum": 1},
+                    "cycle": {"type": "integer", "minimum": 1},
                     "total_esperado": {"type": "integer", "minimum": 1},
                     "formacao": {"type": "object"},
                     "indicados_finais": {
@@ -77,7 +77,7 @@ MANUAL_EVENTS_SCHEMA = {
                 },
             },
         },
-        "weekly_events": {"type": "array"},
+        "cycles": {"type": "array"},
         "power_events": {"type": "array"},
         "special_events": {"type": "array"},
         "scheduled_events": {"type": "array"},
@@ -93,11 +93,11 @@ PROVAS_SCHEMA = {
             "type": "array",
             "items": {
                 "type": "object",
-                "required": ["numero", "tipo", "week", "date"],
+                "required": ["numero", "tipo", "cycle", "date"],
                 "properties": {
                     "numero": {"type": "integer", "minimum": 1},
                     "tipo": {"type": "string", "enum": ["lider", "anjo", "bate_volta"]},
-                    "week": {"type": "integer", "minimum": 1},
+                    "cycle": {"type": "integer", "minimum": 1},
                     "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
                     "vencedor": {"type": ["string", "null"]},
                     "vencedores": {"type": "array", "items": {"type": "string"}},

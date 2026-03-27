@@ -387,7 +387,7 @@ gh run view <run-id> --log             # full logs for a specific run
 
 Each BBB week follows a predictable pattern anchored to the Líder cycle.
 
-> **Key rule**: The **Prova do Líder is the FIRST event of the new week**. Everything before it on the same day (e.g., afternoon Anjo prova) belongs to the PREVIOUS week. `WEEK_END_DATES` stores the last day of each week = the day BEFORE the Prova do Líder. When assigning `week` to events in `provas.json` or `manual_events.json`, use the **operational week** (which Líder presided), not `get_week_number(date)` — they can differ on Prova do Líder day.
+> **Key rule**: The **Prova do Líder is the FIRST event of the new cycle**. Everything before it on the same day (e.g., afternoon Anjo prova) belongs to the PREVIOUS cycle. `CYCLE_END_DATES` stores the last day of each cycle = the day BEFORE the Prova do Líder. When assigning `cycle` to events in `provas.json` or `manual_events.json`, use the **operational cycle** (which Líder presided), not `get_cycle_number(date)` — they can differ on Prova do Líder day.
 
 ### Week Rollover Runbook (Thursday/Friday)
 
@@ -469,7 +469,7 @@ When the show enters the final phase, Líder cycles compress to **2–4 days** i
 - **Anjo and Formation may happen on the same day** (e.g., W11: both on Friday).
 - **Elimination + Líder + Formation can all occur on the same day** (e.g., W12: all three on Sunday Mar 29).
 - **Use manual `scheduled_events` for all events** in compressed cycles. The scaffold profiles assume standard weekday assignments (Thu Líder, Sat Anjo, Sun Formation, Tue Elimination) which are wrong for compressed cycles. Manual events override scaffolds via singleton dedup.
-- **`WEEK_END_DATES` entries will be very close together** (1–3 days apart instead of 6–8). This is expected.
+- **`CYCLE_END_DATES` entries will be very close together** (1–3 days apart instead of 6–8). This is expected.
 - **Rollover may happen within hours of the previous elimination.** The "Thursday/Friday" rollover timing assumption from the standard runbook does not apply. Follow the same Líder Transition Checklist steps but adapt timing to the actual Prova do Líder date.
 - **P11 skeleton safety**: do NOT set `"status": "em_andamento"` until formation data exists. Use `"preparando"` when creating the skeleton after the Líder is crowned. The LXC scheduler triggers Votalhada bootstrap from `em_andamento` entries.
 - **Votalhada collection timing shifts**: if elimination is Sunday (not Tuesday), collect Votalhada data Saturday night or Sunday morning.
@@ -744,16 +744,16 @@ These are picked up automatically by `build_daily_roles()` from snapshots:
 
 ### Later (when Líder term ends)
 
-6. **Week boundary handling (confirmed + inferred)**:
+6. **Cycle boundary handling (confirmed + inferred)**:
    - `scripts/data_utils.py` now computes **effective** boundaries:
-     - confirmed boundaries from static `WEEK_END_DATES`
-     - inferred boundary for an open week when week `N+1` already has dated signals in data (e.g., `scheduled_events`, `provas`, `paredoes`, `power_events`).
-   - This avoids getting "stuck" in the old week when the next cycle is already dated in operations data, even if a new Líder is not fully confirmed yet.
-   - Practical rule: the week should naturally roll once next-week entries are dated; no emergency hardcode is needed for day-to-day ops.
+     - confirmed boundaries from static `CYCLE_END_DATES`
+     - inferred boundary for an open cycle when cycle `N+1` already has dated signals in data (e.g., `scheduled_events`, `provas`, `paredoes`, `power_events`).
+   - This avoids getting "stuck" in the old cycle when the next cycle is already dated in operations data, even if a new Líder is not fully confirmed yet.
+   - Practical rule: the cycle should naturally roll once next-cycle entries are dated; no emergency hardcode is needed for day-to-day ops.
 
-7. **Still keep `WEEK_END_DATES` curated for history**:
-   - After the next Líder cycle is confirmed, append the final boundary date to static `WEEK_END_DATES` as archival truth.
-   - Example: if week 8 effectively closed on `2026-03-13` from next-week signals, later confirm and persist that boundary in `WEEK_END_DATES`.
+7. **Still keep `CYCLE_END_DATES` curated for history**:
+   - After the next Líder cycle is confirmed, append the final boundary date to static `CYCLE_END_DATES` as archival truth.
+   - Example: if cycle 8 effectively closed on `2026-03-13` from next-cycle signals, later confirm and persist that boundary in `CYCLE_END_DATES`.
 
 ### Verification
 
@@ -764,23 +764,23 @@ import json
 with open('data/derived/index_data.json') as f:
     idx = json.load(f)
 for lp in idx['leader_periods']:
-    print(f'Week {lp[\"week\"]}: {lp[\"leader\"]} | VIP={lp[\"vip\"][:3]}...')
+    print(f'Cycle {lp[\"cycle\"]}: {lp[\"leader\"]} | VIP={lp[\"vip\"][:3]}...')
 "
 ```
 
-Check that the new week shows the correct Líder (not `null`) and VIP composition.
+Check that the new cycle shows the correct Líder (not `null`) and VIP composition.
 
-Additional week-boundary sanity check:
+Additional cycle-boundary sanity check:
 ```bash
 python - <<'PY'
 import sys
 sys.path.append('scripts')
-from data_utils import get_week_number
+from data_utils import get_cycle_number
 for d in ["2026-03-13", "2026-03-14", "2026-03-17"]:
-    print(d, "-> week", get_week_number(d))
+    print(d, "-> cycle", get_cycle_number(d))
 PY
 ```
-Expected behavior: dates after the inferred boundary roll to the next week (no stale week lock).
+Expected behavior: dates after the inferred boundary roll to the next cycle (no stale cycle lock).
 
 ---
 

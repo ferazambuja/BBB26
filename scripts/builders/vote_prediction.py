@@ -462,8 +462,8 @@ def _predict_single_paredao(
             cluster_vote_counts[cid][pred["top1"][0]] += 1
 
     # Build bloc history lookup
-    paredao_week = par.get("semana", 99)
-    prior_blocs = [b for b in all_voting_blocs if b.get("week", 99) < paredao_week]
+    paredao_cycle = par.get("cycle", 99)
+    prior_blocs = [b for b in all_voting_blocs if b.get("cycle", 99) < paredao_cycle]
 
     voter_bloc_peers = defaultdict(set)
     for bloc in prior_blocs:

@@ -7,7 +7,7 @@ Referenced from `docs/OPERATIONS_GUIDE.md` and `docs/ARCHITECTURE.md` — read t
 
 Events **not available from the API** are tracked manually in `data/manual_events.json`.
 
-**Week assignment rule**: The `week` field must reflect the **operational week** (which Líder presided over the event). The Prova do Líder is the **first event of the new week** — events earlier on the same day belong to the previous week. Do NOT rely on `get_week_number(date)` alone; it can differ on Prova do Líder day.
+**Cycle assignment rule**: The `cycle` field must reflect the **operational cycle** (which Líder presided over the event). The Prova do Líder is the **first event of the new cycle** — events earlier on the same day belong to the previous cycle. Do NOT rely on `get_week_number(date)` alone; it can differ on Prova do Líder day.
 
 **Auto-detected / derived** (do NOT add manually in `cartola_points_log`):
 - Líder, Anjo, Monstro, Imune — detected via `characteristics.roles`
@@ -21,7 +21,7 @@ Cartola role transitions are auto-detected from consecutive snapshots in `build_
 ## Structure (manual-only data)
 
 - `participants` — **object keyed by participant name** for exits (desistente, eliminada, desclassificado)
-- `weekly_events` — Per-week: Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile, notes
+- `cycles` — Per-cycle: Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile, notes
 - `special_events` — Dinâmicas, new entrants, one-off events
 - `power_events` — **Powers and consequences** (immunity, contragolpe, voto duplo, veto, perdeu voto, bate-volta, ganha-ganha, barrado no baile)
 - `cartola_points_log` — **Manual point overrides** for events not inferable from API
@@ -36,7 +36,7 @@ Use the real JSON shape below before editing:
 | Key | Shape | Notes |
 |-----|-------|-------|
 | `participants` | object | Keys are exact participant names from the API |
-| `weekly_events` | array | One object per BBB week |
+| `cycles` | array | One object per BBB cycle (Líder cycle) |
 | `special_events` | array | One-off dynamics outside weekly buckets |
 | `power_events` | array | Flat event log with actor/target attribution |
 | `cartola_points_log` | array | Rare manual override list |
@@ -66,7 +66,7 @@ Copy from these patterns before inventing a new structure.
 ```json
 {
   "date": "2026-01-15",
-  "week": 1,
+  "cycle": 1,
   "type": "indicacao",
   "actor": "Marcelo",
   "target": "Aline Campos",
@@ -80,11 +80,11 @@ Copy from these patterns before inventing a new structure.
 }
 ```
 
-### Weekly event (`big_fone`)
+### Cycle event (`big_fone`)
 
 ```json
 {
-  "week": 1,
+  "cycle": 1,
   "start_date": "2026-01-13",
   "end_date": "2026-01-19",
   "big_fone": [
@@ -102,7 +102,7 @@ Copy from these patterns before inventing a new structure.
 ```json
 {
   "date": "2026-03-14",
-  "week": 9,
+  "cycle": 9,
   "category": "anjo",
   "emoji": "😇",
   "title": "Prova do Anjo",
@@ -122,7 +122,7 @@ These are the mistakes that most often break `python scripts/build_derived_data.
 - **Legacy exit contract**: using `date`, `fonte`, `paredao`, or `detail` inside `participants` instead of the current `exit_date`, `fontes`, `paredao_numero`, `exit_reason`.
 - **Consensus event without `actors`**: using only `"actor": "A + B + C"` and forgetting the explicit `"actors": [...]` array.
 - **Duplicate power events**: registering one entry per actor for a consensus dynamic, which duplicates timeline rows.
-- **Scheduled event left as the only source of truth**: forgetting to record the real event in `weekly_events`, `power_events`, `paredoes.json`, or `provas.json` after it happens.
+- **Scheduled event left as the only source of truth**: forgetting to record the real event in `cycles`, `power_events`, `paredoes.json`, or `provas.json` after it happens.
 - **Missing provenance**: omitting `fontes` on manual records that will be revisited later.
 - **Wrong visibility mechanism**: using `voto_revelado` or a power event where `confissao_voto`, `dedo_duro`, or `votacao_aberta: true` is the real contract.
 - **Not rebuilding**: editing JSON and forgetting to rerun `python scripts/build_derived_data.py`.
@@ -136,26 +136,26 @@ Use for **desistência / eliminação / desclassificação**.
 - Common optional fields: `paredao_numero` (for eliminações), `exit_reason` (for desistência/desclassificação).
 - Name must match snapshots **exactly**.
 
-### `weekly_events`
-Week-scoped dynamics (Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile, caixas, notes).
+### `cycles`
+Cycle-scoped dynamics (Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile, caixas, notes).
 
 **Big Fone (manual):**
-- `weekly_events[].big_fone` is an **array** (multiple Big Fones can happen in the same week).
+- `cycles[].big_fone` is an **array** (multiple Big Fones can happen in the same cycle).
 - Each entry: `{"atendeu": "Name", "date": "YYYY-MM-DD", "consequencia": "..."}`.
 - Use `null` when no Big Fone occurred that week.
 - Always create a corresponding **power_event** for the consequence (e.g., `indicacao`, `veto_prova`).
 - Cartola: each answerer gets +30 points (`atendeu_big_fone`).
 
 **Ganha‑Ganha (manual):**
-- Registre em `weekly_events[].ganha_ganha` com `date`, `sorteados`, `veto`, `decisao`, `informacao`.
+- Registre em `cycles[].ganha_ganha` com `date`, `sorteados`, `veto`, `decisao`, `informacao`.
 - Sempre crie **power_events** correspondentes:
   - `veto_ganha_ganha` (**vetado → quem vetou**, impacto negativo)
   - `ganha_ganha_escolha` (**quem decidiu → quem vetou**, impacto positivo leve)
 
 **Barrado no Baile (manual):**
-- Registre em `weekly_events[].barrado_baile` (lista) com `date`, `lider`, `alvo`.
+- Registre em `cycles[].barrado_baile` (lista) com `date`, `lider`, `alvo`.
 - Sempre crie **power_events**: `barrado_baile` (ator = líder, alvo = barrado).
-- Always include `week` (int) and `date` (`YYYY-MM-DD`).
+- Always include `cycle` (int) and `date` (`YYYY-MM-DD`).
 
 **Bloco do Paredão (semana 5):**
 Dinâmica com 4 consequências sorteadas via acessórios carnavalescos. Registre cada consequência separadamente:
@@ -188,7 +188,7 @@ One-off events not tied to a specific week.
 
 ### `power_events`
 Only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, veto, perdeu voto, bate-volta, ganha-ganha, barrado no baile).
-- Fields: `date`, `week`, `type`, `actor`, `target`, `detail`, `impacto`, `origem`, `fontes`.
+- Fields: `date`, `cycle`, `type`, `actor`, `target`, `detail`, `impacto`, `origem`, `fontes`.
 - Optional: `actors` (array) for **consensus** dynamics — see [Consensus events](#consensus-events-multiple-actors) below.
 - `impacto` is **for the target** (positivo/negativo).
 - `origem`: `manual` (quando registrado no JSON) ou `api` (quando derivado automaticamente).
@@ -224,11 +224,11 @@ When multiple participants act together on a single event (e.g., Big Fone consen
 
 **Why not separate entries?** Separate entries produce duplicate timeline rows (3 identical "indicacao" entries). A single entry with `actors` array produces 1 timeline row + 3 correct relationship edges.
 
-### Vote Visibility Events (in `weekly_events`)
+### Vote Visibility Events (in `cycles`)
 
 BBB votes are cast in the confessionário (secret to the house, shown to TV audience). Votes can become known to participants through three mechanisms, each tracked separately:
 
-| Key in `weekly_events` | Type | Description | Example |
+| Key in `cycles` | Type | Description | Example |
 |------------------------|------|-------------|---------|
 | `confissao_voto` | Voluntary | Participant **chose** to tell the target they voted for them | Jordana told Sol after paredão formation |
 | `dedo_duro` | Game mechanic | A participant **receives the power** to reveal someone else's vote | (Not yet happened in BBB26) |
@@ -266,7 +266,7 @@ Can be a single object or an array of objects (multiple revelations in the same 
 
 Note: voter→target weight is the same (-2.0) for secret, confissão, and dedo-duro because the **intent to eliminate** was identical (vote was cast secretly in all three cases). Only `open_vote` gets -2.5 because the voter **chose** to publicly declare hostility.
 
-### Anjo Dynamics (`weekly_events[].anjo`)
+### Anjo Dynamics (`cycles[].anjo`)
 
 Each week's `anjo` object records the full Prova do Anjo dynamics. Schema:
 
@@ -311,7 +311,7 @@ Each week's `anjo` object records the full Prova do Anjo dynamics. Schema:
 
 ### `cartola_points_log`
 Rarely needed — for Cartola events **not auto-detected** by any pipeline.
-- Structure: one entry per participant/week with `events: [{event, points}]`.
+- Structure: one entry per participant/cycle with `events: [{event, points}]`.
 - Always include matching `fontes` in `manual_events.json` for the underlying real-world event.
 - **Auto-guarded**: events in `auto_types` are blocked — these types are ignored if added here: `lider`, `anjo`, `monstro`, `emparedado`, `imunizado`, `vip`, `desistente`, `eliminado`, `desclassificado`, `atendeu_big_fone`, `monstro_retirado_vip`, `quarto_secreto`.
 - All standard events are now auto-detected (see `docs/OPERATIONS_GUIDE.md` → cartola_points_log section for full list).
@@ -319,7 +319,7 @@ Rarely needed — for Cartola events **not auto-detected** by any pipeline.
 ```json
 {
   "participant": "Name",
-  "week": N,
+  "cycle": N,
   "reason": "Why this manual entry is needed",
   "fonte": "https://gshow.globo.com/...",
   "events": [
@@ -342,7 +342,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 ```json
 {
   "date": "2026-02-01",
-  "week": 3,
+  "cycle": 3,
   "category": "paredao_formacao",
   "emoji": "🗳️",
   "title": "3º Paredão — Formação (triplo)",
@@ -354,7 +354,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 
 **Fields:**
 - `date` — expected date (YYYY-MM-DD)
-- `week` — week number (bridge note: loaders also accept `cycle`, but tracked raw files still use `week` for now)
+- `cycle` — cycle number (Líder cycle)
 - `category` — same categories as other events (e.g., `big_fone`, `anjo`, `paredao_formacao`, `paredao_resultado`)
 - `emoji` — display emoji
 - `title` — event title for display in timeline
@@ -368,7 +368,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 - Auto-dedup (two-tier): **singleton categories** (anjo, lider, paredao_formacao, sincerao, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed when resolved (past date) or by exact title match. Future non-singleton events are kept even if a real event exists.
 - Open-cycle backbone: recurring schedule rows for the active cycle are auto-generated even before the real event happens. A manual scheduled entry with the same `(date, category)` cleanly overrides that generic scaffold.
 - Ordered same-day steps: for multiple entries on the same date with the same category (common with `dinamica`), append them in chronological order in JSON. The chronology UI reverses each day for display, so the last same-day entry in the file appears at the top of that day.
-- **After an event happens:** record the real data normally (Big Fone in `weekly_events`, paredão in `paredoes.json`, etc.), then **update** the scheduled entry with the real result (title, detail, fontes). Do NOT delete it — the auto-dedup suppresses it. Clean up old entries during the next week's Líder Transition setup.
+- **After an event happens:** record the real data normally (Big Fone in `cycles`, paredão in `paredoes.json`, etc.), then **update** the scheduled entry with the real result (title, detail, fontes). Do NOT delete it — the auto-dedup suppresses it. Clean up old entries during the next week's Líder Transition setup.
 
 **When to fill:** When GShow publishes the "Dinâmica da Semana" article (usually Thursday/Friday), add all upcoming events for the week.
 
@@ -460,7 +460,7 @@ Reference: https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-sema
 Quando acontecer, adicionar em `data/manual_events.json`:
 
 ```jsonc
-// Em weekly_events[week 3].big_fone (append ao array existente):
+// Em cycles[cycle 3].big_fone (append ao array existente):
 {"atendeu": "NOME", "date": "2026-01-30", "consequencia": "DESCREVER"}
 ```
 
@@ -469,14 +469,14 @@ Consequência ainda desconhecida. Se tiver power_event associado, adicionar tamb
 ### Big Fone #3 (Sex ao vivo) — TEMPLATE
 
 ```jsonc
-// Em weekly_events[week 3].big_fone (append ao array existente):
+// Em cycles[cycle 3].big_fone (append ao array existente):
 {"atendeu": "NOME", "date": "2026-01-30", "consequencia": "DESCREVER"}
 ```
 
 ### Big Fone #4 (Sáb ao vivo) — TEMPLATE
 
 ```jsonc
-// Em weekly_events[week 3].big_fone (append ao array existente):
+// Em cycles[cycle 3].big_fone (append ao array existente):
 {"atendeu": "NOME", "date": "2026-01-31", "consequencia": "DESCREVER"}
 ```
 
@@ -488,7 +488,7 @@ Os 3 participantes que atenderam ao Big Fone (#2, #3, #4) devem escolher **em co
 ```jsonc
 {
   "date": "2026-02-01",
-  "week": 3,
+  "cycle": 3,
   "type": "indicacao",
   "actor": "NOME1 + NOME2 + NOME3",
   "actors": ["NOME1", "NOME2", "NOME3"],
@@ -522,7 +522,7 @@ Se o Anjo aceitar trocar o vídeo da família por imunidade:
 // Em power_events:
 {
   "date": "2026-02-01",
-  "week": 3,
+  "cycle": 3,
   "type": "imunidade",
   "actor": "NOME_ANJO",
   "target": "NOME_ANJO",
@@ -554,7 +554,7 @@ Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outr
   "data": "2026-02-03",
   "data_formacao": "2026-02-01",
   "titulo": "3º Paredão — 3 de Fevereiro de 2026",
-  "semana": 3,
+  "cycle": 3,
   "formacao": {
     "resumo": "DESCREVER TODA A FORMAÇÃO",
     "lider": "Maxiane",

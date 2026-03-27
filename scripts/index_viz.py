@@ -765,7 +765,7 @@ def _power_detail_html(detail: list[dict], mode: str, tag_labels: dict[str, str]
     for d in detail:
         ev_type = d.get("type", "")
         label = labels.get(ev_type, ev_type.replace("_", " ").title())
-        week = d.get("week", "")
+        week = d.get("cycle", "")
         week_str = f" ({week}º)" if week else ""
         if mode == "target":
             actor = _escape_text(d.get("actor", ""))
@@ -1369,8 +1369,8 @@ def _render_profile_hero(
         f' <span class="fs-xs u-s372">{role_text}</span>'
     ) if role_text else ""
 
-    vip_w = p.get("vip_weeks", 0)
-    xepa_w = p.get("xepa_weeks", 0)
+    vip_w = p.get("vip_cycles", 0)
+    xepa_w = p.get("xepa_cycles", 0)
     current_group = group
     group_label = "VIP" if current_group.lower() == "vip" else "Xepa"
     group_chip_color = "#f1c40f" if current_group.lower() == "vip" else "#888"
@@ -1534,7 +1534,7 @@ def _render_profile_status_strip(
     if plant_info and plant_info.get("score") is not None:
         score_roll = plant_info.get("rolling", plant_info.get("score", 0))
         score_val = int(round(score_roll))
-        plant_week_num = plant_info.get("week")
+        plant_week_num = plant_info.get("cycle")
         plant_color_hex = plant_color(score_val)
         bd_rows = []
         for item in plant_info.get("breakdown", []):
@@ -1706,19 +1706,21 @@ def _render_profile_sincerao(p: dict) -> str:
         # -- Season history (collapsed): both received AND given per past week --
         received_by_week = sinc_season.get("received_by_week", [])
         given_by_week = sinc_season.get("given_by_week", [])
-        current_wk = sinc.get("current_week")
+        current_wk = sinc.get("current_cycle")
 
         past_weeks_set: set = set()
         for w in received_by_week:
-            if w.get("week") != current_wk:
-                past_weeks_set.add(w["week"])
+            _wk = w.get("cycle")
+            if _wk != current_wk:
+                past_weeks_set.add(_wk)
         for w in given_by_week:
-            if w.get("week") != current_wk:
-                past_weeks_set.add(w["week"])
+            _wk = w.get("cycle")
+            if _wk != current_wk:
+                past_weeks_set.add(_wk)
 
         if past_weeks_set:
-            recv_lookup = {w["week"]: w["interactions"] for w in received_by_week}
-            given_lookup = {w["week"]: w["interactions"] for w in given_by_week}
+            recv_lookup = {w.get("cycle"): w["interactions"] for w in received_by_week}
+            given_lookup = {w.get("cycle"): w["interactions"] for w in given_by_week}
             history_rows: list[str] = []
             for wk in sorted(past_weeks_set, reverse=True):
                 week_parts: list[str] = []

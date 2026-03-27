@@ -61,8 +61,8 @@ with open("data/derived/cartola_data.json") as f:
 
 leaderboard = cartola["leaderboard"]
 stats = cartola["stats"]
-n_weeks = cartola["_metadata"]["n_weeks"]
-weekly_points = cartola["weekly_points"]
+n_cycles = cartola["_metadata"]["n_cycles"]
+cycle_points = cartola["cycle_points"]
 
 n_with_points = stats["n_with_points"]
 n_active = stats["n_active"]
@@ -94,11 +94,11 @@ palette = (
 participant_colors = {name: palette[i % len(palette)] for i, name in enumerate(all_participants)}
 
 all_points = defaultdict(lambda: defaultdict(list))
-for week_str, participants in weekly_points.items():
-    week = int(week_str)
+for cycle_str, participants in cycle_points.items():
+    cycle = int(cycle_str)
     for participant, events in participants.items():
         for evt_data in events:
-            all_points[participant][week].append(tuple(evt_data))
+            all_points[participant][cycle].append(tuple(evt_data))
 
 manual_events_path = Path('data/manual_events.json')
 if manual_events_path.exists():
@@ -107,21 +107,21 @@ if manual_events_path.exists():
 else:
     manual_events = {
         'participants': {},
-        'weekly_events': [],
+        'cycles': [],
         'special_events': [],
         'power_events': [],
         'cartola_points_log': []
     }
 
-weekly_data = manual_events.get('weekly_events', [])
-manual_open_weeks = sorted(
-    we.get('week')
-    for we in weekly_data
-    if isinstance(we, dict) and we.get('week') is not None and not we.get('end_date')
+cycles_data = manual_events.get('cycles', [])
+manual_open_cycles = sorted(
+    we.get('cycle')
+    for we in cycles_data
+    if isinstance(we, dict) and we.get('cycle') is not None and not we.get('end_date')
 )
-current_cycle_week = manual_open_weeks[-1] if manual_open_weeks else n_weeks
-is_transition_cycle = current_cycle_week != n_weeks
-max_week_for_display = current_cycle_week if is_transition_cycle else n_weeks
+current_cycle = manual_open_cycles[-1] if manual_open_cycles else n_cycles
+is_transition_cycle = current_cycle != n_cycles
+max_cycle_for_display = current_cycle if is_transition_cycle else n_cycles
 participant_slug = {name: slugify_name(name) for name in all_participants}
 lider_points = CARTOLA_POINTS['lider']
 anjo_points = CARTOLA_POINTS['anjo']
@@ -158,7 +158,7 @@ monstro_events_count = sum(1 for p in leaderboard for evt in p.get('events', [])
 emit(f'''
 <section class="cartola-kpi-grid">
   <article class="cartola-kpi cartola-kpi-week">
-    <p class="cartola-kpi-value">{current_cycle_week}</p>
+    <p class="cartola-kpi-value">{current_cycle}</p>
     <p class="cartola-kpi-label">Rodada Atual</p>
   </article>
   <article class="cartola-kpi cartola-kpi-role">
@@ -204,7 +204,7 @@ def build_extreme_candidates(week_filter=None, include_inactive=True):
         name = p['name']
         events = p.get('events', [])
         if week_filter is not None:
-            events = [evt for evt in events if evt.get('week') == week_filter]
+            events = [evt for evt in events if evt.get('cycle') == week_filter]
 
         positive_total = 0
         negative_total = 0
@@ -250,11 +250,11 @@ def build_extreme_candidates(week_filter=None, include_inactive=True):
     return positives, negatives
 
 
-week_positive_points_by_participant, week_negative_points_by_participant = build_extreme_candidates(current_cycle_week, include_inactive=False)
+cycle_positive_points_by_participant, cycle_negative_points_by_participant = build_extreme_candidates(current_cycle, include_inactive=False)
 all_time_positive_points_by_participant, all_time_negative_points_by_participant = build_extreme_candidates(include_inactive=True)
 
-week_positive_top5 = sorted(week_positive_points_by_participant, key=lambda x: (-x['points'], x['name']))[:5]
-week_negative_top5 = sorted(week_negative_points_by_participant, key=lambda x: (x['points'], x['name']))[:5]
+cycle_positive_top5 = sorted(cycle_positive_points_by_participant, key=lambda x: (-x['points'], x['name']))[:5]
+cycle_negative_top5 = sorted(cycle_negative_points_by_participant, key=lambda x: (x['points'], x['name']))[:5]
 all_time_positive_top5 = sorted(all_time_positive_points_by_participant, key=lambda x: (-x['points'], x['name']))[:5]
 all_time_negative_top5 = sorted(all_time_negative_points_by_participant, key=lambda x: (x['points'], x['name']))[:5]
 
@@ -335,15 +335,15 @@ def render_extreme_top5_card(tone_class, kicker, entries, empty_text, caption):
 emit('<section class="cartola-extremes-grid" aria-label="Destaques de pontuação da semana e da temporada">')
 render_extreme_top5_card(
     "cartola-extreme-positive",
-    f"RODADA {current_cycle_week} • MAIOR PONTUAÇÃO POSITIVA (TOP 5)",
-    week_positive_top5,
+    f"RODADA {current_cycle} • MAIOR PONTUAÇÃO POSITIVA (TOP 5)",
+    cycle_positive_top5,
     "Nenhum participante com saldo positivo na rodada",
     "soma em eventos positivos da rodada atual",
 )
 render_extreme_top5_card(
     "cartola-extreme-negative",
-    f"RODADA {current_cycle_week} • MAIOR PONTUAÇÃO NEGATIVA (TOP 5)",
-    week_negative_top5,
+    f"RODADA {current_cycle} • MAIOR PONTUAÇÃO NEGATIVA (TOP 5)",
+    cycle_negative_top5,
     "Ainda não houve lançamentos negativos nesta rodada",
     "soma em eventos negativos da rodada atual",
 )
@@ -388,16 +388,16 @@ for p in ranked_all_players_for_jump:
     badge_text_color = contrast_color(participant_color)
     status_text = manual_events.get('participants', {}).get(name, {}).get('status', 'saiu') if not active else ''
 
-    weekly_score_map = defaultdict(int)
+    cycle_score_map = defaultdict(int)
     event_stats = defaultdict(lambda: {'count': 0, 'total': 0})
     positive_total = 0
     negative_total = 0
     for evt in events:
-        week = evt.get('week')
+        c = evt.get('cycle')
         points = evt.get('points', 0)
         evt_type = evt.get('event', '')
-        if isinstance(week, int):
-            weekly_score_map[week] += points
+        if isinstance(c, int):
+            cycle_score_map[c] += points
         event_stats[evt_type]['count'] += 1
         event_stats[evt_type]['total'] += points
         if points > 0:
@@ -405,7 +405,7 @@ for p in ranked_all_players_for_jump:
         elif points < 0:
             negative_total += points
 
-    cycle_total = weekly_score_map.get(current_cycle_week, 0)
+    cycle_total = cycle_score_map.get(current_cycle, 0)
     total_tone = 'points-pos' if total > 0 else ('points-neg' if total < 0 else 'points-zero')
     cycle_tone = 'points-pos' if cycle_total > 0 else ('points-neg' if cycle_total < 0 else 'points-zero')
     state_attr = ' data-player-state="inactive"' if not active else ''
@@ -435,14 +435,14 @@ for p in ranked_all_players_for_jump:
     if not negative_rows:
         negative_rows.append('<div class="cartola-player-event-row"><span class="cartola-player-event-label">Sem eventos negativos</span><span class="cartola-player-event-value points-zero">0</span></div>')
 
-    week_cells = []
-    for week in range(1, max_week_for_display + 1):
-        week_total = weekly_score_map.get(week, 0)
-        week_tone = 'points-pos' if week_total > 0 else ('points-neg' if week_total < 0 else 'points-zero')
-        week_cells.append(
+    cycle_cells = []
+    for cyc in range(1, max_cycle_for_display + 1):
+        cyc_total = cycle_score_map.get(cyc, 0)
+        cyc_tone = 'points-pos' if cyc_total > 0 else ('points-neg' if cyc_total < 0 else 'points-zero')
+        cycle_cells.append(
             f'<div class="cartola-player-week-cell">'
-            f'<span class="cartola-player-week-label">Rodada {week}</span>'
-            f'<span class="cartola-player-week-value {week_tone}">{week_total:+d}</span>'
+            f'<span class="cartola-player-week-label">Rodada {cyc}</span>'
+            f'<span class="cartola-player-week-value {cyc_tone}">{cyc_total:+d}</span>'
             f'</div>'
         )
 
@@ -469,7 +469,7 @@ for p in ranked_all_players_for_jump:
 
   <div class="cartola-player-meta-grid">
     <div class="cartola-player-meta-card">
-      <p class="meta-label">Rodada {current_cycle_week}</p>
+      <p class="meta-label">Rodada {current_cycle}</p>
       <p class="meta-value {cycle_tone}">{cycle_total:+d}</p>
     </div>
     <div class="cartola-player-meta-card">
@@ -494,7 +494,7 @@ for p in ranked_all_players_for_jump:
   </div>
 
   <div class="cartola-player-week-grid">
-    {''.join(week_cells)}
+    {''.join(cycle_cells)}
   </div>
 </article>
 ''')
@@ -513,7 +513,7 @@ cumulative_evolution = cartola.get("cumulative_evolution", [])
 
 if cumulative_evolution:
     df = pd.DataFrame(cumulative_evolution)
-    df.rename(columns={"week": "Rodada", "name": "Participante", "cumulative_points": "Pontos"}, inplace=True)
+    df.rename(columns={"cycle": "Rodada", "name": "Participante", "cumulative_points": "Pontos"}, inplace=True)
 
     final_scores = df.groupby('Participante')['Pontos'].last().to_dict()
     sorted_participants = sorted(final_scores.keys(), key=lambda x: -final_scores[x])
@@ -537,7 +537,7 @@ if cumulative_evolution:
             name=f"{name} ({final_pts:+d})",
             line=dict(color=color, width=2),
             marker=dict(size=8, color=color),
-            hovertemplate=f'{name}<br>Semana %{{x}}: %{{y:+d}} pts<extra></extra>',
+            hovertemplate=f'{name}<br>Rodada %{{x}}: %{{y:+d}} pts<extra></extra>',
         ))
 
     top_n = 8
@@ -627,40 +627,40 @@ Detalhamento por rodada: papéis, eventos e pontuação. Cada rodada corresponde
 #| label: weekly-tabs
 #| output: asis
 
-max_week_for_display = current_cycle_week if is_transition_cycle else n_weeks
+max_cycle_for_display = current_cycle if is_transition_cycle else n_cycles
 
-if max_week_for_display > 0:
-    for week in range(1, max_week_for_display + 1):
-        week_info = next((w for w in weekly_data if w.get('week') == week), None)
-        open_attr = ' open' if week == current_cycle_week else ''
+if max_cycle_for_display > 0:
+    for cyc in range(1, max_cycle_for_display + 1):
+        cycle_info = next((w for w in cycles_data if w.get('cycle') == cyc), None)
+        open_attr = ' open' if cyc == current_cycle else ''
         emit(f'''
 <details class="cartola-week-details"{open_attr}>
-<summary class="cartola-week-summary-toggle">Rodada {week}</summary>
+<summary class="cartola-week-summary-toggle">Rodada {cyc}</summary>
 <div class="cartola-week-details-body">
 ''')
 
-        week_roles = {'Líder': set(), 'Anjo': set(), 'Monstro': set(), 'Imune': set()}
-        for participant, weeks_data in all_points.items():
-            if week in weeks_data:
-                for event, _, _ in weeks_data[week]:
+        cycle_roles = {'Líder': set(), 'Anjo': set(), 'Monstro': set(), 'Imune': set()}
+        for participant, points_data in all_points.items():
+            if cyc in points_data:
+                for event, _, _ in points_data[cyc]:
                     if event == 'lider':
-                        week_roles['Líder'].add(participant)
+                        cycle_roles['Líder'].add(participant)
                     elif event == 'anjo':
-                        week_roles['Anjo'].add(participant)
+                        cycle_roles['Anjo'].add(participant)
                     elif event == 'monstro':
-                        week_roles['Monstro'].add(participant)
+                        cycle_roles['Monstro'].add(participant)
                     elif event == 'imunizado':
-                        week_roles['Imune'].add(participant)
+                        cycle_roles['Imune'].add(participant)
 
-        lider = ', '.join(sorted(week_roles['Líder'])) or '—'
-        anjo = ', '.join(sorted(week_roles['Anjo'])) or '—'
-        monstro = ', '.join(sorted(week_roles['Monstro'])) or '—'
-        imune = ', '.join(sorted(week_roles['Imune'])) or '—'
+        lider = ', '.join(sorted(cycle_roles['Líder'])) or '—'
+        anjo = ', '.join(sorted(cycle_roles['Anjo'])) or '—'
+        monstro = ', '.join(sorted(cycle_roles['Monstro'])) or '—'
+        imune = ', '.join(sorted(cycle_roles['Imune'])) or '—'
 
-        lider_avatar = AVATARS.get(list(week_roles['Líder'])[0], '') if week_roles['Líder'] else ''
-        anjo_avatar = AVATARS.get(list(week_roles['Anjo'])[0], '') if week_roles['Anjo'] else ''
-        imune_avatar = AVATARS.get(list(week_roles['Imune'])[0], '') if week_roles['Imune'] else ''
-        monstro_avatar = AVATARS.get(list(week_roles['Monstro'])[0], '') if week_roles['Monstro'] else ''
+        lider_avatar = AVATARS.get(list(cycle_roles['Líder'])[0], '') if cycle_roles['Líder'] else ''
+        anjo_avatar = AVATARS.get(list(cycle_roles['Anjo'])[0], '') if cycle_roles['Anjo'] else ''
+        imune_avatar = AVATARS.get(list(cycle_roles['Imune'])[0], '') if cycle_roles['Imune'] else ''
+        monstro_avatar = AVATARS.get(list(cycle_roles['Monstro'])[0], '') if cycle_roles['Monstro'] else ''
 
         emit('''
 <div class="cartola-week-role-grid">
@@ -712,36 +712,36 @@ if max_week_for_display > 0:
 ''')
 
         special_events = []
-        if week_info:
-            raw_bf = week_info.get('big_fone')
+        if cycle_info:
+            raw_bf = cycle_info.get('big_fone')
             bf_list = raw_bf if isinstance(raw_bf, list) else ([raw_bf] if isinstance(raw_bf, dict) else [])
             for bf in bf_list:
                 if isinstance(bf, dict) and bf.get('atendeu'):
                     special_events.append(f"📞 Big Fone · {bf.get('atendeu', '?')} · {bf.get('consequencia', '')}")
-            if week_info.get('caixas_surpresa'):
-                cs = week_info['caixas_surpresa']
+            if cycle_info.get('caixas_surpresa'):
+                cs = cycle_info['caixas_surpresa']
                 special_events.append(f"🎁 Caixas-Surpresa · {cs.get('resultado', '')}")
-            if week_info.get('notes'):
-                special_events.append(f"📝 {week_info['notes']}")
+            if cycle_info.get('notes'):
+                special_events.append(f"📝 {cycle_info['notes']}")
 
-        week_points_list = []
+        cycle_points_list = []
         for participant in all_points:
-            if week in all_points[participant]:
-                events = all_points[participant][week]
+            if cyc in all_points[participant]:
+                events = all_points[participant][cyc]
                 total = sum(pts for _, pts, _ in events)
-                week_points_list.append({
+                cycle_points_list.append({
                     'name': participant,
                     'total': total,
                     'events': events,
                     'avatar': AVATARS.get(participant, ''),
                 })
 
-        week_points_list = sorted(week_points_list, key=lambda x: -x['total'])
+        cycle_points_list = sorted(cycle_points_list, key=lambda x: -x['total'])
 
-        if week_points_list:
-            winner = week_points_list[0]
-            loser = week_points_list[-1]
-            swing = max(week_points_list, key=lambda x: abs(x['total']))
+        if cycle_points_list:
+            winner = cycle_points_list[0]
+            loser = cycle_points_list[-1]
+            swing = max(cycle_points_list, key=lambda x: abs(x['total']))
 
             swing_tone = 'points-pos' if swing['total'] > 0 else 'points-neg'
             emit(f'''
@@ -770,9 +770,9 @@ if max_week_for_display > 0:
                 print(f'<div class="cartola-event-row"><span class="cartola-event-index">{idx}</span><span>{se}</span></div>')
             print('</div>')
 
-        if week_points_list:
-            print(f'<div class="cartola-week-points" id="cartola-week-collapse-{week}">')
-            for idx, wp in enumerate(week_points_list):
+        if cycle_points_list:
+            print(f'<div class="cartola-week-points" id="cartola-week-collapse-{cyc}">')
+            for idx, wp in enumerate(cycle_points_list):
                 participant_color = participant_colors.get(wp['name'], '#666')
                 pts_tone = 'points-pos' if wp['total'] > 0 else ('points-neg' if wp['total'] < 0 else 'points-zero')
                 avatar = wp['avatar']
@@ -794,12 +794,12 @@ if max_week_for_display > 0:
 ''')
             print('</div>')
 
-            if len(week_points_list) > 6:
+            if len(cycle_points_list) > 6:
                 emit(f'''
 <button type="button"
   class="collapse-toggle"
-  id="cartola-week-more-{week}"
-  data-target="cartola-week-collapse-{week}"
+  id="cartola-week-more-{cyc}"
+  data-target="cartola-week-collapse-{cyc}"
   data-label-more="Ver pontuações completas"
   data-label-less="Ver resumo da rodada">
   Ver pontuações completas

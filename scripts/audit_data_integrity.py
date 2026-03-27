@@ -527,7 +527,7 @@ def build_integrity_audit(root: Path = ROOT) -> dict[str, Any]:
             },
         )
 
-    # --- Cross-check: weekly_events.anjo vs auto_events (monstro, anjo, imunizado) ---
+    # --- Cross-check: cycles[].anjo vs auto_events (monstro, anjo, imunizado) ---
     auto_events_path = root / "data" / "derived" / "auto_events.json"
     auto_events_data = _load_json(auto_events_path)
     manual_data = _load_json(manual_path)
@@ -540,13 +540,13 @@ def build_integrity_audit(root: Path = ROOT) -> dict[str, Any]:
             target = ev.get("target", "")
             date = ev.get("date", "")
             if t and target and date:
-                from data_utils import get_week_number
-                week = get_week_number(date)
+                from data_utils import get_cycle_number
+                week = get_cycle_number(date)
                 key = (t, week)
                 auto_by_type_week.setdefault(key, set()).add(target)
 
-        for we in manual_data.get("weekly_events", []):
-            w = we.get("week", 0)
+        for we in manual_data.get("cycles", []):
+            w = we.get("cycle", 0)
             if not w:
                 continue
             anjo = we.get("anjo")
@@ -558,7 +558,7 @@ def build_integrity_audit(root: Path = ROOT) -> dict[str, Any]:
             auto_monstros = auto_by_type_week.get(("monstro", w), set())
             if not monstro_val and auto_monstros:
                 _issue(issues, "anjo_monstro_null", "warning", "manual",
-                       f"weekly_events[W{w}].anjo",
+                       f"cycles[W{w}].anjo",
                        f"monstro is null but auto_events has monstro for W{w}: {sorted(auto_monstros)}")
             elif monstro_val and auto_monstros:
                 # Cross-check name consistency (handle multi-monstro display string)
@@ -572,13 +572,13 @@ def build_integrity_audit(root: Path = ROOT) -> dict[str, Any]:
                     manual_names = {monstro_val} if isinstance(monstro_val, str) else set()
                 if manual_names and auto_monstros and manual_names != auto_monstros:
                     _issue(issues, "anjo_monstro_mismatch", "warning", "manual",
-                           f"weekly_events[W{w}].anjo",
+                           f"cycles[W{w}].anjo",
                            f"monstro name mismatch: manual={sorted(manual_names)} vs auto={sorted(auto_monstros)}")
 
             # Check imunizado field uses correct key (not imunizou)
             if "imunizou" in anjo:
                 _issue(issues, "anjo_field_name_legacy", "warning", "manual",
-                       f"weekly_events[W{w}].anjo",
+                       f"cycles[W{w}].anjo",
                        "Uses legacy field 'imunizou' — should be 'imunizado'")
 
     severity = _severity_counts(issues)

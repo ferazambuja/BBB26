@@ -360,10 +360,10 @@ class TestVisadosAndDisplayLimitContract:
             },
         ]
         power_events = [
-            {"type": "indicacao", "actor": "Eva", "target": "Ana", "impacto": "negativo", "week": 1, "date": "2026-01-18"},
-            {"type": "indicacao", "actor": "Ana", "target": "Caio", "impacto": "negativo", "week": 2, "date": "2026-01-25"},
-            {"type": "contragolpe", "actor": "Caio", "target": "Duda", "impacto": "negativo", "week": 2, "date": "2026-01-25"},
-            {"type": "monstro", "actor": "Breno", "target": "Ana", "impacto": "negativo", "week": 3, "date": "2026-02-01"},
+            {"type": "indicacao", "actor": "Eva", "target": "Ana", "impacto": "negativo", "cycle": 1, "date": "2026-01-18"},
+            {"type": "indicacao", "actor": "Ana", "target": "Caio", "impacto": "negativo", "cycle": 2, "date": "2026-01-25"},
+            {"type": "contragolpe", "actor": "Caio", "target": "Duda", "impacto": "negativo", "cycle": 2, "date": "2026-01-25"},
+            {"type": "monstro", "actor": "Breno", "target": "Ana", "impacto": "negativo", "cycle": 3, "date": "2026-02-01"},
         ]
         participants = [
             {"name": n, "active": True} for n in active_set
@@ -373,7 +373,7 @@ class TestVisadosAndDisplayLimitContract:
             "paredoes": {"paredoes": paredoes},
             "power_events": power_events,
             "participants_index": {"participants": participants},
-            "current_week": 3,
+            "current_cycle": 3,
         }
 
     def test_blindados_items_respect_display_limit(self):
@@ -659,9 +659,9 @@ class TestCanonicalExposureCharacterization:
                 ]
             },
             "power_events": [
-                {"type": "indicacao", "actor": "Ana", "target": "Caio", "impacto": "negativo", "week": 2, "date": "2026-01-25"},
+                {"type": "indicacao", "actor": "Ana", "target": "Caio", "impacto": "negativo", "cycle": 2, "date": "2026-01-25"},
             ],
-            "current_week": 2,
+            "current_cycle": 2,
         }
 
         exposure = compute_house_vote_exposure(

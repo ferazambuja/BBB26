@@ -13,7 +13,7 @@ from typing import Any
 
 from data_utils import (
     SENTIMENT_WEIGHTS,
-    get_week_number,
+    get_cycle_number,
     build_reaction_matrix,
     patch_missing_raio_x,
     POSITIVE,
@@ -273,12 +273,12 @@ def compute_streak_data(daily_snapshots: list[dict], eliminated_last_seen: dict[
 def _resolve_participant_sets(latest_snapshot: dict, daily_snapshots: list[dict], participants_index: list[dict] | None) -> dict:
     """Derive active/all name sets, eliminated tracking, streak data, and latest reaction matrix.
 
-    Returns dict with: latest_date, current_week, participants, active_names, active_set,
+    Returns dict with: latest_date, current_cycle, participants, active_names, active_set,
     all_names, all_names_set, eliminated_last_seen, streak_info, streak_breaks,
     missing_raio_x_log, reaction_matrix_latest.
     """
     latest_date = latest_snapshot["date"]
-    current_week = get_week_number(latest_date)
+    current_cycle = get_cycle_number(latest_date)
     participants = latest_snapshot["participants"]
     active_names = sorted({p.get("name", "").strip() for p in participants if p.get("name", "").strip()})
     active_set = set(active_names)
@@ -308,7 +308,7 @@ def _resolve_participant_sets(latest_snapshot: dict, daily_snapshots: list[dict]
 
     return {
         "latest_date": latest_date,
-        "current_week": current_week,
+        "current_cycle": current_cycle,
         "participants": participants,
         "active_names": active_names,
         "active_set": active_set,
@@ -336,7 +336,7 @@ def _compute_vote_multipliers(par: dict, power_events: list[dict], week: int | N
         multiplier[voter] = 0
 
     for ev in power_events:
-        ev_week = get_week_number(ev["date"]) if ev.get("date") else ev.get("week", 0)
+        ev_week = get_cycle_number(ev["date"]) if ev.get("date") else (ev.get("cycle") or ev.get("week", 0))
         if week and ev_week == week:
             if ev.get("type") == "voto_duplo":
                 for a in normalize_actors(ev):
@@ -365,7 +365,7 @@ def _build_vote_data(paredoes: dict | None, manual_events: dict) -> dict:
         votos = par.get("votos_casa", {}) or {}
         if not votos:
             continue
-        week = par.get("semana")
+        week = par.get("cycle")
         vote_date = par.get("data_formacao") or par.get("data")
         if week and vote_date:
             vote_week_to_date[week] = vote_date
@@ -383,7 +383,7 @@ def _build_vote_data(paredoes: dict | None, manual_events: dict) -> dict:
     # Track how each vote was revealed: maps (voter, target) → revelation type
     vote_revelation_type = {}  # (voter, target) → "confissao" | "dedo_duro" | "open_vote"
 
-    for wev in manual_events.get("weekly_events", []) if manual_events else []:
+    for wev in manual_events.get("cycles", []) if manual_events else []:
         # Each key maps to a different revelation type
         revelation_keys = {
             "confissao_voto": "confissao",
@@ -410,7 +410,7 @@ def _build_vote_data(paredoes: dict | None, manual_events: dict) -> dict:
     open_vote_weeks = set()
     for par in paredoes.get("paredoes", []) if paredoes else []:
         if par.get("votacao_aberta"):
-            week = par.get("semana")
+            week = par.get("cycle")
             if week:
                 open_vote_weeks.add(week)
 
@@ -441,7 +441,7 @@ def _build_power_event_edges(power_events: list[dict], effective_week_daily: int
         visibility = ev.get("visibility", "public")
         vis_factor = RELATION_VISIBILITY_FACTOR.get(visibility, 1.0)
         weight = base_weight * vis_factor
-        ev_week = get_week_number(ev["date"]) if ev.get("date") else effective_week_daily
+        ev_week = get_cycle_number(ev["date"]) if ev.get("date") else effective_week_daily
         for actor in actors:
             if actor in SYSTEM_ACTORS:
                 continue
@@ -485,7 +485,7 @@ def _build_sincerao_edges_section(sincerao_edges: dict | None, add_edge_raw: Any
             actor,
             target,
             base_weight,
-            week=edge.get("week"),
+            week=edge.get("cycle"),
             date=edge.get("date"),
             meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema")},
         )
@@ -496,7 +496,7 @@ def _build_sincerao_edges_section(sincerao_edges: dict | None, add_edge_raw: Any
                 target,
                 actor,
                 base_weight * backlash,
-                week=edge.get("week"),
+                week=edge.get("cycle"),
                 date=edge.get("date"),
                 meta={"sinc_type": etype, "slot": edge.get("slot"), "tema": edge.get("tema"), "backlash": True},
             )
@@ -552,7 +552,7 @@ def _build_vote_edges(votes_received_by_week: dict, open_vote_weeks: set, reveal
 
 
 def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: list[dict] | None, sincerao_edges: dict | None,
-                     daily_roles: list[dict], all_names_set: set[str], current_week: int, latest_date: str, vote_data: dict) -> dict:
+                     daily_roles: list[dict], all_names_set: set[str], current_cycle: int, latest_date: str, vote_data: dict) -> dict:
     """Generate all relationship edges (power, Sincerao, VIP, Anjo, votes).
 
     Returns dict with: edges_raw, effective_week_daily, effective_week_paredao,
@@ -576,40 +576,40 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
             active_paredao = p
             break
 
-    effective_week_paredao = current_week
-    if active_paredao and active_paredao.get("semana"):
-        effective_week_paredao = active_paredao.get("semana")
+    effective_week_paredao = current_cycle
+    if active_paredao and active_paredao.get("cycle"):
+        effective_week_paredao = active_paredao.get("cycle")
     else:
         candidate_weeks = []
         for ev in power_events:
             d = ev.get("date", "")
             if d:
-                candidate_weeks.append(get_week_number(d))
+                candidate_weeks.append(get_cycle_number(d))
         for edge in (sincerao_edges or {}).get("edges", []):
-            w = edge.get("week")
+            w = edge.get("cycle")
             if w:
                 candidate_weeks.append(w)
         for par in paredoes.get("paredoes", []) if paredoes else []:
-            w = par.get("semana")
+            w = par.get("cycle")
             if w:
                 candidate_weeks.append(w)
-        candidate_weeks = [w for w in candidate_weeks if w <= current_week]
+        candidate_weeks = [w for w in candidate_weeks if w <= current_cycle]
         if candidate_weeks:
             effective_week_paredao = max(candidate_weeks)
     candidate_weeks_daily = []
     for ev in power_events:
         d = ev.get("date", "")
         if d:
-            candidate_weeks_daily.append(get_week_number(d))
+            candidate_weeks_daily.append(get_cycle_number(d))
     for edge in (sincerao_edges or {}).get("edges", []):
-        w = edge.get("week")
+        w = edge.get("cycle")
         if w:
             candidate_weeks_daily.append(w)
     for w in votes_received_by_week.keys():
         if w:
             candidate_weeks_daily.append(w)
-    candidate_weeks_daily = [w for w in candidate_weeks_daily if w <= current_week]
-    effective_week_daily = max(candidate_weeks_daily) if candidate_weeks_daily else current_week
+    candidate_weeks_daily = [w for w in candidate_weeks_daily if w <= current_cycle]
+    effective_week_daily = max(candidate_weeks_daily) if candidate_weeks_daily else current_cycle
 
     # Determine reference dates for base emoji weights
     reference_date_paredao = latest_date
@@ -642,7 +642,7 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
             "type": kind,
             "actor": actor,
             "target": target,
-            "week": week or effective_week_daily,
+            "cycle": week or effective_week_daily,
             "date": date,
             "weight_raw": weight,
             "revealed": revealed,
@@ -671,7 +671,7 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
                     seen_leaders.add(leader)
                     vip_names = entry.get("vip", [])
                     entry_date = entry.get("date")
-                    entry_week = get_week_number(entry_date) if entry_date else effective_week_daily
+                    entry_week = get_cycle_number(entry_date) if entry_date else effective_week_daily
                     # New entrants = participants today that weren't in the previous snapshot
                     new_entrants = current_participants - prev_participants if prev_participants else set()
                     for vip_name in vip_names:
@@ -691,11 +691,11 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
             prev_participants = current_participants
 
     # Anjo dynamics edges (almoco_anjo, duo_anjo, anjo_nao_imunizou)
-    for wev in manual_events.get("weekly_events", []) if manual_events else []:
+    for wev in manual_events.get("cycles", []) if manual_events else []:
         anjo_data = wev.get("anjo")
         if not anjo_data:
             continue
-        week_num = wev.get("week", effective_week_daily)
+        week_num = wev.get("cycle") or wev.get("week", effective_week_daily)
         anjo_name = anjo_data.get("vencedor")
         if not anjo_name:
             continue
@@ -989,7 +989,7 @@ def _compute_pair_scores(daily_snapshots: list[dict], reaction_matrix_latest: di
                 "queridometro": round(q_val, 4),
                 "vote_weight": ve["weight"],
                 "vote_kind": ve.get("vote_kind", "secret"),
-                "week": ve.get("week"),
+                "cycle": ve.get("cycle"),
                 "date": ve.get("date"),
             })
 
@@ -1035,7 +1035,7 @@ def _compute_derived_metrics(edges: list[dict], paredoes: dict | None, all_names
         if isinstance(form, dict) and form.get("anjo_autoimune"):
             anjo_autoimune_events.append({
                 "anjo": form.get("anjo"),
-                "week": par.get("semana"),
+                "cycle": par.get("cycle"),
                 "date": par.get("data_formacao") or par.get("data"),
             })
 
@@ -1059,13 +1059,13 @@ def _compute_derived_metrics(edges: list[dict], paredoes: dict | None, all_names
             voter_list = sorted(v for v, c in voters.items() if c > 0)
             if len(voter_list) >= 4:
                 voting_blocs.append({
-                    "week": week,
+                    "cycle": week,
                     "date": vote_week_to_date.get(week),
                     "target": target,
                     "voters": voter_list,
                     "count": len(voter_list),
                 })
-    voting_blocs = sorted(voting_blocs, key=lambda x: (x.get("week", 0), -x.get("count", 0)))
+    voting_blocs = sorted(voting_blocs, key=lambda x: (x.get("cycle", 0), -x.get("count", 0)))
 
     return {
         "anjo_autoimune_events": anjo_autoimune_events,
@@ -1085,7 +1085,7 @@ def build_relations_scores(latest_snapshot: dict, daily_snapshots: list[dict], m
     # 3. Generate all relationship edges
     edge_result = _build_raw_edges(
         paredoes, manual_events, auto_events, sincerao_edges,
-        daily_roles, psets["all_names_set"], psets["current_week"], psets["latest_date"], vote_data,
+        daily_roles, psets["all_names_set"], psets["current_cycle"], psets["latest_date"], vote_data,
     )
 
     # 4. Compute pair scores, contradictions
@@ -1106,7 +1106,7 @@ def build_relations_scores(latest_snapshot: dict, daily_snapshots: list[dict], m
         "_metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "date": psets["latest_date"],
-            "week": psets["current_week"],
+            "cycle": psets["current_cycle"],
             "effective_week_daily": edge_result["effective_week_daily"],
             "effective_week_paredao": edge_result["effective_week_paredao"],
             "reference_date_daily": edge_result["reference_date_daily"],

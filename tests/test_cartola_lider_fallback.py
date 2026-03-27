@@ -52,7 +52,7 @@ def test_cartola_adds_leader_points_from_provas_when_snapshot_role_is_missing():
     ]
     manual_events = {
         "participants": {},
-        "weekly_events": [],
+        "cycles": [],
         "special_events": [],
         "power_events": [],
         "cartola_points_log": [],
@@ -63,7 +63,7 @@ def test_cartola_adds_leader_points_from_provas_when_snapshot_role_is_missing():
             {
                 "numero": 21,
                 "tipo": "lider",
-                "week": 8,
+                "cycle": 8,
                 "date": "2026-03-06",
                 "vencedor": "Alberto Cowboy",
                 "vencedores": ["Alberto Cowboy", "Jonas Sulzbach"],
@@ -83,7 +83,7 @@ def test_cartola_adds_leader_points_from_provas_when_snapshot_role_is_missing():
     for winner in ["Alberto Cowboy", "Jonas Sulzbach"]:
         leader_events = _leader_events(result, winner)
         assert any(
-            evt["week"] == 8 and evt["points"] == 80 and evt["date"] == "2026-03-06"
+            evt["cycle"] == 8 and evt["points"] == 80 and evt["date"] == "2026-03-06"
             for evt in leader_events
         ), f"{winner} should receive +80 leader points in week 8 from provas fallback"
 
@@ -100,7 +100,7 @@ def test_cartola_does_not_duplicate_leader_points_when_role_and_provas_both_exis
     ]
     manual_events = {
         "participants": {},
-        "weekly_events": [],
+        "cycles": [],
         "special_events": [],
         "power_events": [],
         "cartola_points_log": [],
@@ -111,7 +111,7 @@ def test_cartola_does_not_duplicate_leader_points_when_role_and_provas_both_exis
             {
                 "numero": 21,
                 "tipo": "lider",
-                "week": 8,
+                "cycle": 8,
                 "date": "2026-03-06",
                 "vencedor": "Alberto Cowboy",
                 "vencedores": ["Alberto Cowboy", "Jonas Sulzbach"],
@@ -133,7 +133,7 @@ def test_cartola_does_not_duplicate_leader_points_when_role_and_provas_both_exis
     alberto_leader_events = [
         evt
         for evt in _leader_events(result, "Alberto Cowboy")
-        if evt["week"] == 8 and evt["points"] == 80
+        if evt["cycle"] == 8 and evt["points"] == 80
     ]
     assert len(alberto_leader_events) == 1
 
@@ -141,6 +141,6 @@ def test_cartola_does_not_duplicate_leader_points_when_role_and_provas_both_exis
     jonas_leader_events = [
         evt
         for evt in _leader_events(result, "Jonas Sulzbach")
-        if evt["week"] == 8 and evt["points"] == 80
+        if evt["cycle"] == 8 and evt["points"] == 80
     ]
     assert len(jonas_leader_events) == 1

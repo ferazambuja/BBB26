@@ -10,10 +10,7 @@ from data_utils import (
     get_cycle_number,
     get_cycle_start_date,
     get_effective_cycle_end_dates,
-    get_week_number,
-    get_week_start_date,
-    get_effective_week_end_dates,
-    WEEK_END_DATES,
+    CYCLE_END_DATES,
     parse_roles,
     build_reaction_matrix,
     SENTIMENT_WEIGHTS,
@@ -133,123 +130,123 @@ class TestUtcToGameDate:
         assert result[4] == "-" and result[7] == "-"
 
 
-class TestGetWeekNumber:
-    """Test get_week_number() — Líder-transition-based week boundaries."""
+class TestGetCycleNumber:
+    """Test get_cycle_number() — Líder-transition-based cycle boundaries."""
 
     def test_premiere_day(self):
         """Premiere day (2026-01-13) should be week 1."""
-        assert get_week_number("2026-01-13") == 1
+        assert get_cycle_number("2026-01-13") == 1
 
     def test_day_before_premiere(self):
         """Day before premiere should be clamped to 1."""
-        assert get_week_number("2026-01-12") == 1
+        assert get_cycle_number("2026-01-12") == 1
 
-    def test_paredao_result_in_same_week(self):
-        """Paredão result days belong to the week they close."""
-        assert get_week_number("2026-01-21") == 1  # 1st paredão
-        assert get_week_number("2026-01-27") == 2  # 2nd paredão
-        assert get_week_number("2026-02-03") == 3  # 3rd paredão
-        assert get_week_number("2026-02-10") == 4  # 4th paredão
-        assert get_week_number("2026-02-17") == 5  # 5th paredão
-        assert get_week_number("2026-02-25") == 6  # 6th paredão
+    def test_paredao_result_in_same_cycle(self):
+        """Paredão result days belong to the cycle they close."""
+        assert get_cycle_number("2026-01-21") == 1  # 1st paredão
+        assert get_cycle_number("2026-01-27") == 2  # 2nd paredão
+        assert get_cycle_number("2026-02-03") == 3  # 3rd paredão
+        assert get_cycle_number("2026-02-10") == 4  # 4th paredão
+        assert get_cycle_number("2026-02-17") == 5  # 5th paredão
+        assert get_cycle_number("2026-02-25") == 6  # 6th paredão
 
-    def test_barrado_in_same_week_as_lider(self):
-        """Barrado no baile lands in the week of the Líder who decided it."""
-        assert get_week_number("2026-01-21") == 1  # Alberto barrado
-        assert get_week_number("2026-01-28") == 2  # Babu barrado
-        assert get_week_number("2026-02-04") == 3  # Maxiane barrado
-        assert get_week_number("2026-02-11") == 4  # Jonas barrado
-        assert get_week_number("2026-02-18") == 5  # Jonas barrado
+    def test_barrado_in_same_cycle_as_lider(self):
+        """Barrado no baile lands in the cycle of the Líder who decided it."""
+        assert get_cycle_number("2026-01-21") == 1  # Alberto barrado
+        assert get_cycle_number("2026-01-28") == 2  # Babu barrado
+        assert get_cycle_number("2026-02-04") == 3  # Maxiane barrado
+        assert get_cycle_number("2026-02-11") == 4  # Jonas barrado
+        assert get_cycle_number("2026-02-18") == 5  # Jonas barrado
 
-    def test_new_lider_starts_new_week(self):
-        """New Líder definition day starts the next week."""
-        assert get_week_number("2026-01-22") == 2  # Babu Líder
-        assert get_week_number("2026-01-29") == 3  # Maxiane Líder
-        assert get_week_number("2026-02-05") == 4  # Jonas Líder
-        assert get_week_number("2026-02-13") == 5  # Jonas 2nd Líder
+    def test_new_lider_starts_new_cycle(self):
+        """New Líder definition day starts the next cycle."""
+        assert get_cycle_number("2026-01-22") == 2  # Babu Líder
+        assert get_cycle_number("2026-01-29") == 3  # Maxiane Líder
+        assert get_cycle_number("2026-02-05") == 4  # Jonas Líder
+        assert get_cycle_number("2026-02-13") == 5  # Jonas 2nd Líder
 
-    def test_after_last_week(self):
-        """Day after last known week boundary starts the next week."""
-        assert get_week_number("2026-02-26") == 7
-        # Week 7 boundary is 2026-03-05; week 8 starts on 2026-03-06.
-        assert get_week_number("2026-03-06") == 8
+    def test_after_last_cycle(self):
+        """Day after last known cycle boundary starts the next cycle."""
+        assert get_cycle_number("2026-02-26") == 7
+        # Cycle 7 boundary is 2026-03-05; cycle 8 starts on 2026-03-06.
+        assert get_cycle_number("2026-03-06") == 8
 
-    def test_inferred_week_rollover_from_next_week_signal(self):
-        """When week N+1 has dated signals, week N boundary is inferred."""
+    def test_inferred_cycle_rollover_from_next_cycle_signal(self):
+        """When cycle N+1 has dated signals, cycle N boundary is inferred."""
         manual = {
             "scheduled_events": [
-                {"week": 12, "date": "2026-04-01"},
+                {"cycle": 12, "date": "2026-04-01"},
             ]
         }
-        inferred = get_effective_week_end_dates(
+        inferred = get_effective_cycle_end_dates(
             manual_events=manual,
             paredoes_data={},
             provas_data={},
         )
-        assert len(inferred) == len(WEEK_END_DATES) + 1
+        assert len(inferred) == len(CYCLE_END_DATES) + 1
         assert inferred[-1] == "2026-03-31"
-        assert get_week_number("2026-03-31", inferred) == 11
-        assert get_week_number("2026-04-01", inferred) == 12
+        assert get_cycle_number("2026-03-31", inferred) == 11
+        assert get_cycle_number("2026-04-01", inferred) == 12
 
-    def test_inference_requires_contiguous_week_signal(self):
-        """Do not infer week ends when the immediate next week has no signal."""
+    def test_inference_requires_contiguous_cycle_signal(self):
+        """Do not infer cycle ends when the immediate next cycle has no signal."""
         manual = {
             "scheduled_events": [
-                {"week": 13, "date": "2026-04-08"},
+                {"cycle": 13, "date": "2026-04-08"},
             ]
         }
-        inferred = get_effective_week_end_dates(
+        inferred = get_effective_cycle_end_dates(
             manual_events=manual,
             paredoes_data={},
             provas_data={},
         )
-        assert inferred == WEEK_END_DATES
+        assert inferred == CYCLE_END_DATES
 
     def test_monotonic_increase(self):
-        """Week numbers should be monotonically non-decreasing."""
+        """Cycle numbers should be monotonically non-decreasing."""
         dates = ["2026-01-13", "2026-01-21", "2026-01-22", "2026-01-28",
                  "2026-01-29", "2026-02-04", "2026-02-05", "2026-02-12",
                  "2026-02-13", "2026-02-18", "2026-02-25", "2026-02-26"]
-        weeks = [get_week_number(d) for d in dates]
+        weeks = [get_cycle_number(d) for d in dates]
         for i in range(1, len(weeks)):
             assert weeks[i] >= weeks[i - 1]
 
 
-class TestGetWeekStartDate:
-    """Test get_week_start_date() — derives start date for each game week."""
+class TestGetCycleStartDate:
+    """Test get_cycle_start_date() — derives start date for each game cycle."""
 
-    def test_week_1_starts_at_premiere(self):
-        assert get_week_start_date(1) == "2026-01-13"
+    def test_cycle_1_starts_at_premiere(self):
+        assert get_cycle_start_date(1) == "2026-01-13"
 
-    def test_week_2_starts_after_week_1_end(self):
-        assert get_week_start_date(2) == "2026-01-22"
+    def test_cycle_2_starts_after_cycle_1_end(self):
+        assert get_cycle_start_date(2) == "2026-01-22"
 
-    def test_week_3_starts_after_week_2_end(self):
-        assert get_week_start_date(3) == "2026-01-29"
+    def test_cycle_3_starts_after_cycle_2_end(self):
+        assert get_cycle_start_date(3) == "2026-01-29"
 
-    def test_week_4_jonas_first_term(self):
-        assert get_week_start_date(4) == "2026-02-05"
+    def test_cycle_4_jonas_first_term(self):
+        assert get_cycle_start_date(4) == "2026-02-05"
 
-    def test_week_5_jonas_second_term(self):
-        assert get_week_start_date(5) == "2026-02-13"
+    def test_cycle_5_jonas_second_term(self):
+        assert get_cycle_start_date(5) == "2026-02-13"
 
-    def test_week_6_jonas_third_term(self):
-        assert get_week_start_date(6) == "2026-02-19"
+    def test_cycle_6_jonas_third_term(self):
+        assert get_cycle_start_date(6) == "2026-02-19"
 
-    def test_open_week_after_last_boundary(self):
-        assert get_week_start_date(7) == "2026-02-26"
+    def test_open_cycle_after_last_boundary(self):
+        assert get_cycle_start_date(7) == "2026-02-26"
 
-    def test_week_0_clamps_to_premiere(self):
-        assert get_week_start_date(0) == "2026-01-13"
+    def test_cycle_0_clamps_to_premiere(self):
+        assert get_cycle_start_date(0) == "2026-01-13"
 
 
 class TestCycleCompatibility:
     """Test cycle aliases and bridge behavior."""
 
-    def test_cycle_aliases_match_week_helpers(self):
+    def test_cycle_aliases_match_cycle_helpers(self):
         inferred = ["2026-01-21", "2026-01-28"]
-        assert get_cycle_number("2026-01-25", inferred) == get_week_number("2026-01-25", inferred)
-        assert get_cycle_start_date(2, inferred) == get_week_start_date(2, inferred)
+        assert get_cycle_number("2026-01-25", inferred) == get_cycle_number("2026-01-25", inferred)
+        assert get_cycle_start_date(2, inferred) == get_cycle_start_date(2, inferred)
 
     def test_cycle_boundary_inference_accepts_canonical_cycle_keys(self):
         manual = {
@@ -262,7 +259,7 @@ class TestCycleCompatibility:
             paredoes_data={},
             provas_data={},
         )
-        assert len(inferred) == len(WEEK_END_DATES) + 1
+        assert len(inferred) == len(CYCLE_END_DATES) + 1
         assert inferred[-1] == "2026-03-31"
 
 
@@ -378,12 +375,12 @@ class TestCartolaRegressions:
             "Expected exactly one Breno immunity event on 2026-03-04 "
             "(Quarto Secreto return immunity)"
         )
-        assert week7_return_immunity[0].get("week") == 7
+        assert week7_return_immunity[0].get("cycle") == 7
         assert week7_return_immunity[0].get("points") == 30
 
         week8_duplicates = [
             evt for evt in immunity_events
-            if evt.get("week") == 8
+            if evt.get("cycle") == 8
         ]
         assert not week8_duplicates, (
             "Breno immunity from Quarto Secreto must not be duplicated in week 8"

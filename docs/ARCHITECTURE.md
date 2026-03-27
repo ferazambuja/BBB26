@@ -177,7 +177,7 @@ All files in `data/derived/`, built by `scripts/build_derived_data.py`:
 
 ## Game Week History
 
-BBB game weeks are Líder-cycle-based (not calendar). The **Prova do Líder is the first event of the new week** — events earlier on the same day belong to the previous week. `WEEK_END_DATES` in `data_utils.py` stores the last day of each week (= day before the next Prova do Líder).
+BBB game weeks are Líder-cycle-based (not calendar). The **Prova do Líder is the first event of the new cycle** — events earlier on the same day belong to the previous cycle. `CYCLE_END_DATES` in `data_utils.py` stores the last day of each cycle (= day before the next Prova do Líder).
 
 | Week | End Date | Líder | Paredão | Next Líder |
 |------|----------|-------|---------|------------|

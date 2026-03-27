@@ -951,8 +951,8 @@ def test_render_na_mira_row_renders_power_tags_and_drill_down():
                 {"label": "Barrado", "count": 2, "text": "Barrado 2x"},
             ],
             "power_detail": [
-                {"type": "indicacao", "actor": "Alberto Cowboy", "week": 8, "date": "2026-03-01"},
-                {"type": "barrado_baile", "actor": "Jonas Sulzbach", "week": 6, "date": "2026-02-15"},
+                {"type": "indicacao", "actor": "Alberto Cowboy", "cycle": 8, "date": "2026-03-01"},
+                {"type": "barrado_baile", "actor": "Jonas Sulzbach", "cycle": 6, "date": "2026-02-15"},
             ],
         },
         max_hits=8,
@@ -1003,7 +1003,7 @@ def test_render_agressor_row_renders_purple_tags_and_drill_down():
                 {"label": "Indicação", "count": 3, "text": "Indicação 3x"},
             ],
             "power_detail": [
-                {"type": "mira_do_lider", "target": "Milena", "week": 8, "date": "2026-03-01"},
+                {"type": "mira_do_lider", "target": "Milena", "cycle": 8, "date": "2026-03-01"},
             ],
         },
         max_hits=14,

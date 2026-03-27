@@ -464,20 +464,20 @@ _MANUAL_EVENTS_PATH = _PROJECT_ROOT / "data" / "manual_events.json"
 _PAREDOES_PATH = _PROJECT_ROOT / "data" / "paredoes.json"
 _PROVAS_PATH = _PROJECT_ROOT / "data" / "provas.json"
 
-# Each entry is the LAST day of that week (= day before the next Prova do Líder).
-# The Prova do Líder is the FIRST event of the new week. Events earlier on the
-# same day (e.g., afternoon Anjo prova) belong to the PREVIOUS week.
-WEEK_END_DATES: list[str] = [
-    "2026-01-21",  # Week 1 — Alberto Cowboy Líder; 1º Paredão Jan 21; Babu Líder Jan 22
-    "2026-01-28",  # Week 2 — Babu Santana Líder; 2º Paredão Jan 27; barrado Jan 28; Maxiane Líder Jan 29
-    "2026-02-04",  # Week 3 — Maxiane Líder; 3º Paredão Feb 3; barrado Feb 4; Jonas Líder Feb 5
-    "2026-02-12",  # Week 4 — Jonas Sulzbach Líder; 4º Paredão Feb 10; barrado Feb 11; Jonas Líder Feb 13
-    "2026-02-18",  # Week 5 — Jonas Sulzbach Líder; 5º Paredão Feb 17; barrado Feb 18
-    "2026-02-25",  # Week 6 — Jonas Sulzbach Líder; 6º Paredão Feb 25; barrado Feb 25
-    "2026-03-05",  # Week 7 — Samira Líder; 7º Paredão (Falso) Mar 3; dupla liderança (W8) definida Mar 6
-    "2026-03-11",  # Week 8 — Alberto Cowboy + Jonas Sulzbach co-Líderes; 8º Paredão Mar 10; Alberto Líder solo (9ª PdL) Mar 12
-    "2026-03-18",  # Week 9 — Alberto Cowboy Líder; 9º Paredão Mar 18; Alberto Líder tetra (10ª PdL) Mar 19
-    "2026-03-25",  # Week 10 — Alberto Cowboy Líder (tetra); 10º Paredão Mar 24 (Jonas eliminated); next Líder Mar 26
+# Each entry is the LAST day of that cycle (= day before the next Prova do Líder).
+# The Prova do Líder is the FIRST event of the new cycle. Events earlier on the
+# same day (e.g., afternoon Anjo prova) belong to the PREVIOUS cycle.
+CYCLE_END_DATES: list[str] = [
+    "2026-01-21",  # Cycle 1 — Alberto Cowboy Líder; 1º Paredão Jan 21; Babu Líder Jan 22
+    "2026-01-28",  # Cycle 2 — Babu Santana Líder; 2º Paredão Jan 27; barrado Jan 28; Maxiane Líder Jan 29
+    "2026-02-04",  # Cycle 3 — Maxiane Líder; 3º Paredão Feb 3; barrado Feb 4; Jonas Líder Feb 5
+    "2026-02-12",  # Cycle 4 — Jonas Sulzbach Líder; 4º Paredão Feb 10; barrado Feb 11; Jonas Líder Feb 13
+    "2026-02-18",  # Cycle 5 — Jonas Sulzbach Líder; 5º Paredão Feb 17; barrado Feb 18
+    "2026-02-25",  # Cycle 6 — Jonas Sulzbach Líder; 6º Paredão Feb 25; barrado Feb 25
+    "2026-03-05",  # Cycle 7 — Samira Líder; 7º Paredão (Falso) Mar 3; dupla liderança (W8) definida Mar 6
+    "2026-03-11",  # Cycle 8 — Alberto Cowboy + Jonas Sulzbach co-Líderes; 8º Paredão Mar 10; Alberto Líder solo (9ª PdL) Mar 12
+    "2026-03-18",  # Cycle 9 — Alberto Cowboy Líder; 9º Paredão Mar 18; Alberto Líder tetra (10ª PdL) Mar 19
+    "2026-03-25",  # Cycle 10 — Alberto Cowboy Líder (tetra); 10º Paredão Mar 24 (Jonas eliminated); next Líder Mar 26
 ]
 
 
@@ -493,85 +493,80 @@ def _read_json_or_default(path: Path, default: Any) -> Any:
         return json.load(f)
 
 
-def _record_week_start(start_by_week: dict[int, str], week: Any, date_str: Any) -> None:
-    """Store earliest known date for a given week."""
-    if not isinstance(week, int) or week < 1 or not _is_iso_date(date_str):
+def _record_cycle_start(start_by_cycle: dict[int, str], cycle: Any, date_str: Any) -> None:
+    """Store earliest known date for a given cycle."""
+    if not isinstance(cycle, int) or cycle < 1 or not _is_iso_date(date_str):
         return
-    prev = start_by_week.get(week)
+    prev = start_by_cycle.get(cycle)
     if prev is None or date_str < prev:
-        start_by_week[week] = date_str
+        start_by_cycle[cycle] = date_str
 
 
 def _cycle_value(item: dict[str, Any], *keys: str) -> Any:
-    """Read canonical cycle-aware keys, falling back to legacy week/semana names."""
+    """Read canonical cycle key from item."""
     for key in keys:
         value = item.get(key)
         if value is not None:
             return value
-    for key in ("cycle", "week", "semana"):
-        if key in item and item.get(key) is not None:
-            return item.get(key)
-    return None
+    return item.get("cycle")
 
 
-def _compute_effective_week_end_dates(
+def _compute_effective_cycle_end_dates(
     manual_events: dict[str, Any],
     paredoes_data: dict[str, Any],
     provas_data: dict[str, Any],
 ) -> list[str]:
-    """Merge confirmed boundaries with inferred boundaries for open weeks.
+    """Merge confirmed boundaries with inferred boundaries for open cycles.
 
-    Confirmed boundaries live in WEEK_END_DATES.
-    Inferred boundaries are appended only for weeks beyond the confirmed list,
-    using: end_of_week_(N) = start_of_week_(N+1) - 1 day.
+    Confirmed boundaries live in CYCLE_END_DATES.
+    Inferred boundaries are appended only for cycles beyond the confirmed list,
+    using: end_of_cycle_(N) = start_of_cycle_(N+1) - 1 day.
     """
-    week_starts: dict[int, str] = {}
+    cycle_starts: dict[int, str] = {}
 
-    cycle_entries = manual_events.get("cycles")
-    if not isinstance(cycle_entries, list):
-        cycle_entries = manual_events.get("weekly_events", [])
+    cycle_entries = manual_events.get("cycles", [])
 
     for item in cycle_entries:
-        _record_week_start(week_starts, _cycle_value(item, "cycle", "week"), item.get("start_date"))
+        _record_cycle_start(cycle_starts, _cycle_value(item, "cycle"), item.get("start_date"))
 
     for section in ("power_events", "special_events", "scheduled_events"):
         for item in manual_events.get(section, []):
-            _record_week_start(week_starts, _cycle_value(item, "cycle", "week"), item.get("date"))
+            _record_cycle_start(cycle_starts, _cycle_value(item, "cycle"), item.get("date"))
 
     for item in paredoes_data.get("paredoes", []):
-        _record_week_start(
-            week_starts,
-            _cycle_value(item, "cycle", "semana", "week"),
+        _record_cycle_start(
+            cycle_starts,
+            _cycle_value(item, "cycle"),
             item.get("data_formacao") or item.get("data"),
         )
 
     for item in provas_data.get("provas", []):
-        _record_week_start(week_starts, _cycle_value(item, "cycle", "week"), item.get("date"))
+        _record_cycle_start(cycle_starts, _cycle_value(item, "cycle"), item.get("date"))
 
-    candidate_end_by_week: dict[int, str] = {}
-    for week, start_date in week_starts.items():
-        if week <= 1:
+    candidate_end_by_cycle: dict[int, str] = {}
+    for cycle, start_date in cycle_starts.items():
+        if cycle <= 1:
             continue
         try:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
         except ValueError:
             continue
-        candidate_end_by_week[week - 1] = (start_dt - timedelta(days=1)).isoformat()
+        candidate_end_by_cycle[cycle - 1] = (start_dt - timedelta(days=1)).isoformat()
 
-    effective = list(WEEK_END_DATES)
-    next_week_to_close = len(effective) + 1
-    while next_week_to_close in candidate_end_by_week:
-        candidate_end = candidate_end_by_week[next_week_to_close]
+    effective = list(CYCLE_END_DATES)
+    next_cycle_to_close = len(effective) + 1
+    while next_cycle_to_close in candidate_end_by_cycle:
+        candidate_end = candidate_end_by_cycle[next_cycle_to_close]
         if effective and candidate_end <= effective[-1]:
             break
         effective.append(candidate_end)
-        next_week_to_close += 1
+        next_cycle_to_close += 1
 
     return effective
 
 
 @lru_cache(maxsize=8)
-def _effective_week_end_dates_cached(
+def _effective_cycle_end_dates_cached(
     manual_mtime_ns: int,
     paredoes_mtime_ns: int,
     provas_mtime_ns: int,
@@ -579,21 +574,21 @@ def _effective_week_end_dates_cached(
     manual_events = _read_json_or_default(_MANUAL_EVENTS_PATH, {})
     paredoes_data = _read_json_or_default(_PAREDOES_PATH, {})
     provas_data = _read_json_or_default(_PROVAS_PATH, {})
-    return tuple(_compute_effective_week_end_dates(manual_events, paredoes_data, provas_data))
+    return tuple(_compute_effective_cycle_end_dates(manual_events, paredoes_data, provas_data))
 
 
-def get_effective_week_end_dates(
+def get_effective_cycle_end_dates(
     manual_events: dict[str, Any] | None = None,
     paredoes_data: dict[str, Any] | None = None,
     provas_data: dict[str, Any] | None = None,
 ) -> list[str]:
-    """Return effective week-end boundaries (confirmed + inferred).
+    """Return effective cycle-end boundaries (confirmed + inferred).
 
     If data dicts are provided, computes directly from them (used by tests/tools).
     Otherwise reads project files and caches by file mtime.
     """
     if manual_events is not None or paredoes_data is not None or provas_data is not None:
-        return _compute_effective_week_end_dates(
+        return _compute_effective_cycle_end_dates(
             manual_events or {},
             paredoes_data or {},
             provas_data or {},
@@ -605,71 +600,52 @@ def get_effective_week_end_dates(
         except OSError:
             return -1
 
-    return list(_effective_week_end_dates_cached(
+    return list(_effective_cycle_end_dates_cached(
         _mtime(_MANUAL_EVENTS_PATH),
         _mtime(_PAREDOES_PATH),
         _mtime(_PROVAS_PATH),
     ))
 
 
-def get_week_number(date_str: str, week_end_dates: list[str] | None = None) -> int:
-    """Calculate BBB26 game week number from date string (YYYY-MM-DD).
+def get_cycle_number(date_str: str, cycle_end_dates: list[str] | None = None) -> int:
+    """Calculate BBB26 game cycle number from date string (YYYY-MM-DD).
 
-    Game weeks are bounded by Líder transitions (not calendar 7-day periods).
-    A week includes its paredão result AND the subsequent barrado no baile.
+    Game cycles are bounded by Líder transitions (not calendar 7-day periods).
+    A cycle includes its paredão result AND the subsequent barrado no baile.
 
-    Boundaries use get_effective_week_end_dates():
-    - confirmed boundaries from WEEK_END_DATES
-    - inferred boundaries for open weeks when week N+1 has dated signals
-      (e.g., provas/paredões/manual events/scheduled events with explicit week).
+    Boundaries use get_effective_cycle_end_dates():
+    - confirmed boundaries from CYCLE_END_DATES
+    - inferred boundaries for open cycles when cycle N+1 has dated signals
+      (e.g., provas/paredões/manual events/scheduled events with explicit cycle).
 
-    Dates after the last effective boundary get week = len(boundaries) + 1.
-    Dates before premiere are clamped to week 1.
+    Dates after the last effective boundary get cycle = len(boundaries) + 1.
+    Dates before premiere are clamped to cycle 1.
     """
     if date_str < "2026-01-13":
         return 1
-    boundaries = week_end_dates if week_end_dates is not None else get_effective_week_end_dates()
-    # bisect_left: boundary date itself is INCLUDED in the week it ends
+    boundaries = cycle_end_dates if cycle_end_dates is not None else get_effective_cycle_end_dates()
+    # bisect_left: boundary date itself is INCLUDED in the cycle it ends
     idx = bisect_left(boundaries, date_str)
     return idx + 1
 
 
-def get_week_start_date(week_num: int, week_end_dates: list[str] | None = None) -> str:
-    """Return the start date (YYYY-MM-DD) of the given game week.
+def get_cycle_start_date(cycle_num: int, cycle_end_dates: list[str] | None = None) -> str:
+    """Return the start date (YYYY-MM-DD) of the given game cycle.
 
-    Week 1 starts at BBB26 premiere. Week N (N>1) starts the day after
-    boundary[N-2]. Weeks beyond the last known boundary use the day after
+    Cycle 1 starts at BBB26 premiere. Cycle N (N>1) starts the day after
+    boundary[N-2]. Cycles beyond the last known boundary use the day after
     the last effective boundary.
     """
-    if week_num <= 1:
+    if cycle_num <= 1:
         return BBB26_PREMIERE
-    boundaries = week_end_dates if week_end_dates is not None else get_effective_week_end_dates()
-    idx = week_num - 2  # WEEK_END_DATES[0] = end of week 1
+    boundaries = cycle_end_dates if cycle_end_dates is not None else get_effective_cycle_end_dates()
+    idx = cycle_num - 2  # CYCLE_END_DATES[0] = end of cycle 1
     if idx < len(boundaries):
         prev_end = boundaries[idx]
     else:
         prev_end = boundaries[-1] if boundaries else BBB26_PREMIERE
     d = datetime.strptime(prev_end, "%Y-%m-%d").date()
     return (d + timedelta(days=1)).isoformat()
-
-
-def get_effective_cycle_end_dates(
-    manual_events: dict[str, Any] | None = None,
-    paredoes_data: dict[str, Any] | None = None,
-    provas_data: dict[str, Any] | None = None,
-) -> list[str]:
-    """Canonical alias for get_effective_week_end_dates() during the bridge period."""
-    return get_effective_week_end_dates(manual_events, paredoes_data, provas_data)
-
-
-def get_cycle_number(date_str: str, cycle_end_dates: list[str] | None = None) -> int:
-    """Canonical alias for get_week_number() during the bridge period."""
-    return get_week_number(date_str, cycle_end_dates)
-
-
-def get_cycle_start_date(cycle_num: int, cycle_end_dates: list[str] | None = None) -> str:
-    """Canonical alias for get_week_start_date() during the bridge period."""
-    return get_week_start_date(cycle_num, cycle_end_dates)
 
 
 def calc_sentiment(participant: dict) -> float:

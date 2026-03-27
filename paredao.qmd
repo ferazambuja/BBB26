@@ -2087,7 +2087,7 @@ _me_path = Path("data/manual_events.json")
 _pp_data = None
 if _me_path.exists():
     _me = json.loads(_me_path.read_text(encoding="utf-8"))
-    for _we in _me.get("weekly_events", []):
+    for _we in _me.get("cycles", []):
         _sinc = _we.get("sincerao")
         if _sinc and isinstance(_sinc, dict) and "paredao_perfeito" in _sinc:
             _pp_data = _sinc
@@ -2228,7 +2228,7 @@ if _show_prediction:
     _pairs_daily = _relations.get("pairs_daily", {}) or _relations.get("pairs", {})
     _rel_edges = _relations.get("edges", [])
     _rel_meta = _relations.get("_metadata", {})
-    _display_week = _rel_meta.get("effective_week_daily") or _rel_meta.get("week") or "?"
+    _display_week = _rel_meta.get("effective_week_daily") or _rel_meta.get("cycle") or "?"
 
     # ── Detect current Líder + Anjo from roles_daily.json ─────────────
     _rd = json.loads(Path("data/derived/roles_daily.json").read_text(encoding="utf-8"))

@@ -583,7 +583,7 @@ else:
     for idx, prova in enumerate(provas_sorted):
         numero = prova.get("numero", "?")
         tipo = prova.get("tipo", "")
-        week = prova.get("week", "?")
+        week = prova.get("cycle", "?")
         nome = prova.get("nome", "Prova")
         date = prova.get("date", "")
         emoji = TIPO_EMOJI.get(tipo, "🏅")

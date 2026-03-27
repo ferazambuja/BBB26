@@ -69,7 +69,7 @@ strategic_timeline = index_data.get("strategic_timeline", [])
 # Manual + auto events
 manual_events = load_manual_events()
 power_events_manual = manual_events.get("power_events", [])
-weekly_events = manual_events.get("weekly_events", [])
+cycles_data = manual_events.get("cycles", [])
 
 auto_payload = load_auto_events()
 power_events_auto = []
@@ -841,7 +841,7 @@ else:
     df_power['Tipo'] = df_power['type'].map(tipo_labels).fillna(df_power['type'])
 
     big_fone_targets = {}
-    for w in weekly_events:
+    for w in cycles_data:
         raw_bf = w.get("big_fone") if isinstance(w, dict) else None
         bf_list = raw_bf if isinstance(raw_bf, list) else ([raw_bf] if isinstance(raw_bf, dict) else [])
         for bf in bf_list:

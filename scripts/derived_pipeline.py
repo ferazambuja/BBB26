@@ -16,7 +16,7 @@ import re
 
 from data_utils import (
     SENTIMENT_WEIGHTS, POSITIVE,
-    build_reaction_matrix, get_week_number,
+    build_reaction_matrix, get_cycle_number,
     get_daily_snapshots,
     normalize_route_label,
     stable_json_hash,
@@ -291,7 +291,7 @@ def build_snapshots_manifest(daily_snapshots: list[dict], daily_metrics: list[di
             "label": format_date_label(date),
             "file": rel_path,
             "participants": len(snap.get("participants", [])),
-            "week": get_week_number(date),
+            "cycle": get_cycle_number(date),
             "has_metrics": date in metrics_dates,
         })
     items = sorted(items, key=lambda x: x["date"])

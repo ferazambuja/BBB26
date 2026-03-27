@@ -13,7 +13,7 @@ def test_lider_fallback_from_provas_when_auto_events_missing():
         "provas": [
             {
                 "tipo": "lider",
-                "week": 9,
+                "cycle": 9,
                 "date": "2026-03-12",
                 "vencedor": "Alberto Cowboy",
                 "nota": "Alberto venceu a 9a Prova do Lider.",
@@ -44,7 +44,7 @@ def test_lider_fallback_does_not_duplicate_when_auto_event_exists_same_week():
         "provas": [
             {
                 "tipo": "lider",
-                "week": 9,
+                "cycle": 9,
                 "date": "2026-03-12",
                 "vencedor": "Alberto Cowboy",
             }
@@ -86,7 +86,7 @@ def test_anjo_fallback_from_provas_when_auto_events_missing():
         "provas": [
             {
                 "tipo": "anjo",
-                "week": 9,
+                "cycle": 9,
                 "date": "2026-03-14",
                 "vencedor": "Breno",
                 "nota": "9ª Prova do Anjo.",
@@ -110,7 +110,7 @@ def test_anjo_fallback_does_not_duplicate_when_auto_event_exists():
     ]
     provas_data = {
         "provas": [
-            {"tipo": "anjo", "week": 9, "date": "2026-03-14", "vencedor": "Breno"}
+            {"tipo": "anjo", "cycle": 9, "date": "2026-03-14", "vencedor": "Breno"}
         ]
     }
 
@@ -126,11 +126,11 @@ def test_anjo_fallback_does_not_duplicate_when_auto_event_exists():
 # --- Monstro fallback tests ---
 
 
-def test_monstro_fallback_from_weekly_events():
+def test_monstro_fallback_from_cycles():
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 9,
+                "cycle": 9,
                 "anjo": {
                     "vencedor": "Breno",
                     "prova_date": "2026-03-14",
@@ -148,7 +148,7 @@ def test_monstro_fallback_from_weekly_events():
     ]
     assert any(
         e.get("title") == "Jonas Sulzbach → Monstro"
-        and e.get("source") == "weekly_events"
+        and e.get("source") == "cycles"
         for e in monstro_events
     )
 
@@ -158,9 +158,9 @@ def test_monstro_fallback_does_not_duplicate_when_auto_event_exists():
         {"type": "monstro", "date": "2026-03-14", "target": "Jonas Sulzbach", "detail": "API"}
     ]
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 9,
+                "cycle": 9,
                 "anjo": {
                     "vencedor": "Breno",
                     "prova_date": "2026-03-14",
@@ -183,9 +183,9 @@ def test_monstro_fallback_does_not_duplicate_when_auto_event_exists():
 def test_monstro_fallback_handles_monstro_escolha_list():
     """Multi-target monstro via monstro_escolha (e.g., W4 Ligados)."""
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 4,
+                "cycle": 4,
                 "anjo": {
                     "vencedor": "Alberto Cowboy",
                     "prova_date": "2026-02-07",
@@ -210,9 +210,9 @@ def test_monstro_fallback_handles_monstro_escolha_list():
 def test_monstro_fallback_skips_list_valued_monstro_field():
     """If monstro field is accidentally a list, handle gracefully."""
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 4,
+                "cycle": 4,
                 "anjo": {
                     "vencedor": "Alberto Cowboy",
                     "prova_date": "2026-02-07",
@@ -302,7 +302,7 @@ def test_future_scheduled_event_stays_scheduled():
 
 
 def test_scheduled_event_prefers_declared_cycle_over_date_inference(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
     manual_events = {
         "scheduled_events": [
             {
@@ -319,7 +319,7 @@ def test_scheduled_event_prefers_declared_cycle_over_date_inference(monkeypatch)
     events = build_game_timeline([], [], manual_events, None, reference_date="2026-01-19")
     scheduled = next(e for e in events if e.get("source") == "scheduled" and e.get("title") == "Override de ciclo")
 
-    assert scheduled["week"] == 2
+    assert scheduled["cycle"] == 2
     assert scheduled["cycle"] == 2
 
 
@@ -453,9 +453,9 @@ def test_future_multi_dinamica_not_suppressed_by_different_real_dinamica():
 def test_scheduled_big_fone_suppressed_when_real_big_fone_exists_same_date():
     """big_fone is singleton: scheduled placeholder must be dropped when real event exists."""
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 9,
+                "cycle": 9,
                 "big_fone": [
                     {
                         "date": "2026-03-10",
@@ -480,7 +480,7 @@ def test_scheduled_big_fone_suppressed_when_real_big_fone_exists_same_date():
     events = build_game_timeline([], [], manual_events, None)
     big_fone_events = [e for e in events if e.get("category") == "big_fone"]
     assert len(big_fone_events) == 1
-    assert big_fone_events[0].get("source") == "weekly_events"
+    assert big_fone_events[0].get("source") == "cycles"
 
 
 def test_scheduled_without_category_defaults_to_dinamica_consistently():
@@ -753,8 +753,8 @@ def test_scheduled_substeps_fallback_to_provas_for_anjo_lider():
     }
     provas_data = {
         "provas": [
-            {"tipo": "anjo", "week": 9, "date": "2026-03-14", "vencedor": "Breno"},
-            {"tipo": "lider", "week": 9, "date": "2026-03-12", "vencedor": "Alberto Cowboy"},
+            {"tipo": "anjo", "cycle": 9, "date": "2026-03-14", "vencedor": "Breno"},
+            {"tipo": "lider", "cycle": 9, "date": "2026-03-12", "vencedor": "Alberto Cowboy"},
         ]
     }
 
@@ -796,7 +796,7 @@ def test_scheduled_substeps_generic_when_lider_anjo_unknown():
 
 
 def test_scaffold_generates_sincerao_for_week(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
     events = build_game_timeline([], [], {}, None, reference_date="2026-01-18")
     assert any(
         e.get("source") == "scaffold"
@@ -807,20 +807,20 @@ def test_scaffold_generates_sincerao_for_week(monkeypatch):
 
 
 def test_scaffold_suppressed_by_real_event(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
     manual_events = {
-        "weekly_events": [
-            {"week": 1, "sincerao": {"date": "2026-01-19", "format": "ao vivo"}}
+        "cycles": [
+            {"cycle": 1, "sincerao": {"date": "2026-01-19", "format": "ao vivo"}}
         ]
     }
     events = build_game_timeline([], [], manual_events, None, reference_date="2026-01-18")
     sinc = [e for e in events if e.get("category") == "sincerao" and e.get("date") == "2026-01-19"]
     assert len(sinc) == 1
-    assert sinc[0].get("source") == "weekly_events"
+    assert sinc[0].get("source") == "cycles"
 
 
 def test_scaffold_suppressed_by_manual_scheduled(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
     manual_events = {
         "scheduled_events": [
             {
@@ -839,7 +839,7 @@ def test_scaffold_suppressed_by_manual_scheduled(monkeypatch):
 
 
 def test_scaffold_not_generated_before_first_week(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
     events = build_game_timeline([], [], {}, None, reference_date="2026-01-14")
     assert not any(
         e.get("source") == "scaffold"
@@ -850,7 +850,7 @@ def test_scaffold_not_generated_before_first_week(monkeypatch):
 
 
 def test_scaffold_future_is_scheduled_past_is_resolved(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-19"])
     events = build_game_timeline([], [], {}, None, reference_date="2026-01-19")
     by_key = {(e.get("date"), e.get("category")): e for e in events if e.get("source") == "scaffold"}
     assert by_key[("2026-01-18", "presente_anjo")]["status"] == ""
@@ -858,7 +858,7 @@ def test_scaffold_future_is_scheduled_past_is_resolved(monkeypatch):
 
 
 def test_scaffold_open_week_generates_events(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: [])
     events = build_game_timeline([], [], {}, None, reference_date="2026-01-13")
     assert any(
         e.get("source") == "scaffold"
@@ -869,7 +869,7 @@ def test_scaffold_open_week_generates_events(monkeypatch):
 
 
 def test_open_week_scaffold_generates_full_standard_cycle(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
     events = build_game_timeline([], [], {}, None, reference_date="2026-01-22")
     scaffold_keys = {
         (e.get("date"), e.get("category"))
@@ -899,7 +899,7 @@ def test_open_week_scaffold_generates_full_standard_cycle(monkeypatch):
         e for e in events
         if e.get("source") == "scaffold" and e.get("date") == "2026-01-22" and e.get("category") == "lider"
     )
-    assert lider.get("cycle") == lider.get("week") == 2
+    assert lider.get("cycle") == 2
 
 
 def test_resolved_archive_cycle_does_not_backfill_generic_contragolpe_without_authority():
@@ -907,7 +907,7 @@ def test_resolved_archive_cycle_does_not_backfill_generic_contragolpe_without_au
         "paredoes": [
             {
                 "numero": 2,
-                "semana": 2,
+                "cycle": 2,
                 "data_formacao": "2026-01-25",
                 "formacao": {
                     "lider": "Babu Santana",
@@ -929,11 +929,11 @@ def test_resolved_archive_cycle_does_not_backfill_generic_contragolpe_without_au
 
 
 def test_open_week_uses_non_standard_schedule_profile(monkeypatch):
-    monkeypatch.setattr("builders.timeline.get_effective_week_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
+    monkeypatch.setattr("builders.timeline.get_effective_cycle_end_dates", lambda *_args, **_kwargs: ["2026-01-21"])
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 2,
+                "cycle": 2,
                 "start_date": "2026-01-22",
                 "schedule_profile": "accelerated_finale",
             }
@@ -975,9 +975,9 @@ def test_presente_anjo_before_paredao_on_sunday():
         ]
     }
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 8,
+                "cycle": 8,
                 "anjo": {
                     "vencedor": "Milena",
                     "prova_date": "2026-03-08",
@@ -1024,9 +1024,9 @@ def test_paredao_resultado_before_ganha_ganha():
         ]
     }
     manual_events = {
-        "weekly_events": [
+        "cycles": [
             {
-                "week": 8,
+                "cycle": 8,
                 "ganha_ganha": {
                     "date": "2026-03-11",
                     "vencedor": "Chaiany",

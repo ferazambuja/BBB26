@@ -28,19 +28,19 @@ def build_sincerao_edges(manual_events: dict) -> dict:
     edges = []
     aggregates = []
 
-    for weekly in manual_events.get("weekly_events", []) if manual_events else []:
+    for weekly in manual_events.get("cycles", []) if manual_events else []:
         sinc_raw = weekly.get("sincerao")
         if not sinc_raw:
             continue
         # Normalize: support both single dict and array of dicts
         sinc_list = sinc_raw if isinstance(sinc_raw, list) else [sinc_raw]
-        week = weekly.get("week")
+        week = weekly.get("cycle")
 
         for sinc in sinc_list:
             date = sinc.get("date")
 
             weeks.append({
-                "week": week,
+                "cycle": week,
                 "date": date,
                 "format": sinc.get("format"),
                 "scoring_mode": sinc.get("scoring_mode", "full"),
@@ -54,7 +54,7 @@ def build_sincerao_edges(manual_events: dict) -> dict:
 
             for edge in sinc.get("edges", []) if isinstance(sinc.get("edges"), list) else []:
                 edge_entry = dict(edge)
-                edge_entry["week"] = week
+                edge_entry["cycle"] = week
                 edge_entry["date"] = date
                 edges.append(edge_entry)
 
@@ -89,7 +89,7 @@ def build_sincerao_edges(manual_events: dict) -> dict:
                 reasons.setdefault(planta, []).append("🌿 planta")
 
             aggregates.append({
-                "week": week,
+                "cycle": week,
                 "date": date,
                 "podio_mentions": podio_mentions,
                 "nao_ganha_mentions": nao_ganha_mentions,

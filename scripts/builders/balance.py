@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from collections import defaultdict
 
-from data_utils import get_week_number, UTC
+from data_utils import get_cycle_number, UTC
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -224,7 +224,7 @@ def _build_curiosities(
                     "name": p["name"],
                     "pre_balance": p["pre_balance"],
                     "gave": abs(p["delta"]),
-                    "week": ev["week"],
+                    "cycle": ev["cycle"],
                     "pct": p["pct_of_balance"],
                 }
     if worst_single:
@@ -232,7 +232,7 @@ def _build_curiosities(
         curiosities.append({
             "type": "anomaly",
             "name": ws["name"],
-            "detail": f"Deu apenas {ws['gave']} de {ws['pre_balance']:,} estalecas na Semana {ws['week']} ({ws['pct']}%)",
+            "detail": f"Deu apenas {ws['gave']} de {ws['pre_balance']:,} estalecas na Semana {ws['cycle']} ({ws['pct']}%)",
         })
 
     # VIP advantage
@@ -293,13 +293,13 @@ def _build_investigation_notes(fairness_events: list[dict]) -> list[dict]:
     """
     notes: list[dict] = []
     for ev in fairness_events:
-        week = ev.get("week", 0)
+        week = ev.get("cycle", 0)
         game_date = ev.get("game_date", "")
 
         # W4: was misclassified as dinamica before tolerance fix
         if week == 4:
             notes.append({
-                "week": week, "date": game_date,
+                "cycle": week, "date": game_date,
                 "note": "Confirmed compras day (O Tempo article). Ana Paula +60 excluded by tolerance — she was in estalecas debt.",
             })
 
@@ -308,14 +308,14 @@ def _build_investigation_notes(fairness_events: list[dict]) -> list[dict]:
             for p in ev.get("participants", []):
                 if p["name"] == "Gabriela" and p.get("vip") and p.get("pct_of_balance", 100) < 5:
                     notes.append({
-                        "week": week, "date": game_date,
+                        "cycle": week, "date": game_date,
                         "note": f"Gabriela (VIP, {p['pre_balance']:,} bal) spent only {abs(p['delta'])} — unexplained anomaly.",
                     })
 
         # W8: heavy same-day punição activity
         if week == 8:
             notes.append({
-                "week": week, "date": game_date,
+                "cycle": week, "date": game_date,
                 "note": "Same day as multiple punição events + Jonas Monstro (-300). Compras amounts from separate snapshot transition.",
             })
 
@@ -368,7 +368,7 @@ def build_compras_fairness(
 
     for ev in compras_events:
         game_date = ev["game_date"]
-        week = ev.get("week", 0)
+        week = ev.get("cycle", 0)
         from_stem = ev.get("from_snapshot", "")
         pre_snap = snap_by_stem.get(from_stem)
         pre_balances = _get_balances(pre_snap["participants"]) if pre_snap else {}
@@ -435,7 +435,7 @@ def build_compras_fairness(
 
         fairness_events.append({
             "game_date": game_date,
-            "week": week,
+            "cycle": week,
             "total_spent": total_spent,
             "n_participants": n_part,
             "fair_share": round(fair_share, 1),
@@ -782,7 +782,7 @@ def build_balance_events(snapshots: list[dict]) -> dict:
                     "id": f"bal_{game_date}_{seq:03d}",
                     "type": ev_type,
                     "game_date": game_date,
-                    "week": get_week_number(game_date) if game_date else 0,
+                    "cycle": get_cycle_number(game_date) if game_date else 0,
                     "from_snapshot": _snapshot_stem(prev_snap),
                     "to_snapshot": _snapshot_stem(snap),
                     "changes": ev["changes"],
@@ -881,9 +881,9 @@ def build_balance_events(snapshots: list[dict]) -> dict:
     # Build weekly summary
     weekly: dict[int, dict] = {}
     for ev in merged_events:
-        w = ev.get("week", 0)
+        w = ev.get("cycle", 0)
         if w not in weekly:
-            weekly[w] = {"week": w, "mesada": 0, "compras": 0, "punicoes": 0, "premios": 0, "net": 0}
+            weekly[w] = {"cycle": w, "mesada": 0, "compras": 0, "punicoes": 0, "premios": 0, "net": 0}
         total_delta = sum(ev["changes"].values())
         weekly[w]["net"] += total_delta
 
@@ -896,7 +896,7 @@ def build_balance_events(snapshots: list[dict]) -> dict:
         elif ev["type"] in ("premio", "premio_anjo", "premio_coletivo"):
             weekly[w]["premios"] += total_delta
 
-    weekly_summary = sorted(weekly.values(), key=lambda x: x["week"])
+    weekly_summary = sorted(weekly.values(), key=lambda x: x["cycle"])
 
     result = {
         "_metadata": {

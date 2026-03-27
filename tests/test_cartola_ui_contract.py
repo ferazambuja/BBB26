@@ -77,8 +77,8 @@ def test_cartola_eliminated_avatar_is_grayscale():
 
 def test_cartola_week_kpi_has_no_sem_prefix_literal():
     content = _read(CARTOLA_QMD)
-    assert "Sem {n_weeks}" not in content
-    assert ">{current_cycle_week}<" in content
+    assert "Sem {n_cycles}" not in content
+    assert ">{current_cycle}<" in content
 
 
 def test_cartola_role_kpis_count_events_dynamically():
@@ -118,14 +118,14 @@ def test_cartola_has_top5_extremes_cards_with_ranked_rows():
 
 def test_cartola_top5_extremes_are_computed_from_events_dynamically():
     content = _read(CARTOLA_QMD)
-    assert "week_positive_points_by_participant" in content
-    assert "week_negative_points_by_participant" in content
+    assert "cycle_positive_points_by_participant" in content
+    assert "cycle_negative_points_by_participant" in content
     assert "all_time_positive_points_by_participant" in content
     assert "all_time_negative_points_by_participant" in content
     assert "include_inactive=False" in content
     assert "include_inactive=True" in content
-    assert "week_positive_top5 = sorted(" in content
-    assert "week_negative_top5 = sorted(" in content
+    assert "cycle_positive_top5 = sorted(" in content
+    assert "cycle_negative_top5 = sorted(" in content
     assert "all_time_positive_top5 = sorted(" in content
     assert "all_time_negative_top5 = sorted(" in content
     assert "[:5]" in content
@@ -133,10 +133,10 @@ def test_cartola_top5_extremes_are_computed_from_events_dynamically():
     assert "negative_breakdown = defaultdict(lambda: {'points': 0, 'count': 0})" in content
     assert "positive_breakdown[evt_type]['points'] += points" in content
     assert "negative_breakdown[evt_type]['points'] += points" in content
-    assert "events = [evt for evt in events if evt.get('week') == week_filter]" in content
-    assert "build_extreme_candidates(current_cycle_week, include_inactive=False)" in content
+    assert "events = [evt for evt in events if evt.get('cycle') == week_filter]" in content
+    assert "build_extreme_candidates(current_cycle, include_inactive=False)" in content
     assert "build_extreme_candidates(include_inactive=True)" in content
-    assert "Rodada {current_cycle_week}" in content
+    assert "Rodada {current_cycle}" in content
     assert "temporada" in content.lower()
 
 
@@ -170,12 +170,12 @@ def test_cartola_top5_rows_show_reason_on_hover_and_tap():
     assert ".card-reason-toggle" in css or ".cartola-extreme-row-reason-toggle" in css
 
 
-def test_cartola_uses_manual_open_week_as_cycle_reference():
+def test_cartola_uses_manual_open_cycles_as_cycle_reference():
     content = _read(CARTOLA_QMD)
-    assert "manual_open_weeks = sorted(" in content
-    assert "current_cycle_week = manual_open_weeks[-1] if manual_open_weeks else n_weeks" in content
-    assert "is_transition_cycle = current_cycle_week != n_weeks" in content
-    assert "max_week_for_display = current_cycle_week if is_transition_cycle else n_weeks" in content
+    assert "manual_open_cycles = sorted(" in content
+    assert "current_cycle = manual_open_cycles[-1] if manual_open_cycles else n_cycles" in content
+    assert "is_transition_cycle = current_cycle != n_cycles" in content
+    assert "max_cycle_for_display = current_cycle if is_transition_cycle else n_cycles" in content
 
 
 def test_cartola_ranking_section_removed_in_favor_of_participant_cards():

@@ -17,7 +17,7 @@ from data_utils import (
     load_snapshot, build_reaction_matrix, parse_roles, calc_sentiment,
     REACTION_EMOJI, REACTION_SLUG_TO_LABEL, SENTIMENT_WEIGHTS, POSITIVE, MILD_NEGATIVE, STRONG_NEGATIVE,
     POWER_EVENT_EMOJI, POWER_EVENT_LABELS,
-    utc_to_game_date, get_week_number, get_week_start_date, get_effective_week_end_dates,
+    utc_to_game_date, get_cycle_number, get_cycle_start_date, get_effective_cycle_end_dates,
     normalize_actors, get_daily_snapshots, get_all_snapshots_with_data,
     genero, resolve_leaders, compute_protected_names, load_paredoes_transformed, load_votalhada_polls, get_poll_for_paredao, GROUP_COLORS,
     get_bv_winners,
@@ -169,12 +169,12 @@ def _canonical_reaction_label(label: str | None) -> str:
     return REACTION_SLUG_TO_LABEL.get(slug, label)
 
 
-def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
+def _build_profile_sincerao(name: str, sinc_data: dict, current_cycle: int,
                              latest_matrix: dict[tuple[str, str], str],
                              sinc_weeks_meta: dict[int, str]) -> dict[str, Any]:
     """Build the complete sincerao view-model for a participant profile.
 
-    Returns dict with: current_week, summary, current, season.
+    Returns dict with: current_cycle, summary, current, season.
     """
     all_edges = sinc_data.get("edges", [])
 
@@ -202,7 +202,7 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
     def _group_by_week(edges: list[dict], perspective: str) -> list[dict]:
         by_week: dict[int, list[dict]] = defaultdict(list)
         for edge in edges:
-            wk = edge.get("week")
+            wk = edge.get("cycle")
             if wk is None:
                 continue
             by_week[wk].append(_build_interaction(edge, perspective))
@@ -212,7 +212,7 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
             pos_count = sum(1 for ix in interactions if ix.get("valence") == "pos")
             neg_count = len(interactions) - pos_count
             result.append({
-                "week": wk,
+                "cycle": wk,
                 "format_short": sinc_weeks_meta.get(wk, ""),
                 "meta": {
                     "count_total": len(interactions),
@@ -225,9 +225,9 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
 
     # Current week interactions
     current_received = [_build_interaction(e, "received")
-                        for e in received_edges if e.get("week") == current_week]
+                        for e in received_edges if (e.get("cycle")) == current_cycle]
     current_given = [_build_interaction(e, "given")
-                     for e in given_edges if e.get("week") == current_week]
+                     for e in given_edges if (e.get("cycle")) == current_cycle]
 
     # Season: all weeks grouped
     season_received = _group_by_week(received_edges, "received")
@@ -248,7 +248,7 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
     # but latest_matrix shows positive heart reaction for that pair
     contradiction_targets: set[str] = set()
     for edge in given_edges:
-        if edge.get("week") != current_week:
+        if (edge.get("cycle")) != current_cycle:
             continue
         etype = edge.get("type", "")
         if SINC_VALENCE.get(etype) != "neg":
@@ -258,7 +258,7 @@ def _build_profile_sincerao(name: str, sinc_data: dict, current_week: int,
             contradiction_targets.add(target)
 
     return {
-        "current_week": current_week,
+        "current_cycle": current_cycle,
         "summary": {
             "received_total": len(all_received_items),
             "received_pos": r_pos,
@@ -297,7 +297,7 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
     actors: set[str] = set()
 
     for edge in week_edges:
-        if edge.get("week") != week:
+        if (edge.get("cycle")) != week:
             continue
         etype = edge.get("type", "")
         actor = edge.get("actor", "")
@@ -386,7 +386,7 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
         "pos_ranked": _ranked(pos_counts, pos_actors),
         "not_targeted": not_targeted,
         "n_actors": len(actors),
-        "week": week,
+        "cycle": week,
     }
 
 
@@ -415,26 +415,22 @@ def load_json(path: Path, default: Any) -> Any:
 
 
 def _iter_cycle_entries(manual_events: dict | None) -> list[dict]:
-    """Return canonical cycle entries, accepting legacy weekly_events."""
+    """Return canonical cycle entries."""
     if not isinstance(manual_events, dict):
         return []
-    cycles = manual_events.get("cycles")
-    if isinstance(cycles, list):
-        return [item for item in cycles if isinstance(item, dict)]
-    weekly = manual_events.get("weekly_events", [])
-    return [item for item in weekly if isinstance(item, dict)]
+    cycles = manual_events.get("cycles", [])
+    return [item for item in cycles if isinstance(item, dict)]
 
 
 def _get_event_cycle(item: dict, fallback: int = 0) -> int:
-    """Read canonical cycle first, then legacy week/semana keys."""
-    for key in ("cycle", "week", "semana"):
-        value = item.get(key)
-        if isinstance(value, int):
-            return value
+    """Read canonical cycle key."""
+    value = item.get("cycle")
+    if isinstance(value, int):
+        return value
     return fallback
 
 
-def _resolve_current_cycle_week(current_week: int, manual_events: dict | None, paredoes: dict | None) -> int:
+def _resolve_current_cycle(current_cycle: int, manual_events: dict | None, paredoes: dict | None) -> int:
     """Pick the active cycle from live paredão state or the manually opened cycle."""
     active_paredao = next(
         (p for p in reversed((paredoes or {}).get("paredoes", [])) if p.get("status") == "em_andamento"),
@@ -451,14 +447,14 @@ def _resolve_current_cycle_week(current_week: int, manual_events: dict | None, p
         if not item.get("end_date") and _get_event_cycle(item)
     )
     if manual_open_cycles:
-        return max(current_week, manual_open_cycles[-1])
+        return max(current_cycle, manual_open_cycles[-1])
 
-    return current_week
+    return current_cycle
 
 
 def build_big_fone_consensus(
     manual_events: dict,
-    current_cycle_week: int | None,
+    current_cycle: int | None,
     active_names: list[str],
     active_set: set[str],
     avatars: dict[str, str],
@@ -473,9 +469,9 @@ def build_big_fone_consensus(
     and facilitator/disruptor lists — or None if fewer than 2 bracelet holders.
     """
     big_fone_attendees = []
-    for wev in manual_events.get("weekly_events", []):
-        wev_week = get_week_number(wev["start_date"]) if wev.get("start_date") else wev.get("week", 0)
-        if wev_week == current_cycle_week:
+    for wev in _iter_cycle_entries(manual_events):
+        wev_week = get_cycle_number(wev["start_date"]) if wev.get("start_date") else _get_event_cycle(wev)
+        if wev_week == current_cycle:
             for bf in wev.get("big_fone", []) or []:
                 att = bf.get("atendeu", "")
                 cons = (bf.get("consequencia", "") or "").lower()
@@ -628,7 +624,7 @@ def get_all_snapshots() -> list[dict]:
 def build_alignment(participants: list[dict], sinc_data: dict, week: int) -> list[dict] | None:
     if not sinc_data:
         return None
-    agg = next((a for a in sinc_data.get("aggregates", []) if a.get("week") == week), None)
+    agg = next((a for a in sinc_data.get("aggregates", []) if (a.get("cycle")) == week), None)
     if not agg:
         return None
     scores = agg.get("scores", {})
@@ -672,7 +668,7 @@ def _load_and_parse_snapshots(snapshots: list[dict]) -> dict[str, Any]:
 
     latest = snapshots[-1]
     latest_date = latest["date"]
-    current_week = get_week_number(latest_date)
+    current_cycle = get_cycle_number(latest_date)
 
     member_of = {}
     avatars = {}
@@ -711,7 +707,7 @@ def _load_and_parse_snapshots(snapshots: list[dict]) -> dict[str, Any]:
     return {
         "latest": latest,
         "latest_date": latest_date,
-        "current_week": current_week,
+        "current_cycle": current_cycle,
         "member_of": member_of,
         "avatars": avatars,
         "manual_events": manual_events,
@@ -739,7 +735,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     """
     latest = parsed["latest"]
     latest_date = parsed["latest_date"]
-    current_week = parsed["current_week"]
+    current_cycle = parsed["current_cycle"]
     plant_index = parsed["plant_index"]
     roles_daily = parsed["roles_daily"]
     participants_index = parsed["participants_index"]
@@ -761,7 +757,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
 
     plant_week = None
     for w in plant_index.get("weeks", []):
-        if w.get("week") == current_week:
+        if (w.get("cycle")) == current_cycle:
             plant_week = w
             break
     if plant_week is None or not plant_week_has_signals(plant_week):
@@ -798,10 +794,10 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
             elif group == "xepa":
                 xepa_days[name] += 1
 
-    # VIP weeks selected — based on WEEK_END_DATES boundaries (not API role changes).
+    # VIP weeks selected — based on CYCLE_END_DATES boundaries (not API role changes).
     # This correctly handles consecutive same-person Líder (e.g., Jonas weeks 4–6).
-    vip_weeks_selected = defaultdict(int)
-    xepa_weeks = defaultdict(int)
+    vip_cycles_selected = defaultdict(int)
+    xepa_cycles = defaultdict(int)
     leader_periods = []
 
     daily_snap_by_date = {snap["date"]: snap for snap in daily_snapshots}
@@ -810,18 +806,18 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     lider_by_paredao: dict[int, str | None] = {}
     lideres_by_paredao: dict[int, list[str]] = {}
     for par in paredoes_list:
-        semana = par.get("semana", par["numero"])
+        cycle_num = par.get("cycle", par["numero"])
         formacao = par.get("formacao", {})
-        lider_by_paredao[semana] = formacao.get("lider")
-        lideres_by_paredao[semana] = resolve_leaders(formacao)
+        lider_by_paredao[cycle_num] = formacao.get("lider")
+        lideres_by_paredao[cycle_num] = resolve_leaders(formacao)
 
-    effective_week_ends = get_effective_week_end_dates()
-    n_weeks = len(effective_week_ends)
-    for week_num in range(1, n_weeks + 2):  # +1 for open current week
-        start_date = get_week_start_date(week_num)
+    effective_cycle_ends = get_effective_cycle_end_dates()
+    n_cycles = len(effective_cycle_ends)
+    for cyc_num in range(1, n_cycles + 2):  # +1 for open current cycle
+        start_date = get_cycle_start_date(cyc_num)
 
-        if week_num <= n_weeks:
-            end_date = effective_week_ends[week_num - 1]
+        if cyc_num <= n_cycles:
+            end_date = effective_cycle_ends[cyc_num - 1]
         else:
             # Open week (current, no end boundary yet)
             end_date = daily_snapshots[-1]["date"] if daily_snapshots else start_date
@@ -830,8 +826,8 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
         if daily_snapshots and start_date > daily_snapshots[-1]["date"]:
             break
 
-        leader_name = lider_by_paredao.get(week_num)
-        leader_names = lideres_by_paredao.get(week_num, [leader_name] if leader_name else [])
+        leader_name = lider_by_paredao.get(cyc_num)
+        leader_names = lideres_by_paredao.get(cyc_num, [leader_name] if leader_name else [])
 
         # VIP from snapshot on start_date (or nearest available after)
         snap = daily_snap_by_date.get(start_date)
@@ -880,9 +876,9 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
                     break
 
         for nm in period_vip:
-            vip_weeks_selected[nm] += 1
+            vip_cycles_selected[nm] += 1
         for nm in period_xepa:
-            xepa_weeks[nm] += 1
+            xepa_cycles[nm] += 1
 
         # Display name: "A + B" for dual leaders, single name otherwise
         _lp_display = " + ".join(leader_names) if leader_names else leader_name
@@ -891,8 +887,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
             "leaders": leader_names,
             "start": start_date,
             "end": end_date,
-            "cycle": week_num,
-            "week": week_num,
+            "cycle": cyc_num,
             "vip": sorted(period_vip),
             "xepa": sorted(period_xepa),
         })
@@ -901,8 +896,8 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
     house_leader = " + ".join(house_leaders) if house_leaders else None
 
     # leader_start_date: derived from effective week boundaries for current open week.
-    current_open_week = len(effective_week_ends) + 1
-    leader_start_date = get_week_start_date(current_open_week)
+    current_open_cycle = len(effective_cycle_ends) + 1
+    leader_start_date = get_cycle_start_date(current_open_cycle)
 
     first_seen = {p["name"]: p.get("first_seen") for p in participants_index.get("participants", []) if p.get("name")}
     vip_group = {p.get("name") for p in latest["participants"]
@@ -912,7 +907,7 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
         vip_recipients.discard(_hl)
     if leader_start_date:
         vip_recipients = {n for n in vip_recipients if first_seen.get(n, leader_start_date) <= leader_start_date}
-    current_cycle_week = _resolve_current_cycle_week(current_week, manual_events, paredoes)
+    current_cycle = _resolve_current_cycle(current_cycle, manual_events, paredoes)
 
     return {
         "plant_week": plant_week,
@@ -924,14 +919,14 @@ def _aggregate_latest_state(parsed: dict[str, Any], daily_snapshots: list[dict])
         "vip_days": vip_days,
         "xepa_days": xepa_days,
         "total_days": total_days,
-        "vip_weeks_selected": vip_weeks_selected,
-        "xepa_weeks": xepa_weeks,
+        "vip_cycles_selected": vip_cycles_selected,
+        "xepa_cycles": xepa_cycles,
         "leader_periods": leader_periods,
         "house_leader": house_leader,
         "house_leaders": house_leaders,
         "leader_start_date": leader_start_date,
         "vip_recipients": vip_recipients,
-        "current_cycle_week": current_cycle_week,
+        "current_cycle": current_cycle,
     }
 
 
@@ -1357,18 +1352,18 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
     return highlights, cards
 
 
-def _resolve_sinc_week(sinc_data: dict, current_week: int) -> tuple[int, list[int]]:
+def _resolve_sinc_week(sinc_data: dict, current_cycle: int) -> tuple[int, list[int]]:
     """Resolve which Sincerao week should be displayed.
 
     Rule: keep the current week only if it has Sincerao data; otherwise keep
     the most recent week with Sincerao data.
     """
-    edge_weeks = [e.get("week") for e in sinc_data.get("edges", []) if isinstance(e.get("week"), int)] if sinc_data else []
-    agg_weeks = [a.get("week") for a in sinc_data.get("aggregates", []) if a.get("scores")] if sinc_data else []
+    edge_weeks = [(e.get("cycle")) for e in sinc_data.get("edges", []) if isinstance((e.get("cycle")), int)] if sinc_data else []
+    agg_weeks = [(a.get("cycle")) for a in sinc_data.get("aggregates", []) if a.get("scores")] if sinc_data else []
     agg_weeks = [w for w in agg_weeks if isinstance(w, int)]
     available_weeks = sorted(set(edge_weeks + agg_weeks))
 
-    sinc_week_used = current_week
+    sinc_week_used = current_cycle
     if available_weeks and sinc_week_used not in available_weeks:
         sinc_week_used = max(available_weeks)
     return sinc_week_used, available_weeks
@@ -1377,7 +1372,7 @@ def _resolve_sinc_week(sinc_data: dict, current_week: int) -> tuple[int, list[in
 def _resolve_sinc_reference_date(sinc_data: dict, sinc_week_used: int) -> str | None:
     """Return canonical date for the selected Sincerao week, if available."""
     for w in sinc_data.get("weeks", []) if sinc_data else []:
-        if w.get("week") == sinc_week_used and w.get("date"):
+        if (w.get("cycle")) == sinc_week_used and w.get("date"):
             return w.get("date")
     return None
 
@@ -1420,7 +1415,7 @@ def _resolve_matrix_for_date(
 
 def _compute_sincerao_highlight(
     sinc_data: dict,
-    current_week: int,
+    current_cycle: int,
     latest_matrix: dict[tuple[str, str], str],
     active_set: set[str] | None = None,
 ) -> tuple[list[str], list[dict], list[dict], list[dict], list[dict], int, list[int], dict]:
@@ -1432,13 +1427,13 @@ def _compute_sincerao_highlight(
     highlights = []
     cards = []
 
-    sinc_week_used, available_weeks = _resolve_sinc_week(sinc_data, current_week)
+    sinc_week_used, available_weeks = _resolve_sinc_week(sinc_data, current_cycle)
 
     pair_contradictions = []
     pair_aligned_pos = []
     pair_aligned_neg = []
     for edge in sinc_data.get("edges", []) if sinc_data else []:
-        if edge.get("week") != sinc_week_used:
+        if (edge.get("cycle")) != sinc_week_used:
             continue
         etype = edge.get("type")
         if etype not in ["elogio", "nao_ganha", "ataque"]:
@@ -1483,13 +1478,13 @@ def _compute_sincerao_highlight(
 
     # Compute radar for the week used
     week_edges_for_radar = [e for e in (sinc_data.get("edges", []) if sinc_data else [])
-                            if e.get("week") == sinc_week_used]
+                            if (e.get("cycle")) == sinc_week_used]
     radar = _compute_sincerao_radar(week_edges_for_radar, sinc_week_used, latest_matrix, active_set=active_set)
 
     # Get week format name
     sinc_week_format = ""
     for w in sinc_data.get("weeks", []) if sinc_data else []:
-        if w.get("week") == sinc_week_used:
+        if (w.get("cycle")) == sinc_week_used:
             sinc_week_format = w.get("format", "")
             break
 
@@ -1600,10 +1595,9 @@ def _compute_breaks_and_context_cards(
     relations_data: dict | list,
     active_set: set[str],
     latest: dict,
-    current_week: int,
+    current_cycle: int,
     daily_snapshots: list[dict],
     reference_date: str | None = None,
-    current_cycle_week: int | None = None,
 ) -> tuple[list[str], list[dict]]:
     """Streak breaks (alliance ruptures) and week context cards.
 
@@ -1652,7 +1646,7 @@ def _compute_breaks_and_context_cards(
         )
 
     # -- Week context --
-    context_cycle = current_cycle_week or current_week
+    context_cycle = current_cycle
     n_active = len([p for p in latest["participants"]
                     if not p.get("characteristics", {}).get("eliminated")])
     cards.append({
@@ -1660,7 +1654,6 @@ def _compute_breaks_and_context_cards(
         "icon": "📅", "title": "Contexto",
         "color": "#2ecc71",
         "cycle": context_cycle,
-        "week": context_cycle,
         "days": len(daily_snapshots),
         "active": n_active,
     })
@@ -1876,8 +1869,8 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
     power_events = ctx.get("power_events", [])
     participants_index = ctx.get("participants_index", {})
     all_participant_names = [p["name"] for p in participants_index.get("participants", []) if p.get("name")]
-    current_week = ctx.get("current_week", 0)
-    recent_week_cutoff = current_week - 3
+    current_cycle = ctx.get("current_cycle", 0)
+    recent_week_cutoff = current_cycle - 3
 
     if power_events and all_participant_names:
         # Mais Alvo: count each power_event as 1 hit on the target
@@ -1900,7 +1893,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
             target = (ev.get("target") or "").strip()
             if not target:
                 continue
-            week = ev.get("week", 0)
+            week = ev.get("cycle", ev.get("week", 0))
             ev_type = ev["type"]
 
             # Mais Alvo: 1 hit per event on target
@@ -1908,7 +1901,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
             target_types[target][ev_type] += 1
             target_detail[target].append({
                 "type": ev_type, "actor": ev.get("actor", ""),
-                "date": ev.get("date", ""), "week": week,
+                "date": ev.get("date", ""), "cycle": week,
             })
             if week > recent_week_cutoff:
                 target_hits_recent[target] += 1
@@ -1923,7 +1916,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
                 aggr_types[actor][ev_type] += 1
                 aggr_detail[actor].append({
                     "type": ev_type, "target": target,
-                    "date": ev.get("date", ""), "week": week,
+                    "date": ev.get("date", ""), "cycle": week,
                 })
                 if week > recent_week_cutoff:
                     aggr_hits_recent[actor] += 1
@@ -2115,8 +2108,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     received_impact = ctx["received_impact"]
     relations_data = ctx["relations_data"]
     sinc_data = ctx["sinc_data"]
-    current_week = ctx["current_week"]
-    current_cycle_week = ctx["current_cycle_week"]
+    current_cycle = ctx["current_cycle"]
     latest = ctx["latest"]
     latest_date = ctx["latest_date"]
 
@@ -2131,7 +2123,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
 
     # Resolve Sincerao week and lock reaction matrix to the Sincerao date
     # (avoid comparing Sincerão actions against "today" reactions days later).
-    sinc_week_for_reactions, _ = _resolve_sinc_week(sinc_data, current_week)
+    sinc_week_for_reactions, _ = _resolve_sinc_week(sinc_data, current_cycle)
     sinc_reference_day = _resolve_sinc_reference_date(sinc_data, sinc_week_for_reactions)
     sinc_reference_matrix, sinc_reference_date = _resolve_matrix_for_date(
         sinc_reference_day,
@@ -2144,11 +2136,11 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     # Sincerão x Queridômetro
     (sinc_hl, sinc_cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
      sinc_week_used, available_weeks, sinc_radar) = _compute_sincerao_highlight(
-        sinc_data, current_week, sinc_reference_matrix, active_set=active_set)
+        sinc_data, current_cycle, sinc_reference_matrix, active_set=active_set)
     for card in sinc_cards:
         if card.get("type") != "sincerao":
             continue
-        card["week"] = sinc_week_used
+        card["cycle"] = sinc_week_used
         card["reaction_reference_date"] = sinc_reference_date
     highlights.extend(sinc_hl)
     cards.extend(sinc_cards)
@@ -2162,8 +2154,7 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
 
     # Breaks and context
     bc_hl, bc_cards = _compute_breaks_and_context_cards(
-        relations_data, active_set, latest, current_week, daily_snapshots, latest_date,
-        current_cycle_week=current_cycle_week)
+        relations_data, active_set, latest, current_cycle, daily_snapshots, latest_date)
     highlights.extend(bc_hl)
     cards.extend(bc_cards)
 
@@ -2535,7 +2526,7 @@ def _compute_vote_multipliers_for_paredao(
         multiplier[voter] = 0
 
     for ev in power_events:
-        ev_week = get_week_number(ev["date"]) if ev.get("date") else ev.get("week", 0)
+        ev_week = get_cycle_number(ev["date"]) if ev.get("date") else (ev.get("cycle") or ev.get("week", 0))
         if week and ev_week == week:
             if ev.get("type") == "voto_duplo":
                 for a in normalize_actors(ev):
@@ -2634,8 +2625,7 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
     cartola_data = ctx["cartola_data"]
     prova_data = ctx["prova_data"]
     provas_raw = ctx["provas_raw"]
-    current_week = ctx["current_week"]
-    current_cycle_week = ctx["current_cycle_week"]
+    current_cycle = ctx["current_cycle"]
     leader_periods = ctx["leader_periods"]
 
     # Votes received (by week), with voto duplo/anulado
@@ -2646,7 +2636,7 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
         votos = par.get("votos_casa", {}) or {}
         if not votos:
             continue
-        week = par.get("semana")
+        week = par.get("cycle")
         multiplier = _compute_vote_multipliers_for_paredao(par, power_events, week)
 
         for voter, target in votos.items():
@@ -2657,7 +2647,7 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
                 continue
             votes_received_by_week[week][t][v] += mult
 
-    for wev in manual_events.get("weekly_events", []) if manual_events else []:
+    for wev in _iter_cycle_entries(manual_events) if manual_events else []:
         for key in ("dedo_duro", "voto_revelado"):
             dd = wev.get(key)
             if isinstance(dd, dict):
@@ -2672,14 +2662,14 @@ def _build_curiosity_lookups(ctx: dict[str, Any]) -> dict[str, Any]:
                     if voter and target:
                         revealed_votes[target].add(voter)
 
-    current_vote_week = current_cycle_week
+    current_vote_week = current_cycle
 
     # Sincerao edges (current week) used for contradictions/insights
     sinc_data = ctx["sinc_data"]
-    sinc_edges_week = [e for e in sinc_data.get("edges", []) if e.get("week") == current_week]
+    sinc_edges_week = [e for e in sinc_data.get("edges", []) if (e.get("cycle")) == current_cycle]
     sinc_weeks_meta = {}
     for w in sinc_data.get("weeks", []):
-        wk = w.get("week")
+        wk = w.get("cycle")
         if wk is not None:
             sinc_weeks_meta[wk] = w.get("format", "")
 
@@ -2841,7 +2831,7 @@ def _build_profile_header(name: str, latest: dict, latest_matrix: dict[tuple[str
 
 def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], str], active_names: list[str], relations_pairs: dict,
                                received_impact: dict, relations_data: dict | list, power_events: list[dict],
-                               roles_current: dict[str, list[str]], current_cycle_week: int | None) -> dict[str, Any]:
+                               roles_current: dict[str, list[str]], current_cycle: int | None) -> dict[str, Any]:
     """Relations (allies/enemies/false_friends/blind_targets), risk level, impact, animosity, events.
 
     Returns a dict with relations, risk, impact, animosity, and event data.
@@ -2918,14 +2908,14 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
     historic_events = []
     for ev in target_events_all:
         ev_type = ev.get("type")
-        ev_week = get_week_number(ev["date"]) if ev.get("date") else ev.get("week", 0)
+        ev_week = get_cycle_number(ev["date"]) if ev.get("date") else (ev.get("cycle") or ev.get("week", 0))
         if ev_type in ["lider", "anjo", "monstro", "imunidade"]:
             role_label = next((k for k, v in ROLE_TYPES.items() if v == ev_type), None)
             if role_label and name in roles_current.get(role_label, []):
                 current_events.append(ev)
             else:
                 historic_events.append(ev)
-        elif ev_week == current_cycle_week:
+        elif ev_week == current_cycle:
             current_events.append(ev)
         else:
             historic_events.append(ev)
@@ -3023,7 +3013,7 @@ def _build_profile_stats_grid(name: str, latest_matrix: dict[tuple[str, str], st
 
 
 def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str], str], sinc_data: dict, sinc_edges_week: list[dict],
-                                    current_week: int, votes_received_by_week: dict, current_vote_week: int | None,
+                                    current_cycle: int, votes_received_by_week: dict, current_vote_week: int | None,
                                     revealed_votes: dict[str, set[str]], plant_scores: dict, plant_week: dict | None,
                                     sinc_weeks_meta: dict[int, str] | None = None) -> dict[str, Any]:
     """Queridômetro section: votes, plant index.
@@ -3065,7 +3055,7 @@ def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str
     plant_info = plant_scores.get(name)
     if plant_info and plant_week:
         plant_info = dict(plant_info)
-        plant_info["week"] = plant_week.get("week")
+        plant_info["cycle"] = plant_week.get("cycle")
         plant_info["date_range"] = plant_week.get("date_range", {})
 
     return {
@@ -3077,7 +3067,7 @@ def _build_profile_querido_section(name: str, latest_matrix: dict[tuple[str, str
 
 def _build_profile_footer(name: str, allies: list[dict], enemies: list[dict], given_summary: list[dict], active_set: set[str],
                            paredoes: dict, lookups: dict[str, Any], vip_days: dict[str, int], xepa_days: dict[str, int], total_days: dict[str, int],
-                           vip_weeks_selected: dict[str, int], plant_scores: dict) -> dict[str, Any]:
+                           vip_cycles_selected: dict[str, int], plant_scores: dict) -> dict[str, Any]:
     """Curiosities and game stats for the profile footer.
 
     Returns a dict with curiosities, paredao_history, bv_escape_list, house_votes_detail.
@@ -3195,7 +3185,7 @@ def _build_profile_footer(name: str, allies: list[dict], enemies: list[dict], gi
             curiosities.append({"icon": direction, "text": f"Maior variação: {max_swing:+.1f} em {d}", "priority": 5})
 
     # 12. VIP favorite (selected 2+ times by leaders)
-    n_vip_sel = vip_weeks_selected.get(name, 0)
+    n_vip_sel = vip_cycles_selected.get(name, 0)
     if n_vip_sel >= 2 and n_leader_periods >= 2:
         curiosities.append({"icon": "✨", "text": f"VIP favorito: selecionado {n_vip_sel}× de {n_leader_periods} líderes", "priority": 5})
 
@@ -3354,17 +3344,16 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
     sinc_data = ctx["sinc_data"]
     paredoes = ctx["paredoes"]
     roles_current = ctx["roles_current"]
-    current_cycle_week = ctx["current_cycle_week"]
-    current_week = ctx["current_week"]
-    sinc_week_used = ctx.get("sinc_week_used", current_week)
+    current_cycle = ctx["current_cycle"]
+    sinc_week_used = ctx.get("sinc_week_used", current_cycle)
     sinc_reference_matrix = ctx.get("sinc_reference_matrix", latest_matrix)
     plant_scores = ctx["plant_scores"]
     plant_week = ctx["plant_week"]
     vip_days = ctx["vip_days"]
     xepa_days = ctx["xepa_days"]
     total_days = ctx["total_days"]
-    vip_weeks_selected = ctx["vip_weeks_selected"]
-    xepa_weeks = ctx["xepa_weeks"]
+    vip_cycles_selected = ctx["vip_cycles_selected"]
+    xepa_cycles = ctx["xepa_cycles"]
 
     # 1. Header: participant data, reactions, given/received details
     header = _build_profile_header(name, latest, latest_matrix, active_names, avatars)
@@ -3373,12 +3362,12 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
     stats = _build_profile_stats_grid(
         name, latest_matrix, active_names, relations_pairs,
         received_impact, relations_data, power_events,
-        roles_current, current_cycle_week)
+        roles_current, current_cycle)
 
     # 3. Queridômetro section: votes, plant index
     querido = _build_profile_querido_section(
         name, latest_matrix, sinc_data, lookups["sinc_edges_week"],
-        current_week, lookups["votes_received_by_week"], lookups["current_vote_week"],
+        current_cycle, lookups["votes_received_by_week"], lookups["current_vote_week"],
         lookups["revealed_votes"], plant_scores, plant_week,
         sinc_weeks_meta=lookups.get("sinc_weeks_meta"))
 
@@ -3391,7 +3380,7 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
     footer = _build_profile_footer(
         name, stats["allies"], stats["enemies"], header["given_summary"],
         active_set, paredoes, lookups, vip_days, xepa_days, total_days,
-        vip_weeks_selected, plant_scores)
+        vip_cycles_selected, plant_scores)
 
     aggregate_events = querido["aggregate_events"]
 
@@ -3430,8 +3419,8 @@ def _build_profile_entry(name: str, ctx: dict[str, Any], lookups: dict[str, Any]
         "vip_days": vip_days.get(name, 0),
         "xepa_days": xepa_days.get(name, 0),
         "days_total": total_days.get(name, 0),
-        "vip_weeks": vip_weeks_selected.get(name, 0),
-        "xepa_weeks": xepa_weeks.get(name, 0),
+        "vip_cycles": vip_cycles_selected.get(name, 0),
+        "xepa_cycles": xepa_cycles.get(name, 0),
         "scores": {
             "external": stats["external_score"],
             "external_positive": stats["external_positive"],
@@ -3651,7 +3640,7 @@ def build_index_data() -> dict | None:
         return SENTIMENT_WEIGHTS.get(label, 0)
 
     big_fone_consensus = build_big_fone_consensus(
-        ctx["manual_events"], ctx["current_cycle_week"], ctx["active_names"], ctx["active_set"],
+        ctx["manual_events"], ctx["current_cycle"], ctx["active_names"], ctx["active_set"],
         ctx["avatars"], ctx["member_of"], ctx["roles_current"], ctx["latest_matrix"], pair_sentiment,
     )
 
@@ -3674,8 +3663,7 @@ def build_index_data() -> dict | None:
 
     for card in hl["cards"]:
         if card.get("type") == "context":
-            card["cycle"] = ctx["current_cycle_week"]
-            card["week"] = ctx["current_cycle_week"]
+            card["cycle"] = ctx["current_cycle"]
 
     hl["cards"] = [c for c in hl["cards"] if c.get("type") != "paredao"]
     if paredao_card and paredao_card.get("state") != "empty":
@@ -3700,9 +3688,7 @@ def build_index_data() -> dict | None:
             "date": ctx["latest_date"],
             "label": ctx["latest_date"],
         },
-        "current_week": ctx["current_week"],
-        "current_cycle": ctx["current_cycle_week"],
-        "current_cycle_week": ctx["current_cycle_week"],
+        "current_cycle": ctx["current_cycle"],
         "active_names": ctx["active_names"],
         "member_of": ctx["member_of"],
         "avatars": ctx["avatars"],
@@ -3745,7 +3731,7 @@ def build_index_data() -> dict | None:
             "max_neg": ct["max_neg"],
         },
         "sincerao": {
-            "current_week": hl["sinc_week_used"] if hl["available_weeks"] else None,
+            "current_cycle": hl["sinc_week_used"] if hl["available_weeks"] else None,
             "available_weeks": hl["available_weeks"],
             "reaction_reference_date": hl.get("sinc_reference_date"),
             "type_coverage": _compute_sinc_type_coverage(ctx["sinc_data"]),
