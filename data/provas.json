@@ -3471,13 +3471,13 @@
       "date": "2026-03-26",
       "nome": "11ª Prova do Líder — Tabuleiro (classificatórias + final ao vivo)",
       "formato": "tomada_de_tempo_classificatoria",
-      "vencedor": null,
-      "vip": [],
+      "vencedor": "Ana Paula Renault",
+      "vip": ["Juliano Floss", "Milena", "Samira"],
       "vip_source": "api_fallback",
       "participantes_total": 11,
       "excluidos": [],
-      "nota": "Classificatórias à tarde: jogo de tabuleiro com peças deslizantes (colocar 4 letras B na posição correta). Top 3 menores tempos avançam para a final ao vivo. Alberto Cowboy fez o melhor tempo, chorou após classificação. Final ao vivo pendente.",
-      "nota_ranking": "Classificatórias apenas — final ao vivo pendente. Posições 1-3 são os finalistas (ordem da classificatória); posições 4-11 são os eliminados na ordem de tempo.",
+      "nota": "Classificatórias à tarde (tabuleiro deslizante, tomada de tempo). Final ao vivo: 2 etapas — acumular pontos + multiplicar. Ana Paula Renault venceu com 421.2 pts (195 base × 2.16). Primeira liderança de Ana Paula no BBB 26.",
+      "nota_ranking": "Posições 1-3: resultado da final ao vivo. Posições 4-11: ordem de eliminação na classificatória.",
       "fases": [
         {
           "fase": 1,
@@ -3539,6 +3539,16 @@
               "nota": "Desclassificada"
             }
           ]
+        },
+        {
+          "fase": 2,
+          "tipo": "final",
+          "nota": "Tabuleiro com itens escondidos (coroa, paus, cereja, sete = pontos; outros = perda). Etapa 1: acumular pontos. Etapa 2: multiplicadores de diamante.",
+          "classificacao": [
+            {"pos": 1, "nome": "Ana Paula Renault", "nota": "421.2 pts (195 base × multiplicador). Primeira liderança."},
+            {"pos": 2, "nome": "Leandro", "nota": "329.4 pts (132 base × multiplicador)"},
+            {"pos": 3, "nome": "Alberto Cowboy", "nota": "228.48 pts (102 base × multiplicador)"}
+          ]
         }
       ],
       "fontes": [
@@ -3551,6 +3561,21 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/bbb-26-alberto-cowboy-chora-apos-se-classificar-para-etapa-final-da-prova-do-lider.ghtml",
           "arquivo": "docs/scraped/bbb-26-alberto-cowboy-chora-apos-se-classificar-para-etapa-final-da-prova-do-lider.md",
           "titulo": "BBB 26: Alberto Cowboy chora após se classificar para etapa final da Prova do Líder"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-ana-paula-renault-vence-a-11a-disputa.ghtml",
+          "arquivo": "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-ana-paula-renault-vence-a-11a-disputa.md",
+          "titulo": "Quem ganhou a Prova do Líder do BBB 26? Ana Paula Renault vence a 11ª disputa"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/lider-ana-paula-renault-define-novo-vip-veja-a-pontuacao-na-11a-rodada-do-cartola-bbb.ghtml",
+          "arquivo": "docs/scraped/lider-ana-paula-renault-define-novo-vip-veja-a-pontuacao-na-11a-rodada-do-cartola-bbb.md",
+          "titulo": "Líder Ana Paula Renault define novo VIP"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/no-bbb-26-ana-paula-renault-faz-divisao-entre-vip-e-xepa-confira-como-ficou-a-casa.ghtml",
+          "arquivo": "docs/scraped/no-bbb-26-ana-paula-renault-faz-divisao-entre-vip-e-xepa-confira-como-ficou-a-casa.md",
+          "titulo": "Ana Paula Renault faz divisão entre VIP e Xepa"
         }
       ],
       "cycle": 11
