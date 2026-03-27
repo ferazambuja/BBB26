@@ -931,7 +931,8 @@ Why: Anjo timeline events have a `provas.json` fallback (like Líder), and Monst
 - Update `title` to include the result (e.g., `"Prova do Anjo — Breno vence"`)
 - Update `detail` with what happened
 - Update `fontes` with the scraped article URL
-- Keep the entries in `scheduled_events` — auto-dedup will suppress them once the API captures the new roles. The `time` field is ignored for past events (automatic lifecycle), so removing it is optional
+- Keep the entries in `scheduled_events` — auto-dedup will suppress them once the API captures the new roles
+- **Remove the `time` field** when filling real results. Same-day events with `time` stay pending (🔮 + dashed border) until midnight — removing `time` triggers immediate resolution. This is consistent across all checklists (Líder, Paredão, Anjo, Barrado)
 
 **When to clean up**: Remove past scheduled events during the **next week's setup** (Líder Transition Checklist), not on the same day they happen. By then, the API will have captured the roles and the auto-dedup makes the scheduled entries invisible anyway.
 
