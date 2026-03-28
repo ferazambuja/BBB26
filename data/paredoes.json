@@ -1551,24 +1551,45 @@
       "formacao": {
         "lider": "Ana Paula Renault",
         "lideres": null,
-        "resumo": "Top 10 — 1ª berlinda da semana. Formação na sexta-feira (27). Eliminação no domingo (29) às 14h55.",
-        "indicado_lider": null,
-        "motivo_lider": null,
+        "resumo": "Modo turbo — 1º Paredão triplo sem Contragolpe nem Bate e Volta. Solange Couto (Anjo autoimune) se auto-imunizou. Ana Paula indicou Alberto Cowboy ('embate direto no jogo'). Jordana foi a mais votada (5 votos). Juliano Floss e Leandro empataram com 2 votos; Ana Paula desempatou com Voto de Minerva indicando Leandro ('Juliano é meu fechamento aqui').",
+        "indicado_lider": "Alberto Cowboy",
+        "motivo_lider": "Embate direto no jogo",
         "anjo": "Solange Couto",
         "anjo_autoimune": true,
         "imunizado": {"por": "Solange Couto", "quem": "Solange Couto", "motivo": "Anjo autoimune — se auto-imuniza"},
         "contragolpe": null,
         "sem_contragolpe": true,
         "bate_volta": null,
-        "sem_bate_volta": true
+        "sem_bate_volta": true,
+        "voto_minerva": {"lider": "Ana Paula Renault", "escolhido": "Leandro", "motivo": "Juliano é meu fechamento aqui"}
       },
-      "indicados_finais": [],
-      "votos_casa": {},
+      "indicados_finais": [
+        {"nome": "Alberto Cowboy", "grupo": "Pipoca", "como": "Líder"},
+        {"nome": "Jordana", "grupo": "Pipoca", "como": "Mais votada (5 votos)"},
+        {"nome": "Leandro", "grupo": "Pipoca", "como": "Voto de Minerva (empate 2×2)"}
+      ],
+      "votos_casa": {
+        "Samira": "Jordana",
+        "Leandro": "Jordana",
+        "Jordana": "Juliano Floss",
+        "Juliano Floss": "Jordana",
+        "Solange Couto": "Milena",
+        "Marciele": "Juliano Floss",
+        "Milena": "Jordana",
+        "Alberto Cowboy": "Leandro",
+        "Gabriela": "Leandro",
+        "Chaiany": "Jordana"
+      },
       "fontes": [
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-ana-paula-renault-vence-a-11a-disputa.ghtml",
           "arquivo": "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-ana-paula-renault-vence-a-11a-disputa.md",
           "titulo": "Quem ganhou a Prova do Líder do BBB 26? Ana Paula Renault vence a 11ª disputa"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-11-paredao-do-bbb-26-alberto-cowboy-jordana-e-leandro-formam-a-berlinda.ghtml",
+          "arquivo": "docs/scraped/quem-esta-no-11-paredao-do-bbb-26-alberto-cowboy-jordana-e-leandro-formam-a-berlinda.md",
+          "titulo": "Quem está no 11° Paredão do BBB 26? Alberto Cowboy, Jordana e Leandro formam a berlinda"
         }
       ],
       "cycle": 11
