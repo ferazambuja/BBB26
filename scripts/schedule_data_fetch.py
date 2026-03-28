@@ -123,6 +123,28 @@ def _get_votalhada_folder(paredao_num: int) -> str:
 POLLS_JSON = REPO_ROOT / "data" / "votalhada" / "polls.json"
 
 
+def _heal_corrupt_json(path: Path, label: str) -> bool:
+    """Attempt to restore a corrupt JSON file from git history.
+
+    Tries HEAD first (last commit), then HEAD~1.  Returns True if healed.
+    """
+    for ref in ("HEAD", "HEAD~1", "HEAD~2"):
+        rc = subprocess.run(
+            ["git", "checkout", ref, "--", str(path.relative_to(REPO_ROOT))],
+            capture_output=True, text=True, cwd=REPO_ROOT,
+        ).returncode
+        if rc != 0:
+            continue
+        try:
+            json.loads(path.read_text(encoding="utf-8"))
+            print(f"[heal] Restored {label} from {ref} — valid JSON.")
+            return True
+        except (json.JSONDecodeError, OSError):
+            continue
+    print(f"[heal] Could not restore {label} from git history.")
+    return False
+
+
 def _bootstrap_polls_entry(paredao_num: int) -> bool:
     """Create a skeleton polls.json entry for a paredão if one doesn't exist.
 
@@ -138,7 +160,10 @@ def _bootstrap_polls_entry(paredao_num: int) -> bool:
             polls_data = json.loads(POLLS_JSON.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e:
             print(f"[bootstrap] polls.json has invalid JSON: {e}")
-            return False
+            if _heal_corrupt_json(POLLS_JSON, "polls.json"):
+                polls_data = json.loads(POLLS_JSON.read_text(encoding="utf-8"))
+            else:
+                return False
     else:
         polls_data = {
             "_description": "Poll aggregation data from Votalhada",
@@ -368,7 +393,12 @@ def _poll_once(args: argparse.Namespace) -> dict:
     # Stash any unexpected unstaged changes before pull (safety net for revert leftovers)
     _run_cmd(["git", "stash", "--quiet"], "git-stash")
     _run_cmd(["git", "pull", "--rebase", "origin", "main"], "git-pull")
-    _run_cmd(["git", "stash", "pop", "--quiet"], "git-stash-pop")  # restore if anything was stashed
+    stash_rc = _run_cmd(["git", "stash", "pop", "--quiet"], "git-stash-pop")
+    # If stash pop left conflict markers, resolve by taking the pulled version
+    if stash_rc != 0:
+        print("[poll] Stash pop had conflicts — resolving with pulled version.")
+        _run_cmd(["git", "checkout", "--theirs", "."], "git-resolve-conflicts")
+        _run_cmd(["git", "add", "."], "git-add-resolved")
 
     # Stage files
     add_paths = ["data/snapshots/", "data/latest.json"]
