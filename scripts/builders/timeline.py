@@ -890,26 +890,27 @@ def _merge_and_dedup_timeline(
                 continue
             events.append(se)
 
-    # --- Suppress power_events that duplicate paredão sub-steps ---
+    # --- Suppress events that duplicate paredão sub-steps ---
     # Paredão sub-steps (from paredoes.json) are authoritative.
-    # Map paredao_ categories to the generic power_event categories they replace.
-    _paredao_to_power = {
-        "paredao_imunidade": "imunidade",
-        "paredao_indicacao": "indicacao",
-        "paredao_contragolpe": "contragolpe",
-        "paredao_bate_volta": "bate_volta",
+    # Map paredao_ categories to the generic categories they replace.
+    _paredao_to_generic = {
+        "paredao_imunidade": {"imunidade", "imune"},
+        "paredao_indicacao": {"indicacao"},
+        "paredao_contragolpe": {"contragolpe"},
+        "paredao_bate_volta": {"bate_volta"},
     }
     # Collect (date, generic_cat) pairs covered by paredão sub-steps
     paredao_covers: set[tuple[str, str]] = set()
     for e in events:
-        generic = _paredao_to_power.get(e.get("category", ""))
-        if generic and e.get("source") == "paredoes":
-            paredao_covers.add((e["date"], generic))
-    # Remove redundant power_events
+        generics = _paredao_to_generic.get(e.get("category", ""))
+        if generics and e.get("source") == "paredoes":
+            for g in generics:
+                paredao_covers.add((e["date"], g))
+    # Remove redundant events (power_events + auto_events duplicating paredão sub-steps)
     events = [
         e for e in events
         if not (
-            e.get("source") == "power_events"
+            e.get("source") in ("power_events", "auto_events")
             and (e["date"], e["category"]) in paredao_covers
         )
     ]
