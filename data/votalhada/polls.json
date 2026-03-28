@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-03-24T21:00:00-03:00",
+  "_last_updated": "2026-03-28T00:00:00-03:00",
   "paredoes": [
     {
       "numero": 1,
@@ -1528,9 +1528,49 @@
         "Jordana",
         "Leandro"
       ],
-      "consolidado": {},
-      "plataformas": {},
-      "serie_temporal": []
+      "consolidado": {
+        "Alberto Cowboy": 49.66,
+        "Jordana": 6.88,
+        "Leandro": 43.45
+      },
+      "plataformas": {
+        "sites": {
+          "Alberto Cowboy": 39.15,
+          "Jordana": 8.01,
+          "Leandro": 52.85,
+          "votos": 440146
+        },
+        "youtube": {
+          "Alberto Cowboy": 41.62,
+          "Jordana": 7.67,
+          "Leandro": 50.68,
+          "votos": 138125
+        },
+        "twitter": {
+          "Alberto Cowboy": 56.46,
+          "Jordana": 3.27,
+          "Leandro": 40.27,
+          "votos": 101364
+        },
+        "instagram": {
+          "Alberto Cowboy": 64.4,
+          "Jordana": 8.27,
+          "Leandro": 27.33,
+          "votos": 1106241
+        }
+      },
+      "serie_temporal": [
+        {
+          "hora": "28/mar 00:00",
+          "Alberto Cowboy": 49.66,
+          "Jordana": 6.88,
+          "Leandro": 43.45,
+          "votos": 1785876
+        }
+      ],
+      "data_coleta": "2026-03-28T00:00:00-03:00",
+      "total_votos": 1785876,
+      "fontes": "https://votalhada.blogspot.com/2026/03/pesquisa11.html"
     }
   ]
 }
