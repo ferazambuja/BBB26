@@ -719,6 +719,8 @@ When a new Líder is crowned (typically Thursday ~22h BRT), follow these steps *
    ```
    **Note**: `formacao.lider` (nested under `formacao`), NOT top-level `lider`.
 
+   **`hora_eliminacao` (MANDATORY for non-standard elimination times)**: When the elimination is NOT at the standard ~23:00 BRT (e.g., turbo mode afternoon eliminations), add `"hora_eliminacao": "HH:MM"` to the skeleton. This drives the LXC Votalhada auto-collection window — without it, the system assumes 23:00 and may fetch past the elimination or stop too early. Example: `"hora_eliminacao": "14:55"` for P11 Sunday afternoon. The LXC starts fetching Votalhada images as soon as `status: "em_andamento"` is set, and stops at `hora_eliminacao + 3h`.
+
    **Anjo autoimune (compressed cycles)**: When the Anjo is autoimune (self-immune, no choice of who to immunize), add these fields to the paredão skeleton formation as soon as the Anjo result is known:
    ```json
    "anjo": "Anjo Name",
@@ -1101,6 +1103,7 @@ Fill in the formation details. **Key fields** (nested under `formacao`):
   "numero": N,
   "status": "em_andamento",
   "data": "YYYY-MM-DD",
+  "hora_eliminacao": "HH:MM",
   "data_formacao": "YYYY-MM-DD",
   "titulo": "Nº Paredão — DD de Mês de YYYY",
   "semana": N,
@@ -1125,6 +1128,8 @@ Fill in the formation details. **Key fields** (nested under `formacao`):
 ```
 
 **Critical**: Use `indicados_finais` (NOT `participantes`). Field `formacao.lider` (nested), NOT top-level `lider`.
+
+**`hora_eliminacao`**: Omit for standard ~23:00 BRT eliminations (Tuesday night). Set for non-standard times (e.g., `"14:55"` for turbo Sunday afternoon). Drives the Votalhada auto-collection cutoff on the LXC — should be set at skeleton creation time (Líder Transition) so the first Votalhada capture triggers the full pipeline.
 
 ### 3. Update `data/manual_events.json`
 
