@@ -441,6 +441,7 @@ Use this as the default workflow when the "Dinâmica da Semana" article lands an
 - Supported profiles today:
   - `standard` — normal BBB cadence
   - `accelerated_finale` — altered late-game cadence; Wednesday carries the elimination slot instead of `barrado_baile`
+  - `turbo_top10` — compressed Top 10+ cycles (W11 onward); generates **NO scaffolds** because turbo weekday assignments vary per cycle. All events must come from manual `scheduled_events`. Also suppresses Bate e Volta, Contragolpe, Presente do Anjo, Sincerão, Ganha-Ganha, Barrado (all permanently removed in turbo mode)
 
 Two recurring event types:
 - **Sincerão** (Monday live show) — happens every week with a different format/theme
@@ -465,10 +466,11 @@ Two recurring event types:
 
 When the show enters the final phase, Líder cycles compress to **2–4 days** instead of the standard ~7. The standard weekly pattern table above no longer applies. Key differences:
 
-- **Some dynamics are dropped entirely**: Sincerão, Barrado no Baile, and Ganha-Ganha may not occur in compressed cycles. Do not add scheduled events for them unless the article/show confirms them.
+- **Set `schedule_profile: "turbo_top10"` on all compressed cycle entries.** This suppresses ALL auto-scaffolds (no Bate e Volta, no Contragolpe, no Presente do Anjo, no Sincerão, no Ganha-Ganha, no Barrado). All events must come from manual `scheduled_events`.
+- **Add `sem_contragolpe: true` and `sem_bate_volta: true` to paredão `formacao`** — this suppresses the ceremony sub-step placeholders that the paredão generator auto-creates.
 - **Anjo and Formation may happen on the same day** (e.g., W11: both on Friday).
 - **Elimination + Líder + Formation can all occur on the same day** (e.g., W12: all three on Sunday Mar 29).
-- **Use manual `scheduled_events` for all events** in compressed cycles. The scaffold profiles assume standard weekday assignments (Thu Líder, Sat Anjo, Sun Formation, Tue Elimination) which are wrong for compressed cycles. Manual events override scaffolds via singleton dedup.
+- **Use manual `scheduled_events` for all events** in compressed cycles. The scaffold profiles assume standard weekday assignments (Thu Líder, Sat Anjo, Sun Formation, Tue Elimination) which are wrong for compressed cycles.
 - **`CYCLE_END_DATES` entries will be very close together** (1–3 days apart instead of 6–8). This is expected.
 - **Rollover may happen within hours of the previous elimination.** The "Thursday/Friday" rollover timing assumption from the standard runbook does not apply. Follow the same Líder Transition Checklist steps but adapt timing to the actual Prova do Líder date.
 - **P11 skeleton safety**: do NOT set `"status": "em_andamento"` until formation data exists. Use `"preparando"` when creating the skeleton after the Líder is crowned. The LXC scheduler triggers Votalhada bootstrap from `em_andamento` entries.

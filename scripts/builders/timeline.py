@@ -111,6 +111,10 @@ _SCAFFOLD_PROFILES: dict[str, list[dict]] = {
         {"weekday": 1, "category": "ganha_ganha", "emoji": "🎰", "title": "Ganha-Ganha", "detail": "Após a eliminação."},
         {"weekday": 2, "category": "paredao_resultado", "emoji": "🏁", "title": "Eliminação", "detail": "Resultado do Paredão em ritmo acelerado de reta final."},
     ],
+    # Turbo mode (Top 10+, W11 onward): all events compressed into 2-4 days
+    # with non-standard weekday assignments. No scaffolds — all events come from
+    # manual scheduled_events entries.
+    "turbo_top10": [],
 }
 
 
@@ -753,20 +757,22 @@ def _collect_timeline_paredao_events(
                 "detail": "Participantes votam no confessionário",
                 "participants": [], "source": "paredoes", "status": "scheduled",
             })
-            # Contragolpe placeholder
-            events.append({
-                "date": data_form, "cycle": week, "category": "paredao_contragolpe",
-                "emoji": "⚔️", "title": f"{num}º {tipo_label} — Contragolpe",
-                "detail": "Mais votado pela casa contragolpeia um participante",
-                "participants": [], "source": "paredoes", "status": "scheduled",
-            })
-            # Bate e Volta placeholder
-            events.append({
-                "date": data_form, "cycle": week, "category": "paredao_bate_volta",
-                "emoji": "🔄", "title": f"{num}º {tipo_label} — Bate e Volta",
-                "detail": "Emparedados disputam prova para escapar do Paredão",
-                "participants": [], "source": "paredoes", "status": "scheduled",
-            })
+            # Contragolpe placeholder (skip if formation explicitly marks sem_contragolpe)
+            if not formacao.get("sem_contragolpe"):
+                events.append({
+                    "date": data_form, "cycle": week, "category": "paredao_contragolpe",
+                    "emoji": "⚔️", "title": f"{num}º {tipo_label} — Contragolpe",
+                    "detail": "Mais votado pela casa contragolpeia um participante",
+                    "participants": [], "source": "paredoes", "status": "scheduled",
+                })
+            # Bate e Volta placeholder (skip if formation explicitly marks sem_bate_volta)
+            if not formacao.get("sem_bate_volta"):
+                events.append({
+                    "date": data_form, "cycle": week, "category": "paredao_bate_volta",
+                    "emoji": "🔄", "title": f"{num}º {tipo_label} — Bate e Volta",
+                    "detail": "Emparedados disputam prova para escapar do Paredão",
+                    "participants": [], "source": "paredoes", "status": "scheduled",
+                })
 
         # --- Result ---
         resultado = p.get("resultado", {})
