@@ -199,41 +199,44 @@ def _bootstrap_polls_entry(paredao_num: int) -> bool:
     return True
 
 
-def _votalhada_capture_complete(paredao_num: int) -> bool:
-    """Check if the final Votalhada capture (21:00 on elimination day) is already recorded.
-
-    Votalhada's last update is at 21:00 BRT on elimination night.
-    Once we have a serie_temporal row ending in '21:00' on the paredão date,
-    there's nothing more to fetch.
-    """
-    if not POLLS_JSON.exists():
-        return False
+def _get_elimination_datetime(paredao_num: int) -> datetime | None:
+    """Return the elimination datetime (BRT) for a paredão, or None."""
+    if not PAREDOES_JSON.exists():
+        return None
     try:
-        polls = json.loads(POLLS_JSON.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+        from zoneinfo import ZoneInfo
+        SAO_PAULO = ZoneInfo("America/Sao_Paulo")
+        data = json.loads(PAREDOES_JSON.read_text(encoding="utf-8"))
+        for p in data.get("paredoes", []):
+            if p["numero"] == paredao_num:
+                date_str = p.get("data", "")
+                hora = p.get("hora_eliminacao", "23:00")
+                if not date_str:
+                    return None
+                dt = datetime.strptime(f"{date_str} {hora}", "%Y-%m-%d %H:%M")
+                return dt.replace(tzinfo=SAO_PAULO)
+    except Exception:
+        pass
+    return None
+
+
+def _votalhada_capture_complete(paredao_num: int) -> bool:
+    """Check if Votalhada collection is complete for this paredão.
+
+    Complete when the current time is past the elimination datetime + 3h buffer.
+    The buffer captures any post-result Votalhada update.
+
+    Uses paredoes.json fields:
+      - ``data``: elimination date (e.g. "2026-03-29")
+      - ``hora_eliminacao``: elimination time BRT (e.g. "14:55"), defaults to "23:00"
+    """
+    elim_dt = _get_elimination_datetime(paredao_num)
+    if elim_dt is None:
         return False
 
-    for entry in polls.get("paredoes", []):
-        if entry.get("numero") != paredao_num:
-            continue
-        paredao_date = entry.get("data_paredao", "")  # e.g. "2026-03-24"
-        if not paredao_date:
-            return False
-        # Parse date to DD/mmm format used in serie_temporal
-        parts = paredao_date.split("-")
-        if len(parts) != 3:
-            return False
-        day = parts[2].lstrip("0")
-        month_map = {"01": "jan", "02": "fev", "03": "mar", "04": "abr", "05": "mai",
-                     "06": "jun", "07": "jul", "08": "ago", "09": "set", "10": "out",
-                     "11": "nov", "12": "dez"}
-        mon = month_map.get(parts[1], "")
-        target_hora = f"{day}/{mon} 21:00"  # e.g. "24/mar 21:00"
-
-        series = entry.get("serie_temporal", [])
-        return any(r.get("hora") == target_hora for r in series)
-
-    return False
+    now_brt = datetime.now(timezone.utc).astimezone(elim_dt.tzinfo)
+    # 3h buffer after elimination to capture final Votalhada consolidado
+    return now_brt > elim_dt + timedelta(hours=3)
 
 
 def _fetch_votalhada(paredao_num: int) -> bool:

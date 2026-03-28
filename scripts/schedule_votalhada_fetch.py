@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """Run Votalhada image fetches on the usual update windows (BRT schedule).
 
-Windows in Sao Paulo time:
-  - Monday: 01:00, 08:00, 12:00, 15:00, 18:00, 21:00
-  - Tuesday: 08:00, 12:00, 15:00, 18:00, 21:00
+Standard Votalhada update hours: 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
+First day after formation may also have a 00:00/01:00 update.
+
+The active days are derived from the paredão's ``data_formacao`` and ``data``
+(elimination date) in ``paredoes.json``.  On the last day, only hours before
+``hora_eliminacao`` (default 23:00) are scheduled.
 
 This runner is timezone-aware and can trigger `scripts/fetch_votalhada_images.py`
-at each window. It is disabled by default for live ops; prefer the manual flow:
-fetch -> dry-run gate -> apply/build.
+at each window. It is disabled by default for live ops; prefer the main scheduler
+(schedule_data_fetch.py --votalhada) which polls every 15 min with dedup.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 import time
@@ -23,28 +27,87 @@ from zoneinfo import ZoneInfo
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FETCH_SCRIPT = REPO_ROOT / "scripts" / "fetch_votalhada_images.py"
+PAREDOES_JSON = REPO_ROOT / "data" / "paredoes.json"
 SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
 
-# datetime.weekday(): Monday=0 ... Sunday=6
-SCHEDULE_BRT: dict[int, list[tuple[int, int]]] = {
-    0: [(1, 0), (8, 0), (12, 0), (15, 0), (18, 0), (21, 0)],  # Monday
-    1: [(8, 0), (12, 0), (15, 0), (18, 0), (21, 0)],  # Tuesday
-}
+# Standard Votalhada update hours (BRT).
+# First day may have an early 00:00 update; subsequent days start at 08:00.
+VOTALHADA_HOURS_FIRST_DAY = [(0, 0), (8, 0), (12, 0), (15, 0), (18, 0), (21, 0)]
+VOTALHADA_HOURS_OTHER_DAYS = [(8, 0), (12, 0), (15, 0), (18, 0), (21, 0)]
 
 
-def next_capture_in_brt(now_brt: datetime) -> datetime:
-    """Return the next capture slot in Sao Paulo time strictly after now."""
+def _get_active_paredao() -> dict | None:
+    """Return the active paredão entry from paredoes.json, or None."""
+    if not PAREDOES_JSON.exists():
+        return None
+    try:
+        data = json.loads(PAREDOES_JSON.read_text(encoding="utf-8"))
+        for p in reversed(data.get("paredoes", [])):
+            if p.get("status") == "em_andamento":
+                return p
+    except Exception:
+        pass
+    return None
+
+
+def _build_dynamic_schedule(paredao: dict) -> dict[str, list[tuple[int, int]]]:
+    """Build a date→hours schedule from the paredão's voting window.
+
+    Returns {iso_date_str: [(hour, minute), ...]} for each day from
+    data_formacao through data (elimination), clipping the last day
+    to hours before hora_eliminacao.
+    """
+    date_start = paredao.get("data_formacao", "")
+    date_end = paredao.get("data", "")
+    hora_elim = paredao.get("hora_eliminacao", "23:00")
+
+    if not date_start or not date_end:
+        return {}
+
+    try:
+        start = datetime.strptime(date_start, "%Y-%m-%d").date()
+        end = datetime.strptime(date_end, "%Y-%m-%d").date()
+        elim_hour, elim_min = (int(x) for x in hora_elim.split(":"))
+    except (ValueError, TypeError):
+        return {}
+
+    schedule: dict[str, list[tuple[int, int]]] = {}
+    day = start
+    is_first = True
+    while day <= end:
+        iso = day.isoformat()
+        if is_first:
+            hours = list(VOTALHADA_HOURS_FIRST_DAY)
+            is_first = False
+        else:
+            hours = list(VOTALHADA_HOURS_OTHER_DAYS)
+
+        # On elimination day, clip to hours before elimination time
+        if day == end:
+            hours = [(h, m) for h, m in hours if h < elim_hour or (h == elim_hour and m < elim_min)]
+
+        if hours:
+            schedule[iso] = hours
+        day += timedelta(days=1)
+
+    return schedule
+
+
+def next_capture_in_brt(now_brt: datetime, schedule: dict[str, list[tuple[int, int]]]) -> datetime | None:
+    """Return the next capture slot in Sao Paulo time strictly after now, or None."""
     if now_brt.tzinfo is None:
         raise ValueError("now_brt must be timezone-aware")
 
-    for day_offset in range(0, 8):
+    # Check up to 14 days ahead
+    for day_offset in range(0, 14):
         day = (now_brt + timedelta(days=day_offset)).date()
-        for hour, minute in SCHEDULE_BRT.get(day.weekday(), []):
+        iso = day.isoformat()
+        for hour, minute in schedule.get(iso, []):
             candidate = datetime(day.year, day.month, day.day, hour, minute, tzinfo=SAO_PAULO_TZ)
             if candidate > now_brt:
                 return candidate
 
-    raise RuntimeError("Could not find next capture slot in the next 7 days")
+    return None  # No more scheduled slots
 
 
 def next_capture_hourly_in_brt(now_brt: datetime) -> datetime:
@@ -60,6 +123,7 @@ def upcoming_slots(
     local_tz: ZoneInfo,
     count: int = 8,
     mode: str = "windows",
+    schedule: dict[str, list[tuple[int, int]]] | None = None,
 ) -> list[tuple[datetime, datetime]]:
     """Return next capture slots as pairs: (slot_brt, slot_local)."""
     if now_utc.tzinfo is None:
@@ -73,7 +137,12 @@ def upcoming_slots(
         if mode == "hourly":
             slot_brt = next_capture_hourly_in_brt(cursor)
         elif mode == "windows":
-            slot_brt = next_capture_in_brt(cursor)
+            if schedule is None:
+                break
+            slot_result = next_capture_in_brt(cursor, schedule)
+            if slot_result is None:
+                break
+            slot_brt = slot_result
         else:
             raise ValueError(f"Unsupported mode: {mode}")
         slots.append((slot_brt, slot_brt.astimezone(local_tz)))
@@ -126,7 +195,9 @@ def _run_fetch(cmd: list[str]) -> int:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Schedule Votalhada captures for research/debugging. Disabled by default for live ops.",
+        description="Schedule Votalhada captures based on active paredão dates. "
+                    "Disabled by default for live ops — the main scheduler "
+                    "(schedule_data_fetch.py --votalhada) polls every 15 min.",
     )
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--paredao", type=int, help="Paredao number (recommended).")
@@ -148,7 +219,7 @@ def _parse_args() -> argparse.Namespace:
         "--mode",
         choices=["windows", "hourly"],
         default="hourly",
-        help="Scheduling mode: specific Votalhada windows or every hour.",
+        help="Scheduling mode: paredão-derived windows or every hour.",
     )
     parser.add_argument(
         "--lookahead",
@@ -207,7 +278,23 @@ def main() -> int:
     now_utc = datetime.now(timezone.utc)
     now_brt = now_utc.astimezone(SAO_PAULO_TZ)
     now_local = now_utc.astimezone(local_tz)
-    offset_hours = (now_brt.utcoffset() - now_local.utcoffset()).total_seconds() / 3600.0
+    brt_off = now_brt.utcoffset() or timedelta()
+    lcl_off = now_local.utcoffset() or timedelta()
+    offset_hours = (brt_off - lcl_off).total_seconds() / 3600.0
+
+    # Build dynamic schedule from active paredão
+    schedule: dict[str, list[tuple[int, int]]] = {}
+    paredao = _get_active_paredao()
+    if paredao:
+        schedule = _build_dynamic_schedule(paredao)
+        elim_date = paredao.get("data", "?")
+        hora_elim = paredao.get("hora_eliminacao", "23:00")
+        form_date = paredao.get("data_formacao", "?")
+        print(f"  active paredão: P{paredao['numero']}")
+        print(f"  voting window: {form_date} → {elim_date} {hora_elim} BRT")
+        print(f"  scheduled days: {len(schedule)}")
+    else:
+        print("  no active paredão — schedule is empty")
 
     print("Votalhada capture scheduler starting...")
     print(f"  now (Sao Paulo): {_format_dt(now_brt)}")
@@ -218,12 +305,18 @@ def main() -> int:
     if args.mode == "hourly":
         print("  schedule mode: hourly at every HH:00 BRT")
     else:
-        print("  schedule mode: windows (Mon 01/08/12/15/18/21, Tue 08/12/15/18/21)")
+        print(f"  schedule mode: windows (derived from paredão dates)")
+        for iso_date, hours in sorted(schedule.items()):
+            times = ", ".join(f"{h:02d}:{m:02d}" for h, m in hours)
+            print(f"    {iso_date}: {times}")
 
-    slots = upcoming_slots(now_utc, local_tz, count=args.lookahead, mode=args.mode)
-    print("\nUpcoming slots:")
-    for idx, (slot_brt, slot_local) in enumerate(slots, start=1):
-        print(f"  {idx:02d}. {_format_dt(slot_brt)}  |  {_format_dt(slot_local)}")
+    slots = upcoming_slots(now_utc, local_tz, count=args.lookahead, mode=args.mode, schedule=schedule)
+    if slots:
+        print("\nUpcoming slots:")
+        for idx, (slot_brt, slot_local) in enumerate(slots, start=1):
+            print(f"  {idx:02d}. {_format_dt(slot_brt)}  |  {_format_dt(slot_local)}")
+    else:
+        print("\nNo upcoming slots (voting window may have ended).")
 
     if args.dry_run:
         return 0
@@ -238,7 +331,11 @@ def main() -> int:
         if args.mode == "hourly":
             slot_brt = next_capture_hourly_in_brt(now_brt)
         else:
-            slot_brt = next_capture_in_brt(now_brt)
+            slot_result = next_capture_in_brt(now_brt, schedule)
+            if slot_result is None:
+                print("\nNo more scheduled slots — voting window has ended.")
+                return 0
+            slot_brt = slot_result
         run_brt = slot_brt + timedelta(minutes=args.delay_minutes)
         run_local = run_brt.astimezone(local_tz)
         wait_seconds = (run_local - now_local).total_seconds()

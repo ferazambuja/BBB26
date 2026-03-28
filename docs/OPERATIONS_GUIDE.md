@@ -1195,11 +1195,15 @@ When `build_derived_data.py` runs, the timeline builder reads `paredoes.json` an
 
 ---
 
-## Votalhada Collection Checklist (Tuesday)
+## Votalhada Collection Checklist
 
-Before each elimination (~21h BRT), collect poll data from [Votalhada](https://votalhada.blogspot.com/).
+Before each elimination, collect poll data from [Votalhada](https://votalhada.blogspot.com/).
 
-Votalhada updates images roughly at: Mon 01:00, 08:00, 12:00, 15:00, 18:00, 21:00 BRT; Tue 08:00, 12:00, 15:00, 18:00, 21:00 BRT.
+**Timing**: Standard cycles: Mon–Tue (elimination ~23h Tue). Turbo cycles: voting window varies (e.g., Fri–Sun for P11). The system derives the collection window from `data_formacao` → `data` + `hora_eliminacao` in `paredoes.json`.
+
+**Votalhada update hours** (BRT): ~08:00, 12:00, 15:00, 18:00, 21:00 on voting days. First day may have a 00:00 update. On elimination day, only hours before `hora_eliminacao` are meaningful.
+
+**`hora_eliminacao` field** (in `paredoes.json`): Set this when elimination is not at the standard ~23:00 BRT. Example: `"hora_eliminacao": "14:55"` for P11 Sunday afternoon elimination. Defaults to `"23:00"` when absent.
 
 ### Automated Pipeline (Primary Path)
 
@@ -1223,9 +1227,9 @@ systemd timer (every 15 min)
 1. Paredão formation recorded in `paredoes.json` (Sunday night checklist)
 2. Next scheduler cycle detects `em_andamento` → `_bootstrap_polls_entry()` creates skeleton in `polls.json` with correct nominees
 3. `fetch_votalhada_images.py` attempts to download from Votalhada (exits gracefully with code 3 if page doesn't exist yet)
-4. When Votalhada publishes the post (typically Monday morning), images are captured and Codex extracts values
-5. Each subsequent Votalhada update is captured, validated, and processed automatically through elimination day
-6. **Auto-stop**: once the 21:00 BRT capture on elimination day is recorded in `serie_temporal`, the scheduler stops fetching Votalhada images for that paredão (Votalhada's last update is always 21:00 BRT)
+4. When Votalhada publishes the post (formation day or next morning), images are captured and Codex extracts values
+5. Each subsequent Votalhada update is captured, validated, and processed automatically through the voting window
+6. **Auto-stop**: once the current time passes `hora_eliminacao` + 3h buffer, the scheduler stops fetching Votalhada images for that paredão. For standard cycles (23:00 default), this means ~02:00 BRT next day. For turbo cycles (e.g., 14:55), this means ~18:00 BRT same day
 
 **Pipeline**: Codex (gpt-5.4) extracts → deterministic validation (platform sums, CPF total, ESTIMATIVA formula, monotonic series) → Claude Opus verifies → apply to polls.json. Legacy Claude-as-extractor kept as fallback.
 
