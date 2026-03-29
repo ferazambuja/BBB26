@@ -6,7 +6,7 @@ lang: pt-BR
 format:
   html:
     code-tools: false
-    body-classes: economia-page
+    body-classes: economia-page economia-v2-page
 execute:
   echo: false
   warning: false
@@ -59,6 +59,16 @@ cf_by_part = compras_fairness.get("by_participant", {})
 cf_events = compras_fairness.get("events", [])
 curiosities = compras_fairness.get("curiosities", [])
 investigation_notes = compras_fairness.get("investigation_notes", [])
+
+# ── Punishment deep dive (precomputed) ──
+punishment_dd = bal_data.get("punishment_deep_dive", {})
+recent_punishments = punishment_dd.get("recent_punishments", [])
+who_lost_most = punishment_dd.get("who_lost_most", [])
+severity_summary = punishment_dd.get("severity_summary", {})
+tcn_analysis = punishment_dd.get("ta_com_nada_analysis", {})
+balance_strip = punishment_dd.get("balance_strip", {})
+vip_strip = punishment_dd.get("vip_strip", {})
+latest_compras = compras_fairness.get("latest_compras", {})
 
 index_data = load_index_data()
 profiles = index_data.get("profiles", [])
@@ -168,12 +178,12 @@ emit('''
 <span class="eco-toggle-label">Ocultar eliminados</span>
 </div>
 <div class="eco-jump-nav">
-<a href="#generosidade" class="eco-jump-link">🛒 Generosidade</a>
+<a href="#curiosidades" class="eco-jump-link">💡 Curiosidades</a>
+<a href="#ultima-compra" class="eco-jump-link">🛒 Última Compra</a>
 <a href="#punicoes" class="eco-jump-link">🚨 Punições</a>
-<a href="#quem-zerou" class="eco-jump-link">💸 Quem Zerou</a>
-<a href="#maquina" class="eco-jump-link">⚡ Máquina do Poder</a>
 <a href="#evolucao-saldo" class="eco-jump-link">📈 Evolução</a>
 <a href="#vip-xepa" class="eco-jump-link">🏠 VIP & Xepa</a>
+<a href="#maquina" class="eco-jump-link">⚡ Máquina do Poder</a>
 </div>
 <script>
 (function() {
@@ -187,16 +197,22 @@ emit('''
 })();
 </script>
 ''')
+```
 
-# ── Curiosidades (lead with the hook) ──
+# Curiosidades {#curiosidades}
+
+```{python}
+#| label: curiosidades
+#| output: asis
+
 CURIOSITY_LINKS = {
-    "most_generous": "#generosidade",
-    "least_generous": "#generosidade",
-    "anomaly": "#generosidade",
+    "most_generous": "#ultima-compra",
+    "least_generous": "#ultima-compra",
+    "anomaly": "#ultima-compra",
     "vip_advantage": "#vip-xepa",
     "never_vip": "#vip-xepa",
     "most_punished": "#punicoes",
-    "most_zeros": "#quem-zerou",
+    "most_zeros": "#punicoes",
 }
 CURIOSITY_CFG = {
     "most_generous": {"emoji": "🏆", "title": "Mais generosa", "color": "#1a9850"},
@@ -228,13 +244,100 @@ if curiosities:
     emit('</div>')
 ```
 
-# Quem Paga a Conta? {#generosidade}
+# Última Compra da Semana {#ultima-compra}
 
 ```{python}
-#| label: generosity-narrative
+#| label: ultima-compra-pulse
 #| output: asis
 
+if latest_compras:
+    lc = latest_compras
+    cycle = lc.get("cycle", "?")
+    total_spent = lc.get("total_spent", 0)
+    house_pc = lc.get("house_per_capita_spent", 0)
+    vip_pc = lc.get("vip_per_capita_spent", 0)
+    xepa_pc = lc.get("xepa_per_capita_spent", 0)
+    vip_total = lc.get("vip_total_spent", 0)
+    xepa_total = lc.get("xepa_total_spent", 0)
+    vip_n = lc.get("vip_n", 0)
+    xepa_n = lc.get("xepa_n", 0)
+    vip_delta = lc.get("vip_vs_own_avg_delta", 0)
+    xepa_delta = lc.get("xepa_vs_own_avg_delta", 0)
+
+    emit(f'''
+    <p class="eco-v2-chapter-kicker">Semana {cycle} &middot; Compras da Casa</p>
+    <div class="eco-v2-chapter-intro">
+    <p class="eco-v2-chapter-copy">
+    Na Semana {cycle}, a casa gastou <strong>{total_spent:,} estalecas</strong> no total.
+    VIP ({vip_n}): <strong>{vip_total:,.0f}</strong> &middot; Xepa ({xepa_n}): <strong>{xepa_total:,.0f}</strong>.
+    Per capita: VIP <strong>{vip_pc:,.0f}</strong> vs Xepa <strong>{xepa_pc:,.0f}</strong>.
+    </p>
+    </div>
+    ''')
+
+    vip_cls = "eco-v2-pulse-card--alto" if vip_delta >= 0 else "eco-v2-pulse-card--baixo"
+    xepa_cls = "eco-v2-pulse-card--alto" if xepa_delta >= 0 else "eco-v2-pulse-card--baixo"
+    vip_sign = "+" if vip_delta >= 0 else ""
+    xepa_sign = "+" if xepa_delta >= 0 else ""
+
+    emit(f'''
+    <div class="eco-v2-pulse-grid">
+    <div class="eco-v2-pulse-card eco-v2-pulse-card--vip {vip_cls}">
+    <p class="eco-v2-pulse-title">VIP ({vip_n} pessoas)</p>
+    <p class="eco-v2-pulse-value">{vip_total:,.0f}</p>
+    <p class="eco-v2-pulse-detail">{vip_pc:,.0f}/pessoa &middot; {vip_sign}{vip_delta:,.0f} vs média</p>
+    </div>
+    <div class="eco-v2-pulse-card eco-v2-pulse-card--xepa {xepa_cls}">
+    <p class="eco-v2-pulse-title">Xepa ({xepa_n} pessoas)</p>
+    <p class="eco-v2-pulse-value">{xepa_total:,.0f}</p>
+    <p class="eco-v2-pulse-detail">{xepa_pc:,.0f}/pessoa &middot; {xepa_sign}{xepa_delta:,.0f} vs média</p>
+    </div>
+    </div>
+    ''')
+
+    # Per-participant breakdown
+    participants = lc.get("participants", [])
+    if participants:
+        active_set = {p["name"] for p in profiles if p.get("active", True)}
+        emit('<div class="eco-card-grid">')
+        for p in participants:
+            name = p["name"]
+            delta = abs(p["delta"])
+            pct = p["pct_of_balance"]
+            is_vip = p["vip"]
+            is_active = name in active_set
+            grupo = MEMBER_OF.get(name, "?")
+            cor = GROUP_COLORS.get(grupo, "#999")
+            av_html = avatar_img(name, AVATARS, size=48, border_color=cor) if AVATARS.get(name) else ""
+            vip_badge = '<span style="background:#FFD700;color:#000;padding:1px 5px;border-radius:3px;font-size:var(--fs-xs);font-weight:700;margin-left:4px;">VIP</span>' if is_vip else ""
+            pct_color = "#d73027" if pct > 80 else "#fee08b" if pct > 50 else "#1a9850"
+            card_cls = "eco-participant-card" + ("" if is_active else " eco-participant-card--eliminated")
+            elim_attr = ' data-eliminated' if not is_active else ''
+
+            emit(f'''
+            <div class="{card_cls}"{elim_attr}>
+            {av_html}
+            <div class="eco-participant-info">
+            <p class="eco-participant-name">{name}{vip_badge}</p>
+            <p class="eco-participant-detail" style="color:{pct_color};">{pct:.0f}% do saldo</p>
+            </div>
+            <p class="eco-participant-value" style="color:#e6550d;">{delta:,}</p>
+            </div>
+            ''')
+        emit('</div>')
+else:
+    print("*Dados da última compra indisponíveis.*")
+```
+
+```{python}
+#| label: generosity-drilldown
+#| output: asis
+
+emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">Índice de Generosidade (histórico)</summary>')
+
 if cf_by_part:
+    active_names = {p["name"] for p in profiles if p.get("active", True)}
+
     vip_pcts_all = []
     xepa_pcts_all = []
     for ev in cf_events:
@@ -249,14 +352,7 @@ if cf_by_part:
     Em média, VIP gasta <strong>{vip_avg:.0f}%</strong> do saldo nas compras, contra <strong>{xepa_avg:.0f}%</strong> da Xepa — quem tem menos, paga mais.
     </div>
     ''')
-```
 
-```{python}
-#| label: generosity-bar
-#| output: asis
-
-if cf_by_part:
-    active_names = {p["name"] for p in profiles if p.get("active", True)}
     eligible = {n: d for n, d in cf_by_part.items() if d["n_compras"] >= 2}
     if eligible:
         sorted_gen = sorted(eligible.items(), key=lambda x: x[1]["avg_pct_of_balance"], reverse=True)
@@ -276,20 +372,19 @@ if cf_by_part:
             </div>''')
         emit('</div>')
         emit('<p style="text-align:center; color:#888; font-size:var(--fs-sm); margin-top:4px;">% médio do saldo usado nas compras da semana</p>')
-    else:
-        print("*Dados de compras insuficientes.*")
-else:
-    print("*Dados de compras indisponíveis.*")
+
+emit('</details>')
 ```
 
 ```{python}
-#| label: vip-xepa-compras
+#| label: vip-xepa-compras-drilldown
 #| output: asis
 
+emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">VIP vs Xepa — Contribuição por Semana</summary>')
+
 if cf_events:
-    emit('<p class="eco-bar-title">VIP vs Xepa — Contribuição nas Compras</p>')
-    emit('<div class="eco-bar-chart">')
     max_pct = max(max(e["vip_avg_pct"], e["xepa_avg_pct"]) for e in cf_events) or 1
+    emit('<div class="eco-bar-chart">')
     for ev in cf_events:
         w = ev["cycle"]
         vip_pct = ev["vip_avg_pct"]
@@ -311,36 +406,84 @@ if cf_events:
         <span class="eco-compras-ratio">{ratio_str}</span>
         </div>''')
     emit('</div>')
-else:
-    print("*Dados de compras indisponíveis.*")
+
+emit('</details>')
 ```
 
-# Os Mais Punidos {#punicoes}
+# Multas e Prejuízo {#punicoes}
 
 ```{python}
-#| label: punicoes-narrative
+#| label: punicoes-recent
 #| output: asis
 
-if most_punished_names:
-    if len(most_punished_names) == 1:
-        total_lost = abs(bal_by_part[most_punished_names[0]].get("total_lost", 0))
-        lead_text = f'<strong>{most_punished_names[0]}</strong> lidera o ranking de punições com <strong>{most_punished_n} ocorrências</strong>, perdendo {total_lost:,} estalecas no total.'
-    else:
-        tied_parts = []
-        for n in most_punished_names:
-            lost = abs(bal_by_part[n].get("total_lost", 0))
-            tied_parts.append(f'{n} ({lost:,})')
-        lead_text = f'<strong>{", ".join(most_punished_names)}</strong> empatam no topo com <strong>{most_punished_n} punições</strong> cada (estalecas perdidas: {", ".join(tied_parts)}).'
+# ── Top 10 recent punishments ──
+if recent_punishments:
+    ss = severity_summary
+    total_formal = ss.get("leve", 0) + ss.get("multipla", 0) + ss.get("gravissima", 0)
+
     emit(f'''
-    <div class="eco-narrative eco-narrative--red">
-    {lead_text} Foram <strong>{n_punicao_events} punições</strong> ao longo do jogo.
+    <p class="eco-v2-chapter-kicker">Punições &middot; Últimas Ocorrências</p>
+    <div class="eco-v2-chapter-intro">
+    <p class="eco-v2-chapter-copy">
+    <strong>{total_formal} punições formais</strong> ao longo do jogo —
+    {ss.get("leve", 0)} leves &middot; {ss.get("multipla", 0)} múltiplas &middot; {ss.get("gravissima", 0)} gravíssimas.
+    </p>
     </div>
     ''')
+
+    # Who lost most (people strip)
+    active_set = {p["name"] for p in profiles if p.get("active", True)}
+    if who_lost_most:
+        emit('<div class="eco-v2-people-strip">')
+        for r in who_lost_most[:3]:
+            name = r["name"]
+            grupo = MEMBER_OF.get(name, "?")
+            cor = GROUP_COLORS.get(grupo, "#999")
+            av_html = avatar_img(name, AVATARS, size=40, border_color=cor) if AVATARS.get(name) else ""
+            elim_attr = ' data-eliminated' if name not in active_set else ''
+            emit(f'''
+            <div class="eco-v2-person-chip eco-v2-person-chip--alert"{elim_attr}>
+            {av_html}
+            <div>
+            <p class="eco-v2-person-name">{name}</p>
+            <p class="eco-v2-person-meta">{abs(r["formal_punishment_total"]):,} estalecas em {r["formal_punishment_count"]} punições</p>
+            </div>
+            </div>
+            ''')
+        emit('</div>')
+
+    # Recent punishments list
+    emit('<div class="eco-recent-list">')
+    for r in recent_punishments:
+        name = r["name"]
+        date = r["game_date"][5:]  # MM-DD
+        amount = r["amount"]
+        sev = r["severity"]
+        grupo = MEMBER_OF.get(name, "?")
+        cor = GROUP_COLORS.get(grupo, "#999")
+        av_html = avatar_img(name, AVATARS, size=32, border_color=cor) if AVATARS.get(name) else ""
+        badge_cls = f'eco-severity-badge eco-severity-badge--{sev["bucket"]}'
+        elim_attr = ' data-eliminated' if name not in active_set else ''
+
+        emit(f'''
+        <div class="eco-recent-item"{elim_attr}>
+        <span class="eco-recent-date">{date}</span>
+        {av_html}
+        <span class="eco-recent-name">{name}</span>
+        <span class="eco-recent-amount">{amount:,}</span>
+        <span class="{badge_cls}">{sev["label"]}</span>
+        </div>
+        ''')
+    emit('</div>')
+else:
+    print("*Nenhuma punição registrada.*")
 ```
 
 ```{python}
-#| label: punicoes-bar
+#| label: punicoes-bar-drilldown
 #| output: asis
+
+emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">Ranking completo de punições</summary>')
 
 pun_data = [(n, d["n_punicoes"]) for n, d in bal_by_part.items() if d.get("n_punicoes", 0) > 0]
 if pun_data:
@@ -360,23 +503,22 @@ if pun_data:
         <span class="eco-bar-value">{v}×</span>
         </div>''')
     emit('</div>')
-else:
-    print("*Nenhuma punição registrada.*")
+
+emit('</details>')
 ```
 
 ```{python}
-#| label: punicoes-timeline
+#| label: punicoes-timeline-drilldown
 #| output: asis
 
 punicao_events = [e for e in bal_events if e["type"] == "punicao"]
 if punicao_events:
-    # Group by week
+    emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">Linha do tempo por semana</summary>')
     by_week = {}
     for e in punicao_events:
         w = e["cycle"]
         by_week.setdefault(w, []).append(e)
 
-    emit('<div style="max-width: 800px; margin: 0 auto;">')
     for w in sorted(by_week):
         evts = by_week[w]
         total_w = sum(sum(v for v in e["changes"].values() if v < 0) for e in evts)
@@ -393,23 +535,21 @@ if punicao_events:
             label = f' <span style="color:#ffe08a;">({subtype})</span>' if subtype else ""
             emit(f'<p style="margin:4px 0; color:#ccc;">{date}{label} — {changes}</p>')
         emit('</div></details>')
-    emit('</div>')
+    emit('</details>')
 ```
 
-# Quem Zerou? {#quem-zerou}
-
 ```{python}
-#| label: quem-zerou-narrative
+#| label: ta-com-nada-drilldown
 #| output: asis
 
-# Participants who hit zero balance (from balance pipeline)
+# Tá-com-nada cycles + zero-balance cards (absorbed from Quem Zerou)
 tcn_parts = [(n, d.get("ta_com_nada_dates", [])) for n, d in bal_by_part.items()
              if d.get("ta_com_nada_dates")]
-
-# Also check for negative balances from current profiles
 negative_parts = [(p["name"], p.get("balance", 0)) for p in profiles if p.get("balance", 0) < 0]
 
 if tcn_parts:
+    emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">Quem zerou e ciclos de recuperação</summary>')
+
     tcn_parts.sort(key=lambda x: len(x[1]), reverse=True)
     top_count = len(tcn_parts[0][1])
     top_names = [n for n, d in tcn_parts if len(d) == top_count]
@@ -418,21 +558,35 @@ if tcn_parts:
     else:
         lead_text = f'{", ".join(n.split()[0] for n in top_names)} empatam com <strong>{top_count} vezes</strong> zerados.'
     narr = (
-        f'<strong>{len(tcn_parts)} participantes</strong> já ficaram com saldo zero ou negativo '
-        f'— seja por punições, compras ou dinâmicas. '
+        f'<strong>{len(tcn_parts)} participantes</strong> já ficaram com saldo zero ou negativo. '
         f'{lead_text}'
     )
     if negative_parts:
         neg_names = ", ".join(f"{n} ({v:,})" for n, v in sorted(negative_parts, key=lambda x: x[1]))
         narr += f'<br>⚠️ Atualmente no vermelho: {neg_names}.'
     emit(f'<div class="eco-narrative">{narr}</div>')
-```
 
-```{python}
-#| label: quem-zerou-cards
-#| output: asis
+    # Cycle recovery analysis
+    if tcn_analysis:
+        emit('<p style="margin:12px 0 6px; font-weight:700; color:#d8e1ee;">Ciclos entre zeros:</p>')
+        emit('<div class="eco-v2-people-strip">')
+        for name, data in sorted(tcn_analysis.items(), key=lambda x: x[1]["avg_gap"]):
+            grupo = MEMBER_OF.get(name, "?")
+            cor = GROUP_COLORS.get(grupo, "#999")
+            av_html = avatar_img(name, AVATARS, size=40, border_color=cor) if AVATARS.get(name) else ""
+            gaps_str = " → ".join(f"{g} sem" for g in data["gaps_in_cycles"])
+            emit(f'''
+            <div class="eco-v2-person-chip eco-v2-person-chip--alert">
+            {av_html}
+            <div>
+            <p class="eco-v2-person-name">{name}</p>
+            <p class="eco-v2-person-meta">{len(data["dates"])}× zerou · {gaps_str} · média {data["avg_gap"]} sem</p>
+            </div>
+            </div>
+            ''')
+        emit('</div>')
 
-if tcn_parts:
+    # Zero-balance cards
     emit('<div class="eco-card-grid">')
     for name, dates in tcn_parts:
         is_active = part_lookup.get(name, {}).get("active", True)
@@ -443,7 +597,6 @@ if tcn_parts:
         av_html = avatar_img(name, AVATARS, size=48, border_color=cor) if avatar else ""
         exit_label = f' <span class="eco-exit-label">(saiu)</span>' if not is_active else ""
 
-        # Current balance for extra context
         cur_bal = next((p.get("balance", 0) for p in profiles if p["name"] == name), 0)
         bal_color = "#d73027" if cur_bal < 0 else "#888" if cur_bal == 0 else "#66bd63"
         bal_str = f"Saldo atual: {cur_bal:,}" if cur_bal != 0 else "Saldo atual: 0"
@@ -466,93 +619,53 @@ if tcn_parts:
         </details>
         ''')
     emit('</div>')
-else:
-    print("*Ninguém ficou com saldo zero até agora.*")
-```
-
-# A Máquina do Poder {#maquina}
-
-```{python}
-#| label: maquina-do-poder
-#| output: asis
-
-# Find Máquina do Poder in special events (dynamic lookup)
-maquina_event = None
-for se in special_events:
-    if se.get("type") == "dinamica" and "quina" in se.get("name", "").lower():
-        maquina_event = se
-        break
-
-if maquina_event:
-    # Also look for detailed data in cycles[] maquina_do_poder
-    cycles_ev = manual_events.get("cycles", [])
-    maquina_detail = None
-    for we in cycles_ev:
-        if we.get("maquina_do_poder"):
-            md = we["maquina_do_poder"]
-            if md.get("date") == maquina_event.get("date"):
-                maquina_detail = md
-                break
-
-    ev_date = maquina_event.get("date", "?")
-    resultado = maquina_event.get("resultado", "")
-
-    emit(f'''
-    <div class="eco-narrative">
-    <strong>⚡ {maquina_event.get("name", "Dinâmica Especial")}</strong> ({ev_date}) — uma dinâmica que custou estalecas
-    e deu um poder real no jogo. {resultado[:200] if len(resultado) > 200 else resultado}
-    </div>
-    ''')
-
-    if maquina_detail and maquina_detail.get("compras"):
-        compras = maquina_detail["compras"]
-        vencedor = maquina_detail.get("vencedor", "")
-        poder = maquina_detail.get("poder", "")
-
-        emit('<div class="eco-maquina-card">')
-        emit('<h4>🎰 Compras na Máquina</h4>')
-
-        # Show balance changes from the event
-        maquina_bal = [e for e in bal_events
-                       if e["game_date"] == ev_date
-                       and e["type"] in ("punicao", "dinamica")
-                       and any(n in (maquina_event.get("participants_affected", []))
-                               for n in e["changes"])]
-        bal_changes = {}
-        for e in maquina_bal:
-            for n, v in e["changes"].items():
-                if n in maquina_event.get("participants_affected", []):
-                    bal_changes[n] = bal_changes.get(n, 0) + v
-
-        for name, items in compras.items():
-            cost = bal_changes.get(name, 0)
-            cost_str = f' <span style="color:#d73027;">({cost:,} estalecas)</span>' if cost else ""
-            items_str = ", ".join(items) if isinstance(items, list) else str(items)
-            is_winner = name == vencedor
-            winner_badge = ' <span style="color:#f1c40f;">🏆</span>' if is_winner else ""
-            emit(f'''
-            <div class="eco-maquina-item">
-            <span><strong>{name}</strong>{winner_badge}: {items_str}</span>
-            <span>{cost_str}</span>
-            </div>
-            ''')
-
-        if vencedor and poder:
-            emit(f'''
-            <div class="eco-maquina-winner">
-            🏆 {vencedor} — {poder}
-            </div>
-            ''')
-        emit('</div>')
-else:
-    emit('''
-    <div class="eco-narrative eco-narrative--method">
-    Nenhuma dinâmica especial envolvendo estalecas registrada até o momento.
-    </div>
-    ''')
+    emit('</details>')
 ```
 
 # Evolução do Saldo {#evolucao-saldo}
+
+```{python}
+#| label: balance-strip
+#| output: asis
+
+top_gainers = balance_strip.get("top_gainers", [])
+top_losers = balance_strip.get("top_losers", [])
+
+if top_gainers or top_losers:
+    active_set = {p["name"] for p in profiles if p.get("active", True)}
+    emit('<div class="eco-v2-people-strip">')
+    for g in top_gainers:
+        name = g["name"]
+        grupo = MEMBER_OF.get(name, "?")
+        cor = GROUP_COLORS.get(grupo, "#999")
+        av_html = avatar_img(name, AVATARS, size=40, border_color=cor) if AVATARS.get(name) else ""
+        elim_attr = ' data-eliminated' if name not in active_set else ''
+        emit(f'''
+        <div class="eco-v2-person-chip"{elim_attr}>
+        {av_html}
+        <div>
+        <p class="eco-v2-person-name">{name}</p>
+        <p class="eco-v2-person-meta" style="color:#23b26d;">+{g["net"]:,} net</p>
+        </div>
+        </div>
+        ''')
+    for l in reversed(top_losers):
+        name = l["name"]
+        grupo = MEMBER_OF.get(name, "?")
+        cor = GROUP_COLORS.get(grupo, "#999")
+        av_html = avatar_img(name, AVATARS, size=40, border_color=cor) if AVATARS.get(name) else ""
+        elim_attr = ' data-eliminated' if name not in active_set else ''
+        emit(f'''
+        <div class="eco-v2-person-chip eco-v2-person-chip--alert"{elim_attr}>
+        {av_html}
+        <div>
+        <p class="eco-v2-person-name">{name}</p>
+        <p class="eco-v2-person-meta" style="color:#e45555;">{l["net"]:,} net</p>
+        </div>
+        </div>
+        ''')
+    emit('</div>')
+```
 
 📈 **Dado acumulado** — Evolução do saldo de cada participante ao longo do tempo.
 
@@ -638,11 +751,11 @@ if not df_balance.empty:
     fig.show()
 ```
 
-### Ranking
-
 ```{python}
 #| label: ranking-cards
 #| output: asis
+
+emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">Ranking de saldo</summary>')
 
 # All profiles sorted by balance (active first, then eliminated)
 all_profiles = sorted(profiles, key=lambda p: p.get("balance", 0), reverse=True)
@@ -691,9 +804,53 @@ for i, p in enumerate(active_sorted + exited_sorted, 1):
     </div>
     ''')
 emit('</div>')
+emit('</details>')
 ```
 
 # VIP & Xepa {#vip-xepa}
+
+```{python}
+#| label: vip-strip
+#| output: asis
+
+most_vip = vip_strip.get("most_vip", [])
+never_vip_list = vip_strip.get("never_vip", [])
+
+if most_vip or never_vip_list:
+    active_set = {p["name"] for p in profiles if p.get("active", True)}
+    emit('<div class="eco-v2-people-strip">')
+    for v in most_vip:
+        name = v["name"]
+        grupo = MEMBER_OF.get(name, "?")
+        cor = GROUP_COLORS.get(grupo, "#999")
+        av_html = avatar_img(name, AVATARS, size=40, border_color=cor) if AVATARS.get(name) else ""
+        elim_attr = ' data-eliminated' if name not in active_set else ''
+        emit(f'''
+        <div class="eco-v2-person-chip"{elim_attr}>
+        {av_html}
+        <div>
+        <p class="eco-v2-person-name">{name}</p>
+        <p class="eco-v2-person-meta" style="color:#d9b131;">{v["vip_count"]} dias VIP</p>
+        </div>
+        </div>
+        ''')
+    for nv in never_vip_list[:3]:
+        name = nv["name"]
+        grupo = MEMBER_OF.get(name, "?")
+        cor = GROUP_COLORS.get(grupo, "#999")
+        av_html = avatar_img(name, AVATARS, size=40, border_color=cor) if AVATARS.get(name) else ""
+        elim_attr = ' data-eliminated' if name not in active_set else ''
+        emit(f'''
+        <div class="eco-v2-person-chip eco-v2-person-chip--alert"{elim_attr}>
+        {av_html}
+        <div>
+        <p class="eco-v2-person-name">{name}</p>
+        <p class="eco-v2-person-meta">Nunca VIP</p>
+        </div>
+        </div>
+        ''')
+    emit('</div>')
+```
 
 ```{python}
 #| label: vip-narrative
@@ -718,6 +875,8 @@ if leader_periods:
 ```{python}
 #| label: vip-heatmap
 #| output: asis
+
+emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">Tabela VIP/Xepa por período</summary>')
 
 if not leader_periods:
     print("*Nenhum período de liderança registrado.*")
@@ -760,6 +919,7 @@ else:
         emit('</tr>')
 
     emit('</tbody></table></div>')
+emit('</details>')
 ```
 
 ```{python}
@@ -810,6 +970,7 @@ else:
 #| output: asis
 
 if leader_periods:
+    emit('<details class="eco-v2-drill"><summary class="eco-v2-drill-summary">Detalhe por período de liderança</summary>')
     emit('<div style="max-width: 800px; margin: 0 auto;">')
     for i, lp in enumerate(leader_periods):
         leader = lp.get("leader") or "Sem Líder"
@@ -826,6 +987,89 @@ if leader_periods:
         <p><strong>Xepa ({len(lp["xepa"])}):</strong> {", ".join(lp["xepa"])}</p>
         </div></details>''')
     emit('</div>')
+    emit('</details>')
+```
+
+# A Máquina do Poder {#maquina}
+
+```{python}
+#| label: maquina-do-poder
+#| output: asis
+
+# Find Máquina do Poder in special events (dynamic lookup)
+maquina_event = None
+for se in special_events:
+    if se.get("type") == "dinamica" and "quina" in se.get("name", "").lower():
+        maquina_event = se
+        break
+
+if maquina_event:
+    # Also look for detailed data in cycles[] maquina_do_poder
+    cycles_ev = manual_events.get("cycles", [])
+    maquina_detail = None
+    for we in cycles_ev:
+        if we.get("maquina_do_poder"):
+            md = we["maquina_do_poder"]
+            if md.get("date") == maquina_event.get("date"):
+                maquina_detail = md
+                break
+
+    ev_date = maquina_event.get("date", "?")
+    resultado = maquina_event.get("resultado", "")
+
+    emit(f'''
+    <div class="eco-narrative">
+    <strong>⚡ {maquina_event.get("name", "Dinâmica Especial")}</strong> ({ev_date}) — uma dinâmica que custou estalecas
+    e deu um poder real no jogo. {resultado[:200] if len(resultado) > 200 else resultado}
+    </div>
+    ''')
+
+    if maquina_detail and maquina_detail.get("compras"):
+        compras = maquina_detail["compras"]
+        vencedor = maquina_detail.get("vencedor", "")
+        poder = maquina_detail.get("poder", "")
+
+        emit('<div class="eco-maquina-card">')
+        emit('<h4>🎰 Compras na Máquina</h4>')
+
+        # Show balance changes from the event
+        maquina_bal = [e for e in bal_events
+                       if e["game_date"] == ev_date
+                       and e["type"] in ("punicao", "dinamica")
+                       and any(n in (maquina_event.get("participants_affected", []))
+                               for n in e["changes"])]
+        bal_changes = {}
+        for e in maquina_bal:
+            for n, v in e["changes"].items():
+                if n in maquina_event.get("participants_affected", []):
+                    bal_changes[n] = bal_changes.get(n, 0) + v
+
+        for name, items in compras.items():
+            cost = bal_changes.get(name, 0)
+            cost_str = f' <span style="color:#d73027;">({cost:,} estalecas)</span>' if cost else ""
+            items_str = ", ".join(items) if isinstance(items, list) else str(items)
+            is_winner = name == vencedor
+            winner_badge = ' <span style="color:#f1c40f;">🏆</span>' if is_winner else ""
+            emit(f'''
+            <div class="eco-maquina-item">
+            <span><strong>{name}</strong>{winner_badge}: {items_str}</span>
+            <span>{cost_str}</span>
+            </div>
+            ''')
+
+        if vencedor and poder:
+            emit(f'''
+            <div class="eco-maquina-winner">
+            🏆 {vencedor} — {poder}
+            </div>
+            ''')
+        emit('</div>')
+else:
+    emit('''
+    <div class="eco-narrative eco-narrative--method">
+    Nenhuma dinâmica especial envolvendo estalecas registrada até o momento.
+    </div>
+    ''')
 ```
 
 # Metodologia {#metodologia}

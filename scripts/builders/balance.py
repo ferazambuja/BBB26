@@ -136,6 +136,157 @@ def _classify_event(
     return events
 
 
+# ── Punishment severity classification ──────────────────────────────────────
+
+
+def _classify_punishment_severity(delta: int) -> dict:
+    """Classify a punishment delta into a severity tier.
+
+    BBB punishment system is binary: Leve (50 estalecas) and Gravíssima (500).
+    Intermediate values (100, 150, …) are stacked multiples of 50 captured
+    in a single snapshot transition.
+    """
+    abs_val = abs(delta)
+    units = abs_val // 50 if abs_val >= 50 else 0
+    if abs_val >= 500:
+        bucket = "gravissima"
+        label = "Gravíssima"
+    elif abs_val >= 100:
+        bucket = "multipla"
+        label = f"{units}\u00d7 Leve"
+    elif abs_val >= 50:
+        bucket = "leve"
+        label = "Leve"
+    else:
+        bucket = "desconhecido"
+        label = "?"
+    return {
+        "bucket": bucket,
+        "label": label,
+        "raw_amount": delta,
+        "units_of_50": units,
+    }
+
+
+def _build_punishment_deep_dive(
+    merged_events: list[dict],
+    by_participant: dict[str, dict],
+) -> dict:
+    """Build punishment analytics: recent list, who-lost-most, severity summary, tá-com-nada cycles.
+
+    Uses ONLY ``type == "punicao"`` events (formal rule violations).
+    Monstro/dinâmica losses are excluded.
+    """
+    from data_utils import load_roles_daily
+
+    # ── Formal punishments only ──
+    punicao_events = [e for e in merged_events if e["type"] == "punicao"]
+
+    # Flatten into per-person rows
+    all_rows: list[dict] = []
+    formal_by_name: dict[str, dict] = {}
+
+    for ev in punicao_events:
+        for name, delta in ev["changes"].items():
+            if delta >= 0:
+                continue
+            severity = _classify_punishment_severity(delta)
+            all_rows.append({
+                "game_date": ev.get("game_date", ""),
+                "cycle": ev.get("cycle", 0),
+                "name": name,
+                "amount": delta,
+                "severity": severity,
+            })
+            rec = formal_by_name.setdefault(name, {
+                "formal_punishment_total": 0,
+                "formal_punishment_count": 0,
+                "formal_biggest_loss": 0,
+                "severity_breakdown": {"leve": 0, "multipla": 0, "gravissima": 0},
+            })
+            rec["formal_punishment_total"] += delta
+            rec["formal_punishment_count"] += 1
+            rec["formal_biggest_loss"] = min(rec["formal_biggest_loss"], delta)
+            bucket = severity["bucket"]
+            if bucket in rec["severity_breakdown"]:
+                rec["severity_breakdown"][bucket] += 1
+
+    # Recent punishments (max 10, most recent first)
+    all_rows.sort(key=lambda r: r["game_date"], reverse=True)
+    recent_punishments = all_rows[:10]
+
+    # Who lost most (top 5 by formal punishment total)
+    who_lost_most = sorted(
+        [{"name": n, **v} for n, v in formal_by_name.items()],
+        key=lambda x: x["formal_punishment_total"],
+    )[:5]
+
+    # Severity summary
+    severity_summary = {"leve": 0, "multipla": 0, "gravissima": 0}
+    for row in all_rows:
+        bucket = row["severity"]["bucket"]
+        if bucket in severity_summary:
+            severity_summary[bucket] += 1
+
+    # Tá-com-nada cycle analysis (participants with 2+ zero dates)
+    ta_com_nada_analysis: dict[str, dict] = {}
+    for name, rec in by_participant.items():
+        dates = rec.get("ta_com_nada_dates", [])
+        if len(dates) < 2:
+            continue
+        cycles = [get_cycle_number(d) for d in sorted(dates)]
+        gaps = [cycles[i + 1] - cycles[i] for i in range(len(cycles) - 1)]
+        avg_gap = round(sum(gaps) / len(gaps), 1) if gaps else 0
+        ta_com_nada_analysis[name] = {
+            "dates": sorted(dates),
+            "cycles": cycles,
+            "gaps_in_cycles": gaps,
+            "avg_gap": avg_gap,
+        }
+
+    # Balance strip (precomputed top gainers / losers)
+    balance_strip: dict[str, list] = {"top_gainers": [], "top_losers": []}
+    net_list = [
+        {"name": n, "net": rec["total_gained"] + rec["total_lost"]}
+        for n, rec in by_participant.items()
+    ]
+    net_list.sort(key=lambda x: x["net"], reverse=True)
+    balance_strip["top_gainers"] = net_list[:3]
+    balance_strip["top_losers"] = net_list[-3:]
+
+    # VIP strip (precomputed most-VIP / never-VIP)
+    roles_data = load_roles_daily()
+    vip_counts: dict[str, int] = defaultdict(int)
+    all_known_names: set[str] = set()
+    for entry in roles_data.get("daily", []):
+        for vip_name in entry.get("vip", []):
+            vip_counts[vip_name] += 1
+            all_known_names.add(vip_name)
+        for xepa_name in entry.get("xepa", []):
+            all_known_names.add(xepa_name)
+
+    vip_sorted = sorted(
+        [{"name": n, "vip_count": c} for n, c in vip_counts.items()],
+        key=lambda x: x["vip_count"],
+        reverse=True,
+    )
+    never_vip = [{"name": n} for n in sorted(all_known_names - set(vip_counts))]
+
+    vip_strip = {
+        "most_vip": vip_sorted[:3],
+        "never_vip": never_vip,
+    }
+
+    return {
+        "recent_punishments": recent_punishments,
+        "who_lost_most": who_lost_most,
+        "severity_summary": severity_summary,
+        "ta_com_nada_analysis": ta_com_nada_analysis,
+        "balance_strip": balance_strip,
+        "vip_strip": vip_strip,
+    }
+
+
 def _events_should_merge(a: dict, b: dict) -> bool:
     """Check if two events should be merged (same type, overlapping participants, within time window)."""
     if a["type"] != b["type"]:
@@ -322,25 +473,39 @@ def _build_investigation_notes(fairness_events: list[dict]) -> list[dict]:
     return notes
 
 
+def _prepare_latest_compras(fairness_events: list[dict]) -> dict:
+    """Return the last compras event with participants sorted by amount spent (descending)."""
+    if not fairness_events:
+        return {}
+    latest = dict(fairness_events[-1])  # shallow copy
+    participants = latest.get("participants", [])
+    if participants:
+        latest["participants"] = sorted(participants, key=lambda p: abs(p["delta"]), reverse=True)
+    return latest
+
+
 def build_compras_fairness(
     events: list[dict],
     snapshots: list[dict],
     main_by_participant: dict[str, dict],
+    snap_by_stem: dict[str, dict] | None = None,
 ) -> dict:
     """Build compras fairness analysis from balance events.
 
     Computes per-compras participant breakdown, generosity index,
     VIP advantage analysis, and curiosities.
+    Uses pre-event snapshot for VIP/Xepa status (not end-of-day roles_daily).
     """
     from data_utils import load_roles_daily
 
-    # Build snapshot lookup by stem
-    snap_by_stem: dict[str, dict] = {}
-    for snap in snapshots:
-        stem = _snapshot_stem(snap)
-        snap_by_stem[stem] = snap
+    # Build snapshot lookup by stem (reuse if provided)
+    if snap_by_stem is None:
+        snap_by_stem = {}
+        for snap in snapshots:
+            stem = _snapshot_stem(snap)
+            snap_by_stem[stem] = snap
 
-    # Load roles daily for VIP lists
+    # Load roles daily as fallback for VIP lists
     roles_data = load_roles_daily()
     roles_by_date: dict[str, dict] = {}
     for r in roles_data.get("daily", []):
@@ -372,7 +537,16 @@ def build_compras_fairness(
         from_stem = ev.get("from_snapshot", "")
         pre_snap = snap_by_stem.get(from_stem)
         pre_balances = _get_balances(pre_snap["participants"]) if pre_snap else {}
-        vip_set = set(roles_by_date.get(game_date, {}).get("vip", []))
+        # Use VIP status from the pre-compras snapshot (not end-of-day roles_daily)
+        # to correctly attribute compras when Monstro moves someone mid-day.
+        if pre_snap:
+            vip_set = {
+                p.get("name", "").strip()
+                for p in pre_snap["participants"]
+                if p.get("characteristics", {}).get("group") == "Vip"
+            }
+        else:
+            vip_set = set(roles_by_date.get(game_date, {}).get("vip", []))
 
         total_spent = sum(abs(d) for d in ev["changes"].values())
         n_part = len(ev["changes"])
@@ -509,6 +683,7 @@ def build_compras_fairness(
         "by_participant": by_participant,
         "curiosities": curiosities,
         "investigation_notes": investigation_notes,
+        "latest_compras": _prepare_latest_compras(fairness_events),
     }
 
 
@@ -637,10 +812,16 @@ def _reclassify_monstro_anjo_events(events: list[dict]) -> list[dict]:
     return events
 
 
-def _reclassify_mesada_events(events: list[dict]) -> list[dict]:
-    """Validate mesada events against known VIP/Xepa amounts using roles_daily.
+def _reclassify_mesada_events(
+    events: list[dict],
+    snap_by_stem: dict[str, dict] | None = None,
+) -> list[dict]:
+    """Validate mesada events against known VIP/Xepa amounts.
 
-    Cross-references roles_daily.json to:
+    Uses the pre-event snapshot (from_snapshot) to determine VIP/Xepa status
+    at the time of the mesada, falling back to roles_daily if no snapshot available.
+
+    Cross-references to:
     - Reclassify false mesadas (e.g. collective +100 events) → premio_coletivo
     - Enrich valid mesadas with vip_participants, xepa_participants, dirty_deltas
 
@@ -666,10 +847,19 @@ def _reclassify_mesada_events(events: list[dict]) -> list[dict]:
             continue
 
         gd = ev.get("game_date", "")
-        # Skip reclassification if no role data for this date
-        if gd not in roles_by_date:
+        # Use pre-event snapshot for VIP status (avoids mid-day Monstro misattribution)
+        from_stem = ev.get("from_snapshot", "")
+        pre_snap = snap_by_stem.get(from_stem) if snap_by_stem else None
+        if pre_snap:
+            vip_set = {
+                p.get("name", "").strip()
+                for p in pre_snap["participants"]
+                if p.get("characteristics", {}).get("group") == "Vip"
+            }
+        elif gd in roles_by_date:
+            vip_set = roles_by_date[gd]
+        else:
             continue
-        vip_set = roles_by_date[gd]
         changes = ev.get("changes", {})
 
         # Count how many participants match expected VIP/Xepa amounts (within tolerance)
@@ -840,8 +1030,14 @@ def build_balance_events(snapshots: list[dict]) -> dict:
     # Reclassify Monstro/Anjo balance events using auto_events.json
     merged_events = _reclassify_monstro_anjo_events(merged_events)
 
-    # Validate mesada events against VIP/Xepa amounts from roles_daily
-    merged_events = _reclassify_mesada_events(merged_events)
+    # Build snapshot lookup for pre-event VIP/Xepa resolution
+    snap_by_stem: dict[str, dict] = {}
+    for snap in snapshots:
+        stem = _snapshot_stem(snap)
+        snap_by_stem[stem] = snap
+
+    # Validate mesada events against VIP/Xepa amounts
+    merged_events = _reclassify_mesada_events(merged_events, snap_by_stem)
 
     # Build per-participant summary
     by_participant: dict[str, dict] = {}
@@ -910,8 +1106,11 @@ def build_balance_events(snapshots: list[dict]) -> dict:
     }
 
     # Enrich with compras fairness analysis
-    fairness = build_compras_fairness(merged_events, snapshots, by_participant)
+    fairness = build_compras_fairness(merged_events, snapshots, by_participant, snap_by_stem)
     if fairness.get("events"):
         result["compras_fairness"] = fairness
+
+    # Punishment deep dive (formal punicao only)
+    result["punishment_deep_dive"] = _build_punishment_deep_dive(merged_events, by_participant)
 
     return result

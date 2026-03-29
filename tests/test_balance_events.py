@@ -9,6 +9,8 @@ from builders.balance import (
     build_balance_events,
     build_compras_fairness,
     _classify_event,
+    _classify_punishment_severity,
+    _build_punishment_deep_dive,
     _get_balances,
     _events_should_merge,
     _merge_events,
@@ -23,11 +25,11 @@ from builders.balance import (
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
-def _make_participant(name, balance=500):
+def _make_participant(name, balance=500, group="Vip"):
     return {
         "name": name,
         "characteristics": {
-            "group": "Vip",
+            "group": group,
             "memberOf": "Pipoca",
             "balance": balance,
             "roles": [],
@@ -241,9 +243,17 @@ class TestBuildBalanceEvents:
         assert result["events"] == []
 
     def test_detects_mesada(self):
-        names = [f"P{i}" for i in range(10)]
-        snap1 = _make_snap("2026-01-20", [_make_participant(n, 0) for n in names], "2026-01-20_06-00-00")
-        snap2 = _make_snap("2026-01-20", [_make_participant(n, 500) for n in names], "2026-01-20_12-00-00")
+        # Mix of VIP (+1000) and Xepa (+500) participants so mesada reclassifier matches
+        vip_names = [f"V{i}" for i in range(5)]
+        xepa_names = [f"X{i}" for i in range(5)]
+        snap1 = _make_snap("2026-01-20", [
+            *[_make_participant(n, 0, group="Vip") for n in vip_names],
+            *[_make_participant(n, 0, group="Xepa") for n in xepa_names],
+        ], "2026-01-20_06-00-00")
+        snap2 = _make_snap("2026-01-20", [
+            *[_make_participant(n, 1000, group="Vip") for n in vip_names],
+            *[_make_participant(n, 500, group="Xepa") for n in xepa_names],
+        ], "2026-01-20_12-00-00")
         result = build_balance_events([snap1, snap2])
         types = [e["type"] for e in result["events"]]
         assert "mesada" in types
@@ -419,18 +429,18 @@ class TestComprasFairnessPerCapita:
             _make_snap(
                 "2026-02-01",
                 [
-                    _make_participant("Alice", 1000),
-                    _make_participant("Bob", 1000),
-                    _make_participant("Carol", 1000),
+                    _make_participant("Alice", 1000, group="Vip"),
+                    _make_participant("Bob", 1000, group="Vip"),
+                    _make_participant("Carol", 1000, group="Xepa"),
                 ],
                 "2026-02-01_12-00-00",
             ),
             _make_snap(
                 "2026-02-08",
                 [
-                    _make_participant("Alice", 900),
-                    _make_participant("Bob", 900),
-                    _make_participant("Carol", 750),
+                    _make_participant("Alice", 900, group="Vip"),
+                    _make_participant("Bob", 900, group="Vip"),
+                    _make_participant("Carol", 750, group="Xepa"),
                 ],
                 "2026-02-08_12-00-00",
             ),
@@ -588,3 +598,220 @@ class TestReclassifyDinamicaEvents:
         ]
         result = _reclassify_dinamica_events(events)
         assert result[0]["type"] == "mesada"
+
+
+# ─── Punishment Deep Dive ────────────────────────────────────────────────
+
+
+class TestPunishmentSeverity:
+    def test_severity_50(self):
+        r = _classify_punishment_severity(-50)
+        assert r["bucket"] == "leve"
+        assert r["label"] == "Leve"
+        assert r["units_of_50"] == 1
+        assert r["raw_amount"] == -50
+
+    def test_severity_100(self):
+        r = _classify_punishment_severity(-100)
+        assert r["bucket"] == "multipla"
+        assert r["label"] == "2\u00d7 Leve"
+        assert r["units_of_50"] == 2
+
+    def test_severity_500(self):
+        r = _classify_punishment_severity(-500)
+        assert r["bucket"] == "gravissima"
+        assert r["label"] == "Gravíssima"
+        assert r["units_of_50"] == 10
+
+    def test_severity_550_preserves_raw(self):
+        r = _classify_punishment_severity(-550)
+        assert r["bucket"] == "gravissima"
+        assert r["units_of_50"] == 11
+        assert r["raw_amount"] == -550
+
+    def test_severity_700_preserves_raw(self):
+        r = _classify_punishment_severity(-700)
+        assert r["bucket"] == "gravissima"
+        assert r["units_of_50"] == 14
+        assert r["raw_amount"] == -700
+
+    def test_severity_below_50(self):
+        r = _classify_punishment_severity(-30)
+        assert r["bucket"] == "desconhecido"
+        assert r["units_of_50"] == 0
+
+
+class TestPunishmentDeepDive:
+    def _make_events(self):
+        """Create a mix of punicao, compras, and monstro events."""
+        return [
+            {
+                "type": "punicao", "game_date": "2026-01-14", "cycle": 1,
+                "changes": {"Alice": -50, "Bob": -100},
+            },
+            {
+                "type": "punicao", "game_date": "2026-01-20", "cycle": 2,
+                "changes": {"Alice": -500},
+            },
+            {
+                "type": "compras", "game_date": "2026-01-21", "cycle": 2,
+                "changes": {"Alice": -200, "Bob": -300, "Carol": -250},
+            },
+            {
+                "type": "monstro", "game_date": "2026-01-22", "cycle": 2,
+                "changes": {"Bob": -300},
+            },
+            {
+                "type": "punicao", "game_date": "2026-02-01", "cycle": 3,
+                "changes": {"Carol": -50},
+            },
+        ]
+
+    def _make_by_participant(self):
+        return {
+            "Alice": {
+                "total_gained": 2000, "total_lost": -750,
+                "n_punicoes": 3, "n_premios": 0,
+                "biggest_loss": -500, "biggest_gain": 1000,
+                "ta_com_nada_dates": ["2026-01-20", "2026-02-05", "2026-03-10"],
+            },
+            "Bob": {
+                "total_gained": 1500, "total_lost": -700,
+                "n_punicoes": 2, "n_premios": 0,
+                "biggest_loss": -300, "biggest_gain": 500,
+                "ta_com_nada_dates": [],
+            },
+            "Carol": {
+                "total_gained": 1000, "total_lost": -300,
+                "n_punicoes": 1, "n_premios": 0,
+                "biggest_loss": -250, "biggest_gain": 500,
+                "ta_com_nada_dates": ["2026-02-01"],
+            },
+        }
+
+    def test_who_lost_most_punicao_only(self, monkeypatch):
+        """who_lost_most must only count type=punicao, not compras or monstro."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {"daily": []})
+        result = _build_punishment_deep_dive(self._make_events(), self._make_by_participant())
+        wlm = {r["name"]: r for r in result["who_lost_most"]}
+        # Alice: -50 + -500 = -550 (punicao only)
+        assert wlm["Alice"]["formal_punishment_total"] == -550
+        assert wlm["Alice"]["formal_punishment_count"] == 2
+        assert wlm["Alice"]["formal_biggest_loss"] == -500
+        # Bob: -100 (punicao only, NOT -300 monstro)
+        assert wlm["Bob"]["formal_punishment_total"] == -100
+        assert wlm["Bob"]["formal_punishment_count"] == 1
+        # Carol: -50 (punicao only, NOT -250 compras)
+        assert wlm["Carol"]["formal_punishment_total"] == -50
+
+    def test_recent_max_10(self, monkeypatch):
+        """recent_punishments must cap at 10."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {"daily": []})
+        events = [
+            {"type": "punicao", "game_date": f"2026-01-{d:02d}", "cycle": 1,
+             "changes": {"Alice": -50}}
+            for d in range(1, 16)  # 15 events
+        ]
+        result = _build_punishment_deep_dive(events, {})
+        assert len(result["recent_punishments"]) == 10
+
+    def test_recent_sorted_desc(self, monkeypatch):
+        """recent_punishments must be sorted by date descending."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {"daily": []})
+        result = _build_punishment_deep_dive(self._make_events(), self._make_by_participant())
+        dates = [r["game_date"] for r in result["recent_punishments"]]
+        assert dates == sorted(dates, reverse=True)
+
+    def test_severity_summary(self, monkeypatch):
+        """severity_summary must count by bucket across all rows."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {"daily": []})
+        result = _build_punishment_deep_dive(self._make_events(), self._make_by_participant())
+        ss = result["severity_summary"]
+        # Event 1: Alice -50 (leve), Bob -100 (multipla)
+        # Event 2: Alice -500 (gravissima)
+        # Event 5: Carol -50 (leve)
+        # Total: 2 leve, 1 multipla, 1 gravissima
+        assert ss["leve"] == 2
+        assert ss["multipla"] == 1
+        assert ss["gravissima"] == 1
+
+    def test_ta_com_nada_cycles(self, monkeypatch):
+        """ta_com_nada_analysis must compute cycle gaps for participants with 2+ zeros."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {"daily": []})
+        # Mock get_cycle_number to return simple values
+        import builders.balance as bal_mod
+        orig_gcn = bal_mod.get_cycle_number
+        cycle_map = {"2026-01-20": 2, "2026-02-05": 4, "2026-03-10": 7}
+        monkeypatch.setattr(bal_mod, "get_cycle_number", lambda d: cycle_map.get(d, orig_gcn(d)))
+
+        result = _build_punishment_deep_dive(self._make_events(), self._make_by_participant())
+        tcn = result["ta_com_nada_analysis"]
+        # Alice has 3 dates → 2 gaps
+        assert "Alice" in tcn
+        assert tcn["Alice"]["cycles"] == [2, 4, 7]
+        assert tcn["Alice"]["gaps_in_cycles"] == [2, 3]
+        assert tcn["Alice"]["avg_gap"] == 2.5
+        # Bob has 0 dates → not in analysis
+        assert "Bob" not in tcn
+        # Carol has 1 date → not in analysis (needs 2+)
+        assert "Carol" not in tcn
+
+    def test_stable_empty_shape(self, monkeypatch):
+        """With no punishment events, all keys must be present with empty values."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {"daily": []})
+        result = _build_punishment_deep_dive([], {})
+        assert result["recent_punishments"] == []
+        assert result["who_lost_most"] == []
+        assert result["severity_summary"] == {"leve": 0, "multipla": 0, "gravissima": 0}
+        assert result["ta_com_nada_analysis"] == {}
+        assert result["balance_strip"] == {"top_gainers": [], "top_losers": []}
+        assert result["vip_strip"] == {"most_vip": [], "never_vip": []}
+
+    def test_balance_strip_precomputed(self, monkeypatch):
+        """balance_strip must have top 3 gainers and bottom 3 losers."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {"daily": []})
+        result = _build_punishment_deep_dive([], self._make_by_participant())
+        strip = result["balance_strip"]
+        # Alice: 2000 + -750 = 1250, Bob: 1500 + -700 = 800, Carol: 1000 + -300 = 700
+        assert strip["top_gainers"][0]["name"] == "Alice"
+        assert strip["top_gainers"][0]["net"] == 1250
+        assert strip["top_losers"][-1]["name"] == "Carol"
+        assert strip["top_losers"][-1]["net"] == 700
+
+    def test_vip_strip_precomputed(self, monkeypatch):
+        """vip_strip must count VIP appearances and list never-VIP participants."""
+        monkeypatch.setattr("data_utils.load_roles_daily", lambda: {
+            "daily": [
+                {"date": "2026-01-14", "vip": ["Alice", "Bob"], "xepa": ["Carol"]},
+                {"date": "2026-01-15", "vip": ["Alice"], "xepa": ["Bob", "Carol"]},
+            ]
+        })
+        result = _build_punishment_deep_dive([], {})
+        vs = result["vip_strip"]
+        assert vs["most_vip"][0]["name"] == "Alice"
+        assert vs["most_vip"][0]["vip_count"] == 2
+        assert any(p["name"] == "Carol" for p in vs["never_vip"])
+
+    def test_latest_compras_in_fairness(self, monkeypatch):
+        """compras_fairness must include latest_compras pointing to last event."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": [{"date": "2026-02-01", "vip": ["Alice"]}]},
+        )
+        snapshots = [
+            _make_snap("2026-02-01",
+                       [_make_participant("Alice", 1000), _make_participant("Bob", 500)],
+                       "2026-02-01_12-00-00"),
+            _make_snap("2026-02-08",
+                       [_make_participant("Alice", 800), _make_participant("Bob", 300)],
+                       "2026-02-08_12-00-00"),
+        ]
+        events = [{
+            "type": "compras", "game_date": "2026-02-01", "cycle": 3,
+            "from_snapshot": "2026-02-01_12-00-00",
+            "changes": {"Alice": -200, "Bob": -200},
+        }]
+        fairness = build_compras_fairness(events, snapshots, {})
+        assert "latest_compras" in fairness
+        assert fairness["latest_compras"]["game_date"] == "2026-02-01"
+        assert "house_per_capita_spent" in fairness["latest_compras"]
