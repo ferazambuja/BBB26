@@ -1235,8 +1235,15 @@ systemd timer (every 15 min)
 4. When Votalhada publishes the post (formation day or next morning), images are captured and Codex extracts values
 5. Each subsequent Votalhada update is captured, validated, and processed automatically through the voting window
 6. **Auto-stop**: once the current time passes `hora_eliminacao` + 3h buffer, the scheduler stops fetching Votalhada images for that paredão. For standard cycles (23:00 default), this means ~02:00 BRT next day. For turbo cycles (e.g., 14:55), this means ~18:00 BRT same day
+7. **Auto-restart**: when the next paredão is created with `status: "em_andamento"`, `_get_active_paredao()` detects it and collection resumes automatically. No manual intervention needed between paredões. The lifecycle is: **formation → auto-start → polling every 15 min → auto-stop at hora_eliminacao + 3h → wait → next formation → auto-start**
 
-**Pipeline**: Codex (gpt-5.4) extracts → deterministic validation (platform sums, CPF total, ESTIMATIVA formula, monotonic series) → Claude Opus verifies → apply to polls.json. Legacy Claude-as-extractor kept as fallback.
+**Self-healing** (added after P11 outage):
+- **Pull-first cycle**: `git pull` runs at the START of each cycle, before any data writes. Eliminates stash/stash-pop conflicts entirely.
+- **Pre-commit JSON guard**: validates `polls.json` and `paredoes.json` before `git add`. If corrupt, auto-heals from git history.
+- **Dedup gate with retry**: uses `tmp/votalhada_last_applied.json` marker. If extraction succeeded but apply failed (validation error), retries on next cycle.
+- **Cross-validation**: Card 5 ESTIMATIVA ↔ Card 6 last row cross-check + historical row immutability across captures.
+
+**Pipeline**: Codex (gpt-5.4) extracts → deterministic validation (platform sums, CPF total, ESTIMATIVA cross-check, monotonic series, history immutability) → Claude Opus verifies → apply to polls.json. Legacy Claude-as-extractor kept as fallback.
 
 **Votalhada card validation math** (used to catch extraction errors):
 - Platform percentages sum ~100 per platform

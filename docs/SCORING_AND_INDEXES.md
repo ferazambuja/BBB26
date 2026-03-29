@@ -969,8 +969,8 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Scope | Count | Definition |
 |---|---|---|
 | `with_indicados` | 11 | Paredões com indicados_finais |
-| `all_finalized` | 10 | Finalizados (inclui falso) |
-| `real_only` | 9 | Finalizados reais (exclui falso) |
+| `all_finalized` | 11 | Finalizados (inclui falso) |
+| `real_only` | 10 | Finalizados reais (exclui falso) |
 
 ### Paredão Matrix
 
@@ -986,15 +986,15 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P8 | Babu Santana, Chaiany, Milena | Babu Santana | 68.62% | Não | finalizado |
 | P9 | Ana Paula Renault, Breno, Leandro | Breno | 58.96% | Não | finalizado |
 | P10 | Jordana, Juliano Floss, Jonas Sulzbach, Gabriela | Jonas Sulzbach | 53.48% | Não | finalizado |
-| P11 | Alberto Cowboy, Jordana, Leandro | — | — | Não | em_andamento |
+| P11 | Alberto Cowboy, Jordana, Leandro | Alberto Cowboy | 67.95% | Não | finalizado |
 
 ### Route Effectiveness (`real_only`)
 
 | Route | Eliminated | Total | Rate |
 |---|---|---|---|
-| Casa | 2 | 6 | 33.3% |
+| Casa | 2 | 7 | 28.6% |
 | Contragolpe | 2 | 5 | 40.0% |
-| Líder | 3 | 9 | 33.3% |
+| Líder | 4 | 10 | 40.0% |
 | Big Fone | Sim (n=1) | 1 | — |
 | Bloco do Paredão | Não (n=1) | 1 | — |
 | Caixas-Surpresa | Não (n=1) | 1 | — |
@@ -1002,14 +1002,15 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Dinâmica (Grupo Pedra) | Não (n=1) | 1 | — |
 | Dinâmica (Grupo Tesoura) | Não (n=1) | 1 | — |
 | Duelo de Risco | Não (n=1) | 1 | — |
+| Voto de Minerva (empate 2×2) | Não (n=1) | 1 | — |
 
-**First-timer elimination rate** (`real_only`): 7/9 = 77.8%
+**First-timer elimination rate** (`real_only`): 8/10 = 80.0%
 
 ### Bate-e-Volta Metrics (`real_only`)
 
 | Metric | n | Total | Rate |
 |---|---|---|---|
-| Paredões com BV | 8 | 9 | 88.9% |
+| Paredões com BV | 8 | 10 | 80.0% |
 | Vencedores que escaparam | 10 | 10 | 100.0% |
 | Perdedores que sobreviveram | 9 | 14 | 64.3% |
 | Perdedores eliminados | 5 | 14 | 35.7% |
@@ -1021,7 +1022,7 @@ Total BV participants: **24**
 - **Biggest swing**: Brigido — 4.97% (P2) → 77.88% (P3) = 72.91 p.p.
 - **BV champion**: Alberto Cowboy (3x)
 - **Líder favorite target**: Milena (3x)
-- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra)
+- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2)
 
 ### Fake Paredão Handling
 

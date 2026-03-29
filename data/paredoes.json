@@ -1543,7 +1543,7 @@
     },
     {
       "numero": 11,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-03-29",
       "hora_eliminacao": "14:55",
       "data_formacao": "2026-03-27",
@@ -1581,6 +1581,14 @@
         "Gabriela": "Leandro",
         "Chaiany": "Jordana"
       },
+      "resultado": {
+        "eliminado": "Alberto Cowboy",
+        "votos": {
+          "Alberto Cowboy": {"voto_unico": 65.76, "voto_torcida": 73.07, "voto_total": 67.95},
+          "Leandro": {"voto_unico": 30.20, "voto_torcida": 25.32, "voto_total": 28.74},
+          "Jordana": {"voto_unico": 4.04, "voto_torcida": 1.61, "voto_total": 3.31}
+        }
+      },
       "fontes": [
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-ana-paula-renault-vence-a-11a-disputa.ghtml",
@@ -1591,6 +1599,11 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-11-paredao-do-bbb-26-alberto-cowboy-jordana-e-leandro-formam-a-berlinda.ghtml",
           "arquivo": "docs/scraped/quem-esta-no-11-paredao-do-bbb-26-alberto-cowboy-jordana-e-leandro-formam-a-berlinda.md",
           "titulo": "Quem está no 11° Paredão do BBB 26? Alberto Cowboy, Jordana e Leandro formam a berlinda"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-alberto-cowboy-e-o-decimo-eliminado-do-reality.ghtml",
+          "arquivo": "docs/scraped/quem-saiu-do-bbb-26-alberto-cowboy-e-o-decimo-eliminado-do-reality.md",
+          "titulo": "Quem saiu do BBB 26? Alberto Cowboy é o décimo eliminado do reality"
         }
       ],
       "cycle": 11

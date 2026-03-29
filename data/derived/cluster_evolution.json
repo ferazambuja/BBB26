@@ -1,8 +1,8 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-29T18:02:19.987819+00:00",
+    "generated_at": "2026-03-29T22:41:12.808670+00:00",
     "n_cycles": 12,
-    "total_transitions": 64
+    "total_transitions": 74
   },
   "timeline": [
     {
@@ -1967,14 +1967,14 @@
     {
       "date": "2026-03-29",
       "cycle": 12,
-      "n_active": 11,
-      "n_clusters": 11,
+      "n_active": 10,
+      "n_clusters": 10,
       "silhouette": null,
       "communities": [
         {
           "label": 1,
           "members": [
-            "Alberto Cowboy"
+            "Ana Paula Renault"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1983,7 +1983,7 @@
         {
           "label": 2,
           "members": [
-            "Ana Paula Renault"
+            "Chaiany"
           ],
           "size": 1,
           "cohesion": 0,
@@ -1992,7 +1992,7 @@
         {
           "label": 3,
           "members": [
-            "Chaiany"
+            "Gabriela"
           ],
           "size": 1,
           "cohesion": 0,
@@ -2001,7 +2001,7 @@
         {
           "label": 4,
           "members": [
-            "Gabriela"
+            "Jordana"
           ],
           "size": 1,
           "cohesion": 0,
@@ -2010,7 +2010,7 @@
         {
           "label": 5,
           "members": [
-            "Jordana"
+            "Juliano Floss"
           ],
           "size": 1,
           "cohesion": 0,
@@ -2019,7 +2019,7 @@
         {
           "label": 6,
           "members": [
-            "Juliano Floss"
+            "Leandro"
           ],
           "size": 1,
           "cohesion": 0,
@@ -2028,7 +2028,7 @@
         {
           "label": 7,
           "members": [
-            "Leandro"
+            "Marciele"
           ],
           "size": 1,
           "cohesion": 0,
@@ -2037,7 +2037,7 @@
         {
           "label": 8,
           "members": [
-            "Marciele"
+            "Milena"
           ],
           "size": 1,
           "cohesion": 0,
@@ -2046,7 +2046,7 @@
         {
           "label": 9,
           "members": [
-            "Milena"
+            "Samira"
           ],
           "size": 1,
           "cohesion": 0,
@@ -2055,23 +2055,65 @@
         {
           "label": 10,
           "members": [
-            "Samira"
-          ],
-          "size": 1,
-          "cohesion": 0,
-          "color": "#2ecc71"
-        },
-        {
-          "label": 11,
-          "members": [
             "Solange Couto"
           ],
           "size": 1,
           "cohesion": 0,
-          "color": "#f39c12"
+          "color": "#2ecc71"
         }
       ],
-      "transitions": []
+      "transitions": [
+        {
+          "name": "Ana Paula Renault",
+          "from_cluster": 2,
+          "to_cluster": 1
+        },
+        {
+          "name": "Chaiany",
+          "from_cluster": 3,
+          "to_cluster": 2
+        },
+        {
+          "name": "Gabriela",
+          "from_cluster": 4,
+          "to_cluster": 3
+        },
+        {
+          "name": "Jordana",
+          "from_cluster": 5,
+          "to_cluster": 4
+        },
+        {
+          "name": "Juliano Floss",
+          "from_cluster": 6,
+          "to_cluster": 5
+        },
+        {
+          "name": "Leandro",
+          "from_cluster": 7,
+          "to_cluster": 6
+        },
+        {
+          "name": "Marciele",
+          "from_cluster": 8,
+          "to_cluster": 7
+        },
+        {
+          "name": "Milena",
+          "from_cluster": 9,
+          "to_cluster": 8
+        },
+        {
+          "name": "Samira",
+          "from_cluster": 10,
+          "to_cluster": 9
+        },
+        {
+          "name": "Solange Couto",
+          "from_cluster": 11,
+          "to_cluster": 10
+        }
+      ]
     }
   ],
   "all_transitions": [
@@ -2522,28 +2564,98 @@
       "to_cluster": 11,
       "cycle": 10,
       "date": "2026-03-25"
+    },
+    {
+      "name": "Ana Paula Renault",
+      "from_cluster": 2,
+      "to_cluster": 1,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Chaiany",
+      "from_cluster": 3,
+      "to_cluster": 2,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Gabriela",
+      "from_cluster": 4,
+      "to_cluster": 3,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Jordana",
+      "from_cluster": 5,
+      "to_cluster": 4,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Juliano Floss",
+      "from_cluster": 6,
+      "to_cluster": 5,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Leandro",
+      "from_cluster": 7,
+      "to_cluster": 6,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Marciele",
+      "from_cluster": 8,
+      "to_cluster": 7,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Milena",
+      "from_cluster": 9,
+      "to_cluster": 8,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Samira",
+      "from_cluster": 10,
+      "to_cluster": 9,
+      "cycle": 12,
+      "date": "2026-03-29"
+    },
+    {
+      "name": "Solange Couto",
+      "from_cluster": 11,
+      "to_cluster": 10,
+      "cycle": 12,
+      "date": "2026-03-29"
     }
   ],
   "most_mobile": [
     {
       "name": "Solange Couto",
-      "moves": 8
+      "moves": 9
     },
     {
       "name": "Milena",
-      "moves": 7
+      "moves": 8
     },
     {
       "name": "Samira",
-      "moves": 7
+      "moves": 8
     },
     {
       "name": "Jordana",
-      "moves": 5
+      "moves": 6
     },
     {
       "name": "Juliano Floss",
-      "moves": 5
+      "moves": 6
     }
   ]
 }
