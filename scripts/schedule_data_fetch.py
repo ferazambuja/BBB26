@@ -38,11 +38,12 @@ FETCH_SCRIPT = REPO_ROOT / "scripts" / "fetch_data.py"
 VOTALHADA_SCRIPT = REPO_ROOT / "scripts" / "fetch_votalhada_images.py"
 PAREDOES_JSON = REPO_ROOT / "data" / "paredoes.json"
 VOTALHADA_CODEX_EXTRACT = REPO_ROOT / "deploy" / "votalhada_codex_extract.sh"
-VOTALHADA_VALIDATE_APPLY = REPO_ROOT / "deploy" / "votalhada_validate_apply.py"
+VOTALHADA_VALIDATE_APPLY = REPO_ROOT / "scripts" / "votalhada_validate_apply.py"
 VOTALHADA_CLAUDE_VERIFY = REPO_ROOT / "deploy" / "votalhada_claude_verify.sh"
 # Legacy (kept for reference)
 VOTALHADA_CLAUDE_SCRIPT = REPO_ROOT / "deploy" / "votalhada_claude_update.sh"
 VOTALHADA_CODEX_VERIFY = REPO_ROOT / "deploy" / "votalhada_codex_verify.sh"
+LAST_APPLIED = REPO_ROOT / "tmp" / "votalhada_last_applied.json"
 
 
 def _format_dt(dt: datetime) -> str:
@@ -264,6 +265,19 @@ def _votalhada_capture_complete(paredao_num: int) -> bool:
     return now_brt > elim_dt + timedelta(hours=3)
 
 
+def _should_extract(paredao_num: int) -> bool:
+    """True if extraction should run (new images, failed apply, or no marker)."""
+    extraction = REPO_ROOT / "tmp" / "votalhada_extraction.json"
+    if not extraction.exists():
+        return True
+    if not LAST_APPLIED.exists():
+        return True
+    # Extraction is newer than last apply → extraction succeeded but apply failed
+    if extraction.stat().st_mtime > LAST_APPLIED.stat().st_mtime:
+        return True
+    return False
+
+
 def _fetch_votalhada(paredao_num: int) -> bool:
     """Fetch Votalhada images for the given paredão. Returns True if new images saved."""
     rc = _run_cmd(
@@ -282,6 +296,9 @@ def _poll_once(args: argparse.Namespace) -> dict:
     """Run one poll cycle. Returns status dict."""
     result = {"fetched": False, "data_changed": False, "built": False, "pushed": False, "deployed": False,
               "votalhada_fetched": False}
+
+    # 0. Pull first — clean state, no stash conflicts possible
+    _run_cmd(["git", "pull", "--rebase", "origin", "main"], "git-pull")
 
     # 1. Fetch
     rc = _run_cmd([sys.executable, str(FETCH_SCRIPT), "--fetch-only"], "fetch")
@@ -317,8 +334,10 @@ def _poll_once(args: argparse.Namespace) -> dict:
             print("[poll] No active paredão — skipping Votalhada fetch.")
 
     # 2c. Auto-update polls.json: Codex extracts → validate → Claude verifies → apply
-    if args.votalhada_auto_update and result["votalhada_fetched"]:
-        paredao_num = _get_active_paredao()
+    active_paredao = _get_active_paredao()
+    should_extract = result["votalhada_fetched"] or (active_paredao and _should_extract(active_paredao))
+    if args.votalhada_auto_update and should_extract:
+        paredao_num = active_paredao
         images_dir = str(REPO_ROOT / "data" / "votalhada" / _get_votalhada_folder(paredao_num)) if paredao_num else ""
 
         if paredao_num and VOTALHADA_CODEX_EXTRACT.exists():
@@ -360,6 +379,12 @@ def _poll_once(args: argparse.Namespace) -> dict:
                         )
                         if arc == 0 and _has_git_changes("data/votalhada/polls.json"):
                             result["votalhada_updated"] = True
+                            # Write "last applied" marker so dedup gate doesn't re-extract
+                            LAST_APPLIED.parent.mkdir(parents=True, exist_ok=True)
+                            LAST_APPLIED.write_text(json.dumps({
+                                "paredao": paredao_num,
+                                "applied_at": datetime.now(timezone.utc).isoformat(),
+                            }))
                             print(f"[poll] polls.json updated for P{paredao_num} (Codex→validate→apply)!")
                         else:
                             print("[poll] Apply produced no changes.")
@@ -389,16 +414,15 @@ def _poll_once(args: argparse.Namespace) -> dict:
         if rc != 0:
             print("[poll] Build failed — committing snapshot only.")
 
-    # 4. Git commit + push
-    # Stash any unexpected unstaged changes before pull (safety net for revert leftovers)
-    _run_cmd(["git", "stash", "--quiet"], "git-stash")
-    _run_cmd(["git", "pull", "--rebase", "origin", "main"], "git-pull")
-    stash_rc = _run_cmd(["git", "stash", "pop", "--quiet"], "git-stash-pop")
-    # If stash pop left conflict markers, resolve by taking the pulled version
-    if stash_rc != 0:
-        print("[poll] Stash pop had conflicts — resolving with pulled version.")
-        _run_cmd(["git", "checkout", "--theirs", "."], "git-resolve-conflicts")
-        _run_cmd(["git", "add", "."], "git-add-resolved")
+    # 4. Git commit + push (pull already happened at top of cycle)
+    # Validate critical JSON files before staging
+    for critical_json in [POLLS_JSON, PAREDOES_JSON]:
+        if critical_json.exists():
+            try:
+                json.loads(critical_json.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                print(f"[poll] {critical_json.name} corrupt before commit — healing.")
+                _heal_corrupt_json(critical_json, critical_json.name)
 
     # Stage files
     add_paths = ["data/snapshots/", "data/latest.json"]
