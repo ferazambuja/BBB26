@@ -42,7 +42,6 @@ VOTALHADA_VALIDATE_APPLY = REPO_ROOT / "scripts" / "votalhada_validate_apply.py"
 VOTALHADA_CLAUDE_VERIFY = REPO_ROOT / "deploy" / "votalhada_claude_verify.sh"
 # Legacy (kept for reference)
 VOTALHADA_CLAUDE_SCRIPT = REPO_ROOT / "deploy" / "votalhada_claude_update.sh"
-VOTALHADA_CODEX_VERIFY = REPO_ROOT / "deploy" / "votalhada_codex_verify.sh"
 LAST_APPLIED = REPO_ROOT / "tmp" / "votalhada_last_applied.json"
 
 
@@ -271,6 +270,13 @@ def _should_extract(paredao_num: int) -> bool:
     if not extraction.exists():
         return True
     if not LAST_APPLIED.exists():
+        return True
+    # Check marker is for the CURRENT paredao (not a previous one)
+    try:
+        marker = json.loads(LAST_APPLIED.read_text(encoding="utf-8"))
+        if marker.get("paredao") != paredao_num:
+            return True  # New paredao — must extract
+    except (json.JSONDecodeError, OSError):
         return True
     # Extraction is newer than last apply → extraction succeeded but apply failed
     if extraction.stat().st_mtime > LAST_APPLIED.stat().st_mtime:

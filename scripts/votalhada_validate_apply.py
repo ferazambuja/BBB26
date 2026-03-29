@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -42,9 +43,11 @@ def validate(ext: dict, participants: list[str]) -> tuple[list[str], list[str]]:
     """Validate extraction. Returns (errors, warnings)."""
     errors = []
     warnings = []
-    short_to_full = {}
+    short_to_full: dict[str, str] = {}
     for name in participants:
         short = name.split()[0]
+        if short in short_to_full:
+            raise ValueError(f"Duplicate short name '{short}': {short_to_full[short]} and {name}")
         short_to_full[short] = name
 
     # 1. Platform sums ~100
@@ -193,8 +196,12 @@ def apply_to_polls(ext: dict, paredao_num: int, participants: list[str]) -> None
             month_map = {"jan": "01", "fev": "02", "mar": "03", "abr": "04", "mai": "05",
                          "jun": "06", "jul": "07", "ago": "08", "set": "09", "out": "10",
                          "nov": "11", "dez": "12"}
-            mm = month_map.get(mon, "03")
-            p["data_coleta"] = f"2026-{mm}-{day.zfill(2)}T{card_hora}:00-03:00"
+            mm = month_map.get(mon)
+            if not mm:
+                print(f"[validate] WARNING: unrecognized month '{mon}' — skipping data_coleta")
+            else:
+                year = datetime.now().year
+                p["data_coleta"] = f"{year}-{mm}-{day.zfill(2)}T{card_hora}:00-03:00"
 
     # Add image paths
     # (handled by the scheduler, not here)
