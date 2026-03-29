@@ -220,10 +220,13 @@ def _collect_timeline_auto_events(
     # This ensures saida events land on the paredão night (Tue), not the
     # next-morning API detection date (often Wed).
     _paredao_exit_date: dict[str, str] = {}
+    _paredao_exit_cycle: dict[str, int] = {}
     for _pe in manual_events.get("_paredoes_raw", {}).get("paredoes", []):
         _elim = (_pe.get("resultado") or {}).get("eliminado")
         if _elim and _pe.get("data"):
             _paredao_exit_date[_elim] = _pe["data"]
+            if _pe.get("cycle"):
+                _paredao_exit_cycle[_elim] = _pe["cycle"]
     # Also use manual exit_date when available (desistentes, desclassificados).
     for _name, _info in participant_details.items():
         if _info.get("exit_date"):
@@ -241,7 +244,8 @@ def _collect_timeline_auto_events(
         for name in rec.get("missing", []):
             # Use paredão date or manual exit_date when available.
             date = _paredao_exit_date.get(name, det_date)
-            week = get_cycle_number(date)
+            # Use paredão's explicit cycle (handles same-day cross-cycle events)
+            week = _paredao_exit_cycle.get(name) or get_cycle_number(date)
             info = participant_details.get(name, {})
             status = info.get("status", "saiu")
             reason = info.get("exit_reason", "")
@@ -778,7 +782,8 @@ def _collect_timeline_paredao_events(
         resultado = p.get("resultado", {})
         data_elim = p.get("data", "")
         if resultado and data_elim:
-            r_week = get_cycle_number(data_elim)
+            # Use paredão's explicit cycle (handles same-day cross-cycle events)
+            r_week = p.get("cycle") or get_cycle_number(data_elim)
             eliminado = resultado.get("eliminado", "")
             votos = resultado.get("votos", {})
             pct = ""
@@ -915,8 +920,9 @@ def _merge_and_dedup_timeline(
         )
     ]
 
-    # --- Sort by date, then by chronological category priority ---
-    events.sort(key=lambda e: (e.get("date", ""), CATEGORY_ORDER.get(e.get("category", ""), 99)))
+    # --- Sort by date, then by cycle (lower cycle first on same day), then by category ---
+    # Cycle-aware sort handles cross-cycle days (e.g., P11 result afternoon + P12 Líder evening)
+    events.sort(key=lambda e: (e.get("date", ""), e.get("cycle", 99), CATEGORY_ORDER.get(e.get("category", ""), 99)))
 
     # Deduplicate: same date + category + same title → keep first
     seen: set[tuple[str, str, str]] = set()
