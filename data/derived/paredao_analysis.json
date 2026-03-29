@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-03-29T14:30:19.560790+00:00",
+    "generated_at": "2026-03-29T14:45:56.151662+00:00",
     "source": "snapshots+paredoes+manual_events"
   },
   "by_paredao": {
@@ -12274,7 +12274,7 @@
           {
             "nome": "Alberto Cowboy",
             "sentimento": 0.5,
-            "rank": 7,
+            "rank": 8,
             "delta_3d": "≈ +0.0",
             "dias_top5": 6,
             "dias_bottom5": 45,
@@ -12283,23 +12283,23 @@
           },
           {
             "nome": "Jordana",
-            "sentimento": -1.0,
+            "sentimento": 0.5,
             "rank": 9,
-            "delta_3d": "▼ -1.0",
+            "delta_3d": "≈ +0.5",
             "dias_top5": 5,
             "dias_bottom5": 44,
-            "dias_negativos": "28/76 (37%)",
-            "negs_recebidas": 6
+            "dias_negativos": "27/76 (36%)",
+            "negs_recebidas": 5
           },
           {
             "nome": "Leandro",
-            "sentimento": -0.5,
-            "rank": 8,
-            "delta_3d": "≈ -0.3",
-            "dias_top5": 7,
-            "dias_bottom5": 28,
-            "dias_negativos": "21/71 (30%)",
-            "negs_recebidas": 6
+            "sentimento": 1.5,
+            "rank": 4,
+            "delta_3d": "▲ +1.7",
+            "dias_top5": 8,
+            "dias_bottom5": 27,
+            "dias_negativos": "20/71 (28%)",
+            "negs_recebidas": 5
           }
         ],
         "historical_series": [
@@ -13411,18 +13411,18 @@
           {
             "date": "2026-03-29",
             "name": "Jordana",
-            "sentiment": -1.0
+            "sentiment": 0.5
           },
           {
             "date": "2026-03-29",
             "name": "Leandro",
-            "sentiment": -0.5
+            "sentiment": 1.5
           }
         ],
         "negs_recebidas": {
           "Alberto Cowboy": 5,
-          "Jordana": 6,
-          "Leandro": 6
+          "Jordana": 5,
+          "Leandro": 5
         }
       },
       "relationship_history": {
@@ -13430,7 +13430,7 @@
           "pattern": "reconciliados",
           "days_as_friends": 30,
           "days_as_enemies": 46,
-          "days_mutual_friends": 20,
+          "days_mutual_friends": 21,
           "change_date": "2026-03-14",
           "narrative": "Reconciliaram em 2026-03-14.",
           "total_days": 76
@@ -13539,27 +13539,27 @@
         {
           "votante": "Samira",
           "alvo": "Jordana",
-          "tipo": "falso_amigo",
-          "label": "🎭 Falso Amigo",
-          "cor": "#E6194B",
+          "tipo": "aliados_mutuos",
+          "label": "💔 Traição de Aliado",
+          "cor": "#9b59b6",
           "emoji_dado": "❤️",
-          "emoji_recebido": "🎯",
+          "emoji_recebido": "❤️",
           "hist_pattern": "reconciliados",
           "hist_narrative": "Reconciliaram em 2026-03-14.",
           "days_as_friends": 30,
           "days_as_enemies": 46,
-          "days_mutual_friends": 20,
+          "days_mutual_friends": 21,
           "change_date": "2026-03-14",
           "total_days": 76
         },
         {
           "votante": "Leandro",
           "alvo": "Jordana",
-          "tipo": "inimigos_declarados",
-          "label": "⚔️ Hostilidade Mútua",
-          "cor": "#3CB44B",
+          "tipo": "ponto_cego",
+          "label": "🎯 Ponto Cego do Alvo",
+          "cor": "#f39c12",
           "emoji_dado": "🎯",
-          "emoji_recebido": "🎯",
+          "emoji_recebido": "❤️",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 3 dias, romperam em 2026-03-20.",
           "days_as_friends": 3,
@@ -13574,8 +13574,8 @@
           "tipo": "inimigos_declarados",
           "label": "⚔️ Hostilidade Mútua",
           "cor": "#3CB44B",
-          "emoji_dado": "🤮",
-          "emoji_recebido": "🤮",
+          "emoji_dado": "🤥",
+          "emoji_recebido": "🤥",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 16 dias, romperam em 2026-03-21.",
           "days_as_friends": 16,
@@ -13590,8 +13590,8 @@
           "tipo": "inimigos_declarados",
           "label": "⚔️ Hostilidade Mútua",
           "cor": "#3CB44B",
-          "emoji_dado": "🤮",
-          "emoji_recebido": "🤮",
+          "emoji_dado": "🤥",
+          "emoji_recebido": "🤥",
           "hist_pattern": "ex_amigos",
           "hist_narrative": "Foram amigos por 11 dias, romperam em 2026-01-25.",
           "days_as_friends": 11,
@@ -13700,8 +13700,9 @@
       "featured_story": null,
       "vote_aggregates": {
         "relationship_counts": {
-          "falso_amigo": 1,
-          "inimigos_declarados": 9
+          "aliados_mutuos": 1,
+          "ponto_cego": 1,
+          "inimigos_declarados": 8
         },
         "vote_counts": {
           "Jordana": 5,
@@ -13712,8 +13713,8 @@
         "mais_votado": "Jordana",
         "n_votos_mais": 5,
         "n_traicoes": 1,
-        "n_pontos_cegos": 0,
-        "n_esperados": 9,
+        "n_pontos_cegos": 1,
+        "n_esperados": 8,
         "total_votes": 10
       },
       "per_nominee": {
@@ -13727,9 +13728,9 @@
         },
         "Jordana": {
           "n_votes": 5,
-          "from_enemies": 4,
+          "from_enemies": 3,
           "from_traitors": 1,
-          "from_blind": 0,
+          "from_blind": 1,
           "from_neutral": 0,
           "voters": [
             "Samira",
