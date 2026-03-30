@@ -187,11 +187,22 @@ def apply_to_polls(ext: dict, paredao_num: int, participants: list[str]) -> None
 
     # Update data_coleta from card hora
     card_hora = ext.get("card_hora", "")
-    if card_hora and series:
-        last_hora = series[-1].get("hora", "")
-        # Extract date from last serie row (DD/mmm) and combine with card_hora
-        if "/" in last_hora:
-            date_part = last_hora.split()[0]  # "24/mar"
+    if card_hora:
+        # Try to get date from serie_temporal last row, fallback to paredão data_formacao
+        date_part = None
+        if series:
+            last_hora = series[-1].get("hora", "")
+            if "/" in last_hora:
+                date_part = last_hora.split()[0]  # "24/mar"
+        if not date_part:
+            # Fallback: use paredão data_formacao or data
+            paredao_date = p.get("data_paredao", "")
+            if paredao_date:
+                d = datetime.strptime(paredao_date, "%Y-%m-%d")
+                month_abbr = {1:"jan",2:"fev",3:"mar",4:"abr",5:"mai",6:"jun",
+                              7:"jul",8:"ago",9:"set",10:"out",11:"nov",12:"dez"}
+                date_part = f"{d.day}/{month_abbr[d.month]}"
+        if date_part and "/" in date_part:
             day, mon = date_part.split("/")
             month_map = {"jan": "01", "fev": "02", "mar": "03", "abr": "04", "mai": "05",
                          "jun": "06", "jul": "07", "ago": "08", "set": "09", "out": "10",
