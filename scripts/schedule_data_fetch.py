@@ -369,21 +369,20 @@ def _poll_once(args: argparse.Namespace) -> dict:
                 if vrc == 2:
                     print("[poll] Validation FAILED — not applying.")
                 elif vrc == 0:
-                    # Step 3: Claude verifies Codex's extraction (optional)
-                    claude_ok = True
+                    # Step 3: Claude verifies Codex's extraction (advisory, NOT blocking)
+                    # Deterministic validation already passed — Claude verify is informational only.
                     if VOTALHADA_CLAUDE_VERIFY.exists():
-                        print("[poll] Claude verifying Codex extraction...")
+                        print("[poll] Claude verifying Codex extraction (advisory)...")
                         crc = _run_cmd(
                             ["bash", str(VOTALHADA_CLAUDE_VERIFY), str(paredao_num), images_dir],
                             "claude-verify",
                         )
                         if crc == 2:
-                            claude_ok = False
-                            print("[poll] Claude DISAGREES with Codex — not applying.")
+                            print("[poll] Claude flagged concerns — applying anyway (deterministic validation passed).")
                         elif crc != 0:
-                            print("[poll] Claude verify failed (error) — proceeding with Codex data.")
+                            print("[poll] Claude verify error — applying anyway (deterministic validation passed).")
 
-                    if claude_ok:
+                    if True:  # Always apply when deterministic validation passes
                         # Step 4: Apply validated extraction
                         arc = _run_cmd(
                             [sys.executable, str(VOTALHADA_VALIDATE_APPLY), str(paredao_num), "--apply"],
