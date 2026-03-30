@@ -129,6 +129,47 @@ def progress_bar(value, max_val, color="#3498db", height=6):
     )
 
 
+def value_color(val: float, scheme: str = "signed") -> str:
+    """Return a color for a numeric value based on its scheme.
+
+    Schemes:
+      signed  — positive green → gray 0 → negative red (balance, scores, deltas)
+      danger  — low green → mid orange → high red (paredão count, votes received, hits)
+      pct     — 0% gray → 50% yellow → 100% red (intensity, elimination %)
+    """
+    if scheme == "signed":
+        if val > 1000:
+            return "#1a9850"    # dark green (strong positive)
+        if val > 100:
+            return "#27ae60"    # medium green
+        if val > 0:
+            return "#66bd63"    # light green
+        if val == 0:
+            return "#888"       # gray (neutral)
+        if val > -100:
+            return "#e67e22"    # orange (mild negative)
+        return "#e74c3c"        # red (strong negative)
+    if scheme == "danger":
+        if val <= 0:
+            return "#888"       # gray (none)
+        if val <= 1:
+            return "#66bd63"    # green (low)
+        if val <= 2:
+            return "#f39c12"    # orange (medium)
+        if val <= 3:
+            return "#e67e22"    # dark orange
+        return "#e74c3c"        # red (high)
+    if scheme == "pct":
+        if val <= 10:
+            return "#66bd63"    # green (low %)
+        if val <= 30:
+            return "#f1c40f"    # yellow
+        if val <= 60:
+            return "#e67e22"    # orange
+        return "#e74c3c"        # red (high %)
+    return "#888"
+
+
 def render_pulse_row(label: str, value: int, color_row: str, *, total_delta: int) -> str:
     return (
         f'<div style="display:grid;grid-template-columns:90px 1fr auto;gap:8px;align-items:center;">'
@@ -550,10 +591,10 @@ def render_alvo_rows(items, rid, *, avatar_fn) -> str:
             f'<div class="u-s066">'
             f'<div class="u-s059">'
             f'<a href="{_profile_href(name)}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_escape_text(_short_name(name))}</a>'
-            f'<span class="fs-sm" style="color:#c0392b;font-weight:700">{score:.1f}</span>'
+            f'<span class="fs-sm" style="color:{value_color(score, "signed")};font-weight:700">{score:.1f}</span>'
             f'</div>'
             f'<div class="u-s014">'
-            f'<div style="width:{bar_pct:.0f}%;height:100%;background:#c0392b;border-radius:3px;"></div>'
+            f'<div style="width:{bar_pct:.0f}%;height:100%;background:{value_color(score, "signed")};border-radius:3px;"></div>'
             f'</div>'
             f'</div></div>'
         )
@@ -573,10 +614,10 @@ def render_alvo_rows(items, rid, *, avatar_fn) -> str:
                 f'<div class="u-s066">'
                 f'<div class="u-s059">'
                 f'<a href="{_profile_href(name)}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_escape_text(_short_name(name))}</a>'
-                f'<span class="fs-sm" style="color:#c0392b;font-weight:700">{score:.1f}</span>'
+                f'<span class="fs-sm" style="color:{value_color(score, "signed")};font-weight:700">{score:.1f}</span>'
                 f'</div>'
                 f'<div class="u-s014">'
-                f'<div style="width:{bar_pct:.0f}%;height:100%;background:#c0392b;border-radius:3px;"></div>'
+                f'<div style="width:{bar_pct:.0f}%;height:100%;background:{value_color(score, "signed")};border-radius:3px;"></div>'
                 f'</div>'
                 f'</div></div>'
             )
@@ -738,9 +779,9 @@ def render_visado_row(item: dict, *, max_votes: int, recent_window: int, avatar_
         f'<span class="fs-sm" style="color:{par_color};font-weight:700;">{par_label}</span>'
         f'</div>'
         f'<div class="u-s014">'
-        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e67e22;border-radius:3px;"></div>'
+        f'<div style="width:{bar_pct:.0f}%;height:100%;background:{value_color(paredao_count, "danger")};border-radius:3px;"></div>'
         f'</div>'
-        f'<div class="fs-2xs" style="color:#888;">{votes_total} {votes_total_label} total · {votes_recent} {recent_label} ({recent_window} ciclos) · intensidade {intensity_pct}%</div>'
+        f'<div class="fs-2xs" style="color:#888;">{votes_total} {votes_total_label} total · {votes_recent} {recent_label} ({recent_window} ciclos) · intensidade <span style="color:{value_color(intensity_pct, "pct")};font-weight:600;">{intensity_pct}%</span></div>'
         f'{extra_badges}'
         f'</div></div>'
     )
@@ -817,10 +858,10 @@ def render_na_mira_row(item: dict, *, max_hits: int, avatar_fn, tag_labels: dict
         f'<div class="u-s066">'
         f'<div class="u-s059">'
         f'<a href="{_profile_href(name)}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_escape_text(_short_name(name))}</a>'
-        f'<span class="fs-sm" style="color:#e67e22;font-weight:700;">{hits} {hit_label}</span>'
+        f'<span class="fs-sm" style="color:{value_color(hits, "danger")};font-weight:700;">{hits} {hit_label}</span>'
         f'</div>'
         f'<div class="u-s014">'
-        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#e67e22;border-radius:3px;"></div>'
+        f'<div style="width:{bar_pct:.0f}%;height:100%;background:{value_color(hits, "danger")};border-radius:3px;"></div>'
         f'</div>'
         f'<div class="fs-2xs" style="color:#888;">{_escape_text(status_line)}</div>'
         f'{tags_block}'
@@ -857,10 +898,10 @@ def render_agressor_row(item: dict, *, max_hits: int, avatar_fn, tag_labels: dic
         f'<div class="u-s066">'
         f'<div class="u-s059">'
         f'<a href="{_profile_href(name)}" class="fs-md u-s068" style="text-decoration:none;color:inherit">{_escape_text(_short_name(name))}</a>'
-        f'<span class="fs-sm" style="color:#8e44ad;font-weight:700;">{hits} {hit_label}</span>'
+        f'<span class="fs-sm" style="color:{value_color(hits, "danger")};font-weight:700;">{hits} {hit_label}</span>'
         f'</div>'
         f'<div class="u-s014">'
-        f'<div style="width:{bar_pct:.0f}%;height:100%;background:#8e44ad;border-radius:3px;"></div>'
+        f'<div style="width:{bar_pct:.0f}%;height:100%;background:{value_color(hits, "danger")};border-radius:3px;"></div>'
         f'</div>'
         f'<div class="fs-2xs" style="color:#888;">{_escape_text(status_line)}</div>'
         f'{tags_block}'

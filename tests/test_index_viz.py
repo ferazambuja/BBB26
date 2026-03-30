@@ -777,7 +777,7 @@ def test_render_visado_row_renders_pressure_badges():
     assert "2 paredões" in html
     assert "6 votos total" in html
     assert "3 recentes (3 ciclos)" in html
-    assert "intensidade 67%" in html
+    assert "67%" in html  # intensidade % now wrapped in colored span
     assert "Escapou Bate-Volta 1x" in html
     assert "Paredão falso 1x (5º)" in html
     assert "Líder 2x" in html

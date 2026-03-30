@@ -72,6 +72,7 @@ from index_viz import (
     render_na_mira_row as _render_na_mira_row,
     render_agressor_row as _render_agressor_row,
     render_vx_row as _render_vx_row,
+    value_color,
 )
 
 require_clean_manual_events()
@@ -251,7 +252,7 @@ else:
                     for p in inline_bottom:
                         name = p["name"]
                         score = p["score"]
-                        score_color = "#e74c3c" if score < -1 else "#f39c12"
+                        score_color = value_color(score, "signed")
                         bottom_html += (
                             f'<div class="u-s340">'
                             f'{av(name, 42, "#e74c3c")}'
@@ -265,7 +266,7 @@ else:
                         for p in overflow_bottom:
                             name = p["name"]
                             score = p["score"]
-                            score_color = "#e74c3c" if score < -1 else "#f39c12"
+                            score_color = value_color(score, "signed")
                             bottom_html += (
                                 f'<div class="u-s340">'
                                 f'{av(name, 42, "#e74c3c")}'
