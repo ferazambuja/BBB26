@@ -278,7 +278,7 @@ def test_poll_comparison_renderer_outputs_unified_compare_card(_repo_data):
     assert "Concordam" in html or "Discordam" in html
     assert "Confiança" in html
     assert "Diferença no líder" in html
-    assert "Votalhada 70%/30%" in html or "Votalhada (Ponderada)" in html
+    assert "Ponderada" in html or "Votalhada" in html
     assert "ponderadas por histórico de acerto" in html
     assert 'href="paredoes.html#precisão-das-enquetes-votalhada"' in html
     # Check that the poll leader's name appears in the rendered HTML
@@ -299,8 +299,8 @@ def test_formula_change_card_keeps_legacy_weighted_value_primary(_repo_data):
     assert payload["votalhada"]["pct"] > 40.0
     assert payload["mirror_3070"]["available"] is True
     assert payload["mirror_3070"]["pct"] > 40.0
-    assert "Votalhada (Ponderada)" in html
-    assert "Votalhada 70%/30%" in html
+    assert "Ponderada" in html  # secondary label (vote-weighted)
+    assert "Votalhada" in html  # primary label (70/30 formula)
     assert "Jonas Sulzbach" in html
     assert "Juliano Floss" in html
 

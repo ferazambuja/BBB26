@@ -560,7 +560,7 @@ def _build_card_curiosity_line(
                     )
                 return f"Nosso Modelo e Votalhada (Ponderada) concordam em {m_rank[0][0].split()[0]} para {target}.", []
             return (
-                f"Divergência: Votalhada (Ponderada) aponta {v_rank[0][0].split()[0]} ({v_rank[0][1]:.2f}%) "
+                f"Divergência: Votalhada aponta {v_rank[0][0].split()[0]} ({v_rank[0][1]:.2f}%) "
                 f"e Nosso Modelo aponta {m_rank[0][0].split()[0]} ({m_rank[0][1]:.2f}%).",
                 [],
             )
@@ -801,23 +801,35 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
     model_gap = _top2_gap(model_rank) if model_rank else None
     mirror_gap = _top2_gap(mirror_rank) if mirror_rank else None
 
+    # When 70/30 formula is available, use it as primary Votalhada display
+    # (it's the formula Votalhada actually publishes as ESTIMATIVA).
+    # The vote-weighted average becomes secondary ("Ponderada").
+    if mirror_3070 and mirror_name:
+        primary_name, primary_pct, primary_gap = mirror_name, mirror_pct, mirror_gap
+        secondary_name, secondary_pct, secondary_gap = votalhada_name, votalhada_pct, votalhada_gap
+        secondary_available = True
+    else:
+        primary_name, primary_pct, primary_gap = votalhada_name, votalhada_pct, votalhada_gap
+        secondary_name, secondary_pct, secondary_gap = None, None, None
+        secondary_available = False
+
     return {
         "vote_mode": vote_mode,
         "agreement": agreement,
         "source_url": get_votalhada_source_url(poll),
         "votalhada": {
-            "name": votalhada_name,
-            "pct": votalhada_pct,
-            "top2_gap_pp": votalhada_gap,
-            "empate": is_empate_tecnico(votalhada_gap),
+            "name": primary_name,
+            "pct": primary_pct,
+            "top2_gap_pp": primary_gap,
+            "empate": is_empate_tecnico(primary_gap),
         },
         "mirror_3070": {
-            "name": mirror_name,
-            "pct": mirror_pct,
+            "name": secondary_name,
+            "pct": secondary_pct,
             "values": mirror_3070,
-            "available": bool(mirror_3070),
-            "top2_gap_pp": mirror_gap,
-            "empate": is_empate_tecnico(mirror_gap),
+            "available": secondary_available,
+            "top2_gap_pp": secondary_gap,
+            "empate": is_empate_tecnico(secondary_gap),
         },
         "model": {
             "name": model_name,
@@ -838,24 +850,24 @@ def _votalhada_blurb(payload: dict) -> str:
     _link = f'<a href="{VOTALHADA_HOME}" target="_blank" rel="noopener">Votalhada</a>'
     mirror = payload.get("mirror_3070", {})
     if mirror.get("available"):
-        return f"{_link} (Ponderada): cada plataforma pesa pelo volume de votos."
+        return f"{_link} (30% Sites + 70% Média CPF): fórmula oficial publicada."
     return "Média por volume de votos das fontes."
 
 
 def _mirror_3070_line(payload: dict) -> str:
-    """Show the displayed 0.3 × 0.7 analysis as secondary when available."""
+    """Show the Ponderada (vote-weighted) as secondary line when 70/30 is primary."""
     mirror = payload.get("mirror_3070", {})
     if not mirror.get("available"):
         return ""
     mirror_pct = mirror.get("pct")
     mirror_name = mirror.get("name")
-    legacy_name = payload.get("votalhada", {}).get("name")
+    primary_name = payload.get("votalhada", {}).get("name")
     if mirror_pct is None:
         return ""
-    if mirror_name and mirror_name != legacy_name:
-        text = f'Votalhada 70%/30%: {safe_html(mirror_name.split()[0])} com {_format_pct(mirror_pct)}'
+    if mirror_name and mirror_name != primary_name:
+        text = f'Ponderada: {safe_html(mirror_name.split()[0])} com {_format_pct(mirror_pct)}'
     else:
-        text = f'Votalhada 70%/30%: {_format_pct(mirror_pct)}'
+        text = f'Ponderada: {_format_pct(mirror_pct)}'
     empate_tag = ' <span class="poll-compare-empate-inline">⚖️</span>' if mirror.get("empate") else ""
     return (
         f'<div class="poll-compare-pct poll-compare-pct--secondary">'
@@ -935,7 +947,7 @@ def _votalhada_primary_block(
             f'{m_avatar}<div>'
             f'<div class="poll-compare-name">{safe_html(m_name)}</div>'
             f'<div class="poll-compare-pct">com {_format_pct(m_pct)}</div>'
-            f'{_empate_badge(mirror)}'
+            f'{_empate_badge(v_panel)}'
             f'{secondary}'
             f'</div>'
         )
@@ -993,7 +1005,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     if model_gap is not None and votalhada_gap is not None:
         confidence_line = (
             f"Confiança: Nosso Modelo Δtop2 {model_gap:.1f} p.p. "
-            f"vs Votalhada (Ponderada) {votalhada_gap:.1f} p.p."
+            f"vs Votalhada {votalhada_gap:.1f} p.p."
         )
     elif model_gap is not None:
         confidence_line = f"Confiança: Nosso Modelo Δtop2 {model_gap:.1f} p.p."
@@ -1010,14 +1022,14 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     if mirror.get("available") and mirror_pct is not None and v_pct is not None:
         if mirror_name and mirror_name != v_name:
             formula_line = (
-                f"No Votalhada 70%/30%, {mirror_name.split()[0]} lidera com {mirror_pct:.2f}% "
-                f"(vs {v_name.split()[0]} {v_pct:.2f}% no Votalhada ponderado)."
+                f"Na Ponderada (por volume), {safe_html(mirror_name.split()[0])} lidera com {mirror_pct:.2f}% "
+                f"(vs {safe_html(v_name.split()[0])} {v_pct:.2f}% no Votalhada 30/70)."
             )
         else:
             diff = mirror_pct - v_pct
             if abs(diff) >= 0.1:
                 formula_line = (
-                    f"Votalhada 70%/30%: {mirror_pct:.2f}% vs Votalhada ponderado: {v_pct:.2f}% "
+                    f"Ponderada (volume): {mirror_pct:.2f}% vs Votalhada 30/70: {v_pct:.2f}% "
                     f"({diff:+.1f} p.p.)."
                 )
 
@@ -1025,7 +1037,7 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
         lead_line = f"Ambos apontam {safe_html(m_name.split()[0])} ao comparar {decision_hint}."
     else:
         lead_line = (
-            f"Votalhada (Ponderada) aponta {safe_html(v_name.split()[0])} e "
+            f"Votalhada aponta {safe_html(v_name.split()[0])} e "
             f"Nosso Modelo aponta {safe_html(m_name.split()[0])} para {decision_hint}."
         )
 
