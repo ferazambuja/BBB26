@@ -1237,20 +1237,74 @@ systemd timer (every 15 min)
 6. **Auto-stop**: once the current time passes `hora_eliminacao` + 3h buffer, the scheduler stops fetching Votalhada images for that paredão. For standard cycles (23:00 default), this means ~02:00 BRT next day. For turbo cycles (e.g., 14:55), this means ~18:00 BRT same day
 7. **Auto-restart**: when the next paredão is created with `status: "em_andamento"`, `_get_active_paredao()` detects it and collection resumes automatically. No manual intervention needed between paredões. The lifecycle is: **formation → auto-start → polling every 15 min → auto-stop at hora_eliminacao + 3h → wait → next formation → auto-start**
 
-**Self-healing** (added after P11 outage):
-- **Pull-first cycle**: `git pull` runs at the START of each cycle, before any data writes. Eliminates stash/stash-pop conflicts entirely.
-- **Pre-commit JSON guard**: validates `polls.json` and `paredoes.json` before `git add`. If corrupt, auto-heals from git history.
-- **Dedup gate with retry**: uses `tmp/votalhada_last_applied.json` marker. If extraction succeeded but apply failed (validation error), retries on next cycle.
-- **Cross-validation**: Card 5 ESTIMATIVA ↔ Card 6 last row cross-check + historical row immutability across captures.
+**Self-healing** (added after P11/P12 outages):
+- **Pull-first cycle with conflict recovery**: `git pull --rebase` runs at the START of each cycle. If rebase fails (our push conflicts with LXC snapshot commits), the daemon auto-aborts and force-syncs to `origin/main`. Nothing local is precious — all data is reproducible or already committed.
+- **Pre-commit JSON guard**: validates `polls.json` and `paredoes.json` before `git add`. If corrupt (e.g., merge conflict markers from a failed rebase), auto-heals from git history (`HEAD`, `HEAD~1`, `HEAD~2`).
+- **Dedup gate with retry**: uses `tmp/votalhada_last_applied.json` marker with paredão number. If extraction succeeded but apply failed, retries on next cycle. Marker checks paredão number to avoid suppressing first extraction of a new paredão.
+- **Cross-validation**: Card 5 ESTIMATIVA ↔ Card 6 last row cross-check + historical row immutability across captures + column-order sanity check.
+- **Claude verify is advisory only**: When deterministic validation passes (0 errors), apply proceeds regardless of Claude's opinion. Claude verify exit code 2 is logged but never blocks. (P12 was blocked for hours by a false Claude disagreement.)
 
-**Pipeline**: Codex (gpt-5.4) extracts → deterministic validation (platform sums, CPF total, ESTIMATIVA cross-check, monotonic series, history immutability) → Claude Opus verifies → apply to polls.json. Legacy Claude-as-extractor kept as fallback.
+### Known Issues & Lessons Learned (P11–P12)
+
+These issues occurred during P11 and P12 (first turbo paredões) and have been root-fixed. Documented here to prevent recurrence.
+
+**1. First capture has no Card 6 (Serie Temporal card)**
+
+Votalhada publishes Card 6 only after the second update (needs 2+ data points for a historical chart). The first capture only has Cards 1–5 (per-platform + consolidado).
+
+- **Symptom**: `serie_temporal is empty` validation error blocked apply; `data_coleta` was null
+- **Root fix**: validation treats empty `serie_temporal` as WARNING not ERROR. `apply_to_polls()` synthesizes a serie_temporal entry from Card 5 ESTIMATIVA values + `card_hora`. `data_coleta` falls back to paredão date when serie_temporal is empty.
+- **Code**: `scripts/votalhada_validate_apply.py` → `apply_to_polls()` → "First capture — no card 6" block
+
+**2. Votalhada column order ≠ participantes array order**
+
+Votalhada orders card columns by their own logic (not alphabetical, not matching our `indicados_finais` order). P12 had columns `Jordana | Marciele | Solange` but our `participantes` array was `[Solange Couto, Marciele, Jordana]`.
+
+- **Symptom**: All platform values swapped between Jordana and Solange. Prediction showed Jordana 85% instead of Solange 85%.
+- **Root fix (extraction)**: Codex prompt on LXC (`deploy/votalhada_codex_extract.sh`) now says "READ THE HEADERS from the image to identify which column belongs to which participant. Do NOT assume any particular column order."
+- **Root fix (validation)**: `validate()` checks if platforms consistently show one leader (3+/4 platforms) but ESTIMATIVA shows a different leader → warns "Column-order suspect".
+- **If it happens again**: The validation warning flags it. Manually verify by reading the card image, then swap values in polls.json if needed.
+
+**3. Claude verify false veto**
+
+The optional Claude verification step (`deploy/votalhada_claude_verify.sh`) sometimes returns exit 2 (disagree) even when Codex extraction is correct and deterministic validation passes with 0 errors.
+
+- **Symptom**: P12 first extraction was blocked for hours. Pipeline logged "Claude DISAGREES with Codex — not applying" despite valid data.
+- **Root fix**: Claude verify is now **advisory only**. The apply step runs whenever deterministic validation passes, regardless of Claude's exit code. Claude disagreements are logged for review but never block.
+- **Code**: `scripts/schedule_data_fetch.py` → `_poll_once()` → "Step 3: Claude verifies (advisory)"
+
+**4. Git pull conflicts between our pushes and LXC snapshot commits**
+
+When we push manual updates (e.g., P12 formation) while the LXC is pushing API snapshots, `git pull --rebase` on the LXC can fail with conflicts on `data/derived/` or `data/latest.json`.
+
+- **Symptom**: P12 creation wasn't detected for hours. LXC kept seeing P11 as active because the pull silently failed and continued with old paredoes.json.
+- **Root fix**: If `git pull --rebase` returns non-zero, the daemon runs `git rebase --abort` + `git fetch origin` + `git reset --hard origin/main`. This force-syncs to whatever is on the remote — all local data is reproducible.
+- **Code**: `scripts/schedule_data_fetch.py` → `_poll_once()` → "Step 0: Pull first"
+
+**5. Corrupt JSON committed by daemon**
+
+Before the pull-first pattern, the daemon used `git stash` / `git stash pop` which could leave merge conflict markers (`<<<<<<<`) in tracked files. These were then committed and pushed.
+
+- **Symptom**: P11 polls.json had conflict markers for hours. Every Codex extraction cycle failed on `json.loads()`.
+- **Root fix**: (a) Pull-first pattern eliminates stash entirely. (b) Pre-commit JSON guard validates critical files before `git add` and auto-heals from git history if corrupt.
+- **Code**: `_heal_corrupt_json()` in `scripts/schedule_data_fetch.py`
+
+**6. Manual vision reading is unreliable**
+
+Human/Claude vision reading of compressed Votalhada card images produces wildly inaccurate numbers (P11: YouTube votes read as 328K, actual was 1.12M).
+
+- **Root fix**: NEVER manually read Votalhada cards. Always use Codex (`deploy/votalhada_codex_extract.sh` on LXC). Cross-validate with the card image only after Codex extraction.
+- **Memory**: saved in `.claude/projects/.../memory/feedback_codex_over_manual.md`
+
+**Pipeline**: Codex extracts → deterministic validation (platform sums, CPF total, ESTIMATIVA cross-check, column-order check, monotonic series, history immutability) → Claude verifies (advisory) → apply to polls.json.
 
 **Votalhada card validation math** (used to catch extraction errors):
-- Platform percentages sum ~100 per platform
-- Média = simple_avg(YouTube, Twitter, Instagram)
+- Platform percentages sum ~100 per platform (error if >1.5pp off)
 - CPF votos sum = YouTube + Twitter + Instagram votos
 - Total de Votos = Sites votos + CPF votos sum
-- ESTIMATIVA = 0.3 × Sites + 0.7 × Média
+- Card 5 ESTIMATIVA ↔ Card 6 last row (error if >1.0pp per participant)
+- Card 6 historical rows immutable across captures (error if >1.0pp drift)
+- Column-order sanity: platform leader should match ESTIMATIVA leader
 - Vote-weighted consolidado recomputes from platform rows
 
 **Monitoring:**
