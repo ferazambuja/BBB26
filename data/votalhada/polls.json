@@ -2,7 +2,7 @@
   "_description": "Poll aggregation data from Votalhada",
   "_source": "votalhada.blogspot.com",
   "_methodology": "Aggregates polls from multiple platforms (Sites, YouTube, Twitter, Instagram) collected before each elimination",
-  "_last_updated": "2026-03-29T14:30:00-03:00",
+  "_last_updated": "",
   "paredoes": [
     {
       "numero": 1,
@@ -1683,8 +1683,40 @@
         "Marciele",
         "Jordana"
       ],
-      "consolidado": {},
-      "plataformas": {},
+      "consolidado": {
+        "Solange Couto": 5.75,
+        "Marciele": 5.78,
+        "Jordana": 88.48,
+        "total_votos": 1213993,
+        "predicao_eliminado": "Jordana"
+      },
+      "plataformas": {
+        "sites": {
+          "Solange Couto": 10.77,
+          "Marciele": 9.68,
+          "Jordana": 79.55,
+          "votos": 125454,
+          "label": "Voto da Torcida"
+        },
+        "youtube": {
+          "Solange Couto": 6.55,
+          "Marciele": 11.55,
+          "Jordana": 82.0,
+          "votos": 157789
+        },
+        "twitter": {
+          "Solange Couto": 3.65,
+          "Marciele": 5.03,
+          "Jordana": 91.32,
+          "votos": 88898
+        },
+        "instagram": {
+          "Solange Couto": 5.07,
+          "Marciele": 4.2,
+          "Jordana": 90.73,
+          "votos": 841852
+        }
+      },
       "serie_temporal": []
     }
   ]
