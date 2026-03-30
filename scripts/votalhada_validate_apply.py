@@ -105,6 +105,27 @@ def validate(ext: dict, participants: list[str]) -> tuple[list[str], list[str]]:
         if card_total and series_total and abs(card_total - series_total) > VOTOS_MISMATCH_ABS:
             errors.append(f"Total votos: card5={card_total:,} ≠ card6={series_total:,}")
 
+    # 7. Column-order sanity check: ESTIMATIVA should roughly follow platform patterns
+    # If platforms consistently show participant A leading but ESTIMATIVA shows B leading,
+    # columns may be swapped (the P12 Jordana↔Solange bug).
+    est = ext.get("estimativa_consolidado", {})
+    if est and len(short_to_full) >= 2:
+        # Find who leads on most platforms
+        platform_leaders: dict[str, int] = {s: 0 for s in short_to_full}
+        for plat in ["sites", "youtube", "twitter", "instagram"]:
+            pd = ext.get(plat, {})
+            if not pd:
+                continue
+            leader = max(short_to_full, key=lambda s: pd.get(s, 0))
+            platform_leaders[leader] += 1
+        platform_top = max(platform_leaders, key=platform_leaders.get)
+        est_top = max(short_to_full, key=lambda s: est.get(s, 0))
+        if platform_top != est_top and platform_leaders[platform_top] >= 3:
+            warnings.append(
+                f"Column-order suspect: {platform_top} leads on {platform_leaders[platform_top]}/4 platforms "
+                f"but ESTIMATIVA says {est_top} leads. Check if columns are swapped."
+            )
+
     return errors, warnings
 
 
@@ -129,8 +150,8 @@ def cross_validate_history(
             continue
         prev = existing_by_hora[hora]
         for short, full in short_to_full.items():
-            old_val = prev.get(full, 0) or 0
-            new_val = row.get(short, 0) or 0
+            old_val = prev.get(full, 0) or 0        # polls.json uses full names
+            new_val = row.get(short, 0) or 0         # extraction uses short names
             diff = abs(old_val - new_val)
             if diff > HISTORY_DRIFT_ERROR_PP:
                 errors.append(f"History mismatch {hora}: {short} was={old_val} now={new_val} Δ={diff:.2f}")
@@ -171,7 +192,7 @@ def apply_to_polls(ext: dict, paredao_num: int, participants: list[str]) -> None
     cons["predicao_eliminado"] = max(participants, key=lambda n: cons.get(n, 0))
     p["consolidado"] = cons
 
-    # Update serie_temporal: use series card last row as authoritative ESTIMATIVA
+    # Update serie_temporal: use series card rows, or synthesize from ESTIMATIVA
     series = ext.get("serie_temporal", [])
     if series:
         existing_horas = {r["hora"] for r in p.get("serie_temporal", [])}
@@ -184,6 +205,24 @@ def apply_to_polls(ext: dict, paredao_num: int, participants: list[str]) -> None
                 new_row["votos"] = row.get("votos", 0)
                 p["serie_temporal"].append(new_row)
         p["serie_temporal"].sort(key=lambda r: r["hora"])
+    elif ext.get("estimativa_consolidado") and ext.get("card_hora"):
+        # First capture — no card 6. Synthesize from card 5 ESTIMATIVA.
+        card_hora = ext["card_hora"]
+        paredao_date = p.get("data_paredao", "")
+        if paredao_date:
+            d = datetime.strptime(paredao_date, "%Y-%m-%d")
+            month_abbr = {1:"jan",2:"fev",3:"mar",4:"abr",5:"mai",6:"jun",
+                          7:"jul",8:"ago",9:"set",10:"out",11:"nov",12:"dez"}
+            hora_str = f"{d.day}/{month_abbr[d.month]} {card_hora}"
+            existing_horas = {r["hora"] for r in p.get("serie_temporal", [])}
+            if hora_str not in existing_horas:
+                est = ext["estimativa_consolidado"]
+                new_row = {"hora": hora_str}
+                for short, full in short_to_full.items():
+                    new_row[full] = est.get(short, 0)
+                new_row["votos"] = ext.get("total_votos_card", 0)
+                p["serie_temporal"].append(new_row)
+                print(f"[validate] Synthesized serie_temporal from card 5 ESTIMATIVA: {hora_str}")
 
     # Update data_coleta from card hora
     card_hora = ext.get("card_hora", "")

@@ -87,6 +87,24 @@ class TestValidate:
         errors, _ = validate(ext, PARTICIPANTS)
         assert any("Total votos" in e for e in errors)
 
+    def test_column_order_suspect_warning(self):
+        """When platforms consistently show one leader but ESTIMATIVA shows another."""
+        ext = _base_extraction()
+        # Make Alberto lead all platforms but ESTIMATIVA says Leandro leads
+        for plat in ["sites", "youtube", "twitter", "instagram"]:
+            ext[plat]["Alberto"] = 60.0
+            ext[plat]["Leandro"] = 30.0
+            ext[plat]["Jordana"] = 10.0
+        ext["estimativa_consolidado"] = {"Alberto": 30.0, "Leandro": 60.0, "Jordana": 10.0}
+        errors, warnings = validate(ext, PARTICIPANTS)
+        assert any("Column-order suspect" in w for w in warnings)
+
+    def test_column_order_consistent_no_warning(self):
+        """When platforms and ESTIMATIVA agree on leader — no warning."""
+        ext = _base_extraction()
+        errors, warnings = validate(ext, PARTICIPANTS)
+        assert not any("Column-order" in w for w in warnings)
+
 
 # --- cross_validate_history() ---
 
