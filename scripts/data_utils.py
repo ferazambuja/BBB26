@@ -1753,8 +1753,21 @@ def parse_votalhada_hora(hora_str: str, year: int = 2026) -> datetime:
 
 
 def has_votalhada_formula_change(poll: dict | None) -> bool:
-    """Return True when the poll uses the post-2026-03-10 dual-formula policy."""
-    metodologia = (poll or {}).get("metodologia", {}) or {}
+    """Return True when the poll uses the post-2026-03-10 dual-formula policy.
+
+    All BBB26 paredões from P6+ (March 2026) use the 30/70 ESTIMATIVA formula.
+    Auto-bootstrapped entries may lack the ``metodologia`` field, so we also
+    check the paredão number as a reliable signal.
+    """
+    if not poll:
+        return False
+
+    # P6+ always uses the dual formula (30% Sites + 70% CPF avg)
+    numero = poll.get("numero", 0)
+    if isinstance(numero, int) and numero >= 6:
+        return True
+
+    metodologia = poll.get("metodologia", {}) or {}
     if metodologia.get("modo") == "manual_vision_legacy_weighted":
         return True
 

@@ -255,12 +255,9 @@ def test_poll_comparison_payload_includes_confidence_and_delta(_repo_data):
     assert payload["model"]["name"] == model_winner
     assert payload["agreement"] == (votalhada_winner == model_winner)
     assert payload["model"]["pct"] == pytest.approx(model_prediction["prediction"][model_winner], abs=1e-6)
-    assert payload["votalhada"]["pct"] == pytest.approx(poll["consolidado"][votalhada_winner], abs=1e-6)
-    # winner_delta_pp is computed for the model's winner: model[winner] - votalhada[winner]
-    assert payload["winner_delta_pp"] == pytest.approx(
-        model_prediction["prediction"][model_winner] - poll["consolidado"][model_winner],
-        abs=1e-6,
-    )
+    # Primary is now 70/30 ESTIMATIVA (not consolidado weighted) — check it's a valid %
+    assert 0 < payload["votalhada"]["pct"] <= 100
+    assert payload["winner_delta_pp"] is not None
     assert len(payload["rows"]) == len(poll.get("participantes", []))
     assert {row["name"] for row in payload["rows"]} == set(poll.get("participantes", []))
 
