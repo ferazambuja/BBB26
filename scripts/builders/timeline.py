@@ -646,7 +646,7 @@ def _collect_timeline_paredao_events(
                 max_votes = max(vote_counts.values())
                 most_voted = [n for n, c in vote_counts.items() if c == max_votes]
                 all_voted = sorted(vote_counts.items(), key=lambda x: -x[1])
-                detail_parts = [f"{name} ({count} votos)" for name, count in all_voted[:3]]
+                detail_parts = [f"{name} ({count} votos)" for name, count in all_voted]
                 events.append({
                     "date": data_form, "cycle": week, "category": "paredao_votacao",
                     "emoji": "🗳️", "title": f"{num}º {tipo_label} — Mais votado: {most_voted[0]}",
