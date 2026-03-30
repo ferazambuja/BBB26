@@ -303,8 +303,14 @@ def _poll_once(args: argparse.Namespace) -> dict:
     result = {"fetched": False, "data_changed": False, "built": False, "pushed": False, "deployed": False,
               "votalhada_fetched": False}
 
-    # 0. Pull first — clean state, no stash conflicts possible
-    _run_cmd(["git", "pull", "--rebase", "origin", "main"], "git-pull")
+    # 0. Pull first — clean state, no conflicts possible
+    pull_rc = _run_cmd(["git", "pull", "--rebase", "origin", "main"], "git-pull")
+    if pull_rc != 0:
+        # Rebase conflict — abort and force-sync to remote (nothing local is precious)
+        print("[poll] Pull failed — force-syncing to origin/main.")
+        _run_cmd(["git", "rebase", "--abort"], "git-rebase-abort")
+        _run_cmd(["git", "fetch", "origin"], "git-fetch")
+        _run_cmd(["git", "reset", "--hard", "origin/main"], "git-reset-hard")
 
     # 1. Fetch
     rc = _run_cmd([sys.executable, str(FETCH_SCRIPT), "--fetch-only"], "fetch")
