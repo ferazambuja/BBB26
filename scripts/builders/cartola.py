@@ -348,11 +348,19 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                 if not any(e[0] == 'atendeu_big_fone' and e[2] == bf_date for e in week_events):
                     calculated_points[name][week].append(('atendeu_big_fone', CARTOLA_POINTS['atendeu_big_fone'], bf_date))
 
+    # Build paredão-to-cycle map for eliminated participants
+    _paredao_cycle: dict[int, int] = {}
+    for _p in paredoes_data.get('paredoes', []):
+        if _p.get('cycle'):
+            _paredao_cycle[_p['numero']] = _p['cycle']
+
     for name, info in manual_events.get('participants', {}).items():
         name = name.strip()
         status = info.get('status')
         exit_date = info.get('exit_date', '')
-        week = get_cycle_number(exit_date) if exit_date else 1
+        # Use paredão's cycle for eliminations (handles cross-cycle dates)
+        paredao_num = info.get('paredao') or info.get('paredao_numero')
+        week = _paredao_cycle.get(paredao_num, get_cycle_number(exit_date) if exit_date else 1)
         if status == 'desistente':
             calculated_points[name][week].append(('desistente', CARTOLA_POINTS['desistente'], exit_date))
         elif status in ('eliminada', 'eliminado'):
