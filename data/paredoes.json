@@ -1557,17 +1557,37 @@
         "motivo_lider": "Embate direto no jogo",
         "anjo": "Solange Couto",
         "anjo_autoimune": true,
-        "imunizado": {"por": "Solange Couto", "quem": "Solange Couto", "motivo": "Anjo autoimune — se auto-imuniza"},
+        "imunizado": {
+          "por": "Solange Couto",
+          "quem": "Solange Couto",
+          "motivo": "Anjo autoimune — se auto-imuniza"
+        },
         "contragolpe": null,
         "sem_contragolpe": true,
         "bate_volta": null,
         "sem_bate_volta": true,
-        "voto_minerva": {"lider": "Ana Paula Renault", "escolhido": "Leandro", "motivo": "Juliano é meu fechamento aqui"}
+        "voto_minerva": {
+          "lider": "Ana Paula Renault",
+          "escolhido": "Leandro",
+          "motivo": "Juliano é meu fechamento aqui"
+        }
       },
       "indicados_finais": [
-        {"nome": "Alberto Cowboy", "grupo": "Pipoca", "como": "Líder"},
-        {"nome": "Jordana", "grupo": "Pipoca", "como": "Mais votada (5 votos)"},
-        {"nome": "Leandro", "grupo": "Pipoca", "como": "Voto de Minerva (empate 2×2)"}
+        {
+          "nome": "Alberto Cowboy",
+          "grupo": "Pipoca",
+          "como": "Líder"
+        },
+        {
+          "nome": "Jordana",
+          "grupo": "Pipoca",
+          "como": "Mais votada (5 votos)"
+        },
+        {
+          "nome": "Leandro",
+          "grupo": "Pipoca",
+          "como": "Voto de Minerva (empate 2×2)"
+        }
       ],
       "votos_casa": {
         "Samira": "Jordana",
@@ -1584,9 +1604,21 @@
       "resultado": {
         "eliminado": "Alberto Cowboy",
         "votos": {
-          "Alberto Cowboy": {"voto_unico": 65.76, "voto_torcida": 73.07, "voto_total": 67.95},
-          "Leandro": {"voto_unico": 30.20, "voto_torcida": 25.32, "voto_total": 28.74},
-          "Jordana": {"voto_unico": 4.04, "voto_torcida": 1.61, "voto_total": 3.31}
+          "Alberto Cowboy": {
+            "voto_unico": 65.76,
+            "voto_torcida": 73.07,
+            "voto_total": 67.95
+          },
+          "Leandro": {
+            "voto_unico": 30.2,
+            "voto_torcida": 25.32,
+            "voto_total": 28.74
+          },
+          "Jordana": {
+            "voto_unico": 4.04,
+            "voto_torcida": 1.61,
+            "voto_total": 3.31
+          }
         }
       },
       "fontes": [
@@ -1607,6 +1639,89 @@
         }
       ],
       "cycle": 11
+    },
+    {
+      "numero": 12,
+      "status": "em_andamento",
+      "data": "2026-03-31",
+      "hora_eliminacao": "23:00",
+      "data_formacao": "2026-03-29",
+      "titulo": "12º Paredão — 31 de Março de 2026",
+      "cycle": 12,
+      "total_esperado": 3,
+      "formacao": {
+        "resumo": "Modo turbo — triplo com Big Fone. Ana Paula (Líder bicampeã) indicou Solange Couto após discussão sobre o Castigo do Monstro. Milena (Big Fone) indicou Marciele ('única que não foi ao Paredão ainda'). Jordana mais votada (3 votos: Juliano, Milena, Chaiany).",
+        "lider": "Ana Paula Renault",
+        "lideres": null,
+        "indicado_lider": "Solange Couto",
+        "motivo_lider": "Conversa horrorosa sobre o Castigo do Monstro — 'não faz ideia de quem eu seja'",
+        "anjo": null,
+        "imunizado": null,
+        "contragolpe": null,
+        "sem_contragolpe": true,
+        "bate_volta": null,
+        "sem_bate_volta": true,
+        "big_fone": {
+          "atendeu": "Milena",
+          "indicou": "Marciele",
+          "motivo": "Única que não foi ao Paredão ainda"
+        }
+      },
+      "indicados_finais": [
+        {
+          "nome": "Solange Couto",
+          "grupo": "Camarote",
+          "como": "Líder"
+        },
+        {
+          "nome": "Marciele",
+          "grupo": "Pipoca",
+          "como": "Big Fone (Milena)"
+        },
+        {
+          "nome": "Jordana",
+          "grupo": "Pipoca",
+          "como": "Mais votada (3 votos)"
+        }
+      ],
+      "votos_casa": {
+        "Jordana": "Leandro",
+        "Juliano Floss": "Jordana",
+        "Solange Couto": "Gabriela",
+        "Marciele": "Leandro",
+        "Leandro": "Gabriela",
+        "Milena": "Jordana",
+        "Chaiany": "Jordana",
+        "Samira": "Juliano Floss",
+        "Gabriela": "Juliano Floss"
+      },
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-12-paredao-do-bbb-26-jordana-marciele-e-solange-couto-formam-a-berlinda.ghtml",
+          "arquivo": "docs/scraped/quem-esta-no-12-paredao-do-bbb-26-jordana-marciele-e-solange-couto-formam-a-berlinda.md",
+          "titulo": "Quem está no 12° Paredão do BBB 26? Jordana, Marciele e Solange Couto"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-12o-paredao.ghtml",
+          "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-12o-paredao.md",
+          "titulo": "BBB 26: veja quem votou em quem na formação do 12° Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/milena-indica-marciele-ao-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/milena-indica-marciele-ao-paredao-do-bbb-26.md",
+          "titulo": "Milena indica Marciele ao Paredão do BBB 26"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-ana-paula-renault-indica-solange-couto-ao-12o-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/lider-ana-paula-renault-indica-solange-couto-ao-12o-paredao-do-bbb-26.md",
+          "titulo": "Líder Ana Paula Renault indica Solange Couto ao 12° Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-ana-paula-renault-vence-a-12a-disputa.ghtml",
+          "arquivo": "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-ana-paula-renault-vence-a-12a-disputa.md",
+          "titulo": "Ana Paula Renault vence a 12ª Prova do Líder"
+        }
+      ]
     }
   ]
 }

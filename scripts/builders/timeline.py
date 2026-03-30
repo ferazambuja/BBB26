@@ -56,7 +56,7 @@ CATEGORY_ORDER: dict[str, int] = {
     "presente_anjo": 23,
     "ta_com_nada": 24,
     # --- Paredão ceremony (Sunday ~22h45, strict sequence) ---
-    "paredao_imunidade": 30, "paredao_indicacao": 31,
+    "paredao_imunidade": 30, "paredao_indicacao": 31, "indicacao_big_fone": 32,
     "paredao_votacao": 32,
     "dinamica": 33,             # ceremony dynamics (Máquina do Poder, etc.)
     "duelo_de_risco": 34,       # duel for contragolpe rights
