@@ -1,7 +1,7 @@
 ---
 title: "BBB 26 — Sistema de Votação"
-subtitle: "Por que 70/30? A matemática por trás da mudança que a Globo não quer que você calcule"
-description: "Por que 70/30? A matemática por trás do sistema de votação do BBB 26"
+subtitle: "BBB 26: o 70/30 protege o suficiente? O que os paredões já mostram"
+description: "O que mudou do 50/50 para o 70/30, quão protegido o BBB 26 está e onde o risco ainda aparece"
 lang: pt-BR
 format:
   html:
@@ -20,8 +20,6 @@ execute:
 #| include: false
 
 from pathlib import Path
-from collections import defaultdict
-
 import sys
 sys.path.append(str(Path("scripts").resolve()))
 from data_utils import (
@@ -43,9 +41,9 @@ setup_bbb_dark_theme()
 #| output: asis
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PARTE 1: O estrago do BBB 25
+# PARTE 1: Por que a regra mudou
 # ═══════════════════════════════════════════════════════════════════════════
-print("## 📉 O estrago do BBB 25\n")
+print("## 📌 Por que a regra mudou\n")
 
 # BBB 25 Final data (source: gshow.globo.com)
 bbb25 = {
@@ -54,79 +52,22 @@ bbb25 = {
     "Joao Pedro": {"vu": 6.22, "vt": 3.22},
 }
 
-print('<div class="votacao-shell votacao-shell--danger">')
+print('<div class="votacao-shell votacao-shell--warning">')
 print('<p class="votacao-lead">')
-print('Na final do <strong>BBB 25</strong>, Renata venceu com 51,90% da média ponderada — mas <strong>perdeu no Voto Único</strong> por 9 pontos percentuais (42,38% vs 51,40% de Guilherme). ')
-print('A vitória veio exclusivamente da <strong>Torcida organizada</strong> ("Team Ballet"), que despejou votos ilimitados: 61,41% contra 35,37%. ')
-print('O sistema 50/50 permitiu que uma minoria engajada <strong>anulasse a vontade da maioria</strong> expressa no Voto Único (CPF).</p>')
-print('<p class="votacao-lead">')
-print('O resultado é <strong>consenso entre especialistas</strong> como um dos piores desfechos da história do programa:')
-print('</p>')
-
-# Impact stats
-print('<div class="votacao-impact-grid">')
-
-stats = [
-    ("📺", "17 pts", "Pior audiência", "da história do BBB — queda de 37% vs BBB 24"),
-    ("📱", "~1,1M", "Seguidores", "campeã menos seguida dos últimos 10 anos"),
-    ("🏆", "25a", "Edição", "primeira final abaixo de 20 pts em São Paulo"),
-]
-for emoji, val, label, detail in stats:
-    print('<div class="votacao-impact-card">')
-    print(f'<div class="votacao-impact-label">{emoji} {label}</div>')
-    print(f'<div class="votacao-impact-value tabnum">{val}</div>')
-    print(f'<div class="votacao-impact-detail">{detail}</div>')
-    print('</div>')
-print('</div>')
-
+print('A final do <strong>BBB 25</strong> explica a mudança de regra. Naquela edição, o resultado final era uma média de <strong>50% Voto Único (CPF) e 50% Voto Torcida</strong>.</p>')
 print('<p class="votacao-sublead">')
-print('Para comparação: Juliette (BBB 21) tem 28,6M de seguidores, Arthur Aguiar (BBB 22) 14,8M, Davi Brito (BBB 24) 7,2M. ')
-print('Renata terminou a final com <strong>1.100.550 seguidores</strong> — recorde negativo, ')
-print('a campeã menos seguida dos últimos 10 anos. ')
-print('Os três finalistas do BBB 25 <strong>somados</strong> (2,7M) não alcançam um quinto dos seguidores de Davi Brito.</p>')
-
-# BBB 26 vs BBB 25 winner comparison
-print('<div class="votacao-proof-box">')
-print('<div class="votacao-kicker">BBB 25 x BBB 26</div>')
-print('<p class="votacao-proof-title">🔍 A prova do astroturfing: BBB 26 vs. a "campeã" do BBB 25</p>')
+print('Nesse modelo, Guilherme venceu no <strong>Voto Único (CPF)</strong> (51,40%), mas Renata abriu ')
+print('<strong>26,04 pontos de vantagem no Voto Torcida</strong> (61,41% a 35,37%). ')
+print('Como metade do resultado vinha do <strong>Voto Torcida</strong>, que permite votos ilimitados, essa diferença bastou para inverter o desfecho indicado pelo CPF e dar a vitória na média final.</p>')
 print('<p class="votacao-sublead">')
-print('Três participantes Pipoca do BBB 26 — que não são as favoritas ')
-print('e não têm nenhum título — já têm mais seguidores que a campeã do BBB 25:</p>')
-
-print('<div class="votacao-card-grid">')
-
-followers = [
-    ("Chaiany", "Pipoca (BBB 26)", "~2,9M", "#2ecc71", "Confinada, sem título"),
-    ("Samira", "Pipoca (BBB 26)", "~1,5M", "#2ecc71", "Confinada, sem título"),
-    ("Milena", "Pipoca (BBB 26)", "~1,0M", "#f1c40f", "Confinada, sem título"),
-    ("Renata", "Campeã (BBB 25)", "~1,1M", "#e74c3c", "Vencedora da edição"),
-]
-for nome, status, seg, color, note in followers:
-    accent = ' votacao-card--warning' if nome == "Renata" else ''
-    print(f'<div class="votacao-card{accent}">')
-    print(f'<div class="votacao-card-label">{nome}</div>')
-    print(f'<div class="votacao-card-detail">{status}</div>')
-    print(f'<div class="votacao-card-value tabnum" style="color:{color};">{seg}</div>')
-    print(f'<div class="votacao-card-detail">{note}</div>')
-    print('</div>')
-
-print('</div>')
-
-print('<p class="votacao-sublead">')
-print('Chaiany — uma Pipoca que entrou com 3.610 seguidores — acumulou ')
-print('<strong>quase 3x mais seguidores</strong> que a campeã do BBB 25. ')
-print('Isso não é normal. Quando participantes anônimas de uma edição em andamento ')
-print('geram mais interesse do que a vencedora da edição anterior, ')
-print('o resultado anterior não reflete a vontade do público — ')
-print('foi fabricado por atores de má-fé com votos ilimitados.</p>')
+print('Em outras palavras: no 50/50, o CPF valia o mesmo que o Voto Torcida. ')
+print('No BBB 26, a conta mudou para <strong>70% Voto Único (CPF) e 30% Voto Torcida</strong> para reduzir esse risco.</p>')
 print('</div>')
 
 print('<blockquote class="votacao-quote">')
 print('<p class="votacao-quote-text">"Renata passa por cima do público e vira campeã do BBB 25"</p>')
 print('<p class="votacao-quote-source">— <a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="meta-link">Pipoca Moderna</a></p>')
 print('</blockquote>')
-
-print('</div>')
 ```
 
 ```{python}
@@ -147,25 +88,38 @@ d_vt = bbb25["Renata"]["vt"] - bbb25["Guilherme"]["vt"]  # +26.04
 d_vu = bbb25["Renata"]["vu"] - bbb25["Guilherme"]["vu"]  # -9.02
 w_break = d_vt / (d_vt - d_vu)  # 0.7427
 
-print("### Votação da Final — BBB 25\n")
+print("### Como o 50/50 virou a final do BBB 25\n")
 
 # Summary cards
-print('<div class="votacao-card-grid">')
-for name, color, emoji in [("Renata", "#9b59b6", "👑"), ("Guilherme", "#3498db", "🥈"), ("Joao Pedro", "#95a5a6", "🥉")]:
+print('<div class="votacao-card-grid votacao-card-grid--results">')
+for name, color, emoji, tone in [
+    ("Renata", "#9b59b6", "👑", "winner"),
+    ("Guilherme", "#3498db", "🥈", "runnerup"),
+    ("Joao Pedro", "#95a5a6", "🥉", "third"),
+]:
     d = bbb25[name]
-    print('<div class="votacao-card">')
+    print(f'<div class="votacao-card votacao-card--results votacao-card--{tone}">')
     print(f'<div class="votacao-card-label" style="color:{color};">{emoji} {name}</div>')
-    print('<div class="votacao-card-detail">Voto Único</div>')
     vu_color = "#2ecc71" if d["vu"] > 50 else "#e74c3c" if d["vu"] < 10 else "#eee"
+    print('<div class="votacao-card-stat votacao-card-stat--vu">')
+    print('<div class="votacao-card-detail">Voto Único</div>')
     print(f'<div class="votacao-card-value tabnum" style="color:{vu_color};">{d["vu"]:.2f}%</div>')
-    print('<div class="votacao-card-detail">Voto Torcida</div>')
+    print('</div>')
     vt_color = "#2ecc71" if d["vt"] > 50 else "#e74c3c" if d["vt"] < 10 else "#eee"
-    print(f'<div class="votacao-card-value tabnum" style="font-size:var(--fs-xl); color:{vt_color};">{d["vt"]:.2f}%</div>')
+    print('<div class="votacao-card-stat votacao-card-stat--vt">')
+    print('<div class="votacao-card-detail">Voto Torcida</div>')
+    print(f'<div class="votacao-card-value tabnum" style="color:{vt_color};">{d["vt"]:.2f}%</div>')
+    print('</div>')
     media = d["vu"] * 0.5 + d["vt"] * 0.5
+    print('<div class="votacao-card-stat votacao-card-stat--avg">')
     print('<div class="votacao-card-detail">Média (50/50)</div>')
-    print(f'<div class="votacao-card-value tabnum" style="font-size:var(--fs-xl);">{media:.2f}%</div>')
+    print(f'<div class="votacao-card-value tabnum">{media:.2f}%</div>')
+    print('</div>')
     print('</div>')
 print('</div>')
+
+print('<p class="votacao-sublead">')
+print('Esse é o caso que o BBB 26 tentou corrigir: quando a média entrega um vencedor diferente do apontado pelo CPF, o Voto Torcida deixa de ser complemento e passa a distorcer o resultado.</p>')
 ```
 
 ```{python}
@@ -173,7 +127,7 @@ print('</div>')
 #| output: asis
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PARTE 2: A calibração do BBB 26
+# PARTE 2: O que o 70/30 muda
 # ═══════════════════════════════════════════════════════════════════════════
 
 bbb25 = {
@@ -185,19 +139,16 @@ d_vt = bbb25["Renata"]["vt"] - bbb25["Guilherme"]["vt"]
 d_vu = bbb25["Renata"]["vu"] - bbb25["Guilherme"]["vu"]
 w_break = d_vt / (d_vt - d_vu)
 
-print("## 🔧 A calibração: por que 70/30 e não 75/25?\n")
+print("## ⚖️ O que o 70/30 muda na prática\n")
 
 print('<div class="votacao-shell votacao-shell--warning">')
 print('<p class="votacao-lead">')
-print('Diante do estrago, a Globo tinha uma decisão a tomar: <strong>proteger o programa ou proteger ')
-print('a última campeã</strong>. Adotar 75/25 resolveria o problema de verdade — mas qualquer analista ')
-print('faria a conta e concluiria que o novo sistema teria dado a vitória a Guilherme. ')
-print('Seria uma admissão pública de que o resultado do BBB 25 foi distorcido.</p>')
-print('<p class="votacao-lead">')
-print('A Globo optou pela segunda via. A simulação abaixo revela que <strong>70/30 não é o peso ideal ')
-print('para proteger o programa</strong> — é o peso máximo que <strong>não constrange a campeã anterior</strong>. ')
-print('A margem até o limiar de inversão é de apenas <strong>4,3 pontos percentuais</strong>. ')
-print('Um cálculo político, não técnico.</p>')
+print('Com o <strong>70/30</strong>, o Voto Único (CPF) passa a valer <strong>2,33x</strong> o Voto Torcida. ')
+print('Isso reforça o CPF, mas ainda não impede o Voto Torcida de atropelar uma vantagem pequena.</p>')
+print('<p class="votacao-sublead">')
+print('Exemplo simples: se alguém abre <strong>5 pontos</strong> de vantagem no CPF, ')
+print('o outro lado ainda pode virar se abrir cerca de <strong>11,7 pontos</strong> no Voto Torcida. ')
+print('A simulação abaixo mostra como essa conta aparece usando a final do BBB 25 como referência.</p>')
 print('</div>')
 
 # Simulation table
@@ -282,28 +233,25 @@ for row in weight_rows:
 print('</tbody></table>')
 print('</div>')
 
-# Breakeven conclusion
 print('<div class="votacao-emphasis-box votacao-emphasis-box--warning">')
-print('<p class="votacao-proof-title">💡 O limiar crítico: 74,3%</p>')
+print('<p class="votacao-proof-title">💡 Leitura rápida da simulação</p>')
 print('<p class="votacao-sublead">')
-print(f'Com peso de <strong>74,3%</strong> no Voto Único, Renata e Guilherme empatariam exatamente. ')
-print(f'A partir de <strong>75/25</strong>, Guilherme venceria. A Globo parou em <strong>70/30</strong> — ')
-print(f'4,3 pontos percentuais antes do limiar que reescreveria o resultado do BBB 25.</p>')
+print(f'O ponto de equilíbrio dessa final ficava em <strong>74,3%</strong> de peso para o Voto Único (CPF). ')
+print(f'Ou seja: a partir de <strong>75/25</strong>, Guilherme passaria à frente. ')
+print(f'No <strong>70/30</strong>, a distorção cai, mas a proteção ainda fica abaixo do necessário para impedir a virada vista no BBB 25.</p>')
 print('<p class="votacao-sublead">')
-print('Com 70/30, Renata ainda venceria (por 1,50pp em vez de 8,51pp). ')
-print('Mas isso significa que <strong>70/30 não teria impedido o estrago do BBB 25</strong>. ')
-print('A mesma torcida, com o mesmo mutirão, teria vencido do mesmo jeito. ')
-print('O sistema escolhido pela Globo não é forte o suficiente para evitar a repetição — ')
-print('e apenas discreto o suficiente para não constranger a campeã anterior.</p>')
+print('A mensagem principal é simples: o 70/30 reduz a distorção, mas ainda não impede que o Voto Torcida derrube o resultado indicado pelo CPF.</p>')
 print('</div>')
 ```
+
+## 🛡️ O 70/30 está protegendo o BBB 26?
 
 ```{python}
 #| label: buffer-saude
 #| output: asis
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PARTE 2B: O buffer de 9 pontos e saude da votação
+# PARTE 3: Proteção atual e sinais do BBB 26
 # ═══════════════════════════════════════════════════════════════════════════
 
 paredoes_all = load_paredoes_transformed()
@@ -314,76 +262,149 @@ max_danger = health_summary["max_danger"]
 max_danger_num = health_summary["max_danger_num"]
 max_flip_7030 = health_summary["max_flip_7030"]
 n_above_3 = health_summary["n_above_3"]
+bbb25_flip_7030 = 26.04 / (70 / 30)
 
-print("## 🛡️ O buffer de 9 pontos: proteção real ou ilusão?\n")
+parts = []
+parts.append('<div class="votacao-section">')
+parts.append('<div class="votacao-shell votacao-shell--warning">')
+parts.append('<p class="votacao-lead">')
+parts.append('A pergunta central agora é direta: o 70/30 já impede o Voto Torcida de impor ao BBB 26 ')
+parts.append('um resultado diferente do apontado pelo CPF em paredões apertados?</p>')
+parts.append('<p class="votacao-sublead">')
+parts.append('Como o CPF vale 2,33x o Voto Torcida, toda vantagem no Voto Único (CPF) continua vulnerável ')
+parts.append('se o Voto Torcida abrir uma diferença muito maior do outro lado. Em disputa curta, poucos pontos já bastam para colocar o resultado em risco.</p>')
+parts.append('</div>')
 
-print('<div class="votacao-shell votacao-shell--warning">')
-print('<p class="votacao-lead">')
-print('A lógica do <strong>70/30</strong> parece sólida: o Voto Único (CPF) tem <strong>2,33x mais peso</strong> ')
-print('que o Voto da Torcida. Para uma torcida organizada anular uma vantagem no CPF, ')
-print('ela precisa gerar uma diferença <strong>2,33 vezes maior</strong> no voto ilimitado. ')
-print('Na prática:</p>')
-_worst = max_danger if health_data else 0
 examples = [
-    (3, f"Fácil — já superado em {n_above_3} dos {len(health_data)} paredões do BBB 26", "#ff9b93", "⚠️"),
-    (5, f"Possível — pior caso observado: {_worst:.0f}pp", "#ffba77", "⚠️"),
-    (9, "Na teoria, difícil — mas a torcida do BBB 25 fez 26pp na final", "#f4d36e", "🔶"),
-    (15, "Quase impossível — exigiria domínio total do voto ilimitado", "#88efb2", "✅"),
+    (3, "Paredão apertado: o VT precisa tirar 7,0pp", "#ff9b93", "⚠️"),
+    (5, "Vantagem boa, mas ainda alcançável: o VT precisa tirar 11,7pp", "#ffba77", "⚠️"),
+    (9, "Foi a vantagem de Guilherme no CPF na final do BBB 25", "#f4d36e", "🔶"),
 ]
 
-print('<div class="votacao-buffer-grid">')
+parts.append('<div class="votacao-buffer-grid">')
 for lead, note, color, icon in examples:
     needed = lead * (0.7 / 0.3)
-    print('<div class="votacao-buffer-card">')
-    print(f'<div class="votacao-buffer-label">Vantagem no CPF</div>')
-    print(f'<div class="votacao-buffer-value tabnum">{lead}pp</div>')
-    print(f'<div class="votacao-buffer-label">Torcida precisa de</div>')
-    print(f'<div class="votacao-buffer-value tabnum" style="font-size:var(--fs-xl); color:{color};">{needed:.1f}pp</div>')
-    print(f'<div class="votacao-buffer-detail">{icon} {note}</div>')
-    print('</div>')
-print('</div>')
+    parts.append('<div class="votacao-buffer-card">')
+    parts.append('<div class="votacao-buffer-label">Se alguém abre no CPF</div>')
+    parts.append(f'<div class="votacao-buffer-value tabnum">{lead}pp</div>')
+    parts.append('<div class="votacao-buffer-label">o VT precisa tirar</div>')
+    parts.append(f'<div class="votacao-buffer-value tabnum" style="font-size:var(--fs-xl); color:{color};">{needed:.1f}pp</div>')
+    parts.append(f'<div class="votacao-buffer-detail">{icon} {note}</div>')
+    parts.append('</div>')
+parts.append('</div>')
 
-# The killer finding
-print('<div class="votacao-emphasis-box votacao-emphasis-box--alert">')
-print('<p class="votacao-proof-title">⚠️ O 70/30 não teria salvado o BBB 25</p>')
-print('<p class="votacao-sublead">')
-print('Na final do BBB 25, Guilherme liderava por 9,02pp no CPF. Pelo cálculo acima, ')
-print('a torcida precisaria de 21,0pp no Voto da Torcida para virar. ')
-print('A "Team Ballet" fez <strong>26,04pp</strong> — cinco pontos além do necessário. ')
-print('Com 70/30, Renata <strong>ainda venceria</strong> (48,09% vs 46,59%), apenas com margem menor: ')
-print('<strong>1,50pp em vez de 8,51pp</strong>. O sistema reduz o estrago, mas não impede.</p>')
-print('</div>')
+parts.append('<div class="votacao-emphasis-box votacao-emphasis-box--alert">')
+parts.append('<p class="votacao-proof-title">⚠️ O BBB 25 ainda fura essa proteção</p>')
+parts.append('<p class="votacao-sublead">')
+parts.append('Na final do BBB 25, Guilherme liderava por 9,02pp no CPF. Pelo cálculo acima, ')
+parts.append('a torcida precisaria de 21,0pp no Voto Torcida para virar. ')
+parts.append('Renata abriu <strong>26,04pp</strong> de vantagem no Voto Torcida — cinco pontos além do necessário. ')
+parts.append('Com 70/30, Renata <strong>ainda venceria</strong> (48,09% vs 46,59%), apenas com margem menor: ')
+parts.append('<strong>1,50pp em vez de 8,51pp</strong>. Isso deixa claro o limite do 70/30: ele reduz o tamanho da distorção, mas ainda não impede que o Voto Torcida derrube o resultado indicado pelo CPF.</p>')
+parts.append('</div>')
 
-print('</div>')
+parts.append('<p class="votacao-proof-title">Comparando quanto cada regra ainda deixa vulnerável</p>')
+parts.append('<p class="votacao-sublead">')
+parts.append('Quanto menor for o número abaixo, menor é a fatia da vantagem no CPF que continua vulnerável ao Voto Torcida. ')
+parts.append(f'Hoje, a pior pressão já vista no BBB 26 ({max_danger:.1f}pp no P{max_danger_num}) ')
+parts.append('é a melhor referência real para medir esse risco.</p>')
 
-# ── Saude da Votação: top-2 focus, directional analysis ──
-print("### 🩺 Saúde da Votação: quem a torcida tenta forçar?\n")
+parts.append('<div class="votacao-safety-cards votacao-mobile-only">')
 
+safety_rows = [
+    (50, 50, "BBB 25"),
+    (70, 30, "BBB 26"),
+    (75, 25, ""),
+    (80, 20, "Referência"),
+]
+for vu_w, vt_w, note in safety_rows:
+    mult = vu_w / vt_w
+    p4_flips = max_danger / mult
+    bbb25_flips = 26.04 / mult
+    safe_icon = "🟢" if bbb25_flips < 7 else ("🟡" if bbb25_flips < 10 else "🔴")
+    note_badge = f'<span class="votacao-badge votacao-badge--eyebrow">{note}</span>' if note else ""
+    parts.append('<div class="votacao-safety-card">')
+    parts.append(f'<div class="votacao-safety-label">{vu_w}/{vt_w} {note_badge}</div>')
+    parts.append(f'<div class="votacao-safety-detail">Multiplicador {mult:.1f}x</div>')
+    parts.append(f'<div class="votacao-safety-value tabnum">{p4_flips:.1f}pp</div>')
+    parts.append(f'<div class="votacao-safety-detail">BBB 25 ainda exporia {bbb25_flips:.1f}pp · {safe_icon}</div>')
+    parts.append('</div>')
+
+parts.append('</div>')
+
+parts.append('<div class="votacao-compare-wrap votacao-scroll-hint votacao-desktop-only">')
+parts.append('<table class="votacao-compare-table">')
+parts.append('<caption>Quanto cada distribuição VU/VT ainda deixa exposto diante da maior pressão já vista no BBB 26 e do caso BBB 25.</caption>')
+parts.append('<thead><tr>')
+parts.append('<th scope="col">Peso VU/VT</th>')
+parts.append('<th scope="col">Multiplicador</th>')
+parts.append(f'<th scope="col">P{max_danger_num} ({max_danger:.1f}pp) ainda expõe</th>')
+parts.append('<th scope="col">BBB 25 ainda exporia</th>')
+parts.append('<th scope="col">Leitura</th>')
+parts.append('</tr></thead><tbody>')
+for vu_w, vt_w, note in safety_rows:
+    mult = vu_w / vt_w
+    p4_flips = max_danger / mult
+    bbb25_flips = 26.04 / mult
+    safe_icon = "🟢" if bbb25_flips < 7 else ("🟡" if bbb25_flips < 10 else "🔴")
+    note_badge = f' <span class="votacao-badge votacao-badge--eyebrow">{note}</span>' if note else ""
+    row_class = ' class="votacao-row-highlight votacao-row-highlight--warning"' if note == "BBB 26" else ' class="votacao-row-highlight"' if note == "BBB 25" else ""
+    parts.append(f'<tr{row_class}>')
+    parts.append(f'<th scope="row">{vu_w}/{vt_w}{note_badge}</th>')
+    parts.append(f'<td class="votacao-number">{mult:.1f}x</td>')
+    parts.append(f'<td class="votacao-number">{p4_flips:.1f}pp</td>')
+    parts.append(f'<td class="votacao-number">{bbb25_flips:.1f}pp</td>')
+    parts.append(f'<td>{safe_icon}</td>')
+    parts.append('</tr>')
+parts.append('</tbody></table>')
+parts.append('</div>')
+
+parts.append('<p class="votacao-legend">')
+parts.append('"Ainda expõe" = vantagem máxima no CPF que esse nível de pressão ainda conseguiria apertar ou virar. Quanto menor, mais protegido.')
+parts.append('</p>')
+
+parts.append('<div class="votacao-summary-box">')
+parts.append('<p class="votacao-proof-title">🧭 Resumo de proteção hoje</p>')
+parts.append('<p class="votacao-sublead">')
+parts.append(f'No <strong>70/30 atual</strong>, a maior pressão já vista no BBB 26 anula cerca de <strong>{max_flip_7030:.1f}pp</strong> ')
+parts.append('de vantagem no CPF. Em uma final muito apertada, isso já é margem suficiente para colocar o resultado em disputa.</p>')
+parts.append('<p class="votacao-sublead">')
+parts.append(f'No ritmo da final do BBB 25, o espaço exposto sobe para <strong>{bbb25_flip_7030:.1f}pp</strong>. ')
+parts.append('Por isso o BBB 26 está mais protegido do que no 50/50, mas ainda longe de blindar o CPF.</p>')
+parts.append('</div>')
+parts.append('</div>')
+
+print("".join(parts))
+```
+
+## 🩺 Onde o BBB 26 já mostra pressão
+
+```{python}
+#| label: saude-votacao
+#| output: asis
+
+print('<div class="votacao-shell">')
 print('<p class="votacao-lead">')
-print('No BBB, <strong>vota-se para eliminar</strong> — quem recebe mais votos, sai. ')
-print('No Paredão Falso, a lógica inverte: <strong>vota-se para salvar</strong>, e o mais votado vai para o Quarto Secreto. ')
-print('Em ambos os casos, a batalha real é entre os <strong>dois mais votados</strong>; ')
-print('o terceiro é figurante. Quando VU e VT concordam sobre o resultado, ')
-print('a votação é <strong>saudável</strong>. O sinal de perigo aparece quando há ')
-print('uma grande <strong>divergência</strong> entre os dois: a torcida despeja votos ')
-print('para forçar um resultado que <strong>o CPF não priorizou</strong>, ou retém votos ')
-print('de quem o povo escolheu. ')
-print('É a marca da manipulação: usar o voto ilimitado para tentar ')
-print('<strong>inverter a decisão do CPF</strong>.</p>')
+print('Aqui o foco já é 100% BBB 26. Em cada paredão, o indicador abaixo compara Voto Único (CPF) e Voto Torcida ')
+print('nos dois nomes que realmente disputavam o resultado.</p>')
+print('<p class="votacao-sublead">')
+print('Quando os dois caminham juntos, o paredão fica alinhado ao CPF. Quando a distância cresce, ')
+print('o 30% do Voto Torcida ganha força para empurrar o placar para longe do retrato do CPF.</p>')
+print('</div>')
 
 print('<div class="votacao-health-grid">')
 
 for item in health_data:
     if not item["povo_decidiu"]:
-        tone = "inverted"; health_label = "Torcida venceu"; health_icon = "🚨"
+        tone = "inverted"; health_label = "VT virou"; health_icon = "🚨"
     elif item["danger"] < 3:
-        tone = "healthy"; health_label = "Saudável"; health_icon = "💚"
+        tone = "healthy"; health_label = "Estável"; health_icon = "💚"
     elif item["danger"] < 7:
         tone = "pressure"; health_label = "Pressão"; health_icon = "⚠️"
     elif item["danger"] < 12:
         tone = "risk"; health_label = "Risco"; health_icon = "🔶"
     else:
-        tone = "critical"; health_label = "Crítico"; health_icon = "🔴"
+        tone = "critical"; health_label = "Alto risco"; health_icon = "🔴"
 
     focus_icon = "⬆️" if item["is_falso"] else "🎯"
     shield_icon = "⬇️" if item["is_falso"] else "🛡️"
@@ -396,277 +417,49 @@ for item in health_data:
     print(f'<div class="votacao-health-value tabnum">{item["danger"]:.1f}pp</div>')
     print(f'<div class="votacao-health-state">{health_icon} {health_label}</div>')
     if item["ranking_invertido"]:
-        print('<div class="votacao-badge votacao-badge--change">VT inverteu ranking</div>')
+        print('<div class="votacao-badge votacao-badge--change">VU e VT divergiram</div>')
     print('<div class="votacao-health-lines">')
     print(f'<div>{focus_line}</div>')
     print(f'<div>{shield_line}</div>')
-    print(f'<div>{"✅ Povo decidiu" if item["povo_decidiu"] else "🚨 Torcida venceu"}</div>')
+    print(f'<div>{"✅ CPF segurou" if item["povo_decidiu"] else "🚨 VT virou"}</div>')
     print('</div>')
     print('</div>')
 
 print('</div>')
 
-# Legend
 print('<div class="votacao-legend">')
-print('🎯 = torcida despejou VT além do VU (mirando para eliminar) · 🛡️ = torcida reteve VT abaixo do VU (protegendo) · Perigo = maior divergência VT&minus;VU<br>')
-print('No Paredão Falso (⬆️/⬇️): mesma lógica, mas vota-se para <strong>salvar</strong> — divergência indica torcida forçando salvação contra a escolha do CPF')
+print('🎯/⬆️ = nome mais inflado pelo VT · 🛡️/⬇️ = nome mais protegido pelo VT · Perigo = maior distância entre VU e VT no duelo principal, ou seja, o quanto o Voto Torcida puxou o paredão para longe do CPF')
 print('</div>')
 
-# Editorial: the real problem — dynamically generated from health_data
 sorted_health = sorted(health_data, key=lambda x: x['danger'], reverse=True)
-print('<div class="votacao-emphasis-box">')
+print('<div class="votacao-summary-box">')
 
 if sorted_health:
-    w = sorted_health[0]  # worst paredão
-
-    # First paragraph: worst paredão detail
+    w = sorted_health[0]
     _wf = w.get('is_falso', False)
     _wlabel = f'{w["num"]}o Paredão Falso' if _wf else f'{w["num"]}o Paredão'
-    _w_acao = 'salvar' if _wf else 'eliminar'
 
-    print('<p class="votacao-lead">')
-    print(f'O <strong>{_wlabel}</strong> é o caso mais grave. Pelo CPF, o povo decidiu: ')
-    print(f'<strong>{w["elim_vu"]:.2f}%</strong> votaram para {_w_acao} {w["elim_nome"]}, contra apenas ')
-    print(f'<strong>{w["surv_vu"]:.2f}%</strong> em {w["surv_nome"]}. ')
-    if _wf:
-        # Paredão Falso: torcida tried to SAVE surv_nome over elim_nome
-        if w['surv_inflation'] > 2 and -w['elim_gap'] > 2:
-            print(f'Mas a torcida discordou — despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
-            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
-            print(f'tentando forçar sua salvação. Na outra ponta, reteve votos de {w["elim_nome"]}: ')
-            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
-            print(f'reduzindo o suporte ao escolhido do CPF. ')
-        elif w['surv_inflation'] > 2:
-            print(f'Mas a torcida despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
-            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
-            print(f'tentando forçar sua salvação. ')
-        elif -w['elim_gap'] > 2:
-            print(f'Mas a torcida reteve votos de {w["elim_nome"]}: ')
-            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
-            print(f'reduzindo o suporte ao escolhido do CPF. ')
-    else:
-        # Regular paredão: torcida tried to ELIMINATE surv_nome
-        if w['surv_inflation'] > 2 and -w['elim_gap'] > 2:
-            print(f'Mas a torcida discordou — despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
-            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
-            print(f'tentando forçar sua eliminação. Na outra ponta, reteve votos em {w["elim_nome"]}: ')
-            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
-            print(f'tentando proteger quem o povo escolheu eliminar. ')
-        elif w['surv_inflation'] > 2:
-            print(f'Mas a torcida despejou {w["surv_vt"]:.2f}% do VT em {w["surv_nome"]} ')
-            print(f'(<strong>+{w["surv_inflation"]:.2f}pp</strong> acima do seu VU), ')
-            print(f'tentando forçar sua eliminação. ')
-        elif -w['elim_gap'] > 2:
-            print(f'Mas a torcida reteve votos em {w["elim_nome"]}: ')
-            print(f'apenas {w["elim_vt"]:.2f}% no VT (<strong>{w["elim_gap"]:+.2f}pp</strong> abaixo do seu VU), ')
-            print(f'tentando proteger quem o povo escolheu eliminar. ')
-    if w['povo_decidiu']:
-        if _wf:
-            print(f'O 70/30 preservou a vontade popular — {w["elim_nome"]} foi salvo — ')
-        else:
-            print(f'O 70/30 preservou a vontade popular — {w["elim_nome"]} saiu — ')
-    else:
-        print(f'A torcida conseguiu inverter o resultado — ')
-    _w_alvo = f'a favor de {w["surv_nome"]}' if _wf else f'contra {w["surv_nome"]}'
-    print(f'mas a divergência de <strong>{w["danger"]:.0f}pp</strong> mostra a força da campanha ')
-    print(f'organizada {_w_alvo}.</p>')
+    print('<p class="votacao-proof-title">Leitura rápida do BBB 26</p>')
+    print('<p class="votacao-sublead">')
+    print(f'O caso mais sensível até aqui foi o <strong>{_wlabel}</strong>, com ')
+    print(f'<strong>{w["danger"]:.1f}pp</strong> de distância entre Voto Único (CPF) e Voto Torcida. ')
+    print(f'Esse nível de pressão já equivale a cerca de <strong>{max_flip_7030:.1f}pp</strong> de vantagem no CPF que o sistema 70/30 ainda deixa vulnerável.</p>')
 
-    # Milestone: first ranking inversion
     any_inversions = [d for d in health_data if d.get('ranking_invertido')]
     if any_inversions:
         first_inv = min(any_inversions, key=lambda x: x['num'])
         inv_label = f'{first_inv["num"]}o Paredão Falso' if first_inv.get('is_falso') else f'{first_inv["num"]}o Paredão'
 
-        print('<p class="votacao-lead">')
-        print(f'<strong>⚡ Marco inédito no {inv_label}:</strong> ')
-        print(f'pela primeira vez no BBB 26, o Voto da Torcida e o Voto Único ')
-        print(f'elegeram alvos diferentes — evidência direta de manipulação ')
-        print(f'do componente ilimitado contra a vontade popular. ')
+        print('<p class="votacao-sublead">')
+        print(f'No <strong>{inv_label}</strong>, Voto Único (CPF) e Voto Torcida chegaram a ordenar os nomes de forma diferente. ')
+        print('O placar final não virou, mas essa divergência mostra que o peso atual do Voto Torcida já basta para deslocar um paredão do que o CPF indicava quando a disputa aperta.</p>')
 
-        if first_inv.get('is_falso'):
-            # Paredão Falso: audience knew — voted to give QS advantage
-            print(f'Pelo CPF, o povo escolheu dar a vantagem do Quarto Secreto ')
-            print(f'a {first_inv["elim_nome"]} ({first_inv["elim_vu"]:.2f}%). ')
-            print(f'Mas os fãs de {first_inv["vt_top_nome"]} ')
-            print(f'(apenas {first_inv["vt_top_vu"]:.2f}% no VU) usaram o voto ilimitado ')
-            print(f'para tentar redirecionar a vantagem ao seu favorito: ')
-            print(f'{first_inv["vt_top_pct"]:.2f}% do VT — ')
-        else:
-            # Regular paredão: minority wants someone out
-            print(f'Pelo CPF, o povo escolheu {first_inv["elim_nome"]} ({first_inv["elim_vu"]:.2f}%). ')
-            print(f'Mas a minoria que queria {first_inv["vt_top_nome"]} fora ')
-            print(f'(apenas {first_inv["vt_top_vu"]:.2f}% no VU) usou o voto ilimitado ')
-            print(f'para inflar sua escolha: {first_inv["vt_top_pct"]:.2f}% do VT — ')
-
-        print(f'uma amplificação de {first_inv["vt_top_pct"] - first_inv["vt_top_vu"]:.2f}pp ')
-        print(f'que inverteu completamente o ranking.')
-        print(f'</p>')
-
-    # Second paragraph: patterns
-    print('<p class="votacao-lead">')
-
-    # Notable secondary paredões (danger >= 3)
-    notable = [d for d in sorted_health[1:] if d['danger'] >= 3]
-    if notable:
-        sec = notable[0]
-        _sf = sec.get('is_falso', False)
-        _slabel = f'{sec["num"]}o Paredão Falso' if _sf else f'{sec["num"]}o Paredão'
-        print(f'O padrão se repete. No <strong>{_slabel}</strong>, a torcida ')
-        if _sf:
-            if sec['surv_inflation'] > 2 and -sec['elim_gap'] > 2:
-                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
-                print(f'tentando forçar sua salvação, enquanto reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de ')
-                print(f'{sec["elim_nome"]}, o escolhido do CPF. ')
-            elif sec['surv_inflation'] > 2:
-                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
-                print(f'tentando forçar sua salvação. ')
-            elif -sec['elim_gap'] > 2:
-                print(f'reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de {sec["elim_nome"]}, ')
-                print(f'reduzindo o suporte ao escolhido do CPF. ')
-        else:
-            if sec['surv_inflation'] > 2 and -sec['elim_gap'] > 2:
-                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
-                print(f'tentando forçar sua eliminação, enquanto reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de ')
-                print(f'{sec["elim_nome"]} para proteger quem o povo queria eliminar. ')
-            elif sec['surv_inflation'] > 2:
-                print(f'despejou <strong>+{sec["surv_inflation"]:.2f}pp</strong> de VT além do VU em {sec["surv_nome"]}, ')
-                print(f'tentando forçar sua eliminação. ')
-            elif -sec['elim_gap'] > 2:
-                print(f'reteve <strong>{sec["elim_gap"]:+.2f}pp</strong> do VT de {sec["elim_nome"]}, ')
-                print(f'tentando proteger quem o povo escolheu eliminar. ')
-
-    # Repeated targeting detection (only regular paredões — falso has different semantics)
-    target_paredoes = defaultdict(list)
-    for d in health_data:
-        if d['surv_inflation'] > 3 and not d.get('is_falso', False):
-            target_paredoes[d['surv_nome']].append(d)
-    repeated = {name: sorted(dlist, key=lambda x: x['num'])
-                for name, dlist in target_paredoes.items() if len(dlist) >= 2}
-    if repeated:
-        for name, dlist in repeated.items():
-            labels = '; '.join(f'P{d["num"]}: +{d["surv_inflation"]:.2f}pp' for d in dlist)
-            print(f'{name} foi alvo em <strong>{len(dlist)} paredões</strong> ({labels}) — ')
-            print(f'evidência de campanha organizada e sustentada contra o mesmo participante. ')
-
-    # Healthy paredões
-    healthy = sorted([d for d in health_data if d['danger'] < 2], key=lambda x: x['num'])
-    if healthy and len(healthy) < len(health_data):
-        if len(healthy) == 1:
-            print(f'Apenas o {healthy[0]["num"]}o Paredão apresentou votação genuinamente saudável, com divergência abaixo de 2pp. ')
-        else:
-            hlabels = ' e o '.join(f'{d["num"]}o' for d in healthy)
-            print(f'Apenas o {hlabels} Paredão apresentaram votações genuinamente saudáveis, com divergência abaixo de 2pp. ')
-    elif not healthy:
-        print(f'Nenhum paredão apresentou votação genuinamente saudável (divergência abaixo de 2pp). ')
-
-    print('Com pressões desse nível em paredões regulares, a pergunta inevitável é:</p>')
-
-# ── Safety assessment: connecting health data to protection levels ──
-print('<p class="votacao-proof-title">⚠️ Estamos seguros? O 70/30 aguenta uma final?</p>')
-
-print('<p class="votacao-lead">')
-print('Com o 70/30, o multiplicador é 2,33x — a torcida precisa gerar uma inflação ')
-print('2,33 vezes maior que a vantagem no CPF para virar o resultado. ')
-print(f'Mas a pior inflação que já vimos no BBB 26 (<strong>{max_danger:.2f}pp no P{max_danger_num}</strong>) ')
-print(f'seria suficiente para anular uma vantagem de <strong>{max_flip_7030:.1f}pp no CPF</strong>. ')
-print('Em uma final, com mobilização máxima, a inflação tende a ser ainda maior — ')
-print('no BBB 25, chegou a <strong>26pp</strong>.</p>')
-
-print('<div class="votacao-safety-cards votacao-mobile-only">')
-
-safety_rows = [
-    (50, 50, "BBB 25"),
-    (70, 30, "BBB 26"),
-    (75, 25, ""),
-    (80, 20, ""),
-    (85, 15, ""),
-]
-for vu_w, vt_w, note in safety_rows:
-    mult = vu_w / vt_w
-    p4_flips = max_danger / mult    # VU advantage that worst observed inflation can flip
-    bbb25_flips = 26.04 / mult  # VU advantage that BBB25-level inflation can flip
-
-    safe_icon = "🟢" if bbb25_flips < 5 else ("🟡" if bbb25_flips < 8 else "🔴")
-    note_badge = f'<span class="votacao-badge votacao-badge--eyebrow">{note}</span>' if note else ""
-    print('<div class="votacao-safety-card">')
-    print(f'<div class="votacao-safety-label">{vu_w}/{vt_w} {note_badge}</div>')
-    print(f'<div class="votacao-safety-detail">Multiplicador {mult:.1f}x</div>')
-    print(f'<div class="votacao-safety-value tabnum">{p4_flips:.1f}pp</div>')
-    print(f'<div class="votacao-safety-detail">Inflação BBB 25 anula {bbb25_flips:.1f}pp · {safe_icon}</div>')
-    print('</div>')
+    print('<p class="votacao-sublead">')
+    print(f'Até aqui, <strong>{n_above_3} de {len(health_data)}</strong> paredões passaram de 3pp de pressão. ')
+    print('Ou seja: o BBB 26 ainda não repetiu a final do BBB 25, mas o padrão já mostra que a proteção atual segue curta para uma final realmente apertada.</p>')
 
 print('</div>')
-
-print('<div class="votacao-compare-wrap votacao-scroll-hint votacao-desktop-only">')
-print('<table class="votacao-compare-table">')
-print('<caption>Quanto cada distribuição VU/VT consegue proteger diante da pior inflação observada e do caso BBB 25.</caption>')
-print('<thead><tr>')
-print('<th scope="col">Peso VU/VT</th>')
-print('<th scope="col">Multiplicador</th>')
-print(f'<th scope="col">Inflação P{max_danger_num} ({max_danger:.0f}pp) anula</th>')
-print('<th scope="col">Inflação BBB 25 (26pp) anula</th>')
-print('<th scope="col">Seguro?</th>')
-print('</tr></thead><tbody>')
-for vu_w, vt_w, note in safety_rows:
-    mult = vu_w / vt_w
-    p4_flips = max_danger / mult
-    bbb25_flips = 26.04 / mult
-    safe_icon = "🟢" if bbb25_flips < 5 else ("🟡" if bbb25_flips < 8 else "🔴")
-    note_badge = f' <span class="votacao-badge votacao-badge--eyebrow">{note}</span>' if note else ""
-    row_class = ' class="votacao-row-highlight votacao-row-highlight--warning"' if note == "BBB 26" else ' class="votacao-row-highlight"' if note == "BBB 25" else ""
-    print(f'<tr{row_class}>')
-    print(f'<th scope="row">{vu_w}/{vt_w}{note_badge}</th>')
-    print(f'<td class="votacao-number">{mult:.1f}x</td>')
-    print(f'<td class="votacao-number">{p4_flips:.1f}pp</td>')
-    print(f'<td class="votacao-number">{bbb25_flips:.1f}pp</td>')
-    print(f'<td>{safe_icon}</td>')
-    print('</tr>')
-print('</tbody></table>')
-print('</div>')
-
-print('<p class="votacao-legend">')
-print('"Anula" = vantagem máxima no CPF que a inflação consegue virar. Quanto menor, mais seguro.')
-print('</p>')
-
-# Verdict cards: current vs recommended
-print('<div class="votacao-verdict-grid">')
-
-print('<div class="votacao-verdict-card votacao-verdict-card--current">')
-print('<div class="votacao-verdict-label">SISTEMA ATUAL</div>')
-print('<div class="votacao-verdict-value tabnum">70/30</div>')
-print('<div class="votacao-verdict-state">🔴 NÃO SEGURO</div>')
-print(f'<div class="votacao-verdict-detail">Inflação de {max_danger:.0f}pp (já observada no P{max_danger_num})<br>anula <strong>{max_flip_7030:.1f}pp</strong> de vantagem no CPF</div>')
-print('</div>')
-
-print('<div class="votacao-verdict-card votacao-verdict-card--recommended">')
-print('<div class="votacao-verdict-label">RECOMENDADO</div>')
-print('<div class="votacao-verdict-value tabnum">80/20</div>')
-print('<div class="votacao-verdict-state">🟢 SEGURO</div>')
-print('<div class="votacao-verdict-detail">Mesmo com inflação de 26pp (BBB 25)<br>só anula <strong>6,5pp</strong> de vantagem no CPF</div>')
-print('</div>')
-
-print('</div>')
-
-bbb25_flip_7030 = 26.04 / (70 / 30)
-print('<p class="votacao-lead">')
-print(f'Com o <strong>70/30 atual</strong>, uma inflação nível P{max_danger_num} ({max_danger:.0f}pp) — que já aconteceu — anula ')
-print(f'uma vantagem de <strong>{max_flip_7030:.1f}pp no CPF</strong>. Em uma final acirrada, isso é margem ')
-print(f'de empate. Com mobilização máxima (nível BBB 25, 26pp), a torcida anularia ')
-print(f'<strong>{bbb25_flip_7030:.1f}pp</strong> — o suficiente para virar praticamente qualquer disputa.</p>')
-
-print('<p class="votacao-lead">')
-print('Com <strong>80/20</strong>, o multiplicador salta para 4,0× — a mesma inflação de 26pp ')
-print('só anularia 6,5pp de vantagem no CPF. Disputas acirradas continuariam sendo ')
-print('decididas pelo povo, não por mutirões. Mas a Globo parou em 70/30 — ')
-print('exatamente <strong>4,3pp antes do limiar</strong> que reescreveria o resultado do BBB 25. ')
-print('A proteção do programa foi sacrificada para proteger uma campeã.</p>')
-
-print('<p class="votacao-sublead">')
-print('Enquanto mais de <strong>3 milhões de brasileiros</strong> votam por CPF — um voto cada, ')
-print('expressando sua opinião genuína — torcidas de má-fé com bots e coordenação ')
-print('despejam milhares de votos no componente ilimitado que ainda pesa 30%. ')
-print('O 70/30 foi um passo. Mas a Globo escolheu o limite político, não o técnico.</p>')
-print('</div>')
+print("")
 ```
 
 ```{python}
@@ -674,7 +467,7 @@ print('</div>')
 #| output: asis
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PARTE 3: Retroativo — Como ficam os paredões do BBB 26 com 50/50?
+# PARTE 4: O que a nova regra já mudou no BBB 26
 # ═══════════════════════════════════════════════════════════════════════════
 
 paredoes_all = load_paredoes_transformed()
@@ -682,30 +475,22 @@ paredoes_finalizados = [p for p in paredoes_all if p.get('status') == 'finalizad
 retro_summary = build_retro_vote_summary(paredoes_finalizados)
 
 if retro_summary["rows"]:
-    print("## 📊 Retroativo: paredões do BBB 26 sob o sistema antigo\n")
+    print("## 🔁 O que o 70/30 já mudou no BBB 26\n")
 
     print('<div class="votacao-section">')
-    print('<p class="votacao-lead">')
-    print('Esta comparação existe para responder uma pergunta substantiva, não apenas estética: ')
-    print('o <strong>70/30</strong> já mudou algo no BBB 26 ou estamos apenas diante de uma ameaça futura? ')
-    print('A tabela de desktop e os cards de mobile recalculam cada paredão finalizado sob o sistema ')
-    print('antigo <strong>50/50</strong>, preservando exatamente os mesmos votos de CPF e de torcida. ')
-    print('O objetivo é isolar o efeito da regra sobre o resultado.</p>')
+    print('<p class="votacao-sublead">')
+    print('Além de medir a pressão, também vale olhar para trás: se os paredões já finalizados ')
+    print('tivessem usado o <strong>50/50</strong>, algo mudaria no resultado? ')
+    print('Essa comparação mostra quanto da estabilidade atual vem da regra e quanto ainda depende de margens largas.</p>')
     print(render_votacao_retro_section(retro_summary))
 
     if retro_summary["n_changed"] == 0:
-        top_cases = sorted(health_data, key=lambda item: item["danger"], reverse=True)[:2]
-        top_labels = " e ".join(f'{item["danger"]:.0f}pp no P{item["num"]}' for item in top_cases)
         print('<div class="votacao-summary-box">')
-        print('<p class="votacao-proof-title">⚖️ Nenhum resultado mudou, mas a pressão já aparece</p>')
+        print('<p class="votacao-proof-title">⚖️ Até aqui, o 70/30 segurou o placar oficial</p>')
         print('<p class="votacao-sublead">')
-        print('Até aqui, o 70/30 segurou o placar oficial. Isso não prova que o sistema está saudável; ')
-        print('prova apenas que o BBB 26 ainda não encontrou um teste de estresse do tamanho da final do BBB 25. ')
-        if top_labels:
-            print(f'As maiores pressões já registradas, de <strong>{top_labels}</strong>, ')
-            print('mostram que as torcidas continuam tentando esticar o componente ilimitado. ')
-        print('O retroativo serve justamente para separar o resultado formal da intensidade da pressão ')
-        print('e mostrar que a folga atual é pequena.</p>')
+        print(f'Nenhum paredão mudaria de vencedor sob o 50/50, mas a regra nova já mexeu nas margens em média ')
+        print(f'<strong>{retro_summary["avg_delta"]:.1f}pp</strong> por paredão. ')
+        print('Isso confirma que o 70/30 já segura melhor o placar, sem eliminar o risco quando a distância entre CPF e Voto Torcida cresce.</p>')
         print('</div>')
     else:
         print('<div class="votacao-emphasis-box votacao-emphasis-box--warning">')
@@ -727,89 +512,21 @@ else:
 #| output: asis
 
 # ═══════════════════════════════════════════════════════════════════════════
-# PARTE 4: A teoria
+# PARTE 5: Conclusão
 # ═══════════════════════════════════════════════════════════════════════════
 
-print("## 🎯 A teoria: contenção de danos sem admissão de culpa\n")
-
-# 3M CPF + R$1.5B impact cards
-print('<div class="votacao-impact-grid">')
-
-impact_stats = [
-    ("🗳️", "3M+", "CPFs votaram", "Recorde histórico de votos únicos — o brasileiro está engajado"),
-    ("💰", "R$ 1,5 bi", "Faturamento BBB 26", "Recorde de patrocínios — 15 marcas, cota Big a R$ 132M"),
-    ("📊", "22%", "da receita publicitária", "BBB representa quase 1/4 do faturamento da Globo com anúncios"),
-]
-for emoji, val, label, detail in impact_stats:
-    print('<div class="votacao-impact-card">')
-    print(f'<div class="votacao-impact-label">{emoji} {label}</div>')
-    print(f'<div class="votacao-impact-value tabnum">{val}</div>')
-    print(f'<div class="votacao-impact-detail">{detail}</div>')
-    print('</div>')
-print('</div>')
-
-print('<div class="votacao-theory-box">')
-
-print('<p class="votacao-lead">')
-print('Se a Globo tivesse adotado <strong>75/25</strong>, qualquer analista faria o mesmo cálculo ')
-print('apresentado aqui e concluiria: o novo sistema <strong>teria dado a vitória a Guilherme</strong>. ')
-print('Seria uma admissão pública de que o resultado do BBB 25 foi distorcido. ')
-print('A Globo escolheu proteger uma campeã que já está sendo esquecida — ')
-print('a menos seguida em 10 anos, vencedora da final de menor audiência da história — ')
-print('em vez de proteger o programa.</p>')
-
-print('<p class="votacao-lead">')
-print('A ironia é brutal: como demonstrado acima, <strong>70/30 não teria impedido ')
-print('a vitória de Renata</strong>. O sistema escolhido pela Globo é fraco demais ')
-print('para impedir o cenário que motivou a mudança, e existe apenas para não ')
-print('constranger publicamente a campeã anterior. Enquanto isso, o BBB 26 já ')
-print(f'registrou disparidades de até <strong>{max_danger:.0f}pp</strong> entre Voto Único e Voto da Torcida — ')
-print('sinais claros de que os mesmos atores de má-fé estão ')
-print('testando os limites do novo sistema.</p>')
-
-print('<p class="votacao-lead">')
-print('Os números do próprio BBB 26 expõem a contradição. De um lado, o brasileiro ')
-print('está mais engajado do que nunca: <strong>mais de 3 milhões de CPFs</strong> votaram ')
-print('em um único paredão — recorde absoluto da história do programa. Como Tadeu Schmidt ')
-print('celebrou: <em>"Nunca tivemos tantos votos únicos no BBB."</em> ')
-print('Isso prova que o público <strong>quer</strong> participar, quer ser ouvido. ')
-print('Do outro lado, torcidas organizadas com bots, mutirões e tempo ilimitado ')
-print('continuam despejando votos no componente que ainda pesa 30% do resultado, ')
-print(f'com disparidades que já chegam a {max_danger:.0f}pp em paredões regulares — ')
-print('imagine o que fariam numa final.</p>')
-print('</div>')
-
-print('<div class="votacao-emphasis-box votacao-emphasis-box--warning">')
-print('<p class="votacao-proof-title">💰 O ativo que a Globo decidiu expor</p>')
-print('<p class="votacao-sublead">')
-print('O BBB fatura <strong>R$ 1,5 bilhão</strong> por edição só em patrocínios — ')
-print('recorde histórico, com 15 marcas pagando até R$ 132 milhões por uma única cota. ')
-print('O programa alcança <strong>128 milhões de brasileiros</strong> em 80% dos lares, por 100 dias ')
-print('seguidos — mais que todas as outras TVs abertas e streamings combinados. ')
-print('Representa cerca de <strong>22% de toda a receita publicitária</strong> da Globo. ')
-print('É, disparado, o ativo mais valioso da emissora.</p>')
-print('</div>')
+print("## ✅ Leitura final\n")
 
 print('<div class="votacao-summary-box">')
 print('<p class="votacao-proof-title">🧭 A leitura final</p>')
 print('<p class="votacao-sublead">')
-print('A decisão de calibrar o sistema para não constranger uma campeã esquecível — ')
-print('em vez de blindar de verdade um programa de R$ 1,5 bilhão que alcança 128 milhões ')
-print('de pessoas — é, no mínimo, <strong>irresponsável</strong>. ')
-print('É uma aposta de que as torcidas de má-fé não vão repetir o estrago. ')
-print('Mas os dados do BBB 26 já mostram que essa aposta está sendo testada, ')
-print('e o dano a credibilidade do sistema pode ser <strong>irreversível</strong>.</p>')
-
+print('O <strong>BBB 25</strong> explica por que o programa abandonou o 50/50. ')
+print('O <strong>BBB 26</strong> mostra que o 70/30 reduz a distorção, ')
+print('mas ainda não bloqueia o Voto Torcida quando ele abre vantagem suficiente.</p>')
 print('<p class="votacao-sublead">')
-print('O cidadão brasileiro que trabalha o dia inteiro, paga suas contas e assiste ao BBB ')
-print('como válvula de escape tem <strong>um único voto por CPF</strong>. ')
-print('É contra ele que torcidas de má-fé com recursos ilimitados e coordenação ')
-print('despejam milhares de votos por pessoa. O Voto da Torcida, por definição, ')
-print('amplifica quem tem mais tempo e disposição para manipular — não quem ')
-print('representa a opinião da maioria. Três milhões de CPFs disseram o que pensam. ')
-print('A pergunta é se a Globo vai ouvir esses 3 milhões ou continuar permitindo ')
-print('que uma minoria organizada sequestre o resultado do programa mais ')
-print('importante da televisão brasileira.</p>')
+print('Se a proposta é priorizar o Voto Único (CPF) em disputas realmente decisivas, ')
+print('os dados desta página apontam para um peso ainda maior para o Voto Único (CPF). ')
+print('Em outras palavras: o 70/30 foi um avanço, mas segue curto para impedir que uma minoria organizada imponha um resultado diferente daquele escolhido pelo CPF.</p>')
 print('</div>')
 
 # Sources
@@ -817,12 +534,7 @@ print('<div class="votacao-source-list">')
 print('<strong>Fontes:</strong> ')
 print('<a href="https://gshow.globo.com/realities/bbb/bbb-25/dentro-da-casa/noticia/quem-ganhou-o-bbb-25-renata-e-a-vencedora-do-reality.ghtml" target="_blank" class="meta-link">gshow.globo.com — Final BBB 25</a> · ')
 print('<a href="https://pipocamoderna.com.br/2025/04/renata-vence-bbb-25-com-voto-da-torcida/" target="_blank" class="meta-link">Pipoca Moderna</a> · ')
-print('<a href="https://www.metropoles.com/entretenimento/televisão/final-do-bbb-25-registra-pior-audiência-da-história-do-reality" target="_blank" class="meta-link">Metropoles — Pior audiência</a> · ')
-print('<a href="https://x.com/faahlso/status/1914885003751645694" target="_blank" class="meta-link">@faahlso — Dados de seguidores</a> · ')
-print('<a href="https://gshow.globo.com/realities/bbb/bbb-26/noticia/sexto-paredão-do-bbb-26-bate-recorde-de-votação-saiba-mais.ghtml" target="_blank" class="meta-link">gshow — Recorde 3M CPFs</a> · ')
-print('<a href="https://www.cnnbrasil.com.br/entretenimento/bbb/bbb-26-bate-recorde-e-registra-maior-votação-da-história-por-cpf/" target="_blank" class="meta-link">CNN Brasil</a> · ')
-print('<a href="https://www.seudinheiro.com/2026/economia/premio-do-bbb-2026-e-troco-de-pinga-perto-do-que-a-globo-ja-arrecadou-com-patrocínios/" target="_blank" class="meta-link">Seu Dinheiro — R$ 1,5 bi</a> · ')
-print('<a href="https://www.nsctotal.com.br/noticias/quanto-a-globo-lucra-com-o-big-brother-brasil" target="_blank" class="meta-link">NSC Total — Receita BBB</a><br>')
+print('<a href="https://gshow.globo.com/realities/bbb/bbb-26/noticia/sexto-paredão-do-bbb-26-bate-recorde-de-votação-saiba-mais.ghtml" target="_blank" class="meta-link">gshow — Recorde de votos únicos no BBB 26</a><br>')
 print('Fórmula BBB 25: (VU x 0,50) + (VT x 0,50) · Fórmula BBB 26: (VU x 0,70) + (VT x 0,30)')
 print('</div>')
 ```

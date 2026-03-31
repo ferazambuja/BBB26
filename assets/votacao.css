@@ -19,7 +19,6 @@ body.votacao-page main.content h4 {
 
 .votacao-shell,
 .votacao-emphasis-box,
-.votacao-theory-box,
 .votacao-summary-box,
 .votacao-quote {
   margin: 1rem 0 1.25rem;
@@ -28,10 +27,6 @@ body.votacao-page main.content h4 {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(160deg, rgba(26, 31, 44, 0.9), rgba(16, 22, 34, 0.92));
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
-}
-
-.votacao-shell--danger {
-  border-color: rgba(231, 76, 60, 0.38);
 }
 
 .votacao-shell--warning,
@@ -48,11 +43,6 @@ body.votacao-page main.content h4 {
   border-color: rgba(241, 196, 15, 0.35);
 }
 
-.votacao-theory-box {
-  border-color: rgba(52, 152, 219, 0.24);
-  background: linear-gradient(160deg, rgba(25, 31, 47, 0.9), rgba(20, 19, 34, 0.94));
-}
-
 .votacao-summary-box {
   border-color: rgba(241, 196, 15, 0.28);
   background: linear-gradient(160deg, rgba(51, 45, 21, 0.82), rgba(23, 24, 27, 0.92));
@@ -60,7 +50,6 @@ body.votacao-page main.content h4 {
 
 .votacao-shell p:last-child,
 .votacao-emphasis-box p:last-child,
-.votacao-theory-box p:last-child,
 .votacao-summary-box p:last-child,
 .votacao-quote p:last-child {
   margin-bottom: 0;
@@ -69,8 +58,6 @@ body.votacao-page main.content h4 {
 .votacao-card-grid,
 .votacao-buffer-grid,
 .votacao-health-grid,
-.votacao-verdict-grid,
-.votacao-impact-grid,
 .votacao-calibration-cards,
 .votacao-safety-cards,
 .votacao-retro-cards {
@@ -83,8 +70,6 @@ body.votacao-page main.content h4 {
 .votacao-card,
 .votacao-buffer-card,
 .votacao-health-card,
-.votacao-verdict-card,
-.votacao-impact-card,
 .votacao-calibration-card,
 .votacao-safety-card,
 .votacao-retro-card {
@@ -95,17 +80,10 @@ body.votacao-page main.content h4 {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.votacao-card--warning {
-  border-color: rgba(231, 76, 60, 0.32);
-  background: linear-gradient(160deg, rgba(58, 25, 31, 0.84), rgba(26, 20, 26, 0.9));
-}
-
 .votacao-card-label,
 .votacao-card-meta,
 .votacao-buffer-label,
 .votacao-health-label,
-.votacao-verdict-label,
-.votacao-impact-label,
 .votacao-calibration-label,
 .votacao-safety-label,
 .votacao-retro-card-title {
@@ -118,8 +96,6 @@ body.votacao-page main.content h4 {
 .votacao-card-value,
 .votacao-buffer-value,
 .votacao-health-value,
-.votacao-verdict-value,
-.votacao-impact-value,
 .votacao-calibration-value,
 .votacao-safety-value {
   margin-top: 0.35rem;
@@ -132,8 +108,6 @@ body.votacao-page main.content h4 {
 .votacao-card-detail,
 .votacao-buffer-detail,
 .votacao-health-detail,
-.votacao-verdict-detail,
-.votacao-impact-detail,
 .votacao-calibration-detail,
 .votacao-safety-detail,
 .votacao-retro-card-metrics {
@@ -143,17 +117,101 @@ body.votacao-page main.content h4 {
   line-height: 1.45;
 }
 
-.votacao-card-grid--three,
-.votacao-impact-grid {
+.votacao-card-grid--three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.votacao-proof-box {
-  margin: 0.9rem 0 1rem;
-  padding: 0.9rem 1rem;
-  border-radius: 14px;
-  border: 1px solid rgba(88, 166, 255, 0.28);
-  background: linear-gradient(160deg, rgba(23, 38, 58, 0.86), rgba(16, 21, 31, 0.88));
+.votacao-card-grid--results {
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 17rem));
+  gap: 0.6rem;
+  max-width: 53rem;
+}
+
+.votacao-card--results {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.78rem 0.85rem;
+}
+
+.votacao-card--winner {
+  border-color: rgba(155, 89, 182, 0.34);
+  background: linear-gradient(180deg, rgba(84, 52, 104, 0.24), rgba(255, 255, 255, 0.04));
+}
+
+.votacao-card--runnerup {
+  border-color: rgba(52, 152, 219, 0.3);
+  background: linear-gradient(180deg, rgba(38, 71, 102, 0.2), rgba(255, 255, 255, 0.04));
+}
+
+.votacao-card--third {
+  border-color: rgba(231, 76, 60, 0.2);
+  background: linear-gradient(180deg, rgba(91, 39, 33, 0.16), rgba(255, 255, 255, 0.03));
+}
+
+.votacao-card--results .votacao-card-label {
+  margin-bottom: 0.08rem;
+}
+
+.votacao-card-stat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding-top: 0.34rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.votacao-card--results .votacao-card-stat:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.votacao-card--results .votacao-card-detail,
+.votacao-card--results .votacao-card-value {
+  margin-top: 0;
+}
+
+.votacao-card--results .votacao-card-detail {
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+
+.votacao-card--results .votacao-card-value {
+  font-size: clamp(1.5rem, 1.1rem + 1vw, 2.2rem);
+  line-height: 1;
+  text-align: right;
+}
+
+.votacao-card--winner .votacao-card-stat--vt .votacao-card-detail,
+.votacao-card--winner .votacao-card-stat--vt .votacao-card-value {
+  color: #54e38d;
+}
+
+.votacao-card--winner .votacao-card-stat--avg .votacao-card-detail,
+.votacao-card--winner .votacao-card-stat--avg .votacao-card-value {
+  color: #f0e3ff;
+}
+
+.votacao-card--runnerup .votacao-card-stat--vu .votacao-card-detail,
+.votacao-card--runnerup .votacao-card-stat--vu .votacao-card-value {
+  color: #54e38d;
+}
+
+.votacao-card--runnerup .votacao-card-stat--avg .votacao-card-detail,
+.votacao-card--runnerup .votacao-card-stat--avg .votacao-card-value {
+  color: #ffd0c9;
+}
+
+.votacao-card--third .votacao-card-stat--vu .votacao-card-detail,
+.votacao-card--third .votacao-card-stat--vu .votacao-card-value,
+.votacao-card--third .votacao-card-stat--vt .votacao-card-detail,
+.votacao-card--third .votacao-card-stat--vt .votacao-card-value {
+  color: #ff8572;
+}
+
+.votacao-card--third .votacao-card-stat--avg .votacao-card-detail,
+.votacao-card--third .votacao-card-stat--avg .votacao-card-value {
+  color: #e5d9d7;
 }
 
 .votacao-proof-title {
@@ -284,10 +342,6 @@ body.votacao-page main.content h4 {
   background: rgba(243, 156, 18, 0.12);
 }
 
-.votacao-row-highlight--danger {
-  background: rgba(231, 76, 60, 0.1);
-}
-
 .votacao-group-row th {
   background: rgba(255, 255, 255, 0.05) !important;
   color: #f3f7fb;
@@ -379,15 +433,6 @@ body.votacao-page main.content h4 {
   line-height: 1.55;
 }
 
-.votacao-kicker {
-  margin-bottom: 0.4rem;
-  color: #9bb0c6;
-  font-size: var(--fs-2xs);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .votacao-health-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -454,30 +499,6 @@ body.votacao-page main.content h4 {
   color: #a3b2c3;
   font-size: var(--fs-sm);
   line-height: 1.45;
-}
-
-.votacao-verdict-card--current {
-  border-color: rgba(231, 76, 60, 0.32);
-}
-
-.votacao-verdict-card--recommended {
-  border-color: rgba(46, 204, 113, 0.3);
-}
-
-.votacao-verdict-card--current .votacao-verdict-value,
-.votacao-verdict-card--current .votacao-verdict-state {
-  color: #ff9d96;
-}
-
-.votacao-verdict-card--recommended .votacao-verdict-value,
-.votacao-verdict-card--recommended .votacao-verdict-state {
-  color: #88efb2;
-}
-
-.votacao-verdict-state {
-  margin-top: 0.28rem;
-  font-size: var(--fs-lg);
-  font-weight: 800;
 }
 
 .votacao-retro-summary {
@@ -563,7 +584,6 @@ body.votacao-page main.content h4 {
 @media (max-width: 575.98px) {
   .votacao-shell,
   .votacao-emphasis-box,
-  .votacao-theory-box,
   .votacao-summary-box,
   .votacao-quote {
     padding: 0.85rem 0.9rem;
@@ -573,8 +593,6 @@ body.votacao-page main.content h4 {
   .votacao-card-grid,
   .votacao-buffer-grid,
   .votacao-health-grid,
-  .votacao-verdict-grid,
-  .votacao-impact-grid,
   .votacao-calibration-cards,
   .votacao-safety-cards,
   .votacao-retro-cards {
@@ -585,8 +603,6 @@ body.votacao-page main.content h4 {
   .votacao-card,
   .votacao-buffer-card,
   .votacao-health-card,
-  .votacao-verdict-card,
-  .votacao-impact-card,
   .votacao-calibration-card,
   .votacao-safety-card,
   .votacao-retro-card {
@@ -597,11 +613,43 @@ body.votacao-page main.content h4 {
   .votacao-card-value,
   .votacao-buffer-value,
   .votacao-health-value,
-  .votacao-verdict-value,
-  .votacao-impact-value,
   .votacao-calibration-value,
   .votacao-safety-value {
     font-size: var(--fs-xl);
+  }
+
+  .votacao-lead {
+    font-size: var(--fs-base);
+    line-height: 1.5;
+  }
+
+  .votacao-card-grid--results {
+    gap: 0.5rem;
+  }
+
+  .votacao-card--results {
+    gap: 0.32rem;
+    padding: 0.72rem 0.78rem;
+  }
+
+  .votacao-card--results .votacao-card-stat {
+    gap: 0.5rem;
+    padding-top: 0.28rem;
+  }
+
+  .votacao-card--results .votacao-card-detail {
+    font-size: var(--fs-xs);
+  }
+
+  .votacao-card--results .votacao-card-value {
+    font-size: clamp(1.25rem, 1rem + 2vw, 1.75rem);
+  }
+
+  .votacao-sublead,
+  .votacao-legend,
+  .votacao-source-list {
+    font-size: var(--fs-sm);
+    line-height: 1.5;
   }
 
   .votacao-compare-table th,
