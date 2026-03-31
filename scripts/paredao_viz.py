@@ -479,8 +479,9 @@ def _build_card_curiosity_line(
                                     f"no lugar de **{model_lead}** até o **encerramento da votação**"
                                 )
                             else:
+                                _suf = 'a' if genero(model_runner) == 'f' else 'o'
                                 objective_txt = (
-                                    f"Para **{model_runner}** ultrapassar **{model_lead}** e virar o mais votado para sair "
+                                    f"Para **{model_runner}** ultrapassar **{model_lead}** e virar {'a mais votada' if _suf == 'a' else 'o mais votado'} para sair "
                                     f"até o **encerramento da votação**"
                                 )
                             return (

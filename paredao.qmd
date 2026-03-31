@@ -747,14 +747,15 @@ if ultimo:
                                             f'no lugar de <strong>{_m_lead}</strong> até o <strong>encerramento da votação</strong>'
                                         )
                                     else:
+                                        _suf_runner = 'a' if genero(_m_runner) == 'f' else 'o'
                                         _objective_txt = (
-                                            f'Para <strong>{_m_runner}</strong> ultrapassar <strong>{_m_lead}</strong> e virar o mais votado para sair '
+                                            f'Para <strong>{_m_runner}</strong> ultrapassar <strong>{_m_lead}</strong> e virar {"a mais votada" if _suf_runner == "a" else "o mais votado"} para sair '
                                             f'até o <strong>encerramento da votação</strong>'
                                         )
                                     _rate_msg = (
                                         f'📈 <strong>Cenário hoje está bem definido</strong> no <strong>Nosso Modelo</strong>. '
                                         f'{_objective_txt} (em cerca de <strong>{_eta_txt}</strong>), precisa tirar <strong>{_m_gap:.1f} pontos percentuais</strong> '
-                                        f'de diferença.<br>{_pace_txt} <strong>Veja os indicadores abaixo</strong> para o ritmo atual vs necessário.'
+                                        f'de diferença.<br>{_pace_txt}'
                                     )
                                 else:
                                     _projected_gain = _closing_h * _hours_left
@@ -1466,8 +1467,8 @@ if ultimo:
                     _both_pos.append(_c)
 
             print(render_overlap_box(f"Ambos negativos — consenso natural", "#e74c3c", "rgba(231,76,60,0.08)", _both_neg, "🔴", _consenso_target, AVATARS))
-            print(render_overlap_box(f"Só {_sorteado.split()[0]} negativ{artigo(_sorteado).replace('o','a') if artigo(_sorteado)=='a' else 'o'}", "#e67e22", "rgba(230,126,34,0.08)", _sol_only, "🟠", _consenso_target, AVATARS))
-            print(render_overlap_box(f"Só {_oponente.split()[0]} negativo", "#f1c40f", "rgba(241,196,15,0.08)", _jf_only, "🟡", _consenso_target, AVATARS))
+            print(render_overlap_box(f"Só {_sorteado.split()[0]} negativ{artigo(_sorteado)}", "#e67e22", "rgba(230,126,34,0.08)", _sol_only, "🟠", _consenso_target, AVATARS))
+            print(render_overlap_box(f"Só {_oponente.split()[0]} negativ{artigo(_oponente)}", "#f1c40f", "rgba(241,196,15,0.08)", _jf_only, "🟡", _consenso_target, AVATARS))
             print(render_overlap_box(f"Ambos positivos — seguro", "#2ecc71", "rgba(46,204,113,0.08)", _both_pos, "🟢", _consenso_target, AVATARS))
 
             # Highlight contradiction if target is not in both_neg
@@ -1527,7 +1528,7 @@ if ultimo:
                 _pct_hearts = _sol_hearts_to_target / _sol_total_days * 100
                 if _pct_hearts >= 30:
                     print(f'<div class="u-s181">')
-                    print(f'<strong class="u-s023">⚠️ Contradição:</strong> {_sorteado.split()[0]} deu ❤️ para {_consenso_target} em {_sol_hearts_to_target} de {_sol_total_days} dias ({_pct_hearts:.0f}%) nos últimos 14 dias, mas a indicou no Duelo de Risco.')
+                    print(f'<strong class="u-s023">⚠️ Contradição:</strong> {_sorteado.split()[0]} deu ❤️ para {_consenso_target} em {_sol_hearts_to_target} de {_sol_total_days} dias ({_pct_hearts:.0f}%) nos últimos 14 dias, mas {artigo(_consenso_target)} indicou no Duelo de Risco.')
                     print(f'</div>\n')
 
             # ── 5. Perfil de rejeição (incoming scores) ──────────────────

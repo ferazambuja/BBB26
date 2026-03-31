@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 from data_utils import (
+    genero,
     get_effective_cycle_end_dates,
     get_cycle_number,
     get_cycle_start_date,
@@ -795,7 +796,8 @@ def _collect_timeline_paredao_events(
                 if is_falso:
                     detail = f"{eliminado} → Quarto Secreto{pct}"
                 else:
-                    detail = f"{eliminado} eliminado{pct}"
+                    _suf = 'a' if genero(eliminado) == 'f' else 'o'
+                    detail = f"{eliminado} eliminad{_suf}{pct}"
             else:
                 detail = ""
             events.append({
