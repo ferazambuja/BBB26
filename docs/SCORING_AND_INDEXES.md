@@ -969,8 +969,8 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Scope | Count | Definition |
 |---|---|---|
 | `with_indicados` | 12 | Paredões com indicados_finais |
-| `all_finalized` | 11 | Finalizados (inclui falso) |
-| `real_only` | 10 | Finalizados reais (exclui falso) |
+| `all_finalized` | 12 | Finalizados (inclui falso) |
+| `real_only` | 11 | Finalizados reais (exclui falso) |
 
 ### Paredão Matrix
 
@@ -987,16 +987,16 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P9 | Ana Paula Renault, Breno, Leandro | Breno | 58.96% | Não | finalizado |
 | P10 | Jordana, Juliano Floss, Jonas Sulzbach, Gabriela | Jonas Sulzbach | 53.48% | Não | finalizado |
 | P11 | Alberto Cowboy, Jordana, Leandro | Alberto Cowboy | 67.95% | Não | finalizado |
-| P12 | Solange Couto, Marciele, Jordana | — | — | Não | em_andamento |
+| P12 | Solange Couto, Marciele, Jordana | Solange Couto | 94.17% | Não | finalizado |
 
 ### Route Effectiveness (`real_only`)
 
 | Route | Eliminated | Total | Rate |
 |---|---|---|---|
-| Casa | 2 | 7 | 28.6% |
+| Big Fone | 1 | 2 | 50.0% |
+| Casa | 2 | 8 | 25.0% |
 | Contragolpe | 2 | 5 | 40.0% |
-| Líder | 4 | 10 | 40.0% |
-| Big Fone | Sim (n=1) | 1 | — |
+| Líder | 5 | 11 | 45.5% |
 | Bloco do Paredão | Não (n=1) | 1 | — |
 | Caixas-Surpresa | Não (n=1) | 1 | — |
 | Consenso Anjo+Monstro | Sim (n=1) | 1 | — |
@@ -1005,13 +1005,13 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Duelo de Risco | Não (n=1) | 1 | — |
 | Voto de Minerva (empate 2×2) | Não (n=1) | 1 | — |
 
-**First-timer elimination rate** (`real_only`): 8/10 = 80.0%
+**First-timer elimination rate** (`real_only`): 8/11 = 72.7%
 
 ### Bate-e-Volta Metrics (`real_only`)
 
 | Metric | n | Total | Rate |
 |---|---|---|---|
-| Paredões com BV | 8 | 10 | 80.0% |
+| Paredões com BV | 8 | 11 | 72.7% |
 | Vencedores que escaparam | 10 | 10 | 100.0% |
 | Perdedores que sobreviveram | 9 | 14 | 64.3% |
 | Perdedores eliminados | 5 | 14 | 35.7% |
@@ -1020,7 +1020,7 @@ Total BV participants: **24**
 
 ### Key Facts
 
-- **Biggest swing**: Brigido — 4.97% (P2) → 77.88% (P3) = 72.91 p.p.
+- **Biggest swing**: Solange Couto — 15.19% (P5) → 94.17% (P12) = 78.98 p.p.
 - **BV champion**: Alberto Cowboy (3x)
 - **Líder favorite target**: Milena (3x)
 - **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2)
