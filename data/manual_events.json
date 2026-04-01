@@ -2356,6 +2356,22 @@
       "awareness": "known",
       "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/milena-indica-marciele-ao-paredao-do-bbb-26.ghtml"],
       "cycle": 12
+    },
+    {
+      "date": "2026-03-31",
+      "type": "ganha_ganha_escolha",
+      "actor": "Ana Paula Renault",
+      "target": "Samira",
+      "source": "Ganha-Ganha (Turbo)",
+      "detail": "Tirou o card curinga e escolheu Samira para receber informação privilegiada ('O próximo Anjo será autoimune') + R$10 mil. Juliano Floss ficou com R$20 mil. Sem veto no modo turbo.",
+      "impacto": "positivo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-escolhe-samira-para-receber-informacao-privilegiada-e-r-10-mil.ghtml"
+      ],
+      "cycle": 12
     }
   ],
   "cartola_points_log": [
@@ -2715,12 +2731,13 @@
       "date": "2026-03-31",
       "category": "ganha_ganha",
       "emoji": "🎰",
-      "title": "Ganha-Ganha — Samira, Floss e Ana Paula",
-      "detail": "Líder Ana Paula sorteia Samira, Juliano Floss e ela mesma. Prêmio: informação privilegiada ('O próximo Anjo será autoimune') + R$10 mil ou R$20 mil sem a informação.",
-      "time": "Ao Vivo",
+      "title": "Ganha-Ganha Turbo — Samira, Floss e Ana Paula",
+      "detail": "Modo turbo: Ana Paula tirou o card curinga e escolheu Samira para a informação privilegiada ('O próximo Anjo será autoimune') + R$10 mil; Juliano Floss ficou com R$20 mil. Sem veto nesta edição.",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/samira-juliano-floss-e-ana-paula-renault-sao-sorteados-para-o-ganha-ganha-no-bbb-26.ghtml",
-        "docs/scraped/samira-juliano-floss-e-ana-paula-renault-sao-sorteados-para-o-ganha-ganha-no-bbb-26.md"
+        "docs/scraped/samira-juliano-floss-e-ana-paula-renault-sao-sorteados-para-o-ganha-ganha-no-bbb-26.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-escolhe-samira-para-receber-informacao-privilegiada-e-r-10-mil.ghtml",
+        "docs/scraped/ana-paula-renault-escolhe-samira-para-receber-informacao-privilegiada-e-r-10-mil.md"
       ],
       "cycle": 12
     },
@@ -7754,7 +7771,27 @@
       "start_date": "2026-03-29",
       "end_date": null,
       "schedule_profile": "turbo_top10",
-      "notes": "Top 10 — ciclo ultra-comprimido. Dom (29): P11 Eliminação + Big Fone (Milena) + Prova do Líder + Formação do 12º Paredão (triplo: Líder + Big Fone + Casa). Ter (31): Eliminação do 12º Paredão.",
+      "notes": "Top 10 — ciclo ultra-comprimido. Dom (29): P11 Eliminação + Big Fone (Milena) + Prova do Líder + Formação do 12º Paredão (triplo: Líder + Big Fone + Casa). Ter (31): Ganha-Ganha Turbo (sem veto) + Eliminação do 12º Paredão.",
+      "ganha_ganha": {
+        "date": "2026-03-31",
+        "resultado": "Modo turbo — sem veto. Ana Paula tirou o card curinga. Escolheu Samira para informação privilegiada ('O próximo Anjo será autoimune') + R$10 mil. Juliano Floss ficou com R$20 mil.",
+        "participants": ["Samira", "Juliano Floss", "Ana Paula Renault"],
+        "sorteados": ["Samira", "Juliano Floss", "Ana Paula Renault"],
+        "curinga": "Ana Paula Renault",
+        "info_privilegiada": {
+          "recebeu": "Samira",
+          "conteudo": "O próximo Anjo será autoimune",
+          "premio": 10000
+        },
+        "premio_dobrado": {
+          "recebeu": "Juliano Floss",
+          "premio": 20000
+        },
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-escolhe-samira-para-receber-informacao-privilegiada-e-r-10-mil.ghtml",
+          "docs/scraped/ana-paula-renault-escolhe-samira-para-receber-informacao-privilegiada-e-r-10-mil.md"
+        ]
+      },
       "big_fone": [
         {
           "date": "2026-03-29",
