@@ -1035,7 +1035,7 @@ class TestRenderCronologiaHtml:
         assert 'cronologia-mobile-event-main--inline' in html
         assert 'cronologia-badge--inline' in html
         assert 'colspan="2"' in html
-        assert "R$ 20 mil" in html
+        assert "R&#36; 20 mil" in html
         assert "Jordana escolhe o veto" in html
         assert "<thead>" not in html
         assert "cronologia-head-row" not in html
@@ -1057,7 +1057,7 @@ class TestRenderCronologiaHtml:
         assert 'cronologia-mobile-table--disclosure' in html
         assert '<details class="cronologia-detail-toggle">' in html
         assert "Abrir detalhe" in html
-        assert "R$ 20 mil" in html
+        assert "R&#36; 20 mil" in html
         assert "<thead>" not in html
         assert "cronologia-head-row" not in html
 

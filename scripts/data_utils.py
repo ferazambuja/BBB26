@@ -35,8 +35,12 @@ def _round_pct_half_up(value: float) -> float:
 
 
 def safe_html(text: str) -> str:
-    """Escape text for safe HTML interpolation."""
-    return _html_escape(str(text), quote=True)
+    """Escape text for safe HTML interpolation.
+
+    Also escapes ``$`` to ``&#36;`` so Quarto/Pandoc does not treat
+    ``R$20`` as a LaTeX inline-math delimiter.
+    """
+    return _html_escape(str(text), quote=True).replace("$", "&#36;")
 
 
 # ══════════════════════════════════════════════════════════════
