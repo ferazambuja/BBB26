@@ -478,6 +478,8 @@ CYCLE_END_DATES: list[str] = [
     "2026-03-11",  # Cycle 8 — Alberto Cowboy + Jonas Sulzbach co-Líderes; 8º Paredão Mar 10; Alberto Líder solo (9ª PdL) Mar 12
     "2026-03-18",  # Cycle 9 — Alberto Cowboy Líder; 9º Paredão Mar 18; Alberto Líder tetra (10ª PdL) Mar 19
     "2026-03-25",  # Cycle 10 — Alberto Cowboy Líder (tetra); 10º Paredão Mar 24 (Jonas eliminated); next Líder Mar 26
+    "2026-03-28",  # Cycle 11 — Ana Paula Renault Líder; 11º Paredão Mar 29 (Alberto eliminated); Ana Paula bi Mar 29
+    "2026-03-31",  # Cycle 12 — Ana Paula Renault Líder (bi); 12º Paredão Mar 31 (Solange eliminated); next Líder Apr 1
 ]
 
 
@@ -1326,7 +1328,8 @@ def build_precision_methodology_text(polls_data: dict) -> str:
 TIMELINE_CAT_COLORS = {
     "entrada": "#28a745", "saida": "#dc3545", "lider_classificatoria": "#f4d35e", "lider": "#ffc107",
     "anjo": "#87ceeb", "monstro": "#9b59b6", "imune": "#17a2b8",
-    "big_fone": "#ff6b35", "paredao_formacao": "#e74c3c",
+    "big_fone": "#ff6b35", "indicacao_big_fone": "#ff6b35",
+    "paredao_formacao": "#e74c3c",
     "paredao_resultado": "#c0392b", "indicacao": "#e67e22",
     "contragolpe": "#d35400", "bate_volta": "#f39c12",
     "sincerao": "#1abc9c", "ganha_ganha": "#2ecc71",
@@ -1349,7 +1352,8 @@ TIMELINE_CAT_COLORS = {
 TIMELINE_CAT_LABELS = {
     "entrada": "Entrada", "saida": "Saída", "lider_classificatoria": "Classificatórias", "lider": "Líder",
     "anjo": "Anjo", "monstro": "Monstro", "imune": "Imune",
-    "big_fone": "Big Fone", "paredao_formacao": "Paredão",
+    "big_fone": "Big Fone", "indicacao_big_fone": "Big Fone",
+    "paredao_formacao": "Paredão",
     "paredao_resultado": "Resultado", "indicacao": "Indicação",
     "contragolpe": "Contragolpe", "bate_volta": "Bate-Volta",
     "sincerao": "Sincerão", "ganha_ganha": "Ganha-Ganha",

@@ -175,7 +175,7 @@ class TestGetCycleNumber:
         """When cycle N+1 has dated signals, cycle N boundary is inferred."""
         manual = {
             "scheduled_events": [
-                {"cycle": 12, "date": "2026-04-01"},
+                {"cycle": 14, "date": "2026-04-05"},
             ]
         }
         inferred = get_effective_cycle_end_dates(
@@ -184,9 +184,9 @@ class TestGetCycleNumber:
             provas_data={},
         )
         assert len(inferred) == len(CYCLE_END_DATES) + 1
-        assert inferred[-1] == "2026-03-31"
-        assert get_cycle_number("2026-03-31", inferred) == 11
-        assert get_cycle_number("2026-04-01", inferred) == 12
+        assert inferred[-1] == "2026-04-04"
+        assert get_cycle_number("2026-04-04", inferred) == 13
+        assert get_cycle_number("2026-04-05", inferred) == 14
 
     def test_inference_requires_contiguous_cycle_signal(self):
         """Do not infer cycle ends when the immediate next cycle has no signal."""
@@ -251,7 +251,7 @@ class TestCycleCompatibility:
     def test_cycle_boundary_inference_accepts_canonical_cycle_keys(self):
         manual = {
             "scheduled_events": [
-                {"cycle": 12, "date": "2026-04-01"},
+                {"cycle": 14, "date": "2026-04-05"},
             ]
         }
         inferred = get_effective_cycle_end_dates(
@@ -260,7 +260,7 @@ class TestCycleCompatibility:
             provas_data={},
         )
         assert len(inferred) == len(CYCLE_END_DATES) + 1
-        assert inferred[-1] == "2026-03-31"
+        assert inferred[-1] == "2026-04-04"
 
 
 class TestParseRoles:
