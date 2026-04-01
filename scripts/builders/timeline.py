@@ -922,6 +922,15 @@ def _merge_and_dedup_timeline(
         )
     ]
 
+    # --- Suppress ganha_ganha from cycles when power events cover the same date ---
+    # The cycles[].ganha_ganha entry is a summary; the power_events
+    # (ganha_ganha_escolha, veto_ganha_ganha) are authoritative with relational detail.
+    gg_power_dates = {e["date"] for e in events if e.get("category") in ("ganha_ganha_escolha", "veto_ganha_ganha")}
+    events = [
+        e for e in events
+        if not (e.get("category") == "ganha_ganha" and e.get("source") == "cycles" and e["date"] in gg_power_dates)
+    ]
+
     # --- Sort by date, then by cycle (lower cycle first on same day), then by category ---
     # Cycle-aware sort handles cross-cycle days (e.g., P11 result afternoon + P12 Líder evening)
     events.sort(key=lambda e: (e.get("date", ""), e.get("cycle", 99), CATEGORY_ORDER.get(e.get("category", ""), 99)))
