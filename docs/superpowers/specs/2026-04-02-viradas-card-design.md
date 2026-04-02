@@ -302,6 +302,14 @@ Sort within each tier:
 4. `giver` alphabetical
 5. `receiver` alphabetical
 
+If the same underlying event is present in multiple groups and survives all tie-breaks, hero category precedence is:
+
+1. `hostilities`
+2. `breaks`
+3. `dramatic`
+
+This precedence only decides `hero.kind` for overlapping duplicates. The event may still remain present in multiple groups for counts and drill rendering.
+
 The first item after applying tier selection and within-tier sorting becomes `hero`.
 
 The hero should answer “what is the most meaningful virada today?”, not “which bucket has the most rows?”
