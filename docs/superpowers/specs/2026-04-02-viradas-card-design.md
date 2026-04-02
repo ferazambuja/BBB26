@@ -194,6 +194,7 @@ Contract rules:
 - `total` must equal `counts.dramatic + counts.hostilities + counts.breaks`.
 - each `summary[*].count` must equal the matching value in `counts`.
 - each `groups[*].count` must equal `len(groups[*].items)`.
+- an event may appear in more than one category when it satisfies multiple category rules; counts are not deduplicated across groups.
 - `hero.chips` is always emitted; use `[]` when there are no chips.
 - the builder owns all narrative payload strings and the renderer prints them verbatim after escaping:
   - `subtitle`
@@ -206,6 +207,7 @@ Contract rules:
   - `hero.stat_value`
   - `hero.stat_label`
   - `hero.chips[*].text`
+- the builder only emits participant names (`giver`, `receiver`); the renderer resolves avatars from the existing participant metadata/avatar helpers already used by the index.
 
 ## Card structure
 
@@ -260,13 +262,13 @@ Required sort for `hostilities` and `breaks` groups:
 
 1. `prior_heart_days` descending
 2. `other_side_kept_heart` with `true` before `false` before `null`
-3. `severity_score` descending, when present
+3. `severity_score` descending, with `null` after any numeric value
 4. `giver` alphabetical
 5. `receiver` alphabetical
 
 Required sort for `dramatic` groups:
 
-1. `severity_score` descending
+1. `severity_score` descending, with `null` after any numeric value
 2. `prior_same_emoji_days` descending
 3. `prior_heart_days` descending
 4. `giver` alphabetical
@@ -295,7 +297,7 @@ Selection order:
 Sort within each tier:
 
 1. `prior_heart_days` descending
-2. `severity_score` descending, when present
+2. `severity_score` descending, with `null` after any numeric value
 3. `prior_same_emoji_days` descending
 4. `giver` alphabetical
 5. `receiver` alphabetical
@@ -338,6 +340,7 @@ Scope rules:
 - Only pair changes that belong to the latest queridômetro comparison may feed `Viradas`.
 - Historical break rows that are not part of the latest comparison do not belong in this card.
 - `Arquivo do Queridômetro` remains the place for historical curiosities and archive-first storytelling.
+- Category membership is not exclusive: the same latest-comparison event may be present in multiple groups if it qualifies for each group's rules.
 
 ## Context enrichment contract
 
