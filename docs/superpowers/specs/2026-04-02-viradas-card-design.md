@@ -63,6 +63,121 @@ The card keeps a hybrid structure:
 
 This preserves the speed of a dashboard card while centralizing the full story behind one drill.
 
+## Published payload contract
+
+`Viradas` replaces the published `dramatic`, `hostilities`, and `breaks` card payloads in `index_data.json`.
+
+There is no dual-publish compatibility period on the index payload surface: once `Viradas` lands, the old three card types should stop being emitted in `highlights.cards`.
+
+Required top-level shape:
+
+```json
+{
+  "type": "viradas",
+  "icon": "🔄",
+  "title": "Viradas",
+  "color": "#e74c3c",
+  "link": "evolucao.html#pulso",
+  "source_tag": "📅 Ontem → Hoje",
+  "subtitle": "As principais viradas de um dia para o outro no queridômetro.",
+  "reference_date": "YYYY-MM-DD",
+  "state": "today" | "partial",
+  "total": 0,
+  "display_limit": 4,
+  "counts": {
+    "dramatic": 0,
+    "hostilities": 0,
+    "breaks": 0
+  },
+  "hero": {
+    "kind": "dramatic" | "hostilities" | "breaks",
+    "kicker": "string",
+    "title": "string",
+    "body": "string",
+    "date": "YYYY-MM-DD",
+    "giver": "string",
+    "receiver": "string",
+    "old_emoji": "string",
+    "new_emoji": "string",
+    "prior_same_emoji_days": 0,
+    "prior_heart_days": 0,
+    "other_side_current_emoji": "string|null",
+    "other_side_kept_heart": true,
+    "meta_line": "string",
+    "stat_value": "string",
+    "stat_label": "string",
+    "chips": []
+  },
+  "summary": [
+    {
+      "kind": "dramatic",
+      "title": "Mudanças Dramáticas",
+      "count": 0,
+      "note": "string"
+    },
+    {
+      "kind": "hostilities",
+      "title": "Novas Hostilidades",
+      "count": 0,
+      "note": "string"
+    },
+    {
+      "kind": "breaks",
+      "title": "Alianças Rompidas",
+      "count": 0,
+      "note": "string"
+    }
+  ],
+  "groups": [
+    {
+      "kind": "dramatic",
+      "title": "Mudanças Dramáticas",
+      "count": 0,
+      "items": []
+    },
+    {
+      "kind": "hostilities",
+      "title": "Novas Hostilidades",
+      "count": 0,
+      "items": []
+    },
+    {
+      "kind": "breaks",
+      "title": "Alianças Rompidas",
+      "count": 0,
+      "items": []
+    }
+  ]
+}
+```
+
+Required per-item shape inside each `groups[*].items` array:
+
+```json
+{
+  "kind": "dramatic" | "hostilities" | "breaks",
+  "date": "YYYY-MM-DD",
+  "giver": "string",
+  "receiver": "string",
+  "old_emoji": "string",
+  "new_emoji": "string",
+  "prior_same_emoji_days": 0,
+  "prior_heart_days": 0,
+  "other_side_current_emoji": "string|null",
+  "other_side_kept_heart": true,
+  "meta_line": "string",
+  "severity": "number|string|null"
+}
+```
+
+Contract rules:
+
+- `summary` is always emitted in fixed order: `dramatic`, `hostilities`, `breaks`.
+- `groups` is always emitted in the same fixed order.
+- `hero` is one of the emitted group items, enriched with hero-only copy fields.
+- `meta_line` is prebuilt by the builder so the renderer does not need card-type-specific sentence logic.
+- `link` is fixed to `evolucao.html#pulso` for this change; no new destination page is introduced as part of this spec.
+
 ## Card structure
 
 ### 1. Hero
@@ -120,6 +235,30 @@ Use importance-based priority, not raw category counts:
 4. Tie-break by recency and by whether the opposite side still keeps `❤️`
 
 The hero should answer “what is the most meaningful virada today?”, not “which bucket has the most rows?”
+
+## Empty-state and partial-data rules
+
+`Viradas` is strictly a latest-comparison card. It does not fall back to older historical pair events the way `Arquivo do Queridômetro` falls back to archive facts.
+
+Deterministic emission rules:
+
+- If `counts.dramatic == 0`, `counts.hostilities == 0`, and `counts.breaks == 0`, do not emit a `viradas` card in `highlights.cards`.
+- If at least one category has items, emit exactly one `viradas` card.
+- `state = "today"` when all three groups have at least one item.
+- `state = "partial"` when the card renders but one or two groups are empty.
+
+Deterministic render rules:
+
+- The summary strip always shows all three categories, including zero counts.
+- The drill only renders non-empty groups; empty groups stay represented in payload counts but do not create empty open sections in the HTML.
+- The hero is selected from the union of all emitted items across the non-empty groups.
+- If the union is non-empty but the priority ranking ties completely, fall back to the first ranked item in this order: `hostilities`, `breaks`, `dramatic`, preserving that group's item order.
+
+Scope rules:
+
+- Only pair changes that belong to the latest queridômetro comparison may feed `Viradas`.
+- Historical break rows that are not part of the latest comparison do not belong in this card.
+- `Arquivo do Queridômetro` remains the place for historical curiosities and archive-first storytelling.
 
 ## Context enrichment contract
 
@@ -227,9 +366,9 @@ The merged card should replace the separate index cards for:
 - `hostilities`
 - `breaks`
 
-Internally, the current builders may continue to compute those source lists, but the published `index_data.json` card surface should become one `type = "viradas"` card.
+Internally, the current builders may continue to compute those source lists, but they must be normalized to the latest comparison before they are merged into the published `type = "viradas"` card.
 
-The old separate cards should stop rendering on `index.qmd` once `Viradas` is in place.
+The old separate cards should stop rendering on `index.qmd` once `Viradas` is in place, and the old separate card payloads should stop being emitted to `index_data.json`.
 
 ## Non-goals
 
@@ -245,8 +384,11 @@ Follow-up after this feature lands:
 ## Testing
 
 - Add focused regression tests for the new `type = "viradas"` payload before changing production rendering.
+- Test that the card is omitted when all three category counts are zero.
+- Test that the card renders with `state = "partial"` when only one or two groups are present.
 - Verify the old three-card render path is removed from `index.qmd`.
 - Test hero selection priority with controlled fixtures.
+- Test the explicit top-level payload shape for `hero`, `summary`, `counts`, and `groups`.
 - Test durability context generation for all three categories.
 - Test that row meta prefers:
   - duration first
