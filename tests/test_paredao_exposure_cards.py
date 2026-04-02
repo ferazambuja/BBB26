@@ -219,8 +219,8 @@ class TestExitedVoteStats:
         edi = next(i for i in exited if i["name"] == "Edi")
         assert edi["protected"] == 1
 
-    def test_exited_only_card_emitted(self):
-        """Builder emits nunca_paredao when only exited untouchables remain."""
+    def test_exited_only_card_hidden(self):
+        """Card is hidden when all active participants have been to paredão (only exited remain)."""
         paredoes = [_make_paredao(
             1, [_make_indicado("Ana"), _make_indicado("Breno"), _make_indicado("Caio")],
             votos_casa={"V1": "Ana"},
@@ -235,9 +235,8 @@ class TestExitedVoteStats:
             "participants": [{"name": "Henri", "first_seen": "2026-01-13", "last_seen": "2026-01-14"}],
         }
         _highlights, cards, _stats = _compute_static_cards(ctx)
-        nunca = next(card for card in cards if card["type"] == "nunca_paredao")
-        assert nunca["items_all"] == []
-        assert [item["name"] for item in nunca["items_exited"]] == ["Henri"]
+        nunca_cards = [card for card in cards if card["type"] == "nunca_paredao"]
+        assert nunca_cards == [], "Card should be hidden when no active participants are untouched"
 
     def test_manual_exit_date_clamps_stale_last_seen(self):
         """Manual exit date closes stale participants_index windows."""

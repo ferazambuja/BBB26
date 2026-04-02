@@ -250,8 +250,8 @@ class TestBuilderIntegration:
             assert item["protected"] == b["protected"], \
                 f"{name}: nunca protected={item['protected']} != blindados={b['protected']}"
 
-    def test_nunca_paredao_emits_when_only_exited_items_exist(self):
-        """Builder must emit nunca_paredao even when only exited untouchables remain."""
+    def test_nunca_paredao_hidden_when_only_exited_items_exist(self):
+        """Card is hidden when all active participants have been to paredão."""
         from builders.index_data_builder import _compute_static_cards
 
         paredoes = [{
@@ -284,9 +284,7 @@ class TestBuilderIntegration:
 
         _highlights, cards, _stats = _compute_static_cards(ctx)
         nunca = next((c for c in cards if c["type"] == "nunca_paredao"), None)
-        assert nunca is not None
-        assert nunca["items_all"] == []
-        assert [item["name"] for item in nunca["items_exited"]] == ["Henri"]
+        assert nunca is None, "Card should be hidden when no active participants are untouched"
 
 
 # ── Pipeline emission schema (non-skippable, uses builder directly) ─────

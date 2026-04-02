@@ -2029,7 +2029,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
             ctx, paredoes_list, exposure_by_name,
         )
         paredoes_with_indicados = [p for p in paredoes_list if p.get("indicados_finais")]
-        if nunca_items or nunca_exited:
+        if nunca_items:
             cards.append({
                 "type": "nunca_paredao",
                 "icon": "✨",
