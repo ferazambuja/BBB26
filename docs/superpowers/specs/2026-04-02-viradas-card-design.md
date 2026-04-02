@@ -194,7 +194,18 @@ Contract rules:
 - `total` must equal `counts.dramatic + counts.hostilities + counts.breaks`.
 - each `summary[*].count` must equal the matching value in `counts`.
 - each `groups[*].count` must equal `len(groups[*].items)`.
-- `chips` is optional display metadata for the hero only; each chip is a compact label rendered in payload order.
+- `hero.chips` is always emitted; use `[]` when there are no chips.
+- the builder owns all narrative payload strings and the renderer prints them verbatim after escaping:
+  - `subtitle`
+  - `source_tag`
+  - `summary[*].note`
+  - `hero.kicker`
+  - `hero.title`
+  - `hero.body`
+  - `hero.meta_line`
+  - `hero.stat_value`
+  - `hero.stat_label`
+  - `hero.chips[*].text`
 
 ## Card structure
 
@@ -289,6 +300,8 @@ Sort within each tier:
 4. `giver` alphabetical
 5. `receiver` alphabetical
 
+The first item after applying tier selection and within-tier sorting becomes `hero`.
+
 The hero should answer “what is the most meaningful virada today?”, not “which bucket has the most rows?”
 
 ## Empty-state and partial-data rules
@@ -297,10 +310,17 @@ The hero should answer “what is the most meaningful virada today?”, not “w
 
 `Latest comparison` means the two latest available comparable queridômetro snapshots in the derived dataset, not necessarily the previous calendar day.
 
+A snapshot is `comparable` when:
+
+- it has a valid queridômetro date
+- it produces a usable daily matrix for pair comparison
+- it can be compared against the same participant-pair universe as the later snapshot after the existing derived-data normalization step
+
 If the immediately previous day is missing, the card still compares the latest snapshot against the nearest earlier available snapshot and exposes that gap through `from_date`, `to_date`, and `source_tag`.
 
 Deterministic emission rules:
 
+- If fewer than two comparable snapshots exist, do not emit a `viradas` card in `highlights.cards`.
 - If `counts.dramatic == 0`, `counts.hostilities == 0`, and `counts.breaks == 0`, do not emit a `viradas` card in `highlights.cards`.
 - If at least one category has items, emit exactly one `viradas` card.
 - `state = "today"` when all three groups have at least one item.
@@ -312,7 +332,6 @@ Deterministic render rules:
 - The payload always keeps all three `groups` entries; empty groups use `count = 0` and `items = []`.
 - The drill only renders non-empty groups; empty groups stay represented in payload counts but do not create empty open sections in the HTML.
 - The hero is selected from the union of all emitted items across the non-empty groups.
-- If the union is non-empty but the priority ranking ties completely, fall back to the first ranked item in this order: `hostilities`, `breaks`, `dramatic`, preserving that group's item order.
 
 Scope rules:
 
