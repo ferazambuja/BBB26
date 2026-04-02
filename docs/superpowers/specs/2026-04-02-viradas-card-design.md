@@ -78,8 +78,10 @@ Required top-level shape:
   "title": "Viradas",
   "color": "#e74c3c",
   "link": "evolucao.html#pulso",
-  "source_tag": "📅 Ontem → Hoje",
+  "source_tag": "📅 dd/mm → dd/mm",
   "subtitle": "As principais viradas de um dia para o outro no queridômetro.",
+  "from_date": "YYYY-MM-DD",
+  "to_date": "YYYY-MM-DD",
   "reference_date": "YYYY-MM-DD",
   "state": "today" | "partial",
   "total": 0,
@@ -102,7 +104,7 @@ Required top-level shape:
     "prior_same_emoji_days": 0,
     "prior_heart_days": 0,
     "other_side_current_emoji": "string|null",
-    "other_side_kept_heart": true,
+    "other_side_kept_heart": "true|false|null",
     "meta_line": "string",
     "stat_value": "string",
     "stat_label": "string",
@@ -164,19 +166,25 @@ Required per-item shape inside each `groups[*].items` array:
   "prior_same_emoji_days": 0,
   "prior_heart_days": 0,
   "other_side_current_emoji": "string|null",
-  "other_side_kept_heart": true,
+  "other_side_kept_heart": "true|false|null",
   "meta_line": "string",
-  "severity": "number|string|null"
+  "severity_score": "number|null",
+  "severity_label": "string|null"
 }
 ```
 
 Contract rules:
 
 - `summary` is always emitted in fixed order: `dramatic`, `hostilities`, `breaks`.
-- `groups` is always emitted in the same fixed order.
+- `groups` is always emitted in the same fixed order and always contains exactly three entries, even when one or more groups are empty.
 - `hero` is one of the emitted group items, enriched with hero-only copy fields.
 - `meta_line` is prebuilt by the builder so the renderer does not need card-type-specific sentence logic.
+- `from_date` and `to_date` identify the two snapshots being compared.
+- `reference_date` must equal `to_date`.
 - `link` is fixed to `evolucao.html#pulso` for this change; no new destination page is introduced as part of this spec.
+- `source_tag` is derived from `from_date` and `to_date`:
+  - use `📅 Ontem → Hoje` only when the two available snapshots are consecutive calendar days and `to_date` is the latest snapshot in the dataset
+  - otherwise use `📅 dd/mm → dd/mm`
 
 ## Card structure
 
@@ -227,18 +235,37 @@ This retains the current “show me everything” behavior, but consolidates it 
 
 The hero should be chosen from the latest comparison only.
 
-Use importance-based priority, not raw category counts:
+Use deterministic importance-based priority, not raw category counts.
 
-1. A one-sided rupture or hostility that follows a meaningful prior streak of support
-2. Otherwise, the longest streak break
-3. Otherwise, the strongest dramatic emoji jump
-4. Tie-break by recency and by whether the opposite side still keeps `❤️`
+Definitions:
+
+- A `meaningful prior streak of support` means `prior_heart_days >= 3`.
+- A dramatic item's `strength` is `severity_score`, sorted descending.
+
+Selection order:
+
+1. Tier A: any `hostilities` or `breaks` item with `other_side_kept_heart = true` and `prior_heart_days >= 3`
+2. Tier B: otherwise, any `breaks` item
+3. Tier C: otherwise, any `dramatic` item
+4. Tier D: otherwise, any remaining `hostilities` item
+
+Sort within each tier:
+
+1. `prior_heart_days` descending
+2. `severity_score` descending, when present
+3. `prior_same_emoji_days` descending
+4. `giver` alphabetical
+5. `receiver` alphabetical
 
 The hero should answer “what is the most meaningful virada today?”, not “which bucket has the most rows?”
 
 ## Empty-state and partial-data rules
 
 `Viradas` is strictly a latest-comparison card. It does not fall back to older historical pair events the way `Arquivo do Queridômetro` falls back to archive facts.
+
+`Latest comparison` means the two latest available comparable queridômetro snapshots in the derived dataset, not necessarily the previous calendar day.
+
+If the immediately previous day is missing, the card still compares the latest snapshot against the nearest earlier available snapshot and exposes that gap through `from_date`, `to_date`, and `source_tag`.
 
 Deterministic emission rules:
 
@@ -250,6 +277,7 @@ Deterministic emission rules:
 Deterministic render rules:
 
 - The summary strip always shows all three categories, including zero counts.
+- The payload always keeps all three `groups` entries; empty groups use `count = 0` and `items = []`.
 - The drill only renders non-empty groups; empty groups stay represented in payload counts but do not create empty open sections in the HTML.
 - The hero is selected from the union of all emitted items across the non-empty groups.
 - If the union is non-empty but the priority ranking ties completely, fall back to the first ranked item in this order: `hostilities`, `breaks`, `dramatic`, preserving that group's item order.
@@ -293,6 +321,12 @@ If the previous emoji was not `❤️`, the copy may fall back to:
 - `Depois de 4 dias de 🌱 · 02/04`
 
 This should be generated from the actual queridômetro history, not hard-coded per card type.
+
+Nullability rules:
+
+- `prior_same_emoji_days` and `prior_heart_days` are numeric and default to `0`.
+- `other_side_current_emoji` may be `null` when the reciprocal snapshot is unavailable.
+- `other_side_kept_heart` may be `null` only when `other_side_current_emoji` is `null`; otherwise it must be `true` or `false`.
 
 ## Copy rules
 
@@ -386,8 +420,10 @@ Follow-up after this feature lands:
 - Add focused regression tests for the new `type = "viradas"` payload before changing production rendering.
 - Test that the card is omitted when all three category counts are zero.
 - Test that the card renders with `state = "partial"` when only one or two groups are present.
+- Test missing-day comparisons, including the explicit `from_date`, `to_date`, and `source_tag` fallback.
 - Verify the old three-card render path is removed from `index.qmd`.
 - Test hero selection priority with controlled fixtures.
+- Test the deterministic tier ordering for `hostilities`, `breaks`, and `dramatic`.
 - Test the explicit top-level payload shape for `hero`, `summary`, `counts`, and `groups`.
 - Test durability context generation for all three categories.
 - Test that row meta prefers:
