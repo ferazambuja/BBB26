@@ -85,7 +85,6 @@ Required top-level shape:
   "reference_date": "YYYY-MM-DD",
   "state": "today" | "partial",
   "total": 0,
-  "display_limit": 4,
   "counts": {
     "dramatic": 0,
     "hostilities": 0,
@@ -106,9 +105,16 @@ Required top-level shape:
     "other_side_current_emoji": "string|null",
     "other_side_kept_heart": "true|false|null",
     "meta_line": "string",
+    "severity_score": "number|null",
+    "severity_label": "string|null",
     "stat_value": "string",
     "stat_label": "string",
-    "chips": []
+    "chips": [
+      {
+        "text": "string",
+        "tone": "neutral|accent"
+      }
+    ]
   },
   "summary": [
     {
@@ -177,7 +183,7 @@ Contract rules:
 
 - `summary` is always emitted in fixed order: `dramatic`, `hostilities`, `breaks`.
 - `groups` is always emitted in the same fixed order and always contains exactly three entries, even when one or more groups are empty.
-- `hero` is one of the emitted group items, enriched with hero-only copy fields.
+- `hero` is one of the emitted group items, copied with all item fields preserved and enriched with hero-only copy fields.
 - `meta_line` is prebuilt by the builder so the renderer does not need card-type-specific sentence logic.
 - `from_date` and `to_date` identify the two snapshots being compared.
 - `reference_date` must equal `to_date`.
@@ -185,6 +191,10 @@ Contract rules:
 - `source_tag` is derived from `from_date` and `to_date`:
   - use `📅 Ontem → Hoje` only when the two available snapshots are consecutive calendar days and `to_date` is the latest snapshot in the dataset
   - otherwise use `📅 dd/mm → dd/mm`
+- `total` must equal `counts.dramatic + counts.hostilities + counts.breaks`.
+- each `summary[*].count` must equal the matching value in `counts`.
+- each `groups[*].count` must equal `len(groups[*].items)`.
+- `chips` is optional display metadata for the hero only; each chip is a compact label rendered in payload order.
 
 ## Card structure
 
@@ -230,6 +240,28 @@ The drill stays collapsed by default and opens grouped sections in this order:
 Each group reuses the pair-story row model with avatars on both sides and a center transition.
 
 This retains the current “show me everything” behavior, but consolidates it behind one entry point.
+
+### Group ordering
+
+The renderer should preserve payload order for every `groups[*].items` list. The builder is responsible for pre-sorting those items.
+
+Required sort for `hostilities` and `breaks` groups:
+
+1. `prior_heart_days` descending
+2. `other_side_kept_heart` with `true` before `false` before `null`
+3. `severity_score` descending, when present
+4. `giver` alphabetical
+5. `receiver` alphabetical
+
+Required sort for `dramatic` groups:
+
+1. `severity_score` descending
+2. `prior_same_emoji_days` descending
+3. `prior_heart_days` descending
+4. `giver` alphabetical
+5. `receiver` alphabetical
+
+The drill rows must render in that payload order without additional client-side sorting.
 
 ## Hero selection
 
@@ -421,10 +453,11 @@ Follow-up after this feature lands:
 - Test that the card is omitted when all three category counts are zero.
 - Test that the card renders with `state = "partial"` when only one or two groups are present.
 - Test missing-day comparisons, including the explicit `from_date`, `to_date`, and `source_tag` fallback.
+- Test the published count invariants: `total`, `counts`, `summary[*].count`, and `groups[*].count`.
 - Verify the old three-card render path is removed from `index.qmd`.
 - Test hero selection priority with controlled fixtures.
 - Test the deterministic tier ordering for `hostilities`, `breaks`, and `dramatic`.
-- Test the explicit top-level payload shape for `hero`, `summary`, `counts`, and `groups`.
+- Test the explicit top-level payload shape for `hero`, `summary`, `counts`, `groups`, and `hero.chips`.
 - Test durability context generation for all three categories.
 - Test that row meta prefers:
   - duration first
