@@ -72,6 +72,7 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "build_rxn_detail_html" in content
     assert "render_pulse_row" in content
     assert "render_pair_chip" in content
+    assert "render_pulso_card" in content
     assert "render_saldo_card" in content
 
 

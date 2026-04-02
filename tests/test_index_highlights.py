@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from builders.index_data_builder import (
+    _build_pulso_changes_card,
     build_index_data,
     _compute_daily_movers_cards,
     _compute_sincerao_highlight,
@@ -34,6 +35,42 @@ def _participant(name: str, hearts: int, vomit: int = 0) -> dict:
     }
 
 
+def _daily_change(
+    date: str,
+    *,
+    total_changes: int,
+    pct_changed: float,
+    dramatic_count: int,
+    top_receiver: tuple[str, float] = ("", 0.0),
+    top_loser: tuple[str, float] = ("", 0.0),
+    top_volatile_giver: tuple[str, int] = ("", 0),
+    new_mutual_hostilities: list[dict] | None = None,
+    new_streak_breaks: list[dict] | None = None,
+    transition_counts: dict[str, int] | None = None,
+) -> dict:
+    return {
+        "date": date,
+        "total_changes": total_changes,
+        "pct_changed": pct_changed,
+        "dramatic_count": dramatic_count,
+        "n_melhora": max(0, total_changes // 3),
+        "n_piora": max(0, total_changes // 3),
+        "n_lateral": max(0, total_changes - 2 * (total_changes // 3)),
+        "hearts_gained": max(0, total_changes // 4),
+        "hearts_lost": max(0, total_changes // 5),
+        "top_receiver": {"name": top_receiver[0], "delta": top_receiver[1]},
+        "top_loser": {"name": top_loser[0], "delta": top_loser[1]},
+        "top_volatile_giver": {"name": top_volatile_giver[0], "changes": top_volatile_giver[1]},
+        "transition_counts": transition_counts or {},
+        "new_mutual_hostilities": new_mutual_hostilities or [],
+        "new_streak_breaks": new_streak_breaks or [],
+        "new_blind_spots": [],
+        "receiver_deltas": {},
+        "pair_changes": [],
+        "giver_volatility": {},
+    }
+
+
 def test_ranking_highlight_falls_back_to_week_when_day_is_flat():
     daily_snapshots = [
         {"date": "2026-03-01", "participants": [_participant("Ana", 3), _participant("Beto", 1, 1)]},
@@ -54,6 +91,192 @@ def test_ranking_highlight_falls_back_to_week_when_day_is_flat():
     assert ranking["delta_all"], "Expected weekly fallback rows when yesterday deltas are flat"
     assert ranking["delta_all"][0]["name"] == "Ana"
     assert ranking["delta_all"][0]["delta"] > 0
+
+
+def test_pulso_changes_card_prefers_history_when_latest_day_is_not_extreme():
+    history = [
+        _daily_change(
+            "2026-01-19",
+            total_changes=82,
+            pct_changed=28.0,
+            dramatic_count=36,
+            top_receiver=("Paulo Augusto", 9.5),
+            top_loser=("Marciele", -6.0),
+            top_volatile_giver=("Juliano Floss", 12),
+            transition_counts={"Planta→Coração": 14},
+        ),
+        _daily_change(
+            "2026-01-20",
+            total_changes=121,
+            pct_changed=36.8,
+            dramatic_count=96,
+            top_receiver=("Paulo Augusto", 7.0),
+            top_loser=("Leandro", -16.5),
+            top_volatile_giver=("Solange Couto", 17),
+            transition_counts={"Coração→Planta": 22},
+        ),
+        _daily_change(
+            "2026-02-02",
+            total_changes=95,
+            pct_changed=27.6,
+            dramatic_count=52,
+            top_receiver=("Jordana", 6.0),
+            top_loser=("Gabriela", -8.5),
+            top_volatile_giver=("Solange Couto", 19),
+            transition_counts={"Coração→Coração partido": 20},
+        ),
+        _daily_change(
+            "2026-04-01",
+            total_changes=14,
+            pct_changed=19.4,
+            dramatic_count=10,
+            top_receiver=("Milena", 3.0),
+            top_loser=("Marciele", -3.0),
+            top_volatile_giver=("Marciele", 4),
+            new_mutual_hostilities=[
+                {"pair": ["Gabriela", "Marciele"]},
+                {"pair": ["Leandro", "Marciele"]},
+                {"pair": ["Leandro", "Samira"]},
+            ],
+            new_streak_breaks=[
+                {"giver": "Gabriela", "receiver": "Marciele", "previous_streak": 49, "new_emoji": "Mala"},
+                {"giver": "Marciele", "receiver": "Gabriela", "previous_streak": 48, "new_emoji": "Coração partido"},
+                {"giver": "Chaiany", "receiver": "Marciele", "previous_streak": 16, "new_emoji": "Coração partido"},
+            ],
+            transition_counts={"Coração→Coração partido": 2, "Mala→Coração": 2},
+        ),
+    ]
+    current = {
+        **history[-1],
+        "reference_date": "2026-04-01",
+        "from_date": "2026-03-31",
+        "to_date": "2026-04-01",
+        "total_possible": 72,
+        "improve": 4,
+        "worsen": 6,
+        "lateral": 4,
+        "net": -2,
+        "hearts_gained": 4,
+        "hearts_lost": 6,
+    }
+
+    card = _build_pulso_changes_card(
+        current,
+        history,
+        active_set={"Gabriela", "Marciele", "Milena", "Leandro", "Samira", "Chaiany"},
+        current_cycle=13,
+        latest_date="2026-04-01",
+        manual_events={},
+        auto_events={"events": []},
+        paredoes={
+            "paredoes": [
+                {
+                    "numero": 2,
+                    "cycle": 2,
+                    "data_formacao": "2026-01-25",
+                    "data": "2026-01-27",
+                    "formacao": {"lider": "Babu Santana"},
+                },
+                {
+                    "numero": 13,
+                    "cycle": 13,
+                    "data_formacao": "2026-04-03",
+                    "data": "2026-04-05",
+                    "formacao": {"lider": "Samira"},
+                },
+            ]
+        },
+    )
+
+    assert card["mode"] == "history"
+    assert card["hero"]["scope"] == "history"
+    assert card["today"]["total"] == 14
+    assert any("49 dias" in chip for chip in card["today"]["chips"])
+    assert any("3 hostilidades" in chip for chip in card["today"]["chips"])
+
+    chaos_fact = next(fact for fact in card["facts"] if fact["kind"] == "chaos_day")
+    assert chaos_fact["date"] == "2026-01-20"
+    assert "2º Paredão" in chaos_fact["context"]["moment"]
+    assert any("Babu Santana" in chip for chip in chaos_fact["context"]["chips"])
+    assert any(
+        participant["name"] == "Solange Couto" and participant["status"] == "eliminated"
+        for fact in card["facts"]
+        for participant in fact.get("participants", [])
+    )
+
+
+def test_pulso_changes_card_uses_today_mode_when_latest_day_is_extreme():
+    history = [
+        _daily_change(
+            "2026-01-10",
+            total_changes=18,
+            pct_changed=9.0,
+            dramatic_count=5,
+            top_receiver=("Ana", 2.0),
+            top_loser=("Beto", -1.5),
+            top_volatile_giver=("Ana", 4),
+        ),
+        _daily_change(
+            "2026-01-11",
+            total_changes=26,
+            pct_changed=13.0,
+            dramatic_count=8,
+            top_receiver=("Ana", 2.5),
+            top_loser=("Beto", -2.0),
+            top_volatile_giver=("Beto", 5),
+        ),
+        _daily_change(
+            "2026-01-12",
+            total_changes=110,
+            pct_changed=34.0,
+            dramatic_count=70,
+            top_receiver=("Ana", 8.0),
+            top_loser=("Beto", -10.0),
+            top_volatile_giver=("Ana", 21),
+            transition_counts={"Coração→Planta": 18},
+        ),
+    ]
+    current = {
+        **history[-1],
+        "reference_date": "2026-01-12",
+        "from_date": "2026-01-11",
+        "to_date": "2026-01-12",
+        "total_possible": 72,
+        "improve": 40,
+        "worsen": 50,
+        "lateral": 20,
+        "net": -10,
+        "hearts_gained": 18,
+        "hearts_lost": 27,
+    }
+
+    card = _build_pulso_changes_card(
+        current,
+        history,
+        active_set={"Ana", "Beto"},
+        current_cycle=1,
+        latest_date="2026-01-12",
+        manual_events={},
+        auto_events={"events": []},
+        paredoes={
+            "paredoes": [
+                {
+                    "numero": 1,
+                    "cycle": 1,
+                    "data_formacao": "2026-01-12",
+                    "data": "2026-01-14",
+                    "formacao": {"lider": "Ana"},
+                }
+            ]
+        },
+    )
+
+    assert card["mode"] == "today"
+    assert card["hero"]["scope"] == "today"
+    assert card["hero"]["kind"] == "today_snapshot"
+    assert card["hero"]["date"] == "2026-01-12"
+    assert "1º Paredão" in card["hero"]["context"]["moment"]
+    assert card["facts"], "Historical facts should still be available for rotation even on hot days"
 
 
 def test_index_template_uses_dynamic_paredao_subtitle():
@@ -188,10 +411,56 @@ def test_sincerao_card_keeps_unlabeled_negative_targets_visible_when_split_lanes
     ]
 
 
+def test_sincerao_card_is_hidden_when_current_cycle_has_no_sincerao_yet():
+    sinc_data = {
+        "weeks": [{"cycle": 10, "date": "2026-03-23", "format": "Chato de Galocha"}],
+        "edges": [
+            {"cycle": 10, "type": "ataque", "actor": "Ana", "target": "Beto"},
+            {"cycle": 10, "type": "elogio", "actor": "Cora", "target": "Duda"},
+        ],
+    }
+
+    _highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg, sinc_week_used, available_weeks, radar = _compute_sincerao_highlight(
+        sinc_data=sinc_data,
+        current_cycle=13,
+        latest_matrix={
+            ("Ana", "Beto"): "Coração",
+            ("Cora", "Duda"): "Coração",
+        },
+        active_set={"Ana", "Beto", "Cora", "Duda"},
+    )
+
+    assert sinc_week_used == 10
+    assert available_weeks == [10]
+    assert radar["neg_ranked"] == [{"name": "Beto", "count": 1, "actors": ["Ana"]}]
+    assert pair_contradictions == [{
+        "ator": "Ana",
+        "alvo": "Beto",
+        "tipo": "ataque",
+        "tipo_label": "ataque",
+        "tema": None,
+        "reacao": "Coração",
+        "emoji": "❤️",
+    }]
+    assert pair_aligned_pos == [{
+        "ator": "Cora",
+        "alvo": "Duda",
+        "tipo": "elogio",
+        "tipo_label": "elogio",
+        "tema": None,
+        "reacao": "Coração",
+        "emoji": "❤️",
+    }]
+    assert pair_aligned_neg == []
+    assert not any(card.get("type") == "sincerao" for card in cards)
+
+
 def test_latest_sincerao_card_has_valid_radar_structure():
     """Current sincerao card must have well-formed radar with neg_lanes or neg_ranked."""
     payload = build_index_data()
-    sinc_card = next(card for card in payload.get("highlights", {}).get("cards", []) if card.get("type") == "sincerao")
+    sinc_card = next((card for card in payload.get("highlights", {}).get("cards", []) if card.get("type") == "sincerao"), None)
+    if not sinc_card:
+        return
 
     radar = sinc_card["radar"]
     assert "neg_lanes" in radar or "neg_ranked" in radar

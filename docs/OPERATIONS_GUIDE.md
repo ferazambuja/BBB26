@@ -8,7 +8,7 @@
 > **For verification strategy**: See `docs/TESTING.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-03-19
+> **Last updated**: 2026-04-02
 
 ---
 
@@ -443,14 +443,14 @@ Use this as the default workflow when the "Dinâmica da Semana" article lands an
   - `accelerated_finale` — altered late-game cadence; Wednesday carries the elimination slot instead of `barrado_baile`
   - `turbo_top10` — compressed Top 10+ cycles (W11 onward); generates **NO scaffolds** because turbo weekday assignments vary per cycle. All events must come from manual `scheduled_events`. Also suppresses Bate e Volta, Contragolpe, Presente do Anjo, Sincerão, Ganha-Ganha, Barrado (all permanently removed in turbo mode)
 
-Two recurring event types:
-- **Sincerão** (Monday live show) — happens every week with a different format/theme
+Two usually recurring event types during the standard cadence:
+- **Sincerão** (usually Monday live show) — often has a different format/theme, but is **not guaranteed** in the late game. As of **2026-04-02**, the latest recorded Sincerão is **cycle 10 on 2026-03-23**.
 - **Week Dynamic** (Friday, varies) — the unique dynamic from the weekly dynamics article
 
 | Dia | Horário (BRT) | Evento | Checklist to follow | Data files affected |
 |-----|---------------|--------|---------------------|---------------------|
 | **Diário** | manhã/tarde (janela em validação) | Queridômetro atualiza | Automático (multi-captura + probes 09:30–16:00 BRT) | `snapshots/` |
-| **Segunda** | ~22h | **Sincerão** (ao vivo) | [Sincerão Update](#sincerão-update-monday) | `manual_events.json` |
+| **Segunda** | ~22h (se houver) | **Sincerão** (ao vivo) | [Sincerão Update](#sincerão-update-monday) | `manual_events.json` |
 | **Terça** | ~21h | Votalhada "Consolidados" | [Votalhada Checklist](#votalhada-collection-checklist-tuesday) | `votalhada/polls.json` |
 | **Terça** | ~23h | **Eliminação** ao vivo | [Elimination Checklist](#elimination-result-checklist-tuesday) | `paredoes.json` |
 | **Terça** | ~23h30 | **Ganha-Ganha** | [Manual Data Files](#1-datamanual_eventsjson) | `manual_events.json` |
@@ -485,7 +485,7 @@ When the show enters the final phase, Líder cycles compress to **2–4 days** i
 | Sun Mar 29 | Sun | W11→W12 | Elimination (11º) + Prova do Líder (W12) + Formation (12º) |
 | Tue Mar 31 | Tue | W12 | Elimination (12º) |
 
-### Sincerão History (Monday — recurring weekly)
+### Sincerão History (usually Monday; not guaranteed late-game)
 
 Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for multiple rounds).
 
@@ -500,6 +500,8 @@ Data goes in `weekly_events[N].sincerao` (single `dict` or `list` of dicts for m
 | W7 | Mon Mar 2 | Linha Direta — maior traidor(a) | Each participant calls one person they consider the biggest traitor |
 | W8 | Mon Mar 9 | Pódio dos Medrosos | 3 medalhas (covarde, frouxo/a, arregão/a). Cowboy mais visado (6×), Leandro zero |
 | W9 | Mon Mar 16 | Quem faz alguém de bobo + quem está sendo feito de bobo | Placa dupla negativa. No agregado, Alberto Cowboy e Gabriela empataram como mais visados (7×); por placa, Alberto liderou “faz alguém de bobo” (7×) e Gabriela liderou “feito de bobo” (5×). |
+| W10 | Mon Mar 23 | Chato de Galocha | Cada participante apontou o mais chato da casa, com réplica do alvo. Último Sincerão confirmado até 2026-04-02. |
+| W11+ | — | Nenhum até agora | No modo turbo/reta final, não assuma novo Sincerão sem confirmação explícita. |
 
 ### Week Dynamic History (Friday — varies each week)
 
@@ -519,7 +521,7 @@ Separate from Sincerão. Announced in the dynamics article (published ~Thursday)
 
 ### Recurring Events Checklist (per week)
 
-**Auto-scaffolding**: The open cycle now gets the recurring backbone automatically: `lider`, `anjo`, `monstro`, `presente_anjo`, the Sunday Paredão sub-steps, `paredao_formacao`, `sincerao`, `paredao_resultado`, `ganha_ganha`, and `barrado_baile` (or the selected `schedule_profile`). You do **not** need to add manual `scheduled_events` for those unless you want to override title/detail/time.
+**Auto-scaffolding**: In the `standard` profile, the open cycle gets the recurring backbone automatically: `lider`, `anjo`, `monstro`, `presente_anjo`, the Sunday Paredão sub-steps, `paredao_formacao`, `sincerao`, `paredao_resultado`, `ganha_ganha`, and `barrado_baile` (or the selected `schedule_profile`). You do **not** need to add manual `scheduled_events` for those unless you want to override title/detail/time. In late-game/turbo cycles, do **not** assume `sincerao` exists unless the schedule/article confirms it.
 
 Use the [Week Rollover Runbook](#week-rollover-runbook-thursdayfriday) first. Quick decision rule:
 
@@ -550,13 +552,13 @@ The table below answers the practical question "does this repeat automatically, 
 | Sunday (afternoon) | `presente_anjo` | scaffold | the week changes the rule or the article gives meaningful custom detail |
 | Sunday (night) | `paredao_imunidade` / `paredao_indicacao` / `paredao_votacao` / `paredao_contragolpe` / `paredao_bate_volta` | scaffold on the open cycle, then real `paredoes.json` steps | the week article requires more specific copy |
 | Sunday (night) | `paredao_formacao` | scaffold | the formation is non-generic (contragolpe, extra emparedado, split show, etc.) |
-| Monday | `sincerao` | scaffold | the format is already known and worth surfacing early |
+| Monday | `sincerao` | scaffold in `standard` profile | the format is already known, worth surfacing early, and the cycle is still expected to have Sincerão |
 | Tuesday | `paredao_resultado` | scaffold | timing/copy is unusually specific |
 | Tuesday | `ganha_ganha` | scaffold | the article announces a non-generic twist |
 | Wednesday | `barrado_baile` | scaffold in `standard` profile | the article announces a special rule/time |
 
 **Verification (required before commit)**:
-Baseline recurring events (Sincerão, Ganha-Ganha, Barrado, Presente do Anjo, Formação do Paredão, Eliminação) are **auto-scaffolded** by the timeline builder — they do not need manual `scheduled_events` entries. To verify scaffolds appear correctly in the built timeline:
+Baseline recurring events in the `standard` profile (Sincerão, Ganha-Ganha, Barrado, Presente do Anjo, Formação do Paredão, Eliminação) are **auto-scaffolded** by the timeline builder — they do not need manual `scheduled_events` entries. In turbo/final cycles, those assumptions no longer hold. To verify scaffolds appear correctly in the built timeline:
 ```bash
 python scripts/build_derived_data.py
 jq '[.[] | select(.source == "scaffold" and .week == 9)] | group_by(.category) | map({category: .[0].category, count: length})' data/derived/game_timeline.json
@@ -1916,6 +1918,8 @@ If `scheduled_events` has a `barrado_baile` placeholder for that date/week, **up
 
 ## Sincerão Update (Monday)
 
+Only follow this checklist when the current cycle actually has a Sincerão. In turbo/final stretches, skipping this section is valid until the show confirms a new Sincerão.
+
 After the Monday live show (~22h BRT):
 
 ### 1. Scrape Sincerão articles
@@ -2002,7 +2006,15 @@ If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_d
 **Current index card support**:
 - The current Sincerão highlight card in `index_data.json` only surfaces the contradiction/alignment pair lanes from `elogio`, `nao_ganha`, and `ataque`.
 - The radar can still count other mapped Sincerão types when they have valence metadata.
+- The Painel only exposes the `type = "sincerao"` card when the **current cycle** has Sincerão data. If the latest Sincerão belongs to an older cycle, the historical payload remains available in `index_data.json`, but the index card stays hidden.
 - If you add a brand-new edge type and expect it to appear in the current card, update both `SINC_TYPE_META` **and** the highlight filters in `scripts/builders/index_data_builder.py`.
+
+**Pulso / queridômetro card support**:
+- The `type = "changes"` card on the Painel is now **history-first**. Most days it shows a rotating historical queridômetro fact as the hero and keeps the latest day in a compact strip below.
+- The hero only switches back to “today” when the latest comparable day is genuinely exceptional against season history (`total_changes`, `pct_changed`, or `dramatic_count` in the top band). Do not force it with ad-hoc rules.
+- Historical facts may feature **already eliminated** people. That is expected. The compact “today” strip should still reflect only the latest comparable snapshot.
+- Historical facts must carry **context chips** (paredão window, Modo Turbo, nearby Sincerão / Big Fone / Anjo, etc.). A bare date without context is not enough.
+- The context chips depend on `manual_events.json` cycle metadata and nearby event dates. When those notes/dates are wrong or missing, the card will still build, but the history drill becomes vague.
 
 **Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `ataque` 0.4.
 
@@ -2031,15 +2043,19 @@ jq '.sincerao.type_coverage' data/derived/index_data.json
 
 # 4. Sincerao edge count for the week
 jq '[.[] | select(.week==N)] | length' data/derived/sincerao_edges.json
+
+# 5. Pulso card payload
+jq '.highlights.cards[] | select(.type=="changes") | {mode, hero: {kind, date, title}, today: {date, total, pct}, facts: (.facts | length)}' data/derived/index_data.json
 ```
 
 Expected:
 - `game_timeline.json` shows the real Monday event with `source = "weekly_events"` (not `scaffold`)
-- `index_data.json` exposes a `type = "sincerao"` card for the current week when supported edge types are present
+- `index_data.json` exposes a `type = "sincerao"` card only when the current cycle has Sincerão data and supported edge types are present
 - `type_coverage.unknown` is empty — if not, update `SINC_TYPE_META` in `scripts/builders/index_data_builder.py`
 - Edge count matches the number of edges you added in `weekly_events[N].sincerao.edges`
+- `index_data.json` exposes a `type = "changes"` card with `mode`, `hero`, `today`, and `facts`; when `mode = "history"`, confirm the hero context is still specific enough to understand the moment
 
-**Index card rendering**: The Sincerão card on `index.qmd` renders **automatically** from `index_data.json`. No manual QMD edits needed. The card code (line ~434 in `index.qmd`) handles both `neg_lanes` (multi-plaque formats like "bobo") and `neg_ranked` (single-plaque formats like "Chato de Galocha"). After deploy, verify the card appears at the top of the Painel page with the correct format title, radar lanes, contradiction/alignment pairs, and "Poupados" section.
+**Index card rendering**: The Sincerão card on `index.qmd` renders **automatically** from `index_data.json`. No manual QMD edits needed. The card code (line ~434 in `index.qmd`) handles both `neg_lanes` (multi-plaque formats like "bobo") and `neg_ranked` (single-plaque formats like "Chato de Galocha"). After deploy, verify the card appears at the top of the Painel page with the correct format title, radar lanes, contradiction/alignment pairs, and "Poupados" section when the current cycle has Sincerão; otherwise confirm the card stays hidden.
 
 ---
 
@@ -2230,7 +2246,7 @@ When a "Dinâmica da Semana" article is published, register the week schedule us
 | 2026-03-15 | `presente_anjo` | Presente do Anjo | Anjo escolhe entre vídeo da família ou 2ª imunidade + almoço |
 | 2026-03-15 | `paredao_formacao` | Formação do Paredão (duas partes) | Include `indicação do Líder vigente (a definir)` until Líder is confirmed |
 | 2026-03-15 | `dinamica` | Máquina do Poder (salvação de emparedado) | Winner of caixa premiada can save one of Saturday's 3 emparedados |
-| 2026-03-16 | `sincerao` | Sincerão | Recurring weekly Monday live event |
+| 2026-03-16 | `sincerao` | Sincerão | Standard-profile Monday live event when that cycle actually has Sincerão |
 | 2026-03-17 | `paredao_resultado` | Eliminação | Normal Tuesday result |
 | 2026-03-17 | `ganha_ganha` | Ganha-Ganha | Recurring Tuesday post-elimination dynamic |
 | 2026-03-18 | `barrado_baile` | Barrado no Baile | Recurring Wednesday event |

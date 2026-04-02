@@ -139,6 +139,11 @@ Use for **desistência / eliminação / desclassificação**.
 ### `cycles`
 Cycle-scoped dynamics (Big Fone, Quarto Secreto, Ganha‑Ganha, Barrado no Baile, caixas, notes).
 
+**Also feeds historical context on the index**:
+- `cycles[].notes`, `cycles[].sincerao.date`, `cycles[].big_fone[*].date`, and `cycles[].anjo.prova_date` are reused by the Painel’s queridômetro-history card (`type = "changes"`).
+- Keep these dates and notes accurate even if the main analysis does not need them numerically; they become the short context chips like `Modo turbo`, `Pré-Sincerão`, `Dia de Big Fone`, or `Prova do Anjo`.
+- Favor short, specific notes. The UI extracts compact context from them; vague notes like “semana agitada” are low-value.
+
 **Big Fone (manual):**
 - `cycles[].big_fone` is an **array** (multiple Big Fones can happen in the same cycle).
 - Each entry: `{"atendeu": "Name", "date": "YYYY-MM-DD", "consequencia": "..."}`.
@@ -336,7 +341,7 @@ Future/upcoming events that haven't happened yet. Displayed in the **Cronologia 
 
 **Granularity rule**: if the source/article/video enumerates a same-day sequence, store separate scheduled entries in that order instead of compressing everything into one summary. Use `lider_classificatoria` for Thursday afternoon qualifying rounds before the live `lider` final.
 
-**Scaffold rule**: on the open cycle, the timeline builder now auto-creates the standard recurring backbone (`lider`, `anjo`, `monstro`, Sunday Paredão sub-steps, `sincerao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile`). Use `scheduled_events` mainly for `dinamica`, `lider_classificatoria`, or week-specific overrides.
+**Scaffold rule**: on the open cycle, the timeline builder auto-creates the standard recurring backbone permitted by the cycle's `schedule_profile` (`lider`, `anjo`, `monstro`, Sunday Paredão sub-steps, `sincerao`, `paredao_resultado`, `ganha_ganha`, `barrado_baile` in the standard profile). Use `scheduled_events` mainly for `dinamica`, `lider_classificatoria`, or week-specific overrides. In turbo/final stretches, do **not** assume `sincerao` exists unless the schedule/article explicitly confirms it.
 
 **Schema:**
 ```json

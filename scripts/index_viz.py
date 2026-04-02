@@ -180,6 +180,138 @@ def render_pulse_row(label: str, value: int, color_row: str, *, total_delta: int
     )
 
 
+def _render_pulso_chip(label: str) -> str:
+    return f'<span class="pulso-chip">{_escape_text(label)}</span>'
+
+
+def _render_pulso_participants(participants: list[dict], *, avatar_fn) -> str:
+    if not participants:
+        return ""
+
+    items = []
+    for item in participants:
+        name = item.get("name", "")
+        status = item.get("status", "active")
+        border_color = "#4f7cff" if status == "active" else "#7a7f87"
+        status_label = "ativo" if status == "active" else "fora"
+        items.append(
+            f'<span class="pulso-person-chip status {"ativo" if status == "active" else "eliminado"}">'
+            f'{avatar_fn(name, 34, border_color)}'
+            f'<span class="pulso-person-name">{_escape_text(_short_name(name))}</span>'
+            f'<span class="pulso-person-status">{_escape_text(status_label)}</span>'
+            f'</span>'
+        )
+    return f'<div class="pulso-participants">{"".join(items)}</div>'
+
+
+def _render_pulso_fact(fact: dict, *, avatar_fn, hero: bool = False) -> str:
+    if not fact:
+        return ""
+
+    context = fact.get("context") or {}
+    chips = list(context.get("chips") or [])
+    participants = list(fact.get("participants") or [])
+    date_label = fact.get("date_label") or fmt_date_br(fact.get("date", ""))
+    moment = context.get("moment", "")
+    support = fact.get("support", "")
+    summary = fact.get("summary", "")
+    drill_html = ""
+    if chips or participants:
+        drill_html = (
+            f'<details class="pulso-context-drill">'
+            f'<summary>ver contexto</summary>'
+            f'<div class="pulso-context-body">'
+            f'<div class="pulso-chip-row">{"".join(_render_pulso_chip(chip) for chip in chips)}</div>'
+            f'{_render_pulso_participants(participants, avatar_fn=avatar_fn)}'
+            f'</div></details>'
+        )
+
+    fact_cls = "pulso-fact pulso-fact--hero" if hero else "pulso-fact"
+    return (
+        f'<section class="{fact_cls}">'
+        f'<div class="pulso-fact-kicker">'
+        f'<span class="pulso-kicker-date">{_escape_text(date_label)}</span>'
+        f'<span class="pulso-kicker-moment">{_escape_text(moment)}</span>'
+        f'</div>'
+        f'<div class="pulso-fact-head">'
+        f'<div class="pulso-fact-copy">'
+        f'<div class="pulso-fact-title">{_escape_text(fact.get("title", ""))}</div>'
+        f'<div class="pulso-fact-summary">{_escape_text(summary)}</div>'
+        f'</div>'
+        f'<div class="pulso-fact-stat">'
+        f'<span class="pulso-fact-value">{_escape_text(fact.get("value", ""))}</span>'
+        f'<span class="pulso-fact-value-label">{_escape_text(fact.get("value_label", ""))}</span>'
+        f'<span class="pulso-fact-support">{_escape_text(support)}</span>'
+        f'</div>'
+        f'</div>'
+        f'{drill_html}'
+        f'</section>'
+    )
+
+
+def render_pulso_card(payload: dict, *, avatar_fn) -> str:
+    if not payload:
+        return ""
+
+    mode = payload.get("mode", "history")
+    today = payload.get("today") or {}
+    facts = list(payload.get("facts") or [])
+    hero = payload.get("hero") or (facts[0] if facts else {})
+    extra_facts = facts[1:3] if mode == "history" and facts else facts[:2]
+
+    def _metric(label: str, value, accent: str, note: str = "") -> str:
+        note_html = f'<span class="pulso-metric-note">{_escape_text(note)}</span>' if note else ""
+        return (
+            f'<div class="pulso-metric">'
+            f'<span class="pulso-metric-value" style="color:{accent};">{_escape_text(value)}</span>'
+            f'<span class="pulso-metric-label">{_escape_text(label)}</span>'
+            f'{note_html}</div>'
+        )
+
+    total = _coerce_int(today.get("total"))
+    pct = _coerce_int(today.get("pct"))
+    improve = _coerce_int(today.get("improve"))
+    worsen = _coerce_int(today.get("worsen"))
+    lateral = _coerce_int(today.get("lateral"))
+    hearts_gained = _coerce_int(today.get("hearts_gained"))
+    hearts_lost = _coerce_int(today.get("hearts_lost"))
+    net = _coerce_int(today.get("net"), default=improve - worsen)
+
+    today_strip = (
+        f'<section class="pulso-today-strip">'
+        f'<div class="pulso-today-head">'
+        f'<div class="pulso-today-title">Hoje</div>'
+        f'<div class="pulso-today-subtitle">{_escape_text(today.get("date_label", ""))} · {total} mudanças ({pct}%)</div>'
+        f'</div>'
+        f'<div class="pulso-metrics-grid">'
+        f'{_metric("Melhoras", improve, "#2ecc71")}'
+        f'{_metric("Pioras", worsen, "#ff7262")}'
+        f'{_metric("Laterais", lateral, "#b4bcc8")}'
+        f'{_metric("Saldo ❤️", f"{net:+d}", "#7ec8ff", note=f"+{hearts_gained} / -{hearts_lost}")}'
+        f'</div>'
+        f'<div class="pulso-chip-row">{"".join(_render_pulso_chip(chip) for chip in today.get("chips", []))}</div>'
+        f'</section>'
+    )
+
+    facts_html = ""
+    if extra_facts:
+        facts_html = (
+            f'<div class="pulso-rail">'
+            f'{"".join(_render_pulso_fact(fact, avatar_fn=avatar_fn) for fact in extra_facts)}'
+            f'</div>'
+        )
+
+    return (
+        f'<div class="info-panel pulso-panel">'
+        f'{card_header(payload.get("icon", "📊"), payload.get("title", "Pulso Diário"), payload.get("link"), source_tag=payload.get("source_tag"), subtitle=payload.get("subtitle"))}'
+        f'<div class="pulso-card pulso-card--{_escape_attr(mode)}">'
+        f'{_render_pulso_fact(hero, avatar_fn=avatar_fn, hero=True)}'
+        f'{today_strip}'
+        f'{facts_html}'
+        f'</div></div>'
+    )
+
+
 def render_saldo_card(payload: dict, *, avatar_fn) -> str:
     if not payload:
         return ""

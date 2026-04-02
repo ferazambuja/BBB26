@@ -60,6 +60,19 @@ Use this table when changing formulas and you need to know **what UI will move**
 | Prova rankings | `prova_rankings.json` | `provas.qmd` |
 | Balance fairness and house economy | `balance_events.json` | `economia.qmd`, `_dev/drafts/economia_v2.qmd` |
 
+### Index Pulso card (`type = "changes"`)
+
+The Painel no longer treats Pulso as a pure “yesterday vs today” counter card.
+
+- `daily_metrics.json -> daily_changes` remains the source of truth for day-over-day queridômetro movement.
+- `index_data.json -> highlights.cards[type="changes"]` now builds a **history-led hybrid card**:
+  - `today`: compact strip with the last comparable day (`total`, `%`, improve/worsen/lateral, hearts, chips)
+  - `facts`: rotating historical curiosities (chaos day, biggest swing, most volatile giver, longest streak break)
+  - `hero`: either a historical fact or a same-day spotlight when the latest day is truly exceptional
+- Latest-day spotlight is intentionally strict: it only takes over when the newest snapshot is above the season’s high percentile band for raw movement (`total_changes`, `pct_changed`, or `dramatic_count`).
+- Historical facts may include **eliminated participants**. The `today` strip should stay tied to the latest comparable snapshot, while the history rail can surface names that already left.
+- Context is mandatory for historical facts. The builder should attach short capsules (date, paredão window, and nearby weekly dynamics like Sincerão / Big Fone / Modo Turbo), not long prose.
+
 ### Why power events are "modifiers"
 - They are **rare** and usually **one-to-one** (actor → target).
 - Queridômetro is daily and captures **ongoing sentiment**.
@@ -428,7 +441,7 @@ alignment = 1 - |sinc_norm - sent_norm|
 Higher = more aligned; lower = contradiction.
 
 ### Sincerão workflow
-1. After Sincerão (Monday), update `weekly_events[].sincerao` with date/format/notes.
+1. When a cycle actually has Sincerão (usually Monday, but not guaranteed in the late game), update `weekly_events[].sincerao` with date/format/notes.
 2. If per-pair edges are available, fill `edges`.
 3. Add **fontes** (GShow) to the event.
 4. Run `python scripts/build_derived_data.py`.
@@ -708,7 +721,7 @@ Unified chronological timeline merging **all** event sources into a single feed.
 5. **Paredão** — formation + resultado from `paredoes.json`
 6. **Special events** — dinâmicas from `manual_events.special_events`
 7. **Scheduled events** — from `manual_events.scheduled_events`. Lifecycle is automatic: future events get `status: "scheduled"` (dashed borders + 🔮); past events get `status: ""` (resolved, solid display)
-8. **Scaffold events** — auto-generated recurring weekly placeholders (Sincerão, Ganha-Ganha, Barrado, Presente do Anjo, Formação do Paredão, Eliminação) with `source: "scaffold"`. Lowest priority: suppressed by any real, manual scheduled, or other event on the same `(date, category)`. Not generated before each category's first applicable week (e.g., Ganha-Ganha starts W2)
+8. **Scaffold events** — auto-generated standard-profile recurring placeholders (Sincerão, Ganha-Ganha, Barrado, Presente do Anjo, Formação do Paredão, Eliminação) with `source: "scaffold"`. Lowest priority: suppressed by any real, manual scheduled, or other event on the same `(date, category)`. Not generated before each category's first applicable week (e.g., Ganha-Ganha starts W2), and late-game/turbo cycles may suppress categories such as `sincerao` entirely.
 
 ### Event schema
 ```json

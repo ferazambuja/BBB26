@@ -46,9 +46,11 @@ O resultado combina **30% Voto da Torcida + 70% Voto Único**.
 O prêmio foi estimado em **R$ 5,44 milhões**, sem o “Modo Stone”.
 
 ### Sincerão
-Exibido ao vivo nas **segundas‑feiras**, com foco nos **protagonistas** da semana (Líder, Anjo e indicados ao Paredão).  
+Tradicionalmente exibido ao vivo nas **segundas‑feiras**, com foco nos **protagonistas** da semana (Líder, Anjo e indicados ao Paredão).  
 Os demais assistem pelo telão; há direito de **réplica** se o alvo também for protagonista.  
 Nesta edição, há participação de **plateia convidada**.
+
+**Importante para a reta final:** o Sincerão deixou de ser uma garantia semanal. Até **02/04/2026**, o último Sincerão confirmado foi o do **ciclo 10, em 23/03/2026**. Os ciclos **11 e 12** transcorreram sem novo Sincerão registrado, e a abertura do **ciclo 13** também segue sem confirmação.
 
 **Exemplos de formatos (BBB 26):**
 - **1º Sincerão (19/01)**: todos montaram **pódio** e indicaram **“quem não ganha”**.  
@@ -56,6 +58,13 @@ Nesta edição, há participação de **plateia convidada**.
 - **2º Sincerão (26/01)**: distribuição de **bombas** com temas escolhidos pelo público;  
   quem recebe a bomba pode **palpitar** quem a indicou; se errar, leva **banho de gosma**.  
   Plateia escolheu a **“planta”** da casa.
+
+### Raio‑X / Queridômetro
+O queridômetro nasce do **Raio‑X diário**: cada participante atualiza em privado as reações que dá aos demais, normalmente pela manhã.
+
+- É um sinal **silencioso e cumulativo**: muita coisa muda sem virar VT explícito no programa.
+- Por isso, dias históricos do queridômetro costumam precisar de **contexto externo curto** para fazer sentido ao público do site: paredão em aberto, Sincerão da véspera, Big Fone, Modo Turbo, etc.
+- Na reta final, quando há menos participantes e menos dinâmicas públicas, o histórico do queridômetro tende a render curiosidades melhores do que um “resumo do dia” puro.
 
 ### Big Fone
 Há **três Big Fones** na casa; o público decide qual deles tocará e qual mensagem será lida pelo Big Boss.  
@@ -120,6 +129,8 @@ Atualize os eventos e rode:
 ```
 python scripts/update_programa_doc.py
 ```
+
+**Leitura operacional:** na fase turbo/reta final, não assuma que toda semana terá Sincerão. Use a tabela abaixo como histórico do que foi confirmado, não como promessa de recorrência.
 
 <!-- AUTO:WEEKLY_TIMELINE_START -->
 | Semana | Datas (aprox.) | Dinâmicas/ocorrências | Observações |

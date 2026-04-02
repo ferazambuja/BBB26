@@ -37,6 +37,7 @@ from index_viz import (
     render_overflow_toggle,
     render_pair_lane,
     render_pair_chip,
+    render_pulso_card,
     render_profile_sinc_row,
     render_pulse_row,
     render_rank_chip,
@@ -450,6 +451,81 @@ def test_render_pulse_row_reuses_progress_bar_output():
     assert ">3<" in html
     assert "width:50%" in html
     assert "background:#27ae60" in html
+
+
+def test_render_pulso_card_renders_history_drill_and_today_strip():
+    payload = {
+        "icon": "📊",
+        "title": "Pulso Diário",
+        "link": "evolucao.html#pulso",
+        "color": "#3498db",
+        "mode": "history",
+        "hero": {
+            "kind": "chaos_day",
+            "scope": "history",
+            "date": "2026-01-20",
+            "title": "Maior caos da temporada",
+            "value": "121",
+            "value_label": "reações mudaram",
+            "support": "96 dramáticas",
+            "summary": "Leandro sofreu o maior tombo do dia.",
+            "context": {
+                "moment": "Ciclo do 2º Paredão",
+                "chips": ["Líder: Babu Santana", "Ganha-Ganha"],
+            },
+            "participants": [
+                {"name": "Leandro", "status": "active"},
+                {"name": "Solange Couto", "status": "eliminated"},
+            ],
+        },
+        "facts": [
+            {
+                "kind": "chaos_day",
+                "scope": "history",
+                "date": "2026-01-20",
+                "title": "Maior caos da temporada",
+                "value": "121",
+                "value_label": "reações mudaram",
+                "support": "96 dramáticas",
+                "summary": "Leandro sofreu o maior tombo do dia.",
+                "context": {
+                    "moment": "Ciclo do 2º Paredão",
+                    "chips": ["Líder: Babu Santana", "Ganha-Ganha"],
+                },
+                "participants": [
+                    {"name": "Leandro", "status": "active"},
+                    {"name": "Solange Couto", "status": "eliminated"},
+                ],
+            }
+        ],
+        "today": {
+            "date": "2026-04-01",
+            "total": 14,
+            "pct": 19,
+            "improve": 4,
+            "worsen": 6,
+            "lateral": 4,
+            "hearts_gained": 4,
+            "hearts_lost": 6,
+            "chips": ["3 quebras longas", "3 hostilidades novas"],
+        },
+    }
+
+    html = render_pulso_card(
+        payload,
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {size} {border_color}>",
+    )
+
+    assert "pulso-card" in html
+    assert "Maior caos da temporada" in html
+    assert "121" in html
+    assert "14" in html
+    assert "3 quebras longas" in html
+    assert "Ciclo do 2º Paredão" in html
+    assert "Líder: Babu Santana" in html
+    assert "<details" in html
+    assert "status eliminado" in html
+    assert "<avatar Leandro 34 #4f7cff>" in html
 
 
 def test_render_pair_chip_formats_mode_specific_detail_text():

@@ -70,6 +70,10 @@ pytest -q tests/test_index_qmd_contract.py tests/test_index_viz.py tests/test_in
 python scripts/quarto_render_safe.py index.qmd
 ```
 
+When the change touches the Pulso / queridômetro-history card, also inspect:
+- `data/derived/index_data.json` → `highlights.cards[] | select(.type=="changes")`
+- The rendered card on desktop **and** mobile, because the hero fact, context drill, and today strip reflow differently.
+
 ### Fast manual-data loop
 
 ```bash

@@ -974,13 +974,573 @@ def _build_shared_context(snapshots: list[dict], daily_snapshots: list[dict], da
     return ctx
 
 
-def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: list[dict], active_names: list[str]) -> tuple[list[str], list[dict]]:
+def _parse_iso_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).date()
+    except ValueError:
+        return None
+
+
+def _format_short_date(date_str: str | None) -> str:
+    parsed = _parse_iso_date(date_str)
+    return parsed.strftime("%d/%m") if parsed else (date_str or "")
+
+
+def _dedupe_keep_order(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in items:
+        text = (item or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+    return out
+
+
+def _lookup_cycle_entry(manual_events: dict | None, cycle: int) -> dict[str, Any] | None:
+    if cycle <= 0:
+        return None
+    entries = _iter_cycle_entries(manual_events)
+    if not entries:
+        return None
+
+    explicit = [item for item in entries if _get_event_cycle(item)]
+    if explicit:
+        return next((item for item in explicit if _get_event_cycle(item) == cycle), None)
+
+    idx = cycle - 1
+    if 0 <= idx < len(entries):
+        return entries[idx]
+    return None
+
+
+def _relative_event_chip(target_date: date | None, event_date_str: str | None, label: str) -> str:
+    event_date = _parse_iso_date(event_date_str)
+    if not target_date or not event_date:
+        return ""
+    delta = (target_date - event_date).days
+    if delta == 0:
+        return f"Dia de {label}"
+    if delta == -1:
+        return f"Pré-{label}"
+    if delta == 1:
+        return f"Pós-{label}"
+    return ""
+
+
+def _pulso_event_chip(item: dict[str, Any]) -> str:
+    if not isinstance(item, dict):
+        return ""
+    if item.get("name"):
+        return str(item["name"])
+    if item.get("title"):
+        return str(item["title"])
+    source = item.get("source")
+    if isinstance(source, str) and source and source not in {"api_roles", "api"}:
+        return source
+
+    label_map = {
+        "lider": "Prova do Líder",
+        "anjo": "Prova do Anjo",
+        "monstro": "Monstro",
+        "big_fone": "Big Fone",
+        "dinamica": "Dinâmica",
+        "entrada_novos": "Entrada de participantes",
+        "contragolpe": "Contragolpe",
+        "indicacao": "Indicação direta",
+        "bate_volta": "Bate e Volta",
+        "lider_classificatoria": "Classificatórias do Líder",
+    }
+    key = item.get("type") or item.get("category")
+    return label_map.get(str(key), "")
+
+
+def _build_pulso_context(
+    date_str: str,
+    *,
+    manual_events: dict | None,
+    auto_events: dict | None,
+    paredoes: dict | None,
+) -> dict[str, Any]:
+    cycle = get_cycle_number(date_str)
+    target_date = _parse_iso_date(date_str)
+    paredoes_list = (paredoes or {}).get("paredoes", [])
+    paredao = None
+    for item in paredoes_list:
+        cyc = _get_event_cycle(item, fallback=item.get("cycle", 0) or 0)
+        if cyc == cycle:
+            paredao = item
+            break
+    if not paredao:
+        for item in paredoes_list:
+            if item.get("data_formacao") == date_str or item.get("data") == date_str:
+                paredao = item
+                break
+    if not paredao and target_date:
+        ranked_candidates: list[tuple[int, int, dict[str, Any]]] = []
+        for item in paredoes_list:
+            formation_date = _parse_iso_date(item.get("data_formacao"))
+            elimination_date = _parse_iso_date(item.get("data"))
+            if formation_date and target_date <= formation_date:
+                ranked_candidates.append(((formation_date - target_date).days, 0, item))
+            elif elimination_date and target_date <= elimination_date:
+                ranked_candidates.append(((elimination_date - target_date).days, 1, item))
+        if ranked_candidates:
+            ranked_candidates.sort(key=lambda row: (row[0], row[1], row[2].get("numero", 0)))
+            paredao = ranked_candidates[0][2]
+            cycle = _get_event_cycle(paredao, fallback=paredao.get("cycle", cycle) or cycle)
+
+    numero = (paredao or {}).get("numero") or cycle
+    moment = f"Ciclo do {numero}º Paredão" if numero else "Arquivo do queridômetro"
+    if paredao:
+        formation_date = _parse_iso_date(paredao.get("data_formacao"))
+        elimination_date = _parse_iso_date(paredao.get("data"))
+        if target_date and formation_date and target_date == formation_date:
+            moment = f"Formação do {numero}º Paredão"
+        elif target_date and elimination_date and target_date == elimination_date:
+            moment = f"Eliminação do {numero}º Paredão"
+        elif target_date and formation_date and elimination_date and formation_date < target_date < elimination_date:
+            moment = f"{numero}º Paredão em aberto"
+
+    chips: list[str] = []
+    leader_name = ((paredao or {}).get("formacao") or {}).get("lider")
+    if leader_name:
+        chips.append(f"Líder: {leader_name}")
+
+    cycle_entry = _lookup_cycle_entry(manual_events, cycle)
+    if cycle_entry:
+        notes_token = _normalize_text_token(str(cycle_entry.get("notes", "")))
+        if "modo turbo" in notes_token:
+            chips.append("Modo turbo")
+        elif "top 10" in notes_token:
+            chips.append("Top 10")
+
+        sincerao = cycle_entry.get("sincerao")
+        if isinstance(sincerao, dict):
+            chip = _relative_event_chip(target_date, sincerao.get("date"), "Sincerão")
+            if chip:
+                chips.append(chip)
+
+        big_fone = cycle_entry.get("big_fone")
+        if isinstance(big_fone, dict):
+            chip = _relative_event_chip(target_date, big_fone.get("date"), "Big Fone")
+            if chip:
+                chips.append(chip)
+        elif isinstance(big_fone, list):
+            for event in big_fone:
+                chip = _relative_event_chip(target_date, event.get("date"), "Big Fone")
+                if chip:
+                    chips.append(chip)
+                    break
+
+        anjo = cycle_entry.get("anjo")
+        if isinstance(anjo, dict):
+            chip = _relative_event_chip(target_date, anjo.get("prova_date"), "Prova do Anjo")
+            if chip:
+                chips.append(chip)
+
+    event_sources: list[dict[str, Any]] = []
+    if isinstance(auto_events, dict):
+        event_sources.extend(item for item in auto_events.get("events", []) if item.get("date") == date_str)
+    if isinstance(manual_events, dict):
+        for key in ("special_events", "scheduled_events", "power_events"):
+            event_sources.extend(item for item in manual_events.get(key, []) if item.get("date") == date_str)
+    for event in event_sources:
+        chip = _pulso_event_chip(event)
+        if chip:
+            chips.append(chip)
+
+    return {
+        "date": date_str,
+        "date_label": _format_short_date(date_str),
+        "cycle": cycle,
+        "moment": moment,
+        "chips": _dedupe_keep_order(chips)[:4],
+    }
+
+
+def _build_pulso_participants(names: list[str], active_set: set[str]) -> list[dict[str, str]]:
+    participants: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for name in names:
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        participants.append({
+            "name": name,
+            "status": "active" if name in active_set else "eliminated",
+        })
+    return participants
+
+
+def _season_percentile(rows: list[dict[str, Any]], key: str, quantile: float) -> float:
+    values = sorted(float(item.get(key, 0) or 0) for item in rows)
+    if not values:
+        return 0.0
+    idx = min(len(values) - 1, max(0, int((len(values) - 1) * quantile)))
+    return values[idx]
+
+
+def _build_history_fact(
+    *,
+    kind: str,
+    title: str,
+    value: str,
+    value_label: str,
+    support: str,
+    summary: str,
+    date_str: str,
+    participants: list[str],
+    active_set: set[str],
+    manual_events: dict | None,
+    auto_events: dict | None,
+    paredoes: dict | None,
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "scope": "history",
+        "date": date_str,
+        "date_label": _format_short_date(date_str),
+        "title": title,
+        "value": value,
+        "value_label": value_label,
+        "support": support,
+        "summary": summary,
+        "context": _build_pulso_context(
+            date_str,
+            manual_events=manual_events,
+            auto_events=auto_events,
+            paredoes=paredoes,
+        ),
+        "participants": _build_pulso_participants(participants, active_set),
+    }
+
+
+def _build_today_pulso_chips(current: dict[str, Any]) -> list[str]:
+    chips: list[str] = []
+    dramatic_count = int(current.get("dramatic_count") or 0)
+    if dramatic_count > 0:
+        chips.append(f"{dramatic_count} dramáticas")
+
+    streak_breaks = current.get("new_streak_breaks") or []
+    if streak_breaks:
+        max_streak = max(int(item.get("previous_streak") or 0) for item in streak_breaks)
+        chips.append(f"{len(streak_breaks)} quebras longas (máx {max_streak} dias)")
+
+    mutual_hostilities = current.get("new_mutual_hostilities") or []
+    if mutual_hostilities:
+        chips.append(f"{len(mutual_hostilities)} hostilidades novas")
+
+    top_receiver = current.get("top_receiver") or {}
+    if top_receiver.get("name") and float(top_receiver.get("delta") or 0) > 0:
+        chips.append(f"{top_receiver['name'].split()[0]} {float(top_receiver['delta']):+.1f}")
+
+    top_loser = current.get("top_loser") or {}
+    if top_loser.get("name") and float(top_loser.get("delta") or 0) < 0:
+        chips.append(f"{top_loser['name'].split()[0]} {float(top_loser['delta']):+.1f}")
+
+    volatile = current.get("top_volatile_giver") or {}
+    if volatile.get("name") and int(volatile.get("changes") or 0) > 0:
+        chips.append(f"{volatile['name'].split()[0]} {int(volatile['changes'])} trocas")
+
+    return _dedupe_keep_order(chips)[:5]
+
+
+def _build_pulso_history_facts(
+    history: list[dict[str, Any]],
+    *,
+    active_set: set[str],
+    manual_events: dict | None,
+    auto_events: dict | None,
+    paredoes: dict | None,
+) -> list[dict[str, Any]]:
+    if not history:
+        return []
+
+    facts: list[dict[str, Any]] = []
+
+    chaos_day = max(history, key=lambda item: (int(item.get("total_changes") or 0), int(item.get("dramatic_count") or 0)))
+    chaos_receiver = (chaos_day.get("top_receiver") or {}).get("name", "")
+    chaos_loser = (chaos_day.get("top_loser") or {}).get("name", "")
+    chaos_volatile = (chaos_day.get("top_volatile_giver") or {}).get("name", "")
+    facts.append(_build_history_fact(
+        kind="chaos_day",
+        title="Maior caos da temporada",
+        value=str(int(chaos_day.get("total_changes") or 0)),
+        value_label="reações mudaram",
+        support=f"{int(chaos_day.get('dramatic_count') or 0)} dramáticas",
+        summary=(
+            f"Maior tombo: {chaos_loser.split()[0]} {float((chaos_day.get('top_loser') or {}).get('delta') or 0):+.1f}"
+            if chaos_loser else "Dia mais instável do queridômetro."
+        ),
+        date_str=chaos_day.get("date", ""),
+        participants=[chaos_loser, chaos_receiver, chaos_volatile],
+        active_set=active_set,
+        manual_events=manual_events,
+        auto_events=auto_events,
+        paredoes=paredoes,
+    ))
+
+    gain_row = max(history, key=lambda item: float((item.get("top_receiver") or {}).get("delta") or 0))
+    gain_target = (gain_row.get("top_receiver") or {}).get("name", "")
+    gain_value = float((gain_row.get("top_receiver") or {}).get("delta") or 0)
+    if gain_target and gain_value > 0:
+        facts.append(_build_history_fact(
+            kind="receiver_gain",
+            title="Maior alta num dia",
+            value=f"{gain_value:+.1f}",
+            value_label="saldo recebido",
+            support=gain_target,
+            summary=f"{gain_target.split()[0]} teve o melhor salto diário do histórico.",
+            date_str=gain_row.get("date", ""),
+            participants=[gain_target],
+            active_set=active_set,
+            manual_events=manual_events,
+            auto_events=auto_events,
+            paredoes=paredoes,
+        ))
+
+    loss_row = min(history, key=lambda item: float((item.get("top_loser") or {}).get("delta") or 0))
+    loss_target = (loss_row.get("top_loser") or {}).get("name", "")
+    loss_value = float((loss_row.get("top_loser") or {}).get("delta") or 0)
+    if loss_target and loss_value < 0:
+        facts.append(_build_history_fact(
+            kind="receiver_loss",
+            title="Maior tombo num dia",
+            value=f"{loss_value:+.1f}",
+            value_label="saldo recebido",
+            support=loss_target,
+            summary=f"{loss_target.split()[0]} sofreu a pior virada diária do histórico.",
+            date_str=loss_row.get("date", ""),
+            participants=[loss_target],
+            active_set=active_set,
+            manual_events=manual_events,
+            auto_events=auto_events,
+            paredoes=paredoes,
+        ))
+
+    volatility_row = max(history, key=lambda item: int((item.get("top_volatile_giver") or {}).get("changes") or 0))
+    volatile_name = (volatility_row.get("top_volatile_giver") or {}).get("name", "")
+    volatile_changes = int((volatility_row.get("top_volatile_giver") or {}).get("changes") or 0)
+    if volatile_name and volatile_changes > 0:
+        facts.append(_build_history_fact(
+            kind="volatile_giver",
+            title="Mão mais volátil em 24h",
+            value=str(volatile_changes),
+            value_label="trocas feitas",
+            support=volatile_name,
+            summary=f"{volatile_name.split()[0]} mudou o queridômetro {volatile_changes} vezes no mesmo dia.",
+            date_str=volatility_row.get("date", ""),
+            participants=[volatile_name],
+            active_set=active_set,
+            manual_events=manual_events,
+            auto_events=auto_events,
+            paredoes=paredoes,
+        ))
+
+    streak_candidates: list[tuple[dict[str, Any], dict[str, Any]]] = []
+    for row in history:
+        for item in row.get("new_streak_breaks") or []:
+            streak_candidates.append((row, item))
+    if streak_candidates:
+        streak_row, streak_item = max(
+            streak_candidates,
+            key=lambda pair: int(pair[1].get("previous_streak") or 0),
+        )
+        giver = streak_item.get("giver", "")
+        receiver = streak_item.get("receiver", "")
+        previous_streak = int(streak_item.get("previous_streak") or 0)
+        new_emoji = streak_item.get("new_emoji", "")
+        facts.append(_build_history_fact(
+            kind="streak_break",
+            title="Quebra de rotina mais longa",
+            value=str(previous_streak),
+            value_label="dias seguidos",
+            support=f"{giver.split()[0]} → {receiver.split()[0]}",
+            summary=f"{giver.split()[0]} largou uma sequência de {previous_streak} dias e mudou para {new_emoji}.",
+            date_str=streak_row.get("date", ""),
+            participants=[giver, receiver],
+            active_set=active_set,
+            manual_events=manual_events,
+            auto_events=auto_events,
+            paredoes=paredoes,
+        ))
+
+    return facts
+
+
+def _build_today_snapshot_fact(
+    current: dict[str, Any],
+    *,
+    active_set: set[str],
+    manual_events: dict | None,
+    auto_events: dict | None,
+    paredoes: dict | None,
+) -> dict[str, Any]:
+    top_receiver = current.get("top_receiver") or {}
+    top_loser = current.get("top_loser") or {}
+    volatile = current.get("top_volatile_giver") or {}
+    total = int(current.get("total") or current.get("total_changes") or 0)
+    dramatic_count = int(current.get("dramatic_count") or 0)
+    pct = int(round(float(current.get("pct") or current.get("pct_changed") or 0)))
+    ref_date = current.get("to_date") or current.get("reference_date") or current.get("date") or ""
+
+    summary = f"{dramatic_count} dramáticas e {pct}% do elenco trocando reação."
+    if top_loser.get("name") and float(top_loser.get("delta") or 0) < 0:
+        summary = f"Maior tombo do dia: {top_loser['name'].split()[0]} {float(top_loser['delta']):+.1f}."
+
+    return {
+        "kind": "today_snapshot",
+        "scope": "today",
+        "date": ref_date,
+        "date_label": _format_short_date(ref_date),
+        "title": "Hoje saiu do padrão",
+        "value": str(total),
+        "value_label": "reações mudaram",
+        "support": f"{dramatic_count} dramáticas · {pct}%",
+        "summary": summary,
+        "context": _build_pulso_context(
+            ref_date,
+            manual_events=manual_events,
+            auto_events=auto_events,
+            paredoes=paredoes,
+        ),
+        "participants": _build_pulso_participants(
+            [top_receiver.get("name", ""), top_loser.get("name", ""), volatile.get("name", "")],
+            active_set,
+        ),
+    }
+
+
+def _build_pulso_changes_card(
+    current: dict[str, Any],
+    history: list[dict[str, Any]],
+    *,
+    active_set: set[str],
+    current_cycle: int,
+    latest_date: str,
+    manual_events: dict | None = None,
+    auto_events: dict | None = None,
+    paredoes: dict | None = None,
+) -> dict[str, Any]:
+    history_rows = [row for row in history if isinstance(row, dict) and row.get("date")]
+    history_facts = _build_pulso_history_facts(
+        history_rows,
+        active_set=active_set,
+        manual_events=manual_events,
+        auto_events=auto_events,
+        paredoes=paredoes,
+    )
+
+    total_p90 = _season_percentile(history_rows, "total_changes", 0.9)
+    pct_p90 = _season_percentile(history_rows, "pct_changed", 0.9)
+    dramatic_p90 = _season_percentile(history_rows, "dramatic_count", 0.9)
+
+    current_total = float(current.get("total") or current.get("total_changes") or 0)
+    current_pct = float(current.get("pct") or current.get("pct_changed") or 0)
+    current_dramatic = float(current.get("dramatic_count") or 0)
+    hot_day = bool(history_rows) and (
+        current_total >= total_p90 or
+        current_pct >= pct_p90 or
+        current_dramatic >= dramatic_p90
+    )
+
+    ordered_facts = history_facts[:]
+    if ordered_facts:
+        rotate_date = _parse_iso_date(latest_date) or _parse_iso_date(current.get("to_date") or current.get("reference_date") or "")
+        rotate_idx = rotate_date.toordinal() % len(ordered_facts) if rotate_date else 0
+        ordered_facts = ordered_facts[rotate_idx:] + ordered_facts[:rotate_idx]
+
+    today = {
+        "date": current.get("to_date") or current.get("reference_date") or current.get("date") or latest_date,
+        "date_label": _format_short_date(current.get("to_date") or current.get("reference_date") or current.get("date") or latest_date),
+        "total": int(current_total),
+        "pct": int(round(current_pct)),
+        "improve": int(current.get("improve") or current.get("n_melhora") or 0),
+        "worsen": int(current.get("worsen") or current.get("n_piora") or 0),
+        "lateral": int(current.get("lateral") or current.get("n_lateral") or 0),
+        "net": int(current.get("net") or ((current.get("improve") or current.get("n_melhora") or 0) - (current.get("worsen") or current.get("n_piora") or 0))),
+        "hearts_gained": int(current.get("hearts_gained") or 0),
+        "hearts_lost": int(current.get("hearts_lost") or 0),
+        "chips": _build_today_pulso_chips(current),
+    }
+
+    hero = _build_today_snapshot_fact(
+        current,
+        active_set=active_set,
+        manual_events=manual_events,
+        auto_events=auto_events,
+        paredoes=paredoes,
+    ) if hot_day else (ordered_facts[0] if ordered_facts else _build_today_snapshot_fact(
+        current,
+        active_set=active_set,
+        manual_events=manual_events,
+        auto_events=auto_events,
+        paredoes=paredoes,
+    ))
+
+    subtitle = (
+        "Histórico rotativo do queridômetro. O resumo de ontem só sobe quando o dia foge do padrão."
+        if not hot_day else
+        "Hoje ficou acima da curva histórica; o arquivo da temporada continua logo abaixo."
+    )
+
+    return {
+        "type": "changes",
+        "icon": "📊",
+        "title": "Pulso Diário",
+        "color": "#3498db",
+        "link": "evolucao.html#pulso",
+        "mode": "today" if hot_day else "history",
+        "source_tag": "📚 Histórico + hoje" if not hot_day else "📅 Ontem → Hoje",
+        "subtitle": subtitle,
+        "hero": hero,
+        "facts": ordered_facts,
+        "today": today,
+        "history_count": len(ordered_facts),
+        "current_cycle": current_cycle,
+        "reference_date": current.get("reference_date") or current.get("date") or latest_date,
+        "from_date": current.get("from_date"),
+        "to_date": current.get("to_date") or current.get("reference_date") or current.get("date") or latest_date,
+        "total": int(current_total),
+        "pct": int(round(current_pct)),
+        "total_possible": int(current.get("total_possible") or 0),
+        "improve": today["improve"],
+        "worsen": today["worsen"],
+        "lateral": today["lateral"],
+        "net": today["net"],
+        "hearts_gained": today["hearts_gained"],
+        "hearts_lost": today["hearts_lost"],
+        "dramatic_count": int(current.get("dramatic_count") or 0),
+        "top_receiver": current.get("top_receiver") or {},
+        "top_loser": current.get("top_loser") or {},
+        "top_volatile_giver": current.get("top_volatile_giver") or {},
+    }
+
+
+def _compute_daily_movers_cards(
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict],
+    active_names: list[str],
+    *,
+    active_set: set[str] | None = None,
+    current_cycle: int = 0,
+    latest_date: str = "",
+    manual_events: dict | None = None,
+    auto_events: dict | None = None,
+    paredoes: dict | None = None,
+    daily_changes_history: list[dict[str, Any]] | None = None,
+) -> tuple[list[str], list[dict]]:
     """Ranking leader, podium, movers, reaction changes, dramatic changes, hostilities.
 
     Returns (highlights, cards) lists for the daily comparison section.
     """
     highlights = []
     cards = []
+    active_set = active_set or set(active_names)
 
     if len(daily_snapshots) < 2:
         return highlights, cards
@@ -1184,10 +1744,7 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
         hearts_gained = sum(1 for _, old, new in changes if new in POSITIVE and old not in POSITIVE)
         hearts_lost = sum(1 for _, old, new in changes if old in POSITIVE and new not in POSITIVE)
 
-        cards.append({
-            "type": "changes",
-            "icon": "📊", "title": "Pulso Diário",
-            "color": "#3498db", "link": "evolucao.html#pulso",
+        current_change = {
             "total": n_changes,
             "reference_date": today.get("date"),
             "from_date": yesterday.get("date"),
@@ -1200,7 +1757,22 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
             "net": (n_improve - n_worsen),
             "hearts_gained": hearts_gained,
             "hearts_lost": hearts_lost,
-        })
+        }
+        history_rows = list(daily_changes_history or [])
+        matched_row = next((row for row in reversed(history_rows) if row.get("date") == today.get("date")), None)
+        if matched_row:
+            current_change.update(matched_row)
+        pulso_card = _build_pulso_changes_card(
+            current_change,
+            history_rows or [current_change],
+            active_set=active_set,
+            current_cycle=current_cycle,
+            latest_date=latest_date or today.get("date", ""),
+            manual_events=manual_events,
+            auto_events=auto_events,
+            paredoes=paredoes,
+        )
+        cards.append(pulso_card)
 
         direction = "🟢 mais melhorias" if n_improve > n_worsen else (
             "🔴 mais pioras" if n_worsen > n_improve else "⚖️ equilibrado")
@@ -1210,11 +1782,22 @@ def _compute_daily_movers_cards(daily_snapshots: list[dict], daily_matrices: lis
         if hearts_lost:
             hearts_parts.append(f"-{hearts_lost} ❤️")
         hearts_txt = f" ({' / '.join(hearts_parts)})" if hearts_parts else ""
-        highlights.append(
-            f"📊 **{n_changes} reações** [mudaram](evolucao.html#pulso) ontem ({pct_changed:.0f}% do total)"
-            f" — {n_improve} melhorias, {n_worsen} pioras, {n_lateral} laterais"
-            f" · {direction}{hearts_txt}"
-        )
+        if pulso_card.get("mode") == "today":
+            highlights.append(
+                f"📊 **{n_changes} reações** [mudaram](evolucao.html#pulso) ontem ({pct_changed:.0f}% do total)"
+                f" — {n_improve} melhorias, {n_worsen} pioras, {n_lateral} laterais"
+                f" · {direction}{hearts_txt}"
+            )
+        else:
+            hero = pulso_card.get("hero") or {}
+            hero_bits = [hero.get("date_label") or _format_short_date(hero.get("date", ""))]
+            if hero.get("value") and hero.get("value_label"):
+                hero_bits.append(f"{hero['value']} {hero['value_label']}")
+            hero_txt = " · ".join(bit for bit in hero_bits if bit)
+            highlights.append(
+                f"📊 [Pulso](evolucao.html#pulso): ontem mexeu {n_changes} reações ({pct_changed:.0f}%)"
+                f" — arquivo em rotação: {hero_txt}"
+            )
 
     # -- Dramatic changes + one-sided hostilities (today + recent fallback) --
     dramatic_all: list[dict[str, Any]] = []
@@ -1423,6 +2006,11 @@ def _compute_sincerao_highlight(
 
     Returns (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
              sinc_week_used, available_weeks, radar).
+
+    Historical Sincerão data still falls back to the latest available cycle so
+    downstream relations/profile views keep working between live shows. The
+    index highlight card, however, is only shown when the current cycle itself
+    already has Sincerão data.
     """
     highlights = []
     cards = []
@@ -1489,7 +2077,8 @@ def _compute_sincerao_highlight(
             break
 
     # Unified Sincerão card: radar + contradictions merged
-    if available_weeks and (radar.get("neg_ranked") or radar.get("pos_ranked") or pair_contradictions):
+    show_current_cycle_card = current_cycle in available_weeks
+    if show_current_cycle_card and (radar.get("neg_ranked") or radar.get("pos_ranked") or pair_contradictions):
         cards.append({
             "type": "sincerao",
             "icon": "🔥", "title": f"Sincerão S{sinc_week_used}",
@@ -2117,7 +2706,17 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
 
     # Daily movers, ranking, changes, dramatic, hostilities
     dm_hl, dm_cards = _compute_daily_movers_cards(
-        daily_snapshots, daily_matrices, active_names)
+        daily_snapshots,
+        daily_matrices,
+        active_names,
+        active_set=active_set,
+        current_cycle=current_cycle,
+        latest_date=latest_date,
+        manual_events=ctx.get("manual_events"),
+        auto_events=ctx.get("auto_events"),
+        paredoes=ctx.get("paredoes"),
+        daily_changes_history=(ctx.get("daily_metrics") or {}).get("daily_changes", []),
+    )
     highlights.extend(dm_hl)
     cards.extend(dm_cards)
 

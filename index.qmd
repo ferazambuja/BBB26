@@ -59,6 +59,7 @@ from index_viz import (
     render_break_row as _render_break_row,
     render_overflow_toggle as _render_overflow_toggle,
     render_pair_chip,
+    render_pulso_card,
     render_profile_card,
     render_profile_sinc_row,
     render_pulse_row,
@@ -341,35 +342,7 @@ else:
 
         # ── 📊 Changes ──
         elif ctype == "changes":
-            total = card["total"]
-            pct = card["pct"]
-            imp = card["improve"]
-            wor = card["worsen"]
-            lat = card["lateral"]
-            hg = card["hearts_gained"]
-            hl_lost = card["hearts_lost"]
-            direction_color = "#27ae60" if imp > wor else ("#e74c3c" if wor > imp else "#f39c12")
-            total_delta = max(1, imp + wor + lat)
-            net = imp - wor
-            net_txt = f"+{net}" if net > 0 else str(net)
-
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), source_tag="📅 Ontem → Hoje", subtitle="Mudanças de ontem para hoje no queridômetro. Melhoria = reação ficou mais positiva; piora = mais negativa.")}
-<div class="u-s332">
-<span class="fs-4xl u-s393">{total}</span>
-<span class="fs-base meta-text">reações mudaram <span style="color:{direction_color};font-weight:600;">({pct}%)</span></span>
-</div>
-<div style="display:grid;gap:6px;margin-top:4px;">
-{render_pulse_row("Melhorias", imp, "#27ae60", total_delta=total_delta)}
-{render_pulse_row("Pioras", wor, "#e74c3c", total_delta=total_delta)}
-{render_pulse_row("Laterais", lat, "#888", total_delta=total_delta)}
-</div>
-<div class="fs-sm u-s362" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-<span class="u-s054">+{hg} ❤️ ganhos</span>
-<span class="u-s005">-{hl_lost} ❤️ perdidos</span>
-<span style="color:{direction_color};font-weight:700;">saldo {net_txt}</span>
-</div>
-</div>''')
+            print(render_pulso_card(card, avatar_fn=av))
 
         # ── 💥 Dramatic + ⚠️ Hostilities — pair-based cards ──
         elif ctype in ("dramatic", "hostilities"):

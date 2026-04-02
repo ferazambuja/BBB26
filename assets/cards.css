@@ -209,6 +209,254 @@ th.th-soft {
   margin-top: 0.05rem;
 }
 
+/* ── Pulso card (history-led hybrid) ── */
+.pulso-panel {
+  border-left-color: #3498db;
+}
+
+.pulso-card {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.7rem;
+}
+
+.pulso-fact {
+  background:
+    radial-gradient(circle at top right, rgba(126, 200, 255, 0.14), transparent 42%),
+    rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(126, 200, 255, 0.12);
+  border-radius: 14px;
+  padding: 0.85rem 0.95rem;
+}
+
+.pulso-fact--hero {
+  background:
+    linear-gradient(145deg, rgba(52, 152, 219, 0.18), rgba(28, 36, 52, 0.82)),
+    rgba(255, 255, 255, 0.04);
+  border-color: rgba(126, 200, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.pulso-fact-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  margin-bottom: 0.6rem;
+  color: #c6d6e5;
+  font-size: var(--fs-xs);
+}
+
+.pulso-kicker-date {
+  color: #fff;
+  font-weight: 700;
+}
+
+.pulso-kicker-moment {
+  color: #9bb7d1;
+}
+
+.pulso-fact-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.pulso-fact-copy {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pulso-fact-title {
+  color: #fff;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.pulso-fact-summary {
+  margin-top: 0.28rem;
+  color: #c5cfda;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+
+.pulso-fact-stat {
+  flex: 0 0 auto;
+  min-width: 112px;
+  display: grid;
+  gap: 0.05rem;
+  text-align: right;
+}
+
+.pulso-fact-value {
+  color: #fff;
+  font-size: clamp(1.7rem, 5vw, 2.3rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.pulso-fact-value-label {
+  color: #d1e6f5;
+  font-size: var(--fs-sm);
+}
+
+.pulso-fact-support {
+  color: #7ec8ff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.pulso-context-drill {
+  margin-top: 0.7rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 0.55rem;
+}
+
+.pulso-context-drill > summary {
+  cursor: pointer;
+  list-style: none;
+  color: #9ecdf1;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.pulso-context-drill > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulso-context-body {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.pulso-today-strip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.pulso-today-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.6rem;
+}
+
+.pulso-today-title {
+  color: #fff;
+  font-size: var(--fs-base);
+  font-weight: 700;
+}
+
+.pulso-today-subtitle {
+  color: #b6c4d3;
+  font-size: var(--fs-sm);
+}
+
+.pulso-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.pulso-metric {
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(255,255,255,0.06);
+  display: grid;
+  gap: 0.08rem;
+}
+
+.pulso-metric-value {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.pulso-metric-label {
+  color: #c7d1db;
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulso-metric-note {
+  color: #8ca3b7;
+  font-size: var(--fs-2xs);
+}
+
+.pulso-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.pulso-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(126, 200, 255, 0.1);
+  border: 1px solid rgba(126, 200, 255, 0.16);
+  color: #d5ecff;
+  font-size: var(--fs-xs);
+  line-height: 1.25;
+}
+
+.pulso-participants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.pulso-person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.38rem 0.2rem 0.2rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #eef4fb;
+}
+
+.pulso-person-chip.status.eliminado {
+  border-color: rgba(180, 188, 200, 0.15);
+  color: #c0c6cf;
+}
+
+.pulso-person-name {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.pulso-person-status {
+  color: #93a4b6;
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pulso-rail {
+  display: grid;
+  gap: 0.6rem;
+}
+
+@media (min-width: 820px) {
+  .pulso-metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 /* ── Dark card (general purpose) ── */
 .dark-card {
   background: #2a2a2a;
