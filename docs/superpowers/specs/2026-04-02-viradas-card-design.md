@@ -179,6 +179,18 @@ Required per-item shape inside each `groups[*].items` array:
 }
 ```
 
+Severity derivation rules:
+
+- `dramatic.severity_score` uses the existing dramatic jump magnitude already computed by the builder.
+- `dramatic.severity_label` is derived from `severity_score`:
+  - `alta` for `severity_score >= 1.5`
+  - `média` for `1.0 <= severity_score < 1.5`
+  - `leve` for `severity_score < 1.0`
+- `hostilities.severity_score` is `2.0` when `old_emoji = ❤️`; otherwise `1.0`.
+- `hostilities.severity_label` is always `hostilidade`.
+- `breaks.severity_score` is `2.0` when the existing break severity is `strong`; otherwise `1.0`.
+- `breaks.severity_label` is `grave` for `2.0` and `leve` for `1.0`.
+
 Contract rules:
 
 - `summary` is always emitted in fixed order: `dramatic`, `hostilities`, `breaks`.
@@ -302,15 +314,21 @@ Sort within each tier:
 4. `giver` alphabetical
 5. `receiver` alphabetical
 
-If the same underlying event is present in multiple groups and survives all tie-breaks, hero category precedence is:
-
-1. `hostilities`
-2. `breaks`
-3. `dramatic`
-
-This precedence only decides `hero.kind` for overlapping duplicates. The event may still remain present in multiple groups for counts and drill rendering.
-
 The first item after applying tier selection and within-tier sorting becomes `hero`.
+
+If the same underlying event is present in multiple groups, duplicate resolution must respect tier order first:
+
+- select the highest-ranked tier reached by any duplicate instance of that event
+- if multiple duplicate instances of the same event survive inside that selected tier, use category precedence only inside that tier
+
+Within-tier duplicate category precedence:
+
+- Tier A: `hostilities` before `breaks`
+- Tier B: `breaks` only
+- Tier C: `dramatic` only
+- Tier D: `hostilities` only
+
+This rule only decides `hero.kind` for overlapping duplicates. The event may still remain present in multiple groups for counts and drill rendering.
 
 The hero should answer “what is the most meaningful virada today?”, not “which bucket has the most rows?”
 
