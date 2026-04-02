@@ -3649,6 +3649,14 @@ def build_index_data() -> dict | None:
     transformed_paredoes = load_paredoes_transformed(member_of=ctx["member_of"])
     if transformed_paredoes:
         latest_paredao = transformed_paredoes[-1]
+        # If latest paredão has no nominees yet, show the last finalized result instead
+        if not latest_paredao.get("participantes") and len(transformed_paredoes) >= 2:
+            last_finalized = next(
+                (p for p in reversed(transformed_paredoes[:-1]) if p.get("status") == "finalizado"),
+                None,
+            )
+            if last_finalized:
+                latest_paredao = last_finalized
         polls_data = load_votalhada_polls()
         current_poll = get_poll_for_paredao(polls_data, latest_paredao["numero"])
         history = build_paredao_history(ctx["paredoes"].get("paredoes", []), latest_paredao["numero"])

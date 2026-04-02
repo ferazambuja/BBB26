@@ -97,6 +97,11 @@ pair_story_card = partial(_pair_story_card, avatar_fn=av, group_border_fn=av_gro
 PAREDOES_RAW = load_paredoes_raw().get("paredoes", [])
 PAREDOES_TRANSFORMED = load_paredoes_transformed(member_of=MEMBER_OF)
 PAREDAO_ATUAL = PAREDOES_TRANSFORMED[-1] if PAREDOES_TRANSFORMED else None
+# If current paredão has no nominees, show last finalized result
+if PAREDAO_ATUAL and not PAREDAO_ATUAL.get("participantes") and len(PAREDOES_TRANSFORMED) >= 2:
+    _last_fin = next((p for p in reversed(PAREDOES_TRANSFORMED[:-1]) if p.get("status") == "finalizado"), None)
+    if _last_fin:
+        PAREDAO_ATUAL = _last_fin
 VOTALHADA_POLLS = load_votalhada_polls()
 
 meta_generated_at = index_data.get("_metadata", {}).get("generated_at")
