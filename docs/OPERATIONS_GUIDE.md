@@ -169,7 +169,7 @@ git pull --rebase origin main
 # After manual edits (the universal pattern)
 python scripts/build_derived_data.py    # rebuild derived data (hard-fails on errors)
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "<description>"
+git commit -m "public: <description>"
 git push origin main
 
 # Optional immediate deploy (instead of waiting for next cron)
@@ -192,7 +192,7 @@ python scripts/build_derived_data.py
 
 # 2. Stage and commit
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "<description>"
+git commit -m "public: <description>"
 
 # 3. Push and optionally deploy immediately
 git push origin main
@@ -201,7 +201,7 @@ gh workflow run daily-update.yml
 
 If you are on `feature/*`, finish the feature-branch flow below first. If you are on `local/*`, stop and review whether the work belongs on `main` at all before pushing anything.
 
-> **Pre-push hook**: `.githooks/pre-push` blocks pushes from `local/*` branches, tracked private paths, bad bot commit prefixes, and gitlinks.
+> **Publish rule**: human commits pushed to `main` must currently use the `public:` subject prefix. `.githooks/pre-push` covers local branch/path safety, but the remote policy enforces the commit-subject rule even if your local hook is stale.
 
 ### Handling Push Conflicts
 
@@ -218,7 +218,7 @@ python scripts/build_derived_data.py
 
 # Commit only if the rebuild produced a diff
 git add data/ docs/MANUAL_EVENTS_AUDIT.md
-git commit -m "rebuild derived after rebase"
+git commit -m "public: rebuild derived after rebase"
 
 git push origin main
 ```
@@ -961,7 +961,7 @@ Follow [Commit & Publish Workflow](#commit--publish-workflow):
 ```bash
 python scripts/build_derived_data.py
 git add data/ docs/MANUAL_EVENTS_AUDIT.md docs/SCORING_AND_INDEXES.md
-git commit -m "Nª Prova do Anjo (Winner) + Monstro (Name)"
+git commit -m "public: Nª Prova do Anjo (Winner) + Monstro (Name)"
 # Then push origin/main and trigger deploy if needed — see Commit & Publish Workflow
 ```
 
