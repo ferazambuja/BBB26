@@ -417,7 +417,7 @@ Use this as the default workflow when the "Dinâmica da Semana" article lands an
 | `anjo` (Saturday) | scaffold on the open cycle | the article gives useful custom copy or a non-standard rule |
 | `monstro` (Saturday) | scaffold on the open cycle | the article already states a special Monstro mechanic |
 | `presente_anjo` (Sunday) | scaffold | the rule changes (e.g. double immunity / family video tradeoff) |
-| `paredao_imunidade` / `paredao_indicacao` / `paredao_votacao` / `paredao_contragolpe` / `paredao_bate_volta` (Sunday) | scaffold on the open cycle; real `paredoes.json` later | the week article needs a more specific public-facing step description |
+| `paredao_imunidade` / `paredao_indicacao` / `paredao_votacao` / `paredao_contragolpe` / `paredao_bate_volta` (Sunday) | scaffold on the open cycle; real `paredoes.json` later | the cycle article needs a more specific public-facing step description |
 | `paredao_formacao` (Sunday) | scaffold | formation has custom mechanics (contragolpe, extra emparedado, split show, etc.) |
 | `sincerao` (Monday) | scaffold | the article already gives a cycle-specific format worth surfacing early |
 | `paredao_resultado` (Tuesday) | scaffold | unusual timing or custom copy matters |
@@ -445,7 +445,7 @@ Use this as the default workflow when the "Dinâmica da Semana" article lands an
 
 Two usually recurring event types during the standard cadence:
 - **Sincerão** (usually Monday live show) — often has a different format/theme, but is **not guaranteed** in the late game. As of **2026-04-02**, the latest recorded Sincerão is **cycle 10 on 2026-03-23**.
-- **Cycle Dynamic** (Friday, varies) — the unique dynamic from the weekly dynamics article
+- **Cycle Dynamic** (Friday, varies) — the unique dynamic from the `Dinâmica da Semana` article
 
 | Dia | Horário (BRT) | Evento | Checklist to follow | Data files affected |
 |-----|---------------|--------|---------------------|---------------------|
@@ -464,7 +464,7 @@ Two usually recurring event types during the standard cadence:
 
 ### Compressed Cycles (Top 10+, W11 onward)
 
-When the show enters the final phase, Líder cycles compress to **2–4 days** instead of the standard ~7. The standard weekly pattern table above no longer applies. Key differences:
+When the show enters the final phase, Líder cycles compress to **2–4 days** instead of the standard ~7. The standard cycle pattern table above no longer applies. Key differences:
 
 - **Set `schedule_profile: "turbo_top10"` on all compressed cycle entries.** This suppresses ALL auto-scaffolds (no Bate e Volta, no Contragolpe, no Presente do Anjo, no Sincerão, no Ganha-Ganha, no Barrado). All events must come from manual `scheduled_events`.
 - **Add `sem_contragolpe: true` and `sem_bate_volta: true` to paredão `formacao`** — this suppresses the ceremony sub-step placeholders that the paredão generator auto-creates.
@@ -953,7 +953,7 @@ Why: Anjo timeline events have a `provas.json` fallback (like Líder), and Monst
 - If the open cycle is missing the expected `monstro` scheduled event, add it before rebuilding so the fallback safety net still exists
 - **Remove the `time` field** when filling real results. Same-day events with `time` stay pending (🔮 + dashed border) until midnight — removing `time` triggers immediate resolution. This is consistent across all checklists (Líder, Paredão, Anjo, Barrado)
 
-**When to clean up**: Remove past scheduled events during the **next week's setup** (Líder Transition Checklist), not on the same day they happen. By then, the API will have captured the roles and the auto-dedup makes the scheduled entries invisible anyway.
+**When to clean up**: Remove past scheduled events during the **next cycle's setup** (Líder Transition Checklist), not on the same day they happen. By then, the API will have captured the roles and the auto-dedup makes the scheduled entries invisible anyway.
 
 ### 5. Rebuild + commit + publish
 
@@ -2251,7 +2251,7 @@ When a "Dinâmica da Semana" article is published, register the cycle schedule u
 | Date | Category | Suggested title | Operational note |
 |------|----------|-----------------|------------------|
 | 2026-03-14 | `anjo` | Prova do Anjo | Standard Saturday flow |
-| 2026-03-14 | `monstro` | Castigo do Monstro | Recurring weekly event (even if not explicit in article) |
+| 2026-03-14 | `monstro` | Castigo do Monstro | Recurring cycle event (even if not explicit in article) |
 | 2026-03-14 | `dinamica` | Dinâmica ao vivo: 3 emparedados | These 3 feed Sunday formation |
 | 2026-03-15 | `presente_anjo` | Presente do Anjo | Anjo escolhe entre vídeo da família ou 2ª imunidade + almoço |
 | 2026-03-15 | `paredao_formacao` | Formação do Paredão (duas partes) | Include `indicação do Líder vigente (a definir)` until Líder is confirmed |
@@ -2269,7 +2269,7 @@ When a "Dinâmica da Semana" article is published, register the cycle schedule u
 - Two-tier dedup: **singleton categories** (anjo, lider, paredao_formacao, sincerao, ganha_ganha, etc.) are always suppressed when a real event exists on the same `(date, category)`. **Non-singleton categories** (monstro, dinamica) are suppressed when *resolved* (past date, or same-day without `time`) or by exact title match
 - **Lifecycle**: past events (`date < reference_date`) are always *resolved* (solid display, category-deduped). Same-day without `time` → resolved. Same-day with `time` or future → *pending* (dashed border + 🔮). Removing `time` is optional — past events transition automatically
 - Líder source priority: API `auto_events` first; fallback to `provas.json` (`tipo=lider`) when API data is late
-- **Never delete scheduled events prematurely** — always update them with real results first. Clean up old entries only during the next week's Líder Transition setup, after the API has captured the roles
+- **Never delete scheduled events prematurely** — always update them with real results first. Clean up old entries only during the next cycle's Líder Transition setup, after the API has captured the roles
 
 ---
 
