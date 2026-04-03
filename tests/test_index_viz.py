@@ -818,6 +818,8 @@ def test_render_viradas_card_renders_hero_summary_and_grouped_drill():
     assert "Marciele" in html
     assert "Chaiany manteve ❤️" in html
     assert "<avatar Gabriela 46 #4f7cff>" in html
+    assert 'class="viradas-transition"' in html
+    assert 'viradas-transition-meta' not in html
     assert html.count("<div") == html.count("</div>")
 
 

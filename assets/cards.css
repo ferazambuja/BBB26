@@ -587,7 +587,7 @@ th.th-soft {
 
 .viradas-hero-pair {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(120px, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 0.5rem;
   align-items: center;
 }
@@ -608,7 +608,7 @@ th.th-soft {
 
 .viradas-center {
   display: grid;
-  gap: 0.2rem;
+  gap: 0;
   justify-items: center;
   text-align: center;
 }
@@ -616,17 +616,21 @@ th.th-soft {
 .viradas-transition {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
   color: #fff;
-  font-size: clamp(1.1rem, 3vw, 1.35rem);
+  font-size: clamp(1.45rem, 4.2vw, 1.95rem);
   font-weight: 800;
   line-height: 1;
 }
 
-.viradas-transition-meta {
-  color: #d4dde7;
-  font-size: var(--fs-xs);
-  line-height: 1.3;
+.viradas-transition-old,
+.viradas-transition-new {
+  line-height: 1;
+}
+
+.viradas-transition-arrow {
+  font-size: 0.78em;
+  line-height: 1;
 }
 
 .viradas-hero-main {

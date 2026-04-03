@@ -435,8 +435,6 @@ def render_viradas_card(payload: dict, *, avatar_fn) -> str:
     hero_date = fmt_date_br(hero.get("date", ""))
     hero_left = avatar_fn(hero.get("giver", ""), 46, "#4f7cff")
     hero_right = avatar_fn(hero.get("receiver", ""), 46, "#4f7cff")
-    hero_meta = hero.get("meta_line", "")
-
     drill_html = ""
     if groups:
         drill_html = (
@@ -468,7 +466,6 @@ def render_viradas_card(payload: dict, *, avatar_fn) -> str:
         f'<div class="viradas-side">{hero_left}<span class="viradas-side-name">{_escape_text(_short_name(hero.get("giver", "")))}</span></div>'
         f'<div class="viradas-center">'
         f'<div class="viradas-transition"><span class="viradas-transition-old">{_escape_text(hero.get("old_emoji", ""))}</span><span class="viradas-transition-arrow">→</span><span class="viradas-transition-new">{_escape_text(hero.get("new_emoji", ""))}</span></div>'
-        f'<div class="viradas-transition-meta">{_escape_text(hero_meta)}</div>'
         f'</div>'
         f'<div class="viradas-side">{hero_right}<span class="viradas-side-name">{_escape_text(_short_name(hero.get("receiver", "")))}</span></div>'
         f'</div>'
