@@ -306,6 +306,25 @@ Selection order:
 3. Tier C: otherwise, any `dramatic` item
 4. Tier D: otherwise, any remaining `hostilities` item
 
+Duplicate identity:
+
+- Two emitted rows describe the same underlying event when all of these fields match:
+  - `date`
+  - `giver`
+  - `receiver`
+  - `old_emoji`
+  - `new_emoji`
+
+Hero selection algorithm:
+
+1. Build the union of all emitted row instances from the three groups.
+2. Partition those row instances by the duplicate identity key above.
+3. For each partition, determine the highest-ranked tier reached by any row in that partition.
+4. Inside that selected tier, if multiple row instances from the same partition remain, apply the within-tier duplicate category precedence defined below.
+5. The surviving row instance becomes that partition's canonical hero candidate.
+6. Rank the canonical hero candidates using the sort keys below.
+7. Copy the first ranked canonical hero candidate into `hero`, preserving all item fields from that chosen row instance and adding the hero-only fields.
+
 Sort within each tier:
 
 1. `prior_heart_days` descending
@@ -313,8 +332,6 @@ Sort within each tier:
 3. `prior_same_emoji_days` descending
 4. `giver` alphabetical
 5. `receiver` alphabetical
-
-The first item after applying tier selection and within-tier sorting becomes `hero`.
 
 If the same underlying event is present in multiple groups, duplicate resolution must respect tier order first:
 
@@ -328,7 +345,7 @@ Within-tier duplicate category precedence:
 - Tier C: `dramatic` only
 - Tier D: `hostilities` only
 
-This rule only decides `hero.kind` for overlapping duplicates. The event may still remain present in multiple groups for counts and drill rendering.
+This rule only decides the canonical hero candidate for overlapping duplicates. The event may still remain present in multiple groups for counts and drill rendering.
 
 The hero should answer “what is the most meaningful virada today?”, not “which bucket has the most rows?”
 
