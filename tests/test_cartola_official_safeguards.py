@@ -341,3 +341,313 @@ def test_bate_volta_winner_does_not_get_salvo_when_salvacao_happens_with_open_wi
 
     assert len(_events(result, "Ana Paula Renault", "emparedado", 4)) == 1
     assert len(_events(result, "Ana Paula Renault", "salvo_paredao", 4)) == 0
+
+
+def test_big_fone_indicado_does_not_get_nao_recebeu_votos_points():
+    daily_snapshots = [
+        {
+            "date": "2026-03-29",
+            "participants": [
+                _participant("Ana Paula Renault", roles=[{"label": "Líder"}], group="Vip"),
+                _participant("Chaiany"),
+                _participant("Gabriela"),
+                _participant("Jordana"),
+                _participant("Marciele"),
+                _participant("Milena"),
+                _participant("Samira"),
+                _participant("Solange Couto"),
+            ],
+        }
+    ]
+    manual_events = _manual_base()
+    manual_events["cycles"] = [
+        {
+            "cycle": 12,
+            "big_fone": [
+                {
+                    "date": "2026-03-29",
+                    "atendeu": "Milena",
+                    "missao": "Indicar alguém ao Paredão na formação.",
+                }
+            ],
+        }
+    ]
+    participants_index = _participants_index([
+        "Ana Paula Renault",
+        "Chaiany",
+        "Gabriela",
+        "Jordana",
+        "Marciele",
+        "Milena",
+        "Samira",
+        "Solange Couto",
+    ])
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 12,
+                "cycle": 12,
+                "data": "2026-03-31",
+                "data_formacao": "2026-03-29",
+                "status": "finalizado",
+                "formacao": {
+                    "lider": "Ana Paula Renault",
+                    "big_fone": {
+                        "atendeu": "Milena",
+                        "indicou": "Marciele",
+                    },
+                    "sem_contragolpe": True,
+                    "sem_bate_volta": True,
+                },
+                "indicados_finais": [
+                    {"nome": "Solange Couto", "como": "Líder"},
+                    {"nome": "Marciele", "como": "Big Fone (Milena)"},
+                    {"nome": "Jordana", "como": "Mais votada"},
+                ],
+                "votos_casa": {
+                    "Jordana": "Chaiany",
+                    "Solange Couto": "Gabriela",
+                },
+                "resultado": {"eliminado": "Solange Couto"},
+            }
+        ]
+    }
+
+    result = build_cartola_data(
+        daily_snapshots=daily_snapshots,
+        manual_events=manual_events,
+        paredoes_data=paredoes_data,
+        participants_index=participants_index,
+        provas_data={"provas": []},
+    )
+
+    assert len(_events(result, "Marciele", "nao_recebeu_votos", 12)) == 0
+    assert len(_events(result, "Milena", "nao_recebeu_votos", 12)) == 1
+
+
+def test_dynamic_pre_vote_nominee_does_not_get_nao_recebeu_votos_points():
+    daily_snapshots = [
+        {
+            "date": "2026-01-27",
+            "participants": [
+                _participant("Babu Santana", roles=[{"label": "Líder"}], group="Vip"),
+                _participant("Ana Paula Renault"),
+                _participant("Gabriela"),
+                _participant("Leandro"),
+                _participant("Matheus"),
+                _participant("Brigido"),
+            ],
+        }
+    ]
+    participants_index = _participants_index([
+        "Babu Santana",
+        "Ana Paula Renault",
+        "Gabriela",
+        "Leandro",
+        "Matheus",
+        "Brigido",
+    ])
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 2,
+                "cycle": 2,
+                "data": "2026-01-27",
+                "status": "finalizado",
+                "formacao": {
+                    "lider": "Babu Santana",
+                    "indicado_lider": "Matheus",
+                    "dinamica": {
+                        "nome": "Caixas-Surpresa",
+                        "indicado": "Leandro",
+                    },
+                },
+                "indicados_finais": [
+                    {"nome": "Leandro", "como": "Caixas-Surpresa"},
+                    {"nome": "Matheus", "como": "Líder"},
+                    {"nome": "Brigido", "como": "Casa (6 votos)"},
+                ],
+                "votos_casa": {
+                    "Ana Paula Renault": "Brigido",
+                },
+                "resultado": {"eliminado": "Matheus"},
+            }
+        ]
+    }
+
+    result = build_cartola_data(
+        daily_snapshots=daily_snapshots,
+        manual_events=_manual_base(),
+        paredoes_data=paredoes_data,
+        participants_index=participants_index,
+        provas_data={"provas": []},
+    )
+
+    assert len(_events(result, "Leandro", "nao_recebeu_votos", 2)) == 0
+    assert len(_events(result, "Gabriela", "nao_recebeu_votos", 2)) == 1
+
+
+def test_contragolpe_target_can_still_get_nao_recebeu_votos_points():
+    daily_snapshots = [
+        {
+            "date": "2026-03-03",
+            "participants": [
+                _participant("Samira", roles=[{"label": "Líder"}], group="Vip"),
+                _participant("Ana Paula Renault"),
+                _participant("Breno"),
+                _participant("Gabriela"),
+                _participant("Jordana"),
+                _participant("Milena"),
+            ],
+        }
+    ]
+    participants_index = _participants_index([
+        "Samira",
+        "Ana Paula Renault",
+        "Breno",
+        "Gabriela",
+        "Jordana",
+        "Milena",
+    ])
+    paredoes_data = {
+        "paredoes": [
+            {
+                "numero": 7,
+                "cycle": 7,
+                "data": "2026-03-03",
+                "status": "finalizado",
+                "formacao": {
+                    "lider": "Samira",
+                    "indicado_lider": "Jordana",
+                    "contragolpe": {
+                        "de": "Jordana",
+                        "para": "Breno",
+                    },
+                },
+                "indicados_finais": [
+                    {"nome": "Jordana", "como": "Líder"},
+                    {"nome": "Breno", "como": "Contragolpe"},
+                    {"nome": "Gabriela", "como": "Casa (5 votos)"},
+                ],
+                "votos_casa": {
+                    "Ana Paula Renault": "Gabriela",
+                    "Milena": "Gabriela",
+                },
+                "resultado": {"eliminado": "Gabriela"},
+            }
+        ]
+    }
+
+    result = build_cartola_data(
+        daily_snapshots=daily_snapshots,
+        manual_events=_manual_base(),
+        paredoes_data=paredoes_data,
+        participants_index=participants_index,
+        provas_data={"provas": []},
+    )
+
+    assert len(_events(result, "Breno", "nao_recebeu_votos", 7)) == 1
+    assert len(_events(result, "Jordana", "nao_recebeu_votos", 7)) == 0
+
+
+def test_cartola_round_overrides_merge_cycles_and_track_current_round():
+    daily_snapshots = [
+        {
+            "date": "2026-03-26",
+            "participants": [
+                _participant("Ana Paula Renault"),
+                _participant("Milena"),
+                _participant("Samira"),
+            ],
+        },
+        {
+            "date": "2026-03-29",
+            "participants": [
+                _participant("Ana Paula Renault"),
+                _participant("Milena"),
+                _participant("Samira"),
+            ],
+        },
+        {
+            "date": "2026-04-01",
+            "participants": [
+                _participant("Ana Paula Renault"),
+                _participant("Milena"),
+                _participant("Samira"),
+            ],
+        },
+    ]
+    manual_events = _manual_base()
+    manual_events["cartola_rounds"] = [
+        {
+            "round": 11,
+            "cycles": [11, 12],
+            "status": "finalized",
+        },
+        {
+            "round": 12,
+            "cycles": [13],
+            "status": "open",
+            "excluded_events": [
+                {"participant": "Samira", "event": "lider", "date": "2026-04-01"},
+                {"participant": "Ana Paula Renault", "event": "vip", "date": "2026-04-01"},
+                {"participant": "Milena", "event": "vip", "date": "2026-04-01"},
+            ],
+        },
+    ]
+    participants_index = _participants_index(["Ana Paula Renault", "Milena", "Samira"])
+    provas_data = {
+        "provas": [
+            {
+                "numero": 30,
+                "tipo": "lider",
+                "cycle": 11,
+                "date": "2026-03-26",
+                "vencedor": "Ana Paula Renault",
+                "vip": ["Milena", "Samira"],
+                "vip_source": "oficial_gshow",
+            },
+            {
+                "numero": 32,
+                "tipo": "lider",
+                "cycle": 12,
+                "date": "2026-03-29",
+                "vencedor": "Ana Paula Renault",
+                "vip": ["Milena", "Samira"],
+                "vip_source": "oficial_gshow",
+            },
+            {
+                "numero": 33,
+                "tipo": "lider",
+                "cycle": 13,
+                "date": "2026-04-01",
+                "vencedor": "Samira",
+                "vip": ["Ana Paula Renault", "Milena"],
+                "vip_source": "oficial_gshow",
+            },
+        ]
+    }
+
+    result = build_cartola_data(
+        daily_snapshots=daily_snapshots,
+        manual_events=manual_events,
+        paredoes_data={"paredoes": []},
+        participants_index=participants_index,
+        provas_data=provas_data,
+    )
+
+    assert result["_metadata"]["current_round"] == 12
+    assert result["_metadata"]["n_rounds"] == 12
+    assert result["rounds"][10]["round"] == 11
+    assert result["rounds"][10]["cycles"] == [11, 12]
+    assert result["rounds"][11]["round"] == 12
+    assert result["rounds"][11]["cycles"] == [13]
+
+    round_11 = result["round_points"]["11"]
+    ana_round_11_total = sum(points for _, points, _ in round_11["Ana Paula Renault"])
+    assert ana_round_11_total == 160
+
+    round_12 = result["round_points"]["12"]
+    assert "Samira" not in round_12 or round_12["Samira"] == []
+    assert "Ana Paula Renault" not in round_12 or round_12["Ana Paula Renault"] == []
+    assert "Milena" not in round_12 or round_12["Milena"] == []

@@ -61,6 +61,7 @@ def test_index_qmd_imports_extracted_index_viz_helpers():
     assert "days_ago_str" in content
     assert "render_overflow_toggle as _render_overflow_toggle" in content
     assert "render_dramatic_event_row" in content
+    assert "render_viradas_card" in content
     assert "render_ranked_lane as _render_ranked_lane" in content
     assert "render_toggle_pair_lane as _render_toggle_pair_lane" in content
     assert "render_break_row as _render_break_row" in content
@@ -166,9 +167,31 @@ def test_index_qmd_marks_sincerao_card_for_scoped_sync_behavior():
     assert 'data-sinc-sync-card' in content
 
 
+def test_index_qmd_routes_pair_change_surface_through_viradas_card():
+    content = INDEX_QMD.read_text(encoding="utf-8")
+
+    assert 'elif ctype == "viradas":' in content
+    assert "render_viradas_card" in content
+    assert 'elif ctype in ("dramatic", "hostilities"):' not in content
+    assert 'elif ctype == "breaks":' not in content
+
+
+def test_index_qmd_story_order_keeps_arquivo_do_queridometro_before_viradas():
+    content = INDEX_QMD.read_text(encoding="utf-8")
+
+    assert '"changes": 20' in content
+    assert '"viradas": 30' in content
+
+
 def test_collapse_ui_supports_scoped_sincerao_toggle_sync():
     content = COLLAPSE_UI_JS.read_text(encoding="utf-8")
 
     assert 'data-sinc-sync-card' in content
     assert 'data-sinc-sync-toggle="chooser"' in content
     assert '.sinc-more:not([open])' in content
+
+
+def test_collapse_ui_no_longer_ships_literal_fence_cleanup_workaround():
+    content = COLLAPSE_UI_JS.read_text(encoding="utf-8")
+
+    assert 'trim() === ":::"' not in content

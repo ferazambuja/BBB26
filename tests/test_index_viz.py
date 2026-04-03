@@ -9,6 +9,7 @@ import pytest
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 import index_viz
 from data_utils import GROUP_COLORS, REACTION_EMOJI, setup_bbb_dark_theme
@@ -38,6 +39,7 @@ from index_viz import (
     render_pair_lane,
     render_pair_chip,
     render_pulso_card,
+    render_viradas_card,
     render_profile_sinc_row,
     render_pulse_row,
     render_rank_chip,
@@ -456,7 +458,7 @@ def test_render_pulse_row_reuses_progress_bar_output():
 def test_render_pulso_card_renders_history_drill_and_today_strip():
     payload = {
         "icon": "📊",
-        "title": "Pulso Diário",
+        "title": "Arquivo do Queridômetro",
         "link": "evolucao.html#pulso",
         "color": "#3498db",
         "mode": "history",
@@ -467,15 +469,28 @@ def test_render_pulso_card_renders_history_drill_and_today_strip():
             "title": "Maior caos da temporada",
             "value": "121",
             "value_label": "reações mudaram",
-            "support": "96 dramáticas",
-            "summary": "Leandro sofreu o maior tombo do dia.",
+            "support": "17 💔, 15 🧳, 14 🌱, 12 🍪, 9 🐍, 7 🤥, 1 🎯",
+            "summary": "Ressaca do 1º Sincerão: 75 ❤️ mudaram de lugar, e o maior baque foi de Leandro (-16.5).",
             "context": {
-                "moment": "Ciclo do 2º Paredão",
-                "chips": ["Líder: Babu Santana", "Ganha-Ganha"],
+                "moment": "Ressaca do 1º Sincerão",
+                "chips": ["Líder: Alberto Cowboy", "Pós-Sincerão"],
+                "timeline": [
+                    {
+                        "date": "2026-01-18",
+                        "summary": "Entrou com 22 ❤️ e 1 🧳.",
+                    },
+                    {
+                        "date": "2026-01-19",
+                        "summary": "No 1º Sincerão, cravou Alberto Cowboy como quem não ganha; depois levou 2x não ganha, de Gabriela (planta) e Jordana (disse que ele mentiu sobre o Quarto Branco), e ficou sem pódio.",
+                    },
+                    {
+                        "date": "2026-01-20",
+                        "summary": "10 ❤️ viraram outra coisa ao redor de Leandro: Juliano ❤️→🌱, Solange ❤️→🧳, Sarah ❤️→🍪, Chaiany ❤️→🌱, Aline ❤️→🧳, Breno ❤️→🐍, Marciele ❤️→🌱, Samira ❤️→🌱, Jordana ❤️→🤥, Gabriela ❤️→🌱.",
+                    },
+                ],
             },
             "participants": [
                 {"name": "Leandro", "status": "active"},
-                {"name": "Solange Couto", "status": "eliminated"},
             ],
         },
         "facts": [
@@ -486,17 +501,96 @@ def test_render_pulso_card_renders_history_drill_and_today_strip():
                 "title": "Maior caos da temporada",
                 "value": "121",
                 "value_label": "reações mudaram",
-                "support": "96 dramáticas",
-                "summary": "Leandro sofreu o maior tombo do dia.",
+                "support": "17 💔, 15 🧳, 14 🌱, 12 🍪, 9 🐍, 7 🤥, 1 🎯",
+                "summary": "Ressaca do 1º Sincerão: 75 ❤️ mudaram de lugar, e o maior baque foi de Leandro (-16.5).",
                 "context": {
-                    "moment": "Ciclo do 2º Paredão",
-                    "chips": ["Líder: Babu Santana", "Ganha-Ganha"],
+                    "moment": "Ressaca do 1º Sincerão",
+                    "chips": ["Líder: Alberto Cowboy", "Pós-Sincerão"],
+                    "timeline": [
+                        {
+                            "date": "2026-01-18",
+                            "summary": "Entrou com 22 ❤️ e 1 🧳.",
+                        },
+                        {
+                            "date": "2026-01-19",
+                            "summary": "No 1º Sincerão, cravou Alberto Cowboy como quem não ganha; depois levou 2x não ganha, de Gabriela (planta) e Jordana (disse que ele mentiu sobre o Quarto Branco), e ficou sem pódio.",
+                        },
+                        {
+                            "date": "2026-01-20",
+                            "summary": "10 ❤️ viraram outra coisa ao redor de Leandro: Juliano ❤️→🌱, Solange ❤️→🧳, Sarah ❤️→🍪, Chaiany ❤️→🌱, Aline ❤️→🧳, Breno ❤️→🐍, Marciele ❤️→🌱, Samira ❤️→🌱, Jordana ❤️→🤥, Gabriela ❤️→🌱.",
+                        },
+                    ],
                 },
                 "participants": [
                     {"name": "Leandro", "status": "active"},
-                    {"name": "Solange Couto", "status": "eliminated"},
                 ],
-            }
+            },
+            {
+                "kind": "volatile_giver",
+                "scope": "history",
+                "date": "2026-02-02",
+                "title": "Maior redesenho do queridômetro",
+                "value": "19",
+                "value_label": "casas preenchidas",
+                "support": "8 ❤️, 4 🌱, 3 🤮, 2 🤥, 1 🐍, 1 💔",
+                "summary": "No auge do 3º Paredão, Juliano saiu de 19 espaços vazios para um tabuleiro completo: abriu ❤️ para aliados, mas pesou a mão em Brigido 🤮, Jonas 🤮, Alberto 🤥, Sarah 🤥 e Jordana 🐍.",
+                "context": {
+                    "moment": "Big Fone, 3º Paredão e Sincerão",
+                    "chips": ["Líder: Maxiane", "Big Fone na véspera", "Dia de Sincerão", "Tá Com Nada"],
+                    "timeline": [
+                        {
+                            "date": "2026-01-31",
+                            "summary": "Atendeu o Big Fone azul e, com Babu e Marcelo, ajudou a colocar Jonas no 3º Paredão.",
+                        },
+                        {
+                            "date": "2026-02-01",
+                            "summary": "Na formação, votou em Brigido; a berlinda fechou com Ana Paula, Leandro e o próprio Brigido.",
+                        },
+                        {
+                            "date": "2026-02-02",
+                            "summary": "Dia de Tá Com Nada e Sincerão de futebol. Juliano virou alvo de 2x Bola Murcha e 1x Goleiro Frangueiro; na comparação diária, preencheu os 19 espaços com 8 ❤️ e 11 negativas.",
+                        },
+                    ],
+                },
+                "participants": [
+                    {"name": "Juliano Floss", "status": "active"},
+                ],
+            },
+            {
+                "kind": "streak_break",
+                "scope": "history",
+                "date": "2026-04-02",
+                "title": "Maior sequência de ❤️ quebrada",
+                "value": "13",
+                "value_label": "dias seguidos de ❤️",
+                "support": "Marciele → Chaiany",
+                "summary": "Marciele passou 13 dias seguidos dando ❤️ para Chaiany e, nessa virada, trocou para 🌱.",
+                "context": {
+                    "moment": "Ciclo do 13º Paredão",
+                    "chips": ["Líder: Samira"],
+                },
+                "participants": [
+                    {"name": "Marciele", "status": "active"},
+                    {"name": "Chaiany", "status": "active"},
+                ],
+            },
+            {
+                "kind": "receiver_gain",
+                "scope": "history",
+                "date": "2026-01-19",
+                "title": "Maior alta de um dia para o outro",
+                "value": "+9.5",
+                "value_label": "saldo recebido",
+                "support": "Paulo Augusto",
+                "summary": "Paulo teve o melhor salto entre esse dia e o anterior.",
+                "context": {
+                    "moment": "Ciclo do 1º Paredão",
+                    "chips": ["Líder: Alberto Cowboy"],
+                },
+                "participants": [
+                    {"name": "Paulo Augusto", "status": "eliminated"},
+                ],
+            },
         ],
         "today": {
             "date": "2026-04-01",
@@ -516,16 +610,225 @@ def test_render_pulso_card_renders_history_drill_and_today_strip():
         avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {size} {border_color}>",
     )
 
+    assert "Arquivo do Queridômetro" in html
     assert "pulso-card" in html
     assert "Maior caos da temporada" in html
     assert "121" in html
     assert "14" in html
+    assert "Última comparação" in html
+    assert "14 mudanças de um dia para o outro (19%)" in html
+    assert 'pulso-fact-breakdown--tokens' in html
+    assert "17 💔" in html
+    assert "15 🧳" in html
+    assert "14 🌱" in html
+    assert "12 🍪" in html
+    assert "9 🐍" in html
+    assert "7 🤥" in html
+    assert "1 🎯" in html
+    assert "Linha do tempo" in html
+    assert "18/01" in html
+    assert "22 ❤️" in html
+    assert "19/01" in html
+    assert "2x não ganha" in html
+    assert "sem pódio" in html
+    assert "Gabriela" in html
+    assert "Jordana" in html
+    assert "20/01" in html
+    assert "10 ❤️ viraram outra coisa" in html
+    assert "Juliano ❤️→🌱" in html
+    assert "Maior redesenho do queridômetro" in html
+    assert "casas preenchidas" in html
+    assert "8 ❤️" in html
+    assert "4 🌱" in html
+    assert "3 🤮" in html
+    assert "2 🤥" in html
+    assert "1 🐍" in html
+    assert "1 💔" in html
+    assert "19 espaços vazios" in html
+    assert "Brigido 🤮" in html
+    assert "Jonas 🤮" in html
+    assert "Alberto 🤥" in html
+    assert "31/01" in html
+    assert "Big Fone azul" in html
+    assert "01/02" in html
+    assert "votou em Brigido" in html
+    assert "02/02" in html
+    assert "2x Bola Murcha" in html
+    assert "1x Goleiro Frangueiro" in html
+    assert "Quem aparece nessa história" in html
+    assert "Contexto do momento" in html
+    assert "mais 2 fatos do arquivo" in html
+    assert 'class="pulso-rail-toggle"' in html
     assert "3 quebras longas" in html
-    assert "Ciclo do 2º Paredão" in html
-    assert "Líder: Babu Santana" in html
+    assert "Ressaca do 1º Sincerão" in html
+    assert "Líder: Alberto Cowboy" in html
+    assert "Pós-Sincerão" in html
+    assert "Ganha-Ganha" not in html
     assert "<details" in html
-    assert "status eliminado" in html
+    assert "fora" not in html
     assert "<avatar Leandro 34 #4f7cff>" in html
+
+
+def test_pulso_archive_toggle_is_not_hidden_on_desktop():
+    css = (REPO_ROOT / "assets" / "cards.css").read_text(encoding="utf-8")
+
+    assert css.count(".pulso-rail-toggle:not([open]) > .pulso-rail") == 1
+    assert "@media (max-width: 819px)" in css
+    assert ".pulso-rail-toggle:not([open]) > .pulso-rail {\n    display: none;" in css
+
+
+def test_render_viradas_card_renders_hero_summary_and_grouped_drill():
+    payload = {
+        "icon": "🔄",
+        "title": "Viradas",
+        "link": "evolucao.html#pulso",
+        "source_tag": "📅 Ontem → Hoje",
+        "subtitle": "As principais viradas de um dia para o outro no queridômetro.",
+        "state": "partial",
+        "total": 4,
+        "counts": {"dramatic": 2, "hostilities": 1, "breaks": 1},
+        "hero": {
+            "kind": "breaks",
+            "kicker": "Aliança rompida",
+            "title": "Ruptura com ❤️ ainda do outro lado",
+            "body": "Entre as viradas do dia, esta pesa mais porque quebra uma sequência longa de ❤️ e vira só de um lado.",
+            "date": "2026-04-02",
+            "giver": "Gabriela",
+            "receiver": "Leandro",
+            "old_emoji": "❤️",
+            "new_emoji": "💔",
+            "prior_same_emoji_days": 9,
+            "prior_heart_days": 9,
+            "other_side_current_emoji": "❤️",
+            "other_side_kept_heart": True,
+            "meta_line": "Depois de 9 dias de ❤️ · Leandro manteve ❤️ · 02/04",
+            "severity_score": 2.0,
+            "severity_label": "grave",
+            "stat_value": "9",
+            "stat_label": "dias de ❤️",
+            "chips": [{"text": "Leandro manteve ❤️", "tone": "accent"}],
+        },
+        "summary": [
+            {"kind": "dramatic", "title": "Mudanças Dramáticas", "count": 2, "note": "máx 9 dias antes da troca"},
+            {"kind": "hostilities", "title": "Novas Hostilidades", "count": 1, "note": "1 com ❤️ do outro lado"},
+            {"kind": "breaks", "title": "Alianças Rompidas", "count": 1, "note": "1 sequência longa quebrada"},
+        ],
+        "groups": [
+            {
+                "kind": "dramatic",
+                "title": "Mudanças Dramáticas",
+                "count": 2,
+                "items": [
+                    {
+                        "kind": "dramatic",
+                        "date": "2026-04-02",
+                        "giver": "Jordana",
+                        "receiver": "Chaiany",
+                        "old_emoji": "❤️",
+                        "new_emoji": "🌱",
+                        "prior_same_emoji_days": 4,
+                        "prior_heart_days": 4,
+                        "other_side_current_emoji": "🌱",
+                        "other_side_kept_heart": False,
+                        "meta_line": "Depois de 4 dias de ❤️ · 02/04",
+                        "severity_score": 1.5,
+                        "severity_label": "alta",
+                    },
+                    {
+                        "kind": "dramatic",
+                        "date": "2026-04-02",
+                        "giver": "Leandro",
+                        "receiver": "Marciele",
+                        "old_emoji": "❤️",
+                        "new_emoji": "💔",
+                        "prior_same_emoji_days": 2,
+                        "prior_heart_days": 2,
+                        "other_side_current_emoji": "🌱",
+                        "other_side_kept_heart": False,
+                        "meta_line": "Depois de 2 dias de ❤️ · 02/04",
+                        "severity_score": 1.5,
+                        "severity_label": "alta",
+                    },
+                ],
+            },
+            {
+                "kind": "hostilities",
+                "title": "Novas Hostilidades",
+                "count": 1,
+                "items": [
+                    {
+                        "kind": "hostilities",
+                        "date": "2026-04-02",
+                        "giver": "Marciele",
+                        "receiver": "Chaiany",
+                        "old_emoji": "❤️",
+                        "new_emoji": "🌱",
+                        "prior_same_emoji_days": 3,
+                        "prior_heart_days": 3,
+                        "other_side_current_emoji": "❤️",
+                        "other_side_kept_heart": True,
+                        "meta_line": "Depois de 3 dias de ❤️ · Chaiany manteve ❤️ · 02/04",
+                        "severity_score": 2.0,
+                        "severity_label": "hostilidade",
+                    }
+                ],
+            },
+            {
+                "kind": "breaks",
+                "title": "Alianças Rompidas",
+                "count": 1,
+                "items": [
+                    {
+                        "kind": "breaks",
+                        "date": "2026-04-02",
+                        "giver": "Gabriela",
+                        "receiver": "Leandro",
+                        "old_emoji": "❤️",
+                        "new_emoji": "💔",
+                        "prior_same_emoji_days": 9,
+                        "prior_heart_days": 9,
+                        "other_side_current_emoji": "❤️",
+                        "other_side_kept_heart": True,
+                        "meta_line": "Depois de 9 dias de ❤️ · Leandro manteve ❤️ · 02/04",
+                        "severity_score": 2.0,
+                        "severity_label": "grave",
+                    }
+                ],
+            },
+        ],
+    }
+
+    html = render_viradas_card(
+        payload,
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {size} {border_color}>",
+    )
+
+    assert "Viradas" in html
+    assert "Ruptura com ❤️ ainda do outro lado" in html
+    assert "Gabriela" in html
+    assert "Leandro" in html
+    assert "Depois de 9 dias de ❤️ · Leandro manteve ❤️ · 02/04" in html
+    assert "9" in html
+    assert "dias de ❤️" in html
+    assert "Mudanças Dramáticas" in html
+    assert "Novas Hostilidades" in html
+    assert "Alianças Rompidas" in html
+    assert "mais 4 viradas do dia" in html
+    assert "Jordana" in html
+    assert "Marciele" in html
+    assert "Chaiany manteve ❤️" in html
+    assert "<avatar Gabriela 46 #4f7cff>" in html
+    assert html.count("<div") == html.count("</div>")
+
+
+def test_render_pulso_participants_keeps_semantic_eliminated_label():
+    html = index_viz._render_pulso_participants(
+        [{"name": "Paulo Augusto", "status": "eliminated"}],
+        avatar_fn=lambda name, size=48, border_color="#555": f"<avatar {name} {size} {border_color}>",
+    )
+
+    assert 'aria-label="Paulo Augusto (eliminado)"' in html
+    assert "<avatar Paulo Augusto 34 #7a7f87>" in html
 
 
 def test_render_pair_chip_formats_mode_specific_detail_text():
@@ -786,6 +1089,7 @@ def test_render_blindado_row_renders_badges_and_counts():
             "protected": 3,
             "available": 5,
             "votes": 1,
+            "voted_paredoes": 1,
             "bv_escape": True,
             "bv_text": 'Escapou "BV"',
             "escape_tags": [
@@ -804,6 +1108,7 @@ def test_render_blindado_row_renders_badges_and_counts():
     assert 'href="#perfil-ana-paula-renault"' in html
     assert "0 paredões" in html
     assert "1 voto em 5 elegíveis" in html
+    assert "votado em 1 paredão" in html
     assert "protegido 3x" in html
     assert "Escapou &quot;BV&quot;" in html
     assert "Líder 2x" in html
@@ -817,7 +1122,8 @@ def test_render_blindado_row_tolerates_null_protection_tags():
             "paredao": 0,
             "protected": 1,
             "available": 3,
-            "votes": 0,
+            "votes": 2,
+            "voted_paredoes": 2,
             "protection_tags": None,
         },
         n_par=4,
@@ -826,6 +1132,8 @@ def test_render_blindado_row_tolerates_null_protection_tags():
 
     assert "<avatar Ana Paula Renault #27ae60>" in html
     assert "protegido 1x" in html
+    assert "2 votos em 3 elegíveis" in html
+    assert "votado em 2 paredões" in html
     assert "display:flex;flex-direction:column" not in html
 
 
@@ -1045,6 +1353,8 @@ def test_render_na_mira_row_renders_power_tags_and_drill_down():
     assert "#3f1b1b" in html  # dark red badge bg
     assert "#ff9d9d" in html  # dark red badge text
     assert "Detalhes (2)" in html
+    assert ">▶ Detalhes (2)</summary>" not in html
+    assert ">Detalhes (2)</summary>" in html
     assert "Indicação por Alberto Cowboy (8º)" in html
     assert "Barrado por Jonas Sulzbach (6º)" in html
 
@@ -1094,4 +1404,6 @@ def test_render_agressor_row_renders_purple_tags_and_drill_down():
     assert "#2d1b3f" in html  # purple badge bg
     assert "#d9b3ff" in html  # purple badge text
     assert "Detalhes (1)" in html
+    assert ">▶ Detalhes (1)</summary>" not in html
+    assert ">Detalhes (1)</summary>" in html
     assert "Na Mira → Milena (8º)" in html

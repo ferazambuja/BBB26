@@ -36,6 +36,7 @@ def _preserve_generated_paths(root: Path, names: list[str]):
         if not path.exists():
             continue
         backup_path = backup_root / name
+        backup_path.parent.mkdir(parents=True, exist_ok=True)
         path.rename(backup_path)
         preserved.append(name)
     try:
@@ -88,3 +89,9 @@ def test_rendered_index_reaction_summary_has_instance_scoped_toggle_markup(rende
     assert html.count('id="reaction-summary-table"') == 0
     assert "closest('.index-reaction-summary')" in html
     assert "querySelectorAll('.index-reaction-summary__row--collapsed')" in html
+
+
+def test_rendered_index_does_not_emit_literal_fence_paragraphs(rendered_index_html: str):
+    html = rendered_index_html
+
+    assert "<p>:::</p>" not in html

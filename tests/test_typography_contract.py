@@ -108,10 +108,10 @@ def test_index_card_header_uses_structured_title_and_meta_rows():
     assert '.u-s333' not in index_qmd
 
 
-def test_index_drops_parenthetical_recency_from_dramatic_title():
+def test_index_uses_viradas_surface_instead_of_separate_pair_change_card_titles():
     index_qmd = _read(INDEX_QMD)
     assert "Mudanças Dramáticas (Recente)" not in index_qmd
-    assert "Mudanças Dramáticas" in index_qmd
+    assert 'elif ctype == "viradas":' in index_qmd
 
 
 def test_index_mobile_highlights_have_explicit_single_column_hardening():
@@ -123,7 +123,6 @@ def test_index_mobile_highlights_have_explicit_single_column_hardening():
 
 def test_index_uses_semantic_meta_text_for_remaining_support_copy():
     index_qmd = _read(INDEX_QMD)
-    assert '<span class="fs-base meta-text">reações mudaram ' in index_qmd
     assert '<div class="fs-base meta-text">{subtitle}</div>' in index_qmd
     assert '<span class="fs-base u-s001">reações mudaram ' not in index_qmd
     assert '<div class="fs-base u-s001">{subtitle}</div>' not in index_qmd

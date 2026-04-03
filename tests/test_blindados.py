@@ -255,6 +255,17 @@ class TestVotesCounting:
         exp = self._exposure(paredoes, {"X", "Y", "A", "B", "L"})
         assert exp["Y"]["votes_total"] == 2
 
+    def test_voted_paredoes_counts_distinct_eligible_rounds(self):
+        paredoes = [
+            _make_paredao(1, "L", ["X"], votos_casa={"A": "Y", "B": "Y"}),
+            _make_paredao(2, "L", ["X"], votos_casa={"A": "Y"}),
+        ]
+        paredoes[0]["data_formacao"] = "2026-01-18"
+        paredoes[1]["data_formacao"] = "2026-01-25"
+        exp = self._exposure(paredoes, {"X", "Y", "A", "B", "L"})
+        assert exp["Y"]["votes_total"] == 3
+        assert exp["Y"]["voted_paredoes"] == 2
+
     def test_unknown_target_not_in_windows(self):
         """Targets not in participant_windows produce no exposure entry."""
         paredoes = [_make_paredao(1, "L", ["A"],
@@ -459,7 +470,7 @@ class TestBlindadosContract:
 
     def test_fields_present(self, blindados_card):
         required = {"name", "paredao", "bv_escapes", "exposure", "protected",
-                     "available", "votes_total", "votes_available", "by_lider",
+                     "available", "votes_total", "votes_available", "voted_paredoes", "by_lider",
                      "by_casa", "by_dynamic", "nom_text", "prot_text", "bv_text",
                      "last_voted_paredao", "total", "votes", "bv_escape"}
         for item in blindados_card["items_all"]:
@@ -475,6 +486,11 @@ class TestBlindadosContract:
         for item in blindados_card["items_all"]:
             assert item["votes_total"] >= item["votes_available"], \
                 f"{item['name']}: votes_total should be >= votes_available"
+
+    def test_voted_paredoes_never_exceeds_available(self, blindados_card):
+        for item in blindados_card["items_all"]:
+            assert item["voted_paredoes"] <= item["available"], \
+                f"{item['name']}: voted_paredoes should be <= available"
 
     def test_sort_order_deterministic(self, blindados_card):
         items = blindados_card["items_all"]
@@ -683,6 +699,7 @@ class TestCanonicalExposureCharacterization:
             blind = blindados_by_name[name]
             assert blind["votes_total"] == expected["votes_total"]
             assert blind["votes_available"] == expected["votes_available"]
+            assert blind["voted_paredoes"] == expected["voted_paredoes"]
             assert blind["available"] == expected["available"]
             assert blind["protected"] == expected["protected"]
             assert blind["last_voted_paredao"] == expected["last_voted_paredao"]

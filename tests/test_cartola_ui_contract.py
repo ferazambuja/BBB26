@@ -78,7 +78,7 @@ def test_cartola_eliminated_avatar_is_grayscale():
 def test_cartola_week_kpi_has_no_sem_prefix_literal():
     content = _read(CARTOLA_QMD)
     assert "Sem {n_cycles}" not in content
-    assert ">{current_cycle}<" in content
+    assert ">{current_round}<" in content
 
 
 def test_cartola_role_kpis_count_events_dynamically():
@@ -133,10 +133,12 @@ def test_cartola_top5_extremes_are_computed_from_events_dynamically():
     assert "negative_breakdown = defaultdict(lambda: {'points': 0, 'count': 0})" in content
     assert "positive_breakdown[evt_type]['points'] += points" in content
     assert "negative_breakdown[evt_type]['points'] += points" in content
-    assert "events = [evt for evt in events if evt.get('cycle') == week_filter]" in content
-    assert "build_extreme_candidates(current_cycle, include_inactive=False)" in content
+    assert "for evt_name, points, date_str in all_round_points.get(name, {}).get(round_filter, [])" in content
+    assert "extremes_round = current_round" in content
+    assert "if not cycle_positive_points_by_participant and not cycle_negative_points_by_participant:" in content
+    assert "build_extreme_candidates(extremes_round, include_inactive=False)" in content
     assert "build_extreme_candidates(include_inactive=True)" in content
-    assert "Rodada {current_cycle}" in content
+    assert "RODADA {extremes_round}" in content
     assert "temporada" in content.lower()
 
 
@@ -172,10 +174,12 @@ def test_cartola_top5_rows_show_reason_on_hover_and_tap():
 
 def test_cartola_uses_manual_open_cycles_as_cycle_reference():
     content = _read(CARTOLA_QMD)
-    assert "manual_open_cycles = sorted(" in content
-    assert "current_cycle = manual_open_cycles[-1] if manual_open_cycles else n_cycles" in content
-    assert "is_transition_cycle = current_cycle != n_cycles" in content
-    assert "max_cycle_for_display = current_cycle if is_transition_cycle else n_cycles" in content
+    assert 'round_points = cartola.get("round_points", cycle_points)' in content
+    assert 'rounds = cartola.get("rounds", [])' in content
+    assert 'current_round = cartola["_metadata"].get("current_round")' in content
+    assert "manual_open_cycles = sorted(" not in content
+    assert "current_cycle = manual_open_cycles[-1] if manual_open_cycles else n_cycles" not in content
+    assert "is_transition_cycle = current_cycle != n_cycles" not in content
 
 
 def test_cartola_ranking_section_removed_in_favor_of_participant_cards():

@@ -101,6 +101,7 @@ def _make_repo(tmp_path: Path) -> Path:
                                 "name": name,
                                 "votes_total": exposure[name]["votes_total"],
                                 "votes_available": exposure[name]["votes_available"],
+                                "voted_paredoes": exposure[name]["voted_paredoes"],
                                 "available": exposure[name]["available"],
                                 "protected": exposure[name]["protected"],
                                 "last_voted_paredao": exposure[name]["last_voted_paredao"],

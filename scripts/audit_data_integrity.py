@@ -457,7 +457,7 @@ def build_integrity_audit(root: Path = ROOT) -> dict[str, Any]:
             issues,
             card=cards.get("blindados"),
             expected={name: canonical_exposure[name] for name in active_set if name in canonical_exposure},
-            fields=["votes_total", "votes_available", "available", "protected", "last_voted_paredao"],
+            fields=["votes_total", "votes_available", "voted_paredoes", "available", "protected", "last_voted_paredao"],
             issue_id="blindados_exposure_mismatch",
             subject="blindados",
         )

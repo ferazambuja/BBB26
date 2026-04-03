@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -106,7 +107,7 @@ def test_pulso_changes_card_prefers_history_when_latest_day_is_not_extreme():
             transition_counts={"Planta→Coração": 14},
         ),
         _daily_change(
-            "2026-01-20",
+            "2026-01-24",
             total_changes=121,
             pct_changed=36.8,
             dramatic_count=96,
@@ -189,15 +190,25 @@ def test_pulso_changes_card_prefers_history_when_latest_day_is_not_extreme():
     )
 
     assert card["mode"] == "history"
+    assert card["title"] == "Arquivo do Queridômetro"
     assert card["hero"]["scope"] == "history"
+    assert card["hero"]["kind"] == "chaos_day"
     assert card["today"]["total"] == 14
+    assert "5 curiosidades" in card["subtitle"]
     assert any("49 dias" in chip for chip in card["today"]["chips"])
     assert any("3 hostilidades" in chip for chip in card["today"]["chips"])
 
     chaos_fact = next(fact for fact in card["facts"] if fact["kind"] == "chaos_day")
-    assert chaos_fact["date"] == "2026-01-20"
+    assert chaos_fact["date"] == "2026-01-24"
     assert "2º Paredão" in chaos_fact["context"]["moment"]
     assert any("Babu Santana" in chip for chip in chaos_fact["context"]["chips"])
+    volatile_fact = next(fact for fact in card["facts"] if fact["kind"] == "volatile_giver")
+    assert volatile_fact["title"] == "Quem mais trocou reações de um dia para o outro"
+    assert "Entre esse dia e o anterior" in volatile_fact["summary"]
+    streak_fact = next(fact for fact in card["facts"] if fact["kind"] == "streak_break")
+    assert streak_fact["title"] == "Maior sequência de ❤️ quebrada"
+    assert "dias seguidos dando ❤️" in streak_fact["summary"]
+    assert any(emoji in streak_fact["summary"] for emoji in ("💼", "💔", "🌱"))
     assert any(
         participant["name"] == "Solange Couto" and participant["status"] == "eliminated"
         for fact in card["facts"]
@@ -272,11 +283,109 @@ def test_pulso_changes_card_uses_today_mode_when_latest_day_is_extreme():
     )
 
     assert card["mode"] == "today"
+    assert card["title"] == "Arquivo do Queridômetro"
     assert card["hero"]["scope"] == "today"
     assert card["hero"]["kind"] == "today_snapshot"
     assert card["hero"]["date"] == "2026-01-12"
+    assert card["hero"]["title"] == "A última comparação fugiu do padrão"
+    assert "última comparação" in card["hero"]["summary"]
     assert "1º Paredão" in card["hero"]["context"]["moment"]
     assert card["facts"], "Historical facts should still be available for rotation even on hot days"
+
+
+def test_real_chaos_day_manual_story_guard():
+    daily_metrics = json.loads((REPO_ROOT / "data" / "derived" / "daily_metrics.json").read_text(encoding="utf-8"))
+    history = list(daily_metrics.get("daily_changes") or [])
+
+    chaos_day = max(
+        history,
+        key=lambda item: (int(item.get("total_changes") or 0), int(item.get("dramatic_count") or 0)),
+    )
+
+    assert chaos_day["date"] == "2026-01-20", (
+        "Manual chaos-day storytelling is pinned to 2026-01-20. "
+        "If another day becomes the season record, rewrite the manual Pulso story."
+    )
+
+
+def test_real_volatile_giver_manual_story_guard():
+    daily_metrics = json.loads((REPO_ROOT / "data" / "derived" / "daily_metrics.json").read_text(encoding="utf-8"))
+    history = list(daily_metrics.get("daily_changes") or [])
+
+    volatile_day = max(
+        history,
+        key=lambda item: int((item.get("top_volatile_giver") or {}).get("changes") or 0),
+    )
+
+    assert volatile_day["date"] == "2026-02-02", (
+        "Manual volatile-giver storytelling is pinned to 2026-02-02. "
+        "If another day becomes the season record, rewrite the manual Pulso story."
+    )
+
+
+def test_rendered_index_data_keeps_manual_chaos_story_copy():
+    index_data = build_index_data()
+    assert index_data is not None
+    changes_card = next(card for card in index_data["highlights"]["cards"] if card.get("type") == "changes")
+    chaos_fact = next(fact for fact in changes_card.get("facts", []) if fact.get("kind") == "chaos_day")
+
+    assert changes_card["title"] == "Arquivo do Queridômetro"
+    assert changes_card["hero"]["kind"] == "chaos_day"
+    assert changes_card["hero"]["date"] == "2026-01-20"
+    assert chaos_fact["date"] == "2026-01-20"
+    assert chaos_fact["context"]["moment"] == "Ressaca do 1º Sincerão"
+    assert "75 ❤️" in chaos_fact["summary"]
+    assert "mudaram de lugar" in chaos_fact["summary"]
+    assert "maior baque foi de Leandro (-16.5)" in chaos_fact["summary"]
+    assert chaos_fact["support"] == "17 💔, 15 🧳, 14 🌱, 12 🍪, 9 🐍, 7 🤥, 1 🎯"
+    assert chaos_fact["context"]["chips"] == ["Líder: Alberto Cowboy", "Pós-Sincerão"]
+    assert [item["date"] for item in chaos_fact["context"]["timeline"]] == ["2026-01-18", "2026-01-19", "2026-01-20"]
+    assert "22 ❤️" in chaos_fact["context"]["timeline"][0]["summary"]
+    assert "1 🧳" in chaos_fact["context"]["timeline"][0]["summary"]
+    assert "2x não ganha" in chaos_fact["context"]["timeline"][1]["summary"]
+    assert "sem pódio" in chaos_fact["context"]["timeline"][1]["summary"]
+    assert "Alberto Cowboy" in chaos_fact["context"]["timeline"][1]["summary"]
+    assert "Gabriela" in chaos_fact["context"]["timeline"][1]["summary"]
+    assert "Jordana" in chaos_fact["context"]["timeline"][1]["summary"]
+    assert "10 ❤️ viraram outra coisa" in chaos_fact["context"]["timeline"][2]["summary"]
+    assert "Juliano ❤️→🌱" in chaos_fact["context"]["timeline"][2]["summary"]
+    assert [participant["name"] for participant in chaos_fact["participants"]] == ["Leandro"]
+
+
+def test_rendered_index_data_keeps_manual_volatile_story_copy():
+    index_data = build_index_data()
+    assert index_data is not None
+    changes_card = next(card for card in index_data["highlights"]["cards"] if card.get("type") == "changes")
+    volatile_fact = next(fact for fact in changes_card.get("facts", []) if fact.get("kind") == "volatile_giver")
+
+    assert volatile_fact["date"] == "2026-02-02"
+    assert volatile_fact["title"] == "Maior redesenho do queridômetro"
+    assert volatile_fact["value"] == "19"
+    assert volatile_fact["value_label"] == "casas preenchidas"
+    assert volatile_fact["support"] == "8 ❤️, 4 🌱, 3 🤮, 2 🤥, 1 🐍, 1 💔"
+    assert "19 espaços vazios" in volatile_fact["summary"]
+    assert "Brigido 🤮" in volatile_fact["summary"]
+    assert "Jonas 🤮" in volatile_fact["summary"]
+    assert "Alberto 🤥" in volatile_fact["summary"]
+    assert "Sarah 🤥" in volatile_fact["summary"]
+    assert "Jordana 🐍" in volatile_fact["summary"]
+    assert volatile_fact["context"]["moment"] == "Big Fone, 3º Paredão e Sincerão"
+    assert volatile_fact["context"]["chips"] == [
+        "Líder: Maxiane",
+        "Big Fone na véspera",
+        "Dia de Sincerão",
+        "Tá Com Nada",
+    ]
+    assert [item["date"] for item in volatile_fact["context"]["timeline"]] == ["2026-01-31", "2026-02-01", "2026-02-02"]
+    assert "Big Fone azul" in volatile_fact["context"]["timeline"][0]["summary"]
+    assert "Jonas" in volatile_fact["context"]["timeline"][0]["summary"]
+    assert "votou em Brigido" in volatile_fact["context"]["timeline"][1]["summary"]
+    assert "Ana Paula, Leandro" in volatile_fact["context"]["timeline"][1]["summary"]
+    assert "Brigido" in volatile_fact["context"]["timeline"][1]["summary"]
+    assert "2x Bola Murcha" in volatile_fact["context"]["timeline"][2]["summary"]
+    assert "1x Goleiro Frangueiro" in volatile_fact["context"]["timeline"][2]["summary"]
+    assert "8 ❤️ e 11 negativas" in volatile_fact["context"]["timeline"][2]["summary"]
+    assert [participant["name"] for participant in volatile_fact["participants"]] == ["Juliano Floss"]
 
 
 def test_index_template_uses_dynamic_paredao_subtitle():
@@ -305,9 +414,72 @@ def test_daily_highlight_cards_use_valid_cross_page_links():
     cards_by_type = {card["type"]: card for card in cards}
 
     assert cards_by_type["ranking"]["link"] == "evolucao.html#sentimento"
-    assert cards_by_type["hostilities"]["link"] == "relacoes.html#hostilidades"
+    assert cards_by_type["viradas"]["link"] == "evolucao.html#pulso"
     assert any("[ranking](evolucao.html#sentimento)" in item for item in highlights)
-    assert any("relacoes.html#hostilidades" in item for item in highlights)
+    assert any("evolucao.html#pulso" in item for item in highlights)
+
+
+def test_daily_movers_publish_one_partial_viradas_card_for_latest_comparison():
+    daily_snapshots = [
+        {"date": "2026-03-01", "participants": [_participant("Ana", 3), _participant("Beto", 1)]},
+        {"date": "2026-03-02", "participants": [_participant("Ana", 4), _participant("Beto", 1, 1)]},
+    ]
+    daily_matrices = [
+        {
+            ("Ana", "Beto"): "Coração",
+            ("Beto", "Ana"): "Coração",
+        },
+        {
+            ("Ana", "Beto"): "Cobra",
+            ("Beto", "Ana"): "Coração",
+        },
+    ]
+
+    _highlights, cards = _compute_daily_movers_cards(daily_snapshots, daily_matrices, ["Ana", "Beto"])
+    by_type = {card["type"]: card for card in cards}
+    card_types = [card["type"] for card in cards]
+
+    viradas = by_type["viradas"]
+    assert "dramatic" not in by_type
+    assert "hostilities" not in by_type
+    assert card_types.index("changes") < card_types.index("viradas")
+    assert viradas["reference_date"] == "2026-03-02"
+    assert viradas["from_date"] == "2026-03-01"
+    assert viradas["to_date"] == "2026-03-02"
+    assert viradas["source_tag"] == "📅 Ontem → Hoje"
+    assert viradas["state"] == "partial"
+    assert viradas["counts"] == {"dramatic": 1, "hostilities": 1, "breaks": 0}
+    assert viradas["total"] == 2
+    assert [group["kind"] for group in viradas["groups"]] == ["dramatic", "hostilities", "breaks"]
+    assert viradas["hero"]["kind"] == "dramatic"
+    assert viradas["hero"]["giver"] == "Ana"
+    assert viradas["hero"]["receiver"] == "Beto"
+    assert viradas["hero"]["meta_line"] == "Depois de 1 dia de ❤️ · Beto manteve ❤️ · 02/03"
+    assert viradas["summary"][1]["title"] == "Novas Hostilidades"
+    assert viradas["groups"][2]["count"] == 0
+    assert viradas["groups"][2]["items"] == []
+
+
+def test_daily_movers_omit_viradas_card_when_latest_comparison_has_no_pair_events():
+    daily_snapshots = [
+        {"date": "2026-03-01", "participants": [_participant("Ana", 3), _participant("Beto", 1)]},
+        {"date": "2026-03-02", "participants": [_participant("Ana", 3), _participant("Beto", 1)]},
+    ]
+    daily_matrices = [
+        {
+            ("Ana", "Beto"): "Coração",
+            ("Beto", "Ana"): "Coração",
+        },
+        {
+            ("Ana", "Beto"): "Coração",
+            ("Beto", "Ana"): "Coração",
+        },
+    ]
+
+    _highlights, cards = _compute_daily_movers_cards(daily_snapshots, daily_matrices, ["Ana", "Beto"])
+    by_type = {card["type"]: card for card in cards}
+
+    assert "viradas" not in by_type
 
 
 def test_static_vip_xepa_cards_link_to_relacoes_anchor():

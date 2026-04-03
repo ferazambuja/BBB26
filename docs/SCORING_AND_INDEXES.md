@@ -65,13 +65,21 @@ Use this table when changing formulas and you need to know **what UI will move**
 The Painel no longer treats Pulso as a pure “yesterday vs today” counter card.
 
 - `daily_metrics.json -> daily_changes` remains the source of truth for day-over-day queridômetro movement.
+- The user-facing card title is now **Arquivo do Queridômetro** to match the history-first behavior.
 - `index_data.json -> highlights.cards[type="changes"]` now builds a **history-led hybrid card**:
   - `today`: compact strip with the last comparable day (`total`, `%`, improve/worsen/lateral, hearts, chips)
   - `facts`: rotating historical curiosities (chaos day, biggest swing, most volatile giver, longest streak break)
   - `hero`: either a historical fact or a same-day spotlight when the latest day is truly exceptional
+- Copy should always describe the Pulso as a **comparison between daily snapshots**. Prefer wording like `de um dia para o outro`, `última comparação`, or `comparação diária`; avoid ambiguous phrasing like `no mesmo dia` or `24h`.
 - Latest-day spotlight is intentionally strict: it only takes over when the newest snapshot is above the season’s high percentile band for raw movement (`total_changes`, `pct_changed`, or `dramatic_count`).
 - Historical facts may include **eliminated participants**. The `today` strip should stay tied to the latest comparable snapshot, while the history rail can surface names that already left.
+- Eliminated names should be shown without status text; the visual cue is grayscale / desaturated treatment only.
+- The extra historical fact cards live behind a small archive drill on all breakpoints; only the hero stays open by default.
 - Context is mandatory for historical facts. The builder should attach short capsules (date, paredão window, and nearby weekly dynamics like Sincerão / Big Fone / Modo Turbo), not long prose.
+- Historical facts may also attach `context.timeline`: compact dated entries rendered inside the context drill when a fact needs more narrative than chips alone can provide.
+- The season-record chaos fact currently uses a **manual story override** for `2026-01-20` (`Ressaca do 1º Sincerão`). That override is intentionally split into a house-wide summary plus a 3-step Leandro timeline (`18/01` entry warmth, `19/01` Sincerão exposure, `20/01` heart collapse). There is a regression test guarding that date; if another day becomes the record, rewrite the manual story instead of silently reusing it.
+- The season-record `volatile_giver` fact also uses a **manual story override** for `2026-02-02`, because the raw metric is not “19 opinion flips”; it is a **full board-fill event** (`19` empty slots becoming emojis for Juliano). The published copy should explain that nuance explicitly, show the emoji spread, and anchor the day with a short Big Fone → paredão → Sincerão timeline. The override is additionally guarded by a record-date test and an exact-match check on the underlying fact (`support = Juliano Floss`, `value = 19`) so synthetic fixtures do not accidentally inherit the production story.
+- Manual timelines must stay evidence-based and compact. They should explain the arc without inventing missing context such as paredão involvement that did not happen.
 
 ### Why power events are "modifiers"
 - They are **rare** and usually **one-to-one** (actor → target).
@@ -483,7 +491,7 @@ Higher = more aligned; lower = contradiction.
 - **Tá com Nada**: não há categoria própria de pontuação Cartola oficial para essa condição.
 - **Não recebeu votos da casa (+5)**: disponíveis para votação **sem votos**; não vale para Líder e imunizados.
 - **Palpites (+5)**: pontos extras por acerto de palpites (não modelado no dashboard).
-- **Janela de escalação**: quando aberta, **dinâmicas não pontuam** (não modelamos janela; calculamos pelos eventos reais).
+- **Janela de escalação**: quando aberta, **dinâmicas não pontuam**. O dashboard agora modela essa exceção via `manual_events.json -> cartola_rounds`, agregando ciclos quando a rodada oficial cobre mais de um ciclo turbo e excluindo eventos ocorridos com a janela ainda aberta.
 - **Nota do dashboard**: calculamos **pontuação por participante**, sem times/palpites individuais.
 
 ### Cartola manual events (use `cartola_points_log`)
@@ -491,6 +499,7 @@ Higher = more aligned; lower = contradiction.
 - Examples: `salvo_paredao`, `nao_eliminado_paredao`, `nao_emparedado`, `monstro_retirado_vip`.
 - Structure: one entry per participant/week with `events: [{event, points, date, fonte?}]`.
 - Always include matching `fontes` in `manual_events.json` for the underlying real-world event.
+- Official round/window overrides live in `manual_events.json -> cartola_rounds` when the Cartola BBB rodada diverges from the operational cycle structure.
 
 ### Cartola auto-derived points (from `data/paredoes.json`)
 - `salvo_paredao` — **Venceu o Bate e Volta** (escapou do paredão). Não acumula com `nao_emparedado`.

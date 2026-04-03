@@ -4,8 +4,33 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timezone
 
-from data_utils import CARTOLA_POINTS, get_cycle_number, parse_roles
+from data_utils import CARTOLA_POINTS, get_cycle_number, normalize_route_label, parse_roles
 from builders.participants import _normalize_big_fone
+
+
+def _is_pre_vote_commitment_route(como_text: str | None) -> bool:
+    """Return True when a nomination route puts someone on paredão before house voting."""
+    route = normalize_route_label(como_text)
+    if route in {
+        'Líder',
+        'Big Fone',
+        'Bloco do Paredão',
+        'Caixas-Surpresa',
+        'Consenso Anjo+Monstro',
+        'Duelo de Risco',
+        'Exilado',
+    }:
+        return True
+
+    como_lower = (como_text or '').lower()
+    return (
+        'dinâmica' in como_lower or
+        'dinamica' in como_lower or
+        'triângulo' in como_lower or
+        'triangulo' in como_lower or
+        'máquina' in como_lower or
+        'maquina' in como_lower
+    )
 
 
 def _collect_current_holders_and_vip(snap_participants: list[dict]) -> tuple[dict, set[str]]:
@@ -144,6 +169,17 @@ def _normalize_name_list(value) -> list[str]:
     return []
 
 
+def _normalize_int_list(value) -> list[int]:
+    out: list[int] = []
+    if isinstance(value, list):
+        for item in value:
+            if isinstance(item, int):
+                out.append(item)
+    elif isinstance(value, int):
+        out.append(value)
+    return out
+
+
 def _week_from_payload(week_raw, date_str: str) -> int:
     if isinstance(week_raw, int) and week_raw > 0:
         return week_raw
@@ -161,6 +197,132 @@ def _collect_api_detected(calculated_points: dict) -> dict:
                 if evt in tracked:
                     detected[evt][week].add(name)
     return detected
+
+
+def _normalize_cartola_round_overrides(manual_events: dict) -> list[dict]:
+    raw = manual_events.get('cartola_rounds', [])
+    if not isinstance(raw, list):
+        return []
+
+    normalized: list[dict] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        round_num = entry.get('round')
+        if not isinstance(round_num, int) or round_num <= 0:
+            continue
+        cycles = sorted(set(_normalize_int_list(entry.get('cycles')))) or [round_num]
+        normalized.append({
+            'round': round_num,
+            'cycles': cycles,
+            'status': str(entry.get('status') or '').strip(),
+            'notes': str(entry.get('notes') or '').strip(),
+            'fontes': list(entry.get('fontes') or []),
+            'excluded_events': [
+                sel for sel in entry.get('excluded_events', [])
+                if isinstance(sel, dict)
+            ],
+        })
+    return sorted(normalized, key=lambda item: item['round'])
+
+
+def _event_selector_matches(name: str, cycle: int, event_data: tuple, selector: dict) -> bool:
+    evt_name, points, date_str = event_data
+
+    if selector.get('participant') and str(selector['participant']).strip() != name:
+        return False
+    if selector.get('cycle') is not None and selector.get('cycle') != cycle:
+        return False
+    if selector.get('event') and str(selector['event']).strip() != evt_name:
+        return False
+    if selector.get('date') and str(selector['date']).strip() != (date_str or ''):
+        return False
+    if selector.get('points') is not None and selector.get('points') != points:
+        return False
+    return True
+
+
+def _build_cartola_round_views(all_points: dict, manual_events: dict, n_cycles: int) -> tuple[dict, list[dict], int, list[dict]]:
+    all_cycles = sorted({
+        cycle
+        for participant_points in all_points.values()
+        for cycle in participant_points.keys()
+        if isinstance(cycle, int) and cycle > 0
+    })
+    max_cycle_seen = max([n_cycles, *all_cycles], default=n_cycles)
+    cycle_to_round = {cycle: cycle for cycle in range(1, max_cycle_seen + 1)}
+
+    overrides = _normalize_cartola_round_overrides(manual_events)
+    overrides_by_round = {}
+    for entry in overrides:
+        overrides_by_round[entry['round']] = entry
+        for cycle in entry['cycles']:
+            cycle_to_round[cycle] = entry['round']
+
+    n_rounds = max(cycle_to_round.values(), default=max_cycle_seen)
+    round_points: dict[str, dict[str, list[list]]] = {str(rnd): {} for rnd in range(1, n_rounds + 1)}
+
+    for participant, participant_points in all_points.items():
+        for cycle, events in sorted(participant_points.items()):
+            round_num = cycle_to_round.get(cycle, cycle)
+            excluded = overrides_by_round.get(round_num, {}).get('excluded_events', [])
+            selected_events = [
+                [evt_name, pts, date_str]
+                for evt_name, pts, date_str in events
+                if not any(
+                    _event_selector_matches(participant, cycle, (evt_name, pts, date_str), selector)
+                    for selector in excluded
+                )
+            ]
+            if selected_events:
+                round_points[str(round_num)].setdefault(participant, []).extend(selected_events)
+
+    rounds = []
+    for round_num in range(1, n_rounds + 1):
+        override = overrides_by_round.get(round_num, {})
+        cycles = sorted([
+            cycle for cycle, mapped_round in cycle_to_round.items()
+            if mapped_round == round_num
+        ])
+        round_entry = {
+            'round': round_num,
+            'cycles': cycles or ([round_num] if round_num <= max_cycle_seen else []),
+        }
+        if override.get('status'):
+            round_entry['status'] = override['status']
+        if override.get('notes'):
+            round_entry['notes'] = override['notes']
+        if override.get('fontes'):
+            round_entry['fontes'] = override['fontes']
+        rounds.append(round_entry)
+
+    current_candidates = [
+        entry['round']
+        for entry in rounds
+        if str(entry.get('status') or '').lower() not in {'', 'finalized', 'closed'}
+    ]
+    current_round = max(current_candidates, default=n_rounds or 1)
+
+    cumulative_round_evolution = []
+    running_totals = defaultdict(int)
+    per_participant_round_totals = defaultdict(dict)
+    for round_str, participants in round_points.items():
+        round_num = int(round_str)
+        for participant, events in participants.items():
+            per_participant_round_totals[participant][round_num] = sum(pts for _, pts, _ in events)
+
+    for round_num in range(1, n_rounds + 1):
+        for participant in per_participant_round_totals:
+            if round_num in per_participant_round_totals[participant]:
+                running_totals[participant] += per_participant_round_totals[participant][round_num]
+            if running_totals[participant] != 0:
+                cumulative_round_evolution.append({
+                    'round': round_num,
+                    'name': participant,
+                    'cumulative_points': running_totals[participant],
+                })
+
+    return round_points, rounds, current_round, cumulative_round_evolution
 
 
 def _collect_official_role_events(provas_data: dict | None, manual_events: dict, paredoes_data: dict) -> tuple[dict, dict, dict]:
@@ -489,8 +651,8 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
                 for ind in p.get('indicados_finais', []):
                     como = (ind.get('como') or '').lower()
                     nome_ind = ind.get('nome', '')
-                    # Líder-indicados and dinâmica entries were pre-committed
-                    if 'líder' in como or 'lider' in como or 'dinâmica' in como or 'triângulo' in como:
+                    # Pre-vote dynamics don't count for "não recebeu votos".
+                    if _is_pre_vote_commitment_route(como):
                         pre_vote_committed.add(nome_ind)
                 pre_vote_committed |= bv_winners_set
 
@@ -602,6 +764,9 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
 
     # Stats
     n_cycles = max([get_cycle_number(s['date']) for s in daily_snapshots], default=1) if daily_snapshots else 1
+    round_points, rounds, current_round, cumulative_round_evolution = _build_cartola_round_views(
+        all_points, manual_events, n_cycles
+    )
 
     seen_roles = {"Líder": [], "Anjo": [], "Monstro": []}
     for entry in leaderboard:
@@ -647,11 +812,16 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
         "_metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "n_cycles": n_cycles,
+            "n_rounds": len(rounds),
             "n_snapshots": len(daily_snapshots),
+            "current_round": current_round,
         },
         "leaderboard": leaderboard,
         "cycle_points": cycle_points,
+        "round_points": round_points,
+        "rounds": rounds,
         "cumulative_evolution": cumulative_evolution,
+        "cumulative_round_evolution": cumulative_round_evolution,
         "stats": {
             "n_with_points": len([p for p in leaderboard if p['total'] != 0]),
             "n_active": len([p for p in leaderboard if p['active']]),

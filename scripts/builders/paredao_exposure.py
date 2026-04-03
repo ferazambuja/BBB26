@@ -350,6 +350,7 @@ def compute_house_vote_exposure(
             "votes_total": 0,
             "votes_recent": 0,
             "votes_available": 0,
+            "voted_paredoes": 0,
             "available": 0,
             "protected": 0,
             "last_voted_paredao": 0,
@@ -388,7 +389,10 @@ def compute_house_vote_exposure(
                 exposure[name]["protected"] += 1
             if name not in cant_be_voted:
                 exposure[name]["available"] += 1
-                exposure[name]["votes_available"] += vote_targets.get(name, 0)
+                vote_count = vote_targets.get(name, 0)
+                exposure[name]["votes_available"] += vote_count
+                if vote_count > 0:
+                    exposure[name]["voted_paredoes"] += 1
 
         for target_name, count in vote_targets.items():
             window = participant_windows.get(target_name)

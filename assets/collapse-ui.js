@@ -107,7 +107,6 @@
   onReady(function () {
     var collapseToggles = document.querySelectorAll(".collapse-toggle[data-target]");
     var sincSyncCards = document.querySelectorAll("[data-sinc-sync-card]");
-    if (!collapseToggles.length && !sincSyncCards.length) return;
 
     if (collapseToggles.length) {
       syncNavbarTitle();

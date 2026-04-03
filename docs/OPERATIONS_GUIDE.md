@@ -2011,10 +2011,18 @@ If `.unknown` is non-empty, update `SINC_TYPE_META` in `scripts/builders/index_d
 
 **Pulso / queridômetro card support**:
 - The `type = "changes"` card on the Painel is now **history-first**. Most days it shows a rotating historical queridômetro fact as the hero and keeps the latest day in a compact strip below.
+- The published card title is **Arquivo do Queridômetro**. Do not revert to a purely daily label unless the product direction changes again.
 - The hero only switches back to “today” when the latest comparable day is genuinely exceptional against season history (`total_changes`, `pct_changed`, or `dramatic_count` in the top band). Do not force it with ad-hoc rules.
+- Wording must stay explicit that Pulso compares **one daily snapshot to the next**. Prefer `última comparação`, `comparação diária`, or `de um dia para o outro`; avoid `no mesmo dia`, `hoje` in isolation, and `24h`, which read like intra-day tracking.
 - Historical facts may feature **already eliminated** people. That is expected. The compact “today” strip should still reflect only the latest comparable snapshot.
+- Eliminated people in the Pulso drill should be distinguished visually (grayscale / muted avatar), not by adding `fora` / `ativo` labels next to the name.
+- The non-hero historical facts should stay behind an archive drill on every breakpoint instead of appearing as always-open stacked cards.
 - Historical facts must carry **context chips** (paredão window, Modo Turbo, nearby Sincerão / Big Fone / Anjo, etc.). A bare date without context is not enough.
+- When chips alone are not enough, historical facts may include a short `context.timeline` for the drill. Keep it to compact dated beats, not prose paragraphs.
 - The context chips depend on `manual_events.json` cycle metadata and nearby event dates. When those notes/dates are wrong or missing, the card will still build, but the history drill becomes vague.
+- `Maior caos da temporada` currently has a manual story override for `2026-01-20` (`Ressaca do 1º Sincerão`). It is intentionally framed as a house-wide heart collapse with a compact 3-step Leandro timeline in the drill. A regression test guards that record date; if a new day overtakes it, update the manual copy instead of inheriting the old story.
+- `Maior redesenho do queridômetro` currently has a manual story override for `2026-02-02`. Treat it as a **board-fill story**, not as “Juliano changed his mind 19 times”: the evidence shows `19` empty slots turning into emojis during the Big Fone / 3º Paredão / Tá Com Nada / Sincerão stretch. Keep the published copy explicit about that and preserve the compact 3-step timeline unless the underlying record changes.
+- Do not imply extra stakes the data does not support. Example: if a participant was not on that paredão, the timeline must not suggest they were.
 
 **Backlash** (auto-generated reverse edge, target → actor): `nao_ganha` 0.3, `ataque` 0.4.
 

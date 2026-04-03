@@ -60,6 +60,7 @@ from index_viz import (
     render_overflow_toggle as _render_overflow_toggle,
     render_pair_chip,
     render_pulso_card,
+    render_viradas_card,
     render_profile_card,
     render_profile_sinc_row,
     render_pulse_row,
@@ -147,8 +148,9 @@ CARD_STORY_ORDER = {
     "paredao": 5,
     "ranking": 10,
     "changes": 20,
-    "dramatic": 30,
-    "hostilities": 40,
+    "viradas": 30,
+    "dramatic": 40,
+    "hostilities": 50,
     "sincerao": 50,
     "breaks": 70,
     "blindados": 80,
@@ -344,70 +346,9 @@ else:
         elif ctype == "changes":
             print(render_pulso_card(card, avatar_fn=av))
 
-        # ── 💥 Dramatic + ⚠️ Hostilities — pair-based cards ──
-        elif ctype in ("dramatic", "hostilities"):
-            items = card.get("items", [])
-            total = card.get("total", len(items))
-            is_hostile = ctype == "hostilities"
-            scope = card.get("scope", "today")
-            today_count = card.get("today_count", total if scope == "today" else 0)
-            latest_date = card.get("latest_date", "")
-            ref_date = card.get("reference_date") or latest.get("date")
-            badge = f"{today_count}" if scope == "today" else f"{total}"
-            source_tag = "📅 Ontem → Hoje" if scope == "today" else "📅 Histórico recente"
-            card_title = card["title"] if scope == "today" else (
-                "Hostilidades Recentes" if is_hostile else "Mudanças Dramáticas"
-            )
-            if is_hostile:
-                subtitle = (
-                    "Quem passou a dar reação negativa a alguém que ainda dá ❤️ para eles. O receptor não sabe."
-                    if scope == "today"
-                    else f"Sem novas hostilidades hoje. Últimos casos registrados (mais recente: {fmt_date_br(latest_date)})."
-                )
-                ch = card_header(card["icon"], card_title, card.get("link"), badge,
-                    source_tag=source_tag,
-                    subtitle=subtitle
-                )
-            else:
-                subtitle = (
-                    "Trocas extremas: de ❤️ para negativo ou vice-versa."
-                    if scope == "today"
-                    else f"Sem mudanças dramáticas hoje. Últimos casos registrados (mais recente: {fmt_date_br(latest_date)})."
-                )
-                ch = card_header(card["icon"], card_title, card.get("link"), badge,
-                    source_tag=source_tag,
-                    subtitle=subtitle
-                )
-
-            inline_items = items[:4]
-            overflow_items = items[4:]
-            pairs_html = '<div class="u-s358">'
-            pairs_html += "".join(
-                _render_dramatic_event_row(
-                    it,
-                    ref_date=ref_date,
-                    is_hostile=is_hostile,
-                    fmt_date_fn=fmt_date_br,
-                    days_ago_fn=days_ago_str,
-                    pair_story_card_fn=pair_story_card,
-                )
-                for it in inline_items
-            )
-            if overflow_items:
-                pairs_html += (
-                    f'<details class="sinc-more">'
-                    f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s358">'
-                    f'{"".join(_render_dramatic_event_row(it, ref_date=ref_date, is_hostile=is_hostile, fmt_date_fn=fmt_date_br, days_ago_fn=days_ago_str, pair_story_card_fn=pair_story_card) for it in overflow_items)}'
-                    f'</div>'
-                    f'</details>'
-                )
-            pairs_html += '</div>'
-
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{ch}
-{pairs_html}
-</div>''')
+        # ── 🔄 Viradas ──
+        elif ctype == "viradas":
+            print(render_viradas_card(card, avatar_fn=av))
 
         # ── 🔥 Sincerão (unified: radar + contradictions) ──
         elif ctype == "sincerao":
@@ -635,41 +576,6 @@ else:
             rows_html += '</div>'
             print(f'''<div class="info-panel" style="border-left-color:{color};">
 {card_header(card["icon"], card["title"], card.get("link"), f"{total}", source_tag="📈 Composto", subtitle="Falsos amigos: dá ❤️ a quem tem score negativo contra si (queridômetro + votos + eventos). Risco de voto surpresa.")}
-{rows_html}
-</div>''')
-
-        # ── 💔 Streak Breaks ──
-        elif ctype == "breaks":
-            items = card.get("items", [])
-            total = card.get("total", len(items))
-            strong_count = card.get("strong_count", 0)
-            severity_badge = f"{strong_count} graves" if strong_count else None
-            break_ref_date = card.get("reference_date") or latest.get("date")
-
-            inline_items = items[:4]
-            overflow_items = items[4:]
-            rows_html = '<div class="u-s357">'
-            rows_html += "".join(
-                _render_break_row(
-                    it,
-                    break_ref_date=break_ref_date,
-                    fmt_date_fn=fmt_date_br,
-                    days_ago_fn=days_ago_str,
-                    pair_story_card_fn=pair_story_card,
-                )
-                for it in inline_items
-            )
-            if overflow_items:
-                rows_html += (
-                    f'<details class="sinc-more">'
-                    f'<summary>+{len(overflow_items)} restantes</summary>'
-                    f'<div class="u-s357">{"".join(_render_break_row(it, break_ref_date=break_ref_date, fmt_date_fn=fmt_date_br, days_ago_fn=days_ago_str, pair_story_card_fn=pair_story_card) for it in overflow_items)}</div>'
-                    f'</details>'
-                )
-            rows_html += '</div>'
-
-            print(f'''<div class="info-panel" style="border-left-color:{color};">
-{card_header(card["icon"], card["title"], card.get("link"), severity_badge or f"{total}", source_tag="📈 Histórico", subtitle="Rompimentos de alianças (histórico): data indica quando a ruptura ocorreu.")}
 {rows_html}
 </div>''')
 
@@ -922,6 +828,7 @@ else:
         print(render_saldo_card(saldo_card, avatar_fn=av))
 
     print('</div>')  # close grid
+    print("")  # terminate the raw HTML block before the next markdown section
 ```
 
 ```{python}
@@ -959,6 +866,8 @@ Ver análise →
 </a>
 </div>
 ''')
+else:
+    print("<!-- paredao-status-card skipped: active card already rendered in highlights -->")
 ```
 
 # Tabela Cruzada de Reações {#crosstable}

@@ -72,7 +72,10 @@ python scripts/quarto_render_safe.py index.qmd
 
 When the change touches the Pulso / queridômetro-history card, also inspect:
 - `data/derived/index_data.json` → `highlights.cards[] | select(.type=="changes")`
-- The rendered card on desktop **and** mobile, because the hero fact, context drill, and today strip reflow differently.
+- The rendered card on desktop **and** mobile, because the hero fact, the archive drill for extra history cards, the context drill, and the today strip reflow differently.
+- If `Maior caos da temporada` changed records, update the manual story override and the guard test together.
+- If `Maior redesenho do queridômetro` changed records, update the manual story override and the guard test together. Confirm the copy still says it was a fill-from-empty board redraw when that is what the data shows; do not let the prose drift back to “mudou de ideia” unless the underlying pair changes are real reversals.
+- If the Pulso hero uses a manual `context.timeline`, verify the dated beats and summary lines against the underlying derived/manual evidence instead of accepting the prose at face value.
 
 ### Fast manual-data loop
 

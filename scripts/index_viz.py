@@ -193,15 +193,56 @@ def _render_pulso_participants(participants: list[dict], *, avatar_fn) -> str:
         name = item.get("name", "")
         status = item.get("status", "active")
         border_color = "#4f7cff" if status == "active" else "#7a7f87"
-        status_label = "ativo" if status == "active" else "fora"
+        aria_label = name if status == "active" else f"{name} (eliminado)"
         items.append(
-            f'<span class="pulso-person-chip status {"ativo" if status == "active" else "eliminado"}">'
+            f'<span class="pulso-person-chip {"is-eliminated" if status != "active" else ""}" aria-label="{_escape_attr(aria_label)}">'
             f'{avatar_fn(name, 34, border_color)}'
             f'<span class="pulso-person-name">{_escape_text(_short_name(name))}</span>'
-            f'<span class="pulso-person-status">{_escape_text(status_label)}</span>'
             f'</span>'
         )
     return f'<div class="pulso-participants">{"".join(items)}</div>'
+
+
+def _render_pulso_timeline(timeline: list[dict]) -> str:
+    if not timeline:
+        return ""
+
+    items = []
+    for entry in timeline:
+        if not isinstance(entry, dict):
+            continue
+        date_label = fmt_date_br(entry.get("date", ""))
+        summary = entry.get("summary") or entry.get("text") or entry.get("support") or ""
+        items.append(
+            f'<div class="pulso-timeline-item">'
+            f'<span class="pulso-timeline-date">{_escape_text(date_label)}</span>'
+            f'<span class="pulso-timeline-summary">{_escape_text(summary)}</span>'
+            f'</div>'
+        )
+
+    if not items:
+        return ""
+    return (
+        f'<div class="pulso-context-section">'
+        f'<div class="pulso-context-label">Linha do tempo</div>'
+        f'<div class="pulso-timeline">{"".join(items)}</div>'
+        f'</div>'
+    )
+
+
+def _render_pulso_support(support: str) -> str:
+    if not support:
+        return ""
+
+    parts = [part.strip() for part in support.split(",") if part.strip()]
+    if len(parts) > 1:
+        items = "".join(
+            f'<span class="pulso-fact-breakdown-item">{_escape_text(part)}</span>'
+            for part in parts
+        )
+        return f'<div class="pulso-fact-breakdown pulso-fact-breakdown--tokens">{items}</div>'
+
+    return f'<div class="pulso-fact-breakdown">{_escape_text(support)}</div>'
 
 
 def _render_pulso_fact(fact: dict, *, avatar_fn, hero: bool = False) -> str:
@@ -210,23 +251,43 @@ def _render_pulso_fact(fact: dict, *, avatar_fn, hero: bool = False) -> str:
 
     context = fact.get("context") or {}
     chips = list(context.get("chips") or [])
+    timeline = list(context.get("timeline") or [])
     participants = list(fact.get("participants") or [])
     date_label = fact.get("date_label") or fmt_date_br(fact.get("date", ""))
     moment = context.get("moment", "")
     support = fact.get("support", "")
     summary = fact.get("summary", "")
     drill_html = ""
-    if chips or participants:
+    if chips or timeline or participants:
+        chips_html = ""
+        if chips:
+            chips_html = (
+                f'<div class="pulso-context-section">'
+                f'<div class="pulso-context-label">Contexto do momento</div>'
+                f'<div class="pulso-chip-row">{"".join(_render_pulso_chip(chip) for chip in chips)}</div>'
+                f'</div>'
+            )
+        timeline_html = _render_pulso_timeline(timeline)
+        participants_html = ""
+        if participants:
+            participants_html = (
+                f'<div class="pulso-context-section">'
+                f'<div class="pulso-context-label">Quem aparece nessa história</div>'
+                f'{_render_pulso_participants(participants, avatar_fn=avatar_fn)}'
+                f'</div>'
+            )
         drill_html = (
             f'<details class="pulso-context-drill">'
-            f'<summary>ver contexto</summary>'
+            f'<summary><span class="pulso-toggle-icon">▾</span><span class="pulso-toggle-text">contexto</span></summary>'
             f'<div class="pulso-context-body">'
-            f'<div class="pulso-chip-row">{"".join(_render_pulso_chip(chip) for chip in chips)}</div>'
-            f'{_render_pulso_participants(participants, avatar_fn=avatar_fn)}'
+            f'{chips_html}'
+            f'{timeline_html}'
+            f'{participants_html}'
             f'</div></details>'
         )
 
     fact_cls = "pulso-fact pulso-fact--hero" if hero else "pulso-fact"
+    support_html = _render_pulso_support(support)
     return (
         f'<section class="{fact_cls}">'
         f'<div class="pulso-fact-kicker">'
@@ -241,9 +302,9 @@ def _render_pulso_fact(fact: dict, *, avatar_fn, hero: bool = False) -> str:
         f'<div class="pulso-fact-stat">'
         f'<span class="pulso-fact-value">{_escape_text(fact.get("value", ""))}</span>'
         f'<span class="pulso-fact-value-label">{_escape_text(fact.get("value_label", ""))}</span>'
-        f'<span class="pulso-fact-support">{_escape_text(support)}</span>'
         f'</div>'
         f'</div>'
+        f'{support_html}'
         f'{drill_html}'
         f'</section>'
     )
@@ -276,38 +337,158 @@ def render_pulso_card(payload: dict, *, avatar_fn) -> str:
     hearts_gained = _coerce_int(today.get("hearts_gained"))
     hearts_lost = _coerce_int(today.get("hearts_lost"))
     net = _coerce_int(today.get("net"), default=improve - worsen)
+    date_label = today.get("date_label") or today.get("date") or ""
+    today_chips = list(today.get("chips") or [])
+    collapsed_chips = today_chips[:3]
+    if len(today_chips) > 3:
+        collapsed_chips.append(f"+{len(today_chips) - 3} sinais")
 
     today_strip = (
         f'<section class="pulso-today-strip">'
         f'<div class="pulso-today-head">'
-        f'<div class="pulso-today-title">Hoje</div>'
-        f'<div class="pulso-today-subtitle">{_escape_text(today.get("date_label", ""))} · {total} mudanças ({pct}%)</div>'
+        f'<div class="pulso-today-title">Última comparação</div>'
+        f'<div class="pulso-today-date">{_escape_text(date_label)}</div>'
+        f'<div class="pulso-today-subtitle">{total} mudanças de um dia para o outro ({pct}%)</div>'
         f'</div>'
         f'<div class="pulso-metrics-grid">'
         f'{_metric("Melhoras", improve, "#2ecc71")}'
         f'{_metric("Pioras", worsen, "#ff7262")}'
         f'{_metric("Laterais", lateral, "#b4bcc8")}'
-        f'{_metric("Saldo ❤️", f"{net:+d}", "#7ec8ff", note=f"+{hearts_gained} / -{hearts_lost}")}'
+        f'{_metric("Saldo", f"{net:+d}", "#7ec8ff", note=f"❤️ +{hearts_gained} / -{hearts_lost}")}'
         f'</div>'
-        f'<div class="pulso-chip-row">{"".join(_render_pulso_chip(chip) for chip in today.get("chips", []))}</div>'
+        f'<div class="pulso-chip-row">{"".join(_render_pulso_chip(chip) for chip in collapsed_chips)}</div>'
         f'</section>'
     )
 
     facts_html = ""
     if extra_facts:
+        extra_label = f"mais {len(extra_facts)} fatos do arquivo"
         facts_html = (
+            f'<details class="pulso-rail-toggle">'
+            f'<summary><span class="pulso-toggle-icon">▾</span><span class="pulso-toggle-text">{_escape_text(extra_label)}</span></summary>'
             f'<div class="pulso-rail">'
             f'{"".join(_render_pulso_fact(fact, avatar_fn=avatar_fn) for fact in extra_facts)}'
             f'</div>'
+            f'</details>'
         )
 
     return (
         f'<div class="info-panel pulso-panel">'
-        f'{card_header(payload.get("icon", "📊"), payload.get("title", "Pulso Diário"), payload.get("link"), source_tag=payload.get("source_tag"), subtitle=payload.get("subtitle"))}'
+        f'{card_header(payload.get("icon", "📊"), payload.get("title", "Arquivo do Queridômetro"), payload.get("link"), source_tag=payload.get("source_tag"), subtitle=payload.get("subtitle"))}'
         f'<div class="pulso-card pulso-card--{_escape_attr(mode)}">'
         f'{_render_pulso_fact(hero, avatar_fn=avatar_fn, hero=True)}'
         f'{today_strip}'
         f'{facts_html}'
+        f'</div></div>'
+    )
+
+
+def _render_viradas_chip(chip: dict) -> str:
+    tone = chip.get("tone", "neutral")
+    return f'<span class="viradas-chip viradas-chip--{_escape_attr(tone)}">{_escape_text(chip.get("text", ""))}</span>'
+
+
+def _render_viradas_summary_item(item: dict) -> str:
+    return (
+        f'<div class="viradas-summary-item viradas-summary-item--{_escape_attr(item.get("kind", ""))}">'
+        f'<span class="viradas-summary-count">{_escape_text(item.get("count", 0))}</span>'
+        f'<span class="viradas-summary-title">{_escape_text(item.get("title", ""))}</span>'
+        f'<span class="viradas-summary-note">{_escape_text(item.get("note", ""))}</span>'
+        f'</div>'
+    )
+
+
+def _render_viradas_group_row(item: dict, *, avatar_fn) -> str:
+    kind = item.get("kind", "")
+    border_color = {
+        "dramatic": "#e74c3c",
+        "hostilities": "#f39c12",
+        "breaks": "#8e44ad",
+    }.get(kind, "#4f7cff")
+    transition_html = (
+        f'<span class="pair-story-origin">{_escape_text(item.get("old_emoji", ""))}</span>'
+        f'<span class="pair-story-arrow">→</span>'
+        f'<span class="pair-story-destination">{_escape_text(item.get("new_emoji", ""))}</span>'
+    )
+    return pair_story_card(
+        item.get("giver", ""),
+        item.get("receiver", ""),
+        transition_html,
+        item.get("meta_line", ""),
+        avatar_fn=avatar_fn,
+        group_border_fn=lambda _name: "#4f7cff",
+        border_color=border_color,
+    )
+
+
+def render_viradas_card(payload: dict, *, avatar_fn) -> str:
+    if not payload:
+        return ""
+
+    hero = payload.get("hero") or {}
+    summary = list(payload.get("summary") or [])
+    groups = [group for group in (payload.get("groups") or []) if group.get("items")]
+    total = _coerce_int(payload.get("total"), default=sum(_coerce_int(item.get("count"), default=0) for item in summary))
+
+    hero_chips = "".join(_render_viradas_chip(chip) for chip in hero.get("chips", []))
+    hero_kicker = hero.get("kicker", "")
+    hero_date = fmt_date_br(hero.get("date", ""))
+    hero_left = avatar_fn(hero.get("giver", ""), 46, "#4f7cff")
+    hero_right = avatar_fn(hero.get("receiver", ""), 46, "#4f7cff")
+    hero_meta = hero.get("meta_line", "")
+
+    drill_html = ""
+    if groups:
+        drill_html = (
+            f'<details class="viradas-drill">'
+            f'<summary><span class="viradas-toggle-icon">▾</span><span class="viradas-toggle-text">mais {total} viradas do dia</span></summary>'
+            f'<div class="viradas-groups">'
+            + "".join(
+                f'<section class="viradas-group viradas-group--{_escape_attr(group.get("kind", ""))}">'
+                f'<div class="viradas-group-title">{_escape_text(group.get("title", ""))}</div>'
+                f'<div class="viradas-group-rows">'
+                f'{"".join(_render_viradas_group_row(item, avatar_fn=avatar_fn) for item in group.get("items", []))}'
+                f'</div></section>'
+                for group in groups
+            )
+            + '</div></details>'
+        )
+
+    return (
+        f'<div class="info-panel viradas-panel">'
+        f'{card_header(payload.get("icon", "🔄"), payload.get("title", "Viradas"), payload.get("link"), source_tag=payload.get("source_tag"), subtitle=payload.get("subtitle"))}'
+        f'<div class="viradas-card viradas-card--{_escape_attr(payload.get("state", "partial"))}">'
+        f'<section class="viradas-hero">'
+        f'<div class="viradas-hero-kicker">'
+        f'<span class="viradas-kicker-label">{_escape_text(hero_kicker)}</span>'
+        f'<span class="viradas-kicker-date">{_escape_text(hero_date)}</span>'
+        f'</div>'
+        f'<div class="viradas-hero-head">'
+        f'<div class="viradas-hero-pair">'
+        f'<div class="viradas-side">{hero_left}<span class="viradas-side-name">{_escape_text(_short_name(hero.get("giver", "")))}</span></div>'
+        f'<div class="viradas-center">'
+        f'<div class="viradas-transition"><span class="viradas-transition-old">{_escape_text(hero.get("old_emoji", ""))}</span><span class="viradas-transition-arrow">→</span><span class="viradas-transition-new">{_escape_text(hero.get("new_emoji", ""))}</span></div>'
+        f'<div class="viradas-transition-meta">{_escape_text(hero_meta)}</div>'
+        f'</div>'
+        f'<div class="viradas-side">{hero_right}<span class="viradas-side-name">{_escape_text(_short_name(hero.get("receiver", "")))}</span></div>'
+        f'</div>'
+        f'<div class="viradas-hero-copy">'
+        f'<div class="viradas-hero-main">'
+        f'<div class="viradas-copy-block">'
+        f'<div class="viradas-hero-title">{_escape_text(hero.get("title", ""))}</div>'
+        f'<div class="viradas-hero-body">{_escape_text(hero.get("body", ""))}</div>'
+        f'</div>'
+        f'<div class="viradas-hero-stat">'
+        f'<span class="viradas-stat-value">{_escape_text(hero.get("stat_value", ""))}</span>'
+        f'<span class="viradas-stat-label">{_escape_text(hero.get("stat_label", ""))}</span>'
+        f'</div>'
+        f'</div>'
+        f'<div class="viradas-chip-row">{hero_chips}</div>'
+        f'</div>'
+        f'</div>'
+        f'</section>'
+        f'<section class="viradas-summary-strip">{"".join(_render_viradas_summary_item(item) for item in summary)}</section>'
+        f'{drill_html}'
         f'</div></div>'
     )
 
@@ -799,6 +980,7 @@ def render_blindado_row(item: dict, *, n_par: int, avatar_fn) -> str:
     protected = _coerce_int(item.get("protected", 0), default=0)
     available = _coerce_int(item.get("available", 0), default=0)
     votes = _coerce_int(item.get("votes", 0), default=0)
+    voted_paredoes = _coerce_int(item.get("voted_paredoes", 0), default=0)
     escape_tags = item.get("escape_tags") or []
     protection_tags = item.get("protection_tags") or []
 
@@ -828,6 +1010,7 @@ def render_blindado_row(item: dict, *, n_par: int, avatar_fn) -> str:
     )
     eligible_label = "elegível" if available == 1 else "elegíveis"
     votes_label = "voto" if votes == 1 else "votos"
+    voted_paredoes_label = "paredão" if voted_paredoes == 1 else "paredões"
 
     return (
         f'<div class="u-s056" style="align-items:flex-start;">'
@@ -840,7 +1023,7 @@ def render_blindado_row(item: dict, *, n_par: int, avatar_fn) -> str:
         f'<div class="u-s014">'
         f'<div style="width:{bar_pct:.0f}%;height:100%;background:#3498db;border-radius:3px;"></div>'
         f'</div>'
-        f'<div class="fs-2xs" style="color:#888;">{votes} {votes_label} em {available} {eligible_label} · protegido {protected}x</div>'
+        f'<div class="fs-2xs" style="color:#888;">{votes} {votes_label} em {available} {eligible_label} · votado em {voted_paredoes} {voted_paredoes_label} · protegido {protected}x</div>'
         f'{extra_badges}'
         f'</div></div>'
     )
@@ -949,7 +1132,7 @@ def _power_detail_html(detail: list[dict], mode: str, tag_labels: dict[str, str]
     content = "".join(lines)
     return (
         f"<details style='margin-top:4px;'>"
-        f"<summary class='fs-2xs' style='color:#777;cursor:pointer;'>▶ Detalhes ({len(detail)})</summary>"
+        f"<summary class='fs-2xs' style='color:#777;cursor:pointer;'>Detalhes ({len(detail)})</summary>"
         f"<div style='margin-top:2px;padding-left:8px;border-left:2px solid #333;'>{content}</div>"
         f"</details>"
     )

@@ -548,20 +548,16 @@ class TestDailyCardsReferenceDate:
         assert by_type["changes"]["from_date"] == "2026-03-01"
         assert by_type["changes"]["to_date"] == "2026-03-02"
         assert "net" in by_type["changes"]
-        assert by_type["dramatic"]["reference_date"] == "2026-03-02"
-        assert by_type["hostilities"]["reference_date"] == "2026-03-02"
-        assert by_type["dramatic"]["scope"] == "today"
-        assert by_type["hostilities"]["scope"] == "today"
-        assert by_type["dramatic"]["state"] == "today"
-        assert by_type["hostilities"]["state"] == "today"
-        assert by_type["dramatic"]["display_limit"] == 4
-        assert by_type["hostilities"]["display_limit"] == 4
-        assert by_type["dramatic"]["event_latest_date"] == "2026-03-02"
-        assert by_type["hostilities"]["event_latest_date"] == "2026-03-02"
-        assert by_type["dramatic"]["items"][0]["date"] == "2026-03-02"
-        assert by_type["hostilities"]["items"][0]["date"] == "2026-03-02"
+        assert by_type["viradas"]["reference_date"] == "2026-03-02"
+        assert by_type["viradas"]["from_date"] == "2026-03-01"
+        assert by_type["viradas"]["to_date"] == "2026-03-02"
+        assert by_type["viradas"]["source_tag"] == "📅 01/03 → 02/03"
+        assert by_type["viradas"]["state"] == "partial"
+        assert by_type["viradas"]["counts"] == {"dramatic": 1, "hostilities": 1, "breaks": 0}
+        assert by_type["viradas"]["groups"][0]["items"][0]["date"] == "2026-03-02"
+        assert by_type["viradas"]["groups"][1]["items"][0]["date"] == "2026-03-02"
 
-    def test_daily_cards_emit_empty_state_cards_when_no_events(self):
+    def test_daily_cards_omit_viradas_when_no_events(self):
         from builders.index_data_builder import _compute_daily_movers_cards
 
         daily_snapshots = [
@@ -576,14 +572,7 @@ class TestDailyCardsReferenceDate:
         _highlights, cards = _compute_daily_movers_cards(daily_snapshots, daily_matrices, ["A", "B"])
         by_type = {c.get("type"): c for c in cards}
 
-        assert by_type["dramatic"]["state"] == "empty"
-        assert by_type["hostilities"]["state"] == "empty"
-        assert by_type["dramatic"]["scope"] == "empty"
-        assert by_type["hostilities"]["scope"] == "empty"
-        assert by_type["dramatic"]["items"] == []
-        assert by_type["hostilities"]["items"] == []
-        assert by_type["dramatic"]["total"] == 0
-        assert by_type["hostilities"]["total"] == 0
+        assert "viradas" not in by_type
 
 
 class TestBreaksCardReferenceDate:
@@ -722,7 +711,7 @@ class TestTopLevelSincerao:
             if blindados["items_all"]:
                 item = blindados["items_all"][0]
                 for field in ("exposure", "bv_escapes", "votes_total", "votes_available",
-                              "by_lider", "by_casa", "by_dynamic", "nom_text", "bv_text",
+                              "voted_paredoes", "by_lider", "by_casa", "by_dynamic", "nom_text", "bv_text",
                               "last_voted_paredao"):
                     assert field in item, f"Missing field '{field}' in blindados item"
 

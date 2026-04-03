@@ -48,6 +48,75 @@ CARTOLA_FILE = DERIVED_DIR / "cartola_data.json"
 PROVA_FILE = DERIVED_DIR / "prova_rankings.json"
 PROVAS_RAW_FILE = _PROJECT_ROOT / "data" / "provas.json"
 
+PULSO_MANUAL_FACT_OVERRIDES: dict[tuple[str, str], dict[str, Any]] = {
+    ("chaos_day", "2026-01-20"): {
+        "support": "17 💔, 15 🧳, 14 🌱, 12 🍪, 9 🐍, 7 🤥, 1 🎯",
+        "summary": (
+            "Ressaca do 1º Sincerão: 75 ❤️ mudaram de lugar, e o maior baque foi de Leandro (-16.5)."
+        ),
+        "context": {
+            "moment": "Ressaca do 1º Sincerão",
+            "chips": ["Líder: Alberto Cowboy", "Pós-Sincerão"],
+            "timeline": [
+                {
+                    "date": "2026-01-18",
+                    "summary": "Entrou com 22 ❤️ e 1 🧳.",
+                },
+                {
+                    "date": "2026-01-19",
+                    "summary": (
+                        "No 1º Sincerão, cravou Alberto Cowboy como quem não ganha; "
+                        "depois levou 2x não ganha, de Gabriela (planta) e Jordana "
+                        "(disse que ele mentiu sobre o Quarto Branco), e ficou sem pódio."
+                    ),
+                },
+                {
+                    "date": "2026-01-20",
+                    "summary": (
+                        "10 ❤️ viraram outra coisa ao redor de Leandro: Juliano ❤️→🌱, Solange ❤️→🧳, "
+                        "Sarah ❤️→🍪, Chaiany ❤️→🌱, Aline ❤️→🧳, Breno ❤️→🐍, Marciele ❤️→🌱, "
+                        "Samira ❤️→🌱, Jordana ❤️→🤥, Gabriela ❤️→🌱."
+                    ),
+                },
+            ],
+        },
+        "participants": ["Leandro"],
+    },
+    ("volatile_giver", "2026-02-02"): {
+        "match": {"support": "Juliano Floss", "value": "19"},
+        "title": "Maior redesenho do queridômetro",
+        "value_label": "casas preenchidas",
+        "support": "8 ❤️, 4 🌱, 3 🤮, 2 🤥, 1 🐍, 1 💔",
+        "summary": (
+            "No auge do 3º Paredão, Juliano saiu de 19 espaços vazios para um tabuleiro completo: "
+            "abriu ❤️ para aliados, mas pesou a mão em Brigido 🤮, Jonas 🤮, Alberto 🤥, Sarah 🤥 e Jordana 🐍."
+        ),
+        "context": {
+            "moment": "Big Fone, 3º Paredão e Sincerão",
+            "chips": ["Líder: Maxiane", "Big Fone na véspera", "Dia de Sincerão", "Tá Com Nada"],
+            "timeline": [
+                {
+                    "date": "2026-01-31",
+                    "summary": "Atendeu o Big Fone azul e, com Babu e Marcelo, ajudou a colocar Jonas no 3º Paredão.",
+                },
+                {
+                    "date": "2026-02-01",
+                    "summary": "Na formação, votou em Brigido; a berlinda fechou com Ana Paula, Leandro e o próprio Brigido.",
+                },
+                {
+                    "date": "2026-02-02",
+                    "summary": (
+                        "Dia de Tá Com Nada e Sincerão de futebol. Juliano virou alvo de 2x Bola Murcha "
+                        "e 1x Goleiro Frangueiro; na comparação diária, preencheu os 19 espaços com "
+                        "8 ❤️ e 11 negativas."
+                    ),
+                },
+            ],
+        },
+        "participants": ["Juliano Floss"],
+    },
+}
+
 ROLE_TYPES = {
     "Líder": "lider",
     "Anjo": "anjo",
@@ -988,6 +1057,11 @@ def _format_short_date(date_str: str | None) -> str:
     return parsed.strftime("%d/%m") if parsed else (date_str or "")
 
 
+def _short_name(name: str | None) -> str:
+    text = (name or "").strip()
+    return text.split()[0] if text else ""
+
+
 def _dedupe_keep_order(items: list[str]) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
@@ -998,6 +1072,413 @@ def _dedupe_keep_order(items: list[str]) -> list[str]:
         seen.add(text)
         out.append(text)
     return out
+
+
+def _format_day_count(value: int) -> str:
+    n = max(0, int(value or 0))
+    return f"{n} dia" if n == 1 else f"{n} dias"
+
+
+def _reaction_display_emoji(label: str | None) -> str:
+    canonical = _canonical_reaction_label(label)
+    return REACTION_EMOJI.get(canonical, label or "")
+
+
+def _classify_hostility_pairs(matrix: dict[tuple[str, str], str], active_names: set[str]) -> tuple[set[frozenset[str]], set[tuple[str, str]]]:
+    mutual: set[frozenset[str]] = set()
+    blind_spots: set[tuple[str, str]] = set()
+    checked: set[frozenset[str]] = set()
+
+    for (actor, target), reaction in matrix.items():
+        if actor not in active_names or target not in active_names:
+            continue
+        pair = frozenset([actor, target])
+        if pair in checked:
+            continue
+
+        reverse_reaction = matrix.get((target, actor), "")
+        actor_negative = reaction not in POSITIVE and reaction != ""
+        target_negative = reverse_reaction not in POSITIVE and reverse_reaction != ""
+        actor_positive = reaction in POSITIVE
+        target_positive = reverse_reaction in POSITIVE
+
+        if actor_negative and target_negative:
+            mutual.add(pair)
+        else:
+            if actor_negative and target_positive:
+                blind_spots.add((actor, target))
+            if target_negative and actor_positive:
+                blind_spots.add((target, actor))
+        checked.add(pair)
+
+    return mutual, blind_spots
+
+
+def _comparison_source_tag(from_date: str, to_date: str, latest_snapshot_date: str) -> str:
+    from_parsed = _parse_iso_date(from_date)
+    to_parsed = _parse_iso_date(to_date)
+    latest_parsed = _parse_iso_date(latest_snapshot_date)
+    if from_parsed and to_parsed and latest_parsed:
+        if (to_parsed - from_parsed).days == 1 and to_parsed == latest_parsed:
+            return "📅 Ontem → Hoje"
+    return f"📅 {_format_short_date(from_date)} → {_format_short_date(to_date)}"
+
+
+def _count_pair_streak_days(
+    pair: tuple[str, str],
+    reaction_label: str,
+    daily_matrices: list[dict[tuple[str, str], str]],
+    *,
+    end_idx: int,
+) -> int:
+    canonical = _canonical_reaction_label(reaction_label)
+    if not canonical:
+        return 0
+
+    streak = 0
+    for idx in range(end_idx, -1, -1):
+        current = _canonical_reaction_label(daily_matrices[idx].get(pair, ""))
+        if current != canonical:
+            break
+        streak += 1
+    return streak
+
+
+def _viradas_meta_line(item: dict[str, Any]) -> str:
+    parts: list[str] = []
+    prior_heart_days = int(item.get("prior_heart_days") or 0)
+    prior_same_days = int(item.get("prior_same_emoji_days") or 0)
+    old_emoji = item.get("old_emoji", "")
+    if prior_heart_days > 0 and old_emoji == "❤️":
+        parts.append(f"Depois de {_format_day_count(prior_heart_days)} de ❤️")
+    elif prior_same_days > 0 and old_emoji:
+        parts.append(f"Depois de {_format_day_count(prior_same_days)} de {old_emoji}")
+
+    if item.get("other_side_kept_heart"):
+        receiver = _short_name(item.get("receiver", ""))
+        parts.append(f"{receiver} manteve ❤️")
+
+    parts.append(_format_short_date(item.get("date", "")))
+    return " · ".join(part for part in parts if part)
+
+
+def _viradas_group_sort_key(kind: str, item: dict[str, Any]) -> tuple[Any, ...]:
+    severity = item.get("severity_score")
+    severity_rank = float(severity) if isinstance(severity, (int, float)) else -1.0
+    other_side_kept = item.get("other_side_kept_heart")
+    other_rank = 2 if other_side_kept is True else (1 if other_side_kept is False else 0)
+    giver = item.get("giver", "")
+    receiver = item.get("receiver", "")
+
+    if kind == "dramatic":
+        return (
+            -severity_rank,
+            -int(item.get("prior_same_emoji_days") or 0),
+            -int(item.get("prior_heart_days") or 0),
+            giver,
+            receiver,
+        )
+
+    return (
+        -int(item.get("prior_heart_days") or 0),
+        -other_rank,
+        -severity_rank,
+        giver,
+        receiver,
+    )
+
+
+def _viradas_item_tier(item: dict[str, Any]) -> int:
+    kind = item.get("kind")
+    if (
+        kind in {"hostilities", "breaks"}
+        and item.get("other_side_kept_heart") is True
+        and int(item.get("prior_heart_days") or 0) >= 3
+    ):
+        return 0
+    if kind == "breaks":
+        return 1
+    if kind == "dramatic":
+        return 2
+    return 3
+
+
+def _viradas_partition_precedence(item: dict[str, Any]) -> int:
+    kind = item.get("kind")
+    tier = _viradas_item_tier(item)
+    if tier == 0:
+        return 0 if kind == "hostilities" else 1
+    return 0
+
+
+def _viradas_candidate_sort_key(item: dict[str, Any]) -> tuple[Any, ...]:
+    severity = item.get("severity_score")
+    severity_rank = float(severity) if isinstance(severity, (int, float)) else -1.0
+    return (
+        _viradas_item_tier(item),
+        -int(item.get("prior_heart_days") or 0),
+        -severity_rank,
+        -int(item.get("prior_same_emoji_days") or 0),
+        item.get("giver", ""),
+        item.get("receiver", ""),
+    )
+
+
+def _build_viradas_hero_fields(item: dict[str, Any]) -> dict[str, Any]:
+    giver = _short_name(item.get("giver", ""))
+    receiver = _short_name(item.get("receiver", ""))
+    old_emoji = item.get("old_emoji", "")
+    new_emoji = item.get("new_emoji", "")
+    prior_heart_days = int(item.get("prior_heart_days") or 0)
+    prior_same_days = int(item.get("prior_same_emoji_days") or 0)
+    other_side_kept_heart = item.get("other_side_kept_heart") is True
+    kind = item.get("kind")
+
+    if prior_heart_days > 0 and old_emoji == "❤️":
+        stat_value = str(prior_heart_days)
+        stat_label = "dias de ❤️"
+    elif prior_same_days > 0 and old_emoji:
+        stat_value = str(prior_same_days)
+        stat_label = f"dias de {old_emoji}"
+    else:
+        stat_value = new_emoji or "1"
+        stat_label = "emoji"
+
+    chips = []
+    if other_side_kept_heart:
+        chips.append({"text": f"{receiver} manteve ❤️", "tone": "accent"})
+
+    if kind == "breaks":
+        title = "Ruptura com ❤️ ainda do outro lado" if other_side_kept_heart else "Fim de uma sequência de ❤️"
+        kicker = "Aliança rompida"
+        if prior_heart_days > 0:
+            body = (
+                f"{giver} vinha de {_format_day_count(prior_heart_days)} seguidos de ❤️ para {receiver} "
+                f"e mudou para {new_emoji}."
+            )
+        else:
+            body = f"{giver} trocou ❤️ por {new_emoji} contra {receiver}."
+        if other_side_kept_heart:
+            body += f" {receiver} ainda manteve ❤️."
+    elif kind == "hostilities":
+        title = "Hostilidade com ❤️ ainda do outro lado" if other_side_kept_heart else "Nova hostilidade no queridômetro"
+        kicker = "Nova hostilidade"
+        if prior_heart_days > 0:
+            body = (
+                f"{giver} vinha de {_format_day_count(prior_heart_days)} seguidos de ❤️ para {receiver} "
+                f"e virou para {new_emoji}."
+            )
+        else:
+            body = f"{giver} trocou {old_emoji} por {new_emoji} contra {receiver}."
+        if other_side_kept_heart:
+            body += f" {receiver} ainda manteve ❤️."
+    else:
+        title = "Mudança forte de emoji"
+        kicker = "Mudança dramática"
+        if prior_heart_days > 0:
+            body = (
+                f"{giver} vinha de {_format_day_count(prior_heart_days)} seguidos de ❤️ para {receiver} "
+                f"e virou para {new_emoji}."
+            )
+        elif prior_same_days > 0:
+            body = (
+                f"{giver} ficou {_format_day_count(prior_same_days)} com {old_emoji} para {receiver} "
+                f"antes de mudar para {new_emoji}."
+            )
+        else:
+            body = f"{giver} trocou {old_emoji} por {new_emoji} contra {receiver}."
+
+    return {
+        "kicker": kicker,
+        "title": title,
+        "body": body,
+        "stat_value": stat_value,
+        "stat_label": stat_label,
+        "chips": chips,
+    }
+
+
+def _build_viradas_summary_note(kind: str, items: list[dict[str, Any]]) -> str:
+    if not items:
+        return "sem casos"
+    if kind == "dramatic":
+        max_days = max(
+            max(int(item.get("prior_heart_days") or 0), int(item.get("prior_same_emoji_days") or 0))
+            for item in items
+        )
+        return f"máx {max_days} dias antes da troca" if max_days > 0 else "trocas fortes no topo"
+    if kind == "hostilities":
+        kept = sum(1 for item in items if item.get("other_side_kept_heart"))
+        return f"{kept} com ❤️ do outro lado" if kept > 0 else "sem ❤️ do outro lado"
+    max_heart_days = max(int(item.get("prior_heart_days") or 0) for item in items)
+    return f"máx {max_heart_days} dias de ❤️" if max_heart_days > 0 else "rompimentos recentes"
+
+
+def _build_viradas_card(
+    *,
+    daily_snapshots: list[dict],
+    daily_matrices: list[dict[tuple[str, str], str]],
+    yesterday_idx: int,
+    today_idx: int,
+    latest_snapshot_date: str,
+) -> dict[str, Any] | None:
+    if today_idx <= 0 or today_idx >= len(daily_snapshots) or yesterday_idx < 0:
+        return None
+
+    today = daily_snapshots[today_idx]
+    yesterday = daily_snapshots[yesterday_idx]
+    today_mat = daily_matrices[today_idx]
+    yesterday_mat = daily_matrices[yesterday_idx]
+    common_pairs = today_mat.keys() & yesterday_mat.keys()
+
+    grouped_items: dict[str, list[dict[str, Any]]] = {
+        "dramatic": [],
+        "hostilities": [],
+        "breaks": [],
+    }
+
+    for giver, receiver in sorted(common_pairs):
+        old_label = _canonical_reaction_label(yesterday_mat.get((giver, receiver), ""))
+        new_label = _canonical_reaction_label(today_mat.get((giver, receiver), ""))
+        if old_label == new_label:
+            continue
+
+        old_weight = SENTIMENT_WEIGHTS.get(old_label, 0)
+        new_weight = SENTIMENT_WEIGHTS.get(new_label, 0)
+        severity_score = abs(new_weight - old_weight)
+        prior_same_days = _count_pair_streak_days((giver, receiver), old_label, daily_matrices, end_idx=yesterday_idx)
+        prior_heart_days = _count_pair_streak_days((giver, receiver), old_label, daily_matrices, end_idx=yesterday_idx) if old_label in POSITIVE else 0
+
+        other_side_label_raw = today_mat.get((receiver, giver))
+        other_side_label = _canonical_reaction_label(other_side_label_raw) if other_side_label_raw is not None else None
+        other_side_emoji = _reaction_display_emoji(other_side_label) if other_side_label else None
+        other_side_kept_heart = None
+        if other_side_label is not None:
+            other_side_kept_heart = _is_positive_heart_reaction(other_side_label)
+
+        base_item = {
+            "date": today.get("date", ""),
+            "giver": giver,
+            "receiver": receiver,
+            "old_emoji": _reaction_display_emoji(old_label),
+            "new_emoji": _reaction_display_emoji(new_label),
+            "prior_same_emoji_days": prior_same_days,
+            "prior_heart_days": prior_heart_days,
+            "other_side_current_emoji": other_side_emoji,
+            "other_side_kept_heart": other_side_kept_heart,
+        }
+
+        is_dramatic = (
+            (old_label in POSITIVE and new_label in STRONG_NEGATIVE)
+            or (old_label in STRONG_NEGATIVE and new_label in POSITIVE)
+            or (old_label in POSITIVE and new_label in MILD_NEGATIVE)
+            or (old_label in MILD_NEGATIVE and new_label in POSITIVE)
+        )
+        if is_dramatic:
+            dramatic_item = dict(base_item)
+            dramatic_item.update({
+                "kind": "dramatic",
+                "severity_score": severity_score,
+                "severity_label": "alta" if severity_score >= 1.5 else ("média" if severity_score >= 1.0 else "leve"),
+            })
+            dramatic_item["meta_line"] = _viradas_meta_line(dramatic_item)
+            grouped_items["dramatic"].append(dramatic_item)
+
+        is_hostility = old_label in POSITIVE and new_label not in POSITIVE and new_label != "" and other_side_kept_heart is True
+        if is_hostility:
+            hostility_item = dict(base_item)
+            hostility_item.update({
+                "kind": "hostilities",
+                "severity_score": 2.0 if old_label == "Coração" else 1.0,
+                "severity_label": "hostilidade",
+            })
+            hostility_item["meta_line"] = _viradas_meta_line(hostility_item)
+            grouped_items["hostilities"].append(hostility_item)
+
+        is_break = old_label in POSITIVE and new_label in (MILD_NEGATIVE | STRONG_NEGATIVE) and prior_heart_days >= 5
+        if is_break:
+            break_item = dict(base_item)
+            break_item.update({
+                "kind": "breaks",
+                "severity_score": 2.0 if new_label in STRONG_NEGATIVE else 1.0,
+                "severity_label": "grave" if new_label in STRONG_NEGATIVE else "leve",
+            })
+            break_item["meta_line"] = _viradas_meta_line(break_item)
+            grouped_items["breaks"].append(break_item)
+
+    counts = {kind: len(items) for kind, items in grouped_items.items()}
+    total = counts["dramatic"] + counts["hostilities"] + counts["breaks"]
+    if total <= 0:
+        return None
+
+    for kind in ("dramatic", "hostilities", "breaks"):
+        grouped_items[kind].sort(key=lambda item, k=kind: _viradas_group_sort_key(k, item))
+
+    partitions: dict[tuple[str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for kind in ("dramatic", "hostilities", "breaks"):
+        for item in grouped_items[kind]:
+            key = (
+                item.get("date", ""),
+                item.get("giver", ""),
+                item.get("receiver", ""),
+                item.get("old_emoji", ""),
+                item.get("new_emoji", ""),
+            )
+            partitions[key].append(item)
+
+    hero_candidates = []
+    for dup_items in partitions.values():
+        best_tier = min(_viradas_item_tier(item) for item in dup_items)
+        tier_items = [item for item in dup_items if _viradas_item_tier(item) == best_tier]
+        tier_items.sort(key=lambda item: (_viradas_partition_precedence(item), item.get("kind", "")))
+        hero_candidates.append(tier_items[0])
+
+    hero_candidates.sort(key=_viradas_candidate_sort_key)
+    hero = dict(hero_candidates[0])
+    hero.update(_build_viradas_hero_fields(hero))
+
+    titles = {
+        "dramatic": "Mudanças Dramáticas",
+        "hostilities": "Novas Hostilidades",
+        "breaks": "Alianças Rompidas",
+    }
+    summary = [
+        {
+            "kind": kind,
+            "title": titles[kind],
+            "count": counts[kind],
+            "note": _build_viradas_summary_note(kind, grouped_items[kind]),
+        }
+        for kind in ("dramatic", "hostilities", "breaks")
+    ]
+    groups = [
+        {
+            "kind": kind,
+            "title": titles[kind],
+            "count": counts[kind],
+            "items": grouped_items[kind],
+        }
+        for kind in ("dramatic", "hostilities", "breaks")
+    ]
+
+    return {
+        "type": "viradas",
+        "icon": "🔄",
+        "title": "Viradas",
+        "color": "#e74c3c",
+        "link": "evolucao.html#pulso",
+        "source_tag": _comparison_source_tag(yesterday.get("date", ""), today.get("date", ""), latest_snapshot_date),
+        "subtitle": "As principais viradas de um dia para o outro no queridômetro.",
+        "from_date": yesterday.get("date", ""),
+        "to_date": today.get("date", ""),
+        "reference_date": today.get("date", ""),
+        "state": "today" if all(counts.values()) else "partial",
+        "total": total,
+        "counts": counts,
+        "hero": hero,
+        "summary": summary,
+        "groups": groups,
+    }
 
 
 def _lookup_cycle_entry(manual_events: dict | None, cycle: int) -> dict[str, Any] | None:
@@ -1176,6 +1657,42 @@ def _build_pulso_participants(names: list[str], active_set: set[str]) -> list[di
     return participants
 
 
+def _reaction_glyph(label: str) -> str:
+    return REACTION_EMOJI.get(label, label or "❓")
+
+
+def _apply_pulso_fact_override(
+    fact: dict[str, Any],
+    *,
+    kind: str,
+    date_str: str,
+    active_set: set[str],
+) -> dict[str, Any]:
+    override = PULSO_MANUAL_FACT_OVERRIDES.get((kind, date_str))
+    if not override:
+        return fact
+
+    match = override.get("match") or {}
+    for field, expected in match.items():
+        if fact.get(field) != expected:
+            return fact
+
+    updated = dict(fact)
+    for field in ("title", "summary", "support", "value", "value_label"):
+        if field in override:
+            updated[field] = override[field]
+
+    if "context" in override:
+        context = dict(updated.get("context") or {})
+        context.update(override["context"])
+        updated["context"] = context
+
+    if "participants" in override:
+        updated["participants"] = _build_pulso_participants(list(override["participants"]), active_set)
+
+    return updated
+
+
 def _season_percentile(rows: list[dict[str, Any]], key: str, quantile: float) -> float:
     values = sorted(float(item.get(key, 0) or 0) for item in rows)
     if not values:
@@ -1266,15 +1783,23 @@ def _build_pulso_history_facts(
     chaos_receiver = (chaos_day.get("top_receiver") or {}).get("name", "")
     chaos_loser = (chaos_day.get("top_loser") or {}).get("name", "")
     chaos_volatile = (chaos_day.get("top_volatile_giver") or {}).get("name", "")
-    facts.append(_build_history_fact(
+    chaos_fact = _build_history_fact(
         kind="chaos_day",
         title="Maior caos da temporada",
         value=str(int(chaos_day.get("total_changes") or 0)),
         value_label="reações mudaram",
         support=f"{int(chaos_day.get('dramatic_count') or 0)} dramáticas",
         summary=(
-            f"Maior tombo: {chaos_loser.split()[0]} {float((chaos_day.get('top_loser') or {}).get('delta') or 0):+.1f}"
-            if chaos_loser else "Dia mais instável do queridômetro."
+            (
+                f"{int(chaos_day.get('hearts_lost') or 0)} ❤️ viraram outra reação; "
+                f"{chaos_loser.split()[0]} levou o maior tombo {float((chaos_day.get('top_loser') or {}).get('delta') or 0):+.1f}."
+            )
+            if chaos_loser and int(chaos_day.get("hearts_lost") or 0) > 0
+            else (
+                f"Maior tombo entre esse dia e o anterior: {chaos_loser.split()[0]} "
+                f"{float((chaos_day.get('top_loser') or {}).get('delta') or 0):+.1f}."
+                if chaos_loser else "Comparação diária mais instável do queridômetro."
+            )
         ),
         date_str=chaos_day.get("date", ""),
         participants=[chaos_loser, chaos_receiver, chaos_volatile],
@@ -1282,63 +1807,90 @@ def _build_pulso_history_facts(
         manual_events=manual_events,
         auto_events=auto_events,
         paredoes=paredoes,
+    )
+    facts.append(_apply_pulso_fact_override(
+        chaos_fact,
+        kind="chaos_day",
+        date_str=chaos_day.get("date", ""),
+        active_set=active_set,
     ))
 
     gain_row = max(history, key=lambda item: float((item.get("top_receiver") or {}).get("delta") or 0))
     gain_target = (gain_row.get("top_receiver") or {}).get("name", "")
     gain_value = float((gain_row.get("top_receiver") or {}).get("delta") or 0)
     if gain_target and gain_value > 0:
-        facts.append(_build_history_fact(
+        gain_fact = _build_history_fact(
             kind="receiver_gain",
-            title="Maior alta num dia",
+            title="Maior alta de um dia para o outro",
             value=f"{gain_value:+.1f}",
             value_label="saldo recebido",
             support=gain_target,
-            summary=f"{gain_target.split()[0]} teve o melhor salto diário do histórico.",
+            summary=f"{gain_target.split()[0]} teve o melhor salto entre esse dia e o anterior.",
             date_str=gain_row.get("date", ""),
             participants=[gain_target],
             active_set=active_set,
             manual_events=manual_events,
             auto_events=auto_events,
             paredoes=paredoes,
+        )
+        facts.append(_apply_pulso_fact_override(
+            gain_fact,
+            kind="receiver_gain",
+            date_str=gain_row.get("date", ""),
+            active_set=active_set,
         ))
 
     loss_row = min(history, key=lambda item: float((item.get("top_loser") or {}).get("delta") or 0))
     loss_target = (loss_row.get("top_loser") or {}).get("name", "")
     loss_value = float((loss_row.get("top_loser") or {}).get("delta") or 0)
     if loss_target and loss_value < 0:
-        facts.append(_build_history_fact(
+        loss_fact = _build_history_fact(
             kind="receiver_loss",
-            title="Maior tombo num dia",
+            title="Maior tombo de um dia para o outro",
             value=f"{loss_value:+.1f}",
             value_label="saldo recebido",
             support=loss_target,
-            summary=f"{loss_target.split()[0]} sofreu a pior virada diária do histórico.",
+            summary=f"{loss_target.split()[0]} sofreu o pior tombo entre esse dia e o anterior.",
             date_str=loss_row.get("date", ""),
             participants=[loss_target],
             active_set=active_set,
             manual_events=manual_events,
             auto_events=auto_events,
             paredoes=paredoes,
+        )
+        facts.append(_apply_pulso_fact_override(
+            loss_fact,
+            kind="receiver_loss",
+            date_str=loss_row.get("date", ""),
+            active_set=active_set,
         ))
 
     volatility_row = max(history, key=lambda item: int((item.get("top_volatile_giver") or {}).get("changes") or 0))
     volatile_name = (volatility_row.get("top_volatile_giver") or {}).get("name", "")
     volatile_changes = int((volatility_row.get("top_volatile_giver") or {}).get("changes") or 0)
     if volatile_name and volatile_changes > 0:
-        facts.append(_build_history_fact(
+        volatile_fact = _build_history_fact(
             kind="volatile_giver",
-            title="Mão mais volátil em 24h",
+            title="Quem mais trocou reações de um dia para o outro",
             value=str(volatile_changes),
             value_label="trocas feitas",
             support=volatile_name,
-            summary=f"{volatile_name.split()[0]} mudou o queridômetro {volatile_changes} vezes no mesmo dia.",
+            summary=(
+                f"Entre esse dia e o anterior, {volatile_name.split()[0]} foi quem mais trocou reações: "
+                f"{volatile_changes} mudanças na comparação diária."
+            ),
             date_str=volatility_row.get("date", ""),
             participants=[volatile_name],
             active_set=active_set,
             manual_events=manual_events,
             auto_events=auto_events,
             paredoes=paredoes,
+        )
+        facts.append(_apply_pulso_fact_override(
+            volatile_fact,
+            kind="volatile_giver",
+            date_str=volatility_row.get("date", ""),
+            active_set=active_set,
         ))
 
     streak_candidates: list[tuple[dict[str, Any], dict[str, Any]]] = []
@@ -1354,19 +1906,29 @@ def _build_pulso_history_facts(
         receiver = streak_item.get("receiver", "")
         previous_streak = int(streak_item.get("previous_streak") or 0)
         new_emoji = streak_item.get("new_emoji", "")
-        facts.append(_build_history_fact(
+        new_glyph = _reaction_glyph(new_emoji)
+        streak_fact = _build_history_fact(
             kind="streak_break",
-            title="Quebra de rotina mais longa",
+            title="Maior sequência de ❤️ quebrada",
             value=str(previous_streak),
-            value_label="dias seguidos",
+            value_label="dias seguidos de ❤️",
             support=f"{giver.split()[0]} → {receiver.split()[0]}",
-            summary=f"{giver.split()[0]} largou uma sequência de {previous_streak} dias e mudou para {new_emoji}.",
+            summary=(
+                f"{giver.split()[0]} passou {previous_streak} dias seguidos dando ❤️ para "
+                f"{receiver.split()[0]} e, nessa virada, trocou para {new_glyph}."
+            ),
             date_str=streak_row.get("date", ""),
             participants=[giver, receiver],
             active_set=active_set,
             manual_events=manual_events,
             auto_events=auto_events,
             paredoes=paredoes,
+        )
+        facts.append(_apply_pulso_fact_override(
+            streak_fact,
+            kind="streak_break",
+            date_str=streak_row.get("date", ""),
+            active_set=active_set,
         ))
 
     return facts
@@ -1390,14 +1952,16 @@ def _build_today_snapshot_fact(
 
     summary = f"{dramatic_count} dramáticas e {pct}% do elenco trocando reação."
     if top_loser.get("name") and float(top_loser.get("delta") or 0) < 0:
-        summary = f"Maior tombo do dia: {top_loser['name'].split()[0]} {float(top_loser['delta']):+.1f}."
+        summary = f"Maior tombo da última comparação: {top_loser['name'].split()[0]} {float(top_loser['delta']):+.1f}."
+    else:
+        summary = f"{dramatic_count} trocas dramáticas e {pct}% do elenco mudando reação de um dia para o outro."
 
     return {
         "kind": "today_snapshot",
         "scope": "today",
         "date": ref_date,
         "date_label": _format_short_date(ref_date),
-        "title": "Hoje saiu do padrão",
+        "title": "A última comparação fugiu do padrão",
         "value": str(total),
         "value_label": "reações mudaram",
         "support": f"{dramatic_count} dramáticas · {pct}%",
@@ -1454,6 +2018,18 @@ def _build_pulso_changes_card(
         rotate_idx = rotate_date.toordinal() % len(ordered_facts) if rotate_date else 0
         ordered_facts = ordered_facts[rotate_idx:] + ordered_facts[:rotate_idx]
 
+    hero = _build_today_snapshot_fact(
+        current,
+        active_set=active_set,
+        manual_events=manual_events,
+        auto_events=auto_events,
+        paredoes=paredoes,
+    )
+    if not hot_day and ordered_facts:
+        chaos_hero = next((fact for fact in ordered_facts if fact.get("kind") == "chaos_day"), ordered_facts[0])
+        ordered_facts = [chaos_hero] + [fact for fact in ordered_facts if fact is not chaos_hero]
+        hero = ordered_facts[0]
+
     today = {
         "date": current.get("to_date") or current.get("reference_date") or current.get("date") or latest_date,
         "date_label": _format_short_date(current.get("to_date") or current.get("reference_date") or current.get("date") or latest_date),
@@ -1468,39 +2044,32 @@ def _build_pulso_changes_card(
         "chips": _build_today_pulso_chips(current),
     }
 
-    hero = _build_today_snapshot_fact(
-        current,
-        active_set=active_set,
-        manual_events=manual_events,
-        auto_events=auto_events,
-        paredoes=paredoes,
-    ) if hot_day else (ordered_facts[0] if ordered_facts else _build_today_snapshot_fact(
-        current,
-        active_set=active_set,
-        manual_events=manual_events,
-        auto_events=auto_events,
-        paredoes=paredoes,
-    ))
-
+    history_count = len(ordered_facts)
     subtitle = (
-        "Histórico rotativo do queridômetro. O resumo de ontem só sobe quando o dia foge do padrão."
+        (
+            f"{history_count} curiosidades do queridômetro alimentam o arquivo. "
+            "A última comparação só sobe quando foge do padrão."
+        )
         if not hot_day else
-        "Hoje ficou acima da curva histórica; o arquivo da temporada continua logo abaixo."
+        (
+            "A última comparação ficou acima da curva histórica. "
+            f"O arquivo segue com {history_count} curiosidades rotativas."
+        )
     )
 
     return {
         "type": "changes",
         "icon": "📊",
-        "title": "Pulso Diário",
+        "title": "Arquivo do Queridômetro",
         "color": "#3498db",
         "link": "evolucao.html#pulso",
         "mode": "today" if hot_day else "history",
-        "source_tag": "📚 Histórico + hoje" if not hot_day else "📅 Ontem → Hoje",
+        "source_tag": "📚 Arquivo + última comparação" if not hot_day else "📅 Última comparação",
         "subtitle": subtitle,
         "hero": hero,
         "facts": ordered_facts,
         "today": today,
-        "history_count": len(ordered_facts),
+        "history_count": history_count,
         "current_cycle": current_cycle,
         "reference_date": current.get("reference_date") or current.get("date") or latest_date,
         "from_date": current.get("from_date"),
@@ -1760,8 +2329,83 @@ def _compute_daily_movers_cards(
         }
         history_rows = list(daily_changes_history or [])
         matched_row = next((row for row in reversed(history_rows) if row.get("date") == today.get("date")), None)
+
+        pair_changes_local = []
+        transition_counts_local: dict[str, int] = defaultdict(int)
+        giver_volatility_local: dict[str, dict[str, int]] = {}
+        giver_melhora: dict[str, int] = defaultdict(int)
+        giver_piora: dict[str, int] = defaultdict(int)
+        giver_lateral: dict[str, int] = defaultdict(int)
+        giver_changes: dict[str, int] = defaultdict(int)
+        new_streak_breaks_local = []
+
+        for pair, old_raw, new_raw in changes:
+            giver, receiver = pair
+            old_label = _canonical_reaction_label(old_raw)
+            new_label = _canonical_reaction_label(new_raw)
+            old_weight = SENTIMENT_WEIGHTS.get(old_label, 0)
+            new_weight = SENTIMENT_WEIGHTS.get(new_label, 0)
+            delta = round(new_weight - old_weight, 2)
+            tipo = "Melhora" if delta > 0 else ("Piora" if delta < 0 else "Lateral")
+
+            pair_changes_local.append({
+                "giver": giver,
+                "receiver": receiver,
+                "prev_rxn": old_label,
+                "curr_rxn": new_label,
+                "delta": delta,
+                "tipo": tipo,
+            })
+            transition_counts_local[f"{old_label}→{new_label}"] += 1
+            giver_changes[giver] += 1
+            if tipo == "Melhora":
+                giver_melhora[giver] += 1
+            elif tipo == "Piora":
+                giver_piora[giver] += 1
+            else:
+                giver_lateral[giver] += 1
+
+            prior_heart_days = _count_pair_streak_days(pair, old_label, daily_matrices, end_idx=yesterday_idx) if old_label in POSITIVE else 0
+            if old_label in POSITIVE and new_label in (MILD_NEGATIVE | STRONG_NEGATIVE) and prior_heart_days >= 5:
+                new_streak_breaks_local.append({
+                    "giver": giver,
+                    "receiver": receiver,
+                    "previous_streak": prior_heart_days,
+                    "new_emoji": new_label,
+                    "severity": "strong" if new_label in STRONG_NEGATIVE else "mild",
+                    "date": today.get("date"),
+                })
+
+        for giver, total in giver_changes.items():
+            giver_volatility_local[giver] = {
+                "total": total,
+                "melhora": giver_melhora.get(giver, 0),
+                "piora": giver_piora.get(giver, 0),
+                "lateral": giver_lateral.get(giver, 0),
+            }
+
+        comparison_names = ({p.get("name") for p in today_active if p.get("name")} &
+                            {p.get("name") for p in yesterday_active if p.get("name")})
+        prev_mutual, _prev_blind = _classify_hostility_pairs(yesterday_mat, comparison_names)
+        curr_mutual, _curr_blind = _classify_hostility_pairs(today_mat, comparison_names)
+        new_mutual_hostilities_local = []
+        for pair in sorted(curr_mutual - prev_mutual, key=lambda p: tuple(sorted(p))):
+            a, b = sorted(pair)
+            new_mutual_hostilities_local.append({
+                "pair": [a, b],
+                "reactions": {
+                    "a_to_b": today_mat.get((a, b), ""),
+                    "b_to_a": today_mat.get((b, a), ""),
+                },
+            })
+
         if matched_row:
             current_change.update(matched_row)
+        current_change.setdefault("pair_changes", pair_changes_local)
+        current_change.setdefault("transition_counts", dict(transition_counts_local))
+        current_change.setdefault("giver_volatility", giver_volatility_local)
+        current_change.setdefault("new_mutual_hostilities", new_mutual_hostilities_local)
+        current_change.setdefault("new_streak_breaks", new_streak_breaks_local)
         pulso_card = _build_pulso_changes_card(
             current_change,
             history_rows or [current_change],
@@ -1772,7 +2416,6 @@ def _compute_daily_movers_cards(
             auto_events=auto_events,
             paredoes=paredoes,
         )
-        cards.append(pulso_card)
 
         direction = "🟢 mais melhorias" if n_improve > n_worsen else (
             "🔴 mais pioras" if n_worsen > n_improve else "⚖️ equilibrado")
@@ -1799,137 +2442,26 @@ def _compute_daily_movers_cards(
                 f" — arquivo em rotação: {hero_txt}"
             )
 
-    # -- Dramatic changes + one-sided hostilities (today + recent fallback) --
-    dramatic_all: list[dict[str, Any]] = []
-    hostilities_all: list[dict[str, Any]] = []
-
-    comparison_pairs = [
-        (comparable_indices[i - 1], comparable_indices[i])
-        for i in range(1, len(comparable_indices))
-    ]
-
-    for prev_idx, cur_idx in comparison_pairs:
-        day = daily_snapshots[cur_idx].get("date", "")
-        prev_mat = daily_matrices[prev_idx]
-        cur_mat = daily_matrices[cur_idx]
-        common_day_pairs = prev_mat.keys() & cur_mat.keys()
-        for pair in common_day_pairs:
-            old_rxn = prev_mat[pair]
-            new_rxn = cur_mat[pair]
-            if old_rxn == new_rxn:
-                continue
-
-            giver, receiver = pair
-            old_e = REACTION_EMOJI.get(old_rxn, "?")
-            new_e = REACTION_EMOJI.get(new_rxn, "?")
-            severity = abs(SENTIMENT_WEIGHTS.get(new_rxn, 0) - SENTIMENT_WEIGHTS.get(old_rxn, 0))
-
-            is_dramatic = (
-                (old_rxn in POSITIVE and new_rxn in STRONG_NEGATIVE) or
-                (old_rxn in STRONG_NEGATIVE and new_rxn in POSITIVE) or
-                (old_rxn in POSITIVE and new_rxn in MILD_NEGATIVE) or
-                (old_rxn in MILD_NEGATIVE and new_rxn in POSITIVE)
-            )
-            if is_dramatic:
-                dramatic_all.append({
-                    "giver": giver, "receiver": receiver,
-                    "old_emoji": old_e, "new_emoji": new_e,
-                    "severity": severity,
-                    "date": day,
-                })
-
-            new_is_neg = new_rxn not in POSITIVE and new_rxn != ""
-            old_is_pos = old_rxn in POSITIVE
-            receiver_likes_giver = cur_mat.get((receiver, giver), "") in POSITIVE
-            if old_is_pos and new_is_neg and receiver_likes_giver:
-                hostilities_all.append({
-                    "giver": giver, "receiver": receiver,
-                    "emoji": new_e,
-                    "old_emoji": old_e,
-                    "new_emoji": new_e,
-                    "date": day,
-                })
-
-    dramatic_all.sort(key=lambda x: (x.get("date", ""), x.get("severity", 0)), reverse=True)
-    hostilities_all.sort(key=lambda x: x.get("date", ""), reverse=True)
-
-    dramatic_today = [d for d in dramatic_all if d.get("date") == today.get("date")]
-    hostilities_today = [h for h in hostilities_all if h.get("date") == today.get("date")]
-
-    list_display_limit = 4
-    dramatic_state = "today" if dramatic_today else ("recent" if dramatic_all else "empty")
-    hostilities_state = "today" if hostilities_today else ("recent" if hostilities_all else "empty")
-    dramatic_selected = dramatic_today if dramatic_today else dramatic_all[:12]
-    hostilities_selected = hostilities_today if hostilities_today else hostilities_all[:12]
-
-    cards.append({
-        "type": "dramatic",
-        "icon": "💥", "title": "Mudanças Dramáticas",
-        "color": "#e74c3c", "link": "evolucao.html#pulso",
-        "total": len(dramatic_selected),
-        "reference_date": today.get("date"),
-        "items": dramatic_selected,
-        "scope": dramatic_state,  # backward-compatible alias
-        "state": dramatic_state,
-        "display_limit": list_display_limit,
-        "today_count": len(dramatic_today),
-        "latest_date": dramatic_selected[0].get("date", "") if dramatic_selected else "",
-        "event_latest_date": dramatic_all[0].get("date", "") if dramatic_all else "",
-    })
-    if dramatic_selected:
-        lines = [f"**{d['giver'].split()[0]}** → **{d['receiver'].split()[0]}** ({d['old_emoji']}→{d['new_emoji']})"
-                 for d in dramatic_selected[:4]]
-        extra = len(dramatic_selected) - 4
-        if dramatic_state == "today":
-            highlights.append(
-                f"💥 **{len(dramatic_selected)} mudanças dramáticas** [hoje](evolucao.html#pulso): "
-                + " · ".join(lines) + (f" (+{extra} mais)" if extra > 0 else "")
-            )
-        elif dramatic_state == "recent":
-            latest_txt = dramatic_selected[0].get("date", "")
-            highlights.append(
-                f"💥 **Sem mudanças dramáticas hoje** — últimos casos em [histórico recente](evolucao.html#pulso)"
-                f" (mais recente: {latest_txt}): "
-                + " · ".join(lines[:3]) + (f" (+{extra} mais)" if extra > 0 else "")
-            )
-    else:
+    viradas_card = _build_viradas_card(
+        daily_snapshots=daily_snapshots,
+        daily_matrices=daily_matrices,
+        yesterday_idx=yesterday_idx,
+        today_idx=today_idx,
+        latest_snapshot_date=daily_snapshots[-1].get("date", ""),
+    )
+    if n_changes > 0:
+        cards.append(pulso_card)
+    if viradas_card:
+        cards.append(viradas_card)
+        counts = viradas_card.get("counts", {})
+        hero = viradas_card.get("hero") or {}
         highlights.append(
-            "💥 **Sem mudanças dramáticas registradas** no período disponível."
-        )
-
-    cards.append({
-        "type": "hostilities",
-        "icon": "⚠️", "title": "Novas Hostilidades",
-        "color": "#f39c12", "link": "relacoes.html#hostilidades",
-        "total": len(hostilities_selected),
-        "reference_date": today.get("date"),
-        "items": hostilities_selected,
-        "scope": hostilities_state,  # backward-compatible alias
-        "state": hostilities_state,
-        "display_limit": list_display_limit,
-        "today_count": len(hostilities_today),
-        "latest_date": hostilities_selected[0].get("date", "") if hostilities_selected else "",
-        "event_latest_date": hostilities_all[0].get("date", "") if hostilities_all else "",
-    })
-    if hostilities_selected:
-        lines = [f"{h['giver'].split()[0]} → {h['receiver'].split()[0]} ({h['emoji']})"
-                 for h in hostilities_selected[:4]]
-        extra = len(hostilities_selected) - 4
-        if hostilities_state == "today":
-            highlights.append(
-                f"⚠️ **{len(hostilities_selected)}** [nova(s) hostilidade(s) unilateral(is)](relacoes.html#hostilidades)"
-                f": {' · '.join(lines)}{f' +{extra} mais' if extra > 0 else ''}"
-            )
-        elif hostilities_state == "recent":
-            latest_txt = hostilities_selected[0].get("date", "")
-            highlights.append(
-                f"⚠️ **Sem novas hostilidades hoje** — últimos casos em [histórico recente](relacoes.html#hostilidades)"
-                f" (mais recente: {latest_txt}): {' · '.join(lines[:3])}"
-                f"{f' +{extra} mais' if extra > 0 else ''}"
-            )
-    else:
-        highlights.append(
-            "⚠️ **Sem hostilidades unilaterais registradas** no período disponível."
+            f"🔄 **{viradas_card.get('total', 0)} viradas** [de um dia para o outro](evolucao.html#pulso): "
+            f"{counts.get('dramatic', 0)} dramáticas, "
+            f"{counts.get('hostilities', 0)} hostilidades novas, "
+            f"{counts.get('breaks', 0)} alianças rompidas"
+            f" — destaque: {hero.get('giver', '').split()[0]} → {hero.get('receiver', '').split()[0]} "
+            f"({hero.get('old_emoji', '')}→{hero.get('new_emoji', '')})"
         )
 
     return highlights, cards
@@ -2253,6 +2785,27 @@ def _compute_breaks_and_context_cards(
     return highlights, cards
 
 
+def _build_context_card(
+    *,
+    latest: dict,
+    current_cycle: int,
+    daily_snapshots: list[dict],
+) -> tuple[str, dict[str, Any]]:
+    n_active = len([p for p in latest.get("participants", []) if not p.get("characteristics", {}).get("eliminated")])
+    return (
+        f"📅 **Ciclo do Paredão {current_cycle}** — {len(daily_snapshots)} dias de dados, {n_active} participantes ativos",
+        {
+            "type": "context",
+            "icon": "📅",
+            "title": "Contexto",
+            "color": "#2ecc71",
+            "cycle": current_cycle,
+            "days": len(daily_snapshots),
+            "active": n_active,
+        },
+    )
+
+
 def _build_figurinha_stat_line(stats: dict) -> str:
     """Build one-line stat summary for figurinha_repetida card."""
     metrics = stats.get("metrics", {})
@@ -2366,6 +2919,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
             n_avail = stats.get("available", 0)
             votes_total = stats.get("votes_total", 0)
             votes_available = stats.get("votes_available", 0)
+            voted_paredoes = stats.get("voted_paredoes", 0)
 
             # Protection breakdown for display
             reason_counts = Counter(r for _, r in protection_detail.get(name, []))
@@ -2425,6 +2979,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
                 "available": n_avail,
                 "votes_total": votes_total,
                 "votes_available": votes_available,
+                "voted_paredoes": voted_paredoes,
                 "by_lider": by_lider.get(name, 0),
                 "by_casa": by_casa.get(name, 0),
                 "by_dynamic": by_dynamic.get(name, 0),
@@ -2751,11 +3306,15 @@ def _build_highlights_and_cards(ctx: dict[str, Any]) -> dict[str, Any]:
     highlights.extend(vuln_hl)
     cards.extend(vuln_cards)
 
-    # Breaks and context
-    bc_hl, bc_cards = _compute_breaks_and_context_cards(
-        relations_data, active_set, latest, current_cycle, daily_snapshots, latest_date)
-    highlights.extend(bc_hl)
-    cards.extend(bc_cards)
+    # Context only. Historical break rows stay available elsewhere, but the
+    # index surface now routes latest-comparison pair changes through Viradas.
+    context_hl, context_card = _build_context_card(
+        latest=latest,
+        current_cycle=current_cycle,
+        daily_snapshots=daily_snapshots,
+    )
+    highlights.append(context_hl)
+    cards.append(context_card)
 
     # Static cards: blindados, exposure, VIP x Xepa
     static_hl, static_cards, exposure_stats = _compute_static_cards(ctx)
