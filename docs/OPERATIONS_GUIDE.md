@@ -8,7 +8,7 @@
 > **For verification strategy**: See `docs/TESTING.md`.
 > **For public/private doc boundaries**: See `docs/PUBLIC_PRIVATE_DOCS_POLICY.md`.
 >
-> **Last updated**: 2026-04-02
+> **Last updated**: 2026-04-03
 
 ---
 
@@ -821,7 +821,7 @@ Add a new entry to the `provas` array:
 {
   "numero": N,
   "tipo": "anjo",
-  "week": W,
+  "cycle": C,
   "date": "YYYY-MM-DD",
   "nome": "Nª Prova do Anjo — Description",
   "formato": "format_type",
@@ -843,7 +843,7 @@ Add a new entry to the `provas` array:
 
 **Scoring**: Every position feeds into `prova_rankings.json`. Record ALL placements, not just the winner. The build will **warn** if `participantes_total` doesn't match the number of ranked participants, and **hard-fail** if the winner isn't at position 1. See scoring table in [Líder Checklist](#líder-transition-checklist-thursday-night).
 
-**`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current week.
+**`participantes_total` validation**: Must equal the number of active participants who competed (house count minus `excluidos`). Cross-check against the participant count for the current cycle.
 
 **Excluded**: Líder always excluded (doesn't play). For dual leadership weeks, **both Líderes** are excluded (reduces field by 2). Others excluded by sorteio, punishment, etc.
 
@@ -903,15 +903,16 @@ Articles rarely give clean rankings. Follow this process to turn article text in
 
 This produces final rankings: Milena 1st (10pts), Samira/Leandro tied 2nd (7pts each), Ana Paula/Babu/Solange tied 4th (4pts each), 6 eliminated share 13th (0.5pts each via offset: pos 7 + 6 phase2 entries).
 
-### 3. Update `data/manual_events.json` → `weekly_events[N].anjo`
+### 3. Update `data/manual_events.json` → current `cycles[]` entry → `anjo`
 
-Create or update the week's `weekly_events` entry with the `anjo` object:
+Create or update the current cycle's `anjo` object:
 
 ```json
 {
   "anjo": {
     "vencedor": "Winner Name",
     "prova_date": "YYYY-MM-DD",
+    "autoimune": false,
     "almoco_date": null,
     "almoco_convidados": [],
     "escolha": null,
@@ -926,7 +927,7 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 }
 ```
 
-**Fill-later fields** (Sunday [Presente do Anjo](#presente-do-anjo-checklist-sunday-afternoon)): `almoco_date`, `almoco_convidados`, `escolha`, `usou_extra_poder`, `imunizado`. Fill after the Sunday afternoon show.
+**Fill-later fields** (Sunday [Presente do Anjo](#presente-do-anjo-checklist-sunday-afternoon)): `almoco_date`, `almoco_convidados`, `escolha`, `usou_extra_poder`. In autoimune cycles, set `imunizado` immediately to the winner's own name; otherwise fill it later at formation. Sunday-only fields may be left absent or `null` until the Presente do Anjo article lands.
 
 **Anjo autoimune (REQUIRED for compressed cycles W11+)**: When the Anjo is autoimune, also update `paredoes.json` immediately — add `anjo`, `anjo_autoimune`, and `imunizado` to the formation skeleton. Without this, the cronologia shows the wrong "escolhe quem imunizar" placeholder. See the [Paredão Skeleton](#líder-transition-checklist-thursday-night) for the exact JSON fields.
 
@@ -942,13 +943,14 @@ Create or update the week's `weekly_events` entry with the `anjo` object:
 
 **Update** the `scheduled_events` for this date's `anjo` and `monstro` entries with the real results (winner name, castigo details). **Do NOT remove them.**
 
-Why: Anjo timeline events have a `provas.json` fallback (like Líder), and Monstro has a `weekly_events.anjo.monstro` fallback. These create real timeline entries immediately after updating `provas.json` and `manual_events.json` — no need to wait for the API. However, deleting the scheduled events prematurely removes the safety net if the fallback fails for any reason.
+Why: Anjo timeline events have a `provas.json` fallback (like Líder), and Monstro has a `cycles[].anjo.monstro` fallback. These create real timeline entries immediately after updating `provas.json` and `manual_events.json` — no need to wait for the API. However, deleting the scheduled events prematurely removes the safety net if the fallback fails for any reason.
 
 **What to do**:
 - Update `title` to include the result (e.g., `"Prova do Anjo — Breno vence"`)
 - Update `detail` with what happened
 - Update `fontes` with the scraped article URL
 - Keep the entries in `scheduled_events` — auto-dedup will suppress them once the API captures the new roles
+- If the open cycle is missing the expected `monstro` scheduled event, add it before rebuilding so the fallback safety net still exists
 - **Remove the `time` field** when filling real results. Same-day events with `time` stay pending (🔮 + dashed border) until midnight — removing `time` triggers immediate resolution. This is consistent across all checklists (Líder, Paredão, Anjo, Barrado)
 
 **When to clean up**: Remove past scheduled events during the **next week's setup** (Líder Transition Checklist), not on the same day they happen. By then, the API will have captured the roles and the auto-dedup makes the scheduled entries invisible anyway.
@@ -971,12 +973,12 @@ The Cronologia do Jogo timeline has **multiple sources per event type**. When th
 |----------|---------------|-----------------|----------------------|
 | **Líder** | API auto-detection | `provas.json` (tipo=lider) | API hasn't captured role change yet |
 | **Anjo** | API auto-detection | `provas.json` (tipo=anjo) | API hasn't captured role change yet |
-| **Monstro** | API auto-detection | `weekly_events.anjo.monstro` | API hasn't captured role change yet |
+| **Monstro** | API auto-detection | `cycles[].anjo.monstro` | API hasn't captured role change yet |
 | **Imune** | API auto-detection | `paredoes.json` (formacao.imunizado) | Covered by `paredao_imunidade` ceremony step |
-| **Sincerão** | `weekly_events.sincerao` | — | Manual-only (fill after Monday show) |
-| **Ganha-Ganha** | `weekly_events.ganha_ganha` | — | Manual-only (fill after Tuesday show) |
+| **Sincerão** | `cycles[].sincerao` | — | Manual-only (fill after Monday show) |
+| **Ganha-Ganha** | `cycles[].ganha_ganha` | — | Manual-only (fill after Tuesday show) |
 | **Barrado** | `power_events` (barrado_baile) | — | Manual-only (fill after Wednesday) |
-| **Presente Anjo** | `weekly_events.anjo.escolha` | — | Manual-only (fill after Sunday almoço) |
+| **Presente Anjo** | `cycles[].anjo.escolha` | — | Manual-only (fill after Sunday almoço) |
 | **Paredão formation** | `paredoes.json` (indicados_finais) | — | Ceremony sub-steps auto-generated |
 | **Paredão resultado** | `paredoes.json` (resultado) | — | Fill after elimination |
 
@@ -987,7 +989,7 @@ The Cronologia do Jogo timeline has **multiple sources per event type**. When th
 - **Anjo role** — `characteristics.roles` contains `"Anjo"`
 - **Monstro role** — `characteristics.roles` contains `"Monstro"`
 - Both appear in `auto_events.json` and `roles_daily.json` after rebuild
-- **Timeline fallback**: If the API hasn't detected the role yet, `provas.json` (Anjo) and `weekly_events.anjo.monstro` (Monstro) create real timeline entries automatically
+- **Timeline fallback**: If the API hasn't detected the role yet, `provas.json` (Anjo) and `cycles[].anjo.monstro` (Monstro) create real timeline entries automatically
 
 ### Note on Cartola articles
 
@@ -1007,7 +1009,7 @@ The Presente do Anjo happens Sunday afternoon (~14h-17h BRT). The Anjo invites 2
 python scripts/scrape_gshow.py "<presente-do-anjo-url>" -o docs/scraped/
 ```
 
-### 2. Update `data/manual_events.json` → `weekly_events[N].anjo`
+### 2. Update `data/manual_events.json` → current `cycles[]` entry → `anjo`
 
 Fill the fields that were left `null` on Saturday:
 
@@ -1050,7 +1052,7 @@ Add the `anjo_escolha` descriptive field to the current paredão's `formacao`:
 
 ### 4. Add article to `fontes`
 
-Add the scraped article URL to the anjo's `fontes` array in `weekly_events[N].anjo.fontes`.
+Add the scraped article URL to the anjo's `fontes` array in the current cycle's `anjo.fontes`.
 
 ### 5. Rebuild + commit + publish
 

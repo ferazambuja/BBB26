@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-03T19:45:18.844663+00:00",
+    "generated_at": "2026-04-03T20:57:39.219213+00:00",
     "model_version": "enhanced_v1",
     "config": {
       "cluster_consensus_threshold": 0.5,
@@ -8936,39 +8936,28 @@
           "Ana Paula Renault",
           "Chaiany",
           "Gabriela",
-          "Jordana",
           "Juliano Floss",
           "Leandro",
           "Marciele",
           "Milena"
         ],
         "ineligible_reasons": {
-          "Samira": "Líder"
+          "Samira": "Líder",
+          "Jordana": "Anjo (autoimune)"
         }
       },
       "predictions": {
         "Ana Paula Renault": {
           "predicted": "Marciele",
-          "score": -6.0893,
+          "score": -6.4893,
           "confidence": "Alta",
-          "gap": 0.8689,
+          "gap": 2.8694,
           "top3": [
             {
               "target": "Marciele",
-              "score": -6.0893,
+              "score": -6.4893,
               "components": {
                 "base_sentiment": -6.0893,
-                "cluster_consensus": 0.0,
-                "bloc_history": 0.0,
-                "cluster_protection": 0.0
-              },
-              "explanation": null
-            },
-            {
-              "target": "Jordana",
-              "score": -5.2204,
-              "components": {
-                "base_sentiment": -4.8204,
                 "cluster_consensus": -0.4,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
@@ -8985,26 +8974,26 @@
                 "cluster_protection": 0.0
               },
               "explanation": null
-            }
-          ]
-        },
-        "Chaiany": {
-          "predicted": "Jordana",
-          "score": -16.9873,
-          "confidence": "Alta",
-          "gap": 11.2544,
-          "top3": [
+            },
             {
-              "target": "Jordana",
-              "score": -16.9873,
+              "target": "Leandro",
+              "score": -3.036,
               "components": {
-                "base_sentiment": -16.9873,
+                "base_sentiment": -3.036,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
               },
               "explanation": null
-            },
+            }
+          ]
+        },
+        "Chaiany": {
+          "predicted": "Ana Paula Renault",
+          "score": -5.7329,
+          "confidence": "Alta",
+          "gap": 1.9208,
+          "top3": [
             {
               "target": "Ana Paula Renault",
               "score": -5.7329,
@@ -9018,9 +9007,20 @@
             },
             {
               "target": "Marciele",
-              "score": -3.5121,
+              "score": -3.8121,
               "components": {
                 "base_sentiment": -3.5121,
+                "cluster_consensus": 0.0,
+                "bloc_history": -0.3,
+                "cluster_protection": 0.0
+              },
+              "explanation": "bloco histórico (3 peers)"
+            },
+            {
+              "target": "Milena",
+              "score": -1.2427,
+              "components": {
+                "base_sentiment": -1.2427,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
@@ -9115,24 +9115,13 @@
           "predicted": "Marciele",
           "score": -10.9856,
           "confidence": "Alta",
-          "gap": 3.4363,
+          "gap": 7.8945,
           "top3": [
             {
               "target": "Marciele",
               "score": -10.9856,
               "components": {
                 "base_sentiment": -10.9856,
-                "cluster_consensus": 0.0,
-                "bloc_history": 0.0,
-                "cluster_protection": 0.0
-              },
-              "explanation": null
-            },
-            {
-              "target": "Jordana",
-              "score": -7.5493,
-              "components": {
-                "base_sentiment": -7.5493,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
@@ -9149,14 +9138,25 @@
                 "cluster_protection": 0.0
               },
               "explanation": "consenso do cluster (100% → -0.40)"
+            },
+            {
+              "target": "Chaiany",
+              "score": 0.7645,
+              "components": {
+                "base_sentiment": 0.7645,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
             }
           ]
         },
         "Leandro": {
           "predicted": "Gabriela",
           "score": -10.6081,
-          "confidence": "Baixa",
-          "gap": 0.1039,
+          "confidence": "Alta",
+          "gap": 4.1092,
           "top3": [
             {
               "target": "Gabriela",
@@ -9170,26 +9170,26 @@
               "explanation": null
             },
             {
-              "target": "Jordana",
-              "score": -10.5042,
+              "target": "Marciele",
+              "score": -6.4989,
               "components": {
-                "base_sentiment": -10.5042,
+                "base_sentiment": -5.7989,
+                "cluster_consensus": -0.4,
+                "bloc_history": -0.3,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (100% → -0.40); bloco histórico (3 peers)"
+            },
+            {
+              "target": "Ana Paula Renault",
+              "score": -4.4472,
+              "components": {
+                "base_sentiment": -4.4472,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
               },
               "explanation": null
-            },
-            {
-              "target": "Marciele",
-              "score": -6.1989,
-              "components": {
-                "base_sentiment": -5.7989,
-                "cluster_consensus": -0.4,
-                "bloc_history": 0.0,
-                "cluster_protection": 0.0
-              },
-              "explanation": "consenso do cluster (100% → -0.40)"
             }
           ]
         },
@@ -9235,22 +9235,11 @@
           ]
         },
         "Milena": {
-          "predicted": "Jordana",
-          "score": -11.6052,
+          "predicted": "Marciele",
+          "score": -4.333,
           "confidence": "Alta",
-          "gap": 7.2722,
+          "gap": 1.0688,
           "top3": [
-            {
-              "target": "Jordana",
-              "score": -11.6052,
-              "components": {
-                "base_sentiment": -11.6052,
-                "cluster_consensus": 0.0,
-                "bloc_history": 0.0,
-                "cluster_protection": 0.0
-              },
-              "explanation": null
-            },
             {
               "target": "Marciele",
               "score": -4.333,
@@ -9272,20 +9261,31 @@
                 "cluster_protection": 0.0
               },
               "explanation": null
+            },
+            {
+              "target": "Chaiany",
+              "score": -2.2418,
+              "components": {
+                "base_sentiment": -2.2418,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
             }
           ]
         }
       },
       "aggregate": {
         "vote_concentration": {
-          "Marciele": 2,
-          "Jordana": 2,
+          "Marciele": 3,
           "Leandro": 2,
+          "Ana Paula Renault": 1,
           "Gabriela": 1,
           "Juliano Floss": 1
         },
-        "high_confidence_count": 6,
-        "low_confidence_count": 1
+        "high_confidence_count": 7,
+        "low_confidence_count": 0
       },
       "lider_prediction": {
         "predicted": "Jordana",
