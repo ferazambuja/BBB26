@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-04T02:30:17.114697+00:00",
+    "generated_at": "2026-04-04T03:22:28.456861+00:00",
     "date": "2026-04-03",
     "cycle": 13,
     "effective_week_daily": 13,
@@ -43,7 +43,8 @@
         "duelo_de_risco": -0.5,
         "troca_vip": 0.4,
         "troca_xepa": -0.4,
-        "quarto_secreto_convite": 0.2
+        "quarto_secreto_convite": 0.2,
+        "voto_minerva": -2.0
       },
       "sincerao": {
         "elogio": {
@@ -3507,6 +3508,31 @@
     },
     {
       "type": "power_event",
+      "actor": "Samira",
+      "target": "Marciele",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -3.36,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "weight": -3.36
+    },
+    {
+      "type": "power_event",
+      "actor": "Marciele",
+      "target": "Samira",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.016,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "backlash": true,
+      "weight": -2.016
+    },
+    {
+      "type": "power_event",
       "actor": "Jonas Sulzbach",
       "target": "Marcelo",
       "cycle": 1,
@@ -3647,6 +3673,56 @@
       "revealed": false,
       "event_type": "monstro",
       "visibility": "public",
+      "weight": -1.44
+    },
+    {
+      "type": "power_event",
+      "actor": "Ana Paula Renault",
+      "target": "Leandro",
+      "cycle": 11,
+      "date": "2026-03-27",
+      "weight_raw": -2.4,
+      "revealed": false,
+      "event_type": "voto_minerva",
+      "visibility": "public",
+      "weight": -2.4
+    },
+    {
+      "type": "power_event",
+      "actor": "Leandro",
+      "target": "Ana Paula Renault",
+      "cycle": 11,
+      "date": "2026-03-27",
+      "weight_raw": -1.44,
+      "revealed": false,
+      "event_type": "voto_minerva",
+      "visibility": "public",
+      "backlash": true,
+      "weight": -1.44
+    },
+    {
+      "type": "power_event",
+      "actor": "Samira",
+      "target": "Chaiany",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.4,
+      "revealed": false,
+      "event_type": "voto_minerva",
+      "visibility": "public",
+      "weight": -2.4
+    },
+    {
+      "type": "power_event",
+      "actor": "Chaiany",
+      "target": "Samira",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -1.44,
+      "revealed": false,
+      "event_type": "voto_minerva",
+      "visibility": "public",
+      "backlash": true,
       "weight": -1.44
     },
     {
@@ -16235,16 +16311,113 @@
       "vote_count": 1,
       "vote_kind": "secret",
       "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Juliano Floss",
+      "target": "Gabriela",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Leandro",
+      "target": "Gabriela",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Chaiany",
+      "target": "Milena",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Marciele",
+      "target": "Juliano Floss",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Gabriela",
+      "target": "Juliano Floss",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Jordana",
+      "target": "Juliano Floss",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Milena",
+      "target": "Chaiany",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Ana Paula Renault",
+      "target": "Chaiany",
+      "cycle": 13,
+      "date": "2026-04-03",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
     }
   ],
   "pairs_daily": {
     "Ana Paula Renault": {
       "Chaiany": {
-        "score": -3.616,
+        "score": -5.616,
         "components": {
           "queridometro": -0.5,
           "power_event": -2.496,
-          "sincerao": -0.62
+          "sincerao": -0.62,
+          "vote": -2.0
         },
         "streak_len": 15,
         "break": false,
@@ -16286,10 +16459,10 @@
         "vote_contradiction": false
       },
       "Leandro": {
-        "score": -3.036,
+        "score": -5.436,
         "components": {
           "queridometro": -0.5,
-          "power_event": -2.736,
+          "power_event": -5.136,
           "sincerao": 0.2
         },
         "streak_len": 26,
@@ -16400,20 +16573,22 @@
         "vote_contradiction": true
       },
       "Milena": {
-        "score": -0.654,
+        "score": -2.654,
         "components": {
           "queridometro": 0.79,
           "power_event": -0.144,
-          "sincerao": -1.3
+          "sincerao": -1.3,
+          "vote": -2.0
         },
         "streak_len": 3,
         "break": false,
-        "vote_contradiction": false
+        "vote_contradiction": true
       },
       "Samira": {
-        "score": 0.0,
+        "score": -1.44,
         "components": {
           "queridometro": 1.0,
+          "power_event": -1.44,
           "sincerao": -1.0
         },
         "streak_len": 74,
@@ -16457,11 +16632,11 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -10.12,
+        "score": -12.12,
         "components": {
           "queridometro": -0.5,
           "sincerao": -1.62,
-          "vote": -8.0
+          "vote": -10.0
         },
         "streak_len": 16,
         "break": false,
@@ -16548,11 +16723,11 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -6.57,
+        "score": -8.57,
         "components": {
           "queridometro": -0.97,
           "sincerao": -1.6,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 9,
         "break": false,
@@ -16628,10 +16803,11 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -2.71,
+        "score": -4.71,
         "components": {
           "queridometro": -0.59,
-          "sincerao": -2.12
+          "sincerao": -2.12,
+          "vote": -2.0
         },
         "streak_len": 2,
         "break": false,
@@ -16695,10 +16871,10 @@
     },
     "Leandro": {
       "Ana Paula Renault": {
-        "score": -3.784,
+        "score": -5.224,
         "components": {
           "queridometro": 0.25,
-          "power_event": -3.984,
+          "power_event": -5.424,
           "sincerao": -0.05
         },
         "streak_len": 2,
@@ -16717,12 +16893,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -10.716,
+        "score": -12.716,
         "components": {
           "queridometro": -1.0,
           "power_event": -2.016,
           "sincerao": -3.7,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 72,
         "break": false,
@@ -16830,12 +17006,12 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -12.0,
+        "score": -14.0,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.6,
           "sincerao": -4.9,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 61,
         "break": false,
@@ -16865,10 +17041,10 @@
         "vote_contradiction": false
       },
       "Samira": {
-        "score": -4.5,
+        "score": -6.516,
         "components": {
           "queridometro": 1.0,
-          "power_event": -0.24,
+          "power_event": -2.256,
           "sincerao": -3.26,
           "vote": -2.0
         },
@@ -16891,11 +17067,12 @@
         "vote_contradiction": false
       },
       "Chaiany": {
-        "score": -2.78,
+        "score": -4.78,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.48,
-          "sincerao": -1.3
+          "sincerao": -1.3,
+          "vote": -2.0
         },
         "streak_len": 14,
         "break": false,
@@ -16986,9 +17163,10 @@
         "vote_contradiction": false
       },
       "Chaiany": {
-        "score": 0.9,
+        "score": -1.5,
         "components": {
           "queridometro": 1.0,
+          "power_event": -2.4,
           "sincerao": -0.1
         },
         "streak_len": 12,
@@ -17044,10 +17222,10 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -3.96,
+        "score": -7.32,
         "components": {
           "queridometro": 0.82,
-          "power_event": -0.48,
+          "power_event": -3.84,
           "sincerao": -2.3,
           "vote": -2.0
         },
@@ -17072,11 +17250,12 @@
   "pairs_paredao": {
     "Ana Paula Renault": {
       "Chaiany": {
-        "score": -3.616,
+        "score": -5.616,
         "components": {
           "queridometro": -0.5,
           "power_event": -2.496,
-          "sincerao": -0.62
+          "sincerao": -0.62,
+          "vote": -2.0
         },
         "streak_len": 15,
         "break": false
@@ -17114,10 +17293,10 @@
         "break": false
       },
       "Leandro": {
-        "score": -3.036,
+        "score": -5.436,
         "components": {
           "queridometro": -0.5,
-          "power_event": -2.736,
+          "power_event": -5.136,
           "sincerao": 0.2
         },
         "streak_len": 26,
@@ -17218,19 +17397,21 @@
         "break": false
       },
       "Milena": {
-        "score": -0.654,
+        "score": -2.654,
         "components": {
           "queridometro": 0.79,
           "power_event": -0.144,
-          "sincerao": -1.3
+          "sincerao": -1.3,
+          "vote": -2.0
         },
         "streak_len": 3,
         "break": false
       },
       "Samira": {
-        "score": 0.0,
+        "score": -1.44,
         "components": {
           "queridometro": 1.0,
+          "power_event": -1.44,
           "sincerao": -1.0
         },
         "streak_len": 74,
@@ -17270,11 +17451,11 @@
         "break": false
       },
       "Juliano Floss": {
-        "score": -10.12,
+        "score": -12.12,
         "components": {
           "queridometro": -0.5,
           "sincerao": -1.62,
-          "vote": -8.0
+          "vote": -10.0
         },
         "streak_len": 16,
         "break": false
@@ -17353,11 +17534,11 @@
         "break": true
       },
       "Juliano Floss": {
-        "score": -6.57,
+        "score": -8.57,
         "components": {
           "queridometro": -0.97,
           "sincerao": -1.6,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 9,
         "break": false
@@ -17426,10 +17607,11 @@
         "break": false
       },
       "Gabriela": {
-        "score": -2.71,
+        "score": -4.71,
         "components": {
           "queridometro": -0.59,
-          "sincerao": -2.12
+          "sincerao": -2.12,
+          "vote": -2.0
         },
         "streak_len": 2,
         "break": false
@@ -17487,10 +17669,10 @@
     },
     "Leandro": {
       "Ana Paula Renault": {
-        "score": -3.784,
+        "score": -5.224,
         "components": {
           "queridometro": 0.25,
-          "power_event": -3.984,
+          "power_event": -5.424,
           "sincerao": -0.05
         },
         "streak_len": 2,
@@ -17507,12 +17689,12 @@
         "break": false
       },
       "Gabriela": {
-        "score": -10.716,
+        "score": -12.716,
         "components": {
           "queridometro": -1.0,
           "power_event": -2.016,
           "sincerao": -3.7,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 72,
         "break": false
@@ -17610,12 +17792,12 @@
         "break": false
       },
       "Juliano Floss": {
-        "score": -12.0,
+        "score": -14.0,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.6,
           "sincerao": -4.9,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 61,
         "break": false
@@ -17642,10 +17824,10 @@
         "break": false
       },
       "Samira": {
-        "score": -4.5,
+        "score": -6.516,
         "components": {
           "queridometro": 1.0,
-          "power_event": -0.24,
+          "power_event": -2.256,
           "sincerao": -3.26,
           "vote": -2.0
         },
@@ -17666,11 +17848,12 @@
         "break": false
       },
       "Chaiany": {
-        "score": -2.78,
+        "score": -4.78,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.48,
-          "sincerao": -1.3
+          "sincerao": -1.3,
+          "vote": -2.0
         },
         "streak_len": 14,
         "break": false
@@ -17753,9 +17936,10 @@
         "break": false
       },
       "Chaiany": {
-        "score": 0.9,
+        "score": -1.5,
         "components": {
           "queridometro": 1.0,
+          "power_event": -2.4,
           "sincerao": -0.1
         },
         "streak_len": 12,
@@ -17806,10 +17990,10 @@
         "break": false
       },
       "Marciele": {
-        "score": -3.96,
+        "score": -7.32,
         "components": {
           "queridometro": 0.82,
-          "power_event": -0.48,
+          "power_event": -3.84,
           "sincerao": -2.3,
           "vote": -2.0
         },
@@ -18411,11 +18595,12 @@
         "vote_contradiction": false
       },
       "Chaiany": {
-        "score": -3.616,
+        "score": -5.616,
         "components": {
           "queridometro": -0.5,
           "power_event": -2.496,
-          "sincerao": -0.62
+          "sincerao": -0.62,
+          "vote": -2.0
         },
         "streak_len": 15,
         "break": false,
@@ -18485,10 +18670,10 @@
         "vote_contradiction": false
       },
       "Leandro": {
-        "score": -3.036,
+        "score": -5.436,
         "components": {
           "queridometro": -0.5,
-          "power_event": -2.736,
+          "power_event": -5.136,
           "sincerao": 0.2
         },
         "streak_len": 26,
@@ -19596,16 +19781,17 @@
         "vote_contradiction": false
       },
       "Milena": {
-        "score": -0.654,
+        "score": -2.654,
         "components": {
           "queridometro": 0.79,
           "power_event": -0.144,
-          "sincerao": -1.3
+          "sincerao": -1.3,
+          "vote": -2.0
         },
         "streak_len": 3,
         "break": false,
         "active_pair": true,
-        "vote_contradiction": false
+        "vote_contradiction": true
       },
       "Paulo Augusto": {
         "score": 0.93,
@@ -19628,9 +19814,10 @@
         "vote_contradiction": false
       },
       "Samira": {
-        "score": 0.0,
+        "score": -1.44,
         "components": {
           "queridometro": 1.0,
+          "power_event": -1.44,
           "sincerao": -1.0
         },
         "streak_len": 74,
@@ -20036,11 +20223,11 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -10.12,
+        "score": -12.12,
         "components": {
           "queridometro": -0.5,
           "sincerao": -1.62,
-          "vote": -8.0
+          "vote": -10.0
         },
         "streak_len": 16,
         "break": false,
@@ -20574,11 +20761,11 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -6.57,
+        "score": -8.57,
         "components": {
           "queridometro": -0.97,
           "sincerao": -1.6,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 9,
         "break": false,
@@ -20812,10 +20999,11 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -2.71,
+        "score": -4.71,
         "components": {
           "queridometro": -0.59,
-          "sincerao": -2.12
+          "sincerao": -2.12,
+          "vote": -2.0
         },
         "streak_len": 2,
         "break": false,
@@ -21008,10 +21196,10 @@
         "vote_contradiction": false
       },
       "Ana Paula Renault": {
-        "score": -3.784,
+        "score": -5.224,
         "components": {
           "queridometro": 0.25,
-          "power_event": -3.984,
+          "power_event": -5.424,
           "sincerao": -0.05
         },
         "streak_len": 2,
@@ -21078,12 +21266,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -10.716,
+        "score": -12.716,
         "components": {
           "queridometro": -1.0,
           "power_event": -2.016,
           "sincerao": -3.7,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 72,
         "break": false,
@@ -21624,12 +21812,12 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -12.0,
+        "score": -14.0,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.6,
           "sincerao": -4.9,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 61,
         "break": false,
@@ -21714,10 +21902,10 @@
         "vote_contradiction": false
       },
       "Samira": {
-        "score": -4.5,
+        "score": -6.516,
         "components": {
           "queridometro": 1.0,
-          "power_event": -0.24,
+          "power_event": -2.256,
           "sincerao": -3.26,
           "vote": -2.0
         },
@@ -22345,11 +22533,12 @@
         "vote_contradiction": false
       },
       "Chaiany": {
-        "score": -2.78,
+        "score": -4.78,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.48,
-          "sincerao": -1.3
+          "sincerao": -1.3,
+          "vote": -2.0
         },
         "streak_len": 14,
         "break": false,
@@ -23088,9 +23277,10 @@
         "vote_contradiction": false
       },
       "Chaiany": {
-        "score": 0.9,
+        "score": -1.5,
         "components": {
           "queridometro": 1.0,
+          "power_event": -2.4,
           "sincerao": -0.1
         },
         "streak_len": 12,
@@ -23185,10 +23375,10 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -3.96,
+        "score": -7.32,
         "components": {
           "queridometro": 0.82,
-          "power_event": -0.48,
+          "power_event": -3.84,
           "sincerao": -2.3,
           "vote": -2.0
         },
@@ -24544,11 +24734,20 @@
         "vote_kind": "secret",
         "cycle": 12,
         "date": "2026-03-29"
+      },
+      {
+        "actor": "Chaiany",
+        "target": "Milena",
+        "queridometro": 0.79,
+        "vote_weight": -2.0,
+        "vote_kind": "secret",
+        "cycle": 13,
+        "date": "2026-04-03"
       }
     ],
-    "total": 55,
-    "total_vote_edges": 173,
-    "rate": 0.3179,
+    "total": 56,
+    "total_vote_edges": 181,
+    "rate": 0.3094,
     "context_notes": {
       "week_1": "Pedro (most rejected, many planned to vote for him) quit on Jan 19, voting day. Participants redirected votes to Paulo Augusto despite weak animosity. Also first-week bonds were less established."
     }
@@ -24568,9 +24767,9 @@
     },
     "Ana Paula Renault": {
       "positive": 4.83,
-      "negative": -67.308,
-      "total": -62.478,
-      "count": 102
+      "negative": -68.748,
+      "total": -63.918,
+      "count": 103
     },
     "Babu Santana": {
       "positive": 5.41,
@@ -24592,9 +24791,9 @@
     },
     "Chaiany": {
       "positive": 5.24,
-      "negative": -32.5545,
-      "total": -27.3145,
-      "count": 55
+      "negative": -38.9545,
+      "total": -33.7145,
+      "count": 58
     },
     "Edilson": {
       "positive": 2.45,
@@ -24604,9 +24803,9 @@
     },
     "Gabriela": {
       "positive": 3.64,
-      "negative": -45.166,
-      "total": -41.526,
-      "count": 68
+      "negative": -49.166,
+      "total": -45.526,
+      "count": 70
     },
     "Jonas Sulzbach": {
       "positive": 3.66,
@@ -24622,15 +24821,15 @@
     },
     "Juliano Floss": {
       "positive": 3.89,
-      "negative": -53.9205,
-      "total": -50.0305,
-      "count": 76
+      "negative": -59.9205,
+      "total": -56.0305,
+      "count": 79
     },
     "Leandro": {
       "positive": 1.8,
-      "negative": -70.9185,
-      "total": -69.1185,
-      "count": 74
+      "negative": -73.3185,
+      "total": -71.5185,
+      "count": 75
     },
     "Marcelo": {
       "positive": 1.56,
@@ -24640,9 +24839,9 @@
     },
     "Marciele": {
       "positive": 5.66,
-      "negative": -43.906,
-      "total": -38.246,
-      "count": 69
+      "negative": -47.266,
+      "total": -41.606,
+      "count": 70
     },
     "Matheus": {
       "positive": 0.3,
@@ -24658,9 +24857,9 @@
     },
     "Milena": {
       "positive": 5.85,
-      "negative": -50.702,
-      "total": -44.852,
-      "count": 84
+      "negative": -52.702,
+      "total": -46.852,
+      "count": 85
     },
     "Paulo Augusto": {
       "positive": 0.6,
@@ -24676,9 +24875,9 @@
     },
     "Samira": {
       "positive": 3.96,
-      "negative": -38.032,
-      "total": -34.072,
-      "count": 67
+      "negative": -41.488,
+      "total": -37.528,
+      "count": 69
     },
     "Sarah Andrade": {
       "positive": 3.07,
