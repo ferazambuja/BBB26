@@ -847,11 +847,10 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
 
 
 def _votalhada_blurb(payload: dict) -> str:
-    """Return the Votalhada panel description."""
-    _link = f'<a href="{VOTALHADA_HOME}" target="_blank" rel="noopener">Votalhada</a>'
+    """Return the Votalhada panel description (logo link is rendered separately above)."""
     mirror = payload.get("mirror_3070", {})
     if mirror.get("available"):
-        return f"{_link} (30% Sites + 70% Média CPF): fórmula oficial publicada."
+        return "30% Sites + 70% Média CPF: fórmula oficial publicada."
     return "Média por volume de votos das fontes."
 
 
