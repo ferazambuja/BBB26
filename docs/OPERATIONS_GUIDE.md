@@ -939,6 +939,8 @@ Create or update the current cycle's `anjo` object:
 
 **Cartola `monstro_retirado_vip`**: Auto-detected. If the Monstro recipient was in VIP in the previous snapshot, the -5 penalty is automatically applied. No manual entry needed.
 
+**Economia / estalecas (API-derived only)**: Do **not** add manual balance entries for Anjo or Monstro outcomes. `build_balance_events()` reads snapshot balance deltas and reclassifies same-day `-300` estalecas (Monstro) and `+500` estalecas (Prêmio do Anjo) into `monstro`, `premio_anjo`, or `monstro_anjo` by cross-checking `auto_events.json`. If the API role is missing or late, the balance event may stay generic (`punicao`, `premio`, `dinamica`) until snapshots catch up, but you should still never patch `balance_events.json` or add manual estaleca overrides, or the economy pipeline can double-count.
+
 ### 4. Update scheduled events (do NOT delete)
 
 **Update** the `scheduled_events` for this date's `anjo` and `monstro` entries with the real results (winner name, castigo details). **Do NOT remove them.**
@@ -2103,6 +2105,7 @@ Expected:
 | What | How | Where |
 |------|-----|-------|
 | Balance → 0 transitions | `balance.py` detects any balance dropping to zero in snapshots | `balance_events.json` |
+| Monstro `-300` / Anjo `+500` estalecas | `balance.py` reclassifies snapshot deltas by matching same-day `auto_events.json` roles | `balance_events.json` |
 | Timeline event | `timeline.py` reads `ta_com_nada` from `cycles` | `game_timeline.json` |
 | Individual punição suppression | Power events with type `punicao_gravissima` / `punicao_coletiva` on the same date are suppressed in the timeline (dedup with the collective Tá Com Nada event) | `timeline.py` |
 
@@ -2110,6 +2113,7 @@ Expected:
 
 - **Individual power_events per participant** — the W3 Tá Com Nada had individual entries for every participant (16 entries). This is optional and only useful if you want relationship edges (instigador → each victim). The timeline builder handles the collective event from the `cycles[]` block alone.
 - **Manual balance adjustments** — the balance builder auto-detects balance→0 from snapshots. The `-500 estalecas` punição is captured as a balance change in the API.
+- **Manual Monstro/Anjo estaleca overrides** — do not add manual `-300` Monstro or `+500` Anjo entries anywhere. Those are generated from API snapshot deltas and reclassified in `balance_events.json`; manual duplication risks double-counting.
 - **Cartola overrides** — no Cartola points are scored for Tá Com Nada itself.
 
 ### Economy impact

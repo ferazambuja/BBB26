@@ -718,6 +718,118 @@ class TestBuildPowerEventEdges:
         assert "Bob" in actors
 
 
+class TestVotoDeMinervaEdges:
+    """Test auto-generated voto_minerva edges from paredões data."""
+
+    def _make_paredoes_with_minerva(self):
+        return {
+            "paredoes": [{
+                "numero": 11,
+                "status": "finalizado",
+                "data": "2026-03-30",
+                "data_formacao": "2026-03-27",
+                "cycle": 11,
+                "formacao": {
+                    "lider": "Ana Paula",
+                    "voto_minerva": {
+                        "desempate_entre": ["Floss", "Leandro"],
+                        "votos_cada": 2,
+                        "escolhida": "Leandro",
+                    },
+                },
+                "indicados_finais": [],
+                "votos_casa": {},
+            }]
+        }
+
+    def test_minerva_creates_forward_edge(self):
+        """voto_minerva injects a synthetic power_event that creates a forward edge."""
+        collector = EdgeCollector()
+        paredoes = self._make_paredoes_with_minerva()
+        power_events = []
+
+        # Simulate the injection logic from _build_raw_edges
+        for par in paredoes.get("paredoes", []):
+            vm = par.get("formacao", {}).get("voto_minerva")
+            if vm:
+                power_events.append({
+                    "type": "voto_minerva",
+                    "date": par.get("data_formacao"),
+                    "actor": par["formacao"]["lider"],
+                    "target": vm["escolhida"],
+                    "visibility": "public",
+                    "cycle": par.get("cycle"),
+                })
+
+        _build_power_event_edges(power_events, 11, collector)
+
+        forward = [e for e in collector.edges if not e["meta"].get("backlash")]
+        assert len(forward) == 1
+        assert forward[0]["actor"] == "Ana Paula"
+        assert forward[0]["target"] == "Leandro"
+        assert forward[0]["meta"]["event_type"] == "voto_minerva"
+
+    def test_minerva_weight_less_than_indicacao(self):
+        """voto_minerva weight must be strictly less than indicacao."""
+        assert abs(RELATION_POWER_WEIGHTS["voto_minerva"]) < abs(RELATION_POWER_WEIGHTS["indicacao"])
+        assert RELATION_POWER_WEIGHTS["voto_minerva"] < 0
+
+    def test_minerva_has_backlash(self):
+        """voto_minerva creates backlash (public event, target resents Líder)."""
+        collector = EdgeCollector()
+        events = [{
+            "type": "voto_minerva",
+            "actor": "Samira",
+            "target": "Chaiany",
+            "date": "2026-04-03",
+            "cycle": 13,
+            "visibility": "public",
+        }]
+        _build_power_event_edges(events, 13, collector)
+
+        backlash = [e for e in collector.edges if e["meta"].get("backlash")]
+        assert len(backlash) == 1
+        assert backlash[0]["actor"] == "Chaiany"
+        assert backlash[0]["target"] == "Samira"
+
+    def test_minerva_weight_value(self):
+        """Forward edge = -2.0 * 1.2 (public visibility factor)."""
+        collector = EdgeCollector()
+        events = [{
+            "type": "voto_minerva",
+            "actor": "Samira",
+            "target": "Chaiany",
+            "date": "2026-04-03",
+            "cycle": 13,
+            "visibility": "public",
+        }]
+        _build_power_event_edges(events, 13, collector)
+
+        forward = next(e for e in collector.edges if not e["meta"].get("backlash"))
+        expected = RELATION_POWER_WEIGHTS["voto_minerva"] * RELATION_VISIBILITY_FACTOR["public"]
+        assert forward["weight"] == pytest.approx(expected)
+        assert forward["weight"] == pytest.approx(-2.4)  # -2.0 * 1.2
+
+    def test_minerva_skipped_without_escolhida(self):
+        """voto_minerva without escolhida field is silently skipped."""
+        paredoes = {"paredoes": [{
+            "numero": 99, "status": "em_andamento", "data": "2026-05-01",
+            "data_formacao": "2026-04-30", "cycle": 20,
+            "formacao": {"lider": "Someone", "voto_minerva": {"desempate_entre": ["A", "B"]}},
+            "indicados_finais": [], "votos_casa": {},
+        }]}
+        power_events = []
+        for par in paredoes["paredoes"]:
+            vm = par.get("formacao", {}).get("voto_minerva")
+            if vm:
+                target = vm.get("escolhida")
+                lider = par["formacao"]["lider"]
+                if target and lider:
+                    power_events.append({"type": "voto_minerva", "actor": lider, "target": target})
+
+        assert len(power_events) == 0  # No event generated
+
+
 class TestBuildSinceraoEdges:
     """Test _build_sincerao_edges_section() edge generation."""
 

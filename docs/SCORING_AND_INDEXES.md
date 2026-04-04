@@ -305,6 +305,7 @@ Thresholds: 🟢 **NENHUMA** (0), 🟡 **BAIXA** (< 0), 🟠 **MÉDIA** (≤ -4)
 - `indicacao`: **2.5**
 - `contragolpe`: **2.5**
 - `emparedado`: **2.0**
+- `voto_minerva`: **2.0** — Líder desempata entre dois empatados (auto-gerado de `paredoes.json → formacao.voto_minerva`)
 - `veto_prova`: **1.5**
 - `monstro`: **1.2**
 - `perdeu_voto`: **1.0**
@@ -324,6 +325,26 @@ Dinâmica usada apenas na semana 1 (liderança de Alberto Cowboy) e descontinuad
 **Planta Index**: target activity 0.5 (ser alvo gera visibilidade moderada).
 
 **Por que −0.5?** É uma declaração pública de distância/desconfiança do líder, mas sem consequência direta para 4 dos 5 alvos. Similar a `exposto` ou `barrado_baile` em gravidade.
+
+### Voto de Minerva (auto-gerado)
+
+When house votes result in a tie for the last Paredão slot, the Líder breaks the tie (voto de Minerva). This creates a negative edge because it's a deliberate Líder choice to send one specific person to Paredão over another.
+
+**Auto-generation**: The relations builder scans `paredoes.json → formacao.voto_minerva.escolhida` and injects a synthetic `voto_minerva` power_event. No manual `power_events` entry needed.
+
+**Weight**: −2.0 (actor → target), less than `indicacao` (−2.8) because the Líder's choice is constrained to tied candidates, not the full house. Backlash factor: 0.6 (target → Líder). Visibility: public (factor 1.2×).
+
+**Schema** (`paredoes.json → formacao.voto_minerva`):
+```json
+{
+  "desempate_entre": ["Person A", "Person B"],
+  "votos_cada": 2,
+  "escolhida": "Person sent to Paredão",
+  "motivo": "Optional: Líder's stated reason"
+}
+```
+
+**History**: P11 (Ana Paula → Leandro, −2.4 effective), P13 (Samira → Chaiany, −2.4 effective).
 
 ---
 
@@ -990,7 +1011,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 
 | Scope | Count | Definition |
 |---|---|---|
-| `with_indicados` | 12 | Paredões com indicados_finais |
+| `with_indicados` | 13 | Paredões com indicados_finais |
 | `all_finalized` | 12 | Finalizados (inclui falso) |
 | `real_only` | 11 | Finalizados reais (exclui falso) |
 
@@ -1010,6 +1031,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P10 | Jordana, Juliano Floss, Jonas Sulzbach, Gabriela | Jonas Sulzbach | 53.48% | Não | finalizado |
 | P11 | Alberto Cowboy, Jordana, Leandro | Alberto Cowboy | 67.95% | Não | finalizado |
 | P12 | Solange Couto, Marciele, Jordana | Solange Couto | 94.17% | Não | finalizado |
+| P13 | Marciele, Juliano Floss, Chaiany | — | — | Não | em_andamento |
 
 ### Route Effectiveness (`real_only`)
 

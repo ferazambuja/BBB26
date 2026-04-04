@@ -1,4 +1,5 @@
 """Tests for balance event detection (builders/balance.py)."""
+import json
 import pytest
 import sys
 from pathlib import Path
@@ -15,10 +16,16 @@ from builders.balance import (
     _events_should_merge,
     _merge_events,
     _reclassify_dinamica_events,
+    _reclassify_mesada_events,
     BALANCE_EVENT_TYPES,
     BALANCE_COLLECTIVE_THRESHOLD,
     BALANCE_SIGNIFICANT_LOSS,
     BALANCE_SIGNIFICANT_GAIN,
+    MESADA_VIP,
+    MESADA_XEPA,
+    MESADA_TOLERANCE,
+    MESADA_MIN_MATCH_RATIO,
+    MESADA_NEAR_UNIFORM_RATIO,
 )
 
 
@@ -48,6 +55,29 @@ def _make_snap(date, participants, stem=None):
         "participants": participants,
         "metadata": {"captured_at": f"{date}T12:00:00+00:00"},
     }
+
+
+def _write_json(path: Path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _make_transition_pair(date, deltas: dict[str, int]):
+    """Create two snapshots with a few changed balances and many unchanged players.
+
+    The unchanged players keep the event below the collective threshold so the
+    base classifier emits generic `punicao` / `premio` / `dinamica`, allowing
+    the Monstro/Anjo reclassifier to be tested explicitly.
+    """
+    fillers = [f"House{i}" for i in range(10)]
+    before = [_make_participant(name, 500, group="Xepa") for name in deltas]
+    after = [_make_participant(name, 500 + delta, group="Xepa") for name, delta in deltas.items()]
+    before.extend(_make_participant(name, 500, group="Xepa") for name in fillers)
+    after.extend(_make_participant(name, 500, group="Xepa") for name in fillers)
+    return (
+        _make_snap(date, before, f"{date}_12-00-00"),
+        _make_snap(date, after, f"{date}_18-00-00"),
+    )
 
 
 # ─── _get_balances ──────────────────────────────────────────────────────────
@@ -410,6 +440,80 @@ class TestBuildBalanceEvents:
         result = build_balance_events([snap1, snap2])
         types = [e["type"] for e in result["events"]]
         assert "dinamica" in types
+
+    def test_reclassifies_monstro_penalty_from_api_roles(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        _write_json(
+            tmp_path / "data" / "derived" / "auto_events.json",
+            {"events": [{"type": "monstro", "date": "2026-03-14", "target": "Target"}]},
+        )
+        snap1, snap2 = _make_transition_pair("2026-03-14", {"Target": -300})
+
+        result = build_balance_events([snap1, snap2])
+
+        monstro = next(ev for ev in result["events"] if ev["changes"].get("Target") == -300)
+        assert monstro["type"] == "monstro"
+        assert monstro["label"] == "Monstro"
+
+    def test_reclassifies_anjo_prize_from_api_roles(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        _write_json(
+            tmp_path / "data" / "derived" / "auto_events.json",
+            {"events": [{"type": "anjo", "date": "2026-03-14", "target": "Winner"}]},
+        )
+        snap1, snap2 = _make_transition_pair("2026-03-14", {"Winner": 500})
+
+        result = build_balance_events([snap1, snap2])
+
+        premio = next(ev for ev in result["events"] if ev["changes"].get("Winner") == 500)
+        assert premio["type"] == "premio_anjo"
+        assert premio["label"] == "Prêmio do Anjo"
+
+    def test_reclassifies_combined_monstro_anjo_event_from_api_roles(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        _write_json(
+            tmp_path / "data" / "derived" / "auto_events.json",
+            {
+                "events": [
+                    {"type": "monstro", "date": "2026-03-14", "target": "Loser"},
+                    {"type": "anjo", "date": "2026-03-14", "target": "Winner"},
+                ]
+            },
+        )
+        snap1, snap2 = _make_transition_pair("2026-03-14", {"Winner": 500, "Loser": -300})
+
+        result = build_balance_events([snap1, snap2])
+
+        dinamica = next(ev for ev in result["events"] if ev["changes"].get("Winner") == 500 and ev["changes"].get("Loser") == -300)
+        assert dinamica["type"] == "monstro_anjo"
+        assert dinamica["subtype"] == "Castigo do Monstro + Prêmio do Anjo"
+
+    def test_monstro_penalty_stays_generic_without_api_role_match(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        snap1, snap2 = _make_transition_pair("2026-03-14", {"Target": -300})
+
+        result = build_balance_events([snap1, snap2])
+
+        generic = next(ev for ev in result["events"] if ev["changes"].get("Target") == -300)
+        assert generic["type"] == "punicao"
+
+    def test_anjo_prize_stays_generic_without_api_role_match(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        snap1, snap2 = _make_transition_pair("2026-03-14", {"Winner": 500})
+
+        result = build_balance_events([snap1, snap2])
+
+        generic = next(ev for ev in result["events"] if ev["changes"].get("Winner") == 500)
+        assert generic["type"] == "premio"
+
+    def test_combined_monstro_anjo_stays_dinamica_without_api_role_match(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        snap1, snap2 = _make_transition_pair("2026-03-14", {"Winner": 500, "Loser": -300})
+
+        result = build_balance_events([snap1, snap2])
+
+        generic = next(ev for ev in result["events"] if ev["changes"].get("Winner") == 500 and ev["changes"].get("Loser") == -300)
+        assert generic["type"] == "dinamica"
 
 
 class TestComprasFairnessPerCapita:
@@ -815,3 +919,195 @@ class TestPunishmentDeepDive:
         assert "latest_compras" in fairness
         assert fairness["latest_compras"]["game_date"] == "2026-02-01"
         assert "house_per_capita_spent" in fairness["latest_compras"]
+
+
+# ─── _reclassify_mesada_events ─────────────────────────────────────────────
+
+
+def _make_mesada_event(game_date, changes, from_snapshot=""):
+    """Build a mesada event dict for _reclassify_mesada_events tests."""
+    return {
+        "type": "mesada",
+        "game_date": game_date,
+        "changes": changes,
+        "from_snapshot": from_snapshot or f"{game_date}_12-00-00",
+        "emoji": "💰",
+        "label": "Mesada",
+    }
+
+
+class TestReclassifyMesadaVipSource:
+    """VIP source priority: roles_daily first, snapshot fallback."""
+
+    def test_roles_daily_preferred_over_snapshot(self, monkeypatch):
+        """When roles_daily exists, uses it even if snapshot has different group."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": [{"date": "2026-02-26", "vip": ["Ana", "Breno", "Milena"]}]},
+        )
+        # Snapshot says different VIP set
+        snap = {
+            "participants": [
+                {"name": "Ana", "characteristics": {"group": "Xepa"}},
+                {"name": "Breno", "characteristics": {"group": "Xepa"}},
+                {"name": "Milena", "characteristics": {"group": "Xepa"}},
+                {"name": "Carlos", "characteristics": {"group": "Vip"}},
+                {"name": "Diana", "characteristics": {"group": "Vip"}},
+            ]
+        }
+        ev = _make_mesada_event("2026-02-26", {
+            "Ana": 1000, "Breno": 1000, "Milena": 1000,
+            "Carlos": 500, "Diana": 500,
+        })
+        snap_by_stem = {ev["from_snapshot"]: snap}
+
+        result = _reclassify_mesada_events([ev], snap_by_stem)
+
+        # Should use roles_daily (Ana, Breno, Milena = VIP), not snapshot (Carlos, Diana = VIP)
+        assert sorted(result[0]["vip_participants"]) == ["Ana", "Breno", "Milena"]
+        assert sorted(result[0]["xepa_participants"]) == ["Carlos", "Diana"]
+        assert "dirty_deltas" not in result[0]
+
+    def test_snapshot_fallback_when_no_roles_daily(self, monkeypatch):
+        """When roles_daily has no entry for the date, falls back to snapshot group."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": []},  # No roles_daily data at all
+        )
+        snap = {
+            "participants": [
+                {"name": "Alice", "characteristics": {"group": "Vip"}},
+                {"name": "Bob", "characteristics": {"group": "Xepa"}},
+            ]
+        }
+        ev = _make_mesada_event("2026-03-01", {"Alice": 1000, "Bob": 500})
+        snap_by_stem = {ev["from_snapshot"]: snap}
+
+        result = _reclassify_mesada_events([ev], snap_by_stem)
+
+        assert result[0]["vip_participants"] == ["Alice"]
+        assert result[0]["xepa_participants"] == ["Bob"]
+
+    def test_skipped_when_no_roles_and_no_snapshot(self, monkeypatch):
+        """Event left unchanged if neither roles_daily nor snapshot available."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": []},
+        )
+        ev = _make_mesada_event("2026-03-01", {"Alice": 1000, "Bob": 500})
+
+        result = _reclassify_mesada_events([ev], snap_by_stem=None)
+
+        assert result[0]["type"] == "mesada"
+        assert "vip_participants" not in result[0]
+
+
+class TestReclassifyMesadaMatchRatio:
+    """Match ratio gate: requires ≥50% to enrich as mesada."""
+
+    def test_100pct_match_enriches(self, monkeypatch):
+        """All participants match expected amounts → valid mesada with enrichment."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": [{"date": "2026-03-12", "vip": ["A", "B"]}]},
+        )
+        ev = _make_mesada_event("2026-03-12", {
+            "A": 1000, "B": 1000, "C": 500, "D": 500,
+        })
+
+        result = _reclassify_mesada_events([ev])
+
+        assert result[0]["type"] == "mesada"
+        assert sorted(result[0]["vip_participants"]) == ["A", "B"]
+        assert sorted(result[0]["xepa_participants"]) == ["C", "D"]
+
+    def test_dirty_deltas_within_tolerance_still_enriches(self, monkeypatch):
+        """Participants with ±tolerance residuals still count as matches."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": [{"date": "2026-02-19", "vip": ["A"]}]},
+        )
+        ev = _make_mesada_event("2026-02-19", {
+            "A": 950,   # VIP expected 1000, residual -50, within tolerance
+            "B": 500,
+        })
+
+        result = _reclassify_mesada_events([ev])
+
+        assert result[0]["type"] == "mesada"
+        assert result[0]["vip_participants"] == ["A"]
+        assert result[0]["dirty_deltas"] == [
+            {"name": "A", "expected": 1000, "actual": 950, "residual": -50}
+        ]
+
+    def test_low_match_near_uniform_becomes_premio_coletivo(self, monkeypatch):
+        """Low match ratio + near-uniform amounts → reclassified to premio_coletivo.
+
+        Models the 2026-03-22 real case: 9/11 got +100, 1 got +600, 1 got +50.
+        """
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": [{"date": "2026-03-22", "vip": ["J", "M"]}]},
+        )
+        changes = {f"P{i}": 100 for i in range(9)}
+        changes["Leandro"] = 600  # Within tolerance of Xepa (500±100)
+        changes["Floss"] = 50
+        ev = _make_mesada_event("2026-03-22", changes)
+
+        result = _reclassify_mesada_events([ev])
+
+        assert result[0]["type"] == "premio_coletivo"
+        assert result[0]["label"] == "Prêmio Coletivo"
+        assert result[0]["detail"] == "+100 estalecas cada"
+
+    def test_low_match_non_uniform_stays_mesada_unenriched(self, monkeypatch):
+        """Low match ratio + scattered amounts → left as mesada, no VIP/Xepa enrichment.
+
+        Models the 2026-01-16 real case: irregular W1 payout with varied amounts.
+        """
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": [{"date": "2026-01-16", "vip": []}]},
+        )
+        ev = _make_mesada_event("2026-01-16", {
+            "A": 525, "B": 150, "C": 150, "D": 100, "E": 100,
+            "F": 100, "G": 500, "H": 500, "I": 250, "J": 550,
+        })
+
+        result = _reclassify_mesada_events([ev])
+
+        assert result[0]["type"] == "mesada"
+        assert "vip_participants" not in result[0]
+        assert "xepa_participants" not in result[0]
+
+    def test_non_mesada_events_untouched(self, monkeypatch):
+        """Non-mesada events are not modified."""
+        monkeypatch.setattr(
+            "data_utils.load_roles_daily",
+            lambda: {"daily": [{"date": "2026-03-01", "vip": ["A"]}]},
+        )
+        ev = {"type": "punicao", "game_date": "2026-03-01", "changes": {"A": -100}}
+
+        result = _reclassify_mesada_events([ev])
+
+        assert result[0]["type"] == "punicao"
+
+
+class TestReclassifyMesadaConstants:
+    """Verify constant values are sensible."""
+
+    def test_min_match_ratio_range(self):
+        assert 0.0 < MESADA_MIN_MATCH_RATIO <= 1.0
+
+    def test_near_uniform_ratio_range(self):
+        assert 0.0 < MESADA_NEAR_UNIFORM_RATIO <= 1.0
+
+    def test_near_uniform_stricter_than_match(self):
+        assert MESADA_NEAR_UNIFORM_RATIO >= MESADA_MIN_MATCH_RATIO
+
+    def test_tolerance_positive(self):
+        assert MESADA_TOLERANCE > 0
+
+    def test_vip_xepa_amounts(self):
+        assert MESADA_VIP == 1000
+        assert MESADA_XEPA == 500

@@ -199,7 +199,7 @@ Only powers/consequences **not fully exposed by API** (contragolpe, voto duplo, 
 - `origem`: `manual` (quando registrado no JSON) ou `api` (quando derivado automaticamente).
 - If `actor` is not a person, use standardized labels: `Big Fone`, `Prova do Líder`, `Prova do Anjo`, `Prova Bate e Volta`, `Caixas-Surpresa`.
 
-**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`, `veto_prova`, `mira_do_lider`, `troca_vip`, `troca_xepa`.
+**Tipos já usados**: `imunidade`, `indicacao`, `contragolpe`, `voto_duplo`, `voto_anulado`, `perdeu_voto`, `bate_volta`, `veto_ganha_ganha`, `ganha_ganha_escolha`, `barrado_baile`, `veto_prova`, `mira_do_lider`, `troca_vip`, `troca_xepa`. Auto-gerados: `voto_minerva` (de `paredoes.json`).
 
 **Auto-detectados da API** (`scripts/build_derived_data.py`): Líder/Anjo/Monstro/Imune são derivados das mudanças de papéis nos snapshots diários e salvos em `data/derived/auto_events.json` com `origem: "api"`.
 - A detecção usa **1 snapshot por dia** (último do dia). Mudanças intra-dia podem não aparecer.
@@ -578,6 +578,12 @@ Se recusar: nada a registrar (recebe o vídeo normalmente, dá imunidade ao outr
       "vencedor": "NOME",
       "salvacao_com_janela_aberta": false,
       "prova": "DESCREVER"
+    },
+    "voto_minerva": {
+      "desempate_entre": ["NOME_A", "NOME_B"],
+      "votos_cada": 2,
+      "escolhida": "NOME_EMPAREDADA",
+      "motivo": "Razão do Líder (opcional)"
     }
   },
   "indicados_finais": [
@@ -607,6 +613,14 @@ Exemplo:
 ```
 
 > **Brigido**: vetado das 3 provas (Líder, Anjo, Bate e Volta). Se cair no paredão, NÃO pode disputar Bate e Volta. Documentar em `bate_volta.impedidos` se relevante.
+
+`formacao.voto_minerva` (optional — only when Líder breaks a house vote tie):
+
+- `desempate_entre`: array of the two (or more) tied participants
+- `votos_cada`: number of votes each tied participant received
+- `escolhida`: the person the Líder chose to send to Paredão
+- `motivo`: optional Líder's stated reason
+- **Auto-generates a negative relationship edge** (−2.0 × visibility factor) from Líder → escolhida in the relations builder. No manual `power_events` entry needed. See `docs/SCORING_AND_INDEXES.md` → "Voto de Minerva".
 
 ### Checklist pós-eventos
 

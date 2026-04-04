@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from data_utils import get_cycle_number, UTC
 
@@ -23,6 +23,12 @@ ANJO_PRIZE = 500
 
 # Mesada validation tolerance (±100 from expected VIP/Xepa amount)
 MESADA_TOLERANCE = 100
+
+# Minimum fraction of participants matching expected VIP/Xepa amounts for valid mesada
+MESADA_MIN_MATCH_RATIO = 0.50
+
+# Minimum fraction of participants sharing the same delta for near-uniform detection
+MESADA_NEAR_UNIFORM_RATIO = 0.70
 
 BALANCE_EVENT_TYPES = {
     "mesada":          {"emoji": "💰", "label": "Mesada"},
@@ -818,16 +824,21 @@ def _reclassify_mesada_events(
 ) -> list[dict]:
     """Validate mesada events against known VIP/Xepa amounts.
 
-    Uses the pre-event snapshot (from_snapshot) to determine VIP/Xepa status
-    at the time of the mesada, falling back to roles_daily if no snapshot available.
+    Uses roles_daily (last snapshot per game-date) as the primary VIP source,
+    falling back to the pre-event snapshot if roles_daily has no entry.
+    roles_daily is a better sampling point because mesada distribution follows
+    the Líder's VIP selection, and the end-of-day snapshot captures this more
+    reliably than the from_snapshot (which predates the balance change and may
+    have stale group data from the API's async update cycle).
 
     Cross-references to:
     - Reclassify false mesadas (e.g. collective +100 events) → premio_coletivo
     - Enrich valid mesadas with vip_participants, xepa_participants, dirty_deltas
 
-    Fallback: if roles_daily has no entry for a mesada's game_date, that event is
-    left unchanged (stays mesada, no VIP/Xepa metadata). We never reclassify to
-    premio_coletivo based on missing role data — only on confirmed zero-match.
+    Match ratio gate: at least MESADA_MIN_MATCH_RATIO (50%) of participants must
+    match expected VIP/Xepa amounts (within ±MESADA_TOLERANCE). Below that:
+    - Near-uniform events (mode amount covers ≥70%) → premio_coletivo
+    - Non-uniform low-match events → left as mesada without VIP/Xepa enrichment
 
     Residual sign: actual - expected (negative = got less than expected).
     """
@@ -835,8 +846,6 @@ def _reclassify_mesada_events(
 
     roles_data = load_roles_daily()
     daily_entries = roles_data.get("daily", [])
-    if not daily_entries:
-        return events
 
     roles_by_date: dict[str, set[str]] = {}
     for r in daily_entries:
@@ -847,41 +856,37 @@ def _reclassify_mesada_events(
             continue
 
         gd = ev.get("game_date", "")
-        # Use pre-event snapshot for VIP status (avoids mid-day Monstro misattribution)
-        from_stem = ev.get("from_snapshot", "")
-        pre_snap = snap_by_stem.get(from_stem) if snap_by_stem else None
-        if pre_snap:
-            vip_set = {
-                p.get("name", "").strip()
-                for p in pre_snap["participants"]
-                if p.get("characteristics", {}).get("group") == "Vip"
-            }
-        elif gd in roles_by_date:
+        # Prefer roles_daily VIP (end-of-day snapshot, post Líder selection);
+        # fall back to pre-event snapshot group only when roles_daily is missing.
+        if gd in roles_by_date:
             vip_set = roles_by_date[gd]
         else:
-            continue
+            from_stem = ev.get("from_snapshot", "")
+            pre_snap = snap_by_stem.get(from_stem) if snap_by_stem else None
+            if pre_snap:
+                vip_set = {
+                    p.get("name", "").strip()
+                    for p in pre_snap["participants"]
+                    if p.get("characteristics", {}).get("group") == "Vip"
+                }
+            else:
+                continue
+
         changes = ev.get("changes", {})
+        if not changes:
+            continue
 
         # Count how many participants match expected VIP/Xepa amounts (within tolerance)
+        n_total = len(changes)
         n_matches = 0
         for name, delta in changes.items():
             expected = MESADA_VIP if name in vip_set else MESADA_XEPA
             if abs(delta - expected) <= MESADA_TOLERANCE:
                 n_matches += 1
 
-        amounts = set(changes.values())
-        is_uniform = len(amounts) == 1
+        match_ratio = n_matches / n_total
 
-        if n_matches == 0 and is_uniform:
-            # No participant matches VIP/Xepa AND all amounts identical
-            # → collective prize, not mesada (e.g. +100 for everyone)
-            meta = BALANCE_EVENT_TYPES["premio_coletivo"]
-            ev["type"] = "premio_coletivo"
-            ev["emoji"] = meta["emoji"]
-            ev["label"] = meta["label"]
-            amt = next(iter(amounts))
-            ev["detail"] = f"+{amt} estalecas cada"
-        elif n_matches > 0:
+        if match_ratio >= MESADA_MIN_MATCH_RATIO:
             # Valid mesada — enrich with VIP/Xepa metadata
             vip_parts: list[str] = []
             xepa_parts: list[str] = []
@@ -904,6 +909,18 @@ def _reclassify_mesada_events(
             ev["xepa_participants"] = sorted(xepa_parts)
             if dirty:
                 ev["dirty_deltas"] = dirty
+        else:
+            # Below ratio threshold — check for near-uniform collective event
+            amount_counts = Counter(changes.values())
+            mode_amount, mode_count = amount_counts.most_common(1)[0]
+            if mode_count / n_total >= MESADA_NEAR_UNIFORM_RATIO:
+                # Most participants got the same amount → premio_coletivo
+                meta = BALANCE_EVENT_TYPES["premio_coletivo"]
+                ev["type"] = "premio_coletivo"
+                ev["emoji"] = meta["emoji"]
+                ev["label"] = meta["label"]
+                ev["detail"] = f"+{mode_amount} estalecas cada"
+            # else: irregular payout — leave as mesada without VIP/Xepa enrichment
 
     return events
 

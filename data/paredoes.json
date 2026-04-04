@@ -1,6 +1,6 @@
 {
   "_description": "Paredão data: formation, house votes, and results. Loaded by paredao.qmd and paredoes.qmd.",
-  "_last_updated": "2026-03-19",
+  "_last_updated": "2026-04-03",
   "paredoes": [
     {
       "numero": 1,
@@ -1567,8 +1567,9 @@
         "bate_volta": null,
         "sem_bate_volta": true,
         "voto_minerva": {
-          "lider": "Ana Paula Renault",
-          "escolhido": "Leandro",
+          "desempate_entre": ["Juliano Floss", "Leandro"],
+          "votos_cada": 2,
+          "escolhida": "Leandro",
           "motivo": "Juliano é meu fechamento aqui"
         }
       },
@@ -1745,11 +1746,11 @@
       "cycle": 13,
       "total_esperado": 3,
       "formacao": {
-        "resumo": "Triplo — Líder indica 1, casa vota e os 2 mais votados vão ao Paredão. Jordana venceu a Prova do Anjo e se autoimuniza.",
+        "resumo": "Triplo turbo — Líder Samira indica Marciele. Casa vota: Juliano Floss mais votado (3 votos). Chaiany e Gabriela empatam com 2 votos cada; Samira desempata com voto de Minerva e manda Chaiany ao Paredão. Sem Bate e Volta, sem contragolpe. Anjo Jordana autoimune.",
         "lider": "Samira",
         "lideres": null,
-        "indicado_lider": null,
-        "motivo_lider": null,
+        "indicado_lider": "Marciele",
+        "motivo_lider": "Acontecimentos recentes — embates durante o dia abalaram Samira, que confirmou a indicação após as discussões",
         "anjo": "Jordana",
         "anjo_autoimune": true,
         "imunizado": {
@@ -1760,10 +1761,28 @@
         "contragolpe": null,
         "sem_contragolpe": true,
         "bate_volta": null,
-        "sem_bate_volta": true
+        "sem_bate_volta": true,
+        "voto_minerva": {
+          "desempate_entre": ["Chaiany", "Gabriela"],
+          "votos_cada": 2,
+          "escolhida": "Chaiany"
+        }
       },
-      "indicados_finais": [],
-      "votos_casa": {},
+      "indicados_finais": [
+        {"nome": "Marciele", "grupo": "Pipoca", "como": "Indicada pela Líder"},
+        {"nome": "Juliano Floss", "grupo": "Camarote", "como": "Mais votado pela casa (3 votos)"},
+        {"nome": "Chaiany", "grupo": "Pipoca", "como": "Voto de Minerva (empate 2×2 com Gabriela)"}
+      ],
+      "votos_casa": {
+        "Juliano Floss": "Gabriela",
+        "Chaiany": "Milena",
+        "Marciele": "Juliano Floss",
+        "Milena": "Chaiany",
+        "Leandro": "Gabriela",
+        "Gabriela": "Juliano Floss",
+        "Ana Paula Renault": "Chaiany",
+        "Jordana": "Juliano Floss"
+      },
       "fontes": [
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-anjo-autoimune-e-eliminacao-no-domingo-5.ghtml",
@@ -1774,6 +1793,21 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26jordana-vence-a-12a-prova.ghtml",
           "arquivo": "docs/scraped/quem-e-o-anjo-do-bbb-26jordana-vence-a-12a-prova.md",
           "titulo": "Quem é o Anjo do BBB 26? Jordana vence a 12ª prova"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-samira-indica-marciele-ao-13o-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/lider-samira-indica-marciele-ao-13o-paredao-do-bbb-26.md",
+          "titulo": "Líder Samira indica Marciele ao 13º Paredão do BBB 26"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-13o-paredao.ghtml",
+          "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-13o-paredao.md",
+          "titulo": "BBB 26: veja quem votou em quem na formação do 13º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/lider-samira-da-voto-de-minerva-e-indica-chaiany-ao-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/lider-samira-da-voto-de-minerva-e-indica-chaiany-ao-paredao-do-bbb-26.md",
+          "titulo": "Líder Samira dá voto de Minerva e indica Chaiany ao Paredão"
         }
       ]
     }

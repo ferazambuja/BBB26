@@ -48,6 +48,7 @@ RELATION_POWER_WEIGHTS = {
     "troca_vip": 0.4,
     "troca_xepa": -0.4,
     "quarto_secreto_convite": 0.20,  # QS winner → chosen guest (strong personal trust signal)
+    "voto_minerva": -2.0,            # Líder tiebreaker → chosen nominee (deliberate but constrained choice)
 }
 
 RELATION_SINC_WEIGHTS = {
@@ -105,6 +106,7 @@ RELATION_POWER_BACKLASH_FACTOR = {
     "punicao_coletiva": 0.3,
     "duelo_de_risco": 0.3,
     "troca_xepa": 0.5,
+    "voto_minerva": 0.6,
 }
 
 SYSTEM_ACTORS = {"Prova do Líder", "Prova do Anjo", "Big Fone", "Dinâmica da casa", "Caixas-Surpresa", "Prova Bate e Volta"}
@@ -650,6 +652,24 @@ def _build_raw_edges(paredoes: dict | None, manual_events: dict, auto_events: li
         if meta:
             edge.update(meta)
         edges_raw.append(edge)
+
+    # Auto-generate voto_minerva power events from paredões data
+    for par in paredoes.get("paredoes", []) if paredoes else []:
+        vm = par.get("formacao", {}).get("voto_minerva")
+        if not vm:
+            continue
+        target = vm.get("escolhida")
+        lider = par.get("formacao", {}).get("lider")
+        if not target or not lider:
+            continue
+        power_events.append({
+            "type": "voto_minerva",
+            "date": par.get("data_formacao") or par.get("data"),
+            "actor": lider,
+            "target": target,
+            "visibility": "public",
+            "cycle": par.get("cycle"),
+        })
 
     _build_power_event_edges(power_events, effective_week_daily, add_edge_raw)
     _build_sincerao_edges_section(sincerao_edges, add_edge_raw)

@@ -2348,7 +2348,9 @@
       "origem": "manual",
       "visibility": "public",
       "awareness": "known",
-      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-ana-paula-renault-indica-solange-couto-ao-12o-paredao-do-bbb-26.ghtml"],
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-ana-paula-renault-indica-solange-couto-ao-12o-paredao-do-bbb-26.ghtml"
+      ],
       "cycle": 12
     },
     {
@@ -2362,7 +2364,9 @@
       "origem": "manual",
       "visibility": "public",
       "awareness": "known",
-      "fontes": ["https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/milena-indica-marciele-ao-paredao-do-bbb-26.ghtml"],
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/milena-indica-marciele-ao-paredao-do-bbb-26.ghtml"
+      ],
       "cycle": 12
     },
     {
@@ -2380,6 +2384,22 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/ana-paula-renault-escolhe-samira-para-receber-informacao-privilegiada-e-r-10-mil.ghtml"
       ],
       "cycle": 12
+    },
+    {
+      "date": "2026-04-03",
+      "type": "indicacao",
+      "actor": "Samira",
+      "target": "Marciele",
+      "source": "Indicação do Líder",
+      "detail": "Samira indicou Marciele citando embates recentes. Marciele rebateu: 'A pessoa chega na hora que tem o poder, é covarde, é falsa, é frouxa, é medrosa'. Samira: 'O jogo é meu!'",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-samira-indica-marciele-ao-13o-paredao-do-bbb-26.ghtml"
+      ],
+      "cycle": 13
     }
   ],
   "cartola_points_log": [
@@ -2408,7 +2428,10 @@
   "cartola_rounds": [
     {
       "round": 11,
-      "cycles": [11, 12],
+      "cycles": [
+        11,
+        12
+      ],
       "status": "finalized",
       "notes": "Modo turbo: uma única escalação cobriu os ciclos 11 e 12, com dois Paredões, duas Provas do Líder, Anjo autoimune e Big Fone.",
       "fontes": [
@@ -2422,7 +2445,9 @@
     },
     {
       "round": 12,
-      "cycles": [13],
+      "cycles": [
+        13
+      ],
       "status": "open",
       "notes": "Janela da 12ª rodada aberta até 2026-04-02 21:59. A liderança de Samira em 2026-04-01 e as pulseiras de VIP distribuídas nesse dia não contam para a rodada.",
       "excluded_events": [
@@ -2832,10 +2857,13 @@
       "date": "2026-04-03",
       "category": "paredao_formacao",
       "emoji": "🔥",
-      "title": "Formação do 13º Paredão",
-      "detail": "Triplo: Líder indica 1 + casa vota 2 mais votados. Anjo autoimune.",
-      "time": "Ao Vivo",
-      "cycle": 13
+      "title": "Formação do 13º Paredão — Marciele, Juliano Floss e Chaiany",
+      "detail": "Triplo turbo: Samira indica Marciele. Floss mais votado (3). Chaiany empata 2×2 com Gabriela, Samira desempata (voto de Minerva). Sem Bate e Volta.",
+      "cycle": 13,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-13o-paredao.ghtml",
+        "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-13o-paredao.md"
+      ]
     },
     {
       "date": "2026-04-05",
@@ -7847,7 +7875,10 @@
         "vencedor": "Solange Couto",
         "autoimune": true,
         "imunizado": "Solange Couto",
-        "monstro": ["Ana Paula Renault", "Milena"],
+        "monstro": [
+          "Ana Paula Renault",
+          "Milena"
+        ],
         "monstro_tipo": "Os Iluminados — revezar para manter refletores acesos",
         "monstro_motivo": "Solange escolheu Ana Paula (Líder) e Milena. Ambas perdem 300 estalecas e saem do VIP para Xepa.",
         "fontes": [
@@ -7871,8 +7902,16 @@
       "ganha_ganha": {
         "date": "2026-03-31",
         "resultado": "Modo turbo — sem veto. Ana Paula tirou o card curinga. Escolheu Samira para informação privilegiada ('O próximo Anjo será autoimune') + R$10 mil. Juliano Floss ficou com R$20 mil.",
-        "participants": ["Samira", "Juliano Floss", "Ana Paula Renault"],
-        "sorteados": ["Samira", "Juliano Floss", "Ana Paula Renault"],
+        "participants": [
+          "Samira",
+          "Juliano Floss",
+          "Ana Paula Renault"
+        ],
+        "sorteados": [
+          "Samira",
+          "Juliano Floss",
+          "Ana Paula Renault"
+        ],
         "curinga": "Ana Paula Renault",
         "info_privilegiada": {
           "recebeu": "Samira",
