@@ -1739,7 +1739,7 @@
     },
     {
       "numero": 13,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-04-05",
       "data_formacao": "2026-04-03",
       "titulo": "13º Paredão — 5 de Abril de 2026",
@@ -1808,6 +1808,107 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/lider-samira-da-voto-de-minerva-e-indica-chaiany-ao-paredao-do-bbb-26.ghtml",
           "arquivo": "docs/scraped/lider-samira-da-voto-de-minerva-e-indica-chaiany-ao-paredao-do-bbb-26.md",
           "titulo": "Líder Samira dá voto de Minerva e indica Chaiany ao Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-chaiany-e-a-decima-segunda-eliminada-do-reality.ghtml",
+          "arquivo": "docs/scraped/quem-saiu-do-bbb-26-chaiany-e-a-decima-segunda-eliminada-do-reality.md",
+          "titulo": "Quem saiu do BBB 26? Chaiany é a décima segunda eliminada do reality"
+        }
+      ],
+      "resultado": {
+        "eliminado": "Chaiany",
+        "votos": {
+          "Chaiany": {
+            "voto_unico": 60.32,
+            "voto_torcida": 62.82,
+            "voto_total": 61.07
+          },
+          "Marciele": {
+            "voto_unico": 20.73,
+            "voto_torcida": 19.54,
+            "voto_total": 20.37
+          },
+          "Juliano Floss": {
+            "voto_unico": 18.95,
+            "voto_torcida": 17.64,
+            "voto_total": 18.56
+          }
+        }
+      }
+    },
+    {
+      "numero": 14,
+      "status": "em_andamento",
+      "data": "2026-04-07",
+      "data_formacao": "2026-04-05",
+      "titulo": "14º Paredão — 7 de Abril de 2026",
+      "cycle": 14,
+      "total_esperado": 3,
+      "formacao": {
+        "resumo": "Triplo com Contragolpe. Líder Juliano Floss indica Jordana ('discordo de posicionamentos, mas poupei Marciele que votou comigo'). Casa vota: Marciele e Samira empatam com 3 votos cada; Floss desempata com voto de Minerva e manda Marciele. Jordana contragolpeia Samira ('jogo sujo, postura diferente quando precisa da gente'). Sem Bate e Volta.",
+        "lider": "Juliano Floss",
+        "lideres": null,
+        "indicado_lider": "Jordana",
+        "motivo_lider": "Discordância de posicionamentos no jogo — poupou Marciele por ter votado com ele no Paredão anterior",
+        "anjo": null,
+        "imunizado": null,
+        "contragolpe": {
+          "de": "Jordana",
+          "para": "Samira",
+          "motivo": "Jogo sujo — postura diferente quando precisa da gente e quando não precisa mais. Informação falsa sobre a Prova do Anjo."
+        },
+        "bate_volta": null,
+        "sem_bate_volta": true,
+        "voto_minerva": {
+          "desempate_entre": ["Marciele", "Samira"],
+          "votos_cada": 3,
+          "escolhida": "Marciele"
+        }
+      },
+      "indicados_finais": [
+        {"nome": "Jordana", "grupo": "Pipoca", "como": "Indicada pelo Líder"},
+        {"nome": "Marciele", "grupo": "Pipoca", "como": "Voto de Minerva (empate 3×3 com Samira)"},
+        {"nome": "Samira", "grupo": "Pipoca", "como": "Contragolpe (Jordana)"}
+      ],
+      "votos_casa": {
+        "Gabriela": "Leandro",
+        "Leandro": "Samira",
+        "Ana Paula Renault": "Marciele",
+        "Marciele": "Samira",
+        "Samira": "Marciele",
+        "Jordana": "Samira",
+        "Milena": "Marciele"
+      },
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-juliano-floss-vence-a-14a-disputa.ghtml",
+          "arquivo": "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-juliano-floss-vence-a-14a-disputa.md",
+          "titulo": "Juliano Floss vence a 14ª Prova do Líder"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-contra-golpe-e-eliminacao-na-terca-feira-7.ghtml",
+          "arquivo": "docs/scraped/dinamica-da-semana-tem-contra-golpe-e-eliminacao-na-terca-feira-7.md",
+          "titulo": "Dinâmica da Semana — Contragolpe + Eliminação terça (7)"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-juliano-floss-indica-jordana-ao-14o-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/lider-juliano-floss-indica-jordana-ao-14o-paredao-do-bbb-26.md",
+          "titulo": "Líder Juliano Floss indica Jordana ao 14º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-14o-paredao.ghtml",
+          "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-14o-paredao.md",
+          "titulo": "BBB 26: veja quem votou em quem na formação do 14º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-juliano-floss-da-voto-de-minerva-e-indica-marciele-ao-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/lider-juliano-floss-da-voto-de-minerva-e-indica-marciele-ao-paredao-do-bbb-26.md",
+          "titulo": "Líder Floss dá voto de Minerva — Marciele ao Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/indicado-pelo-lider-jordana-puxa-samira-no-contragolpe-do-14o-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/indicado-pelo-lider-jordana-puxa-samira-no-contragolpe-do-14o-paredao-do-bbb-26.md",
+          "titulo": "Jordana puxa Samira no Contragolpe do 14º Paredão"
         }
       ]
     }

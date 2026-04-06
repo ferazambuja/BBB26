@@ -133,6 +133,14 @@
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-solange-couto-e-a-decima-primeira-eliminada-do-reality.ghtml"
       ]
+    },
+    "Chaiany": {
+      "status": "eliminada",
+      "exit_date": "2026-04-05",
+      "paredao_numero": 13,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-chaiany-e-a-decima-segunda-eliminada-do-reality.ghtml"
+      ]
     }
   },
   "special_events": [
@@ -2400,6 +2408,38 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-samira-indica-marciele-ao-13o-paredao-do-bbb-26.ghtml"
       ],
       "cycle": 13
+    },
+    {
+      "date": "2026-04-05",
+      "type": "indicacao",
+      "actor": "Juliano Floss",
+      "target": "Jordana",
+      "source": "Indicação do Líder",
+      "detail": "Floss indicou Jordana: 'As três sabem que eu colocaria qualquer uma delas. Em respeito à Marciele, que votou comigo no Paredão, vou colocar a Jordana. Não concordo com alguns posicionamentos.'",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-juliano-floss-indica-jordana-ao-14o-paredao-do-bbb-26.ghtml"
+      ],
+      "cycle": 14
+    },
+    {
+      "date": "2026-04-05",
+      "type": "contragolpe",
+      "actor": "Jordana",
+      "target": "Samira",
+      "source": "Contragolpe",
+      "detail": "Jordana contragolpeou Samira: 'Estava esperando esse Contragolpe! Não concordo com o jogo dela, acho sujo. Postura diferente quando precisa da gente. Informação falsa sobre a Prova do Anjo.'",
+      "impacto": "negativo",
+      "origem": "manual",
+      "visibility": "public",
+      "awareness": "known",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/indicado-pelo-lider-jordana-puxa-samira-no-contragolpe-do-14o-paredao-do-bbb-26.ghtml"
+      ],
+      "cycle": 14
     }
   ],
   "cartola_points_log": [
@@ -2869,10 +2909,25 @@
       "date": "2026-04-05",
       "category": "paredao_resultado",
       "emoji": "🏁",
-      "title": "Eliminação (13º Paredão)",
-      "detail": "Resultado do 13º Paredão.",
-      "time": "Ao Vivo",
+      "title": "13º Paredão — Chaiany eliminada (61,07%)",
+      "detail": "Chaiany eliminada com 61,07% da média. Marciele 20,37%, Juliano Floss 18,56%.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-chaiany-e-a-decima-segunda-eliminada-do-reality.ghtml",
+        "docs/scraped/quem-saiu-do-bbb-26-chaiany-e-a-decima-segunda-eliminada-do-reality.md"
+      ],
       "cycle": 13
+    },
+    {
+      "date": "2026-04-05",
+      "category": "lider",
+      "emoji": "👑",
+      "title": "Juliano Floss vence a 14ª Prova do Líder",
+      "detail": "Prova em 2 etapas: pontuação (8 competem, top 2 avançam) + final ao vivo. Floss e Ana Paula classificados. Floss venceu a final com 60 pts. Primeira liderança. VIP: Ana Paula, Milena, Samira.",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-lider/noticia/quem-ganhou-a-prova-do-lider-do-bbb-26-juliano-floss-vence-a-14a-disputa.ghtml",
+        "docs/scraped/quem-ganhou-a-prova-do-lider-do-bbb-26-juliano-floss-vence-a-14a-disputa.md"
+      ],
+      "cycle": 14
     }
   ],
   "cycles": [
@@ -7946,9 +8001,19 @@
     },
     {
       "start_date": "2026-04-01",
-      "end_date": null,
+      "end_date": "2026-04-04",
       "schedule_profile": "turbo_top10",
-      "notes": "Top 9 — Samira Líder (bicampeã). Qua (1): Prova do Líder. Sex (3): Anjo autoimune + Formação do 13º Paredão (Líder 1 + Casa 2 mais votados = triplo). Dom (5): Eliminação.",
+      "notes": "Top 9 — Samira Líder (bicampeã). Qua (1): Prova do Líder. Sex (3): Anjo autoimune + Formação do 13º Paredão (Líder 1 + Casa 2 mais votados = triplo). Sáb (4): Big Fone (Chaiany — prêmio pessoal). Dom (5): Eliminação + Prova do Líder (Floss) + P14 Formação.",
+      "big_fone": [
+        {
+          "date": "2026-04-04",
+          "atendeu": "Chaiany",
+          "consequencia": "Prêmio pessoal: par de ingressos para todos os jogos do Corinthians em casa no Brasileirão 2026. Sem impacto na formação do Paredão.",
+          "fontes": [
+            "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/chaiany-e-eliminada-do-bbb-26-confira-como-fica-a-pontuacao-da-ex-sister-no-cartola-bbb.ghtml"
+          ]
+        }
+      ],
       "anjo": {
         "prova_date": "2026-04-03",
         "vencedor": "Jordana",
@@ -7968,6 +8033,18 @@
         "docs/scraped/dinamica-da-semana-tem-anjo-autoimune-e-eliminacao-no-domingo-5.md"
       ],
       "cycle": 13
+    },
+    {
+      "start_date": "2026-04-05",
+      "end_date": null,
+      "schedule_profile": "turbo_top10",
+      "notes": "Top 8 — Juliano Floss Líder (primeira liderança). Dom (5): P13 Eliminação (Chaiany) + Prova do Líder (Floss) + Formação do 14º Paredão (Líder + Casa + Contragolpe = triplo). Ter (7): Eliminação.",
+      "anjo": null,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-contra-golpe-e-eliminacao-na-terca-feira-7.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-contra-golpe-e-eliminacao-na-terca-feira-7.md"
+      ],
+      "cycle": 14
     }
   ]
 }

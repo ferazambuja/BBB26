@@ -484,6 +484,7 @@ CYCLE_END_DATES: list[str] = [
     "2026-03-25",  # Cycle 10 — Alberto Cowboy Líder (tetra); 10º Paredão Mar 24 (Jonas eliminated); next Líder Mar 26
     "2026-03-28",  # Cycle 11 — Ana Paula Renault Líder; 11º Paredão Mar 29 (Alberto eliminated); Ana Paula bi Mar 29
     "2026-03-31",  # Cycle 12 — Ana Paula Renault Líder (bi); 12º Paredão Mar 31 (Solange eliminated); next Líder Apr 1
+    "2026-04-04",  # Cycle 13 — Samira Líder (bi); 13º Paredão Apr 5 (Chaiany eliminated); Juliano Floss Líder Apr 5
 ]
 
 
