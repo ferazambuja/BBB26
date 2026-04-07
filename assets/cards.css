@@ -2509,6 +2509,90 @@ body.paredao-page main.content h2.poll-section-title {
   }
 }
 
+/* ── Sincerao Podium grid ── */
+.sinc-podiums-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.4rem;
+}
+
+.sinc-podium-entry {
+  background: rgba(230, 126, 34, 0.08);
+  border: 1px solid rgba(230, 126, 34, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.sinc-podium-entry[open] {
+  border-color: rgba(230, 126, 34, 0.5);
+}
+
+.sinc-podium-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sinc-podium-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sinc-podium-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sinc-podium-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0 0.45rem 0.4rem;
+  font-size: var(--fs-xs);
+}
+
+.sinc-podium-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  color: #ddd;
+}
+
+.sinc-podium-slot.gold {
+  background: rgba(241, 196, 15, 0.12);
+}
+
+.sinc-podium-slot.silver {
+  background: rgba(189, 195, 199, 0.10);
+}
+
+.sinc-podium-nao-ganha {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 520px) {
+  .sinc-podiums-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ── Profile Sincerao blocks ── */
 .profile-sinc-current {
   display: grid;

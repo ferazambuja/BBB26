@@ -8053,6 +8053,82 @@
         "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-contra-golpe-e-eliminacao-na-terca-feira-7.ghtml",
         "docs/scraped/dinamica-da-semana-tem-contra-golpe-e-eliminacao-na-terca-feira-7.md"
       ],
+      "sincerao": {
+        "date": "2026-04-06",
+        "format": "pódio + quem não ganha (remontagem dos pódios do 1º Sincerão, 19/jan)",
+        "participacao": [
+          "Jordana",
+          "Marciele",
+          "Samira",
+          "Juliano Floss",
+          "Ana Paula Renault",
+          "Leandro",
+          "Milena",
+          "Gabriela"
+        ],
+        "protagonistas": [],
+        "notes": "Top 8 remontaram os pódios originais do 1º Sincerão (19/jan) e apontaram quem não ganha. Jordana foi a mais visada no 'não ganha' (4 votos: Samira, Ana Paula, Leandro, Milena). Samira recebeu 2 (Jordana, Marciele). Marciele 1 (Floss). Ana Paula 1 (Gabriela). Milena foi a mais citada nos pódios alheios (4×). Leandro não apareceu em nenhum pódio. 7 dos 8 alteraram o 'não ganha' em relação ao 1º Sincerão (apenas Samira manteve o pódio, mas trocou 'não ganha' de Matheus para Jordana). Alberto Cowboy e Solange Couto ausentes (eliminados).",
+        "fontes": [
+          "https://gshow.globo.com/realities/bbb/bbb-26/sincerao/noticia/sincerao-bbb-26-participantes-montam-novo-podio-e-apontam-quem-nao-ganha-o-reality.ghtml",
+          "docs/scraped/sincerao-bbb-26-participantes-montam-novo-podio-e-apontam-quem-nao-ganha-o-reality.md"
+        ],
+        "stats": {
+          "podio_top": [
+            {"name": "Milena", "count": 4},
+            {"name": "Ana Paula Renault", "count": 3},
+            {"name": "Jordana", "count": 2},
+            {"name": "Marciele", "count": 2},
+            {"name": "Gabriela", "count": 2},
+            {"name": "Juliano Floss", "count": 2},
+            {"name": "Samira", "count": 1}
+          ],
+          "sem_podio": ["Leandro"],
+          "nao_ganha_top": [
+            {"name": "Jordana", "count": 4},
+            {"name": "Samira", "count": 2},
+            {"name": "Marciele", "count": 1},
+            {"name": "Ana Paula Renault", "count": 1}
+          ],
+          "mutual_confrontations": [
+            ["Jordana", "Samira"]
+          ]
+        },
+        "edges": [
+          {"actor": "Jordana", "target": "Jordana", "type": "elogio", "slot": 1},
+          {"actor": "Jordana", "target": "Marciele", "type": "elogio", "slot": 2},
+          {"actor": "Jordana", "target": "Gabriela", "type": "elogio", "slot": 3},
+          {"actor": "Jordana", "target": "Samira", "type": "nao_ganha"},
+          {"actor": "Marciele", "target": "Marciele", "type": "elogio", "slot": 1},
+          {"actor": "Marciele", "target": "Jordana", "type": "elogio", "slot": 2},
+          {"actor": "Marciele", "target": "Gabriela", "type": "elogio", "slot": 3},
+          {"actor": "Marciele", "target": "Samira", "type": "nao_ganha"},
+          {"actor": "Samira", "target": "Samira", "type": "elogio", "slot": 1},
+          {"actor": "Samira", "target": "Milena", "type": "elogio", "slot": 2},
+          {"actor": "Samira", "target": "Ana Paula Renault", "type": "elogio", "slot": 3},
+          {"actor": "Samira", "target": "Jordana", "type": "nao_ganha"},
+          {"actor": "Juliano Floss", "target": "Juliano Floss", "type": "elogio", "slot": 1},
+          {"actor": "Juliano Floss", "target": "Ana Paula Renault", "type": "elogio", "slot": 2},
+          {"actor": "Juliano Floss", "target": "Milena", "type": "elogio", "slot": 3},
+          {"actor": "Juliano Floss", "target": "Marciele", "type": "nao_ganha"},
+          {"actor": "Ana Paula Renault", "target": "Ana Paula Renault", "type": "elogio", "slot": 1},
+          {"actor": "Ana Paula Renault", "target": "Milena", "type": "elogio", "slot": 2},
+          {"actor": "Ana Paula Renault", "target": "Juliano Floss", "type": "elogio", "slot": 3},
+          {"actor": "Ana Paula Renault", "target": "Jordana", "type": "nao_ganha"},
+          {"actor": "Leandro", "target": "Leandro", "type": "elogio", "slot": 1},
+          {"actor": "Leandro", "target": "Juliano Floss", "type": "elogio", "slot": 2},
+          {"actor": "Leandro", "target": "Milena", "type": "elogio", "slot": 3},
+          {"actor": "Leandro", "target": "Jordana", "type": "nao_ganha"},
+          {"actor": "Milena", "target": "Milena", "type": "elogio", "slot": 1},
+          {"actor": "Milena", "target": "Samira", "type": "elogio", "slot": 2},
+          {"actor": "Milena", "target": "Ana Paula Renault", "type": "elogio", "slot": 3},
+          {"actor": "Milena", "target": "Jordana", "type": "nao_ganha"},
+          {"actor": "Gabriela", "target": "Gabriela", "type": "elogio", "slot": 1},
+          {"actor": "Gabriela", "target": "Marciele", "type": "elogio", "slot": 2},
+          {"actor": "Gabriela", "target": "Jordana", "type": "elogio", "slot": 3},
+          {"actor": "Gabriela", "target": "Ana Paula Renault", "type": "nao_ganha"}
+        ],
+        "edges_notes": "Mesmo formato do 1º Sincerão (pódio + quem não ganha). Cada participante coloca a si mesma no 1º lugar. Edges: elogio (slot 1/2/3) para pódio, nao_ganha para a indicação negativa. Jordana↔Samira é a única confrontação mútua no 'não ganha'."
+      },
       "cycle": 14
     }
   ]

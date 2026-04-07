@@ -59,6 +59,7 @@ from index_viz import (
     render_break_row as _render_break_row,
     render_overflow_toggle as _render_overflow_toggle,
     render_pair_chip,
+    render_podiums_lane as _render_podiums_lane,
     render_pulso_card,
     render_viradas_card,
     render_profile_card,
@@ -361,6 +362,9 @@ else:
             neg_lanes = radar.get("neg_lanes", [])
             pos_ranked = radar.get("pos_ranked", [])
             not_targeted = radar.get("not_targeted", [])
+            custom_neg_label = radar.get("neg_label")
+            custom_neg_emoji = radar.get("neg_emoji")
+            podiums_data = card.get("podiums")
 
             INLINE_MAX_RANKED = 4
             INLINE_MAX_PAIRS = 3
@@ -373,12 +377,16 @@ else:
                     reaction_ref_pt = reaction_reference_date
                 subtitle = f"{subtitle} Reações de referência: {reaction_ref_pt}."
 
+            # Negative lane: use custom label when all edges are the same type (e.g., "Não Ganha")
+            _neg_title = custom_neg_label or "Atacados"
+            _neg_icon = custom_neg_emoji or "💣"
+
             lanes = []
             if neg_lanes:
                 lanes.extend(
                     _render_ranked_lane(
-                        lane.get("label", "Atacados"),
-                        "💣",
+                        lane.get("label", _neg_title),
+                        _neg_icon,
                         lane.get("ranked", []),
                         "Sem ataques na semana.",
                         "attack",
@@ -392,8 +400,8 @@ else:
             else:
                 lanes = [
                     _render_ranked_lane(
-                        "Atacados",
-                        "💣",
+                        _neg_title,
+                        _neg_icon,
                         neg_ranked,
                         "Sem ataques na semana.",
                         "attack",
@@ -404,7 +412,17 @@ else:
                     ),
                 ]
 
-            if pos_ranked:
+            # Podium view (when format is pódio-based) or generic "Elogiados"
+            if podiums_data:
+                lanes.append(
+                    _render_podiums_lane(
+                        podiums_data,
+                        avatar_html_fn=_avatar_html,
+                        avatars=AVATARS,
+                        avatar_size=30,
+                    )
+                )
+            elif pos_ranked:
                 lanes.append(
                     _render_ranked_lane(
                         "Elogiados",
@@ -420,12 +438,22 @@ else:
                 )
 
             safe_ranked = [{"name": n, "count": 0} for n in not_targeted]
+            # In podium format, not being mentioned is negative (invisible);
+            # in attack formats, not being targeted is positive (spared).
+            if podiums_data:
+                _safe_title = "Sem Menção"
+                _safe_icon = "👻"
+                _safe_empty = "Todos apareceram em algum pódio ou 'não ganha'."
+            else:
+                _safe_title = "Poupados"
+                _safe_icon = "🛡️"
+                _safe_empty = "Ninguém ficou poupado na semana."
             lanes.append(
                 _render_ranked_lane(
-                    "Poupados",
-                    "🛡️",
+                    _safe_title,
+                    _safe_icon,
                     safe_ranked,
-                    "Ninguém ficou poupado na semana.",
+                    _safe_empty,
                     "safe",
                     inline_max=INLINE_MAX_RANKED,
                     avatar_html_fn=_avatar_html,

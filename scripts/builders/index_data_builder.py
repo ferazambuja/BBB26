@@ -397,6 +397,9 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
             if _is_positive_heart_reaction(latest_matrix.get((actor, target))):
                 contradiction_counts[actor] += 1
         else:
+            # Skip self-edges (e.g., podium slot 1 where actor puts themselves first)
+            if actor and actor == target:
+                continue
             pos_counts[target] += 1
             if actor and target:
                 pos_actors[target].add(actor)
@@ -425,6 +428,23 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
     # "Not targeted" = participated (is an actor) but nobody targeted them negatively
     all_targeted = set(neg_counts.keys()) | set(pos_counts.keys())
     not_targeted = sorted(actors - all_targeted)
+
+    # Detect uniform neg type → custom label (e.g., all nao_ganha → "Não Ganha 🚫")
+    neg_types_seen: set[str] = set()
+    for edge in week_edges:
+        if (edge.get("cycle")) != week:
+            continue
+        etype = edge.get("type", "")
+        if SINC_VALENCE.get(etype) == "neg":
+            neg_types_seen.add(etype)
+    neg_label = None
+    neg_emoji = None
+    if len(neg_types_seen) == 1:
+        sole_type = next(iter(neg_types_seen))
+        meta = SINC_TYPE_META.get(sole_type, {})
+        neg_label = meta.get("label", "").title() if meta.get("label") else None
+        neg_emoji = meta.get("emoji")
+
     neg_lanes = []
     if len(neg_counts_by_tema) > 1:
         neg_lanes = [
@@ -452,6 +472,8 @@ def _compute_sincerao_radar(week_edges: list[dict], week: int,
         "most_contradictions": _top(contradiction_counts),
         "neg_ranked": _ranked(neg_counts, neg_actors),
         "neg_lanes": neg_lanes,
+        "neg_label": neg_label,
+        "neg_emoji": neg_emoji,
         "pos_ranked": _ranked(pos_counts, pos_actors),
         "not_targeted": not_targeted,
         "n_actors": len(actors),
@@ -2608,10 +2630,36 @@ def _compute_sincerao_highlight(
             sinc_week_format = w.get("format", "")
             break
 
+    # Build podiums from edges when format is elogio+nao_ganha (pódio format)
+    podiums: list[dict] | None = None
+    week_edges_all = [e for e in (sinc_data.get("edges", []) if sinc_data else [])
+                      if (e.get("cycle")) == sinc_week_used]
+    edge_types_in_week = {e.get("type") for e in week_edges_all}
+    if edge_types_in_week <= {"elogio", "nao_ganha"} and "elogio" in edge_types_in_week:
+        # Reconstruct each participant's podium from their edges
+        by_actor: dict[str, dict] = {}
+        for e in week_edges_all:
+            actor = e.get("actor", "")
+            target = e.get("target", "")
+            etype = e.get("type", "")
+            if not actor:
+                continue
+            if actor not in by_actor:
+                by_actor[actor] = {"name": actor, "slot_2": None, "slot_3": None, "nao_ganha": None}
+            if etype == "elogio":
+                slot = e.get("slot")
+                if slot == 2:
+                    by_actor[actor]["slot_2"] = target
+                elif slot == 3:
+                    by_actor[actor]["slot_3"] = target
+            elif etype == "nao_ganha":
+                by_actor[actor]["nao_ganha"] = target
+        podiums = sorted(by_actor.values(), key=lambda p: p["name"])
+
     # Unified Sincerão card: radar + contradictions merged
     show_current_cycle_card = current_cycle in available_weeks
     if show_current_cycle_card and (radar.get("neg_ranked") or radar.get("pos_ranked") or pair_contradictions):
-        cards.append({
+        card_data: dict = {
             "type": "sincerao",
             "icon": "🔥", "title": f"Sincerão S{sinc_week_used}",
             "color": "#e67e22", "link": "relacoes.html#sincerao-contradictions",
@@ -2619,7 +2667,10 @@ def _compute_sincerao_highlight(
             "radar": radar,
             "contradictions": pair_contradictions,
             "aligned_neg": pair_aligned_neg,
-        })
+        }
+        if podiums:
+            card_data["podiums"] = podiums
+        cards.append(card_data)
 
     return (highlights, cards, pair_contradictions, pair_aligned_pos, pair_aligned_neg,
             sinc_week_used, available_weeks, radar)
