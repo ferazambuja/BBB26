@@ -862,11 +862,11 @@ Na prática, Sites dominam porque têm os maiores veículos (UOL Splash com ~4,7
 | 𝕏 Twitter | 774.622 | **5,2%** | 22 |
 | **Total** | **14.771.481** | 100% | 75 |
 
-**O problema**: Sites são a plataforma **menos precisa** historicamente (RMSE 18,7 p.p.), mas recebem 70% do peso. Twitter é a **mais precisa** (RMSE 4,8 p.p.) mas só tem 5% de influência.
+**O problema**: Sites são a plataforma **menos precisa** historicamente (RMSE 17,1 p.p.), mas recebem ~70% do peso no Votalhada. Instagram é a **mais precisa** (RMSE 5,6 p.p.) mas só tem ~14% de influência.
 
-Isso acontece porque as grandes enquetes de Sites sobre-representam fãs engajados que votam estrategicamente (votação em massa coordenada por fanbases), enquanto Twitter, com público menor e mais opinativo, captura melhor o perfil demográfico de quem vota com CPF (Voto Único = 70% do resultado real).
+Isso acontece porque as grandes enquetes de Sites sobre-representam fãs engajados que votam estrategicamente (votação em massa coordenada por fanbases), enquanto Twitter e Instagram, com público menor e mais opinativo, capturam melhor o perfil demográfico de quem vota com CPF (Voto Único = 70% do resultado real).
 
-### Solução: ponderação por precisão histórica (inverso do RMSE²)
+### Etapa 1: ponderação por precisão histórica (inverso do RMSE²)
 
 O modelo usa o **inverso do RMSE quadrado** de cada plataforma como peso:
 
@@ -874,57 +874,80 @@ O modelo usa o **inverso do RMSE quadrado** de cada plataforma como peso:
 peso_i = (1 / RMSE_i²) / Σ(1 / RMSE_j²)
 ```
 
-O RMSE (Root Mean Square Error) é calculado sobre todos os pares (previsão, resultado real) de todos os paredões finalizados, para cada plataforma separadamente. Usando RMSE² no denominador (ao invés de RMSE linear), plataformas imprecisas são penalizadas quadraticamente — Sites com RMSE 2× maior que YouTube recebem ~4× menos peso.
+O RMSE (Root Mean Square Error) é calculado sobre todos os pares (previsão, resultado real) de todos os paredões finalizados, para cada plataforma separadamente. Usando RMSE² no denominador (ao invés de RMSE linear), plataformas imprecisas são penalizadas quadraticamente — Sites com RMSE 3× maior que Instagram recebem ~9× menos peso.
 
-### Derivação dos pesos (6 paredões finalizados)
+### Etapa 2: calibração de potência (γ=1,15)
+
+Enquetes online comprimem os extremos: fanbases organizadas diluem a liderança do mais votado, e participantes com poucos votos ficam inflados. Para corrigir, aplicamos uma **calibração de potência**:
+
+```
+p_i' = p_i^γ / Σ(p_j^γ) × 100
+```
+
+Com γ=1,15, previsões altas sobem e baixas descem, esticando a distribuição para mais perto da realidade. Isso é análogo a *temperature scaling* em calibração de modelos de ML.
+
+### Derivação dos pesos (13 paredões finalizados)
 
 | Plataforma | RMSE (p.p.) | 1/RMSE² | Peso modelo | Peso Votalhada | Mudança |
 |-----------|:-----------:|:-------:|:-----------:|:--------------:|:-------:|
-| 𝕏 Twitter | 5,14 | 0,03785 | **47,8%** | ~5% | ×9,6 |
-| 📷 Instagram | 5,75 | 0,03025 | **38,1%** | ~14% | ×2,7 |
-| ▶️ YouTube | 11,18 | 0,00800 | **10,1%** | ~11% | ×0,9 |
-| 🌐 Sites | 17,68 | 0,00320 | **4,0%** | ~70% | ×0,1 |
+| 📷 Instagram | 5,63 | 0,03155 | **43,9%** | ~14% | ×3,1 |
+| 𝕏 Twitter | 5,87 | 0,02902 | **40,5%** | ~5% | ×8,1 |
+| ▶️ YouTube | 11,30 | 0,00783 | **10,9%** | ~11% | ×1,0 |
+| 🌐 Sites | 17,14 | 0,00340 | **4,7%** | ~70% | ×0,1 |
 
-A inversão é dramática: Sites perdem 94% de influência, Twitter ganha quase 10×.
+A inversão é dramática: Sites perdem 93% de influência, Instagram e Twitter dominam com ~84% combinados.
 
-> **Nota**: estes pesos são recalculados automaticamente a cada paredão finalizado. A tabela acima reflete o estado após o 6º Paredão.
+> **Nota**: estes pesos são recalculados automaticamente a cada paredão finalizado. A tabela acima reflete o estado após o 13º Paredão.
 
-### Validação: Leave-One-Out Cross-Validation
+### Validação: Leave-One-Out + Forward-Only
 
-Com poucos paredões, validação padrão (train/test split) não funciona. Usamos **leave-one-out (LOO)**: para cada paredão, calculamos pesos usando APENAS os outros N-1, depois prevemos este. Nenhum paredão é previsto com dados de si mesmo.
+Duas validações complementares:
 
-Resultados do back-test LOO (6 paredões):
+1. **Leave-one-out (LOO)**: para cada paredão, calculamos pesos usando APENAS os outros N-1, depois prevemos este. Nenhum paredão é previsto com dados de si mesmo.
+2. **Forward-only (janela expansível)**: para cada paredão, usa apenas os *anteriores* — como se estivesse prevendo em tempo real. Mais realista, mas penaliza paredões iniciais (menos dados de treino). Começa no 3º paredão.
+
+Resultados do back-test LOO (13 paredões, com γ=1,15):
 
 | Paredão | Eliminado | Erro Consolidado | Erro Modelo LOO | Melhoria |
 |:-------:|-----------|:----------------:|:---------------:|:--------:|
-| 1º | Aline Campos | 10,3 p.p. | 7,4 p.p. | +2,9 |
-| 2º | Matheus | 10,3 p.p. | 2,1 p.p. | +8,2 |
-| 3º | Brigido | 16,7 p.p. | 5,6 p.p. | +11,1 |
-| 4º | Sarah Andrade | 7,8 p.p. | 3,6 p.p. | +4,2 |
-| 5º | Marcelo | 3,8 p.p. | 2,4 p.p. | +1,4 |
-| 6º | Maxiane | 6,9 p.p. | 3,2 p.p. | +3,7 |
-| **Média** | | **9,30 p.p.** | **4,04 p.p.** | **−56,5%** |
+| 1º | Aline Campos | 10,3 p.p. | 6,1 p.p. | +4,2 |
+| 2º | Matheus | 10,3 p.p. | 1,8 p.p. | +8,5 |
+| 3º | Brigido | 16,7 p.p. | 3,7 p.p. | +13,0 |
+| 4º | Sarah Andrade | 7,8 p.p. | 2,4 p.p. | +5,4 |
+| 5º | Marcelo | 3,8 p.p. | 4,2 p.p. | −0,4 |
+| 6º | Maxiane | 6,9 p.p. | 3,7 p.p. | +3,2 |
+| 7º | Breno | 5,0 p.p. | 2,1 p.p. | +2,8 |
+| 8º | Babu Santana | 9,6 p.p. | 7,1 p.p. | +2,6 |
+| 9º | Breno | 8,2 p.p. | 6,1 p.p. | +2,1 |
+| 10º | Jonas Sulzbach | 7,4 p.p. | 3,4 p.p. | +4,1 |
+| 11º | Alberto Cowboy | 11,6 p.p. | 2,8 p.p. | +8,8 |
+| 12º | Solange Couto | 7,7 p.p. | 1,9 p.p. | +5,8 |
+| 13º | Chaiany | 10,9 p.p. | 1,0 p.p. | +9,9 |
+| **Média** | | **8,9 p.p.** | **3,6 p.p.** | **−60%** |
 
-Ambos os métodos acertaram o eliminado em 6/6 paredões. A diferença está na **precisão das porcentagens**.
+O modelo acertou o mais votado em **13/13** paredões vs Votalhada **11/13**.
+
+Forward-only (P3–P13): MAE 3,8 p.p. (11/11 acertos) vs Votalhada 8,7 p.p. (9/11).
 
 ### Por que funciona
 
-1. **Sites sobre-representam fanbases organizadas**: grandes portais atraem votação em massa coordenada, inflando certos participantes além do real.
-2. **Twitter captura o Voto Único**: o perfil demográfico do Twitter (mais opinativo, menos coordenado) se aproxima do eleitor que vota com CPF, que vale 70% do resultado final no BBB 26.
-3. **Instagram complementa**: com público engajado mas diverso, tem precisão intermediária.
+1. **Sites sobre-representam fanbases organizadas**: grandes portais atraem votação em massa coordenada, inflando certos participantes além do real. Viés médio no eliminado: −22 p.p.
+2. **Twitter e Instagram capturam o Voto Único**: perfil demográfico mais opinativo e menos coordenado se aproxima do eleitor que vota com CPF (70% do resultado final).
+3. **Calibração γ corrige compressão**: enquetes subestimam sistematicamente o mais votado (plataforma média erra −10 p.p. no eliminado). γ>1 estica as previsões de volta.
 4. **YouTube é volátil**: enquetes em vídeo dependem do engajamento do canal, variando muito entre paredões.
 
 ### Limitações
 
-- **N pequeno**: 6 paredões é suficiente para LOO mas não para intervalos de confiança robustos. Os pesos vão se estabilizar com mais dados.
 - **Não-estacionário**: a composição de fontes de cada plataforma pode mudar entre paredões (uma nova enquete de Site grande pode alterar o perfil).
 - **Sem modelagem de tendência**: o modelo não usa a série temporal (variação intra-paredão). Usa apenas o snapshot final.
+- **γ é fixo**: o valor 1,15 foi validado em LOO e forward-only, mas pode não ser ótimo para todos os cenários (ex.: paredões muito acirrados vs landslides).
 - **Os pesos são recalculados a cada paredão finalizado** — não são fixos.
 
 ### Implementação
 
-- **Funções**: `calculate_precision_weights()`, `predict_precision_weighted()`, `backtest_precision_model()` em `scripts/data_utils.py`
-- **Páginas**: `paredao.qmd` (previsão em andamento + resultado finalizado), `paredoes.qmd` (resumo de precisão + back-test + tabs por paredão)
+- **Constante**: `CALIBRATION_GAMMA = 1.15` em `scripts/data_utils.py`
+- **Funções**: `calculate_precision_weights()`, `predict_precision_weighted(gamma=CALIBRATION_GAMMA)`, `backtest_precision_model()`, `backtest_forward_only()` em `scripts/data_utils.py`
+- **Páginas**: `paredao.qmd` (previsão em andamento + resultado finalizado), `paredoes.qmd` (resumo de precisão + back-test LOO + forward-only + tabs por paredão)
 - **Cores**: teal `#00bc8c` para o modelo (consistente com o tema BBB dark)
 
 ---

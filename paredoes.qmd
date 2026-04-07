@@ -30,7 +30,7 @@ from data_utils import (
     load_paredoes_transformed, load_index_data,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted, backtest_precision_model,
-    build_precision_methodology_text,
+    backtest_forward_only, build_precision_methodology_text, CALIBRATION_GAMMA,
     platform_label, get_votalhada_source_url, render_votalhada_logo, render_poll_mobile_card,
     require_clean_manual_events, prepare_plotly_for_quarto, setup_bbb_dark_theme,
     genero, get_nominee_badge, resolve_leaders,
@@ -286,6 +286,8 @@ if len(finalized_polls) >= 1:
     print('<li><strong>LOO</strong> (Leave-One-Out) — Método de validação: para prever cada paredão, o modelo é treinado usando <em>apenas os outros paredões</em>, como se não soubesse o resultado. Isso evita que o modelo "decore" os dados.</li>')
     print('<li><strong>RMSE</strong> (Root Mean Square Error) — Similar ao MAE, mas penaliza erros grandes com mais severidade. Usado para calcular os pesos do modelo (plataformas com menor RMSE ganham mais peso).</li>')
     print('<li><strong>p.p.</strong> (pontos percentuais) — Unidade de diferença entre percentuais. Ex.: previsão de 45% vs resultado de 50% = erro de 5 p.p.</li>')
+    print(f'<li><strong>γ (gamma)</strong> — Calibração de potência (γ={CALIBRATION_GAMMA:.2f}): enquetes comprimem os extremos (fanbases diluem a liderança). O modelo eleva cada previsão a γ e renormaliza para corrigir esse viés.</li>')
+    print('<li><strong>Forward-only</strong> — Validação mais realista: para cada paredão, usa <em>apenas os anteriores</em> (sem informação futura). Simula o uso real do modelo.</li>')
     print('</ul>')
     print('</div></details>\n')
 
@@ -565,9 +567,46 @@ if len(finalized_polls) >= 1:
         print('</tbody></table>')
 
         print(f'<div class="u-s163">')
-        print(f'<strong>📊 Resultado:</strong> Nosso Modelo reduz o erro médio de <strong>{_bt_agg["consolidado_mae"]:.1f}</strong> para <strong>{_bt_agg["model_mae"]:.1f}</strong> p.p. (<strong>{_imp:+.0f}%</strong>).')
+        print(f'<strong>📊 Resultado LOO:</strong> Nosso Modelo reduz o erro médio de <strong>{_bt_agg["consolidado_mae"]:.1f}</strong> para <strong>{_bt_agg["model_mae"]:.1f}</strong> p.p. (<strong>{_imp:+.0f}%</strong>).')
         print(f' Acertou o mais votado em <strong>{_bt_agg["model_correct"]}/{_bt_agg["n_paredoes"]}</strong> paredões vs Votalhada <strong>{_bt_agg["consolidado_correct"]}/{_bt_agg["n_paredoes"]}</strong>.')
+        if CALIBRATION_GAMMA != 1.0:
+            print(f'<br><span class="text-muted small">Calibração: γ={CALIBRATION_GAMMA:.2f} (correção de compressão de extremos)</span>')
         print(f'</div>\n')
+
+        # Forward-only backtest (expanding window — more realistic)
+        _fw = backtest_forward_only(polls_data)
+        if _fw and len(_fw['per_paredao']) >= 3:
+            _fw_agg = _fw['aggregate']
+            _fw_imp = _fw_agg.get('improvement_pct', 0)
+            print(f'<details class="u-s091">')
+            print(f'<summary class="fs-sm u-s246">🔬 Forward-only: validação sem informação futura ({_fw_agg["n_paredoes"]} paredões)</summary>')
+            print(f'<div class="u-s185">')
+            print(f'<p class="text-muted small">Para cada paredão, o modelo usa <strong>apenas os anteriores</strong> para calcular pesos — como se estivesse prevendo em tempo real. Começa no 3º paredão (precisa de 2 anteriores).</p>')
+            print('<table class="table table-striped table-sm u-s097">')
+            print('<thead><tr><th>Paredão</th><th>Mais Votado</th>')
+            print('<th class="tc">Votalhada</th>')
+            print('<th class="tc">Nosso Modelo</th>')
+            print('<th class="tc">Melhoria</th>')
+            print('</tr></thead><tbody>')
+            for _fwr in _fw['per_paredao']:
+                _fc_err = _fwr['consolidado_mae']
+                _fm_err = _fwr['model_mae']
+                if _fm_err is not None:
+                    _fdiff = _fc_err - _fm_err
+                    _fdiff_color = '#00bc8c' if _fdiff > 0 else '#E6194B'
+                    _fc_ok = '✅' if _fwr.get('consolidado_correct') else '❌'
+                    _fm_ok = '✅' if _fwr.get('model_correct') else '❌'
+                    print(f'<tr><td>{_fwr["numero"]}º</td><td>{_fwr["eliminado"]}</td>')
+                    print(f'<td class="tc">{_fc_err:.1f} p.p. {_fc_ok}</td>')
+                    print(f'<td class="tc">{_fm_err:.1f} p.p. {_fm_ok}</td>')
+                    print(f'<td class="tc" style="color:{_fdiff_color}; font-weight:bold;">{_fdiff:+.1f} p.p.</td>')
+                    print('</tr>')
+            print(f'<tr class="u-s012"><td colspan="2"><strong>Média / Total</strong></td>')
+            print(f'<td class="tc u-s002">{_fw_agg["consolidado_mae"]:.1f} p.p. ({_fw_agg["consolidado_correct"]}/{_fw_agg["n_paredoes"]})</td>')
+            print(f'<td class="tc u-s002">{_fw_agg["model_mae"]:.1f} p.p. ({_fw_agg["model_correct"]}/{_fw_agg["n_paredoes"]})</td>')
+            print(f'<td class="tc u-s069">{_fw_imp:+.0f}%</td>')
+            print('</tr></tbody></table>')
+            print(f'</div></details>\n')
 
     # ══════════════════════════════════════════════════════════════
     # CURIOSIDADES HISTÓRICAS (global, cross-paredão)

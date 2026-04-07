@@ -229,7 +229,7 @@ from data_utils import (
     load_paredoes_transformed, load_paredao_analysis,
     load_votalhada_polls, get_poll_for_paredao, calculate_poll_accuracy,
     calculate_precision_weights, predict_precision_weighted,
-    backtest_precision_model,
+    backtest_precision_model, backtest_forward_only, CALIBRATION_GAMMA,
     calculate_votalhada_estimate_3070,
     genero, artigo, get_nominee_badge,
     get_latest_votalhada_displayed_values,
