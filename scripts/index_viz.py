@@ -859,7 +859,7 @@ def render_podiums_lane(
         slot_3_short = _short_name(slot_3) if slot_3 != "—" else "—"
         ng_short = _short_name(nao_ganha) if nao_ganha != "—" else "—"
         lane.append(
-            f'<details class="sinc-podium-entry">'
+            f'<details class="sinc-podium-entry" data-sinc-sync-toggle="chooser">'
             f'<summary class="sinc-podium-summary">'
             f'<span class="sinc-person-avatar">{avatar}</span>'
             f'<span class="sinc-podium-name">{_escape_text(first)}</span>'
