@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-07T21:05:49.807176+00:00",
+    "generated_at": "2026-04-07T22:14:09.387038+00:00",
     "date": "2026-04-07",
     "cycle": 14,
     "reference_date": "2026-04-07",
@@ -9,17 +9,17 @@
     "n_paredoes": 13,
     "n_contradictions": 38,
     "n_tensions": 1,
-    "silhouette_coefficient": 0.5277,
+    "silhouette_coefficient": 0.5301,
     "resolution_used": 0.5,
     "best_cohesion": {
       "label": 2,
       "name": "Núcleo Pipoca",
-      "score": 0.5367
+      "score": 0.9367
     },
     "worst_rivalry": {
       "key": "1<>2",
-      "score": -7.7047,
-      "text": "Frente Grupo Misto vs Núcleo Pipoca"
+      "score": -8.0513,
+      "text": "Grupo Misto vs Núcleo Pipoca"
     }
   },
   "active_names": [
@@ -45,7 +45,7 @@
   "communities": [
     {
       "label": 1,
-      "name": "Frente Grupo Misto",
+      "name": "Grupo Misto",
       "color": "#e74c3c",
       "members": [
         "Ana Paula Renault",
@@ -59,16 +59,16 @@
         "Veterano": 1,
         "Camarote": 1
       },
-      "cohesion": -0.1569,
+      "cohesion": 0.0431,
       "best_external": {
         "label": 2,
         "name": "Núcleo Pipoca",
-        "score": -7.7047
+        "score": -8.0513
       },
       "worst_external": {
         "label": 2,
         "name": "Núcleo Pipoca",
-        "score": -7.7047
+        "score": -8.0513
       }
     },
     {
@@ -83,16 +83,16 @@
       "group_composition": {
         "Pipoca": 3
       },
-      "cohesion": 0.5367,
+      "cohesion": 0.9367,
       "best_external": {
         "label": 1,
-        "name": "Frente Grupo Misto",
-        "score": -7.7047
+        "name": "Grupo Misto",
+        "score": -8.0513
       },
       "worst_external": {
         "label": 1,
-        "name": "Frente Grupo Misto",
-        "score": -7.7047
+        "name": "Grupo Misto",
+        "score": -8.0513
       }
     }
   ],
@@ -100,11 +100,11 @@
     {
       "cluster_a": 1,
       "cluster_b": 2,
-      "name_a": "Frente Grupo Misto",
+      "name_a": "Grupo Misto",
       "name_b": "Núcleo Pipoca",
-      "score_sym": -7.7047,
-      "score_a_to_b": -8.0303,
-      "score_b_to_a": -7.3791,
+      "score_sym": -8.0513,
+      "score_a_to_b": -8.4236,
+      "score_b_to_a": -7.6791,
       "vote_alignment": 0.1145
     }
   ],
@@ -113,22 +113,22 @@
       "name": "Ana Paula Renault",
       "grupo": "Veterano",
       "cluster": 1,
-      "avg_received": -0.8774,
-      "std_received": 3.082,
+      "avg_received": -0.906,
+      "std_received": 3.3304,
       "contradictions": 0,
-      "pos_received": 7.046,
+      "pos_received": 8.146,
       "top_love": [
         {
           "name": "Milena",
-          "score": 3.31
+          "score": 3.61
         },
         {
           "name": "Samira",
-          "score": 2.18
+          "score": 2.48
         },
         {
           "name": "Juliano Floss",
-          "score": 1.56
+          "score": 2.06
         }
       ],
       "top_hate": [
@@ -141,8 +141,8 @@
           "score": -3.29
         },
         {
-          "name": "Jordana",
-          "score": -2.02
+          "name": "Gabriela",
+          "score": -2.96
         }
       ]
     },
@@ -150,22 +150,22 @@
       "name": "Gabriela",
       "grupo": "Pipoca",
       "cluster": 2,
-      "avg_received": -3.9794,
-      "std_received": 3.8361,
+      "avg_received": -3.9366,
+      "std_received": 3.8906,
       "contradictions": 4,
-      "pos_received": 0.23,
+      "pos_received": 0.53,
       "top_love": [
         {
           "name": "Jordana",
-          "score": 0.23
+          "score": 0.53
         },
         {
           "name": "Marciele",
-          "score": -1.95
+          "score": -1.65
         },
         {
           "name": "Ana Paula Renault",
-          "score": -2.23
+          "score": -2.53
         }
       ],
       "top_hate": [
@@ -187,36 +187,36 @@
       "name": "Jordana",
       "grupo": "Pipoca",
       "cluster": 2,
-      "avg_received": -6.8717,
-      "std_received": 5.5326,
+      "avg_received": -7.3717,
+      "std_received": 6.0604,
       "contradictions": 7,
-      "pos_received": 2.06,
+      "pos_received": 2.86,
       "top_love": [
         {
           "name": "Marciele",
-          "score": 1.68
+          "score": 2.18
         },
         {
           "name": "Gabriela",
-          "score": 0.38
+          "score": 0.68
         },
         {
           "name": "Ana Paula Renault",
-          "score": -4.6
+          "score": -5.6
         }
       ],
       "top_hate": [
         {
           "name": "Samira",
-          "score": -12.34
+          "score": -13.64
         },
         {
           "name": "Milena",
-          "score": -11.62
+          "score": -12.62
         },
         {
-          "name": "Juliano Floss",
-          "score": -10.99
+          "name": "Leandro",
+          "score": -11.62
         }
       ]
     },
@@ -224,18 +224,18 @@
       "name": "Juliano Floss",
       "grupo": "Camarote",
       "cluster": 1,
-      "avg_received": -5.3117,
-      "std_received": 6.5711,
+      "avg_received": -5.2403,
+      "std_received": 6.7537,
       "contradictions": 1,
-      "pos_received": 3.44,
+      "pos_received": 4.24,
       "top_love": [
         {
           "name": "Leandro",
-          "score": 1.45
+          "score": 1.95
         },
         {
           "name": "Ana Paula Renault",
-          "score": 1.02
+          "score": 1.32
         },
         {
           "name": "Milena",
@@ -245,7 +245,7 @@
       "top_hate": [
         {
           "name": "Marciele",
-          "score": -15.44
+          "score": -15.74
         },
         {
           "name": "Gabriela",
@@ -261,8 +261,8 @@
       "name": "Leandro",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": -6.0094,
-      "std_received": 4.9238,
+      "avg_received": -6.0523,
+      "std_received": 4.9711,
       "contradictions": 0,
       "pos_received": 1.2,
       "top_love": [
@@ -286,7 +286,7 @@
         },
         {
           "name": "Jordana",
-          "score": -11.34
+          "score": -11.63
         },
         {
           "name": "Marciele",
@@ -298,18 +298,18 @@
       "name": "Marciele",
       "grupo": "Pipoca",
       "cluster": 2,
-      "avg_received": -5.8966,
-      "std_received": 5.2572,
+      "avg_received": -5.9394,
+      "std_received": 5.7011,
       "contradictions": 6,
-      "pos_received": 2.88,
+      "pos_received": 3.88,
       "top_love": [
         {
           "name": "Jordana",
-          "score": 2.36
+          "score": 2.86
         },
         {
           "name": "Gabriela",
-          "score": 0.52
+          "score": 1.02
         },
         {
           "name": "Leandro",
@@ -319,11 +319,11 @@
       "top_hate": [
         {
           "name": "Juliano Floss",
-          "score": -13.28
+          "score": -14.28
         },
         {
           "name": "Samira",
-          "score": -10.96
+          "score": -11.26
         },
         {
           "name": "Ana Paula Renault",
@@ -335,22 +335,22 @@
       "name": "Milena",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": -0.3067,
-      "std_received": 2.4465,
+      "avg_received": -0.121,
+      "std_received": 2.6898,
       "contradictions": 1,
-      "pos_received": 6.816,
+      "pos_received": 8.116,
       "top_love": [
         {
           "name": "Ana Paula Renault",
-          "score": 2.4
+          "score": 2.9
         },
         {
           "name": "Juliano Floss",
-          "score": 2.32
+          "score": 2.62
         },
         {
           "name": "Samira",
-          "score": 2.1
+          "score": 2.6
         }
       ],
       "top_hate": [
@@ -360,7 +360,7 @@
         },
         {
           "name": "Jordana",
-          "score": -3.14
+          "score": -3.44
         },
         {
           "name": "Marciele",
@@ -372,18 +372,18 @@
       "name": "Samira",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": -3.7553,
-      "std_received": 4.8476,
+      "avg_received": -4.0124,
+      "std_received": 5.4207,
       "contradictions": 4,
-      "pos_received": 2.45,
+      "pos_received": 2.95,
       "top_love": [
+        {
+          "name": "Milena",
+          "score": 1.55
+        },
         {
           "name": "Ana Paula Renault",
           "score": 1.4
-        },
-        {
-          "name": "Milena",
-          "score": 1.05
         },
         {
           "name": "Gabriela",
@@ -393,11 +393,11 @@
       "top_hate": [
         {
           "name": "Jordana",
-          "score": -11.74
+          "score": -13.04
         },
         {
           "name": "Marciele",
-          "score": -10.34
+          "score": -11.34
         },
         {
           "name": "Leandro",
@@ -409,82 +409,82 @@
   "score_matrix_ordered": [
     [
       0.0,
-      1.643,
-      2.855,
-      1.575,
-      -0.842,
-      -7.38,
+      1.793,
+      3.255,
+      2.075,
+      -0.692,
+      -8.03,
       -3.7225,
       -3.622
     ],
     [
-      1.643,
+      1.793,
       0.0,
-      1.288,
+      1.688,
       -2.728,
-      1.325,
+      1.575,
       -10.803,
-      -14.36,
+      -15.01,
       -8.2075
     ],
     [
-      2.855,
-      1.288,
+      3.255,
+      1.688,
       0.0,
-      1.79,
+      1.94,
       -5.675,
-      -3.3075,
+      -3.9575,
       -5.5875,
-      -2.097
+      -2.747
     ],
     [
-      1.575,
+      2.075,
       -2.728,
-      1.79,
+      1.94,
       0.0,
       -2.8,
-      -12.036,
-      -10.648,
+      -13.336,
+      -11.298,
       -2.285
     ],
     [
-      -0.842,
-      1.325,
+      -0.692,
+      1.575,
       -5.675,
       -2.8,
       0.0,
-      -10.9755,
+      -11.6255,
       -8.0755,
       -12.463
     ],
     [
-      -7.38,
+      -8.03,
       -10.803,
-      -3.3075,
-      -12.036,
-      -10.9755,
+      -3.9575,
+      -13.336,
+      -11.6255,
       0.0,
-      2.02,
-      0.305
+      2.52,
+      0.605
     ],
     [
       -3.7225,
-      -14.36,
+      -15.01,
       -5.5875,
-      -10.648,
+      -11.298,
       -8.0755,
-      2.02,
+      2.52,
       0.0,
-      -0.715
+      -0.315
     ],
     [
       -3.622,
       -8.2075,
-      -2.097,
+      -2.747,
       -2.285,
       -12.463,
-      0.305,
-      -0.715,
+      0.605,
+      -0.315,
       0.0
     ]
   ],
