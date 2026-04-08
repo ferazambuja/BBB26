@@ -287,7 +287,7 @@ def render_poll_mobile_card(
         for n in participantes:
             v = values.get(n, 0)
             cls = _val_class(v, vals, is_result, elim_name, n)
-            parts.append(f'<span class="poll-mobile-val {cls}">{_short(n)} {v:.1f}%</span>')
+            parts.append(f'<span class="poll-mobile-val {cls}">{_short(n)} {v:.2f}%</span>')
         votes_html = f'<span class="poll-mobile-votes">{_fmt_votes(votes)}</span>' if votes else ""
         row_cls = f"poll-mobile-row {css_mod}".strip()
         return (
