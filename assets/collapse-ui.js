@@ -85,7 +85,7 @@
     var cards = document.querySelectorAll("[data-sinc-sync-card]");
     cards.forEach(function (card) {
       var syncing = false;
-      var toggles = card.querySelectorAll('.sinc-person-chip-toggle[data-sinc-sync-toggle="chooser"]');
+      var toggles = card.querySelectorAll('[data-sinc-sync-toggle="chooser"]');
       if (!toggles.length) return;
 
       toggles.forEach(function (toggle) {

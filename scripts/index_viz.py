@@ -834,42 +834,51 @@ def render_podiums_lane(
 ) -> str:
     """Render an expandable podium grid for 'pódio + quem não ganha' format.
 
-    Each entry in podiums: {name, slot_2, slot_3, nao_ganha}.
+    Uses the same sinc-person-chip structure as ranked lanes for visual
+    consistency. Each entry in podiums: {name, slot_2, slot_3, nao_ganha}.
     """
     lane = ['<div class="sinc-lane"><div class="sinc-lane-head">🏆 Pódios</div>']
     if not podiums:
         lane.append('<div class="sinc-empty">Sem dados de pódio.</div></div>')
         return "".join(lane)
 
-    lane.append('<div class="sinc-podiums-grid">')
+    lane.append('<div class="sinc-people-grid">')
     for pod in podiums:
         name = pod.get("name", "")
         first = _short_name(name)
         slot_2 = pod.get("slot_2") or "—"
         slot_3 = pod.get("slot_3") or "—"
         nao_ganha = pod.get("nao_ganha") or "—"
+        border_color = "#e67e22"
         if avatars is None:
-            avatar = avatar_html_fn(name, "#e67e22")
+            avatar = avatar_html_fn(name, border_color)
         else:
             avatar = avatar_html_fn(
                 name, avatars, size=avatar_size, show_name=False,
-                border_color="#e67e22", fallback_initials=True,
+                border_color=border_color, fallback_initials=True,
             )
         slot_2_short = _short_name(slot_2) if slot_2 != "—" else "—"
         slot_3_short = _short_name(slot_3) if slot_3 != "—" else "—"
         ng_short = _short_name(nao_ganha) if nao_ganha != "—" else "—"
-        lane.append(
-            f'<details class="sinc-podium-entry" data-sinc-sync-toggle="chooser">'
-            f'<summary class="sinc-podium-summary">'
-            f'<span class="sinc-person-avatar">{avatar}</span>'
-            f'<span class="sinc-podium-name">{_escape_text(first)}</span>'
-            f'</summary>'
-            f'<div class="sinc-podium-detail">'
+        avatar_html = f'<span class="sinc-person-avatar">{avatar}</span>'
+        meta_html = (
+            f'<span class="sinc-person-meta">'
+            f'<span class="sinc-person-name">{_escape_text(first)}</span>'
+            f'</span>'
+        )
+        drill_html = (
             f'<span class="sinc-podium-slot gold">🥈 {_escape_text(slot_2_short)}</span>'
             f'<span class="sinc-podium-slot silver">🥉 {_escape_text(slot_3_short)}</span>'
             f'<span class="sinc-podium-nao-ganha">🚫 {_escape_text(ng_short)}</span>'
-            f'</div>'
+        )
+        lane.append(
+            f'<div class="sinc-person-card sinc-person-chip praise">'
+            f'<a href="{_profile_href(name)}" class="sinc-person-avatar-link">{avatar_html}</a>'
+            f'<details class="sinc-person-chip-toggle" data-sinc-sync-toggle="chooser">'
+            f'<summary class="sinc-person-chip-summary">{meta_html}</summary>'
+            f'<div class="sinc-chip-drill-list sinc-podium-detail">{drill_html}</div>'
             f'</details>'
+            f'</div>'
         )
     lane.append('</div></div>')
     return "".join(lane)

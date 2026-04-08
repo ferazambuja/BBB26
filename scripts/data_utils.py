@@ -2022,7 +2022,11 @@ def make_poll_timeseries(
     if not participantes:
         return None
 
-    times = [parse_votalhada_hora(pt['hora']) for pt in serie]
+    # Sort serie by parsed timestamp to prevent lines going back in time
+    parsed = [(parse_votalhada_hora(pt['hora']), pt) for pt in serie]
+    parsed.sort(key=lambda x: x[0])
+    times = [t for t, _ in parsed]
+    serie = [pt for _, pt in parsed]
     first_t = times[0].strftime('%d/%m %Hh')
     last_t = times[-1].strftime('%d/%m %Hh')
     eliminado = None
