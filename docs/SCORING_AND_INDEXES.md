@@ -1035,8 +1035,8 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Scope | Count | Definition |
 |---|---|---|
 | `with_indicados` | 14 | Paredões com indicados_finais |
-| `all_finalized` | 13 | Finalizados (inclui falso) |
-| `real_only` | 12 | Finalizados reais (exclui falso) |
+| `all_finalized` | 14 | Finalizados (inclui falso) |
+| `real_only` | 13 | Finalizados reais (exclui falso) |
 
 ### Paredão Matrix
 
@@ -1055,7 +1055,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P11 | Alberto Cowboy, Jordana, Leandro | Alberto Cowboy | 67.95% | Não | finalizado |
 | P12 | Solange Couto, Marciele, Jordana | Solange Couto | 94.17% | Não | finalizado |
 | P13 | Marciele, Juliano Floss, Chaiany | Chaiany | 61.07% | Não | finalizado |
-| P14 | Jordana, Marciele, Samira | — | — | Não | em_andamento |
+| P14 | Jordana, Marciele, Samira | Samira | 51.24% | Não | finalizado |
 
 ### Route Effectiveness (`real_only`)
 
@@ -1063,8 +1063,8 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 |---|---|---|---|
 | Big Fone | 1 | 2 | 50.0% |
 | Casa | 2 | 9 | 22.2% |
-| Contragolpe | 2 | 5 | 40.0% |
-| Líder | 5 | 12 | 41.7% |
+| Contragolpe | 3 | 6 | 50.0% |
+| Líder | 5 | 13 | 38.5% |
 | Bloco do Paredão | Não (n=1) | 1 | — |
 | Caixas-Surpresa | Não (n=1) | 1 | — |
 | Consenso Anjo+Monstro | Sim (n=1) | 1 | — |
@@ -1073,14 +1073,15 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Duelo de Risco | Não (n=1) | 1 | — |
 | Voto de Minerva (empate 2×2 com Gabriela) | Sim (n=1) | 1 | — |
 | Voto de Minerva (empate 2×2) | Não (n=1) | 1 | — |
+| Voto de Minerva (empate 3×3 com Samira) | Não (n=1) | 1 | — |
 
-**First-timer elimination rate** (`real_only`): 8/12 = 66.7%
+**First-timer elimination rate** (`real_only`): 8/13 = 61.5%
 
 ### Bate-e-Volta Metrics (`real_only`)
 
 | Metric | n | Total | Rate |
 |---|---|---|---|
-| Paredões com BV | 8 | 12 | 66.7% |
+| Paredões com BV | 8 | 13 | 61.5% |
 | Vencedores que escaparam | 10 | 10 | 100.0% |
 | Perdedores que sobreviveram | 9 | 14 | 64.3% |
 | Perdedores eliminados | 5 | 14 | 35.7% |
@@ -1092,7 +1093,7 @@ Total BV participants: **24**
 - **Biggest swing**: Solange Couto — 15.19% (P5) → 94.17% (P12) = 78.98 p.p.
 - **BV champion**: Alberto Cowboy (3x)
 - **Líder favorite target**: Milena (3x)
-- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2), Voto de Minerva (empate 2×2 com Gabriela)
+- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2), Voto de Minerva (empate 2×2 com Gabriela), Voto de Minerva (empate 3×3 com Samira)
 
 ### Fake Paredão Handling
 
