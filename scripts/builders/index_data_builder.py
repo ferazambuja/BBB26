@@ -2656,9 +2656,13 @@ def _compute_sincerao_highlight(
                 by_actor[actor]["nao_ganha"] = target
         podiums = sorted(by_actor.values(), key=lambda p: p["name"])
 
-    # Unified Sincerão card: radar + contradictions merged
-    show_current_cycle_card = current_cycle in available_weeks
-    if show_current_cycle_card and (radar.get("neg_ranked") or radar.get("pos_ranked") or pair_contradictions):
+    # Unified Sincerão card: radar + contradictions merged.
+    # Show when the current cycle has Sincerão data OR when the most recent
+    # Sincerão is from the immediately previous cycle (turbo mode: cycles are
+    # short and Sincerão may not happen every cycle, so the most recent one
+    # should persist for at least one cycle before being considered stale).
+    show_recent_card = bool(available_weeks) and sinc_week_used >= current_cycle - 1
+    if show_recent_card and (radar.get("neg_ranked") or radar.get("pos_ranked") or pair_contradictions):
         card_data: dict = {
             "type": "sincerao",
             "icon": "🔥", "title": f"Sincerão S{sinc_week_used}",

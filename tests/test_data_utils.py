@@ -173,9 +173,15 @@ class TestGetCycleNumber:
 
     def test_inferred_cycle_rollover_from_next_cycle_signal(self):
         """When cycle N+1 has dated signals, cycle N boundary is inferred."""
+        # Cycle 15 is the first unconfirmed; a cycle 16 signal infers cycle 15 end
+        unconfirmed_cycle = len(CYCLE_END_DATES) + 1  # 15
+        next_signal_cycle = unconfirmed_cycle + 1     # 16
+        signal_date = "2026-04-13"
+        expected_end = "2026-04-12"
         manual = {
             "scheduled_events": [
-                {"cycle": 14, "date": "2026-04-05"},
+                {"cycle": unconfirmed_cycle, "date": "2026-04-09"},
+                {"cycle": next_signal_cycle, "date": signal_date},
             ]
         }
         inferred = get_effective_cycle_end_dates(
@@ -184,9 +190,9 @@ class TestGetCycleNumber:
             provas_data={},
         )
         assert len(inferred) == len(CYCLE_END_DATES) + 1
-        assert inferred[-1] == "2026-04-04"
-        assert get_cycle_number("2026-04-04", inferred) == 13
-        assert get_cycle_number("2026-04-05", inferred) == 14
+        assert inferred[-1] == expected_end
+        assert get_cycle_number(expected_end, inferred) == unconfirmed_cycle
+        assert get_cycle_number(signal_date, inferred) == next_signal_cycle
 
     def test_inference_requires_contiguous_cycle_signal(self):
         """Do not infer cycle ends when the immediate next cycle has no signal."""
@@ -249,9 +255,12 @@ class TestCycleCompatibility:
         assert get_cycle_start_date(2, inferred) == get_cycle_start_date(2, inferred)
 
     def test_cycle_boundary_inference_accepts_canonical_cycle_keys(self):
+        next_cycle = len(CYCLE_END_DATES) + 2  # cycle beyond last confirmed + 1
+        signal_date = "2026-04-13"
         manual = {
             "scheduled_events": [
-                {"cycle": 14, "date": "2026-04-05"},
+                {"cycle": len(CYCLE_END_DATES) + 1, "date": "2026-04-09"},
+                {"cycle": next_cycle, "date": signal_date},
             ]
         }
         inferred = get_effective_cycle_end_dates(
@@ -260,7 +269,7 @@ class TestCycleCompatibility:
             provas_data={},
         )
         assert len(inferred) == len(CYCLE_END_DATES) + 1
-        assert inferred[-1] == "2026-04-04"
+        assert inferred[-1] == "2026-04-12"
 
 
 class TestParseRoles:

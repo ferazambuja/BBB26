@@ -2494,10 +2494,11 @@
     {
       "round": 12,
       "cycles": [
-        13
+        13,
+        14
       ],
-      "status": "open",
-      "notes": "Janela da 12ª rodada aberta até 2026-04-02 21:59. A liderança de Samira em 2026-04-01 e as pulseiras de VIP distribuídas nesse dia não contam para a rodada.",
+      "status": "finalized",
+      "notes": "Janela da 12ª rodada aberta até 2026-04-02 21:59. Scoring window Apr 2 21:59 → Apr 9 21:59 (7 dias) cobriu ciclos 13 (Jordana Anjo, Chaiany P13 eliminada) e 14 (Floss Líder, P14 Samira eliminada). A liderança de Samira em 2026-04-01 e as pulseiras de VIP distribuídas nesse dia não contam para a rodada.",
       "excluded_events": [
         {
           "participant": "Samira",
@@ -2520,6 +2521,18 @@
         "docs/scraped/cartola-bbb-esta-com-a-janela-de-escalacao-para-12a-rodada-aberta.md",
         "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/janela-de-escalacao-para-12a-rodada-do-cartola-bbb-fecha-em-poucas-horas.ghtml",
         "docs/scraped/janela-de-escalacao-para-12a-rodada-do-cartola-bbb-fecha-em-poucas-horas.md"
+      ]
+    },
+    {
+      "round": 13,
+      "cycles": [
+        15
+      ],
+      "status": "open",
+      "notes": "ÚLTIMA rodada do Cartola BBB. Janela de Escalação da 13ª rodada fechou em 2026-04-09 às 21h59. A partir desse momento, os times estão travados e as dinâmicas da semana passam a valer pontos. Esta é a última rodada a contar pontos para o ranking de premiação do fantasy game. Nota: os eventos do início do ciclo 15 (Prova do Líder de Juliano Floss, Botão Misterioso de Milena, divisão VIP/Xepa) aconteceram antes do fechamento da janela (21h59) e tecnicamente pertenceriam à 12ª rodada, mas o modelo cycle→round atribui o ciclo inteiro à rodada principal onde a maioria dos eventos acontecem (Anjo, Formação, Eliminação — todos após 21h59).",
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/cartola-bbb-janela-de-escalacao-da-13a-rodada-fecha-e-dinamicas-passam-a-valer-ponto.ghtml",
+        "docs/scraped/cartola-bbb-janela-de-escalacao-da-13a-rodada-fecha-e-dinamicas-passam-a-valer-ponto.md"
       ]
     }
   ],
@@ -2941,10 +2954,65 @@
       "date": "2026-04-07",
       "category": "paredao_resultado",
       "emoji": "🏁",
-      "title": "Eliminação (14º Paredão)",
-      "detail": "Resultado do 14º Paredão — Jordana × Marciele × Samira.",
+      "title": "14º Paredão — Samira eliminada (51,24%)",
+      "detail": "Samira eliminada com 51,24% da média. Jordana 47,67%, Marciele 1,09%.",
+      "cycle": 14,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-samira-e-a-decima-terceira-eliminada-do-reality.ghtml",
+        "docs/scraped/quem-saiu-do-bbb-26-samira-e-a-decima-terceira-eliminada-do-reality.md"
+      ]
+    },
+    {
+      "date": "2026-04-09",
+      "category": "dinamica",
+      "sort_order": 5,
+      "emoji": "🔘",
+      "title": "Botão Misterioso — Milena apertou",
+      "detail": "Milena observou o totem no gramado e correu para apertar o Botão Misterioso: 'Tinha um botão, eu apertei! Se for Paredão, eu estou nele'. Recebeu pulseira laranja. Terá o poder de decidir quem dá o Contragolpe na Formação do Paredão (sexta, 10): o emparedado pelo Líder ou o mais votado pela casa.",
+      "cycle": 15,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-aperta-botao-misterioso-no-bbb-26-e-tera-que-decidir-quem-vai-dar-o-contragolpe.ghtml",
+        "docs/scraped/milena-aperta-botao-misterioso-no-bbb-26-e-tera-que-decidir-quem-vai-dar-o-contragolpe.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-saiba-que-horas-o-botao-misterioso-vai-aparecer-na-casa.ghtml",
+        "docs/scraped/bbb-26-saiba-que-horas-o-botao-misterioso-vai-aparecer-na-casa.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.md"
+      ]
+    },
+    {
+      "date": "2026-04-10",
+      "category": "anjo",
+      "emoji": "😇",
+      "title": "Prova do Anjo — autoimune",
+      "detail": "Anjo autoimune — vencedor fica imune na Formação do Paredão desta noite.",
+      "time": "À tarde",
+      "cycle": 15,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.md"
+      ]
+    },
+    {
+      "date": "2026-04-10",
+      "category": "paredao_formacao",
+      "emoji": "🗳️",
+      "title": "Formação do 15º Paredão",
+      "detail": "Triplo com Contragolpe via Botão Misterioso. Anjo autoimune (imune automaticamente). Líder indica 1. Casa vota — mais votado vai ao Paredão. Milena (Botão Misterioso) escolhe quem dá o Contragolpe: o indicado pelo Líder ou o mais votado pela casa. A pessoa escolhida empareda alguém → Paredão triplo.",
       "time": "Ao Vivo",
-      "cycle": 14
+      "cycle": 15,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.md"
+      ]
+    },
+    {
+      "date": "2026-04-12",
+      "category": "paredao_resultado",
+      "emoji": "🏁",
+      "title": "Eliminação (15º Paredão)",
+      "detail": "Resultado do 15º Paredão — eliminação ao vivo no domingo.",
+      "time": "Ao Vivo",
+      "cycle": 15
     }
   ],
   "cycles": [
@@ -8166,6 +8234,20 @@
         "edges_notes": "Mesmo formato do 1º Sincerão (pódio + quem não ganha). Cada participante coloca a si mesma no 1º lugar. Edges: elogio (slot 1/2/3) para pódio, nao_ganha para a indicação negativa. Jordana↔Samira é a única confrontação mútua no 'não ganha'."
       },
       "cycle": 14
+    },
+    {
+      "start_date": "2026-04-09",
+      "end_date": null,
+      "schedule_profile": "turbo_top10",
+      "notes": "Top 7 — Botão Misterioso + Anjo autoimune + Contragolpe via botão. Qui (9): Botão Misterioso — Milena apertou ('Tinha um botão, eu apertei! Se for Paredão, eu estou nele') — ganhou poder de escolher quem dá o Contragolpe. Prova do Líder ao vivo — Juliano Floss venceu (Provódromo: combos sanduíche+sobremesa menor tempo, gabarito 1x grátis, celular +10s) bicampeão consecutivo. VIP: Floss, Ana Paula, Milena. Xepa: Jordana, Marciele, Leandro, Gabriela. Sex (10): Prova do Anjo autoimune à tarde + Formação do 15º Paredão à noite (Floss indica 1, casa vota, Milena escolhe quem dá Contragolpe = triplo). Dom (12): Eliminação.",
+      "anjo": null,
+      "fontes": [
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.ghtml",
+        "docs/scraped/dinamica-da-semana-tem-botao-misterioso-e-anjo-autoimune.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/noticia/bbb-26-saiba-que-horas-o-botao-misterioso-vai-aparecer-na-casa.ghtml",
+        "docs/scraped/bbb-26-saiba-que-horas-o-botao-misterioso-vai-aparecer-na-casa.md"
+      ],
+      "cycle": 15
     }
   ]
 }

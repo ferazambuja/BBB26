@@ -868,7 +868,7 @@ def _merge_and_dedup_timeline(
         # always for singletons, also for resolved non-singletons.
         if key in existing_date_cat and (cat in _SINGLETON_CATEGORIES or is_resolved):
             continue
-        events.append({
+        new_event = {
             "date": date, "cycle": week, "category": cat,
             "emoji": se.get("emoji", "🔮"), "title": se.get("title", ""),
             "detail": se.get("detail", ""),
@@ -876,7 +876,10 @@ def _merge_and_dedup_timeline(
             "source": "scheduled",
             "status": "" if is_resolved else "scheduled",
             "time": time_field,
-        })
+        }
+        if isinstance(se.get("sort_order"), (int, float)):
+            new_event["sort_order"] = se["sort_order"]
+        events.append(new_event)
 
     # --- 8. Scaffold events (lowest priority: fill gaps only) ---
     if scaffold_events:
@@ -933,7 +936,15 @@ def _merge_and_dedup_timeline(
 
     # --- Sort by date, then by cycle (lower cycle first on same day), then by category ---
     # Cycle-aware sort handles cross-cycle days (e.g., P11 result afternoon + P12 Líder evening)
-    events.sort(key=lambda e: (e.get("date", ""), e.get("cycle", 99), CATEGORY_ORDER.get(e.get("category", ""), 99)))
+    # Per-event `sort_order` field overrides CATEGORY_ORDER when present (for events whose
+    # real-world time-of-day doesn't match their category's typical slot, e.g., a morning
+    # `dinamica` that should sort before an afternoon `lider` role confirmation).
+    events.sort(key=lambda e: (
+        e.get("date", ""),
+        e.get("cycle", 99),
+        e.get("sort_order") if isinstance(e.get("sort_order"), (int, float))
+        else CATEGORY_ORDER.get(e.get("category", ""), 99),
+    ))
 
     # Deduplicate: same date + category + same title → keep first
     seen: set[tuple[str, str, str]] = set()
