@@ -3943,12 +3943,12 @@
           "tipo": "tempo_unico",
           "classificacao": [
             {"pos": 1, "nome": "Juliano Floss", "nota": "menor tempo — vencedor"},
-            {"pos": 2, "nome": "Ana Paula Renault", "nota": "participou — ranking detalhado não divulgado", "tied": true},
-            {"pos": 2, "nome": "Gabriela", "nota": "participou — ranking detalhado não divulgado", "tied": true},
-            {"pos": 2, "nome": "Jordana", "nota": "participou — ranking detalhado não divulgado", "tied": true},
-            {"pos": 2, "nome": "Leandro", "nota": "participou — ranking detalhado não divulgado", "tied": true},
-            {"pos": 2, "nome": "Marciele", "nota": "participou — ranking detalhado não divulgado", "tied": true},
-            {"pos": 2, "nome": "Milena", "nota": "participou — ranking detalhado não divulgado", "tied": true}
+            {"pos": 2, "nome": "Marciele"},
+            {"pos": 3, "nome": "Jordana"},
+            {"pos": 4, "nome": "Ana Paula Renault"},
+            {"pos": 5, "nome": "Gabriela"},
+            {"pos": 6, "nome": "Milena"},
+            {"pos": 7, "nome": "Leandro"}
           ]
         }
       ],
@@ -3962,6 +3962,58 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/lider-juliano-floss-divide-participantes-entre-vip-e-xepa-pela-segunda-vez-veja-como-ficou-a-casa.ghtml",
           "arquivo": "docs/scraped/lider-juliano-floss-divide-participantes-entre-vip-e-xepa-pela-segunda-vez-veja-como-ficou-a-casa.md",
           "titulo": "VIP e Xepa — Juliano Floss Líder (2ª vez consecutiva)"
+        }
+      ],
+      "cycle": 15
+    },
+    {
+      "numero": 37,
+      "tipo": "anjo",
+      "date": "2026-04-10",
+      "nome": "13ª Prova do Anjo — Equilibrar bolinha nos pratinhos (autoimune)",
+      "formato": "tempo_unico",
+      "vencedor": "Milena",
+      "autoimune": true,
+      "participantes_total": 6,
+      "excluidos": [
+        {"nome": "Juliano Floss", "motivo": "Líder — não compete"}
+      ],
+      "nota": "Anjo autoimune — Milena venceu com disparado 2min09s equilibrando a bolinha nos pratinhos (após contagem regressiva de 1 minuto antes do cronômetro iniciar). 2ª Marciele (6min01s), 3ª Ana Paula Renault (7min08s). Milena fica imune, terá contato físico com um familiar e escolhe o Castigo do Monstro — indica Jordana (Monstro Controlador de Trânsito). Posições 4-6 (Gabriela, Jordana, Leandro) não foram divulgadas pela fonte.",
+      "nota_ranking": "Apenas top 3 divulgado pela fonte. Posições 4-6 (Gabriela, Jordana, Leandro) tratadas como tied na pos 4.",
+      "fases": [
+        {
+          "fase": 1,
+          "tipo": "tempo_unico",
+          "classificacao": [
+            {"pos": 1, "nome": "Milena", "nota": "2min09s — vencedora disparada"},
+            {"pos": 2, "nome": "Marciele", "nota": "6min01s"},
+            {"pos": 3, "nome": "Ana Paula Renault", "nota": "7min08s"},
+            {"pos": 4, "nome": "Gabriela", "nota": "participou — tempo não divulgado", "tied": true},
+            {"pos": 4, "nome": "Jordana", "nota": "participou — tempo não divulgado", "tied": true},
+            {"pos": 4, "nome": "Leandro", "nota": "participou — tempo não divulgado", "tied": true}
+          ]
+        }
+      ],
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/quem-e-o-anjo-do-bbb-26-milena-vence-a-13a-prova.ghtml",
+          "arquivo": "docs/scraped/quem-e-o-anjo-do-bbb-26-milena-vence-a-13a-prova.md",
+          "titulo": "Milena vence a 13ª Prova do Anjo"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/jordana-recebe-castigo-do-monstro-no-bbb-26-1.ghtml",
+          "arquivo": "docs/scraped/jordana-recebe-castigo-do-monstro-no-bbb-26-1.md",
+          "titulo": "Jordana recebe Castigo do Monstro (Controlador de Trânsito)"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/milena-vence-prova-do-anjo-e-recebe-pontuacao-dupla-no-cartola-bbb.ghtml",
+          "arquivo": "docs/scraped/milena-vence-prova-do-anjo-e-recebe-pontuacao-dupla-no-cartola-bbb.md",
+          "titulo": "Cartola BBB — Milena recebe pontuação dupla (+45 anjo + +30 imunidade)"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/jordana-recebe-o-castigo-do-monstro-e-perde-pontos-no-cartola-bbb.ghtml",
+          "arquivo": "docs/scraped/jordana-recebe-o-castigo-do-monstro-e-perde-pontos-no-cartola-bbb.md",
+          "titulo": "Cartola BBB — Jordana perde 10 pontos pelo Castigo do Monstro"
         }
       ],
       "cycle": 15

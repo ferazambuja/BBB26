@@ -172,6 +172,13 @@ All files in `data/derived/`, built by `scripts/build_derived_data.py`:
 | Feb 17 | 15 | Marcelo **eliminado** (5º Paredão) |
 | Feb 25 | 14 | Maxiane **eliminada** (6º Paredão) |
 | Mar 3 | 14 | Breno → **Quarto Secreto** (7º Paredão Falso; returns Mar 4) |
+| Mar 10 | 13 | Babu Santana **eliminado** (8º Paredão) |
+| Mar 17 | 12 | Breno **eliminado** (9º Paredão) |
+| Mar 24 | 11 | Jonas Sulzbach **eliminado** (10º Paredão) |
+| Mar 29 | 10 | Alberto Cowboy **eliminado** (11º Paredão) — Top 10 reached |
+| Mar 31 | 9 | Solange Couto **eliminada** (12º Paredão) |
+| Apr 5 | 8 | Chaiany **eliminada** (13º Paredão) |
+| Apr 7 | 7 | Samira **eliminada** (14º Paredão) |
 
 ---
 
@@ -198,23 +205,19 @@ BBB game weeks are Líder-cycle-based (not calendar). The **Prova do Líder is t
 
 ## Participant Reference
 
-### Active Participants (11)
+### Active Participants (7)
 
 | API Name | Group | Notes |
 |----------|-------|-------|
-| `Alberto Cowboy` | Veterano | Full name used |
 | `Ana Paula Renault` | Veterano | Full name used |
-| `Chaiany` | Pipoca | First name only (entered Jan 18) |
 | `Gabriela` | Pipoca | First name only (entered Jan 18) |
 | `Jordana` | Pipoca | First name only |
 | `Juliano Floss` | Camarote | Full name used |
 | `Leandro` | Pipoca | First name only (entered Jan 18) |
 | `Marciele` | Pipoca | First name only |
 | `Milena` | Pipoca | First name only |
-| `Samira` | Pipoca | First name only |
-| `Solange Couto` | Camarote | Full name used |
 
-### Eliminated/Exited (14)
+### Eliminated/Exited (18)
 
 | Name | Exit Type | Date | Details |
 |------|-----------|------|---------|
@@ -232,6 +235,10 @@ BBB game weeks are Líder-cycle-based (not calendar). The **Prova do Líder is t
 | `Breno` | Eliminado | Mar 3 / Mar 17 | 7º Paredão Falso (Quarto Secreto Mar 3, retornou Mar 4); 9º Paredão (eliminado definitivo Mar 17) |
 | `Babu Santana` | Eliminado | Mar 10 | 8º Paredão |
 | `Jonas Sulzbach` | Eliminado | Mar 24 | 10º Paredão |
+| `Alberto Cowboy` | Eliminado | Mar 29 | 11º Paredão |
+| `Solange Couto` | Eliminada | Mar 31 | 12º Paredão |
+| `Chaiany` | Eliminada | Apr 5 | 13º Paredão |
+| `Samira` | Eliminada | Apr 7 | 14º Paredão |
 
 ---
 
