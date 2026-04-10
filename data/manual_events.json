@@ -2529,10 +2529,12 @@
         15
       ],
       "status": "open",
-      "notes": "ÚLTIMA rodada do Cartola BBB. Janela de Escalação da 13ª rodada fechou em 2026-04-09 às 21h59. A partir desse momento, os times estão travados e as dinâmicas da semana passam a valer pontos. Esta é a última rodada a contar pontos para o ranking de premiação do fantasy game. Nota: os eventos do início do ciclo 15 (Prova do Líder de Juliano Floss, Botão Misterioso de Milena, divisão VIP/Xepa) aconteceram antes do fechamento da janela (21h59) e tecnicamente pertenceriam à 12ª rodada, mas o modelo cycle→round atribui o ciclo inteiro à rodada principal onde a maioria dos eventos acontecem (Anjo, Formação, Eliminação — todos após 21h59).",
+      "notes": "ÚLTIMA rodada do Cartola BBB. Janela de Escalação da 13ª rodada fechou em 2026-04-09 às 21h59. A partir desse momento, os times estão travados e as dinâmicas da semana passam a valer pontos. Esta é a última rodada a contar pontos para o ranking de premiação do fantasy game. Timeline do Apr 9: Botão Misterioso da Milena aconteceu durante o dia (~11h, antes do fechamento da janela — não pontua no Cartola). Prova do Líder + indicação de VIP aconteceram durante o programa ao vivo (após 22h, depois do fechamento da janela) — CONTAM para a 13ª rodada. Juliano Floss somou 80 pontos pela liderança (confirmado pelo gshow). Pulseiras de VIP: Ana Paula Renault (+5), Milena (+5).",
       "fontes": [
         "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/cartola-bbb-janela-de-escalacao-da-13a-rodada-fecha-e-dinamicas-passam-a-valer-ponto.ghtml",
-        "docs/scraped/cartola-bbb-janela-de-escalacao-da-13a-rodada-fecha-e-dinamicas-passam-a-valer-ponto.md"
+        "docs/scraped/cartola-bbb-janela-de-escalacao-da-13a-rodada-fecha-e-dinamicas-passam-a-valer-ponto.md",
+        "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/juliano-floss-e-o-novo-lider-do-bbb-26-veja-quantos-pontos-o-dancarino-soma-no-cartola-bbb-1.ghtml",
+        "docs/scraped/juliano-floss-e-o-novo-lider-do-bbb-26-veja-quantos-pontos-o-dancarino-soma-no-cartola-bbb-1.md"
       ]
     }
   ],
@@ -8088,14 +8090,25 @@
       "start_date": "2026-04-01",
       "end_date": "2026-04-04",
       "schedule_profile": "turbo_top10",
-      "notes": "Top 9 — Samira Líder (bicampeã). Qua (1): Prova do Líder. Sex (3): Anjo autoimune + Formação do 13º Paredão (Líder 1 + Casa 2 mais votados = triplo). Sáb (4): Big Fone (Chaiany — prêmio pessoal). Dom (5): Eliminação + Prova do Líder (Floss) + P14 Formação.",
+      "notes": "Top 9 — Samira Líder (bicampeã). Qua (1): Prova do Líder. Sex (3): Anjo autoimune + Formação do 13º Paredão (Líder 1 + Casa 2 mais votados = triplo). Sáb (4): Big Fone TOCOU DUAS VEZES — Jordana (ingressos Flamengo) e Chaiany (ingressos Corinthians) — ambas atenderam, prêmios pessoais sem impacto na formação. Dom (5): Eliminação + Prova do Líder (Floss) + P14 Formação.",
       "big_fone": [
+        {
+          "date": "2026-04-04",
+          "atendeu": "Jordana",
+          "consequencia": "Prêmio pessoal: par de ingressos para todos os jogos do Flamengo em casa no Brasileirão 2026. Sem impacto na formação do Paredão.",
+          "fontes": [
+            "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/jordana-e-chaiany-atendem-ao-big-fone-e-pontuam-no-cartola-bbb.ghtml",
+            "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/jordana-e-marciele-voltam-do-paredao-veja-a-pontuacao-da-dupla-no-cartola-bbb-1.ghtml",
+            "docs/scraped/jordana-e-marciele-voltam-do-paredao-veja-a-pontuacao-da-dupla-no-cartola-bbb-1.md"
+          ]
+        },
         {
           "date": "2026-04-04",
           "atendeu": "Chaiany",
           "consequencia": "Prêmio pessoal: par de ingressos para todos os jogos do Corinthians em casa no Brasileirão 2026. Sem impacto na formação do Paredão.",
           "fontes": [
-            "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/chaiany-e-eliminada-do-bbb-26-confira-como-fica-a-pontuacao-da-ex-sister-no-cartola-bbb.ghtml"
+            "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/chaiany-e-eliminada-do-bbb-26-confira-como-fica-a-pontuacao-da-ex-sister-no-cartola-bbb.ghtml",
+            "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/jordana-e-chaiany-atendem-ao-big-fone-e-pontuam-no-cartola-bbb.ghtml"
           ]
         }
       ],
