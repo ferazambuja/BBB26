@@ -1935,11 +1935,11 @@
       "total_esperado": 3,
       "hora_eliminacao": "14:55",
       "formacao": {
-        "resumo": "Triplo com Contragolpe via Botão Misterioso. Milena apertou o Botão na manhã de quinta (9) e terá o poder de escolher quem dá o Contragolpe (indicado do Líder ou mais votado pela casa). Juliano Floss venceu a 15ª Prova do Líder (bicampeão consecutivo) e indicará um participante na Formação do Paredão de sexta (10). Anjo autoimune. Casa vota.",
+        "resumo": "Triplo com Contragolpe via Botão Misterioso. Anjo autoimune (Milena, imune automaticamente). Líder Juliano Floss indicou Gabriela ('só jogar com coração não compensa' — estratégia para poupar aliados). Casa votou no Confessionário: Leandro e Marciele empataram como mais votados (3 votos cada). Voto de Minerva do Líder escolheu Marciele como a mais votada da casa. Milena (Botão Misterioso) decidiu quem daria o Contragolpe — escolheu Marciele ('aí eu lasco os meus'). Marciele puxou Leandro no Contragolpe. Sem Bate e Volta (modo Turbo). Paredão triplo: Gabriela, Marciele e Leandro.",
         "lider": "Juliano Floss",
         "lideres": null,
-        "indicado_lider": null,
-        "motivo_lider": null,
+        "indicado_lider": "Gabriela",
+        "motivo_lider": "'Só jogar com coração não compensa' — Juliano indicou Gabriela como parte de uma estratégia para poupar seus aliados no jogo.",
         "anjo": "Milena",
         "anjo_autoimune": true,
         "imunizado": {
@@ -1947,21 +1947,43 @@
           "quem": "Milena",
           "motivo": "Anjo autoimune — Milena venceu a 13ª Prova do Anjo (2min09s disparado) e fica imune automaticamente"
         },
-        "contragolpe": null,
+        "voto_minerva": {
+          "de": "Juliano Floss",
+          "para": "Marciele",
+          "motivo": "Leandro e Marciele empataram como mais votados pela casa (3 votos cada). O Líder deu o Voto de Minerva e escolheu mandar Marciele para a berlinda como 'mais votada da casa'."
+        },
+        "contragolpe": {
+          "de": "Marciele",
+          "para": "Leandro",
+          "motivo": "Escolhida por Milena (Botão Misterioso) para dar o Contragolpe e indicada pelo Voto de Minerva do Líder, Marciele puxou Leandro para o Paredão."
+        },
         "bate_volta": null,
         "sem_bate_volta": true,
         "botao_misterioso": {
           "apertou": "Milena",
           "date": "2026-04-09",
           "poder": "Escolher quem dá o Contragolpe (entre indicado do Líder e mais votado pela casa)",
+          "decisao": "Marciele",
+          "decisao_motivo": "Milena escolheu Marciele (mais votada pela casa via Voto de Minerva) em vez de Gabriela (indicada pelo Líder). 'Aí eu lasco os meus', comentou antes da escolha.",
           "fontes": [
             "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/milena-aperta-botao-misterioso-no-bbb-26-e-tera-que-decidir-quem-vai-dar-o-contragolpe.ghtml",
             "docs/scraped/milena-aperta-botao-misterioso-no-bbb-26-e-tera-que-decidir-quem-vai-dar-o-contragolpe.md"
           ]
         }
       },
-      "indicados_finais": [],
-      "votos_casa": {},
+      "indicados_finais": [
+        {"nome": "Gabriela", "grupo": "Pipoca", "como": "Indicada pelo Líder"},
+        {"nome": "Marciele", "grupo": "Pipoca", "como": "Voto de Minerva (empate 3×3 com Leandro)"},
+        {"nome": "Leandro", "grupo": "Pipoca", "como": "Contragolpe (Marciele)"}
+      ],
+      "votos_casa": {
+        "Leandro": "Marciele",
+        "Gabriela": "Leandro",
+        "Milena": "Marciele",
+        "Ana Paula Renault": "Marciele",
+        "Marciele": "Leandro",
+        "Jordana": "Leandro"
+      },
       "resultado": {},
       "fontes": [
         {
@@ -2003,6 +2025,31 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/prova-do-anjo/noticia/jordana-recebe-castigo-do-monstro-no-bbb-26-1.ghtml",
           "arquivo": "docs/scraped/jordana-recebe-castigo-do-monstro-no-bbb-26-1.md",
           "titulo": "Jordana recebe Castigo do Monstro (Controlador de Trânsito)"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-15-paredao-do-bbb-26-gabriela-leandro-e-marciele-formam-a-berlinda.ghtml",
+          "arquivo": "docs/scraped/quem-esta-no-15-paredao-do-bbb-26-gabriela-leandro-e-marciele-formam-a-berlinda.md",
+          "titulo": "15º Paredão: Gabriela, Leandro e Marciele formam a berlinda"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/lider-juliano-floss-indica-gabriela-ao-15o-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/lider-juliano-floss-indica-gabriela-ao-15o-paredao-do-bbb-26.md",
+          "titulo": "Líder Juliano Floss indica Gabriela ao 15º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-15o-paredao.ghtml",
+          "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-15o-paredao.md",
+          "titulo": "Quem votou em quem na formação do 15º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/juliano-floss-da-voto-de-minerva-e-indica-marciele-ao-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/juliano-floss-da-voto-de-minerva-e-indica-marciele-ao-paredao-do-bbb-26.md",
+          "titulo": "Juliano Floss dá Voto de Minerva e manda Marciele ao Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/indicada-pelo-lider-marciele-puxa-leandro-no-contragolpe-do-15o-paredao-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/indicada-pelo-lider-marciele-puxa-leandro-no-contragolpe-do-15o-paredao-do-bbb-26.md",
+          "titulo": "Marciele puxa Leandro no Contragolpe do 15º Paredão"
         }
       ]
     }
