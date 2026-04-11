@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-11T04:16:02.733331+00:00",
+    "generated_at": "2026-04-11T06:55:15.917104+00:00",
     "date": "2026-04-10",
     "cycle": 15,
     "effective_week_daily": 15,
@@ -3579,6 +3579,56 @@
       "target": "Jordana",
       "cycle": 14,
       "date": "2026-04-05",
+      "weight_raw": -2.016,
+      "revealed": false,
+      "event_type": "contragolpe",
+      "visibility": "public",
+      "backlash": true,
+      "weight": -2.016
+    },
+    {
+      "type": "power_event",
+      "actor": "Juliano Floss",
+      "target": "Gabriela",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -3.36,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "weight": -3.36
+    },
+    {
+      "type": "power_event",
+      "actor": "Gabriela",
+      "target": "Juliano Floss",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -2.016,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "backlash": true,
+      "weight": -2.016
+    },
+    {
+      "type": "power_event",
+      "actor": "Marciele",
+      "target": "Leandro",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -3.36,
+      "revealed": false,
+      "event_type": "contragolpe",
+      "visibility": "public",
+      "weight": -3.36
+    },
+    {
+      "type": "power_event",
+      "actor": "Leandro",
+      "target": "Marciele",
+      "cycle": 15,
+      "date": "2026-04-10",
       "weight_raw": -2.016,
       "revealed": false,
       "event_type": "contragolpe",
@@ -17015,6 +17065,78 @@
       "vote_count": 1,
       "vote_kind": "secret",
       "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Leandro",
+      "target": "Marciele",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Milena",
+      "target": "Marciele",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Ana Paula Renault",
+      "target": "Marciele",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Gabriela",
+      "target": "Leandro",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Marciele",
+      "target": "Leandro",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Jordana",
+      "target": "Leandro",
+      "cycle": 15,
+      "date": "2026-04-10",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
     }
   ],
   "pairs_daily": {
@@ -17066,12 +17188,12 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -7.88,
+        "score": -9.88,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.96,
           "sincerao": -2.42,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 37,
         "break": false,
@@ -17113,9 +17235,10 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -11.04,
+        "score": -13.056,
         "components": {
           "queridometro": 0.58,
+          "power_event": -2.016,
           "sincerao": -1.62,
           "vote": -10.0
         },
@@ -17124,12 +17247,12 @@
         "vote_contradiction": true
       },
       "Leandro": {
-        "score": -12.255,
+        "score": -14.255,
         "components": {
           "queridometro": -0.485,
           "power_event": -3.36,
           "sincerao": -2.41,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 9,
         "break": false,
@@ -17193,12 +17316,12 @@
         "vote_contradiction": false
       },
       "Leandro": {
-        "score": -12.04,
+        "score": -14.04,
         "components": {
           "queridometro": -0.82,
           "power_event": -3.36,
           "sincerao": -1.86,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 4,
         "break": false,
@@ -17241,9 +17364,10 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -4.94,
+        "score": -8.3,
         "components": {
           "queridometro": -0.82,
+          "power_event": -3.36,
           "sincerao": -2.12,
           "vote": -2.0
         },
@@ -17346,12 +17470,12 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -5.966,
+        "score": -9.982,
         "components": {
           "queridometro": -1.0,
-          "power_event": -2.016,
+          "power_event": -4.032,
           "sincerao": -0.95,
-          "vote": -2.0
+          "vote": -4.0
         },
         "streak_len": 55,
         "break": false,
@@ -17417,12 +17541,12 @@
         "vote_contradiction": false
       },
       "Leandro": {
-        "score": -10.23,
+        "score": -15.59,
         "components": {
           "queridometro": -0.5,
-          "power_event": -3.36,
+          "power_event": -6.72,
           "sincerao": -0.37,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 10,
         "break": false,
@@ -17500,12 +17624,12 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -6.07,
+        "score": -8.07,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.96,
           "sincerao": -0.11,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 14,
         "break": false,
@@ -17558,12 +17682,12 @@
         "break": false
       },
       "Marciele": {
-        "score": -7.88,
+        "score": -9.88,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.96,
           "sincerao": -2.42,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 37,
         "break": false
@@ -17601,9 +17725,10 @@
         "break": false
       },
       "Juliano Floss": {
-        "score": -11.04,
+        "score": -13.056,
         "components": {
           "queridometro": 0.58,
+          "power_event": -2.016,
           "sincerao": -1.62,
           "vote": -10.0
         },
@@ -17611,12 +17736,12 @@
         "break": false
       },
       "Leandro": {
-        "score": -12.255,
+        "score": -14.255,
         "components": {
           "queridometro": -0.485,
           "power_event": -3.36,
           "sincerao": -2.41,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 9,
         "break": false
@@ -17674,12 +17799,12 @@
         "break": false
       },
       "Leandro": {
-        "score": -12.04,
+        "score": -14.04,
         "components": {
           "queridometro": -0.82,
           "power_event": -3.36,
           "sincerao": -1.86,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 4,
         "break": false
@@ -17718,9 +17843,10 @@
         "break": false
       },
       "Gabriela": {
-        "score": -4.94,
+        "score": -8.3,
         "components": {
           "queridometro": -0.82,
+          "power_event": -3.36,
           "sincerao": -2.12,
           "vote": -2.0
         },
@@ -17814,12 +17940,12 @@
         "break": false
       },
       "Marciele": {
-        "score": -5.966,
+        "score": -9.982,
         "components": {
           "queridometro": -1.0,
-          "power_event": -2.016,
+          "power_event": -4.032,
           "sincerao": -0.95,
-          "vote": -2.0
+          "vote": -4.0
         },
         "streak_len": 55,
         "break": false
@@ -17879,12 +18005,12 @@
         "break": false
       },
       "Leandro": {
-        "score": -10.23,
+        "score": -15.59,
         "components": {
           "queridometro": -0.5,
-          "power_event": -3.36,
+          "power_event": -6.72,
           "sincerao": -0.37,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 10,
         "break": false
@@ -17955,12 +18081,12 @@
         "break": false
       },
       "Marciele": {
-        "score": -6.07,
+        "score": -8.07,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.96,
           "sincerao": -0.11,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 14,
         "break": false
@@ -18647,12 +18773,12 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -7.88,
+        "score": -9.88,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.96,
           "sincerao": -2.42,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 37,
         "break": false,
@@ -20177,9 +20303,10 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -11.04,
+        "score": -13.056,
         "components": {
           "queridometro": 0.58,
+          "power_event": -2.016,
           "sincerao": -1.62,
           "vote": -10.0
         },
@@ -20189,12 +20316,12 @@
         "vote_contradiction": true
       },
       "Leandro": {
-        "score": -12.255,
+        "score": -14.255,
         "components": {
           "queridometro": -0.485,
           "power_event": -3.36,
           "sincerao": -2.41,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 9,
         "break": false,
@@ -20728,12 +20855,12 @@
         "vote_contradiction": false
       },
       "Leandro": {
-        "score": -12.04,
+        "score": -14.04,
         "components": {
           "queridometro": -0.82,
           "power_event": -3.36,
           "sincerao": -1.86,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 4,
         "break": false,
@@ -20955,9 +21082,10 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -4.94,
+        "score": -8.3,
         "components": {
           "queridometro": -0.82,
+          "power_event": -3.36,
           "sincerao": -2.12,
           "vote": -2.0
         },
@@ -21285,12 +21413,12 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -5.966,
+        "score": -9.982,
         "components": {
           "queridometro": -1.0,
-          "power_event": -2.016,
+          "power_event": -4.032,
           "sincerao": -0.95,
-          "vote": -2.0
+          "vote": -4.0
         },
         "streak_len": 55,
         "break": false,
@@ -21785,12 +21913,12 @@
         "vote_contradiction": false
       },
       "Leandro": {
-        "score": -10.23,
+        "score": -15.59,
         "components": {
           "queridometro": -0.5,
-          "power_event": -3.36,
+          "power_event": -6.72,
           "sincerao": -0.37,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 10,
         "break": false,
@@ -22591,12 +22719,12 @@
         "vote_contradiction": false
       },
       "Marciele": {
-        "score": -6.07,
+        "score": -8.07,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.96,
           "sincerao": -0.11,
-          "vote": -4.0
+          "vote": -6.0
         },
         "streak_len": 14,
         "break": false,
@@ -24589,8 +24717,8 @@
       }
     ],
     "total": 43,
-    "total_vote_edges": 188,
-    "rate": 0.2287,
+    "total_vote_edges": 194,
+    "rate": 0.2216,
     "context_notes": {
       "week_1": "Pedro (most rejected, many planned to vote for him) quit on Jan 19, voting day. Participants redirected votes to Paulo Augusto despite weak animosity. Also first-week bonds were less established."
     }
@@ -24646,9 +24774,9 @@
     },
     "Gabriela": {
       "positive": 4.24,
-      "negative": -49.466,
-      "total": -45.226,
-      "count": 73
+      "negative": -52.826,
+      "total": -48.586,
+      "count": 74
     },
     "Jonas Sulzbach": {
       "positive": 3.66,
@@ -24664,15 +24792,15 @@
     },
     "Juliano Floss": {
       "positive": 4.69,
-      "negative": -63.6765,
-      "total": -58.9865,
-      "count": 84
+      "negative": -65.6925,
+      "total": -61.0025,
+      "count": 85
     },
     "Leandro": {
       "positive": 1.8,
-      "negative": -75.6185,
-      "total": -73.8185,
-      "count": 77
+      "negative": -84.9785,
+      "total": -83.1785,
+      "count": 81
     },
     "Marcelo": {
       "positive": 1.56,
@@ -24682,9 +24810,9 @@
     },
     "Marciele": {
       "positive": 6.66,
-      "negative": -56.966,
-      "total": -50.306,
-      "count": 78
+      "negative": -64.982,
+      "total": -58.322,
+      "count": 82
     },
     "Matheus": {
       "positive": 0.3,
