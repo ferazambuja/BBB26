@@ -1933,7 +1933,7 @@ def _render_lider_summary_box(
     html += f'<div style="display:flex; align-items:center; gap:0.8rem; margin-bottom:1rem;">'
     html += f'{avatar_img(lider_name, avatars, size=40)}'
     html += f'<span class="fs-xl" style="color:#eee;"><strong>{esc_lider}</strong> '
-    html += f'<span class="text-muted">— Líder da Semana {display_week}</span></span></div>'
+    html += f'<span class="text-muted">— Líder do Ciclo {display_week}</span></span></div>'
 
     # Top 3 summary cards
     html += '<div style="display:flex; gap:0.8rem; flex-wrap:wrap; margin-bottom:0.8rem;">'
@@ -1958,7 +1958,7 @@ def _render_lider_summary_box(
             html += f' — imunizou <strong>{safe_html(imunizado_nome)}</strong> (bloqueado como alvo)'
         html += '</div>'
     else:
-        html += '<div class="text-muted fs-base">😇 Anjo ainda não definido esta semana</div>'
+        html += '<div class="text-muted fs-base">😇 Anjo ainda não definido neste ciclo</div>'
 
     html += '</div>'
     return html

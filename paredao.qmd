@@ -2216,7 +2216,16 @@ _show_prediction = False
 if ultimo is None:
     _show_prediction = True
 elif ultimo.get('status') == 'finalizado':
-    _show_prediction = True  # Between paredões
+    # Between paredões: only show if a new Líder is already crowned.
+    # Otherwise roles_daily still points at the outgoing Líder (who just
+    # finished their nomination) and the prediction would be stale.
+    _prev_lider = ultimo.get('lider')
+    try:
+        _rd_gate = json.loads(Path("data/derived/roles_daily.json").read_text(encoding="utf-8"))
+        _cur_liders_gate = ((_rd_gate.get("daily") or [{}])[-1]).get("roles", {}).get("Líder", [])
+    except Exception:
+        _cur_liders_gate = []
+    _show_prediction = not (_prev_lider and _prev_lider in _cur_liders_gate)
 elif ultimo.get('status') == 'em_andamento':
     _n_ind = len(ultimo.get('participantes', []))
     _esp = ultimo.get('total_esperado', 3)
