@@ -1,8 +1,8 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-12T20:41:08.426983+00:00",
+    "generated_at": "2026-04-12T21:16:51.454465+00:00",
     "n_cycles": 16,
-    "total_transitions": 79
+    "total_transitions": 80
   },
   "timeline": [
     {
@@ -2372,8 +2372,8 @@
     {
       "date": "2026-04-12",
       "cycle": 16,
-      "n_active": 7,
-      "n_clusters": 7,
+      "n_active": 6,
+      "n_clusters": 6,
       "silhouette": null,
       "communities": [
         {
@@ -2424,23 +2424,20 @@
         {
           "label": 6,
           "members": [
-            "Marciele"
-          ],
-          "size": 1,
-          "cohesion": 0,
-          "color": "#1abc9c"
-        },
-        {
-          "label": 7,
-          "members": [
             "Milena"
           ],
           "size": 1,
           "cohesion": 0,
-          "color": "#e67e22"
+          "color": "#1abc9c"
         }
       ],
-      "transitions": []
+      "transitions": [
+        {
+          "name": "Milena",
+          "from_cluster": 7,
+          "to_cluster": 6
+        }
+      ]
     }
   ],
   "all_transitions": [
@@ -2996,12 +2993,19 @@
       "to_cluster": 7,
       "cycle": 14,
       "date": "2026-04-08"
+    },
+    {
+      "name": "Milena",
+      "from_cluster": 7,
+      "to_cluster": 6,
+      "cycle": 16,
+      "date": "2026-04-12"
     }
   ],
   "most_mobile": [
     {
       "name": "Milena",
-      "moves": 9
+      "moves": 10
     },
     {
       "name": "Samira",
