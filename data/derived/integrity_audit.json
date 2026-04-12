@@ -1,12 +1,12 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-11T03:47:40.047718+00:00",
-    "content_hash": "0c840ad37a5a73298bf55aa0d9f6b9fb5b9e74bc121e386287896c3ae6fd474f",
+    "generated_at": "2026-04-12T20:41:10.897704+00:00",
+    "content_hash": "66658a935644fa390f41e5a20c92999081d38f9d3b4d9f4807a9164a6f48c57a",
     "audit_version": 1
   },
   "summary": {
     "checks_run": 6,
-    "critical_count": 125,
+    "critical_count": 130,
     "warning_count": 0,
     "info_count": 0
   },
@@ -872,81 +872,53 @@
       }
     },
     {
-      "id": "visados_exposure_mismatch",
+      "id": "missing_source_file",
       "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Juliano Floss has mismatched votes_total",
+      "layer": "raw",
+      "subject": "P15",
+      "message": "Referenced source file is missing",
       "details": {
-        "name": "Juliano Floss",
-        "field": "votes_total",
-        "actual": 0,
-        "expected": 16
+        "arquivo": "docs/scraped/quem-esta-no-15-paredao-do-bbb-26-gabriela-leandro-e-marciele-formam-a-berlinda.md"
       }
     },
     {
-      "id": "visados_exposure_mismatch",
+      "id": "missing_source_file",
       "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Juliano Floss has mismatched votes_recent",
+      "layer": "raw",
+      "subject": "P15",
+      "message": "Referenced source file is missing",
       "details": {
-        "name": "Juliano Floss",
-        "field": "votes_recent",
-        "actual": 0,
-        "expected": 5
+        "arquivo": "docs/scraped/lider-juliano-floss-indica-gabriela-ao-15o-paredao-do-bbb-26.md"
       }
     },
     {
-      "id": "visados_exposure_mismatch",
+      "id": "missing_source_file",
       "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Juliano Floss has mismatched votes_available",
+      "layer": "raw",
+      "subject": "P15",
+      "message": "Referenced source file is missing",
       "details": {
-        "name": "Juliano Floss",
-        "field": "votes_available",
-        "actual": 0,
-        "expected": 16
+        "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-15o-paredao.md"
       }
     },
     {
-      "id": "visados_exposure_mismatch",
+      "id": "missing_source_file",
       "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Juliano Floss has mismatched available",
+      "layer": "raw",
+      "subject": "P15",
+      "message": "Referenced source file is missing",
       "details": {
-        "name": "Juliano Floss",
-        "field": "available",
-        "actual": 0,
-        "expected": 12
+        "arquivo": "docs/scraped/juliano-floss-da-voto-de-minerva-e-indica-marciele-ao-paredao-do-bbb-26.md"
       }
     },
     {
-      "id": "visados_exposure_mismatch",
+      "id": "missing_source_file",
       "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Juliano Floss has mismatched protected",
+      "layer": "raw",
+      "subject": "P15",
+      "message": "Referenced source file is missing",
       "details": {
-        "name": "Juliano Floss",
-        "field": "protected",
-        "actual": 0,
-        "expected": 1
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Juliano Floss has mismatched last_voted_paredao",
-      "details": {
-        "name": "Juliano Floss",
-        "field": "last_voted_paredao",
-        "actual": 0,
-        "expected": 13
+        "arquivo": "docs/scraped/indicada-pelo-lider-marciele-puxa-leandro-no-contragolpe-do-15o-paredao-do-bbb-26.md"
       }
     },
     {
@@ -959,7 +931,7 @@
         "name": "Leandro",
         "field": "votes_total",
         "actual": 0,
-        "expected": 18
+        "expected": 21
       }
     },
     {
@@ -972,7 +944,7 @@
         "name": "Leandro",
         "field": "votes_recent",
         "actual": 0,
-        "expected": 3
+        "expected": 4
       }
     },
     {
@@ -1011,7 +983,7 @@
         "name": "Leandro",
         "field": "last_voted_paredao",
         "actual": 0,
-        "expected": 14
+        "expected": 15
       }
     },
     {
@@ -1019,23 +991,10 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Milena has mismatched votes_total",
+      "message": "Ana Paula Renault has mismatched votes_total",
       "details": {
-        "name": "Milena",
+        "name": "Ana Paula Renault",
         "field": "votes_total",
-        "actual": 0,
-        "expected": 3
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Milena has mismatched votes_recent",
-      "details": {
-        "name": "Milena",
-        "field": "votes_recent",
         "actual": 0,
         "expected": 1
       }
@@ -1045,10 +1004,36 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Milena has mismatched votes_available",
+      "message": "Ana Paula Renault has mismatched votes_available",
       "details": {
-        "name": "Milena",
+        "name": "Ana Paula Renault",
         "field": "votes_available",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Ana Paula Renault has mismatched available",
+      "details": {
+        "name": "Ana Paula Renault",
+        "field": "available",
+        "actual": 0,
+        "expected": 10
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Ana Paula Renault has mismatched protected",
+      "details": {
+        "name": "Ana Paula Renault",
+        "field": "protected",
         "actual": 0,
         "expected": 3
       }
@@ -1058,25 +1043,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Milena has mismatched available",
+      "message": "Ana Paula Renault has mismatched last_voted_paredao",
       "details": {
-        "name": "Milena",
-        "field": "available",
-        "actual": 0,
-        "expected": 11
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Milena has mismatched last_voted_paredao",
-      "details": {
-        "name": "Milena",
+        "name": "Ana Paula Renault",
         "field": "last_voted_paredao",
         "actual": 0,
-        "expected": 13
+        "expected": 2
       }
     },
     {
@@ -1084,12 +1056,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Marciele has mismatched votes_total",
+      "message": "Juliano Floss has mismatched votes_total",
       "details": {
-        "name": "Marciele",
+        "name": "Juliano Floss",
         "field": "votes_total",
         "actual": 0,
-        "expected": 15
+        "expected": 16
       }
     },
     {
@@ -1097,9 +1069,9 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Marciele has mismatched votes_recent",
+      "message": "Juliano Floss has mismatched votes_recent",
       "details": {
-        "name": "Marciele",
+        "name": "Juliano Floss",
         "field": "votes_recent",
         "actual": 0,
         "expected": 3
@@ -1110,12 +1082,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Marciele has mismatched votes_available",
+      "message": "Juliano Floss has mismatched votes_available",
       "details": {
-        "name": "Marciele",
+        "name": "Juliano Floss",
         "field": "votes_available",
         "actual": 0,
-        "expected": 15
+        "expected": 16
       }
     },
     {
@@ -1123,9 +1095,9 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Marciele has mismatched available",
+      "message": "Juliano Floss has mismatched available",
       "details": {
-        "name": "Marciele",
+        "name": "Juliano Floss",
         "field": "available",
         "actual": 0,
         "expected": 12
@@ -1136,12 +1108,25 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Marciele has mismatched last_voted_paredao",
+      "message": "Juliano Floss has mismatched protected",
       "details": {
-        "name": "Marciele",
+        "name": "Juliano Floss",
+        "field": "protected",
+        "actual": 0,
+        "expected": 2
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Juliano Floss has mismatched last_voted_paredao",
+      "details": {
+        "name": "Juliano Floss",
         "field": "last_voted_paredao",
         "actual": 0,
-        "expected": 14
+        "expected": 13
       }
     },
     {
@@ -1167,7 +1152,7 @@
         "name": "Gabriela",
         "field": "votes_recent",
         "actual": 0,
-        "expected": 4
+        "expected": 2
       }
     },
     {
@@ -1227,12 +1212,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Ana Paula Renault has mismatched votes_total",
+      "message": "Marciele has mismatched votes_total",
       "details": {
-        "name": "Ana Paula Renault",
+        "name": "Marciele",
         "field": "votes_total",
         "actual": 0,
-        "expected": 1
+        "expected": 18
       }
     },
     {
@@ -1240,12 +1225,25 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Ana Paula Renault has mismatched votes_available",
+      "message": "Marciele has mismatched votes_recent",
       "details": {
-        "name": "Ana Paula Renault",
+        "name": "Marciele",
+        "field": "votes_recent",
+        "actual": 0,
+        "expected": 6
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Marciele has mismatched votes_available",
+      "details": {
+        "name": "Marciele",
         "field": "votes_available",
         "actual": 0,
-        "expected": 1
+        "expected": 18
       }
     },
     {
@@ -1253,12 +1251,12 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Ana Paula Renault has mismatched available",
+      "message": "Marciele has mismatched available",
       "details": {
-        "name": "Ana Paula Renault",
+        "name": "Marciele",
         "field": "available",
         "actual": 0,
-        "expected": 9
+        "expected": 13
       }
     },
     {
@@ -1266,10 +1264,23 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Ana Paula Renault has mismatched protected",
+      "message": "Marciele has mismatched last_voted_paredao",
       "details": {
-        "name": "Ana Paula Renault",
-        "field": "protected",
+        "name": "Marciele",
+        "field": "last_voted_paredao",
+        "actual": 0,
+        "expected": 15
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Milena has mismatched votes_total",
+      "details": {
+        "name": "Milena",
+        "field": "votes_total",
         "actual": 0,
         "expected": 3
       }
@@ -1279,12 +1290,64 @@
       "severity": "critical",
       "layer": "derived",
       "subject": "visados",
-      "message": "Ana Paula Renault has mismatched last_voted_paredao",
+      "message": "Milena has mismatched votes_recent",
       "details": {
-        "name": "Ana Paula Renault",
+        "name": "Milena",
+        "field": "votes_recent",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Milena has mismatched votes_available",
+      "details": {
+        "name": "Milena",
+        "field": "votes_available",
+        "actual": 0,
+        "expected": 3
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Milena has mismatched available",
+      "details": {
+        "name": "Milena",
+        "field": "available",
+        "actual": 0,
+        "expected": 11
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Milena has mismatched protected",
+      "details": {
+        "name": "Milena",
+        "field": "protected",
+        "actual": 0,
+        "expected": 1
+      }
+    },
+    {
+      "id": "visados_exposure_mismatch",
+      "severity": "critical",
+      "layer": "derived",
+      "subject": "visados",
+      "message": "Milena has mismatched last_voted_paredao",
+      "details": {
+        "name": "Milena",
         "field": "last_voted_paredao",
         "actual": 0,
-        "expected": 2
+        "expected": 13
       }
     },
     {
@@ -1298,19 +1361,6 @@
         "field": "votes_total",
         "actual": 0,
         "expected": 25
-      }
-    },
-    {
-      "id": "visados_exposure_mismatch",
-      "severity": "critical",
-      "layer": "derived",
-      "subject": "visados",
-      "message": "Jordana has mismatched votes_recent",
-      "details": {
-        "name": "Jordana",
-        "field": "votes_recent",
-        "actual": 0,
-        "expected": 3
       }
     },
     {
@@ -1336,7 +1386,7 @@
         "name": "Jordana",
         "field": "available",
         "actual": 0,
-        "expected": 11
+        "expected": 12
       }
     },
     {
