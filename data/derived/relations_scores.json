@@ -1,12 +1,12 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-13T14:46:00.791578+00:00",
+    "generated_at": "2026-04-13T22:21:58.404317+00:00",
     "date": "2026-04-13",
     "cycle": 16,
     "effective_week_daily": 16,
     "effective_week_paredao": 16,
     "reference_date_daily": "2026-04-13",
-    "reference_date_paredao": "2026-04-10",
+    "reference_date_paredao": "2026-04-12",
     "weights": {
       "queridometro": {
         "weights": {
@@ -3632,6 +3632,31 @@
       "weight_raw": -2.016,
       "revealed": false,
       "event_type": "contragolpe",
+      "visibility": "public",
+      "backlash": true,
+      "weight": -2.016
+    },
+    {
+      "type": "power_event",
+      "actor": "Jordana",
+      "target": "Ana Paula Renault",
+      "cycle": 16,
+      "date": "2026-04-12",
+      "weight_raw": -3.36,
+      "revealed": false,
+      "event_type": "indicacao",
+      "visibility": "public",
+      "weight": -3.36
+    },
+    {
+      "type": "power_event",
+      "actor": "Ana Paula Renault",
+      "target": "Jordana",
+      "cycle": 16,
+      "date": "2026-04-12",
+      "weight_raw": -2.016,
+      "revealed": false,
+      "event_type": "indicacao",
       "visibility": "public",
       "backlash": true,
       "weight": -2.016
@@ -17157,26 +17182,87 @@
       "vote_count": 1,
       "vote_kind": "secret",
       "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Ana Paula Renault",
+      "target": "Gabriela",
+      "cycle": 16,
+      "date": "2026-04-12",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Juliano Floss",
+      "target": "Gabriela",
+      "cycle": 16,
+      "date": "2026-04-12",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Leandro",
+      "target": "Gabriela",
+      "cycle": 16,
+      "date": "2026-04-12",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Milena",
+      "target": "Gabriela",
+      "cycle": 16,
+      "date": "2026-04-12",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
+    },
+    {
+      "type": "vote",
+      "actor": "Gabriela",
+      "target": "Juliano Floss",
+      "cycle": 16,
+      "date": "2026-04-12",
+      "weight_raw": -2.0,
+      "revealed": false,
+      "vote_count": 1,
+      "vote_kind": "secret",
+      "weight": -2.0
     }
   ],
   "pairs_daily": {
     "Ana Paula Renault": {
       "Gabriela": {
-        "score": -2.53,
+        "score": -4.53,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.48,
-          "sincerao": -1.55
+          "sincerao": -1.55,
+          "vote": -2.0
         },
         "streak_len": 39,
         "break": false,
         "vote_contradiction": false
       },
       "Jordana": {
-        "score": -5.6,
+        "score": -7.616,
         "components": {
           "queridometro": -0.5,
-          "power_event": -0.78,
+          "power_event": -2.796,
           "sincerao": -2.32,
           "vote": -2.0
         },
@@ -17243,12 +17329,12 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -14.046,
+        "score": -16.046,
         "components": {
           "queridometro": -0.41,
           "power_event": -2.016,
           "sincerao": -1.62,
-          "vote": -10.0
+          "vote": -12.0
         },
         "streak_len": 4,
         "break": false,
@@ -17280,10 +17366,10 @@
     },
     "Jordana": {
       "Ana Paula Renault": {
-        "score": -2.6,
+        "score": -5.96,
         "components": {
           "queridometro": -0.91,
-          "power_event": -0.12,
+          "power_event": -3.48,
           "sincerao": -1.57
         },
         "streak_len": 7,
@@ -17352,12 +17438,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -8.16,
+        "score": -10.16,
         "components": {
           "queridometro": -0.68,
           "power_event": -3.36,
           "sincerao": -2.12,
-          "vote": -2.0
+          "vote": -4.0
         },
         "streak_len": 1,
         "break": false,
@@ -17411,12 +17497,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -12.716,
+        "score": -14.716,
         "components": {
           "queridometro": -1.0,
           "power_event": -2.016,
           "sincerao": -3.7,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 82,
         "break": false,
@@ -17471,11 +17557,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -3.38,
+        "score": -5.38,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.48,
-          "sincerao": -1.9
+          "sincerao": -1.9,
+          "vote": -2.0
         },
         "streak_len": 30,
         "break": false,
@@ -17521,20 +17608,21 @@
   "pairs_paredao": {
     "Ana Paula Renault": {
       "Gabriela": {
-        "score": -2.53,
+        "score": -4.53,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.48,
-          "sincerao": -1.55
+          "sincerao": -1.55,
+          "vote": -2.0
         },
         "streak_len": 39,
         "break": false
       },
       "Jordana": {
-        "score": -5.6,
+        "score": -7.616,
         "components": {
           "queridometro": -0.5,
-          "power_event": -0.78,
+          "power_event": -2.796,
           "sincerao": -2.32,
           "vote": -2.0
         },
@@ -17595,12 +17683,12 @@
         "break": false
       },
       "Juliano Floss": {
-        "score": -13.101,
+        "score": -16.046,
         "components": {
-          "queridometro": 0.535,
+          "queridometro": -0.41,
           "power_event": -2.016,
           "sincerao": -1.62,
-          "vote": -10.0
+          "vote": -12.0
         },
         "streak_len": 4,
         "break": false
@@ -17617,9 +17705,9 @@
         "break": false
       },
       "Milena": {
-        "score": -3.549,
+        "score": -2.919,
         "components": {
-          "queridometro": -0.185,
+          "queridometro": 0.445,
           "power_event": -0.144,
           "sincerao": -3.22
         },
@@ -17629,10 +17717,10 @@
     },
     "Jordana": {
       "Ana Paula Renault": {
-        "score": -2.6,
+        "score": -5.96,
         "components": {
           "queridometro": -0.91,
-          "power_event": -0.12,
+          "power_event": -3.48,
           "sincerao": -1.57
         },
         "streak_len": 7,
@@ -17660,9 +17748,9 @@
         "break": false
       },
       "Leandro": {
-        "score": -13.75,
+        "score": -13.715,
         "components": {
-          "queridometro": -0.73,
+          "queridometro": -0.695,
           "power_event": -3.36,
           "sincerao": -1.86,
           "vip": 0.2,
@@ -17695,12 +17783,12 @@
         "break": false
       },
       "Gabriela": {
-        "score": -8.195,
+        "score": -10.195,
         "components": {
           "queridometro": -0.715,
           "power_event": -3.36,
           "sincerao": -2.12,
-          "vote": -2.0
+          "vote": -4.0
         },
         "streak_len": 1,
         "break": false
@@ -17739,9 +17827,9 @@
     },
     "Leandro": {
       "Ana Paula Renault": {
-        "score": -5.599,
+        "score": -4.654,
         "components": {
-          "queridometro": -0.125,
+          "queridometro": 0.82,
           "power_event": -5.424,
           "sincerao": -0.05
         },
@@ -17749,12 +17837,12 @@
         "break": false
       },
       "Gabriela": {
-        "score": -12.716,
+        "score": -14.716,
         "components": {
           "queridometro": -1.0,
           "power_event": -2.016,
           "sincerao": -3.7,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 82,
         "break": false
@@ -17781,9 +17869,9 @@
         "break": false
       },
       "Milena": {
-        "score": 0.031,
+        "score": 0.976,
         "components": {
-          "queridometro": -0.125,
+          "queridometro": 0.82,
           "power_event": -0.144,
           "sincerao": 0.3
         },
@@ -17804,11 +17892,12 @@
         "break": false
       },
       "Gabriela": {
-        "score": -3.38,
+        "score": -5.38,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.48,
-          "sincerao": -1.9
+          "sincerao": -1.9,
+          "vote": -2.0
         },
         "streak_len": 30,
         "break": false
@@ -17836,9 +17925,9 @@
         "break": false
       },
       "Leandro": {
-        "score": 0.48,
+        "score": 0.06,
         "components": {
-          "queridometro": 0.76,
+          "queridometro": 0.34,
           "power_event": -0.48,
           "sincerao": 0.2
         },
@@ -18453,11 +18542,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -2.53,
+        "score": -4.53,
         "components": {
           "queridometro": -0.5,
           "power_event": -0.48,
-          "sincerao": -1.55
+          "sincerao": -1.55,
+          "vote": -2.0
         },
         "streak_len": 39,
         "break": false,
@@ -18478,10 +18568,10 @@
         "vote_contradiction": false
       },
       "Jordana": {
-        "score": -5.6,
+        "score": -7.616,
         "components": {
           "queridometro": -0.5,
-          "power_event": -0.78,
+          "power_event": -2.796,
           "sincerao": -2.32,
           "vote": -2.0
         },
@@ -20057,12 +20147,12 @@
         "vote_contradiction": false
       },
       "Juliano Floss": {
-        "score": -14.046,
+        "score": -16.046,
         "components": {
           "queridometro": -0.41,
           "power_event": -2.016,
           "sincerao": -1.62,
-          "vote": -10.0
+          "vote": -12.0
         },
         "streak_len": 4,
         "break": false,
@@ -20505,10 +20595,10 @@
         "vote_contradiction": false
       },
       "Ana Paula Renault": {
-        "score": -2.6,
+        "score": -5.96,
         "components": {
           "queridometro": -0.91,
-          "power_event": -0.12,
+          "power_event": -3.48,
           "sincerao": -1.57
         },
         "streak_len": 7,
@@ -20838,12 +20928,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -8.16,
+        "score": -10.16,
         "components": {
           "queridometro": -0.68,
           "power_event": -3.36,
           "sincerao": -2.12,
-          "vote": -2.0
+          "vote": -4.0
         },
         "streak_len": 1,
         "break": false,
@@ -21108,12 +21198,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -12.716,
+        "score": -14.716,
         "components": {
           "queridometro": -1.0,
           "power_event": -2.016,
           "sincerao": -3.7,
-          "vote": -6.0
+          "vote": -8.0
         },
         "streak_len": 82,
         "break": false,
@@ -22401,11 +22491,12 @@
         "vote_contradiction": false
       },
       "Gabriela": {
-        "score": -3.38,
+        "score": -5.38,
         "components": {
           "queridometro": -1.0,
           "power_event": -0.48,
-          "sincerao": -1.9
+          "sincerao": -1.9,
+          "vote": -2.0
         },
         "streak_len": 30,
         "break": false,
@@ -24428,8 +24519,8 @@
       }
     ],
     "total": 38,
-    "total_vote_edges": 194,
-    "rate": 0.1959,
+    "total_vote_edges": 199,
+    "rate": 0.191,
     "context_notes": {
       "week_1": "Pedro (most rejected, many planned to vote for him) quit on Jan 19, voting day. Participants redirected votes to Paulo Augusto despite weak animosity. Also first-week bonds were less established."
     }
@@ -24449,9 +24540,9 @@
     },
     "Ana Paula Renault": {
       "positive": 6.13,
-      "negative": -70.048,
-      "total": -63.918,
-      "count": 109
+      "negative": -73.408,
+      "total": -67.278,
+      "count": 110
     },
     "Babu Santana": {
       "positive": 5.41,
@@ -24485,9 +24576,9 @@
     },
     "Gabriela": {
       "positive": 4.44,
-      "negative": -52.826,
-      "total": -48.386,
-      "count": 75
+      "negative": -60.826,
+      "total": -56.386,
+      "count": 79
     },
     "Jonas Sulzbach": {
       "positive": 3.66,
@@ -24497,15 +24588,15 @@
     },
     "Jordana": {
       "positive": 3.94,
-      "negative": -92.944,
-      "total": -89.004,
-      "count": 96
+      "negative": -94.96,
+      "total": -91.02,
+      "count": 97
     },
     "Juliano Floss": {
       "positive": 4.69,
-      "negative": -65.6925,
-      "total": -61.0025,
-      "count": 85
+      "negative": -67.6925,
+      "total": -63.0025,
+      "count": 86
     },
     "Leandro": {
       "positive": 2.0,
@@ -24837,6 +24928,18 @@
         "Samira"
       ],
       "count": 5
+    },
+    {
+      "cycle": 16,
+      "date": "2026-04-12",
+      "target": "Gabriela",
+      "voters": [
+        "Ana Paula Renault",
+        "Juliano Floss",
+        "Leandro",
+        "Milena"
+      ],
+      "count": 4
     }
   ],
   "streak_breaks": [

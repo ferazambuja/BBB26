@@ -1034,7 +1034,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 
 | Scope | Count | Definition |
 |---|---|---|
-| `with_indicados` | 15 | Paredões com indicados_finais |
+| `with_indicados` | 16 | Paredões com indicados_finais |
 | `all_finalized` | 15 | Finalizados (inclui falso) |
 | `real_only` | 14 | Finalizados reais (exclui falso) |
 
@@ -1057,6 +1057,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P13 | Marciele, Juliano Floss, Chaiany | Chaiany | 61.07% | Não | finalizado |
 | P14 | Jordana, Marciele, Samira | Samira | 51.24% | Não | finalizado |
 | P15 | Gabriela, Marciele, Leandro | Marciele | 59.34% | Não | finalizado |
+| P16 | Ana Paula Renault, Gabriela, Juliano Floss | — | — | Não | em_andamento |
 
 ### Route Effectiveness (`real_only`)
 
