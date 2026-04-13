@@ -1,7 +1,7 @@
 # Manual Events Audit
 
 Manual power_events: 128
-Auto events: 41
+Auto events: 42
 
 ## Missing required fields
 (nenhum problema detectado)
