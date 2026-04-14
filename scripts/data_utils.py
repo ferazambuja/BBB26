@@ -487,7 +487,11 @@ CYCLE_END_DATES: list[str] = [
     "2026-03-31",  # Cycle 12 — Ana Paula Renault Líder (bi); 12º Paredão Mar 31 (Solange eliminated); next Líder Apr 1
     "2026-04-04",  # Cycle 13 — Samira Líder (bi); 13º Paredão Apr 5 (Chaiany eliminated); Juliano Floss Líder Apr 5
     "2026-04-08",  # Cycle 14 — Juliano Floss Líder; 14º Paredão Apr 7 (Samira eliminated); next Líder Apr 9
-    "2026-04-11",  # Cycle 15 — Juliano Floss Líder (bi); 15º Paredão Apr 12 turbo (Marciele eliminated); Jordana Líder (16ª PdL) Apr 12 night — boundary Apr 11 so Apr 12 late-night snapshots attribute to cycle 16
+    # Cycle 15 end (Apr 11) is auto-inferred from provas.json (Prova #38 cycle=16,
+    # date=2026-04-12) via _compute_effective_cycle_end_dates. Add a confirmed
+    # entry here only if the cycle is fully historical AND you want to short-circuit
+    # inference (e.g., disambiguate edge cases). Same-day turbo transitions like
+    # P15→P16 are handled automatically as long as Prova do Líder carries cycle=N+1.
 ]
 
 
