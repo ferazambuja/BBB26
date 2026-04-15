@@ -123,18 +123,16 @@ def extract_image_urls(html: str) -> list[str]:
             urls.append(chosen)
 
     # Keep only the poll-card images (PNGs).
-    # Excludes banners like "000.jpg" (Pesquisa de Popularidade) and
-    # other Blogger images in the post header/comments.
-    # Observed patterns:
-    # - .../2026-03-17_194618.png (HHMMSS, old layout)
-    # - .../2026-03-17_19-46-18.png (HH-MM-SS, old layout)
-    # - .../1.Twitter.png, 5.Consolidados.png (numbered platform names, old new layout)
-    # - .../1.X.png, 2.Y.png, 3.I.png (numbered short, P17+ layout)
-    # - .../Sites.png, Consolidados.png (alphabetic-only card names, P17+ layout)
+    # Votalhada has renamed cards several times — old (datetime), old-numbered
+    # (1.Twitter.png, 5.Consolidados.png), short-numbered (1.X.png, 2.Y.png),
+    # and alphabetic-only (Sites.png, Consolidados.png, Variacao.png, ...).
+    # Rather than enumerate each naming convention, accept any "short dictionary-
+    # like" PNG filename. This is safe because `extract_image_urls()` already
+    # restricts to the main post body (#Blog1) — Blogger widgets, headers, and
+    # sidebar images are excluded upstream. The banner "000.jpg" is excluded by
+    # the .png requirement.
     card_name_re = re.compile(
-        r"^(?:\d{4}-\d{2}-\d{2}_(?:\d{6}|\d{2}-\d{2}-\d{2})|"
-        r"\d+\.\w+|"
-        r"Sites|Consolidados|Variacao|Variação|Serie|Série)\.png$",
+        r"^[\w\u00C0-\u017F][\w\u00C0-\u017F.\- ]{0,40}\.png$",
         re.IGNORECASE,
     )
 
