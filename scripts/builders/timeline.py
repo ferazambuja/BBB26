@@ -427,8 +427,14 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
         # Skip individual punição rows when a ta_com_nada event covers them
         if t in ("punicao_gravissima", "punicao_coletiva") and date in tcn_dates:
             continue
-        # Always compute week from date (ignore stored week — may use old calendar math)
-        week = get_cycle_number(date) if date else 0
+        # Trust explicit cycle when present (handles same-day cross-cycle events like
+        # a P16-live-show ganha_ganha that the date-based inference would push to cycle N+1);
+        # otherwise compute from date via cycle boundary inference.
+        stored_cycle = ev.get("cycle")
+        if isinstance(stored_cycle, int) and stored_cycle > 0:
+            week = stored_cycle
+        else:
+            week = get_cycle_number(date) if date else 0
         actor = ev.get("actor", "")
         target = ev.get("target", "")
         emoji = power_emoji.get(t, "⚡")
@@ -440,12 +446,15 @@ def _collect_timeline_manual_events(manual_events: dict) -> list[dict]:
         title_parts.append(POWER_EVENT_LABELS.get(t, t.replace("_", " ").capitalize()))
         actors_list = normalize_actors(ev)
         participants = list(dict.fromkeys(p for p in actors_list + [target] if p))
-        events.append({
+        new_event = {
             "date": date, "cycle": week, "category": t,
             "emoji": emoji, "title": " — ".join(title_parts),
             "detail": ev.get("detail", ""), "participants": participants,
             "source": "power_events",
-        })
+        }
+        if isinstance(ev.get("sort_order"), (int, float)):
+            new_event["sort_order"] = ev["sort_order"]
+        events.append(new_event)
 
     # --- 4. Weekly events (Big Fone, Sincerão, Ganha-Ganha, Barrado no Baile) ---
     for we in _iter_cycle_entries(manual_events):

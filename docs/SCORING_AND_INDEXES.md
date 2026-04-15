@@ -1034,9 +1034,9 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 
 | Scope | Count | Definition |
 |---|---|---|
-| `with_indicados` | 16 | Paredões com indicados_finais |
-| `all_finalized` | 15 | Finalizados (inclui falso) |
-| `real_only` | 14 | Finalizados reais (exclui falso) |
+| `with_indicados` | 17 | Paredões com indicados_finais |
+| `all_finalized` | 16 | Finalizados (inclui falso) |
+| `real_only` | 15 | Finalizados reais (exclui falso) |
 
 ### Paredão Matrix
 
@@ -1057,34 +1057,36 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P13 | Marciele, Juliano Floss, Chaiany | Chaiany | 61.07% | Não | finalizado |
 | P14 | Jordana, Marciele, Samira | Samira | 51.24% | Não | finalizado |
 | P15 | Gabriela, Marciele, Leandro | Marciele | 59.34% | Não | finalizado |
-| P16 | Ana Paula Renault, Gabriela, Juliano Floss | — | — | Não | em_andamento |
+| P16 | Ana Paula Renault, Gabriela, Juliano Floss | Gabriela | 64.12% | Não | finalizado |
+| P17 | Ana Paula Renault, Jordana, Juliano Floss | — | — | Não | em_andamento |
 
 ### Route Effectiveness (`real_only`)
 
 | Route | Eliminated | Total | Rate |
 |---|---|---|---|
 | Big Fone | 1 | 2 | 50.0% |
-| Casa | 2 | 9 | 22.2% |
+| Casa | 3 | 10 | 30.0% |
 | Contragolpe | 3 | 7 | 42.9% |
-| Líder | 5 | 14 | 35.7% |
+| Líder | 5 | 15 | 33.3% |
 | Bloco do Paredão | Não (n=1) | 1 | — |
 | Caixas-Surpresa | Não (n=1) | 1 | — |
 | Consenso Anjo+Monstro | Sim (n=1) | 1 | — |
 | Dinâmica (Grupo Pedra) | Não (n=1) | 1 | — |
 | Dinâmica (Grupo Tesoura) | Não (n=1) | 1 | — |
 | Duelo de Risco | Não (n=1) | 1 | — |
+| Sonho do Poder (Jordana) | Não (n=1) | 1 | — |
 | Voto de Minerva (empate 2×2 com Gabriela) | Sim (n=1) | 1 | — |
 | Voto de Minerva (empate 2×2) | Não (n=1) | 1 | — |
 | Voto de Minerva (empate 3×3 com Leandro) | Sim (n=1) | 1 | — |
 | Voto de Minerva (empate 3×3 com Samira) | Não (n=1) | 1 | — |
 
-**First-timer elimination rate** (`real_only`): 8/14 = 57.1%
+**First-timer elimination rate** (`real_only`): 8/15 = 53.3%
 
 ### Bate-e-Volta Metrics (`real_only`)
 
 | Metric | n | Total | Rate |
 |---|---|---|---|
-| Paredões com BV | 8 | 14 | 57.1% |
+| Paredões com BV | 8 | 15 | 53.3% |
 | Vencedores que escaparam | 10 | 10 | 100.0% |
 | Perdedores que sobreviveram | 9 | 14 | 64.3% |
 | Perdedores eliminados | 5 | 14 | 35.7% |
@@ -1096,7 +1098,7 @@ Total BV participants: **24**
 - **Biggest swing**: Solange Couto — 15.19% (P5) → 94.17% (P12) = 78.98 p.p.
 - **BV champion**: Alberto Cowboy (3x)
 - **Líder favorite target**: Milena (3x)
-- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2), Voto de Minerva (empate 2×2 com Gabriela), Voto de Minerva (empate 3×3 com Samira), Voto de Minerva (empate 3×3 com Leandro)
+- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2), Voto de Minerva (empate 2×2 com Gabriela), Voto de Minerva (empate 3×3 com Samira), Voto de Minerva (empate 3×3 com Leandro), Sonho do Poder (Jordana)
 
 ### Fake Paredão Handling
 

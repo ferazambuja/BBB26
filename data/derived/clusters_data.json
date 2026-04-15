@@ -1,41 +1,39 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-15T01:30:18.316006+00:00",
+    "generated_at": "2026-04-15T07:11:01.633265+00:00",
     "date": "2026-04-14",
-    "cycle": 16,
+    "cycle": 17,
     "reference_date": "2026-04-14",
-    "n_active": 6,
-    "n_clusters": 2,
-    "n_paredoes": 15,
-    "n_contradictions": 38,
-    "n_tensions": 1,
-    "silhouette_coefficient": 0.6296,
-    "resolution_used": 0.5,
+    "n_active": 5,
+    "n_clusters": 3,
+    "n_paredoes": 16,
+    "n_contradictions": 41,
+    "n_tensions": 3,
+    "silhouette_coefficient": null,
+    "resolution_used": 1.0,
     "best_cohesion": {
       "label": 2,
-      "name": "Aliança Núcleo Pipoca",
-      "score": 1.545
+      "name": "Aliança Grupo Misto",
+      "score": 1.675
     },
     "worst_rivalry": {
-      "key": "1<>2",
-      "score": -9.1564,
-      "text": "Grupo Misto vs Aliança Núcleo Pipoca"
+      "key": "2<>3",
+      "score": -12.862,
+      "text": "Aliança Grupo Misto vs Núcleo Pipoca"
     }
   },
   "active_names": [
     "Ana Paula Renault",
-    "Gabriela",
     "Jordana",
     "Juliano Floss",
     "Leandro",
     "Milena"
   ],
   "cluster_order": [
+    "Ana Paula Renault",
     "Milena",
     "Juliano Floss",
-    "Ana Paula Renault",
     "Leandro",
-    "Gabriela",
     "Jordana"
   ],
   "communities": [
@@ -45,48 +43,68 @@
       "color": "#e74c3c",
       "members": [
         "Ana Paula Renault",
-        "Juliano Floss",
-        "Leandro",
         "Milena"
       ],
       "group_composition": {
-        "Pipoca": 2,
         "Veterano": 1,
-        "Camarote": 1
+        "Pipoca": 1
       },
-      "cohesion": 0.6732,
+      "cohesion": 1.255,
       "best_external": {
         "label": 2,
-        "name": "Aliança Núcleo Pipoca",
-        "score": -9.1564
+        "name": "Aliança Grupo Misto",
+        "score": -1.1302
       },
       "worst_external": {
-        "label": 2,
-        "name": "Aliança Núcleo Pipoca",
-        "score": -9.1564
+        "label": 3,
+        "name": "Núcleo Pipoca",
+        "score": -8.4165
       }
     },
     {
       "label": 2,
-      "name": "Aliança Núcleo Pipoca",
+      "name": "Aliança Grupo Misto",
       "color": "#3498db",
       "members": [
-        "Gabriela",
-        "Jordana"
+        "Juliano Floss",
+        "Leandro"
       ],
       "group_composition": {
-        "Pipoca": 2
+        "Camarote": 1,
+        "Pipoca": 1
       },
-      "cohesion": 1.545,
+      "cohesion": 1.675,
       "best_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -9.1564
+        "score": -1.1302
       },
       "worst_external": {
+        "label": 3,
+        "name": "Núcleo Pipoca",
+        "score": -12.862
+      }
+    },
+    {
+      "label": 3,
+      "name": "Núcleo Pipoca",
+      "color": "#2ecc71",
+      "members": [
+        "Jordana"
+      ],
+      "group_composition": {
+        "Pipoca": 1
+      },
+      "cohesion": 0,
+      "best_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -9.1564
+        "score": -8.4165
+      },
+      "worst_external": {
+        "label": 2,
+        "name": "Aliança Grupo Misto",
+        "score": -12.862
       }
     }
   ],
@@ -95,11 +113,31 @@
       "cluster_a": 1,
       "cluster_b": 2,
       "name_a": "Grupo Misto",
-      "name_b": "Aliança Núcleo Pipoca",
-      "score_sym": -9.1564,
-      "score_a_to_b": -9.6672,
-      "score_b_to_a": -8.6456,
-      "vote_alignment": 0.0846
+      "name_b": "Aliança Grupo Misto",
+      "score_sym": -1.1302,
+      "score_a_to_b": -1.569,
+      "score_b_to_a": -0.6915,
+      "vote_alignment": 0.6285
+    },
+    {
+      "cluster_a": 1,
+      "cluster_b": 3,
+      "name_a": "Grupo Misto",
+      "name_b": "Núcleo Pipoca",
+      "score_sym": -8.4165,
+      "score_a_to_b": -10.868,
+      "score_b_to_a": -5.965,
+      "vote_alignment": 0.0417
+    },
+    {
+      "cluster_a": 2,
+      "cluster_b": 3,
+      "name_a": "Aliança Grupo Misto",
+      "name_b": "Núcleo Pipoca",
+      "score_sym": -12.862,
+      "score_a_to_b": -12.111,
+      "score_b_to_a": -13.613,
+      "vote_alignment": 0.0333
     }
   ],
   "polarization": [
@@ -107,158 +145,121 @@
       "name": "Ana Paula Renault",
       "grupo": "Veterano",
       "cluster": 1,
-      "avg_received": -1.5824,
-      "std_received": 3.7626,
-      "contradictions": 0,
-      "pos_received": 5.666,
+      "avg_received": -2.862,
+      "std_received": 4.0419,
+      "contradictions": 2,
+      "pos_received": 2.11,
       "top_love": [
         {
           "name": "Milena",
-          "score": 3.61
+          "score": 2.11
         },
         {
           "name": "Juliano Floss",
-          "score": 2.06
+          "score": -0.44
         },
         {
-          "name": "Gabriela",
-          "score": -2.96
+          "name": "Leandro",
+          "score": -4.62
         }
       ],
       "top_hate": [
         {
           "name": "Jordana",
-          "score": -5.99
+          "score": -8.49
         },
         {
           "name": "Leandro",
           "score": -4.62
         },
         {
-          "name": "Gabriela",
-          "score": -2.96
-        }
-      ]
-    },
-    {
-      "name": "Gabriela",
-      "grupo": "Pipoca",
-      "cluster": 2,
-      "avg_received": -6.6252,
-      "std_received": 5.4851,
-      "contradictions": 4,
-      "pos_received": 1.57,
-      "top_love": [
-        {
-          "name": "Jordana",
-          "score": 1.57
-        },
-        {
-          "name": "Ana Paula Renault",
-          "score": -4.53
-        },
-        {
-          "name": "Milena",
-          "score": -5.38
-        }
-      ],
-      "top_hate": [
-        {
-          "name": "Leandro",
-          "score": -14.72
-        },
-        {
           "name": "Juliano Floss",
-          "score": -10.07
-        },
-        {
-          "name": "Milena",
-          "score": -5.38
+          "score": -0.44
         }
       ]
     },
     {
       "name": "Jordana",
       "grupo": "Pipoca",
-      "cluster": 2,
-      "avg_received": -8.2244,
-      "std_received": 5.1523,
+      "cluster": 3,
+      "avg_received": -11.4895,
+      "std_received": 1.4706,
       "contradictions": 7,
-      "pos_received": 1.52,
+      "pos_received": 0,
       "top_love": [
         {
-          "name": "Gabriela",
-          "score": 1.52
-        },
-        {
           "name": "Ana Paula Renault",
-          "score": -7.62
+          "score": -9.12
         },
         {
-          "name": "Juliano Floss",
-          "score": -10.79
+          "name": "Leandro",
+          "score": -11.42
+        },
+        {
+          "name": "Milena",
+          "score": -12.62
         }
       ],
       "top_hate": [
+        {
+          "name": "Juliano Floss",
+          "score": -12.81
+        },
         {
           "name": "Milena",
           "score": -12.62
         },
         {
           "name": "Leandro",
-          "score": -11.62
-        },
-        {
-          "name": "Juliano Floss",
-          "score": -10.79
+          "score": -11.42
         }
       ]
     },
     {
       "name": "Juliano Floss",
       "grupo": "Camarote",
-      "cluster": 1,
-      "avg_received": -4.4234,
-      "std_received": 7.384,
-      "contradictions": 1,
-      "pos_received": 4.24,
+      "cluster": 2,
+      "avg_received": -3.304,
+      "std_received": 6.12,
+      "contradictions": 3,
+      "pos_received": 2.15,
       "top_love": [
         {
           "name": "Leandro",
-          "score": 1.95
+          "score": 2.15
         },
         {
           "name": "Ana Paula Renault",
-          "score": 1.32
+          "score": -0.18
         },
         {
           "name": "Milena",
-          "score": 0.97
+          "score": -1.53
         }
       ],
       "top_hate": [
         {
-          "name": "Gabriela",
-          "score": -16.06
-        },
-        {
           "name": "Jordana",
-          "score": -10.3
+          "score": -13.66
         },
         {
           "name": "Milena",
-          "score": 0.97
+          "score": -1.53
+        },
+        {
+          "name": "Ana Paula Renault",
+          "score": -0.18
         }
       ]
     },
     {
       "name": "Leandro",
       "grupo": "Pipoca",
-      "cluster": 1,
-      "avg_received": -6.3132,
-      "std_received": 6.6294,
+      "cluster": 2,
+      "avg_received": -4.234,
+      "std_received": 6.0039,
       "contradictions": 0,
-      "pos_received": 1.71,
+      "pos_received": 2.07,
       "top_love": [
         {
           "name": "Juliano Floss",
@@ -266,7 +267,7 @@
         },
         {
           "name": "Milena",
-          "score": 0.51
+          "score": 0.87
         },
         {
           "name": "Ana Paula Renault",
@@ -275,16 +276,16 @@
       ],
       "top_hate": [
         {
-          "name": "Gabriela",
-          "score": -14.27
-        },
-        {
           "name": "Jordana",
           "score": -13.57
         },
         {
           "name": "Ana Paula Renault",
           "score": -5.44
+        },
+        {
+          "name": "Milena",
+          "score": 0.87
         }
       ]
     },
@@ -292,22 +293,22 @@
       "name": "Milena",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": 0.1016,
-      "std_received": 2.6334,
-      "contradictions": 1,
-      "pos_received": 6.522,
+      "avg_received": -0.1845,
+      "std_received": 1.9046,
+      "contradictions": 3,
+      "pos_received": 2.702,
       "top_love": [
         {
-          "name": "Ana Paula Renault",
-          "score": 2.9
+          "name": "Leandro",
+          "score": 1.19
         },
         {
           "name": "Juliano Floss",
-          "score": 2.62
+          "score": 1.12
         },
         {
-          "name": "Leandro",
-          "score": 1.01
+          "name": "Ana Paula Renault",
+          "score": 0.4
         }
       ],
       "top_hate": [
@@ -316,12 +317,12 @@
           "score": -3.44
         },
         {
-          "name": "Gabriela",
-          "score": -2.57
+          "name": "Ana Paula Renault",
+          "score": 0.4
         },
         {
-          "name": "Leandro",
-          "score": 1.01
+          "name": "Juliano Floss",
+          "score": 1.12
         }
       ]
     }
@@ -329,100 +330,74 @@
   "score_matrix_ordered": [
     [
       0.0,
-      1.793,
-      3.255,
-      0.758,
-      -3.977,
+      1.255,
+      -0.312,
+      -5.03,
+      -8.803
+    ],
+    [
+      1.255,
+      0.0,
+      -0.207,
+      1.028,
       -8.03
     ],
     [
-      1.793,
+      -0.312,
+      -0.207,
       0.0,
-      1.688,
-      1.575,
-      -13.0655,
-      -10.543
+      1.675,
+      -13.231
     ],
     [
-      3.255,
-      1.688,
-      0.0,
       -5.03,
-      -3.747,
-      -6.803
-    ],
-    [
-      0.758,
-      1.575,
-      -5.03,
+      1.028,
+      1.675,
       0.0,
-      -14.493,
-      -12.593
+      -12.493
     ],
     [
-      -3.977,
-      -13.0655,
-      -3.747,
-      -14.493,
-      0.0,
-      1.545
-    ],
-    [
+      -8.803,
       -8.03,
-      -10.543,
-      -6.803,
-      -12.593,
-      1.545,
+      -13.231,
+      -12.493,
       0.0
     ]
   ],
   "vote_matrix_ordered": [
     [
       0.0,
-      0.6923,
-      0.8333,
-      0.6,
-      0.1333,
-      0.0
-    ],
-    [
-      0.6923,
-      0.0,
-      0.6,
-      0.6923,
-      0.0769,
-      0.0
-    ],
-    [
-      0.8333,
-      0.6,
-      0.0,
-      0.5,
-      0.25,
+      0.8462,
+      0.6364,
+      0.5385,
       0.0833
     ],
     [
-      0.6,
-      0.6923,
-      0.5,
+      0.8462,
       0.0,
-      0.0667,
+      0.7143,
+      0.625,
+      0.0
+    ],
+    [
+      0.6364,
+      0.7143,
+      0.0,
+      0.7143,
+      0.0
+    ],
+    [
+      0.5385,
+      0.625,
+      0.7143,
+      0.0,
       0.0667
     ],
     [
-      0.1333,
-      0.0769,
-      0.25,
-      0.0667,
-      0.0,
-      0.4667
-    ],
-    [
-      0.0,
-      0.0,
       0.0833,
+      0.0,
+      0.0,
       0.0667,
-      0.4667,
       0.0
     ]
   ]

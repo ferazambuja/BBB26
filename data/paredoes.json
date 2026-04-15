@@ -2067,7 +2067,7 @@
     },
     {
       "numero": 16,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-04-14",
       "data_formacao": "2026-04-12",
       "titulo": "16º Paredão — 14 de Abril de 2026",
@@ -2120,8 +2120,20 @@
         "Gabriela": "Juliano Floss",
         "Milena": "Gabriela"
       },
-      "resultado": {},
+      "resultado": {
+        "eliminado": "Gabriela",
+        "votos": {
+          "Gabriela": {"voto_unico": 63.00, "voto_torcida": 66.74, "voto_total": 64.12},
+          "Juliano Floss": {"voto_unico": 30.61, "voto_torcida": 26.03, "voto_total": 29.24},
+          "Ana Paula Renault": {"voto_unico": 6.39, "voto_torcida": 7.23, "voto_total": 6.64}
+        }
+      },
       "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/eliminacao/noticia/quem-saiu-do-bbb-26-gabriela-e-a-decima-quinta-eliminada-do-reality.ghtml",
+          "arquivo": "docs/scraped/quem-saiu-do-bbb-26-gabriela-e-a-decima-quinta-eliminada-do-reality.md",
+          "titulo": "Quem saiu do BBB 26? Gabriela é a décima quinta eliminada (16º Paredão, 64,12%)"
+        },
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/quem-esta-no-16-paredao-do-bbb-26-ana-paula-renault-gabriela-e-juliano-floss-formam-a-berlinda.ghtml",
           "arquivo": "docs/scraped/quem-esta-no-16-paredao-do-bbb-26-ana-paula-renault-gabriela-e-juliano-floss-formam-a-berlinda.md",
@@ -2146,6 +2158,82 @@
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/bbb-26-veja-quem-votou-em-quem-na-formacao-do-16o-paredao.ghtml",
           "arquivo": "docs/scraped/bbb-26-veja-quem-votou-em-quem-na-formacao-do-16o-paredao.md",
           "titulo": "Quem votou em quem na formação do 16º Paredão"
+        }
+      ]
+    },
+    {
+      "numero": 17,
+      "status": "em_andamento",
+      "data": "2026-04-16",
+      "data_formacao": "2026-04-14",
+      "titulo": "17º Paredão — 16 de Abril de 2026",
+      "cycle": 17,
+      "total_esperado": 3,
+      "votacao_aberta": true,
+      "formacao": {
+        "resumo": "Triplo em modo Turbo (última semana; Top 5 → Top 4). Leandro Boneco venceu a 17ª Prova do Líder (inédita; primeira liderança) e ficou imune. Sem Prova do Anjo/Monstro. Líder Leandro indicou Jordana ('única rival que ainda tenho dentro da casa') — indicação combinada estrategicamente entre os dois aliados (não representa hostilidade real). Votação aberta, na Sala Sonho de Ser Milionário (1ª votação aberta da temporada): Ana Paula Renault votou em Milena ('estratégia de grupo'), Juliano Floss votou em Ana Paula ('para Jordana ter que desempatar, mas eu jamais votaria nela'), Jordana votou em Ana Paula ('a pessoa que eu indiquei ao Paredão e que eu tenho o maior embate é ela'), Milena votou em Juliano Floss ('a gente combinou aqui de votar um em cada'). Mais votada da casa: Ana Paula Renault (2 votos). Contragolpe (dinâmica da semana): indicada pelo Líder, Jordana puxou Juliano Floss ('sempre o julguei como um competidor que demorou muito, que durante muito tempo foi escondido... pode me dar maiores possibilidades do público colocar isso em questão e eu conseguir voltar') — mantendo a 'coerência' com a indicação que deu na última oportunidade (contra Leandro no P15 também cancelada por novo contexto, aqui repetida contra Floss). Sem Bate e Volta (modo turbo). Paredão triplo: Ana Paula Renault (Veterano), Jordana (Camarote), Juliano Floss (Camarote). Eliminação na quinta-feira (16).",
+        "lider": "Leandro",
+        "lideres": null,
+        "indicado_lider": "Jordana",
+        "motivo_lider": "'A única rival que ainda tenho dentro da casa.' Indicação combinada estrategicamente entre os aliados Leandro e Jordana — não representa hostilidade real entre eles.",
+        "anjo": null,
+        "imunizado": null,
+        "lider_imune": {
+          "quem": "Leandro",
+          "motivo": "Líder imune por vencer a 17ª Prova do Líder"
+        },
+        "contragolpe": {
+          "de": "Jordana",
+          "para": "Juliano Floss",
+          "motivo": "'Sempre o julguei como um competidor que demorou muito, que durante muito tempo foi escondido. Acho que isso pode me dar maiores possibilidades do público colocar isso em questão e eu conseguir voltar.' Jordana justificou que manteve a 'coerência' — na última vez em que teve o poder, também puxou Juliano. Estratégia de sobrevivência no Paredão."
+        },
+        "bate_volta": null,
+        "sem_bate_volta": true,
+        "indicacao_estrategica": true,
+        "indicacao_estrategica_motivo": "Leandro e Jordana combinaram previamente que o Líder indicaria a outra — a indicação é um movimento de aliança, não de hostilidade. Não deve gerar aresta negativa de relacionamento."
+      },
+      "indicados_finais": [
+        {"nome": "Ana Paula Renault", "grupo": "Veterano", "como": "Mais votada da casa (2 votos, votação aberta)"},
+        {"nome": "Jordana", "grupo": "Camarote", "como": "Indicada pelo Líder (aliança estratégica)"},
+        {"nome": "Juliano Floss", "grupo": "Camarote", "como": "Contragolpe (de Jordana)"}
+      ],
+      "votos_casa": {
+        "Ana Paula Renault": "Milena",
+        "Juliano Floss": "Ana Paula Renault",
+        "Jordana": "Ana Paula Renault",
+        "Milena": "Juliano Floss"
+      },
+      "resultado": {},
+      "fontes": [
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/votacao-aberta-bbb-26-veja-quem-votou-em-quem-no-17o-paredao.ghtml",
+          "arquivo": "docs/scraped/votacao-aberta-bbb-26-veja-quem-votou-em-quem-no-17o-paredao.md",
+          "titulo": "Votação aberta BBB 26: quem votou em quem no 17º Paredão"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/leandro-boneco-e-o-novo-lider-do-bbb-26-veja-quantos-pontos-o-baiano-soma-no-cartola-bbb.ghtml",
+          "arquivo": "docs/scraped/leandro-boneco-e-o-novo-lider-do-bbb-26-veja-quantos-pontos-o-baiano-soma-no-cartola-bbb.md",
+          "titulo": "Leandro Boneco é o novo Líder do BBB 26 (105 pts na 13ª rodada)"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/lider-leandro-boneco-define-novo-vip-veja-a-pontuacao-na-13a-rodada-do-cartola-bbb.ghtml",
+          "arquivo": "docs/scraped/lider-leandro-boneco-define-novo-vip-veja-a-pontuacao-na-13a-rodada-do-cartola-bbb.md",
+          "titulo": "Líder Leandro Boneco define novo VIP — Jordana e Juliano Floss"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/cartola-bbb/noticia/cartola-bbb-entenda-a-pontuacao-dos-participantes-que-nao-estao-no-17o-paredao.ghtml",
+          "arquivo": "docs/scraped/cartola-bbb-entenda-a-pontuacao-dos-participantes-que-nao-estao-no-17o-paredao.md",
+          "titulo": "Cartola BBB — Não emparedados (+10) P17: Milena"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/noticia/dinamica-da-semana-tem-contragolpe-e-eliminacao-na-quinta-16.ghtml",
+          "arquivo": "docs/scraped/dinamica-da-semana-tem-contragolpe-e-eliminacao-na-quinta-16.md",
+          "titulo": "Dinâmica da semana: Contragolpe + Eliminação na quinta (16)"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/formacao-do-paredao/noticia/indicada-pelo-lider-jordana-puxa-juliano-floss-no-contragolpe-do-bbb-26.ghtml",
+          "arquivo": "docs/scraped/indicada-pelo-lider-jordana-puxa-juliano-floss-no-contragolpe-do-bbb-26.md",
+          "titulo": "Jordana puxa Juliano Floss no Contragolpe do 17º Paredão"
         }
       ]
     }
