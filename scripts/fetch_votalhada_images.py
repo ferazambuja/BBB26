@@ -128,10 +128,13 @@ def extract_image_urls(html: str) -> list[str]:
     # Observed patterns:
     # - .../2026-03-17_194618.png (HHMMSS, old layout)
     # - .../2026-03-17_19-46-18.png (HH-MM-SS, old layout)
-    # - .../1.Twitter.png, 5.Consolidados.png (numbered platform names, new layout)
+    # - .../1.Twitter.png, 5.Consolidados.png (numbered platform names, old new layout)
+    # - .../1.X.png, 2.Y.png, 3.I.png (numbered short, P17+ layout)
+    # - .../Sites.png, Consolidados.png (alphabetic-only card names, P17+ layout)
     card_name_re = re.compile(
         r"^(?:\d{4}-\d{2}-\d{2}_(?:\d{6}|\d{2}-\d{2}-\d{2})|"
-        r"\d+\.\w+)\.png$",
+        r"\d+\.\w+|"
+        r"Sites|Consolidados|Variacao|Variação|Serie|Série)\.png$",
         re.IGNORECASE,
     )
 
