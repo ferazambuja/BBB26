@@ -430,11 +430,35 @@ if ultimo:
         else:
             titulo = f"{ultimo['numero']}º Paredão — EM VOTAÇÃO"
             cor_titulo = '#f39c12'  # Amarelo para votação
-            subtitulo = "Votação popular em andamento. Resultado na terça-feira à noite."
+            _elim_date = ultimo.get('data')
+            _weekday_pt = None
+            if _elim_date:
+                try:
+                    _elim_dt = datetime.strptime(_elim_date, '%Y-%m-%d').date()
+                    _weekdays_pt = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo']
+                    _weekday_pt = _weekdays_pt[_elim_dt.weekday()]
+                except Exception:
+                    _weekday_pt = None
+            subtitulo = (
+                f"Votação popular em andamento. Resultado {'no ' if _weekday_pt in ('sábado','domingo') else 'na '}{_weekday_pt} à noite."
+                if _weekday_pt else
+                "Votação popular em andamento. Resultado na terça-feira à noite."
+            )
 
         # Check for auto-detected participants (need manual info)
         auto_detected = [p for p in participantes if p.get('como') == 'API']
-        needs_manual_info = len(auto_detected) > 0 or not tem_votos_casa
+        # Flags de formação atípica (sem Líder, sem votação da casa, etc.) — usadas
+        # para suprimir avisos "pendente" em paredões finalistas/especiais.
+        _formacao_flags = ultimo.get('formacao_raw', {}) or {}
+        _sem_votacao_casa = bool(_formacao_flags.get('sem_votacao_casa'))
+        _sem_lider = bool(_formacao_flags.get('sem_lider'))
+        _sem_bate_volta = bool(_formacao_flags.get('sem_bate_volta'))
+        _sem_contragolpe = bool(_formacao_flags.get('sem_contragolpe'))
+        _sem_anjo = bool(_formacao_flags.get('sem_anjo'))
+
+        _needs_votos_casa = not tem_votos_casa and not _sem_votacao_casa
+        _needs_lider = not ultimo.get('lider') and not _sem_lider
+        needs_manual_info = len(auto_detected) > 0 or _needs_votos_casa or _needs_lider
 
         # Header
         print(f"""
@@ -450,9 +474,9 @@ if ultimo:
             if auto_detected:
                 names = ', '.join([p['nome'] for p in auto_detected])
                 missing.append(f"Como {names} foram indicados")
-            if not tem_votos_casa and n_indicados >= esperado_indicados:
+            if _needs_votos_casa and n_indicados >= esperado_indicados:
                 missing.append("Votação da casa")
-            if not ultimo.get('lider'):
+            if _needs_lider:
                 missing.append("Líder da semana")
 
             missing_text = ' · '.join(missing) if missing else "Detalhes da formação"
@@ -1072,7 +1096,7 @@ if ultimo:
             cg = ultimo['contragolpe']
             print(f"- **Contragolpe:** {cg.get('de', '—')} → {cg.get('para', '—')}")
 
-        if ultimo.get('bate_volta') is None and n_indicados >= esperado_indicados:
+        if ultimo.get('bate_volta') is None and n_indicados >= esperado_indicados and not _sem_bate_volta:
             print("- **Bate e Volta:** não haverá")
         elif ultimo.get('bate_volta'):
             bv = ultimo['bate_volta']
@@ -1090,7 +1114,7 @@ if ultimo:
         if tem_votos_casa:
             print(f"\n### 🗳️ Votação da Casa\n")
             print(render_votos_casa_table(ultimo['votos_casa'], AVATARS))
-        elif n_indicados >= esperado_indicados:
+        elif n_indicados >= esperado_indicados and not _sem_votacao_casa:
             print(f"\n### 🗳️ Votação da Casa\n")
             print(f"*Aguardando divulgação da votação da casa...*")
 
@@ -2342,6 +2366,8 @@ if ultimo and ultimo.get('participantes'):
     vp_retro = vp_entry.get("retrospective", {})
 
     votos = ultimo.get('votos_casa', {}) or {}
+    _formacao_flags_hist = ultimo.get('formacao_raw', {}) or {}
+    _sem_votacao_casa_hist = bool(_formacao_flags_hist.get('sem_votacao_casa'))
 
     # Classify votes into lists
     betrayals = [v for v in va if v["tipo"] in ("falso_amigo", "aliados_mutuos")]
@@ -2440,6 +2466,8 @@ if ultimo and ultimo.get('participantes'):
             print(f"Os votos **não seguiram** as reações — muita divergência entre queridômetro e urna.\n")
         else:
             print(f"Resultado misto: parte dos votos seguiu o queridômetro, parte foi por estratégia.\n")
+    elif _sem_votacao_casa_hist:
+        print("Este paredão foi formado por dinâmica especial (ex.: Prova do Finalista) — **não houve votação da casa**. A eliminação é decidida pelo voto popular.\n")
     else:
         print("Aguardando votação da casa para análise completa.\n")
 
