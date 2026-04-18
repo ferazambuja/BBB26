@@ -833,6 +833,33 @@ def _format_cartola_output(all_points: dict, participants_index: list[dict], man
     }
 
 
+def _filter_janela_aberta_lider(all_points: dict, provas_data: dict | None) -> dict:
+    """Strip `lider` events for Prova do Líder wins flagged cartola_janela_aberta.
+
+    When Cartola BBB's escalation window was still open during a Prova do Líder,
+    pontos do item "Líder" não contam para cartoleiros. Mirror that scoring rule.
+    """
+    if not provas_data:
+        return all_points
+    excluded: set[tuple[int, str]] = set()
+    for prova in provas_data.get('provas', []):
+        if not isinstance(prova, dict) or not prova.get('cartola_janela_aberta'):
+            continue
+        if str(prova.get('tipo', '')).lower() not in {'lider', 'líder'}:
+            continue
+        cycle = _week_from_payload(prova.get('cycle'), str(prova.get('date') or ''))
+        winners = _normalize_name_list(prova.get('vencedores')) or _normalize_name_list(prova.get('vencedor'))
+        for name in winners:
+            excluded.add((cycle, name))
+    if not excluded:
+        return all_points
+    for cycle, name in excluded:
+        events = all_points.get(name, {}).get(cycle)
+        if events:
+            all_points[name][cycle] = [ev for ev in events if ev[0] != 'lider']
+    return all_points
+
+
 def build_cartola_data(
     daily_snapshots: list[dict],
     manual_events: dict,
@@ -852,4 +879,5 @@ def build_cartola_data(
     _validate_unexpected_api_extras(api_detected, official_events, strict_weeks, leaders_by_week)
     _apply_official_role_fallbacks(calculated_points, official_events, leaders_by_week)
     all_points = _apply_cartola_manual(calculated_points, manual_events, paredoes_data, daily_snapshots)
+    all_points = _filter_janela_aberta_lider(all_points, provas_data)
     return _format_cartola_output(all_points, participants_index, manual_events, daily_snapshots)
