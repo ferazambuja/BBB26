@@ -467,7 +467,12 @@ Two usually recurring event types during the standard cadence:
 When the show enters the final phase, Líder cycles compress to **2–4 days** instead of the standard ~7. The standard cycle pattern table above no longer applies. Key differences:
 
 - **Set `schedule_profile: "turbo_top10"` on all compressed cycle entries.** This suppresses ALL auto-scaffolds (no Bate e Volta, no Contragolpe, no Presente do Anjo, no Sincerão, no Ganha-Ganha, no Barrado). All events must come from manual `scheduled_events`.
-- **Add `sem_contragolpe: true` and `sem_bate_volta: true` to paredão `formacao`** — this suppresses the ceremony sub-step placeholders that the paredão generator auto-creates.
+- **Add `sem_*` flags to paredão `formacao`** to suppress auto-scaffolded ceremony sub-steps and display warnings. Set only the ones that apply to the cycle:
+  - `sem_contragolpe: true` — no contragolpe step
+  - `sem_bate_volta: true` — no Bate e Volta (also suppresses "Bate e Volta: não haverá" line on `paredao.qmd`)
+  - `sem_lider: true` — paredão sem Prova do Líder (final paredão / Prova do Finalista; suppresses "Líder da semana" pendente warning + indicação sub-step)
+  - `sem_anjo: true` — paredão sem Prova do Anjo (final paredão; suppresses imunidade sub-step)
+  - `sem_votacao_casa: true` — paredão sem votação da casa (suppresses "Votação da casa" pendente warning + "Aguardando divulgação..." section + vote-analysis fallback message)
 - **Anjo and Formation may happen on the same day** (e.g., W11: both on Friday).
 - **Elimination + Líder + Formation can all occur on the same day** (e.g., W12: all three on Sunday Mar 29).
 - **Use manual `scheduled_events` for all events** in compressed cycles. The scaffold profiles assume standard weekday assignments (Thu Líder, Sat Anjo, Sun Formation, Tue Elimination) which are wrong for compressed cycles.
@@ -1820,6 +1825,47 @@ When a participant returns from Quarto Secreto:
 - `quarto_secreto_convite` edge (+0.20) is auto-created from `cycles[C].quarto_secreto.convidado` in the relations builder.
 - Immunity lasts for the next paredão formation only.
 
+### Finalista Paredão (Top 4 → Top 3 via Prova do Finalista)
+
+The **last paredão of the season** is often formed by a multi-stage Prova do Finalista (not by Líder/Anjo/votação da casa). The winner of the prova becomes Finalist (Top 3 garantido); the losers join the last emparedado to complete the final paredão.
+
+**Paredão `formacao` schema** — set all the `sem_*` flags that apply:
+```json
+{
+  "formacao": {
+    "resumo": "...",
+    "lider": null,
+    "anjo": null,
+    "imunizado": null,
+    "contragolpe": null,
+    "bate_volta": null,
+    "sem_lider": true,
+    "sem_anjo": true,
+    "sem_votacao_casa": true,
+    "sem_contragolpe": true,
+    "sem_bate_volta": true
+  }
+}
+```
+
+**`indicados_finais` — describe the route clearly**. Parallel wording across nominees helps readers understand why each one is there:
+- Losers of the final stage: `"como": "Perdedor(a) da Etapa N da Prova do Finalista (<formato>) — <Winner> venceu e se tornou Finalista"`
+- Participant emparedado by an earlier stage: `"como": "Última colocada na Etapa 1 da Prova do Finalista (<critério, ex.: maior tempo: 01:50.614>) — emparedada direta, não disputou a Etapa N"`
+
+**Provas entry** (`data/provas.json`) — use `tipo: "finalista"` with fases matching the prova's structure:
+- `fase 1` classificacao: only the participants eliminated at this stage (their pos counts as rank *among the eliminated*). Cartola builder offsets these positions after fase 2's `n_phase2`.
+- `fase 2` classificacao: the quiz/final positions (winner pos=1 → Finalista).
+- `vencedor`: the winner of the prova (becomes Finalista).
+
+**Final paredão voting mode** — if the show switches from "vote to eliminate" to "vote to win" (popular vote decides the champion, 1st/2nd/3rd places): new `tipo_voto` mode may be needed in `polls.json` (current modes: `eliminate` default, `salvar` for Paredão Falso). Not implemented yet — flag when you encounter it.
+
+**Scheduled events for the final week** — since there's no Líder/Anjo/Sincerão/Barrado/Ganha-Ganha, use manual `scheduled_events` for:
+- Each etapa of the Prova do Finalista (`category: "dinamica"`)
+- The formação (`category: "paredao_formacao"`)
+- The eliminação (`category: "paredao_resultado"`)
+
+**No Grand Final checklist yet** — the Grande Final itself (definition of 1º/2º/3º via popular vote) is not yet modeled. Update this guide when the first Grand Final is implemented.
+
 ---
 
 ## Barrado no Baile Checklist (Wednesday)
@@ -2392,6 +2438,28 @@ Scoring behavior in the pipeline:
 Important scope note:
 - This flag is the explicit operational switch currently modeled for the Cartola window edge case in paredão salvation.
 - Do not infer other window effects ad hoc; only encode what is backed by source and supported by current scoring rules.
+
+#### Prova do Líder com janela aberta: `cartola_janela_aberta` (em `provas.json`)
+
+When a Prova do Líder occurs while Cartola BBB's escalation window is still open, **the 80-point Líder item is not awarded to cartoleiros** (it only counts after the window closes). Official recaps (e.g. "Cartola BBB: qual brother somou mais pontos no item Prova do Líder") will list the affected winner with fewer wins than our API-detected count.
+
+Operational registration — narrow equivalent to the Bate e Volta flag:
+1. Scrape the Cartola recap article that documents the exclusion and archive in `docs/scraped/`.
+2. In `data/provas.json`, on the affected Prova do Líder entry, set `"cartola_janela_aberta": true` alongside the regular fields. Apply only to `tipo: "lider"` entries explicitly flagged in the source.
+3. Keep the flag `false`/omitted for all other Provas do Líder.
+
+Scoring behavior in the pipeline:
+- With `cartola_janela_aberta: true` on a `tipo: "lider"` prova:
+  - All `lider` event entries for that cycle/winner are stripped from `all_points` after `_apply_cartola_manual`, before `_format_cartola_output`.
+  - The winner keeps other role-derived points (VIP, etc.) — only the Líder item (+80) is suppressed.
+- Without the flag: normal Prova do Líder scoring applies (+80 per win).
+
+Reference implementation:
+- `scripts/builders/cartola.py` → `_filter_janela_aberta_lider()` (iterates provas with the flag and strips `lider` events for `(cycle, winner)`).
+
+When in doubt:
+- Default to **no flag**. Only enable when a Cartola recap article explicitly states the item was not computed for that win. Cite the article and archive in `docs/scraped/` before enabling.
+- `cartola_janela_aberta` is a narrow, explicit switch — do not infer it from other signals.
 
 ### VIP scoring references (for audits)
 
