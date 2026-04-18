@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-17T00:48:08.619000+00:00",
+    "generated_at": "2026-04-18T03:20:12.991398+00:00",
     "model_version": "enhanced_v1",
     "config": {
       "cluster_consensus_threshold": 0.5,
@@ -10263,7 +10263,7 @@
       }
     },
     "17": {
-      "status": "em_andamento",
+      "status": "finalizado",
       "formation_date": "2026-04-14",
       "eligibility": {
         "voters": [
@@ -10419,6 +10419,201 @@
           }
         ]
       }
+    },
+    "18": {
+      "status": "em_andamento",
+      "formation_date": "2026-04-17",
+      "eligibility": {
+        "voters": [
+          "Ana Paula Renault",
+          "Juliano Floss",
+          "Leandro",
+          "Milena"
+        ],
+        "eligible_targets": [
+          "Ana Paula Renault",
+          "Juliano Floss",
+          "Leandro",
+          "Milena"
+        ],
+        "ineligible_reasons": {}
+      },
+      "predictions": {
+        "Ana Paula Renault": {
+          "predicted": "Leandro",
+          "score": -5.1593,
+          "confidence": "Alta",
+          "gap": 4.2761,
+          "top3": [
+            {
+              "target": "Leandro",
+              "score": -5.1593,
+              "components": {
+                "base_sentiment": -5.1593,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Juliano Floss",
+              "score": -0.8832,
+              "components": {
+                "base_sentiment": -0.4832,
+                "cluster_consensus": -0.4,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (100% → -0.40)"
+            },
+            {
+              "target": "Milena",
+              "score": 0.15,
+              "components": {
+                "base_sentiment": 0.1,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            }
+          ]
+        },
+        "Juliano Floss": {
+          "predicted": "Ana Paula Renault",
+          "score": -1.1503,
+          "confidence": "Alta",
+          "gap": 1.9663,
+          "top3": [
+            {
+              "target": "Ana Paula Renault",
+              "score": -1.1503,
+              "components": {
+                "base_sentiment": -0.7503,
+                "cluster_consensus": -0.4,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (100% → -0.40)"
+            },
+            {
+              "target": "Milena",
+              "score": 0.816,
+              "components": {
+                "base_sentiment": 0.816,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Leandro",
+              "score": 0.94,
+              "components": {
+                "base_sentiment": 0.89,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            }
+          ]
+        },
+        "Leandro": {
+          "predicted": "Ana Paula Renault",
+          "score": -5.5473,
+          "confidence": "Alta",
+          "gap": 6.11,
+          "top3": [
+            {
+              "target": "Ana Paula Renault",
+              "score": -5.5473,
+              "components": {
+                "base_sentiment": -5.1473,
+                "cluster_consensus": -0.4,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (100% → -0.40)"
+            },
+            {
+              "target": "Milena",
+              "score": 0.5627,
+              "components": {
+                "base_sentiment": 0.5627,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Juliano Floss",
+              "score": 1.9,
+              "components": {
+                "base_sentiment": 1.85,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            }
+          ]
+        },
+        "Milena": {
+          "predicted": "Juliano Floss",
+          "score": -1.8395,
+          "confidence": "Alta",
+          "gap": 1.0795,
+          "top3": [
+            {
+              "target": "Juliano Floss",
+              "score": -1.8395,
+              "components": {
+                "base_sentiment": -1.8395,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": null
+            },
+            {
+              "target": "Leandro",
+              "score": -0.76,
+              "components": {
+                "base_sentiment": -0.36,
+                "cluster_consensus": -0.4,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.0
+              },
+              "explanation": "consenso do cluster (100% → -0.40)"
+            },
+            {
+              "target": "Ana Paula Renault",
+              "score": 1.86,
+              "components": {
+                "base_sentiment": 1.81,
+                "cluster_consensus": 0.0,
+                "bloc_history": 0.0,
+                "cluster_protection": 0.05
+              },
+              "explanation": "proteção intra-cluster"
+            }
+          ]
+        }
+      },
+      "aggregate": {
+        "vote_concentration": {
+          "Ana Paula Renault": 2,
+          "Leandro": 1,
+          "Juliano Floss": 1
+        },
+        "high_confidence_count": 4,
+        "low_confidence_count": 0
+      },
+      "lider_prediction": null
     }
   },
   "cumulative": {

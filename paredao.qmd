@@ -347,11 +347,20 @@ api_paredao = get_api_paredao_participants()
 # ── Merge API participants into manual paredão data ──────────────────
 # Auto-add participants from API that aren't in the manual list
 def merge_api_paredao(paredao_entry, api_names):
-    """Merge API-detected paredão participants into manual entry."""
+    """Merge API-detected paredão participants into manual entry.
+
+    Only fills gaps — if manual nominees already meet `total_esperado`, skips merge.
+    The API snapshot can be stale (eliminated contestants may retain the "Paredão" role
+    until a fresh capture), so manual data is authoritative once complete.
+    """
     if not paredao_entry or paredao_entry.get('status') == 'finalizado':
         return  # Don't modify finalized paredões
 
     participantes = paredao_entry.get('participantes', [])
+    esperado = paredao_entry.get('total_esperado', 3)
+    if len(participantes) >= esperado:
+        return  # Manual data is complete — don't merge stale API roles
+
     manual_names = {p['nome'] for p in participantes}
 
     # Add API participants not in manual list

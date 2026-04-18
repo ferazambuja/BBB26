@@ -87,8 +87,13 @@ def test_rendered_index_reaction_summary_has_instance_scoped_toggle_markup(rende
     html = rendered_index_html
 
     assert html.count('id="reaction-summary-table"') == 0
-    assert "closest('.index-reaction-summary')" in html
-    assert "querySelectorAll('.index-reaction-summary__row--collapsed')" in html
+    # Toggle markup is only emitted when there are collapsed rows (n_total > collapsed_rows).
+    # In late-season states (Top 5 or fewer), roster size may match or fall below the collapse
+    # threshold, so no toggle is needed — in that case the contract is trivially satisfied.
+    has_collapsed_rows = "index-reaction-summary__row--collapsed" in html
+    if has_collapsed_rows:
+        assert "closest('.index-reaction-summary')" in html
+        assert "querySelectorAll('.index-reaction-summary__row--collapsed')" in html
 
 
 def test_rendered_index_does_not_emit_literal_fence_paragraphs(rendered_index_html: str):

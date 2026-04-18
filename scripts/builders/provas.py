@@ -13,6 +13,7 @@ PROVA_TYPE_MULTIPLIER = {
     "lider": 1.5,
     "anjo": 1.0,
     "bate_volta": 0.75,
+    "finalista": 1.25,
 }
 
 PROVA_PLACEMENT_POINTS = {

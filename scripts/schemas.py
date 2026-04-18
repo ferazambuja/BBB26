@@ -96,7 +96,7 @@ PROVAS_SCHEMA = {
                 "required": ["numero", "tipo", "cycle", "date"],
                 "properties": {
                     "numero": {"type": "integer", "minimum": 1},
-                    "tipo": {"type": "string", "enum": ["lider", "anjo", "bate_volta"]},
+                    "tipo": {"type": "string", "enum": ["lider", "anjo", "bate_volta", "finalista"]},
                     "cycle": {"type": "integer", "minimum": 1},
                     "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
                     "vencedor": {"type": ["string", "null"]},

@@ -47,10 +47,21 @@ def _repo_data():
     }
 
 
-def _latest_entry_as_active(repo_data: dict) -> dict:
-    # Find the latest finalized paredão (to simulate it as active with full data)
+def _latest_entry_as_active(repo_data: dict, min_serie_len: int = 0) -> dict:
+    # Find the latest finalized paredão (to simulate it as active with full data).
+    # Optionally require the poll to have at least `min_serie_len` serie_temporal entries —
+    # some turbo paredões publish only 1 Votalhada capture, which is insufficient for
+    # momentum-based tests.
     finalized = [p for p in repo_data["paredoes"] if p.get("status") == "finalizado"]
-    current = copy.deepcopy(finalized[-1])
+    polls_data = repo_data["polls_data"]
+    if min_serie_len > 0:
+        candidates = [
+            p for p in finalized
+            if len((get_poll_for_paredao(polls_data, p["numero"]) or {}).get("serie_temporal", [])) >= min_serie_len
+        ]
+    else:
+        candidates = finalized
+    current = copy.deepcopy(candidates[-1])
     current["status"] = "em_andamento"
     current.pop("resultado", None)
     for participant in current.get("participantes", []):
@@ -118,7 +129,7 @@ def test_curiosity_after_close_freezes_projection(_repo_data):
 
 
 def test_curiosity_after_close_freezes_even_without_positive_momentum(_repo_data):
-    current = _latest_entry_as_active(_repo_data)
+    current = _latest_entry_as_active(_repo_data, min_serie_len=3)
     history = build_paredao_history(_repo_data["raw_paredoes"], current["numero"])
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
     closed_poll = copy.deepcopy(poll)

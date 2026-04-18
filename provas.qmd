@@ -54,9 +54,9 @@ provas_list = provas_raw.get("provas", [])
 participants_index = load_participants_index()
 PINFO = {p["name"]: p for p in participants_index.get("participants", [])}
 
-TIPO_EMOJI = {"lider": "👑", "anjo": "😇", "bate_volta": "⚔️"}
-TIPO_LABEL = {"lider": "Líder", "anjo": "Anjo", "bate_volta": "Bate e Volta"}
-TIPO_COLOR = {"lider": "#f1c40f", "anjo": "#3498db", "bate_volta": "#e74c3c"}
+TIPO_EMOJI = {"lider": "👑", "anjo": "😇", "bate_volta": "⚔️", "finalista": "🏁"}
+TIPO_LABEL = {"lider": "Líder", "anjo": "Anjo", "bate_volta": "Bate e Volta", "finalista": "Finalista"}
+TIPO_COLOR = {"lider": "#f1c40f", "anjo": "#3498db", "bate_volta": "#e74c3c", "finalista": "#9b59b6"}
 
 
 def get_avatar(name: str) -> str:
@@ -129,7 +129,7 @@ best_top3_rate = sorted(
 
 
 def build_type_totals(participant: dict) -> dict[str, float]:
-    totals = {"lider": 0.0, "anjo": 0.0, "bate_volta": 0.0}
+    totals = {"lider": 0.0, "anjo": 0.0, "bate_volta": 0.0, "finalista": 0.0}
     for detail in participant.get("detail", []):
         tipo = detail.get("tipo")
         pts = detail.get("weighted_pts")
@@ -528,6 +528,7 @@ else:
     <div class="provas-player-type-card"><span>👑 Líder</span><strong>{type_totals['lider']:+.2f}</strong></div>
     <div class="provas-player-type-card"><span>😇 Anjo</span><strong>{type_totals['anjo']:+.2f}</strong></div>
     <div class="provas-player-type-card"><span>⚔️ Bate e Volta</span><strong>{type_totals['bate_volta']:+.2f}</strong></div>
+    <div class="provas-player-type-card"><span>🏁 Finalista</span><strong>{type_totals['finalista']:+.2f}</strong></div>
   </div>
 
   <section class="provas-player-recent">

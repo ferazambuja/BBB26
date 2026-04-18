@@ -288,8 +288,78 @@ def _build_card_curiosity_line(
 
     model_values = (model_prediction or {}).get("prediction", {}) if model_prediction else {}
 
-    # Priority 1: momentum from the latest windows.
     serie = poll.get("serie_temporal", [])
+
+    # Priority 0: voting-close freeze — fires regardless of serie length.
+    # Display state depends on time, not momentum. When closed, freeze the card
+    # even if we only have a single serie_temporal datapoint (rare for turbo paredões).
+    try:
+        _coleta_raw = str(poll.get("data_coleta", "")).replace("Z", "+00:00")
+        _coleta_dt = datetime.fromisoformat(_coleta_raw) if _coleta_raw else None
+        _close_raw = poll.get("fechamento_votacao")
+        if _close_raw:
+            _close_dt = datetime.fromisoformat(str(_close_raw).replace("Z", "+00:00"))
+        else:
+            _close_date = str(poll.get("data_paredao", ""))
+            _close_dt = datetime.fromisoformat(f"{_close_date}T22:45:00-03:00") if _close_date else None
+
+        if _coleta_dt and _close_dt:
+            _coleta_dt = _coleta_dt.replace(tzinfo=timezone.utc) if _coleta_dt.tzinfo is None else _coleta_dt.astimezone(timezone.utc)
+            _close_dt = _close_dt.replace(tzinfo=timezone.utc) if _close_dt.tzinfo is None else _close_dt.astimezone(timezone.utc)
+            _now_utc = datetime.now(timezone.utc)
+            _now_ref = _now_utc.replace(minute=(_now_utc.minute // 15) * 15, second=0, microsecond=0)
+            _effective_start = max(_coleta_dt, _now_ref)
+            _hours_left = (_close_dt - _effective_start).total_seconds() / 3600.0
+            if _hours_left <= 0.05:
+                _closing_rate_h = 0.0
+                if len(serie) >= 2:
+                    try:
+                        _k = min(3, len(serie) - 1)
+                        _past = serie[-(_k + 1)]
+                        _last = serie[-1]
+                        _lead_name, _runner_name = v_rank[0][0], v_rank[1][0]
+                        _lead_delta = float(_last.get(_lead_name, 0) or 0) - float(_past.get(_lead_name, 0) or 0)
+                        _runner_delta = float(_last.get(_runner_name, 0) or 0) - float(_past.get(_runner_name, 0) or 0)
+                        _year_ref = int(str(poll.get("data_paredao", "2026")).split("-")[0])
+                        _t0 = parse_votalhada_hora(str(_past.get("hora", "")), year=_year_ref)
+                        _t1 = parse_votalhada_hora(str(_last.get("hora", "")), year=_year_ref)
+                        _t0 = _t0.replace(tzinfo=timezone.utc) if _t0.tzinfo is None else _t0.astimezone(timezone.utc)
+                        _t1 = _t1.replace(tzinfo=timezone.utc) if _t1.tzinfo is None else _t1.astimezone(timezone.utc)
+                        _span_hours = max(0.01, (_t1 - _t0).total_seconds() / 3600.0)
+                        _closing_rate_h = (_runner_delta - _lead_delta) / _span_hours
+                    except Exception:
+                        _closing_rate_h = 0.0
+
+                _m_gap = None
+                _m_rank = None
+                if model_values:
+                    _m_rank = sorted(
+                        [(nome, float(model_values.get(nome, 0) or 0)) for nome in participantes],
+                        key=lambda x: (-x[1], x[0]),
+                    )
+                    if len(_m_rank) >= 2:
+                        _m_gap = abs(_m_rank[0][1] - _m_rank[1][1])
+                if _m_gap is not None and _m_rank:
+                    _model_lead = _m_rank[0][0].split()[0]
+                    _model_runner = _m_rank[1][0].split()[0]
+                    _chips = [
+                        {"label": "Diferença no fechamento", "value": f"{_m_gap:.1f} p.p."},
+                        {"label": f"Ritmo final ({_model_runner})", "value": f"{_closing_rate_h:+.2f} p.p./h"},
+                    ]
+                    return (
+                        f"**Encerramento da votação atingido**. A leitura de virada foi congelada no fechamento.\n"
+                        f"Última fotografia do modelo: **{_model_lead}** à frente de **{_model_runner}**. "
+                        f"Agora o painel aguarda nova coleta final do Votalhada e o resultado oficial.",
+                        _chips,
+                    )
+                return (
+                    "**Encerramento da votação atingido**. O painel agora aguarda atualização final do Votalhada e resultado oficial.",
+                    [],
+                )
+    except Exception:
+        pass
+
+    # Priority 1: momentum from the latest windows.
     if len(serie) >= 3 and len(v_rank) >= 2:
         lead, runner = v_rank[0][0], v_rank[1][0]
         gap_now = max(0.0, v_rank[0][1] - v_rank[1][1])

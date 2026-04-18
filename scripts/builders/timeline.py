@@ -725,7 +725,9 @@ def _collect_timeline_paredao_events(
             lider = formacao.get("lider", "") or _lookup_provas_winner(provas_data, "lider", p_week)
             anjo = anjo or _lookup_provas_winner(provas_data, "anjo", p_week)
             # Imunidade placeholder (only if not already emitted as real in step 1)
-            if not (autoimune and anjo) and not (imun and isinstance(imun, dict) and imun.get("quem")):
+            if formacao.get("sem_anjo"):
+                pass
+            elif not (autoimune and anjo) and not (imun and isinstance(imun, dict) and imun.get("quem")):
                 if autoimune and not anjo:
                     # Autoimune but Anjo name unknown yet — skip the "escolhe" placeholder
                     events.append({
@@ -750,7 +752,9 @@ def _collect_timeline_paredao_events(
                     })
             # Indicação placeholder (only if not already emitted in step 2)
             indicado_lider = formacao.get("indicado_lider", "")
-            if not (indicado_lider and lider):
+            if formacao.get("sem_lider"):
+                pass
+            elif not (indicado_lider and lider):
                 if lider:
                     events.append({
                         "date": data_form, "cycle": week, "category": "paredao_indicacao",
@@ -766,12 +770,13 @@ def _collect_timeline_paredao_events(
                         "participants": [], "source": "paredoes", "status": "scheduled",
                     })
             # Votação placeholder
-            events.append({
-                "date": data_form, "cycle": week, "category": "paredao_votacao",
-                "emoji": "🗳️", "title": f"{num}º {tipo_label} — Votação da Casa",
-                "detail": "Participantes votam no confessionário",
-                "participants": [], "source": "paredoes", "status": "scheduled",
-            })
+            if not formacao.get("sem_votacao_casa"):
+                events.append({
+                    "date": data_form, "cycle": week, "category": "paredao_votacao",
+                    "emoji": "🗳️", "title": f"{num}º {tipo_label} — Votação da Casa",
+                    "detail": "Participantes votam no confessionário",
+                    "participants": [], "source": "paredoes", "status": "scheduled",
+                })
             # Contragolpe placeholder (skip if formation explicitly marks sem_contragolpe)
             if not formacao.get("sem_contragolpe"):
                 events.append({

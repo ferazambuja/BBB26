@@ -1034,9 +1034,9 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 
 | Scope | Count | Definition |
 |---|---|---|
-| `with_indicados` | 17 | Paredões com indicados_finais |
-| `all_finalized` | 16 | Finalizados (inclui falso) |
-| `real_only` | 15 | Finalizados reais (exclui falso) |
+| `with_indicados` | 18 | Paredões com indicados_finais |
+| `all_finalized` | 17 | Finalizados (inclui falso) |
+| `real_only` | 16 | Finalizados reais (exclui falso) |
 
 ### Paredão Matrix
 
@@ -1058,16 +1058,17 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P14 | Jordana, Marciele, Samira | Samira | 51.24% | Não | finalizado |
 | P15 | Gabriela, Marciele, Leandro | Marciele | 59.34% | Não | finalizado |
 | P16 | Ana Paula Renault, Gabriela, Juliano Floss | Gabriela | 64.12% | Não | finalizado |
-| P17 | Ana Paula Renault, Jordana, Juliano Floss | — | — | Não | em_andamento |
+| P17 | Ana Paula Renault, Jordana, Juliano Floss | Jordana | 71.80% | Não | finalizado |
+| P18 | Ana Paula Renault, Leandro, Milena | — | — | Não | em_andamento |
 
 ### Route Effectiveness (`real_only`)
 
 | Route | Eliminated | Total | Rate |
 |---|---|---|---|
 | Big Fone | 1 | 2 | 50.0% |
-| Casa | 3 | 10 | 30.0% |
-| Contragolpe | 3 | 7 | 42.9% |
-| Líder | 5 | 15 | 33.3% |
+| Casa | 3 | 11 | 27.3% |
+| Contragolpe | 3 | 8 | 37.5% |
+| Líder | 6 | 16 | 37.5% |
 | Bloco do Paredão | Não (n=1) | 1 | — |
 | Caixas-Surpresa | Não (n=1) | 1 | — |
 | Consenso Anjo+Monstro | Sim (n=1) | 1 | — |
@@ -1080,13 +1081,13 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Voto de Minerva (empate 3×3 com Leandro) | Sim (n=1) | 1 | — |
 | Voto de Minerva (empate 3×3 com Samira) | Não (n=1) | 1 | — |
 
-**First-timer elimination rate** (`real_only`): 8/15 = 53.3%
+**First-timer elimination rate** (`real_only`): 8/16 = 50.0%
 
 ### Bate-e-Volta Metrics (`real_only`)
 
 | Metric | n | Total | Rate |
 |---|---|---|---|
-| Paredões com BV | 8 | 15 | 53.3% |
+| Paredões com BV | 8 | 16 | 50.0% |
 | Vencedores que escaparam | 10 | 10 | 100.0% |
 | Perdedores que sobreviveram | 9 | 14 | 64.3% |
 | Perdedores eliminados | 5 | 14 | 35.7% |
