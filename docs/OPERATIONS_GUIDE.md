@@ -1852,17 +1852,27 @@ The **last paredão of the season** is often formed by a multi-stage Prova do Fi
 - Losers of the final stage: `"como": "Perdedor(a) da Etapa N da Prova do Finalista (<formato>) — <Winner> venceu e se tornou Finalista"`
 - Participant emparedado by an earlier stage: `"como": "Última colocada na Etapa 1 da Prova do Finalista (<critério, ex.: maior tempo: 01:50.614>) — emparedada direta, não disputou a Etapa N"`
 
-**Provas entry** (`data/provas.json`) — use `tipo: "finalista"` with fases matching the prova's structure:
+**Provas entry** (`data/provas.json`) — use `tipo: "finalista"` (multiplier `1.25×`, defined in `scripts/builders/provas.py::PROVA_TYPE_MULTIPLIER`) with fases matching the prova's structure:
 - `fase 1` classificacao: only the participants eliminated at this stage (their pos counts as rank *among the eliminated*). Cartola builder offsets these positions after fase 2's `n_phase2`.
 - `fase 2` classificacao: the quiz/final positions (winner pos=1 → Finalista).
 - `vencedor`: the winner of the prova (becomes Finalista).
 
-**Final paredão voting mode** — if the show switches from "vote to eliminate" to "vote to win" (popular vote decides the champion, 1st/2nd/3rd places): new `tipo_voto` mode may be needed in `polls.json` (current modes: `eliminate` default, `salvar` for Paredão Falso). Not implemented yet — flag when you encounter it.
+The new tipo is also registered in `scripts/schemas.py` enum (`["lider", "anjo", "bate_volta", "finalista"]`) and has emoji/label/color in `provas.qmd` (`TIPO_EMOJI` 🏁 / `TIPO_LABEL` "Finalista" / `TIPO_COLOR` purple).
 
-**Scheduled events for the final week** — since there's no Líder/Anjo/Sincerão/Barrado/Ganha-Ganha, use manual `scheduled_events` for:
-- Each etapa of the Prova do Finalista (`category: "dinamica"`)
-- The formação (`category: "paredao_formacao"`)
-- The eliminação (`category: "paredao_resultado"`)
+**`scheduled_events` pattern for the final cycle** — since there's no Líder/Anjo/Sincerão/Barrado/Ganha-Ganha, you typically need these entries (adjust dates + wording to the actual format):
+```json
+{"date": "YYYY-MM-DD", "category": "dinamica",
+ "title": "Prova do Finalista — Etapa 1 (<formato>)", "detail": "..."},
+{"date": "YYYY-MM-DD", "category": "dinamica",
+ "title": "Prova do Finalista — Etapa 2 (<formato>): <Winner> é o 1º Finalista", "detail": "..."},
+{"date": "YYYY-MM-DD", "category": "paredao_formacao",
+ "title": "Formação do Nº Paredão (completa): <Name1>, <Name2>, <Name3>", "detail": "..."},
+{"date": "YYYY-MM-DD", "category": "paredao_resultado", "time": "Ao Vivo",
+ "title": "Eliminação (Nº Paredão) — Top 4 → Top 3 finalistas", "detail": "..."}
+```
+Remember to **drop the `time` field** after the real event to ensure cronologia marks it resolved (not pending).
+
+**Final paredão voting mode** — if the show switches from "vote to eliminate" to "vote to win" (popular vote decides the champion, 1st/2nd/3rd places): new `tipo_voto` mode will be needed in `polls.json` (current modes: `eliminate` default, `salvar` for Paredão Falso). **Not implemented yet — flag when you encounter it.**
 
 **No Grand Final checklist yet** — the Grande Final itself (definition of 1º/2º/3º via popular vote) is not yet modeled. Update this guide when the first Grand Final is implemented.
 

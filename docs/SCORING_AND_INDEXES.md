@@ -561,6 +561,7 @@ Per-participant ranking based on placement in each BBB26 competition. Computed i
 | `lider` | 1.5× | Prova do Líder — highest stakes, winner leads the house |
 | `anjo` | 1.0× | Prova do Anjo — winner protects someone |
 | `bate_volta` | 0.75× | Bate e Volta — paredão escape, fewer participants |
+| `finalista` | 1.25× | Prova do Finalista — season-end, winner secures Top 3 / Finalista slot |
 
 ### Placement points
 
