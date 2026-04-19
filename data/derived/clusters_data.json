@@ -1,15 +1,15 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-19T00:02:47.929224+00:00",
-    "date": "2026-04-18",
+    "generated_at": "2026-04-19T14:01:02.835390+00:00",
+    "date": "2026-04-19",
     "cycle": 18,
-    "reference_date": "2026-04-18",
+    "reference_date": "2026-04-19",
     "n_active": 4,
     "n_clusters": 2,
     "n_paredoes": 17,
     "n_contradictions": 41,
     "n_tensions": 1,
-    "silhouette_coefficient": 0.0026,
+    "silhouette_coefficient": -0.0356,
     "resolution_used": 0.5,
     "best_cohesion": {
       "label": 2,
@@ -18,7 +18,7 @@
     },
     "worst_rivalry": {
       "key": "1<>2",
-      "score": -1.324,
+      "score": -1.2746,
       "text": "Grupo Misto vs Aliança Grupo Misto"
     }
   },
@@ -47,16 +47,16 @@
         "Veterano": 1,
         "Pipoca": 1
       },
-      "cohesion": 1.255,
+      "cohesion": 0.97,
       "best_external": {
         "label": 2,
         "name": "Aliança Grupo Misto",
-        "score": -1.324
+        "score": -1.2746
       },
       "worst_external": {
         "label": 2,
         "name": "Aliança Grupo Misto",
-        "score": -1.324
+        "score": -1.2746
       }
     },
     {
@@ -75,12 +75,12 @@
       "best_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -1.324
+        "score": -1.2746
       },
       "worst_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -1.324
+        "score": -1.2746
       }
     }
   ],
@@ -90,9 +90,9 @@
       "cluster_b": 2,
       "name_a": "Grupo Misto",
       "name_b": "Aliança Grupo Misto",
-      "score_sym": -1.324,
-      "score_a_to_b": -1.899,
-      "score_b_to_a": -0.749,
+      "score_sym": -1.2746,
+      "score_a_to_b": -1.7865,
+      "score_b_to_a": -0.7628,
       "vote_alignment": 0.6034
     }
   ],
@@ -101,8 +101,8 @@
       "name": "Ana Paula Renault",
       "grupo": "Veterano",
       "cluster": 1,
-      "avg_received": -1.1027,
-      "std_received": 2.9293,
+      "avg_received": -1.131,
+      "std_received": 2.9668,
       "contradictions": 2,
       "pos_received": 2.11,
       "top_love": [
@@ -116,13 +116,13 @@
         },
         {
           "name": "Leandro",
-          "score": -4.97
+          "score": -5.06
         }
       ],
       "top_hate": [
         {
           "name": "Leandro",
-          "score": -4.97
+          "score": -5.06
         },
         {
           "name": "Juliano Floss",
@@ -175,8 +175,8 @@
       "name": "Leandro",
       "grupo": "Pipoca",
       "cluster": 2,
-      "avg_received": -1.562,
-      "std_received": 2.8209,
+      "avg_received": -1.412,
+      "std_received": 2.8873,
       "contradictions": 0,
       "pos_received": 1.2,
       "top_love": [
@@ -186,7 +186,7 @@
         },
         {
           "name": "Milena",
-          "score": -0.45
+          "score": 0.0
         },
         {
           "name": "Ana Paula Renault",
@@ -200,7 +200,7 @@
         },
         {
           "name": "Milena",
-          "score": -0.45
+          "score": 0.0
         },
         {
           "name": "Juliano Floss",
@@ -212,14 +212,14 @@
       "name": "Milena",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": 0.9407,
-      "std_received": 0.3901,
+      "avg_received": 0.7607,
+      "std_received": 0.6642,
       "contradictions": 3,
-      "pos_received": 2.822,
+      "pos_received": 2.452,
       "top_love": [
         {
           "name": "Leandro",
-          "score": 1.31
+          "score": 1.34
         },
         {
           "name": "Juliano Floss",
@@ -227,13 +227,13 @@
         },
         {
           "name": "Ana Paula Renault",
-          "score": 0.4
+          "score": -0.17
         }
       ],
       "top_hate": [
         {
           "name": "Ana Paula Renault",
-          "score": 0.4
+          "score": -0.17
         },
         {
           "name": "Juliano Floss",
@@ -241,7 +241,7 @@
         },
         {
           "name": "Leandro",
-          "score": 1.31
+          "score": 1.34
         }
       ]
     }
@@ -249,15 +249,15 @@
   "score_matrix_ordered": [
     [
       0.0,
-      1.255,
+      0.97,
       -0.312,
-      -5.205
+      -5.2475
     ],
     [
-      1.255,
+      0.97,
       0.0,
       -0.207,
-      0.428
+      0.668
     ],
     [
       -0.312,
@@ -266,8 +266,8 @@
       1.675
     ],
     [
-      -5.205,
-      0.428,
+      -5.2475,
+      0.668,
       1.675,
       0.0
     ]
