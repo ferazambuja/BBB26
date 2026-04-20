@@ -77,6 +77,8 @@ CATEGORY_ORDER: dict[str, int] = {
     "ganha_ganha": 56, "veto_ganha_ganha": 57, "ganha_ganha_escolha": 58,
     "paredao_resultado": 60,
     "quarto_secreto_convite": 61,
+    # --- Season finale (Grande Final) ---
+    "grande_final": 65,
     # --- Exit (always the final event of the night) ---
     "saida": 70,
 }

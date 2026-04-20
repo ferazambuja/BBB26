@@ -1482,6 +1482,7 @@ TIMELINE_CAT_COLORS = {
     "paredao_contragolpe": "#d35400",
     "paredao_bate_volta": "#f39c12",
     "consenso_anjo_monstro": "#8e44ad",
+    "grande_final": "#f1c40f",
 }
 
 TIMELINE_CAT_LABELS = {
@@ -1506,6 +1507,7 @@ TIMELINE_CAT_LABELS = {
     "paredao_contragolpe": "Contragolpe",
     "paredao_bate_volta": "Bate-Volta",
     "consenso_anjo_monstro": "Consenso Anjo+Monstro",
+    "grande_final": "Grande Final",
 }
 
 
