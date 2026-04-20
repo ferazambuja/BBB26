@@ -1,6 +1,6 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-20T11:07:55.962886+00:00",
+    "generated_at": "2026-04-20T14:47:04.919887+00:00",
     "model_version": "enhanced_v1",
     "config": {
       "cluster_consensus_threshold": 0.5,
@@ -10635,8 +10635,8 @@
         "Ana Paula Renault": {
           "predicted": "Juliano Floss",
           "score": -0.8831,
-          "confidence": "Média",
-          "gap": 0.28,
+          "confidence": "Alta",
+          "gap": 1.03,
           "top3": [
             {
               "target": "Juliano Floss",
@@ -10651,9 +10651,9 @@
             },
             {
               "target": "Milena",
-              "score": -0.6031,
+              "score": 0.1469,
               "components": {
-                "base_sentiment": -0.6531,
+                "base_sentiment": 0.0969,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.05
@@ -10664,15 +10664,15 @@
         },
         "Juliano Floss": {
           "predicted": "Ana Paula Renault",
-          "score": -0.7502,
+          "score": -0.7501,
           "confidence": "Alta",
-          "gap": 1.5662,
+          "gap": 1.5661,
           "top3": [
             {
               "target": "Ana Paula Renault",
-              "score": -0.7502,
+              "score": -0.7501,
               "components": {
-                "base_sentiment": -0.7502,
+                "base_sentiment": -0.7501,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
@@ -10694,26 +10694,26 @@
         },
         "Milena": {
           "predicted": "Juliano Floss",
-          "score": -1.8393,
+          "score": -2.2392,
           "confidence": "Alta",
-          "gap": 3.3993,
+          "gap": 4.0992,
           "top3": [
             {
               "target": "Juliano Floss",
-              "score": -1.8393,
+              "score": -2.2392,
               "components": {
-                "base_sentiment": -1.8393,
-                "cluster_consensus": 0.0,
+                "base_sentiment": -1.8392,
+                "cluster_consensus": -0.4,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.0
               },
-              "explanation": null
+              "explanation": "consenso do cluster (100% → -0.40)"
             },
             {
               "target": "Ana Paula Renault",
-              "score": 1.56,
+              "score": 1.86,
               "components": {
-                "base_sentiment": 1.51,
+                "base_sentiment": 1.81,
                 "cluster_consensus": 0.0,
                 "bloc_history": 0.0,
                 "cluster_protection": 0.05
@@ -10728,7 +10728,7 @@
           "Juliano Floss": 2,
           "Ana Paula Renault": 1
         },
-        "high_confidence_count": 2,
+        "high_confidence_count": 3,
         "low_confidence_count": 0
       },
       "lider_prediction": null
