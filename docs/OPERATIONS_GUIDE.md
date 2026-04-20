@@ -1872,9 +1872,79 @@ The new tipo is also registered in `scripts/schemas.py` enum (`["lider", "anjo",
 ```
 Remember to **drop the `time` field** after the real event to ensure cronologia marks it resolved (not pending).
 
-**Final paredão voting mode** — if the show switches from "vote to eliminate" to "vote to win" (popular vote decides the champion, 1st/2nd/3rd places): new `tipo_voto` mode will be needed in `polls.json` (current modes: `eliminate` default, `salvar` for Paredão Falso). **Not implemented yet — flag when you encounter it.**
+**Final paredão voting mode** — if the show switches from "vote to eliminate" to "vote to win" (popular vote decides the champion, 1st/2nd/3rd places): use `tipo_voto: "vencer"` in `polls.json` and `grande_final: true` on the paredão entry. See **Grande Final** subsection below.
 
-**No Grand Final checklist yet** — the Grande Final itself (definition of 1º/2º/3º via popular vote) is not yet modeled. Update this guide when the first Grand Final is implemented.
+### Grande Final (vote to win)
+
+The season finale has no elimination — the popular vote just orders finalists 1º/2º/3º. Treat as a separate paredão entry with special flags.
+
+**Paredão entry** (`data/paredoes.json`):
+```json
+{
+  "numero": N,
+  "status": "em_andamento",
+  "data": "YYYY-MM-DD",
+  "data_formacao": "YYYY-MM-DD",
+  "hora_eliminacao": "23:00",
+  "titulo": "Grande Final BBB N — DD de Mês de YYYY",
+  "total_esperado": 3,
+  "grande_final": true,
+  "votalhada_url": "https://votalhada.blogspot.com/YYYY/MM/final.html",
+  "formacao": {
+    "resumo": "Top 3 decide o campeão por voto popular...",
+    "sem_lider": true, "sem_anjo": true, "sem_votacao_casa": true,
+    "sem_contragolpe": true, "sem_bate_volta": true
+  },
+  "indicados_finais": [/* 3 finalistas */],
+  "votos_casa": {},
+  "fontes": [/* oficial gshow */]
+}
+```
+
+Key fields (generic for future seasons):
+- `"grande_final": true` — identifies the entry; pipeline skips standard paredão-Cartola scoring (no `eliminado`/`salvo` for finalists), display renders "🏆 Grande Final — EM VOTAÇÃO" instead of "Nº Paredão — EM VOTAÇÃO".
+- `"votalhada_url": "..."` — overrides the default `pesquisa{N}.html` URL pattern. Votalhada uses `/final.html` for the finale — the LXC scheduler honors this override via `fetch_votalhada_images.get_post_url_for_paredao()`.
+- `sem_*` flags — same semantics as Finalista Paredão (suppress Líder/Anjo/votação warnings).
+
+**Polls entry** (`data/votalhada/polls.json`) — auto-bootstrapped by `_bootstrap_polls_entry()` when `grande_final: true` detected on the paredão, with:
+```json
+{
+  "numero": N,
+  "tipo_voto": "vencer",
+  "grande_final": true,
+  /* standard skeleton: participantes, consolidado, plataformas, serie_temporal */
+}
+```
+
+`tipo_voto: "vencer"` flows through:
+- `paredao_viz.py::build_paredao_card_payload` → `vote_mode: "win"` — renders nominees green-first (champion likely), no `danger` role (nobody eliminated), fact lines speak in "vencer/levar o título" terms.
+- `paredao_viz.py::build_poll_comparison_payload` → decision_hint "quem deve vencer".
+- `votalhada_validate_apply.py::apply_to_polls()` → adds `consolidado.predicao_campeao` alias alongside `predicao_eliminado` (same value, different label).
+
+**Scheduled events**:
+```json
+{"date": "YYYY-MM-DD", "category": "grande_final", "emoji": "🏆",
+ "title": "Grande Final BBB N — <names>", "time": "Ao Vivo", "detail": "..."}
+```
+Category `grande_final` is registered in `TIMELINE_CAT_COLORS` (gold `#f1c40f`), `TIMELINE_CAT_LABELS` ("Grande Final"), `CATEGORY_ORDER` (65).
+
+**Cartola scoring for the Final**: currently **not modeled** — pipeline skips the paredão-derived Cartola scoring block for `grande_final: true` entries (no `eliminado`, `nao_eliminado_paredao`, `quarto_secreto` event rows). If future Cartola BBB awards finale-specific points (campeão/2º/3º), add a dedicated block in `cartola.py` before `_format_cartola_output`.
+
+**Participant exits**: 2nd and 3rd place are **not** "eliminated" — do **not** add entries to `manual_events.json → participants` for them. The season ends; they remained to the end.
+
+**Resultado schema when finalizado** (not yet final-implemented; suggested shape for future):
+```json
+"resultado": {
+  "campeao": "Name",
+  "segundo": "Name",
+  "terceiro": "Name",
+  "votos": {
+    "Name1": {"voto_total": XX.XX, "voto_unico": XX.XX, "voto_torcida": XX.XX},
+    ...
+  }
+}
+```
+When implementing, update `load_paredoes_transformed` to map positions (CAMPEAO/SEGUNDO/TERCEIRO) instead of `ELIMINADA`/`Salva`.
 
 ---
 

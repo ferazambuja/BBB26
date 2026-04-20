@@ -189,7 +189,11 @@ def apply_to_polls(ext: dict, paredao_num: int, participants: list[str]) -> None
         weighted = sum(plats[pl].get(full, 0) * plats[pl].get("votos", 0) / 100 for pl in plats)
         cons[full] = round(weighted / total_v * 100, 2) if total_v > 0 else 0
     cons["total_votos"] = total_v
-    cons["predicao_eliminado"] = max(participants, key=lambda n: cons.get(n, 0))
+    _leader = max(participants, key=lambda n: cons.get(n, 0))
+    cons["predicao_eliminado"] = _leader
+    # Grande Final (tipo_voto="vencer"): same leader, different semantics (campeão).
+    if p.get("tipo_voto") == "vencer" or p.get("grande_final"):
+        cons["predicao_campeao"] = _leader
     p["consolidado"] = cons
 
     # Update serie_temporal: use series card rows, or synthesize from ESTIMATIVA

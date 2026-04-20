@@ -240,6 +240,11 @@ def _build_active_fact_lines(nominees: list[dict], vote_mode: str) -> list[str]:
                 f"{lead['first_name']} lidera o Nosso Modelo por {gap:.1f} p.p. "
                 f"sobre {runner['first_name']}."
             )
+        elif vote_mode == "win":
+            facts.append(
+                f"{lead['first_name']} lidera o Nosso Modelo por {gap:.1f} p.p. "
+                f"sobre {runner['first_name']} para levar o título."
+            )
         else:
             facts.append(
                 f"{lead['first_name']} abre {gap:.1f} p.p. sobre {runner['first_name']} "
@@ -255,6 +260,8 @@ def _build_active_fact_lines(nominees: list[dict], vote_mode: str) -> list[str]:
         )
     elif vote_mode == "save":
         facts.append("Neste paredão falso, a maior porcentagem indica quem segue no jogo.")
+    elif vote_mode == "win":
+        facts.append("Na Grande Final, a maior porcentagem indica o campeão da temporada.")
     else:
         routes = sorted(
             [n for n in nominees if n.get("route_short") and n.get("route_short") != "Aguardando origem"],
@@ -621,7 +628,12 @@ def _build_card_curiosity_line(
         if m_rank and v_rank:
             m_gap = abs(m_rank[0][1] - m_rank[1][1]) if len(m_rank) >= 2 else None
             v_gap = abs(v_rank[0][1] - v_rank[1][1]) if len(v_rank) >= 2 else None
-            target = "seguir no jogo" if vote_mode == "save" else "sair"
+            if vote_mode == "save":
+                target = "seguir no jogo"
+            elif vote_mode == "win":
+                target = "vencer"
+            else:
+                target = "sair"
             if m_rank[0][0] == v_rank[0][0]:
                 if m_gap is not None and v_gap is not None:
                     return (
@@ -649,6 +661,8 @@ def _build_memory_line(payload_nominees: list[dict], model_prediction: dict | No
     pct = prediction[selected]
     if vote_mode == "save":
         return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.2f}% para seguir no jogo."
+    if vote_mode == "win":
+        return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.2f}% para levar o título."
     return f"Antes do resultado oficial, Nosso Modelo apontava {selected.split()[0]} com {pct:.2f}%."
 
 
@@ -679,7 +693,13 @@ def build_paredao_card_payload(
     state = "finalized" if _is_finalized_paredao(paredao_entry) else "active"
     history_map = paredao_history or {}
     trust_badge = _build_trust_badge(polls_data)
-    vote_mode = "save" if ((poll or {}).get("tipo_voto") == "salvar" or paredao_entry.get("paredao_falso")) else "eliminate"
+    _tv = (poll or {}).get("tipo_voto")
+    if _tv == "vencer" or paredao_entry.get("grande_final"):
+        vote_mode = "win"
+    elif _tv == "salvar" or paredao_entry.get("paredao_falso"):
+        vote_mode = "save"
+    else:
+        vote_mode = "eliminate"
 
     precision = calculate_precision_weights(polls_data or {"paredoes": []}) if polls_data else {"sufficient": False}
     model_prediction = predict_precision_weighted(poll, precision) if poll and precision.get("sufficient") else None
@@ -722,6 +742,10 @@ def build_paredao_card_payload(
         for idx, nominee in enumerate(nominees):
             if vote_mode == "save":
                 role = "safe" if idx == 0 else "danger" if idx == last_idx else "warning"
+            elif vote_mode == "win":
+                # Grande Final: highest % = likely champion (safe/green).
+                # Last = neutral (3rd place, não eliminado). Middle = warning.
+                role = "safe" if idx == 0 else "neutral" if idx == last_idx else "warning"
             else:
                 role = "danger" if idx == 0 else "safe" if idx == last_idx else "warning"
             nominee["color_role"] = role
@@ -810,7 +834,8 @@ def build_poll_comparison_payload(poll: dict | None, model_prediction: dict | No
     if not participantes:
         return None
 
-    vote_mode = "save" if poll.get("tipo_voto") == "salvar" else "eliminate"
+    _tv = poll.get("tipo_voto")
+    vote_mode = "win" if _tv == "vencer" else "save" if _tv == "salvar" else "eliminate"
     votalhada_rank = sorted(
         [(nome, float(consolidado.get(nome, 0) or 0)) for nome in participantes],
         key=lambda x: (-x[1], x[0]),
@@ -1067,6 +1092,8 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     vote_mode = payload.get("vote_mode", "eliminate")
     if vote_mode == "save":
         decision_hint = "quem segue no jogo"
+    elif vote_mode == "win":
+        decision_hint = "quem deve vencer"
     else:
         decision_hint = "quem deve sair"
 

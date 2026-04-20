@@ -544,6 +544,12 @@ def _apply_cartola_manual(calculated_points: dict, manual_events: dict, paredoes
         paredao_date = p.get('data', '')
         if not paredao_date:
             continue
+        # Grande Final: 3 finalistas disputam 1º/2º/3º — nenhum é "eliminado"
+        # nem "salvo" em sentido Cartola-paredão. Pular scoring paredão padrão.
+        # Se pontuação específica de Final (campeão/2º/3º) for introduzida no
+        # futuro, adicionar bloco dedicado aqui.
+        if p.get('grande_final'):
+            continue
         week = p.get('cycle') or get_cycle_number(paredao_date)
         indicados = [i.get('nome') for i in p.get('indicados_finais', []) if i.get('nome')]
         if not indicados:

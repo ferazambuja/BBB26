@@ -419,6 +419,7 @@ if ultimo:
         # ══════════════════════════════════════════════════════════
 
         # Determinar título e mensagem baseado no estado
+        _is_grande_final = bool(ultimo.get('grande_final'))
         if n_indicados < esperado_indicados:
             titulo = f"{ultimo['numero']}º Paredão — FORMAÇÃO EM ANDAMENTO"
             cor_titulo = '#3498db'  # Azul para formação
@@ -428,8 +429,12 @@ if ultimo:
                 falta = esperado_indicados - n_indicados
                 subtitulo = f"{n_indicados} indicado(s) confirmado(s). Aguardando mais {falta}..."
         else:
-            titulo = f"{ultimo['numero']}º Paredão — EM VOTAÇÃO"
-            cor_titulo = '#f39c12'  # Amarelo para votação
+            if _is_grande_final:
+                titulo = "🏆 Grande Final — EM VOTAÇÃO"
+                cor_titulo = '#f1c40f'  # Dourado
+            else:
+                titulo = f"{ultimo['numero']}º Paredão — EM VOTAÇÃO"
+                cor_titulo = '#f39c12'  # Amarelo para votação
             _elim_date = ultimo.get('data')
             _weekday_pt = None
             if _elim_date:
@@ -439,11 +444,18 @@ if ultimo:
                     _weekday_pt = _weekdays_pt[_elim_dt.weekday()]
                 except Exception:
                     _weekday_pt = None
-            subtitulo = (
-                f"Votação popular em andamento. Resultado {'no ' if _weekday_pt in ('sábado','domingo') else 'na '}{_weekday_pt} à noite."
-                if _weekday_pt else
-                "Votação popular em andamento. Resultado na terça-feira à noite."
-            )
+            if _is_grande_final:
+                subtitulo = (
+                    f"Vote para QUEM DEVE VENCER o BBB 26. Resultado {'no ' if _weekday_pt in ('sábado','domingo') else 'na '}{_weekday_pt} à noite."
+                    if _weekday_pt else
+                    "Vote para QUEM DEVE VENCER o BBB 26. Resultado na terça-feira à noite."
+                )
+            else:
+                subtitulo = (
+                    f"Votação popular em andamento. Resultado {'no ' if _weekday_pt in ('sábado','domingo') else 'na '}{_weekday_pt} à noite."
+                    if _weekday_pt else
+                    "Votação popular em andamento. Resultado na terça-feira à noite."
+                )
 
         # Check for auto-detected participants (need manual info)
         auto_detected = [p for p in participantes if p.get('como') == 'API']
@@ -460,10 +472,11 @@ if ultimo:
         _needs_lider = not ultimo.get('lider') and not _sem_lider
         needs_manual_info = len(auto_detected) > 0 or _needs_votos_casa or _needs_lider
 
-        # Header
+        # Header (Grande Final já carrega 🏆; demais paredões usam 🗳️)
+        _header_emoji = '' if _is_grande_final else '🗳️ '
         print(f"""
 <div class="tc u-s404">
-<h2 style="color: {cor_titulo}; margin-bottom: 0.5rem;">🗳️ {titulo}</h2>
+<h2 style="color: {cor_titulo}; margin-bottom: 0.5rem;">{_header_emoji}{titulo}</h2>
 <p class="fs-xl u-s021">{subtitulo}</p>
 </div>
 """)
@@ -2368,6 +2381,7 @@ if ultimo and ultimo.get('participantes'):
     votos = ultimo.get('votos_casa', {}) or {}
     _formacao_flags_hist = ultimo.get('formacao_raw', {}) or {}
     _sem_votacao_casa_hist = bool(_formacao_flags_hist.get('sem_votacao_casa'))
+    _is_grande_final_hist = bool(ultimo.get('grande_final'))
 
     # Classify votes into lists
     betrayals = [v for v in va if v["tipo"] in ("falso_amigo", "aliados_mutuos")]
@@ -2387,7 +2401,10 @@ if ultimo and ultimo.get('participantes'):
     # ══════════════════════════════════════════════════════════════════════
     # SECTION 1: A História do Nº Paredão (global brief narrative)
     # ══════════════════════════════════════════════════════════════════════
-    print(f"## 📖 A História do {ultimo['numero']}º Paredão\n")
+    if _is_grande_final_hist:
+        print(f"## 🏆 A História da Grande Final\n")
+    else:
+        print(f"## 📖 A História do {ultimo['numero']}º Paredão\n")
 
     if is_finalizado:
         print(f'<div class="alert alert-secondary fs-base">')
@@ -2466,6 +2483,8 @@ if ultimo and ultimo.get('participantes'):
             print(f"Os votos **não seguiram** as reações — muita divergência entre queridômetro e urna.\n")
         else:
             print(f"Resultado misto: parte dos votos seguiu o queridômetro, parte foi por estratégia.\n")
+    elif _is_grande_final_hist:
+        print("**Grande Final** — não há eliminação nem votação da casa. O voto popular define **1º, 2º e 3º lugares** (vote para QUEM DEVE VENCER, não para eliminar).\n")
     elif _sem_votacao_casa_hist:
         print("Este paredão foi formado por dinâmica especial (ex.: Prova do Finalista) — **não houve votação da casa**. A eliminação é decidida pelo voto popular.\n")
     else:
