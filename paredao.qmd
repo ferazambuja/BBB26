@@ -1736,7 +1736,8 @@ if ultimo and (ultimo.get('status') == 'finalizado' or any(p.get('resultado') fo
                 hovertemplate='%{x}: %{y:.1f}% (Voto Torcida)<extra></extra>',
             ))
 
-        colors_total = ['#E6194B' if r == 'ELIMINADA' else '#3CB44B' for r in df_p['resultado']]
+        _podium_map = {'CAMPEAO': '#f1c40f', 'SEGUNDO': '#bdc3c7', 'TERCEIRO': '#cd7f32', 'ELIMINADA': '#E6194B'}
+        colors_total = [_podium_map.get(r, '#3CB44B') for r in df_p['resultado']]
         fig.add_trace(go.Bar(
             x=df_p['nome'], y=df_p['voto_total'],
             text=[f"{v:.1f}%" for v in df_p['voto_total']],
@@ -2484,7 +2485,23 @@ if ultimo and ultimo.get('participantes'):
         else:
             print(f"Resultado misto: parte dos votos seguiu o queridômetro, parte foi por estratégia.\n")
     elif _is_grande_final_hist:
-        print("**Grande Final** — não há eliminação nem votação da casa. O voto popular define **1º, 2º e 3º lugares** (vote para QUEM DEVE VENCER, não para eliminar).\n")
+        _final_res = ultimo.get('resultado') or {}
+        if is_finalizado and _final_res.get('campeao'):
+            _camp = _final_res.get('campeao')
+            _seg = _final_res.get('segundo')
+            _ter = _final_res.get('terceiro')
+            _votos_res = _final_res.get('votos', {}) or {}
+            _camp_pct = (_votos_res.get(_camp, {}) or {}).get('voto_total')
+            _parts = [f"🏆 **{_camp}** — Campe{'ã' if genero(_camp) == 'f' else 'ão'} do BBB 26" + (f" com **{_camp_pct:.2f}%**" if _camp_pct is not None else "")]
+            if _seg:
+                _seg_pct = (_votos_res.get(_seg, {}) or {}).get('voto_total')
+                _parts.append(f"🥈 **{_seg}** — 2º lugar" + (f" ({_seg_pct:.2f}%)" if _seg_pct is not None else ""))
+            if _ter:
+                _ter_pct = (_votos_res.get(_ter, {}) or {}).get('voto_total')
+                _parts.append(f"🥉 **{_ter}** — 3º lugar" + (f" ({_ter_pct:.2f}%)" if _ter_pct is not None else ""))
+            print(" · ".join(_parts) + ".\n")
+        else:
+            print("**Grande Final** — não há eliminação nem votação da casa. O voto popular define **1º, 2º e 3º lugares** (vote para QUEM DEVE VENCER, não para eliminar).\n")
     elif _sem_votacao_casa_hist:
         print("Este paredão foi formado por dinâmica especial (ex.: Prova do Finalista) — **não houve votação da casa**. A eliminação é decidida pelo voto popular.\n")
     else:

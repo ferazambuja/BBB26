@@ -35,6 +35,9 @@ PAREDAO_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "eliminado": {"type": "string"},
+                            "campeao": {"type": "string"},
+                            "segundo": {"type": "string"},
+                            "terceiro": {"type": "string"},
                             "votos": {"type": "object"},
                         },
                     },

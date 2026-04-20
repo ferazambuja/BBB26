@@ -113,11 +113,14 @@ POWER_EVENT_LABELS = {
 # ══════════════════════════════════════════════════════════════
 
 CARTOLA_POINTS = {
+    'campeao': 100,
     'lider': 80,
+    'segundo': 50,
     'anjo': 45,
     'quarto_secreto': 40,
     'imunizado': 30,
     'atendeu_big_fone': 30,
+    'terceiro': 25,
     'salvo_paredao': 25,
     'nao_eliminado_paredao': 20,
     'nao_emparedado': 10,
@@ -132,11 +135,14 @@ CARTOLA_POINTS = {
 }
 
 POINTS_LABELS = {
+    'campeao': 'Campeão/Campeã',
     'lider': 'Líder',
+    'segundo': '2º Lugar',
     'anjo': 'Anjo',
     'quarto_secreto': 'Quarto Secreto',
     'imunizado': 'Imunizado',
     'atendeu_big_fone': 'Big Fone',
+    'terceiro': '3º Lugar',
     'salvo_paredao': 'Salvo do Paredão',
     'nao_eliminado_paredao': 'Não Eliminado no Paredão',
     'nao_emparedado': 'Não Emparedado',
@@ -151,11 +157,14 @@ POINTS_LABELS = {
 }
 
 POINTS_EMOJI = {
+    'campeao': '🏆',
     'lider': '👑',
+    'segundo': '🥈',
     'anjo': '😇',
     'quarto_secreto': '🚪',
     'imunizado': '🛡️',
     'atendeu_big_fone': '📞',
+    'terceiro': '🥉',
     'salvo_paredao': '🎉',
     'nao_eliminado_paredao': '✅',
     'nao_emparedado': '🙏',
@@ -811,13 +820,24 @@ def load_paredoes_transformed(member_of: dict[str, str] | None = None) -> list[d
                     part['voto_unico'] = votos.get('voto_unico', 0)
                     part['voto_torcida'] = votos.get('voto_torcida', 0)
                     part['voto_total'] = votos.get('voto_total', 0)
-                    is_elim = ind['nome'] == p['resultado'].get('eliminado')
-                    if is_elim and p.get('paredao_falso', False):
-                        part['resultado'] = 'QUARTO_SECRETO'
-                    elif is_elim:
-                        part['resultado'] = 'ELIMINADA'
+                    if p.get('grande_final', False):
+                        res = p['resultado']
+                        if ind['nome'] == res.get('campeao'):
+                            part['resultado'] = 'CAMPEAO'
+                        elif ind['nome'] == res.get('segundo'):
+                            part['resultado'] = 'SEGUNDO'
+                        elif ind['nome'] == res.get('terceiro'):
+                            part['resultado'] = 'TERCEIRO'
+                        else:
+                            part['resultado'] = ''
                     else:
-                        part['resultado'] = 'Salva'
+                        is_elim = ind['nome'] == p['resultado'].get('eliminado')
+                        if is_elim and p.get('paredao_falso', False):
+                            part['resultado'] = 'QUARTO_SECRETO'
+                        elif is_elim:
+                            part['resultado'] = 'ELIMINADA'
+                        else:
+                            part['resultado'] = 'Salva'
                 entry['participantes'].append(part)
         else:
             entry['participantes'] = [

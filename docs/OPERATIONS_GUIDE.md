@@ -1928,11 +1928,16 @@ Key fields (generic for future seasons):
 ```
 Category `grande_final` is registered in `TIMELINE_CAT_COLORS` (gold `#f1c40f`), `TIMELINE_CAT_LABELS` ("Grande Final"), `CATEGORY_ORDER` (65).
 
-**Cartola scoring for the Final**: currently **not modeled** — pipeline skips the paredão-derived Cartola scoring block for `grande_final: true` entries (no `eliminado`, `nao_eliminado_paredao`, `quarto_secreto` event rows). If future Cartola BBB awards finale-specific points (campeão/2º/3º), add a dedicated block in `cartola.py` before `_format_cartola_output`.
+**Cartola scoring for the Final**: when `grande_final: true` + `status: finalizado`, `cartola.py` awards podium-specific points (constants in `data_utils.CARTOLA_POINTS`):
+- `campeao`: **+100** 🏆
+- `segundo`: **+50** 🥈
+- `terceiro`: **+25** 🥉
+
+The standard paredão-derived Cartola block (no `eliminado`/`nao_eliminado_paredao`/`quarto_secreto`) is still skipped for Grande Final entries — only the podium awards fire.
 
 **Participant exits**: 2nd and 3rd place are **not** "eliminated" — do **not** add entries to `manual_events.json → participants` for them. The season ends; they remained to the end.
 
-**Resultado schema when finalizado** (not yet final-implemented; suggested shape for future):
+**Resultado schema when finalizado**:
 ```json
 "resultado": {
   "campeao": "Name",
@@ -1944,7 +1949,7 @@ Category `grande_final` is registered in `TIMELINE_CAT_COLORS` (gold `#f1c40f`),
   }
 }
 ```
-When implementing, update `load_paredoes_transformed` to map positions (CAMPEAO/SEGUNDO/TERCEIRO) instead of `ELIMINADA`/`Salva`.
+`load_paredoes_transformed` maps positions to `CAMPEAO` / `SEGUNDO` / `TERCEIRO` (instead of `ELIMINADA` / `Salva`). Rendering uses gold/silver/bronze accents in both `render_paredao_index_card` (active card) and `render_nominee_cards_finalized` (archive), plus matching badge text (🏆 CAMPEÃO/Ã · 🥈 2º LUGAR · 🥉 3º LUGAR). Summary row in `paredoes.qmd` swaps the "Eliminado(a)" column to `🏆 <name>` and lists the other two finalists under "Salvos".
 
 ---
 

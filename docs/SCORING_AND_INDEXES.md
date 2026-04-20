@@ -483,10 +483,13 @@ Higher = more aligned; lower = contradiction.
 ### Points table
 | Event | Points |
 |-------|--------|
+| Campeão/Campeã (🏆) | +100 |
 | Líder | +80 |
+| 2º Lugar (🥈) | +50 |
 | Anjo | +45 |
 | Quarto Secreto | +40 |
 | Imunizado / Big Fone | +30 |
+| 3º Lugar (🥉) | +25 |
 | Salvo do paredão | +25 |
 | Não eliminado no paredão | +20 |
 | Não emparedado | +10 |
@@ -511,6 +514,11 @@ Higher = more aligned; lower = contradiction.
 - **VIP (+5)**: não acumula com Líder. Fonte primária: `provas.json` (`tipo=lider` → `vip`), com fallback API. Promoções por dinâmica (`troca_vip`) também podem gerar `+5` na rodada.
 - **Tá com Nada**: não há categoria própria de pontuação Cartola oficial para essa condição.
 - **Não recebeu votos da casa (+5)**: disponíveis para votação **sem votos**; não vale para Líder e imunizados.
+- **Grande Final** (apenas quando `resultado` registra o pódio):
+  - **Campeão/Campeã (+100)**: vence o BBB.
+  - **2º Lugar (+50)**: finalista imediatamente abaixo.
+  - **3º Lugar (+25)**: último finalista.
+  Pontos aplicados no `cycle` do próprio `paredoes.json` (último ciclo da temporada). Quando a Final ainda está `em_andamento`, nenhum prêmio é contabilizado.
 - **Palpites (+5)**: pontos extras por acerto de palpites (não modelado no dashboard).
 - **Janela de escalação**: quando aberta, **dinâmicas não pontuam**. O dashboard agora modela essa exceção via `manual_events.json -> cartola_rounds`, agregando ciclos quando a rodada oficial cobre mais de um ciclo turbo e excluindo eventos ocorridos com a janela ainda aberta.
 - **Nota do dashboard**: calculamos **pontuação por participante**, sem times/palpites individuais.

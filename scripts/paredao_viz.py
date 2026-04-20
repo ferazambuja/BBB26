@@ -127,7 +127,14 @@ _PAREDAO_ROLE_COLORS: dict[str, str] = {
     "warning": "#f39c12",
     "safe": "#2ecc71",
     "neutral": "#95a5a6",
+    "champion": "#f1c40f",   # Gold
+    "silver": "#bdc3c7",     # Silver
+    "bronze": "#cd7f32",     # Bronze
 }
+
+
+def _podium_role(result: str) -> str | None:
+    return {"CAMPEAO": "champion", "SEGUNDO": "silver", "TERCEIRO": "bronze"}.get(result)
 
 
 def _rich_text(text: str | None) -> str:
@@ -752,9 +759,14 @@ def build_paredao_card_payload(
             nominee["accent_color"] = _PAREDAO_ROLE_COLORS[role]
     elif state == "finalized":
         for nominee in nominees:
-            role = "danger" if nominee["is_eliminated"] else "safe"
-            nominee["color_role"] = role
-            nominee["accent_color"] = _PAREDAO_ROLE_COLORS[role]
+            podium = _podium_role(nominee.get("result_label", ""))
+            if podium:
+                nominee["color_role"] = podium
+                nominee["accent_color"] = _PAREDAO_ROLE_COLORS[podium]
+            else:
+                role = "danger" if nominee["is_eliminated"] else "safe"
+                nominee["color_role"] = role
+                nominee["accent_color"] = _PAREDAO_ROLE_COLORS[role]
 
     fact_lines = _build_active_fact_lines(nominees, vote_mode) if state == "active" else []
     curiosity_line = None
@@ -1464,7 +1476,23 @@ def render_nominee_cards_finalized(
         esc_nome = safe_html(nome)
         first_name = nome.split()[0]
 
-        if resultado == 'ELIMINADA':
+        if resultado == 'CAMPEAO':
+            border_color = '#f1c40f'
+            badge_bg = '#f1c40f'
+            suf = 'Ã' if genero(nome) == 'f' else 'ÃO'
+            badge_text = f'🏆 CAMPE{suf}'
+            img_filter = 'none'
+        elif resultado == 'SEGUNDO':
+            border_color = '#bdc3c7'
+            badge_bg = '#bdc3c7'
+            badge_text = '🥈 2º LUGAR'
+            img_filter = 'none'
+        elif resultado == 'TERCEIRO':
+            border_color = '#cd7f32'
+            badge_bg = '#cd7f32'
+            badge_text = '🥉 3º LUGAR'
+            img_filter = 'none'
+        elif resultado == 'ELIMINADA':
             border_color = '#E6194B'
             badge_bg = '#E6194B'
             if is_paredao_falso:

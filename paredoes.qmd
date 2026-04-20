@@ -109,22 +109,36 @@ paredoes_finalizados = [p for p in paredoes if p.get('status') == 'finalizado']
 if len(paredoes_finalizados) >= 1:
     hist_rows = []
     for p in paredoes_finalizados:
-        mais_votado = next((x for x in p['participantes'] if x['resultado'] in ('ELIMINADA', 'QUARTO_SECRETO')), None)
-        salvos = [x for x in p['participantes'] if x['resultado'] not in ('ELIMINADA', 'QUARTO_SECRETO')]
         is_falso = p.get('paredao_falso', False)
+        is_final = p.get('grande_final', False)
 
-        _num_label = f"{p['numero']}º 🔮" if is_falso else f"{p['numero']}º"
-        _selected_name = mais_votado['nome'] if mais_votado else '—'
-
-        row = {
-            'Nº': _num_label,
-            'Data': p['data'],
-            'Eliminado(a)': _selected_name,
-            'Voto Único': f"{mais_votado['voto_unico']:.1f}%" if mais_votado and mais_votado.get('voto_unico') else '—',
-            'Voto Torcida': f"{mais_votado['voto_torcida']:.1f}%" if mais_votado and mais_votado.get('voto_torcida') else '—',
-            'Média Final': f"{mais_votado['voto_total']:.1f}%" if mais_votado else '—',
-            'Salvos': ', '.join(s['nome'] for s in salvos),
-        }
+        if is_final:
+            campeao = next((x for x in p['participantes'] if x.get('resultado') == 'CAMPEAO'), None)
+            outros = [x for x in p['participantes'] if x.get('resultado') != 'CAMPEAO']
+            _num_label = f"{p['numero']}º 🏆"
+            row = {
+                'Nº': _num_label,
+                'Data': p['data'],
+                'Eliminado(a)': f"🏆 {campeao['nome']}" if campeao else '—',
+                'Voto Único': f"{campeao['voto_unico']:.1f}%" if campeao and campeao.get('voto_unico') else '—',
+                'Voto Torcida': f"{campeao['voto_torcida']:.1f}%" if campeao and campeao.get('voto_torcida') else '—',
+                'Média Final': f"{campeao['voto_total']:.1f}%" if campeao else '—',
+                'Salvos': ', '.join(s['nome'] for s in outros),
+            }
+        else:
+            mais_votado = next((x for x in p['participantes'] if x['resultado'] in ('ELIMINADA', 'QUARTO_SECRETO')), None)
+            salvos = [x for x in p['participantes'] if x['resultado'] not in ('ELIMINADA', 'QUARTO_SECRETO')]
+            _num_label = f"{p['numero']}º 🔮" if is_falso else f"{p['numero']}º"
+            _selected_name = mais_votado['nome'] if mais_votado else '—'
+            row = {
+                'Nº': _num_label,
+                'Data': p['data'],
+                'Eliminado(a)': _selected_name,
+                'Voto Único': f"{mais_votado['voto_unico']:.1f}%" if mais_votado and mais_votado.get('voto_unico') else '—',
+                'Voto Torcida': f"{mais_votado['voto_torcida']:.1f}%" if mais_votado and mais_votado.get('voto_torcida') else '—',
+                'Média Final': f"{mais_votado['voto_total']:.1f}%" if mais_votado else '—',
+                'Salvos': ', '.join(s['nome'] for s in salvos),
+            }
         hist_rows.append(row)
 
     df_hist = pd.DataFrame(hist_rows).fillna('—')
@@ -1074,11 +1088,18 @@ tabs_html = '<ul class="nav nav-tabs" id="paredaoTabs" role="tablist">'
 for i, paredao in enumerate(reversed(paredoes_visiveis)):
     par_num = paredao['numero']
     is_finalizado = paredao.get('status') == 'finalizado'
-    mais_votado = next((x for x in paredao['participantes'] if x.get('resultado') in ('ELIMINADA', 'QUARTO_SECRETO')), None)
-    mv_name = mais_votado['nome'].split()[0] if mais_votado else 'ao vivo'
+    is_final = paredao.get('grande_final', False)
     is_falso = paredao.get('paredao_falso', False)
+    if is_final:
+        campeao = next((x for x in paredao['participantes'] if x.get('resultado') == 'CAMPEAO'), None)
+        mv_name = campeao['nome'].split()[0] if campeao else 'ao vivo'
+    else:
+        mais_votado = next((x for x in paredao['participantes'] if x.get('resultado') in ('ELIMINADA', 'QUARTO_SECRETO')), None)
+        mv_name = mais_votado['nome'].split()[0] if mais_votado else 'ao vivo'
     if not is_finalizado:
-        tab_label = f'{par_num}º Paredão (ao vivo)'
+        tab_label = f'🏆 Grande Final (ao vivo)' if is_final else f'{par_num}º Paredão (ao vivo)'
+    elif is_final:
+        tab_label = f'🏆 Grande Final ({mv_name})'
     else:
         tab_label = f'{par_num}º Paredão Falso ({mv_name})' if is_falso else f'{par_num}º Paredão ({mv_name})'
     active = 'active' if i == 0 else ''
@@ -1116,15 +1137,25 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
     snap_p, matrix_p, idx_p = get_snapshot_for_date(analysis_date, snapshots, all_matrices)
     snap_participants = snap_p['participants']
 
-    mais_votado = next((x for x in paredao['participantes'] if x.get('resultado') in ('ELIMINADA', 'QUARTO_SECRETO')), None)
-    salvos = [x for x in paredao['participantes'] if x.get('resultado') not in ('ELIMINADA', 'QUARTO_SECRETO')]
+    _is_grande_final_arc = paredao.get('grande_final', False)
+    if _is_grande_final_arc:
+        mais_votado = next((x for x in paredao['participantes'] if x.get('resultado') == 'CAMPEAO'), None)
+        salvos = [x for x in paredao['participantes'] if x.get('resultado') != 'CAMPEAO']
+    else:
+        mais_votado = next((x for x in paredao['participantes'] if x.get('resultado') in ('ELIMINADA', 'QUARTO_SECRETO')), None)
+        salvos = [x for x in paredao['participantes'] if x.get('resultado') not in ('ELIMINADA', 'QUARTO_SECRETO')]
 
     # Tab pane wrapper
     active = 'show active' if i == 0 else ''
     _is_par_falso = paredao.get('paredao_falso', False)
-    _par_type = 'Paredão Falso' if _is_par_falso else 'Paredão'
+    if _is_grande_final_arc:
+        _par_type = 'Grande Final'
+        _par_header = f'🏆 {_par_type} — {paredao["data"]}'
+    else:
+        _par_type = 'Paredão Falso' if _is_par_falso else 'Paredão'
+        _par_header = f'{par_num}º {_par_type} — {paredao["data"]}'
     print(f'<div class="tab-pane fade {active}" id="paredao-{par_num}" role="tabpanel" aria-labelledby="tab-{par_num}">')
-    print(f'<h3 class="u-s039">{par_num}º {_par_type} — {paredao["data"]}</h3>')
+    print(f'<h3 class="u-s039">{_par_header}</h3>')
     if is_finalizado:
         print(f'<p class="text-muted small">📅 Coerência social usa queridômetro do dia <strong>{analysis_date}</strong> (formação). Score base: 70% janela reativa + 30% memória de sequência.</p>')
     else:
@@ -1145,7 +1176,23 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         avatar_url = AVATARS.get(nome, '')
         first_name = nome.split()[0]
 
-        if resultado == 'ELIMINADA':
+        if resultado == 'CAMPEAO':
+            border_color = '#f1c40f'
+            badge_bg = '#f1c40f'
+            suf = 'Ã' if genero(nome) == 'f' else 'ÃO'
+            badge_text = f'🏆 CAMPE{suf}'
+            img_filter = 'none'
+        elif resultado == 'SEGUNDO':
+            border_color = '#bdc3c7'
+            badge_bg = '#bdc3c7'
+            badge_text = '🥈 2º LUGAR'
+            img_filter = 'none'
+        elif resultado == 'TERCEIRO':
+            border_color = '#cd7f32'
+            badge_bg = '#cd7f32'
+            badge_text = '🥉 3º LUGAR'
+            img_filter = 'none'
+        elif resultado == 'ELIMINADA':
             border_color = '#E6194B'
             badge_bg = '#E6194B'
             if _is_par_falso:
@@ -1157,7 +1204,7 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         elif not is_finalizado:
             border_color = '#f39c12'
             badge_bg = '#f39c12'
-            badge_text = 'NA BERLINDA'
+            badge_text = 'NA BERLINDA' if not _is_grande_final_arc else '🏆 FINALISTA'
             img_filter = 'none'
         else:
             border_color = '#3CB44B'
@@ -1236,7 +1283,8 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
                 marker_color='#FF9800',
             ))
 
-        colors_total = ['#E6194B' if r == 'ELIMINADA' else '#3CB44B' for r in df_p['resultado']]
+        _podium_map = {'CAMPEAO': '#f1c40f', 'SEGUNDO': '#bdc3c7', 'TERCEIRO': '#cd7f32', 'ELIMINADA': '#E6194B'}
+        colors_total = [_podium_map.get(r, '#3CB44B') for r in df_p['resultado']]
         fig.add_trace(go.Bar(
             x=df_p['nome'], y=df_p['voto_total'],
             text=[f"{v:.1f}%" for v in df_p['voto_total']],
