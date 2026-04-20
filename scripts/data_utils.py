@@ -2834,6 +2834,19 @@ def get_nominee_badge(nome: str, paredao_entry: dict, bate_volta_survivors: set[
 
     resultado = paredao_entry.get('resultado', {})
     eliminado = resultado.get('eliminado', '')
+    is_grande_final = paredao_entry.get('grande_final', False)
+    status = paredao_entry.get('status', '')
+
+    if is_grande_final:
+        if status == 'finalizado':
+            if nome == resultado.get('campeao'):
+                sufixo = 'Ã' if genero(nome) == 'f' else 'ÃO'
+                return (f'🏆 CAMPE{sufixo}', '#f1c40f', '🏆')
+            if nome == resultado.get('segundo'):
+                return ('🥈 2º LUGAR', '#bdc3c7', '🥈')
+            if nome == resultado.get('terceiro'):
+                return ('🥉 3º LUGAR', '#cd7f32', '🥉')
+        return ('🏆 FINALISTA', '#f1c40f', '🏆')
 
     if nome == eliminado:
         if paredao_entry.get('paredao_falso', False):
@@ -2841,7 +2854,6 @@ def get_nominee_badge(nome: str, paredao_entry: dict, bate_volta_survivors: set[
         sufixo = 'A' if genero(nome) == 'f' else 'O'
         return (f'ELIMINAD{sufixo}', '#e74c3c', '🔴')
 
-    status = paredao_entry.get('status', '')
     if status == 'finalizado':
         sufixo = 'A' if genero(nome) == 'f' else 'O'
         return (f'SALV{sufixo}', '#00bc8c', '🟢')

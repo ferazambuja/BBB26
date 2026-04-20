@@ -2409,7 +2409,10 @@ if ultimo and ultimo.get('participantes'):
 
     if is_finalizado:
         print(f'<div class="alert alert-secondary fs-base">')
-        print(f'{analysis_date_label} — análise histórica congelada no momento da formação.')
+        if _is_grande_final_hist:
+            print(f'{analysis_date_label} — queridômetro dos finalistas congelado no último dia.')
+        else:
+            print(f'{analysis_date_label} — análise histórica congelada no momento da formação.')
         print(f'</div>\n')
 
     # Opening narrative
@@ -2661,18 +2664,31 @@ if ultimo and ultimo.get('participantes'):
                     '_bv_escapee': True,
                 })
 
-    # Sort: eliminado first → by house votes desc → BV survivors last
+    # Sort: eliminado (ou campeão no Grande Final) first → by house votes desc → BV survivors last
     resultado = ultimo.get('resultado', {}) if is_finalizado else {}
     eliminado_nome = resultado.get('eliminado', '') if resultado else ''
+    _is_grande_final_loop = bool(ultimo.get('grande_final'))
 
-    def _nominee_sort_key(p):
-        nome = p['nome']
-        if nome == eliminado_nome:
-            return (0, 0, nome)
-        if p.get('_bv_escapee'):
-            return (2, 0, nome)
-        pn = per_nominee_data.get(nome, {})
-        return (1, -pn.get('n_votes', 0), nome)
+    if _is_grande_final_loop:
+        _podium_rank = {
+            resultado.get('campeao'): 0,
+            resultado.get('segundo'): 1,
+            resultado.get('terceiro'): 2,
+        } if is_finalizado else {}
+        def _nominee_sort_key(p):
+            nome = p['nome']
+            if _podium_rank:
+                return (_podium_rank.get(nome, 3), nome)
+            return (0, nome)
+    else:
+        def _nominee_sort_key(p):
+            nome = p['nome']
+            if nome == eliminado_nome:
+                return (0, 0, nome)
+            if p.get('_bv_escapee'):
+                return (2, 0, nome)
+            pn = per_nominee_data.get(nome, {})
+            return (1, -pn.get('n_votes', 0), nome)
 
     all_nominees.sort(key=_nominee_sort_key)
 
@@ -2687,7 +2703,8 @@ if ultimo and ultimo.get('participantes'):
         badge_text, badge_color, badge_emoji = get_nominee_badge(nome, ultimo, bv_survivors)
         grupo_color = GROUP_COLORS.get(grupo, '#888')
 
-        print(f"\n### {badge_emoji} O Caso {nome}\n")
+        _case_prefix = '🏆 Finalista' if _is_grande_final_loop else f'{badge_emoji} O Caso'
+        print(f"\n### {_case_prefix} {nome}\n")
         print(f'<div class="u-s314">')
         print(f'{avatar_img(nome, AVATARS, 64)}')
         print(f'<div>')
@@ -2709,8 +2726,8 @@ if ultimo and ultimo.get('participantes'):
                 print(f"**Resultado:** Voto Único {vu:.2f}% · Torcida {vt:.2f}% · **Média Final {vtotal:.2f}%**\n")
 
         # ── B. Indicação Analysis (only for power-indicated nominees) ──
-        # Detect indicator type from 'como' field
-        nominee_indicators = [ir for ir in indicator_reactions if ir['target'] == nome]
+        # Skip entirely on Grande Final (there's no Líder/Contragolpe/Big Fone route).
+        nominee_indicators = [] if _is_grande_final_loop else [ir for ir in indicator_reactions if ir['target'] == nome]
 
         if nominee_indicators:
             for ir in nominee_indicators:
@@ -2781,11 +2798,19 @@ if ultimo and ultimo.get('participantes'):
             print(f'</tr></tbody></table>\n')
 
         # ── D. Quem Votou em [Name]? ──
-        votes_for_nominee = [v for v in va if v['alvo'] == nome]
-        n_votes = pn.get('n_votes', len(votes_for_nominee))
-        n_enemies = pn.get('from_enemies', 0)
-        n_traitors = pn.get('from_traitors', 0)
-        n_blind = pn.get('from_blind', 0)
+        # Grande Final não tem votação da casa → zera tudo para pular seções.
+        if _is_grande_final_loop:
+            votes_for_nominee = []
+            n_votes = 0
+            n_enemies = 0
+            n_traitors = 0
+            n_blind = 0
+        else:
+            votes_for_nominee = [v for v in va if v['alvo'] == nome]
+            n_votes = pn.get('n_votes', len(votes_for_nominee))
+            n_enemies = pn.get('from_enemies', 0)
+            n_traitors = pn.get('from_traitors', 0)
+            n_blind = pn.get('from_blind', 0)
 
         # Pre-compute prediction metrics (used in summary + conclusion)
         vp_predicted_votes_for = vp_aggregate.get("vote_concentration", {}).get(nome, 0) if vp_predictions else 0
@@ -2935,6 +2960,23 @@ if ultimo and ultimo.get('participantes'):
         elif is_bv_escapee:
             sufixo = 'a' if genero(nome) == 'f' else 'o'
             print(f"**Conclusão:** {nome} **escapou pelo Bate e Volta** — foi indicad{sufixo} mas venceu a prova e saiu do paredão.\n")
+        elif _is_grande_final_loop:
+            _res_fin = ultimo.get('resultado') or {}
+            _votos_fin = (_res_fin.get('votos', {}) or {}).get(nome, {}) or {}
+            _pct_fin = _votos_fin.get('voto_total')
+            sufixo = 'a' if genero(nome) == 'f' else 'o'
+            if is_finalizado and _res_fin.get('campeao') == nome:
+                sufixo_c = 'ã' if genero(nome) == 'f' else 'ão'
+                _pct_s = f" com **{_pct_fin:.2f}%**" if _pct_fin is not None else ""
+                print(f"**Conclusão:** 🏆 {nome} é **campe{sufixo_c}** do BBB 26{_pct_s}.\n")
+            elif is_finalizado and _res_fin.get('segundo') == nome:
+                _pct_s = f" com **{_pct_fin:.2f}%**" if _pct_fin is not None else ""
+                print(f"**Conclusão:** 🥈 {nome} ficou em **2º lugar**{_pct_s}.\n")
+            elif is_finalizado and _res_fin.get('terceiro') == nome:
+                _pct_s = f" com **{_pct_fin:.2f}%**" if _pct_fin is not None else ""
+                print(f"**Conclusão:** 🥉 {nome} ficou em **3º lugar**{_pct_s}.\n")
+            else:
+                print(f"**Conclusão:** 🏆 {nome} é **finalista** e disputa o título no voto popular — não há votação da casa no Grande Final.\n")
         else:
             sufixo = 'a' if genero(nome) == 'f' else 'o'
             print(f"**Conclusão:** {nome} chegou ao paredão **apenas por indicação direta** — sem votos da casa.\n")
