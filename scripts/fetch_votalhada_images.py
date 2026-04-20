@@ -44,8 +44,11 @@ def get_post_url_for_paredao(numero: int) -> tuple[str, str]:
     """Return (url, folder_YYYY_MM_DD) for the Votalhada pesquisa post.
 
     If the paredão exists in paredoes.json, uses data_formacao for the URL
-    month/year and folder name. Otherwise falls back to the current month/year
-    (the URL pattern is predictable: /YYYY/MM/pesquisaN.html).
+    month/year and folder name. A custom `votalhada_url` field on the paredão
+    entry overrides the default pesquisa{N}.html pattern (used for special
+    events like Grande Final where the URL slug differs).
+
+    Fallback: current month/year (URL pattern: /YYYY/MM/pesquisaN.html).
     """
     data = _load_paredoes()
     for p in data["paredoes"]:
@@ -53,9 +56,12 @@ def get_post_url_for_paredao(numero: int) -> tuple[str, str]:
             data_formacao = p.get("data_formacao") or p.get("data")
             if not data_formacao:
                 break  # fall through to fallback
+            folder = data_formacao.replace("-", "_")
+            override = p.get("votalhada_url")
+            if override:
+                return override, folder
             year, month, _ = data_formacao.split("-")
             url = f"https://votalhada.blogspot.com/{year}/{month}/pesquisa{numero}.html"
-            folder = data_formacao.replace("-", "_")
             return url, folder
 
     # Fallback: paredão not in paredoes.json yet — derive from current date

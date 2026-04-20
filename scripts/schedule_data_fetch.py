@@ -213,6 +213,10 @@ def _bootstrap_polls_entry(paredao_num: int) -> bool:
         "plataformas": {},
         "serie_temporal": [],
     }
+    # Grande Final uses "vote to win" semantics (not eliminate).
+    if paredao_entry.get("grande_final"):
+        skeleton["tipo_voto"] = "vencer"
+        skeleton["grande_final"] = True
 
     polls_data["paredoes"].append(skeleton)
     POLLS_JSON.parent.mkdir(parents=True, exist_ok=True)
