@@ -1,38 +1,36 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-20T00:32:16.729125+00:00",
+    "generated_at": "2026-04-20T03:08:05.527975+00:00",
     "date": "2026-04-19",
     "cycle": 18,
     "reference_date": "2026-04-19",
-    "n_active": 4,
+    "n_active": 3,
     "n_clusters": 2,
     "n_paredoes": 17,
-    "n_contradictions": 41,
-    "n_tensions": 1,
-    "silhouette_coefficient": -0.0356,
-    "resolution_used": 0.5,
+    "n_contradictions": 43,
+    "n_tensions": 0,
+    "silhouette_coefficient": null,
+    "resolution_used": 1.0,
     "best_cohesion": {
-      "label": 2,
-      "name": "Aliança Grupo Misto",
-      "score": 1.675
+      "label": 1,
+      "name": "Grupo Misto",
+      "score": 0.97
     },
     "worst_rivalry": {
       "key": "1<>2",
-      "score": -1.2746,
-      "text": "Grupo Misto vs Aliança Grupo Misto"
+      "score": -0.2595,
+      "text": "Grupo Misto vs Núcleo Camarote"
     }
   },
   "active_names": [
     "Ana Paula Renault",
     "Juliano Floss",
-    "Leandro",
     "Milena"
   ],
   "cluster_order": [
     "Ana Paula Renault",
     "Milena",
-    "Juliano Floss",
-    "Leandro"
+    "Juliano Floss"
   ],
   "communities": [
     {
@@ -50,37 +48,35 @@
       "cohesion": 0.97,
       "best_external": {
         "label": 2,
-        "name": "Aliança Grupo Misto",
-        "score": -1.2746
+        "name": "Núcleo Camarote",
+        "score": -0.2595
       },
       "worst_external": {
         "label": 2,
-        "name": "Aliança Grupo Misto",
-        "score": -1.2746
+        "name": "Núcleo Camarote",
+        "score": -0.2595
       }
     },
     {
       "label": 2,
-      "name": "Aliança Grupo Misto",
+      "name": "Núcleo Camarote",
       "color": "#3498db",
       "members": [
-        "Juliano Floss",
-        "Leandro"
+        "Juliano Floss"
       ],
       "group_composition": {
-        "Camarote": 1,
-        "Pipoca": 1
+        "Camarote": 1
       },
-      "cohesion": 1.675,
+      "cohesion": 0,
       "best_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -1.2746
+        "score": -0.2595
       },
       "worst_external": {
         "label": 1,
         "name": "Grupo Misto",
-        "score": -1.2746
+        "score": -0.2595
       }
     }
   ],
@@ -89,11 +85,11 @@
       "cluster_a": 1,
       "cluster_b": 2,
       "name_a": "Grupo Misto",
-      "name_b": "Aliança Grupo Misto",
-      "score_sym": -1.2746,
-      "score_a_to_b": -1.7865,
-      "score_b_to_a": -0.7628,
-      "vote_alignment": 0.6034
+      "name_b": "Núcleo Camarote",
+      "score_sym": -0.2595,
+      "score_a_to_b": -0.855,
+      "score_b_to_a": 0.336,
+      "vote_alignment": 0.625
     }
   ],
   "polarization": [
@@ -101,8 +97,8 @@
       "name": "Ana Paula Renault",
       "grupo": "Veterano",
       "cluster": 1,
-      "avg_received": -1.131,
-      "std_received": 2.9668,
+      "avg_received": 0.833,
+      "std_received": 1.277,
       "contradictions": 2,
       "pos_received": 2.11,
       "top_love": [
@@ -113,17 +109,9 @@
         {
           "name": "Juliano Floss",
           "score": -0.44
-        },
-        {
-          "name": "Leandro",
-          "score": -5.06
         }
       ],
       "top_hate": [
-        {
-          "name": "Leandro",
-          "score": -5.06
-        },
         {
           "name": "Juliano Floss",
           "score": -0.44
@@ -138,15 +126,11 @@
       "name": "Juliano Floss",
       "grupo": "Camarote",
       "cluster": 2,
-      "avg_received": 0.1467,
-      "std_received": 1.52,
+      "avg_received": -0.855,
+      "std_received": 0.675,
       "contradictions": 3,
-      "pos_received": 2.15,
+      "pos_received": 0,
       "top_love": [
-        {
-          "name": "Leandro",
-          "score": 2.15
-        },
         {
           "name": "Ana Paula Renault",
           "score": -0.18
@@ -164,47 +148,6 @@
         {
           "name": "Ana Paula Renault",
           "score": -0.18
-        },
-        {
-          "name": "Leandro",
-          "score": 2.15
-        }
-      ]
-    },
-    {
-      "name": "Leandro",
-      "grupo": "Pipoca",
-      "cluster": 2,
-      "avg_received": -1.412,
-      "std_received": 2.8873,
-      "contradictions": 0,
-      "pos_received": 1.2,
-      "top_love": [
-        {
-          "name": "Juliano Floss",
-          "score": 1.2
-        },
-        {
-          "name": "Milena",
-          "score": 0.0
-        },
-        {
-          "name": "Ana Paula Renault",
-          "score": -5.44
-        }
-      ],
-      "top_hate": [
-        {
-          "name": "Ana Paula Renault",
-          "score": -5.44
-        },
-        {
-          "name": "Milena",
-          "score": 0.0
-        },
-        {
-          "name": "Juliano Floss",
-          "score": 1.2
         }
       ]
     },
@@ -212,15 +155,11 @@
       "name": "Milena",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": 0.7607,
-      "std_received": 0.6642,
+      "avg_received": 0.473,
+      "std_received": 0.643,
       "contradictions": 3,
-      "pos_received": 2.452,
+      "pos_received": 1.116,
       "top_love": [
-        {
-          "name": "Leandro",
-          "score": 1.34
-        },
         {
           "name": "Juliano Floss",
           "score": 1.12
@@ -238,10 +177,6 @@
         {
           "name": "Juliano Floss",
           "score": 1.12
-        },
-        {
-          "name": "Leandro",
-          "score": 1.34
         }
       ]
     }
@@ -250,25 +185,16 @@
     [
       0.0,
       0.97,
-      -0.312,
-      -5.2475
+      -0.312
     ],
     [
       0.97,
       0.0,
-      -0.207,
-      0.668
+      -0.207
     ],
     [
       -0.312,
       -0.207,
-      0.0,
-      1.675
-    ],
-    [
-      -5.2475,
-      0.668,
-      1.675,
       0.0
     ]
   ],
@@ -276,25 +202,16 @@
     [
       0.0,
       0.7857,
-      0.5833,
-      0.5385
+      0.5833
     ],
     [
       0.7857,
       0.0,
-      0.6667,
-      0.625
+      0.6667
     ],
     [
       0.5833,
       0.6667,
-      0.0,
-      0.7143
-    ],
-    [
-      0.5385,
-      0.625,
-      0.7143,
       0.0
     ]
   ]

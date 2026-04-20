@@ -1036,8 +1036,8 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Scope | Count | Definition |
 |---|---|---|
 | `with_indicados` | 18 | Paredões com indicados_finais |
-| `all_finalized` | 17 | Finalizados (inclui falso) |
-| `real_only` | 16 | Finalizados reais (exclui falso) |
+| `all_finalized` | 18 | Finalizados (inclui falso) |
+| `real_only` | 17 | Finalizados reais (exclui falso) |
 
 ### Paredão Matrix
 
@@ -1060,7 +1060,7 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | P15 | Gabriela, Marciele, Leandro | Marciele | 59.34% | Não | finalizado |
 | P16 | Ana Paula Renault, Gabriela, Juliano Floss | Gabriela | 64.12% | Não | finalizado |
 | P17 | Ana Paula Renault, Jordana, Juliano Floss | Jordana | 71.80% | Não | finalizado |
-| P18 | Ana Paula Renault, Leandro, Milena | — | — | Não | em_andamento |
+| P18 | Ana Paula Renault, Leandro, Milena | Leandro | 52.19% | Não | finalizado |
 
 ### Route Effectiveness (`real_only`)
 
@@ -1070,6 +1070,8 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Casa | 3 | 11 | 27.3% |
 | Contragolpe | 3 | 8 | 37.5% |
 | Líder | 6 | 16 | 37.5% |
+| 2ª colocada na Etapa 2 da Prova do Finalista (quiz) — Juliano Floss venceu (1º a atingir 5 pontos) e se tornou o 1º Finalista; Leandro ficou em 3º | Não (n=1) | 1 | — |
+| 3º colocado na Etapa 2 da Prova do Finalista (quiz) — Juliano Floss venceu (1º a atingir 5 pontos) e se tornou o 1º Finalista; Milena ficou em 2º | Sim (n=1) | 1 | — |
 | Bloco do Paredão | Não (n=1) | 1 | — |
 | Caixas-Surpresa | Não (n=1) | 1 | — |
 | Consenso Anjo+Monstro | Sim (n=1) | 1 | — |
@@ -1081,14 +1083,15 @@ Name as final tiebreaker for deterministic ordering. No composite score — raw 
 | Voto de Minerva (empate 2×2) | Não (n=1) | 1 | — |
 | Voto de Minerva (empate 3×3 com Leandro) | Sim (n=1) | 1 | — |
 | Voto de Minerva (empate 3×3 com Samira) | Não (n=1) | 1 | — |
+| Última colocada na Etapa 1 da Prova do Finalista (maior tempo: 01:50.614) — emparedada direta, não disputou o quiz da Etapa 2 | Não (n=1) | 1 | — |
 
-**First-timer elimination rate** (`real_only`): 8/16 = 50.0%
+**First-timer elimination rate** (`real_only`): 8/17 = 47.1%
 
 ### Bate-e-Volta Metrics (`real_only`)
 
 | Metric | n | Total | Rate |
 |---|---|---|---|
-| Paredões com BV | 8 | 16 | 50.0% |
+| Paredões com BV | 8 | 17 | 47.1% |
 | Vencedores que escaparam | 10 | 10 | 100.0% |
 | Perdedores que sobreviveram | 9 | 14 | 64.3% |
 | Perdedores eliminados | 5 | 14 | 35.7% |
@@ -1100,7 +1103,7 @@ Total BV participants: **24**
 - **Biggest swing**: Solange Couto — 15.19% (P5) → 94.17% (P12) = 78.98 p.p.
 - **BV champion**: Alberto Cowboy (3x)
 - **Líder favorite target**: Milena (3x)
-- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2), Voto de Minerva (empate 2×2 com Gabriela), Voto de Minerva (empate 3×3 com Samira), Voto de Minerva (empate 3×3 com Leandro), Sonho do Poder (Jordana)
+- **Unknown routes**: Dinâmica (Grupo Tesoura), Dinâmica (Grupo Pedra), Voto de Minerva (empate 2×2), Voto de Minerva (empate 2×2 com Gabriela), Voto de Minerva (empate 3×3 com Samira), Voto de Minerva (empate 3×3 com Leandro), Sonho do Poder (Jordana), Última colocada na Etapa 1 da Prova do Finalista (maior tempo: 01:50.614) — emparedada direta, não disputou o quiz da Etapa 2, 3º colocado na Etapa 2 da Prova do Finalista (quiz) — Juliano Floss venceu (1º a atingir 5 pontos) e se tornou o 1º Finalista; Milena ficou em 2º, 2ª colocada na Etapa 2 da Prova do Finalista (quiz) — Juliano Floss venceu (1º a atingir 5 pontos) e se tornou o 1º Finalista; Leandro ficou em 3º
 
 ### Fake Paredão Handling
 
