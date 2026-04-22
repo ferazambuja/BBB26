@@ -2606,6 +2606,8 @@ def normalize_route_label(route: str | None) -> str:
         return "Exilado"
     if "caixas" in lower:
         return "Caixas-Surpresa"
+    if "prova do finalista" in lower:
+        return "Prova do Finalista"
     return cleaned
 
 
