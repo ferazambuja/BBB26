@@ -12,8 +12,9 @@ name: BBB26 Daily Update
 #    This saves ~2 min of redundant fetch + build.
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
+  # DEACTIVATED post-BBB26 season (2026-04-22). Re-enable for BBB27.
+  # schedule:
+  #   - cron: '*/15 * * * *'  # Every 15 minutes
   workflow_dispatch:  # Allow manual trigger (always runs full pipeline)
 
 # NOTE: No workflow-level concurrency group. A lightweight 31-second schedule

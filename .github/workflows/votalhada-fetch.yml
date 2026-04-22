@@ -16,12 +16,13 @@ name: Votalhada Image Fetch
 # Fetch 10 min after each expected update.
 
 on:
-  schedule:
-    # Hourly polling — catches all Votalhada update windows regardless of timing.
-    # No-op runs (~15s) when images haven't changed (size+sha256 dedup).
-    # Self-gates on active paredão with complete formation.
-    # 24 runs/day × ~15s = ~6 min total compute. Only new images trigger commits.
-    - cron: '10 * * * *'
+  # DEACTIVATED post-BBB26 season (2026-04-22). Re-enable for BBB27.
+  # schedule:
+  #   # Hourly polling — catches all Votalhada update windows regardless of timing.
+  #   # No-op runs (~15s) when images haven't changed (size+sha256 dedup).
+  #   # Self-gates on active paredão with complete formation.
+  #   # 24 runs/day × ~15s = ~6 min total compute. Only new images trigger commits.
+  #   - cron: '10 * * * *'
   workflow_dispatch:
     inputs:
       paredao:
