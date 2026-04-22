@@ -27,6 +27,10 @@ def _is_fake(p: dict) -> bool:
     return bool(p.get("paredao_falso"))
 
 
+def _is_grande_final(p: dict) -> bool:
+    return bool(p.get("grande_final"))
+
+
 def _has_indicados(p: dict) -> bool:
     return bool(p.get("indicados_finais"))
 
@@ -78,8 +82,9 @@ def _get_bv_info(p: dict) -> dict | None:
 
 
 def _partition_scopes(paredoes_list: list[dict]) -> dict[str, list[dict]]:
-    """Split paredões into scope partitions."""
-    with_indicados = [p for p in paredoes_list if _has_indicados(p)]
+    """Split paredões into scope partitions. Grande Final excluded from all scopes."""
+    regular = [p for p in paredoes_list if not _is_grande_final(p)]
+    with_indicados = [p for p in regular if _has_indicados(p)]
     all_finalized = [p for p in with_indicados if _is_finalized(p)]
     real_only = [p for p in all_finalized if not _is_fake(p)]
     return {
@@ -463,8 +468,9 @@ def build_nunca_paredao_items(
     active_set = ctx["active_set"]
     manual_events = ctx.get("manual_events") or {}
 
-    all_nominees = _collect_all_nominees(paredoes_list)
-    n_paredoes = len([p for p in paredoes_list if _has_indicados(p)])
+    regular = [p for p in paredoes_list if not _is_grande_final(p)]
+    all_nominees = _collect_all_nominees(regular)
+    n_paredoes = len([p for p in regular if _has_indicados(p)])
 
     items = []
     for name in active_set:
@@ -504,7 +510,7 @@ def build_figurinha_repetida_items(
     """
     active_set = ctx["active_set"]
     participants_index = ctx.get("participants_index") or {}
-    with_indicados = [p for p in paredoes_list if _has_indicados(p)]
+    with_indicados = [p for p in paredoes_list if _has_indicados(p) and not _is_grande_final(p)]
     nominee_history = _build_nominee_history(with_indicados)
 
     items = []

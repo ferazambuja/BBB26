@@ -2906,7 +2906,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
     n_paredoes = 0
     display_limit = 4
 
-    paredoes_with_votes = [p for p in paredoes_list if p.get("votos_casa")]
+    paredoes_with_votes = [p for p in paredoes_list if p.get("votos_casa") and not p.get("grande_final")]
     if paredoes_with_votes:
         n_paredoes = len(paredoes_with_votes)
         bv_escape_detail: dict[str, list[int]] = defaultdict(list)  # BV-only paredão nums
@@ -3227,7 +3227,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
         nunca_items, nunca_exited = build_nunca_paredao_items(
             ctx, paredoes_list, exposure_by_name,
         )
-        paredoes_with_indicados = [p for p in paredoes_list if p.get("indicados_finais")]
+        paredoes_with_indicados = [p for p in paredoes_list if p.get("indicados_finais") and not p.get("grande_final")]
         if nunca_items:
             cards.append({
                 "type": "nunca_paredao",
@@ -3256,7 +3256,7 @@ def _compute_static_cards(ctx: dict[str, Any]) -> tuple[list[str], list[dict], d
                 "title": "Figurinha Repetida",
                 "color": "#8e44ad",
                 "link": "paredoes.html#figurinha-repetida",
-                "n_paredoes": len([p for p in paredoes_list if p.get("indicados_finais")]),
+                "n_paredoes": len([p for p in paredoes_list if p.get("indicados_finais") and not p.get("grande_final")]),
                 "display_limit": 5,
                 "stats": exposure_stats,
                 "stat_line": _build_figurinha_stat_line(exposure_stats),
