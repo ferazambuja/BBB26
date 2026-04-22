@@ -2708,7 +2708,7 @@ if ultimo and ultimo.get('participantes'):
         print(f'<div class="u-s314">')
         print(f'{avatar_img(nome, AVATARS, 64)}')
         print(f'<div>')
-        print(f'<span class="fs-base" style="background:{badge_color}; color:#fff; padding:4px 12px; border-radius:6px; font-weight:bold;">{badge_text}</span>')
+        print(f'<span class="fs-sm" style="background:{badge_color}; color:#fff; padding:3px 10px; border-radius:6px; font-weight:bold;">{badge_text}</span>')
         print(f' <span style="color:{grupo_color}; font-weight:500; margin-left:8px;">{grupo}</span>')
         print(f'</div></div>\n')
 
