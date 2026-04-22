@@ -1220,14 +1220,19 @@ for i, paredao in enumerate(reversed(paredoes_visiveis)):  # Most recent first
         if _n_past > 0:
             _hist_badge = f'<div class="fs-2xs u-s471">{_n_past + 1}x</div>'
 
-        print(f'<div style="border:2px solid {border_color}; border-radius:12px; padding:0.6rem; background:rgba(255,255,255,0.03); width:130px; text-align:center; position:relative;">')
+        _is_podium = resultado in ('CAMPEAO', 'SEGUNDO', 'TERCEIRO')
+        _card_w = '155px' if resultado == 'CAMPEAO' else ('130px' if resultado == 'SEGUNDO' else ('120px' if resultado == 'TERCEIRO' else '130px'))
+        _card_shadow = 'box-shadow:0 0 18px 4px rgba(241,196,15,0.5);' if resultado == 'CAMPEAO' else ('box-shadow:0 0 8px 2px rgba(189,195,199,0.3);' if resultado == 'SEGUNDO' else ('box-shadow:0 0 6px 2px rgba(205,127,50,0.25);' if resultado == 'TERCEIRO' else ''))
+        _av_size = '80px' if resultado == 'CAMPEAO' else '70px'
+        print(f'<div style="border:2px solid {border_color}; border-radius:12px; padding:0.6rem; background:rgba(255,255,255,0.03); width:{_card_w}; text-align:center; position:relative; {_card_shadow}">')
         print(_hist_badge)
         if avatar_url:
-            print(f'<img src="{avatar_url}" alt="{nome}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
+            print(f'<img src="{avatar_url}" alt="{nome}" style="width:{_av_size}; height:{_av_size}; border-radius:50%; object-fit:cover; border:2px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
         print(f'<div class="fs-base u-s063">{first_name}</div>')
         print(f'<span class="fs-2xs" style="display:inline-block; padding:0.15rem 0.4rem; background:{badge_bg}; color:#fff; border-radius:8px; font-weight:bold; margin:0.2rem 0;">{badge_text}</span>')
         if is_finalizado:
-            print(f'<div class="fs-xl u-s063">{voto_total:.1f}%</div>')
+            _pct_class = 'fs-xl' if resultado == 'CAMPEAO' else 'fs-base'
+            print(f'<div class="{_pct_class} u-s063">{voto_total:.1f}%</div>')
         else:
             print(f'<div class="fs-2xs meta-text" style="margin-top:0.35rem;">{part.get("como", "Ainda no paredão")}</div>')
         print('</div>')

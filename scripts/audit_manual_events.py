@@ -119,7 +119,7 @@ def run_audit():
         missing = ev.get("missing", [])
         for name in missing:
             status = (manual_participants.get(name) or {}).get("status")
-            if status not in {"eliminado", "eliminada", "desistente", "desclassificado"}:
+            if status not in {"eliminado", "eliminada", "desistente", "desclassificado", "finalista", "campeao", "campeoa"}:
                 issues["elimination_missing_manual"].append((ev.get("date"), name))
 
     # Write report

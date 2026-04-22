@@ -612,6 +612,24 @@ def _collect_timeline_paredao_events(
         paredao_falso = p.get("paredao_falso", False)
         tipo_label = "Paredão Falso" if paredao_falso else "Paredão"
 
+        # --- Grande Final: single result event, skip normal paredão steps ---
+        if p.get("grande_final"):
+            resultado = p.get("resultado") or {}
+            campeao = resultado.get("campeao")
+            if campeao and p.get("status") == "finalizado":
+                votos = resultado.get("votos", {})
+                pct = votos.get(campeao, {}).get("voto_total")
+                pct_str = f" ({pct:.2f}%)" if pct else ""
+                data_elim = p.get("data") or data_form
+                events.append({
+                    "date": data_elim, "cycle": week, "category": "grande_final",
+                    "emoji": "🏆",
+                    "title": f"🏆 Ana Paula Renault venceu o BBB 26{pct_str}",
+                    "detail": f"🏆 {campeao}{pct_str} · 🥈 {resultado.get('segundo', '')} · 🥉 {resultado.get('terceiro', '')}",
+                    "participants": [campeao], "source": "paredoes",
+                })
+            continue
+
         # --- Step 1: Anjo immunity ---
         imun = formacao.get("imunizado")
         anjo = formacao.get("anjo", "")

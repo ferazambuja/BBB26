@@ -1466,8 +1466,9 @@ def render_nominee_cards_finalized(
 
     Each row dict must have keys: nome, grupo, resultado, voto_total.
     """
+    is_grande_final = any(r.get('resultado') in ('CAMPEAO', 'SEGUNDO', 'TERCEIRO') for r in df_rows)
     lines: list[str] = []
-    lines.append('<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; margin:1.5rem 0 2rem 0;">')
+    lines.append('<div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:1.2rem; margin:1.5rem 0 2rem 0;">')
     for row in df_rows:
         nome = row['nome']
         resultado = row.get('resultado', '')
@@ -1482,16 +1483,28 @@ def render_nominee_cards_finalized(
             suf = 'Ã' if genero(nome) == 'f' else 'ÃO'
             badge_text = f'🏆 CAMPE{suf}'
             img_filter = 'none'
+            card_w = '170px'
+            card_extra = 'box-shadow:0 0 24px 6px rgba(241,196,15,0.55), 0 0 8px 2px rgba(241,196,15,0.3);'
+            avatar_size = '96px'
+            pct_class = 'fs-2xl'
         elif resultado == 'SEGUNDO':
             border_color = '#bdc3c7'
             badge_bg = '#bdc3c7'
             badge_text = '🥈 2º LUGAR'
             img_filter = 'none'
+            card_w = '150px'
+            card_extra = 'box-shadow:0 0 12px 3px rgba(189,195,199,0.35);'
+            avatar_size = '80px'
+            pct_class = 'fs-xl'
         elif resultado == 'TERCEIRO':
             border_color = '#cd7f32'
             badge_bg = '#cd7f32'
             badge_text = '🥉 3º LUGAR'
             img_filter = 'none'
+            card_w = '140px'
+            card_extra = 'box-shadow:0 0 10px 2px rgba(205,127,50,0.3);'
+            avatar_size = '72px'
+            pct_class = 'fs-lg'
         elif resultado == 'ELIMINADA':
             border_color = '#E6194B'
             badge_bg = '#E6194B'
@@ -1501,12 +1514,20 @@ def render_nominee_cards_finalized(
                 suf = 'A' if genero(nome) == 'f' else 'O'
                 badge_text = f'ELIMINAD{suf}'
             img_filter = 'grayscale(100%)'
+            card_w = '150px'
+            card_extra = ''
+            avatar_size = '80px'
+            pct_class = 'fs-2xl'
         else:
             border_color = '#3CB44B'
             badge_bg = '#3CB44B'
             suf = 'A' if genero(nome) == 'f' else 'O'
             badge_text = f'SALV{suf}'
             img_filter = 'none'
+            card_w = '150px'
+            card_extra = ''
+            avatar_size = '80px'
+            pct_class = 'fs-2xl'
 
         # History count
         past = (paredao_history or {}).get(nome, [])
@@ -1515,13 +1536,13 @@ def render_nominee_cards_finalized(
         if n_past > 0:
             hist_badge = f'<div class="fs-xs" style="position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; width:22px; height:22px; border-radius:50%; font-weight:bold; display:flex; align-items:center; justify-content:center; border:2px solid #1a1a2e;">{n_past + 1}x</div>'
 
-        lines.append(f'<div style="width:150px; border:3px solid {border_color}; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.03); text-align:center; position:relative;">')
+        lines.append(f'<div style="width:{card_w}; border:3px solid {border_color}; border-radius:14px; padding:0.8rem; background:rgba(255,255,255,0.03); text-align:center; position:relative; {card_extra}">')
         lines.append(hist_badge)
         if avatar_url:
-            lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
+            lines.append(f'<img src="{avatar_url}" alt="{esc_nome}" style="width:{avatar_size}; height:{avatar_size}; border-radius:50%; object-fit:cover; border:3px solid {border_color}; margin-bottom:0.4rem; filter:{img_filter};">')
         lines.append(f'<div class="fs-base" style="font-weight:bold; color:#fff; margin-bottom:0.3rem;">{first_name}</div>')
         lines.append(f'<span class="fs-2xs" style="display:inline-block; padding:0.2rem 0.5rem; background:{badge_bg}; color:#fff; border-radius:8px; font-weight:bold;">{badge_text}</span>')
-        lines.append(f'<div class="fs-2xl" style="color:#fff; font-weight:bold; margin-top:0.3rem;">{voto_total:.2f}%</div>')
+        lines.append(f'<div class="{pct_class}" style="color:#fff; font-weight:bold; margin-top:0.3rem;">{voto_total:.2f}%</div>')
         lines.append('</div>')
     lines.append('</div>')
     return '\n'.join(lines)

@@ -1,11 +1,11 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-22T03:39:28.898824+00:00",
+    "generated_at": "2026-04-22T04:04:38.430837+00:00",
     "date": "2026-04-21",
     "cycle": 18,
     "reference_date": "2026-04-21",
-    "n_active": 3,
-    "n_clusters": 2,
+    "n_active": 2,
+    "n_clusters": 1,
     "n_paredoes": 17,
     "n_contradictions": 43,
     "n_tensions": 0,
@@ -16,21 +16,15 @@
       "name": "Grupo Misto",
       "score": 0.82
     },
-    "worst_rivalry": {
-      "key": "1<>2",
-      "score": -0.2595,
-      "text": "Grupo Misto vs Núcleo Camarote"
-    }
+    "worst_rivalry": null
   },
   "active_names": [
     "Ana Paula Renault",
-    "Juliano Floss",
     "Milena"
   ],
   "cluster_order": [
     "Ana Paula Renault",
-    "Milena",
-    "Juliano Floss"
+    "Milena"
   ],
   "communities": [
     {
@@ -46,108 +40,30 @@
         "Pipoca": 1
       },
       "cohesion": 0.82,
-      "best_external": {
-        "label": 2,
-        "name": "Núcleo Camarote",
-        "score": -0.2595
-      },
-      "worst_external": {
-        "label": 2,
-        "name": "Núcleo Camarote",
-        "score": -0.2595
-      }
-    },
-    {
-      "label": 2,
-      "name": "Núcleo Camarote",
-      "color": "#3498db",
-      "members": [
-        "Juliano Floss"
-      ],
-      "group_composition": {
-        "Camarote": 1
-      },
-      "cohesion": 0,
-      "best_external": {
-        "label": 1,
-        "name": "Grupo Misto",
-        "score": -0.2595
-      },
-      "worst_external": {
-        "label": 1,
-        "name": "Grupo Misto",
-        "score": -0.2595
-      }
+      "best_external": null,
+      "worst_external": null
     }
   ],
-  "inter_cluster": [
-    {
-      "cluster_a": 1,
-      "cluster_b": 2,
-      "name_a": "Grupo Misto",
-      "name_b": "Núcleo Camarote",
-      "score_sym": -0.2595,
-      "score_a_to_b": -0.855,
-      "score_b_to_a": 0.336,
-      "vote_alignment": 0.625
-    }
-  ],
+  "inter_cluster": [],
   "polarization": [
     {
       "name": "Ana Paula Renault",
       "grupo": "Veterano",
       "cluster": 1,
-      "avg_received": 0.833,
-      "std_received": 1.277,
+      "avg_received": 2.11,
+      "std_received": 0.0,
       "contradictions": 2,
       "pos_received": 2.11,
       "top_love": [
         {
           "name": "Milena",
           "score": 2.11
-        },
-        {
-          "name": "Juliano Floss",
-          "score": -0.44
         }
       ],
       "top_hate": [
-        {
-          "name": "Juliano Floss",
-          "score": -0.44
-        },
         {
           "name": "Milena",
           "score": 2.11
-        }
-      ]
-    },
-    {
-      "name": "Juliano Floss",
-      "grupo": "Camarote",
-      "cluster": 2,
-      "avg_received": -0.855,
-      "std_received": 0.675,
-      "contradictions": 3,
-      "pos_received": 0,
-      "top_love": [
-        {
-          "name": "Ana Paula Renault",
-          "score": -0.18
-        },
-        {
-          "name": "Milena",
-          "score": -1.53
-        }
-      ],
-      "top_hate": [
-        {
-          "name": "Milena",
-          "score": -1.53
-        },
-        {
-          "name": "Ana Paula Renault",
-          "score": -0.18
         }
       ]
     },
@@ -155,15 +71,11 @@
       "name": "Milena",
       "grupo": "Pipoca",
       "cluster": 1,
-      "avg_received": 0.323,
-      "std_received": 0.793,
+      "avg_received": -0.47,
+      "std_received": 0.0,
       "contradictions": 3,
-      "pos_received": 1.116,
+      "pos_received": 0,
       "top_love": [
-        {
-          "name": "Juliano Floss",
-          "score": 1.12
-        },
         {
           "name": "Ana Paula Renault",
           "score": -0.47
@@ -173,10 +85,6 @@
         {
           "name": "Ana Paula Renault",
           "score": -0.47
-        },
-        {
-          "name": "Juliano Floss",
-          "score": 1.12
         }
       ]
     }
@@ -184,34 +92,20 @@
   "score_matrix_ordered": [
     [
       0.0,
-      0.82,
-      -0.312
+      0.82
     ],
     [
       0.82,
-      0.0,
-      -0.207
-    ],
-    [
-      -0.312,
-      -0.207,
       0.0
     ]
   ],
   "vote_matrix_ordered": [
     [
       0.0,
-      0.7857,
-      0.5833
+      0.7857
     ],
     [
       0.7857,
-      0.0,
-      0.6667
-    ],
-    [
-      0.5833,
-      0.6667,
       0.0
     ]
   ]
