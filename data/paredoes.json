@@ -2488,7 +2488,7 @@
     },
     {
       "numero": 19,
-      "status": "em_andamento",
+      "status": "finalizado",
       "data": "2026-04-21",
       "data_formacao": "2026-04-20",
       "hora_eliminacao": "23:00",
@@ -2530,11 +2530,26 @@
         }
       ],
       "votos_casa": {},
+      "resultado": {
+        "campeao": "Ana Paula Renault",
+        "segundo": "Milena",
+        "terceiro": "Juliano Floss",
+        "votos": {
+          "Ana Paula Renault": {"voto_unico": 76.61, "voto_torcida": 74.37, "voto_total": 75.94},
+          "Milena": {"voto_unico": 16.75, "voto_torcida": 18.54, "voto_total": 17.29},
+          "Juliano Floss": {"voto_unico": 6.64, "voto_torcida": 7.09, "voto_total": 6.77}
+        }
+      },
       "fontes": [
         {
           "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-esta-na-final-do-bbb-26-ana-paula-renault-juliano-floss-e-milena-disputam-premio-da-temporada.ghtml",
           "arquivo": "docs/scraped/quem-esta-na-final-do-bbb-26-ana-paula-renault-juliano-floss-e-milena-disputam-premio-da-temporada.md",
           "titulo": "Quem está na Final do BBB 26: Ana Paula Renault, Juliano Floss e Milena disputam prêmio"
+        },
+        {
+          "url": "https://gshow.globo.com/realities/bbb/bbb-26/dentro-da-casa/noticia/quem-venceu-o-bbb-26-ana-paula-renault-e-a-vencedora-do-big-brother-brasil.ghtml",
+          "arquivo": "docs/scraped/quem-venceu-o-bbb-26-ana-paula-renault-e-a-vencedora-do-big-brother-brasil.md",
+          "titulo": "Quem venceu o BBB 26? Ana Paula Renault é a vencedora do Big Brother Brasil"
         }
       ],
       "cycle": 18

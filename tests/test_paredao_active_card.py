@@ -52,7 +52,7 @@ def _latest_entry_as_active(repo_data: dict, min_serie_len: int = 0) -> dict:
     # Optionally require the poll to have at least `min_serie_len` serie_temporal entries —
     # some turbo paredões publish only 1 Votalhada capture, which is insufficient for
     # momentum-based tests.
-    finalized = [p for p in repo_data["paredoes"] if p.get("status") == "finalizado"]
+    finalized = [p for p in repo_data["paredoes"] if p.get("status") == "finalizado" and not p.get("grande_final")]
     polls_data = repo_data["polls_data"]
     if min_serie_len > 0:
         candidates = [
@@ -172,7 +172,7 @@ def test_active_payload_without_model_prediction_stays_neutral(_repo_data):
 
 
 def test_finalized_payload_uses_official_results_and_grayscale(_repo_data):
-    finalized = next(p for p in reversed(_repo_data["paredoes"]) if p.get("status") == "finalizado" and not p.get("paredao_falso"))
+    finalized = next(p for p in reversed(_repo_data["paredoes"]) if p.get("status") == "finalizado" and not p.get("paredao_falso") and not p.get("grande_final"))
     history = build_paredao_history(_repo_data["raw_paredoes"], finalized["numero"])
     poll = get_poll_for_paredao(_repo_data["polls_data"], finalized["numero"])
 
@@ -248,7 +248,7 @@ def test_repeat_nominees_render_top_right_appearance_badges(_repo_data):
 
 
 def test_poll_comparison_payload_includes_confidence_and_delta(_repo_data):
-    current = next(p for p in reversed(_repo_data["paredoes"]) if p.get("status") == "finalizado" and not p.get("paredao_falso"))
+    current = next(p for p in reversed(_repo_data["paredoes"]) if p.get("status") == "finalizado" and not p.get("paredao_falso") and not p.get("grande_final"))
     poll = get_poll_for_paredao(_repo_data["polls_data"], current["numero"])
     precision = calculate_precision_weights(_repo_data["polls_data"])
     model_prediction = predict_precision_weighted(poll, precision)
