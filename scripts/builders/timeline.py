@@ -615,39 +615,32 @@ def _collect_timeline_paredao_events(
         paredao_falso = p.get("paredao_falso", False)
         tipo_label = "Paredão Falso" if paredao_falso else "Paredão"
 
-        # --- Grande Final: podium events (1º/2º/3º), skip normal paredão steps ---
+        # --- Grande Final: single podium event, skip normal paredão steps ---
         if p.get("grande_final"):
             resultado = p.get("resultado") or {}
-            if p.get("status") == "finalizado" and resultado.get("campeao"):
+            campeao = resultado.get("campeao")
+            if campeao and p.get("status") == "finalizado":
                 votos = resultado.get("votos", {})
                 data_elim = p.get("data") or data_form
-                podium = [
-                    ("campeao", "🏆", "Campeã/Campeão", "grande_final"),
-                    ("segundo", "🥈", "2º lugar", "grande_final"),
-                    ("terceiro", "🥉", "3º lugar", "grande_final"),
-                ]
-                for key, emoji, label, cat in podium:
-                    finalist = resultado.get(key)
-                    if not finalist:
-                        continue
-                    pct = votos.get(finalist, {}).get("voto_total")
-                    pct_str = f" ({pct:.2f}%)" if pct else ""
-                    if key == "campeao":
-                        title = f"{emoji} {finalist} venceu o BBB 26{pct_str}"
-                    else:
-                        title = f"{emoji} {finalist} — {label}{pct_str}"
-                    detail_parts = [
-                        f"🏆 {resultado.get('campeao', '')}",
-                        f"🥈 {resultado.get('segundo', '')}",
-                        f"🥉 {resultado.get('terceiro', '')}",
-                    ]
-                    events.append({
-                        "date": data_elim, "cycle": week, "category": cat,
-                        "emoji": emoji,
-                        "title": title,
-                        "detail": " · ".join(detail_parts),
-                        "participants": [finalist], "source": "paredoes",
-                    })
+                segundo = resultado.get("segundo", "")
+                terceiro = resultado.get("terceiro", "")
+                pct_c = votos.get(campeao, {}).get("voto_total")
+                pct_s = votos.get(segundo, {}).get("voto_total") if segundo else None
+                pct_t = votos.get(terceiro, {}).get("voto_total") if terceiro else None
+                pct_str = f" ({pct_c:.2f}%)" if pct_c else ""
+                detail_parts = [f"🏆 {campeao}"]
+                if segundo:
+                    detail_parts.append(f"🥈 {segundo}" + (f" ({pct_s:.2f}%)" if pct_s else ""))
+                if terceiro:
+                    detail_parts.append(f"🥉 {terceiro}" + (f" ({pct_t:.2f}%)" if pct_t else ""))
+                participants = [n for n in (campeao, segundo, terceiro) if n]
+                events.append({
+                    "date": data_elim, "cycle": week, "category": "grande_final",
+                    "emoji": "🏆",
+                    "title": f"🏆 {campeao} venceu o BBB 26{pct_str}",
+                    "detail": " · ".join(detail_parts),
+                    "participants": participants, "source": "paredoes",
+                })
             continue
 
         # --- Step 1: Anjo immunity ---
