@@ -776,11 +776,25 @@ def build_paredao_card_payload(
     memory_line = _build_memory_line(nominees, model_prediction, vote_mode) if state == "finalized" else None
 
     numero = paredao_entry.get("numero")
-    headline = f"{numero}º Paredão" if numero else "Paredão"
-    if paredao_entry.get("paredao_falso"):
-        headline += " Falso"
-    status_label = "Em votação" if state == "active" else "Resultado oficial" if state == "finalized" else "Aguardando formação"
-    status_color = "#f39c12" if state == "active" else "#e74c3c" if state == "finalized" else _PAREDAO_ROLE_COLORS["neutral"]
+    is_grande_final = bool(paredao_entry.get("grande_final"))
+    if is_grande_final:
+        headline = "Grande Final"
+    else:
+        headline = f"{numero}º Paredão" if numero else "Paredão"
+        if paredao_entry.get("paredao_falso"):
+            headline += " Falso"
+    if state == "active":
+        status_label = "Em votação"
+    elif state == "finalized":
+        status_label = "Resultado da Final" if is_grande_final else "Resultado oficial"
+    else:
+        status_label = "Aguardando formação"
+    if state == "active":
+        status_color = "#f39c12"
+    elif state == "finalized":
+        status_color = "#f1c40f" if is_grande_final else "#e74c3c"
+    else:
+        status_color = _PAREDAO_ROLE_COLORS["neutral"]
 
     return {
         "state": state,
@@ -1224,9 +1238,18 @@ def render_poll_comparison_card(payload: dict | None, avatars: dict[str, str]) -
     )
 
 
+_PODIUM_META: dict[str, dict[str, str]] = {
+    "champion": {"emoji": "🏆", "label": "Campeã"},
+    "silver": {"emoji": "🥈", "label": "2º lugar"},
+    "bronze": {"emoji": "🥉", "label": "3º lugar"},
+}
+
+
 def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, compact: bool = False) -> str:
     modifier = "paredao-index-nominee" if compact else "paredao-live-nominee"
-    avatar_size = 52 if compact else 72
+    role = nominee["color_role"]
+    is_podium = role in _PODIUM_META
+    avatar_size = (60 if compact else 84) if is_podium else (52 if compact else 72)
     pct = nominee.get("display_pct")
     pct_html = (
         f'<div class="paredao-card-pct">{pct:.2f}%</div>'
@@ -1245,6 +1268,18 @@ def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, comp
             f'<span class="paredao-card-appearance-badge" '
             f'title="{appearance_count}º paredão">{appearance_count}x</span>'
         )
+    podium_badge_html = ""
+    podium_ribbon_html = ""
+    if is_podium:
+        meta = _PODIUM_META[role]
+        podium_badge_html = (
+            f'<span class="paredao-card-podium-medal" title="{meta["label"]}" aria-label="{meta["label"]}">'
+            f'{meta["emoji"]}</span>'
+        )
+        podium_ribbon_html = (
+            f'<div class="paredao-card-podium-ribbon" style="background:{nominee["accent_color"]};">'
+            f'{meta["emoji"]} {safe_html(meta["label"])}</div>'
+        )
     avatar = avatar_img(
         nominee["name"],
         avatars,
@@ -1253,8 +1288,9 @@ def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, comp
         grayscale=nominee.get("use_grayscale", False),
     )
     return (
-        f'<div class="{modifier} is-{nominee["color_role"]}">'
+        f'<div class="{modifier} is-{role}{(" is-podium" if is_podium else "")}">'
         f'{appearance_badge_html}'
+        f'{podium_badge_html}'
         f'<div class="paredao-card-avatar">{avatar}</div>'
         f'<div class="paredao-card-main">'
         f'<div class="paredao-card-name">{safe_html(nominee["first_name"])}</div>'
@@ -1262,6 +1298,7 @@ def _render_paredao_nominee_card(nominee: dict, avatars: dict[str, str], *, comp
         f'{bar_html}'
         f'<div class="paredao-card-route">{safe_html(nominee["route_short"])}</div>'
         f'</div>'
+        f'{podium_ribbon_html}'
         f'</div>'
     )
 

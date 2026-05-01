@@ -195,12 +195,13 @@ def test_build_index_data_paredao_card_reflects_current_state():
 
     card = next(card for card in data["highlights"]["cards"] if card["type"] == "paredao")
 
-    # Card state depends on whether the latest paredão is active or finalized
+    # Card state depends on whether the latest paredão is active, finalized,
+    # or the season-ending Grande Final.
     if card["payload"]["state"] == "active":
         assert card["title"] == "Paredão Ativo"
     else:
         assert card["payload"]["state"] == "finalized"
-        assert card["title"] == "Último Paredão"
+        assert card["title"] in {"Último Paredão", "Grande Final"}
 
 
 def test_live_and_index_renderers_share_the_new_card_language(_repo_data):

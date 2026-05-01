@@ -1935,7 +1935,11 @@ Category `grande_final` is registered in `TIMELINE_CAT_COLORS` (gold `#f1c40f`),
 
 The standard paredão-derived Cartola block (no `eliminado`/`nao_eliminado_paredao`/`quarto_secreto`) is still skipped for Grande Final entries — only the podium awards fire.
 
-**Participant exits**: 2nd and 3rd place are **not** "eliminated" — do **not** add entries to `manual_events.json → participants` for them. The season ends; they remained to the end.
+**Participant exits / finalist statuses**: 2nd and 3rd place are **not** "eliminated". You may add them to `manual_events.json → participants` with `status: "finalista"` (and the campeã/o with `status: "campeoa"` / `"campeao"` / `"vencedora"` / `"vencedor"`) for traceability, but the timeline builder explicitly **skips** the standard "saiu" cronologia event for those statuses. The Grande Final block emits its own podium events (🏆 / 🥈 / 🥉) instead, and `build_participants_index` keeps finalists with these statuses flagged `active=true` so the last day of the season shows the Top 3, not just whoever the API still returns post-show.
+
+**Podium card UI**: when `grande_final: true` + `status: finalizado`, the index `Último Paredão` card retitles to **"Grande Final"** (gold accent), and each nominee renders with `is-podium` plus `is-champion` / `is-silver` / `is-bronze` modifiers — gold/silver/bronze gradient borders, medal emoji badge top-left, and a colored ribbon along the bottom (`🏆 Campeã` / `🥈 2º lugar` / `🥉 3º lugar`). Champion gets an extra glow + gold name color.
+
+**Post-final snapshot teardown**: after the Final airs, the API removes finalists from its participant list over a few minutes (count drops to 2, then 1, then 0). Those late-night UTC captures map to the final game-date via the 06:00 BRT cutoff and would otherwise overwrite the "Top 3 still in" final-state snapshot. Delete them from `data/snapshots/` (and re-copy the 14:xx-on-final-day snapshot to `data/latest.json`) once the show ends — they're API teardown noise, not game state.
 
 **Resultado schema when finalizado**:
 ```json

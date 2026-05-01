@@ -1439,6 +1439,77 @@ body.paredao-page .paredao-spotlight-summary-item {
   border-color: rgba(39, 174, 96, 0.24);
 }
 
+/* Grande Final podium (1º/2º/3º) */
+.paredao-live-nominee.is-podium,
+.paredao-index-nominee.is-podium {
+  padding-bottom: 2.4rem;
+  overflow: visible;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.paredao-live-nominee.is-champion,
+.paredao-index-nominee.is-champion {
+  background: linear-gradient(160deg, rgba(241, 196, 15, 0.22), rgba(241, 196, 15, 0.06));
+  border: 2px solid rgba(241, 196, 15, 0.85);
+  box-shadow: 0 0 0 1px rgba(241, 196, 15, 0.35), 0 8px 24px rgba(241, 196, 15, 0.18);
+}
+
+.paredao-live-nominee.is-silver,
+.paredao-index-nominee.is-silver {
+  background: linear-gradient(160deg, rgba(189, 195, 199, 0.18), rgba(189, 195, 199, 0.05));
+  border: 2px solid rgba(189, 195, 199, 0.7);
+}
+
+.paredao-live-nominee.is-bronze,
+.paredao-index-nominee.is-bronze {
+  background: linear-gradient(160deg, rgba(205, 127, 50, 0.18), rgba(205, 127, 50, 0.05));
+  border: 2px solid rgba(205, 127, 50, 0.7);
+}
+
+.paredao-card-podium-medal {
+  position: absolute;
+  top: -0.7rem;
+  left: -0.6rem;
+  z-index: 3;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xl);
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+.paredao-live-nominee.is-champion .paredao-card-podium-medal,
+.paredao-index-nominee.is-champion .paredao-card-podium-medal {
+  border-color: #f1c40f;
+  box-shadow: 0 0 0 2px rgba(241, 196, 15, 0.45), 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.paredao-card-podium-ribbon {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.35rem 0.6rem;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  color: #1a1a2e;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  text-align: center;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.paredao-live-nominee.is-champion .paredao-card-name,
+.paredao-index-nominee.is-champion .paredao-card-name {
+  color: #f1c40f;
+}
+
 .paredao-card-avatar {
   flex-shrink: 0;
 }
