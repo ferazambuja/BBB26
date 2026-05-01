@@ -47,11 +47,17 @@ jobs:
       - name: Install minimal deps
         run: pip install requests
 
+      # API fetch is skipped post-BBB26 season (2026-04-22). The schedule
+      # cron is also disabled, so this only fires if someone re-enables cron
+      # for BBB27. Manual dispatch (render-only) intentionally does NOT hit
+      # the API anymore — re-enable the `if:` block below for next season.
       - name: Fetch latest data
+        if: github.event_name == 'schedule'
         run: python scripts/fetch_data.py --fetch-only
 
       - name: Check for changes and commit
         id: check
+        if: github.event_name == 'schedule'
         run: |
           if git status --porcelain | grep -q "data/"; then
             echo "data_changed=true" >> $GITHUB_OUTPUT
